@@ -596,7 +596,7 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
         v[i] -= min;
     float max = v.max();
     if (!max) {
-        siril_log_color_message(_("Error: zero input maximum\n"), "red");
+        siril_log_error(_("Error: zero input maximum\n"));
         out = std::move(v);
         return;
     }

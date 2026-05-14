@@ -436,7 +436,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	GFileType type;
 
 	fileChooserPreview *preview = args->preview;
-	siril_debug_print("preview idle\n");
+	siril_log_debug("preview idle\n");
 
 	if (!preview_allocated || !preview || !(GTK_IS_IMAGE(preview->image))) {
 		set_cursor_waiting(FALSE);
@@ -566,7 +566,7 @@ static gpointer update_preview(gpointer p) {
 			g_error_free(error);
 			goto cleanup2;
 		}
-		siril_debug_print("Generating JXL preview, filesize %lu\n", jxl_size);
+		siril_log_debug("Generating JXL preview, filesize %lu\n", jxl_size);
 		GdkPixbuf *pixtmp = get_thumbnail_from_jxl(jxl_data, &args->description, jxl_size);
 		if (pixtmp) {
 		/* The size of the JXL thumbnails is different. We want to resize it */

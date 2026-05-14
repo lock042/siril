@@ -100,7 +100,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, args->filtering_parameter);
 		args->nb_filtered_images = nb_frames;
 		if (nb_frames <= 0) {
-			siril_log_message(_("No image selected for processing, aborting\n"));
+			siril_log_error(_("No image selected for processing, aborting\n"));
 			args->retval = 1;
 			goto the_end;
 		}
@@ -138,7 +138,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
-		siril_log_message(_("Preparing sequence processing failed.\n"));
+		siril_log_error(_("Preparing sequence processing failed.\n"));
 		args->retval = 1;
 		goto the_end;
 	}
@@ -165,7 +165,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			index_mapping[frame++] = input_idx;
 		}
 		if (frame != nb_frames) {
-			siril_log_message(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
+			siril_log_error(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
 			args->retval = 1;
 			goto the_end;
 		}
@@ -177,7 +177,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			size = args->compute_size_hook(args, nb_frames);
 		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
+			siril_log_error(_("Not enough space to save the output images, aborting\n"));
 			args->retval = 1;
 			goto the_end;
 		}
@@ -186,7 +186,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	/* Output print of algorithm description */
 	if (args->description) {
 		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
-		siril_log_color_message(desc, "green");
+		siril_log_info(desc);
 		g_free(desc);
 	}
 
@@ -298,8 +298,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 		// checking nb layers consistency, not for partial image
 		if (read_image && !args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
-			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
-						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
+			siril_log_error(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
 			clearfits(fit);
 			free(fit);
@@ -377,12 +376,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	/* the finalize hook contains the sequence writer synchronization, it
 	 * should be called before outputting the logs */
 	if (have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
-		siril_log_message(_("Finalizing sequence processing failed.\n"));
+		siril_log_error(_("Finalizing sequence processing failed.\n"));
 		abort = 1;
 	}
 	if (abort || excluded_frames == nb_frames) {
 		gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing failed. Check the log."));
-		siril_log_color_message(_("Sequence processing failed.\n"), "red");
+		siril_log_error(_("Sequence processing failed.\n"));
 		if (!abort)
 			abort = 1;
 		args->retval = abort;
@@ -390,10 +389,10 @@ gpointer generic_sequence_worker(gpointer p) {
 	else {
 		if (excluded_frames) {
 			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing partially succeeded. Check the log."));
-			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
+			siril_log_warning(_("Sequence processing partially succeeded, with %d images that failed.\n"), excluded_frames);
 		} else {
 			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing succeeded."));
-			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
+			siril_log_info(_("Sequence processing succeeded.\n"));
 		}
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
@@ -410,7 +409,7 @@ the_end:
 
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
-		siril_log_message(_("Finalizing sequence processing failed.\n"));
+		siril_log_error(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
@@ -490,8 +489,7 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 		gchar *mem_per_image = g_format_size_full(MB_per_image * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_image, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_image, mem_available);
 
 		g_free(mem_per_image);
 		g_free(mem_available);
@@ -717,14 +715,14 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	omp_unset_lock(&args->lock);
 #endif
 	if (!multi_data) {
-		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
+		siril_log_error(_("Image %d not found for writing\n"), in_index);
 		return 1;
 	}
 	int n = multi_args->n;
-	siril_debug_print("Multiple (%d) images to be saved (%d)\n", n, out_index);
+	siril_log_debug("Multiple (%d) images to be saved (%d)\n", n, out_index);
 	for (int i = 0 ; i < n ; i++) {
 		if (multi_data->images[i]->naxes[0] == 0) {
-			siril_debug_print("empty data\n");
+			siril_log_debug("empty data\n");
 			return 1;
 		}
 	}
@@ -849,9 +847,9 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
     DWORD exit_code;
     if (GetExitCodeProcess(pid, &exit_code)) {
         if (exit_code == 0) {
-            siril_debug_print("Child process completed successfully\n");
+            siril_log_debug("Child process completed successfully\n");
         } else {
-            siril_debug_print("Plate solver exited with code %lu\n", exit_code);
+            siril_log_debug("Plate solver exited with code %lu\n", exit_code);
         }
     }
     CloseHandle(pid);
@@ -868,21 +866,21 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
         if (WIFEXITED(wait_status)) {
             int exit_status = WEXITSTATUS(wait_status);
             if (exit_status == 0) {
-                siril_debug_print("Child process completed successfully\n");
+                siril_log_debug("Child process completed successfully\n");
             } else {
-                siril_debug_print("Child process exited with status %d\n", exit_status);
+                siril_log_debug("Child process exited with status %d\n", exit_status);
             }
         } else if (WIFSIGNALED(wait_status)) {
-            siril_debug_print("Child process terminated by signal %d\n", WTERMSIG(wait_status));
+            siril_log_debug("Child process terminated by signal %d\n", WTERMSIG(wait_status));
         }
     } else if (result == 0) {
         // Process hasn't exited yet (shouldn't happen)
-        siril_debug_print("Warning: child watch called but process still running\n");
+        siril_log_debug("Warning: child watch called but process still running\n");
     } else if (result == -1 && errno == ECHILD) {
         // Already reaped
-        siril_debug_print("Warning: child process already reaped\n");
+        siril_log_debug("Warning: child process already reaped\n");
     } else {
-        siril_debug_print("Error waiting for child: %s\n", strerror(errno));
+        siril_log_debug("Error waiting for child: %s\n", strerror(errno));
     }
     g_spawn_close_pid(pid);
 #endif
@@ -958,7 +956,7 @@ void remove_child_from_children(GPid pid) {
 			// Free the node and the child
 			g_slist_free_1(iter);
 			free_child(child);
-			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			siril_log_debug("Removed GPid %d from com.children\n", pid);
 			child_mutex_unlock();
 			return;
 		}
@@ -1006,15 +1004,15 @@ void kill_child_process(GPid pid, gboolean onexit) {
 					if (onexit) {
 						g_usleep(1000);
 						if (g_unlink("stop"))
-							siril_debug_print("g_unlink() failed\n");
-						siril_debug_print("asnet has been stopped on exit\n");
+							siril_log_debug("g_unlink() failed\n");
+						siril_log_debug("asnet has been stopped on exit\n");
 					}
 					stop_processing_thread(); // we stop the sequence worker as well
 				}
 				// No need to manually remove the child as this is done by child_watch_cb
 			}
 
-			siril_log_color_message(_("Process aborted by user\n"), "red");
+			siril_log_error(_("Process aborted by user\n"));
 			success = TRUE;
 			if (!onexit)
 				break;
@@ -1023,7 +1021,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 	}
 	// If we get here without success, no matching PID was found
 	if (!success && pid != (GPid) -1)
-		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
+		siril_log_error(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
 static void check_if_child_is_python(gpointer data, gpointer user_data) {
@@ -1045,14 +1043,14 @@ static void check_if_child_is_python(gpointer data, gpointer user_data) {
 }
 
 void check_python_flag() {
-	siril_debug_print("checking python flag\n");
+	siril_log_debug("checking python flag\n");
 	gboolean is_ok = TRUE;
 	child_mutex_lock();
 	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
 	child_mutex_unlock();
 	if (is_ok) {
 		com.python_script = FALSE;
-		siril_debug_print("com.python_script cleared\n");
+		siril_log_debug("com.python_script cleared\n");
 	}
 }
 
@@ -1121,7 +1119,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 
 	int nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, 1.0);
 	if (nb_frames <= 0) {
-		siril_log_message(_("No image selected for processing, aborting\n"));
+		siril_log_error(_("No image selected for processing, aborting\n"));
 		retval = 1;
 		goto cleanup;
 	}
@@ -1144,7 +1142,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			index_mapping[frame++] = input_idx;
 		}
 		if (frame != nb_frames) {
-			siril_log_message(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
+			siril_log_error(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
 			retval = 1;
 			goto cleanup;
 		}
@@ -1211,7 +1209,7 @@ after_fitseq_check:
 			// Need to move to the correct HDU
 			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
 			if (retval) {
-				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				siril_log_error(_("Error finding the HDU for frame %d\n"), input_idx);
 				goto cleanup;
 			}
 		}
@@ -1263,7 +1261,7 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
 	if (max_chunks < 1)
 		max_chunks = 1;
 	if (max_chunks < *threads) {
-		siril_debug_print("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
+		siril_log_debug("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
 		return max_chunks;
 	}
 	return *threads;
@@ -1282,7 +1280,7 @@ int *compute_thread_distribution(int nb_workers, int max) {
 	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
-	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);
+	siril_log_debug("distributing %d threads to %d workers\n", max, nb_workers);
 	for (int i = 0; i < nb_workers; i++) {
 		threads[i] = base;
 		if (rem > 0) {
@@ -1291,7 +1289,7 @@ int *compute_thread_distribution(int nb_workers, int max) {
 		}
 		if (threads[i] == 0)
 			threads[i] = 1;
-		siril_debug_print("thread %d has %d subthreads\n", i, threads[i]);
+		siril_log_debug("thread %d has %d subthreads\n", i, threads[i]);
 	}
 	return threads;
 }
@@ -1311,13 +1309,12 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 
 	if (required_mem > available_mem) {
 		if (args->verbose)
-			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
-				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+			siril_log_error(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"), (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
 		return 1;
 	}
 
 	if (args->verbose)
-		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
+		siril_log_debug("Memory check passed: need %.1f MB, have %.1f MB\n",
 			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
 	return 0;
 }
@@ -1338,13 +1335,12 @@ static int default_mask_mem_hook(struct generic_mask_args *args) {
 
 	if (required_mem > available_mem) {
 		if (args->verbose)
-			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
-				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+			siril_log_error(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"), (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
 		return 1;
 	}
 
 	if (args->verbose)
-		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
+		siril_log_debug("Memory check passed: need %.1f MB, have %.1f MB\n",
 			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
 	return 0;
 }
@@ -1576,7 +1572,7 @@ gpointer generic_image_worker(gpointer p) {
 			goto the_end;
 		}
 		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
-			siril_log_color_message(_("Failed to copy original image.\n"), "red");
+			siril_log_error(_("Failed to copy original image.\n"));
 			args->retval = 1;
 			goto the_end;
 		}
@@ -1597,7 +1593,7 @@ gpointer generic_image_worker(gpointer p) {
 	// Output print of operation description
 	if (args->description && verbose) {
 		gchar *desc = g_strdup_printf(_("%s: processing%s...\n"), args->description, using_mask ? _(" (mask active)"): "");
-		siril_log_color_message(desc, "green");
+		siril_log_info(desc);
 		g_free(desc);
 	}
 
@@ -1605,13 +1601,13 @@ gpointer generic_image_worker(gpointer p) {
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
-		siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
+		siril_log_error(_("%s image processing failed.\n"), args->description);
 		args->retval = 1;
 	} else {
 		args->retval = 0;
 		// Blend according to the mask
 		if (using_mask) {
-			siril_debug_print("Applying mask blend...\n");
+			siril_log_debug("Applying mask blend...\n");
 			blend_fits_with_mask(args->fit, orig);
 		}
 
@@ -1698,7 +1694,7 @@ the_end:;
 	g_rw_lock_writer_unlock(&argfit->rwlock);
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
 	if (verbose) {
-		siril_log_color_message(_("%s %s.\n"), "green", desc, retval ? _("failed") : _("succeeded"));
+		siril_log_info(_("%s %s.\n"), desc, retval ? _("failed") : _("succeeded"));
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
@@ -1745,7 +1741,7 @@ gpointer generic_mask_worker(gpointer p) {
 	// Output print of operation description
 	if (args->description && verbose) {
 		gchar *desc = g_strdup_printf(_("%s: processing mask...\n"), args->description);
-		siril_log_color_message(desc, "green");
+		siril_log_info(desc);
 		g_free(desc);
 	}
 
@@ -1760,7 +1756,7 @@ gpointer generic_mask_worker(gpointer p) {
 	}
 	// Call the mask processing hook
 	if (args->mask_hook(args)) {
-		siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
+		siril_log_error(_("%s mask processing failed.\n"), args->description);
 		args->retval = 1;
 	} else {
 		// Generate the message for HISTORY
@@ -1769,7 +1765,7 @@ gpointer generic_mask_worker(gpointer p) {
 		g_free(history);
 
 		if (verbose) {
-			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+			siril_log_info(_("%s succeeded.\n"), args->description);
 			gettimeofday(&t_end, NULL);
 			show_time(t_start, t_end);
 		}

@@ -514,7 +514,7 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	siril_log_debug("Ending stacking idle function, retval=%d\n", args->retval);
 	stop_processing_thread();
 
 	/* gfit was written, the result was saved, and notify_gfit_data_modified()
@@ -524,7 +524,7 @@ static gboolean end_stacking(gpointer p) {
 		gui_iface.on_stack_complete();
 		bgnoise_await();
 	} else {
-		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
+		siril_log_error(_("Stacking failed, please check the log to fix your issue.\n"));
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
@@ -694,6 +694,6 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 	output_size[1] = (int)ymax - (int)ymin + 1;
 	offset[0] = (int)xmin;
 	offset[1] = -(int)ymax; // the stack is done with origin at bottom left but the shifts are computed from top right
-	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
-	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+	siril_log_debug("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_log_debug("new origin: %d %d\n", offset[0], offset[1]);
 }

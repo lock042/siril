@@ -57,7 +57,7 @@ void search_object(GtkEntry *entry) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
-		siril_log_color_message(_("Error running image worker for catsearch\n"), "red");
+		siril_log_error(_("Error running image worker for catsearch\n"));
 		return;
 	}
 }

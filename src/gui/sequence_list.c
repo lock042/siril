@@ -169,7 +169,7 @@ static void update_seqlist_dialog_combo(int layer) {
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
 
-	// siril_debug_print("Resetting cached filename and index\n");
+	// siril_log_debug("Resetting cached filename and index\n");
 	g_free(cached_original_filename);
 	cached_original_filename = NULL;
 	cached_real_index = -1;
@@ -1072,7 +1072,7 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 		}
 	} else {
 		original_filename = g_strdup(cached_original_filename);
-		// siril_debug_print("Re-using cached filename\n");
+		// siril_log_debug("Re-using cached filename\n");
 	}
 
 	if (original_filename == NULL) return FALSE;

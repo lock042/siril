@@ -585,7 +585,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
     /* Save JPEG */
     if (savejpg(tmp_template, gfit, args->quality, FALSE)) {
-        siril_debug_print("Failed to save JPEG to temporary file");
+        siril_log_debug("Failed to save JPEG to temporary file");
         goto cleanup;
     }
 
@@ -599,7 +599,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
 cleanup:
     if (g_unlink(tmp_template) != 0) {
-        siril_debug_print("g_unlink() failed for temp file\n");
+        siril_log_debug("g_unlink() failed for temp file\n");
     }
 
     g_free(tmp_template);
@@ -914,7 +914,7 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	GError *error = NULL;
 
 	if (!gdk_pixbuf_save_to_stream_finish(result, &error)) {
-		siril_log_message(_("Cannot take snapshot: %s\n"), error->message);
+		siril_log_warning(_("Cannot take snapshot: %s\n"), error->message);
 		g_clear_error(&error);
 	} else {
 		gchar *filename = (gchar *)user_data;

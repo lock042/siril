@@ -194,7 +194,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 
 	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, SINGLE_THREADED);
 	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		return NULL;
 	}
 	sigma = stat->sigma;
@@ -354,8 +354,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		if (retval)
 			return retval;
 	}
-	siril_log_color_message(_("Image %d: %ld pixels corrected (%ld + %ld)\n"),
-			"bold", i, icold + ihot, icold, ihot);
+	siril_log_bold(_("Image %d: %ld pixels corrected (%ld + %ld)\n"), i, icold + ihot, icold, ihot);
 	return 0;
 }
 
@@ -389,8 +388,7 @@ static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -401,7 +399,7 @@ static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -621,7 +619,7 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	 * into account the Bayer pattern */
 	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV, threading);
 	if (!stat) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		return 1;
 	}
 	int threads = check_threading(&threading);

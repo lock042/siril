@@ -409,7 +409,7 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 	float *result;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -1246,7 +1246,7 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	for (chan = 0; chan < fit_left.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_left, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->mean;
@@ -1294,7 +1294,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	for (chan = 0; chan < fit_right.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_right, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->mean;

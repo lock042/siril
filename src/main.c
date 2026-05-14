@@ -227,7 +227,7 @@ void load_ui_files() {
 		exit(EXIT_FAILURE);
 	}
 #ifdef DEBUG_MAIN
-	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+	siril_log_debug("Successfully loaded '%s'\n", ui_files[0]);
 #endif
 
 	uint32_t i = 1;
@@ -242,7 +242,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 #ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 #endif
 		i++;
 	}
@@ -260,7 +260,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 		#ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 		#endif
 		i++;
 	}
@@ -301,7 +301,7 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
-	siril_debug_print("Initializing processing thread...\n");
+	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref

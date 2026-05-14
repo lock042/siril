@@ -58,7 +58,7 @@ static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
 	double fx, fy;
 	if (wcs2pix(fit, ra, dec, &fx, &fy)) {
-		siril_debug_print("star is outside image\n");
+		siril_log_debug("star is outside image\n");
 		return 1;
 	}
 	double dx, dy;
@@ -75,11 +75,11 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 			area.h <= 0 || area.w <= 0 ||
 			area.x + area.w >= fit->rx ||
 			area.y + area.h >= fit->ry) {
-		siril_debug_print("star is outside image\n");
+		siril_log_debug("star is outside image\n");
 		return 1;
 	}
 	*ret_area = area;
-	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", dx, dy);
+	siril_log_debug("Pixel coordinates of a star: %.1f, %.1f\n", dx, dy);
 	return 0;
 }
 
@@ -140,7 +140,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				stars_count++;
 				siril_log_message(_("Target star identified: %s\n"), item->name);
 			} else {
-				siril_log_color_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"), "red");
+				siril_log_error(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"));
 				break;
 			}
 		} else if ((use_comp1 && !g_ascii_strcasecmp(item->type, "comp1")) || (use_comp2 && !g_ascii_strcasecmp(item->type, "comp2"))) {
@@ -152,7 +152,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				}
 				else siril_log_message(_("Star %s ignored because it was too close to another\n"), item->name);
 			}
-			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), item->name);
+			else siril_log_warning(_("Star %s could not be used because it's on the borders or outside\n"), item->name);
 		}
 		if (stars_count == MAX_REF_STARS)
 			break;
@@ -199,7 +199,7 @@ void write_nina_file(struct compstars_arg *args) {
 			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
 	args->comp_stars->header = g_string_free(header_lines, FALSE);
 	if (!siril_catalog_write_to_file(args->comp_stars, args->nina_file))
-		siril_log_color_message(_("Problem writing the comparison stars file\n"), "red");
+		siril_log_error(_("Problem writing the comparison stars file\n"));
 }
 
 /* determines if two stars are the same based on their coordinates */
@@ -249,7 +249,7 @@ static int is_var_star(cat_item *item, GList *siril_cats, int nb_disc[]) {
 
 int sort_compstars(struct compstars_arg *args) {
 	if (!args->target_star || !args->cat_stars || args->cat_stars->nbitems <= 0) {
-		siril_log_color_message(_("Not enough stars available\n"), "salmon");
+		siril_log_warning(_("Not enough stars available\n"));
 		return 1;
 	}
 	siril_catalogue *siril_cat = args->cat_stars;
@@ -389,7 +389,7 @@ static siril_catalogue *get_catstars(struct compstars_arg *args, siril_cat_index
 
 	// and retrieving its results
 	if (siril_catalog_conesearch(siril_cat) <= 0) {// returns the nb of stars
-		siril_log_color_message(_("No stars retrieved from the catalog %s\n"), "red", catalog_to_str(cat_index));
+		siril_log_error(_("No stars retrieved from the catalog %s\n"), catalog_to_str(cat_index));
 		siril_catalog_free(siril_cat);
 		return NULL;
 	}
@@ -407,13 +407,13 @@ static siril_catalogue *get_catstars(struct compstars_arg *args, siril_cat_index
 
 gpointer compstars_worker(gpointer p) {
 	int retval;
-	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
+	siril_log_info(_("Comparison stars: processing...\n"));
 	struct compstars_arg *args = (struct compstars_arg *) p;
 	sky_object_query_args *query_args = NULL;
 	g_rw_lock_reader_lock(&args->fit->rwlock);
 	//0. check pre-requisites
 	if (!has_wcs(args->fit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		siril_log_error(_("This command only works on plate solved images\n"));
 		retval = 1;
 		goto end;
 	}
@@ -428,14 +428,14 @@ gpointer compstars_worker(gpointer p) {
 	if (retval)
 		goto end;
 	if (query_args->item->mag == 0.0 || query_args->item->bmag == 0.0) {
-		siril_log_color_message(_("Target star photometric information not available.\n"), "red");
+		siril_log_error(_("Target star photometric information not available.\n"));
 		retval = 1;
 		goto end;
 	}
 	args->target_star = calloc(1, sizeof(cat_item));
 	siril_catalogue_copy_item(query_args->item, args->target_star);
 	if (!args->target_star) {
-		siril_log_color_message(_("No variable star selected\n"), "salmon");
+		siril_log_warning(_("No variable star selected\n"));
 		retval = 1;
 		goto end;
 	}
@@ -444,13 +444,13 @@ gpointer compstars_worker(gpointer p) {
 	args->cat_stars = get_catstars(args, args->cat, &radius);
 	if (!args->cat_stars) {
 		retval = 1;
-		siril_log_color_message(_("No comparison stars found in the image, aborting\n"), "red");
+		siril_log_error(_("No comparison stars found in the image, aborting\n"));
 		goto end;
 	}
 	// and check the target star is relatively well centered - warn if not
 	double dist = compute_coords_distance(args->cat_stars->center_ra, args->cat_stars->center_dec, args->target_star->ra, args->target_star->dec); // in degrees
 	if (dist > 0.2 * radius) {
-		siril_log_color_message("Target star is off the center of field of view by %.1f arcmin, photometry results may be impacted\n", "salmon", dist * 60.);
+		siril_log_warning("Target star is off the center of field of view by %.1f arcmin, photometry results may be impacted\n", dist * 60.);
 	}
 
 	// 3. get variable stars catalogues if any

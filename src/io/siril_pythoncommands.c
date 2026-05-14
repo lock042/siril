@@ -44,7 +44,7 @@ typedef enum {
 	{ \
 		size_t len = FLEN_VALUE; \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_FLEN_STRING at %s\n", #str); \
+			siril_log_debug("Error: Exceeded max length for COPY_FLEN_STRING at %s\n", #str); \
 			return 1; \
 		} \
 		memset(ptr, 0, len); \
@@ -57,7 +57,7 @@ typedef enum {
 	{ \
 		size_t len = strlen(str) + 1; \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_STRING at %s\n", #str); \
+			siril_log_debug("Error: Exceeded max length for COPY_STRING at %s\n", #str); \
 			return 1; \
 		} \
 		memcpy((char*)ptr, str, len);     /* Copy including null terminator */ \
@@ -68,7 +68,7 @@ typedef enum {
 	{ \
 		size_t len = sizeof(type); \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_BE64 at %s\n", #val); \
+			siril_log_debug("Error: Exceeded max length for COPY_BE64 at %s\n", #val); \
 			return 1; \
 		} \
 		union { type v; uint64_t i; } conv; \
@@ -401,6 +401,8 @@ static const char* log_color_to_str(LogColor color) {
 			return "green";
 		case LOG_BLUE:
 			return "blue";
+		case LOG_BOLD:
+			return "bold";
 		default:
 			return NULL;
 	}
@@ -655,7 +657,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 */
 void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (length < sizeof(CommandHeader)) {
-		siril_log_color_message(_("Received incomplete command header\n"), "red");
+		siril_log_error(_("Received incomplete command header\n"));
 		return;
 	}
 
@@ -664,7 +666,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	int32_t payload_length = GINT32_FROM_BE(header->length);  // Convert from network byte order
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
-		siril_log_color_message(_("Received incomplete command payload: length = %u, expected %u\n"), "red", length, payload_length);
+		siril_log_error(_("Received incomplete command payload: length = %u, expected %u\n"), length, payload_length);
 		return;
 	}
 	// Get payload
@@ -780,7 +782,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
 					if (!com.headless)
@@ -807,7 +809,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
-				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
+				siril_log_debug(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
 			}
 			break;
 		}
@@ -1060,7 +1062,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
-				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
+				siril_log_debug(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
 			}
 			break;
 		}
@@ -1164,15 +1166,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (type == SIRIL_MSG_INFO)
 					siril_log_message(log_msg);
 				else if (type == SIRIL_MSG_WARNING)
-					siril_log_color_message(log_msg, "salmon");
+					siril_log_warning(log_msg);
 				else if (type == SIRIL_MSG_ERROR)
-					siril_log_color_message(log_msg, "red");
+					siril_log_error(log_msg);
 				g_free(log_msg);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 				break;
 			}
 
-			siril_debug_print("Executing message dialog\n");
+			siril_log_debug("Executing message dialog\n");
 			gui_iface.message_dialog(type, title, log_msg);
 			g_free(log_msg);
 
@@ -1276,7 +1278,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_PIXELDATA: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -1287,7 +1289,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// update_single_image_from_gfit acquires the reader lock, which
 				// would deadlock if we still held the writer lock here.
 				if (success && !com.headless) {
-					siril_debug_print("set_*_pixeldata: updating gfit\n");
+					siril_log_debug("set_*_pixeldata: updating gfit\n");
 					gui_iface.update_single_image_display();
 				}
 			}
@@ -1301,7 +1303,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			if (com.seq.type != SEQ_REGULAR) {
-				siril_debug_print("Invalid sequence type\n");
+				siril_log_debug("Invalid sequence type\n");
 				const char* error_msg = _("Invalid sequence type");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1311,7 +1313,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t expected_len_with_prefix = expected_len + 256;
 
 			if (payload_length != expected_len && payload_length != expected_len_with_prefix) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
+				siril_log_debug("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
 								payload_length, expected_len, expected_len_with_prefix);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1319,7 +1321,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
-			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
+			siril_log_debug("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
 			if (index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Failed to load sequence frame: index out of range");
@@ -1353,7 +1355,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Write the sequence frame with the provided prefix (or empty string if none)
 			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
 					prefix, index);
-			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
+			siril_log_debug("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
 			free(dest);
@@ -1369,7 +1371,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			clearfits(fit);
 			free(fit);
 			if (writer_retval) {
-				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
+				siril_log_error(_("Error writing sequence frame %i from Python\n"), index);
 			}
 			if (!com.headless && com.seq.current == index) {
 				gui_iface.seq_redisplay_frame(index);
@@ -1379,7 +1381,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_PLOT: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for PLOT: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for PLOT: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -1392,7 +1394,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_BGSAMPLES: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_BGSAMPLES: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_BGSAMPLES: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -1419,7 +1421,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_IMAGE_STATS: {
 			if (payload_length != sizeof(uint32_t)) {
-				siril_debug_print("Invalid payload length for GET_IMAGE_STATS: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for GET_IMAGE_STATS: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1477,7 +1479,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_UPDATE_PROGRESS: {
 			if (payload_length < sizeof(float)) {
-				siril_debug_print("Invalid payload length for UPDATE_PROGRESS: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for UPDATE_PROGRESS: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2212,7 +2214,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (fit->header == NULL) {
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no FITS header");
-				siril_debug_print("No FITS header\n");
+				siril_log_debug("No FITS header\n");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
@@ -2602,7 +2604,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_HEADER: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -2617,7 +2619,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_ADD_USER_POLYGON: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2635,14 +2637,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				gboolean deleted = delete_user_polygon(id);
 				gui_iface.redraw_image_async(REDRAW_OVERLAY);
 				if (!deleted) {
-					siril_debug_print("Failed to delete user polygon with id %d\n", id);
+					siril_log_debug("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
-				siril_debug_print("Invalid payload length for DELETE_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for DELETE_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
@@ -2659,7 +2661,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				UserPolygon *polygon = find_polygon_by_id(id);
 				if (!polygon) {
-					siril_debug_print("Failed to find a user polygon with id %d\n", id);
+					siril_log_debug("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2667,7 +2669,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
 				if (!serialized) {
-					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
+					siril_log_debug("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2677,7 +2679,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_free(serialized);
 				free(info);
 			} else {
-				siril_debug_print("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
@@ -2688,13 +2690,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t polygon_list_size;
 			GSList *polygons = gui_iface.get_user_polygons();
 			if (g_slist_length(polygons) == 0) {
-				siril_debug_print("No user polygons defined\n");
+				siril_log_debug("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			} else {
 				uint8_t *serialized = serialize_polygon_list(polygons, &polygon_list_size);
 				if (!serialized) {
-					siril_debug_print("Failed to serialize the user polygon list\n");
+					siril_log_debug("Failed to serialize the user polygon list\n");
 					const char* error_msg = _("Failed to serialize user polygon list");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				} else {
@@ -2786,7 +2788,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_DRAW_POLYGON: {
 //			mouse_status_enum mouse_status = get_mouse_status();
 /*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
-				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
+				siril_log_debug("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}*/
@@ -2889,7 +2891,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					super_layer = -layer - 1;
 				imstats* stat = statistics(NULL, -1, fit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 				if (!stat) {
-					siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+					siril_log_error(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
 					continue;
 				}
 				fit->stats[layer] = stat;
@@ -3124,7 +3126,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_ICCPROFILE: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -3205,7 +3207,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Failed to set STF - invalid mode value");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					} else {
 						// Set STF
 						gui_iface.set_rendering_mode((int)stf);
@@ -3216,7 +3218,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3241,7 +3243,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				const char* error_msg = _("Failed to set slider state - no image loaded");
@@ -3287,7 +3289,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Failed to set slider state - invalid mode value");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					} else {
 						// Set slider mode only
 						gui_iface.set_sliders_mode((int)sliders);
@@ -3298,7 +3300,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3323,7 +3325,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					}  else {
 						gui_iface.set_cutoff_values(lo, hi);
 						gui_iface.redraw_image_sync(REMAP_ALL);
@@ -3333,7 +3335,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set slider values - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3362,7 +3364,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3394,7 +3396,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3428,7 +3430,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Failed to set image filename - empty filename provided");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				if (!success)
-					siril_debug_print("Error in send_response\n");
+					siril_log_debug("Error in send_response\n");
 			}
 			break;
 		}
@@ -3453,7 +3455,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SAVE_IMAGE_FILE: {
 			if (payload_length != sizeof(save_image_info_t)) {
-				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -3490,7 +3492,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_MASK: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -3521,7 +3523,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					const char* error_msg = _("Failed to set mask state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -3558,7 +3560,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_MASK_UPDATE_POLYGON: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -3780,13 +3782,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		default:
-			siril_debug_print("Unknown command: %d\n", header->command);
+			siril_log_debug("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
 			success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			break;
 	}
 
 	if (!success) {
-		siril_debug_print("Failed to send response\n");
+		siril_log_debug("Failed to send response\n");
 	}
 }

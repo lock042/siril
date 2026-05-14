@@ -456,7 +456,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 		}
 		valid = gtk_tree_model_iter_next(model, &iter);
 	}
-	siril_debug_print("Point clicked does not correspond to a known star\n");
+	siril_log_debug("Point clicked does not correspond to a known star\n");
 	return;
 }
 
@@ -624,7 +624,7 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 		valid = gtk_tree_model_iter_next(model, &iter);
 	}
 	if (!ret)
-		siril_log_color_message(_("Error: error writing the CSV.\n"), "red");
+		siril_log_error(_("Error: error writing the CSV.\n"));
 	g_object_unref(data_stream);
 	g_object_unref(output_stream);
 	g_object_unref(file);
