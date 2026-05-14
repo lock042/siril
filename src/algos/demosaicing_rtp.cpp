@@ -121,8 +121,13 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	for (i=1; i<ry; i++)
 		blue[i] = blue[i - 1] + rx;
 
-	// 3. process
-	siril_debug_print("calling librtprocess ushort (%d)\n", interpolation);
+	// 3. process — log once per session: at 16-thread parallel reads on a
+	// 40 k-frame Bayer SER this trace would otherwise flood the script log.
+	{
+		static int once = 0;
+		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
+			siril_debug_print("calling librtprocess ushort (%d)\n", interpolation);
+	}
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:
@@ -279,8 +284,12 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	for (i = 1; i < ry; i++)
 		blue[i] = blue[i - 1] + rx;
 
-	// 3. process
-	siril_debug_print("calling librtprocess float (%d)\n", interpolation);
+	// 3. process — log once per session (see ushort path above for rationale).
+	{
+		static int once = 0;
+		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
+			siril_debug_print("calling librtprocess float (%d)\n", interpolation);
+	}
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:
