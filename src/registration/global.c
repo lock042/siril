@@ -114,18 +114,30 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 
 	/* first we're looking for stars in reference image */
-	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
-		siril_log_error(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
-		return 1;
+	if (regargs->external_ref_path) {
+		if (readfits(regargs->external_ref_path, &fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		regargs->use_external_ref = TRUE;
+		siril_log_info(_("External Reference Image:\n"));
+	} else {
+		if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+			siril_log_error(_("Could not load reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		siril_log_info(_("Reference Image:\n"));
 	}
-
-	siril_log_info(_("Reference Image:\n"));
 
 	// peaking or using cached list in lst(if no selection is made)
 	// For now selection is using com.selection
-	struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
+	// Pass -1 as image index for external ref to skip sequence cache
+	int ref_cache_index = regargs->use_external_ref ? -1 : regargs->reference_image;
+	struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, ref_cache_index, &fit, NULL, com.max_thread);
 	if (sf_data) {
 		sadata->refstars = *sf_data->stars;
 		nb_stars = *sf_data->nb_stars;
@@ -232,11 +244,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
-	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
-	sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
-	sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
-	sadata->current_regdata[regargs->reference_image].background_lvl = B;
-	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
+	if (!regargs->use_external_ref) {
+		sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
+		sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
+		sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
+		sadata->current_regdata[regargs->reference_image].background_lvl = B;
+		sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
+	}
 
 	return registration_prepare_results(args);
 }
@@ -308,7 +322,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
-	if (in_index != regargs->reference_image) {
+	if (in_index != regargs->reference_image || regargs->use_external_ref) {
 		psf_star **stars = NULL;
 		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
 			siril_log_bold(_("Frame %d:\n"), filenum);
@@ -1078,6 +1092,58 @@ int register_multi_step_global(struct registration_args *regargs) {
 		}
 	} else {
 		siril_log_message(_("After sequence alignment, we find that image %d is %2.1fpx away from sequence cog, i.e. within allowable bounds\n"), reffilenum, dist[best_index]);
+	}
+
+	// 5. If external reference is set, compose all H matrices with H_ext (internal_ref → external_ref)
+	if (!retval && regargs->external_ref_path) {
+		fits ext_fit = { 0 };
+		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image, ignoring external reference\n"));
+		} else {
+			siril_log_info(_("Aligning sequence to external reference image...\n"));
+			// Use local sfargs parameters but store stars locally (keep_stars path)
+			struct starfinder_data tmp_sf;
+			memcpy(&tmp_sf, sfargs, sizeof(struct starfinder_data));
+			tmp_sf.stars = NULL;
+			tmp_sf.nb_stars = NULL;
+			tmp_sf.keep_stars = TRUE;
+			tmp_sf.save_to_file = FALSE;
+			tmp_sf.im.fit = &ext_fit;
+			struct starfinder_data *sf_ext = findstar_image_worker(&tmp_sf, -1, -1, &ext_fit, NULL, com.max_thread);
+			if (sf_ext && sf_ext->stars && sf_ext->nb_stars && *sf_ext->stars && *sf_ext->nb_stars >= regargs->min_pairs) {
+				int ref_idx = regargs->seq->reference_image;
+				Homography H_ext = { 0 };
+				int not_matched = star_match_and_checks(
+						*sf_ext->stars, sfargs->stars[ref_idx],
+						*sf_ext->nb_stars, sfargs->nb_stars[ref_idx],
+						regargs, -1, &H_ext);
+				if (!not_matched) {
+					regdata *current_regdata = regargs->seq->regparam[regargs->layer];
+					for (int i = 0; i < regargs->seq->number; i++) {
+						if (!included[i]) continue;
+						Homography H_final = { 0 };
+						cvMultH(H_ext, current_regdata[i].H, &H_final);
+						current_regdata[i].H = H_final;
+					}
+					regargs->seq->ext_ref = TRUE;
+					regargs->use_external_ref = TRUE;
+					siril_log_message(_("All registration transforms composed with external reference alignment\n"));
+				} else {
+					siril_log_error(_("Could not match external reference to sequence reference image, ignoring external reference\n"));
+				}
+			} else {
+				siril_log_error(_("Not enough stars found in external reference image, ignoring external reference\n"));
+			}
+			if (sf_ext) {
+				if (sf_ext->onepass) {
+					free_fitted_stars(*sf_ext->stars);
+					free(sf_ext->stars);
+					free(sf_ext->nb_stars);
+				}
+				free(sf_ext);
+			}
+			clearfits(&ext_fit);
+		}
 	}
 
 	// we finally copy the local included flag to seq->imgparam

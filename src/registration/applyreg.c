@@ -1197,6 +1197,9 @@ int register_apply_reg(struct registration_args *regargs) {
 			goto END;
 		}
 		regargs->framingd.Htransf = Href;
+	} else if (regargs->seq->ext_ref) {
+		// H matrices are absolute (relative to external ref): use identity so they are applied as-is
+		cvGetEye(&regargs->framingd.Htransf);
 	} else {
 		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	}

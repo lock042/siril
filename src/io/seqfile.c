@@ -57,8 +57,10 @@
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
  * version 6
  * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
+ * version 7
+ * - added E card: H matrices are relative to an external reference image (not normalized by H[ref])
  */
-#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 7	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -596,6 +598,9 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'E': // External reference flag - version 7
+				sscanf(line + 2, "%d", (int *)&seq->ext_ref);
+				break;
 			case 'O':
 				current_layer = line[1] - '0';
 				if (!seq->ostats) {
@@ -710,6 +715,8 @@ int writeseqfile(sequence *seq){
 		fprintf(seqfile, "T%c\n", type);
 	}
 
+	if (seq->ext_ref)
+		fprintf(seqfile, "E 1\n");
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
 	for(i = 0; i < seq->number; ++i){
