@@ -229,7 +229,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
 	struct timeval t_start, t_end;
 
-	siril_log_color_message(_("Color Calibration: processing...\n"), "green");
+	siril_log_info(_("Color Calibration: processing...\n"));
 	gettimeofday(&t_start, NULL);
 
 	static GtkToggleButton *manual = NULL;
@@ -322,7 +322,7 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 void negative_processing() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(gfit, _("Negative Transformation"));
-	siril_log_color_message(_("Negative Transformation\n"), "green");
+	siril_log_info(_("Negative Transformation\n"));
 	pos_to_neg(gfit);
 	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
@@ -398,7 +398,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	if (args->type != EXTRACT_RGB) {
 		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
 		if (!value_check(gfit)) {
-			siril_log_color_message(_("Error in value_check(). This should not happen...\n"), "red");
+			siril_log_error(_("Error in value_check(). This should not happen...\n"));
 			return;
 		}
 	}
@@ -415,7 +415,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	args->fit = calloc(1, sizeof(fits));
 	set_cursor_waiting(TRUE);
 	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Could not copy the input image, aborting.\n"));
+		siril_log_error(_("Could not copy the input image, aborting.\n"));
 		clearfits(args->fit);
 		free(args->fit);
 		free(args->channel[0]);

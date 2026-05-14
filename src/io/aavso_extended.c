@@ -57,7 +57,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 	gboolean retval = TRUE;
 
 	if (g_list_length(spl_data->plots) != 1 && g_list_length(spl_data->plot) != 3) {
-		siril_debug_print("AAVSO data are not as expected, aborting\n");
+		siril_log_debug("AAVSO data are not as expected, aborting\n");
 		g_string_free(header, TRUE);
 		return FALSE;
 	}
@@ -108,7 +108,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 
 		FILE *fileout = g_fopen(datfilename, "w");
 		if (fileout == NULL) {
-			siril_log_message(_("Could not create %s, aborting\n"), datfilename);
+			siril_log_error(_("Could not create %s, aborting\n"), datfilename);
 			retval = FALSE;
 		} else {
 			fprintf(fileout, "%s", header->str);
@@ -153,7 +153,7 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	if (g_strlcpy(header.aavso_data_header, data_header, 512) >= 512) truncated = TRUE;
 
 	if (truncated) {
-		siril_log_color_message(_("Warning: at least one AAVSO header element was truncated.\n"), "salmon");
+		siril_log_warning(_("Warning: at least one AAVSO header element was truncated.\n"));
 		truncated = FALSE;
 	}
 	generate_aavso_header(&header, aavso_param);
@@ -167,7 +167,7 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	if (g_strlcpy(adata.notes, aavso_ptr->notes, len) >= len) truncated = TRUE;
 
 	if (truncated) {
-		siril_log_color_message(_("Warning: at least one AAVSO data element was truncated.\n"), "salmon");
+		siril_log_warning(_("Warning: at least one AAVSO data element was truncated.\n"));
 		truncated = FALSE;
 	}
 	siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
@@ -183,7 +183,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 			*airmass = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
-		gchar *msg = siril_log_color_message(_("No photometry data found, error\n"), "red");
+		gchar *msg = siril_log_error(_("No photometry data found, error\n"));
 		*error = g_strdup(msg);
 		return -1;
 	}
@@ -210,9 +210,9 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 
 	}
 
-	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	siril_log_debug("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
-		gchar *msg = siril_log_color_message(_("Number of images is not enough\n"), "red");
+		gchar *msg = siril_log_error(_("Number of images is not enough\n"));
 		*error = g_strdup(msg);
 		return -1;
 	}
@@ -220,16 +220,16 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 
 	// select reference c_star and k_star that are only available at least 3/4 of the time
 	ref_valid[c_idx] = ref_valid_count[c_idx] >= nbImages * 3 / 4;
-	siril_debug_print("reference star %d has %d/%d valid measures, %s\n", c_idx, ref_valid_count[c_idx], nbImages, ref_valid[c_idx] ? "including" : "discarding");
+	siril_log_debug("reference star %d has %d/%d valid measures, %s\n", c_idx, ref_valid_count[c_idx], nbImages, ref_valid[c_idx] ? "including" : "discarding");
 	if (ref_valid[c_idx])
 	    nb_ref_stars++;
 	ref_valid[k_idx] = ref_valid_count[k_idx] >= nbImages * 3 / 4;
-	siril_debug_print("reference star %d has %d/%d valid measures, %s\n", k_idx, ref_valid_count[k_idx], nbImages, ref_valid[k_idx] ? "including" : "discarding");
+	siril_log_debug("reference star %d has %d/%d valid measures, %s\n", k_idx, ref_valid_count[k_idx], nbImages, ref_valid[k_idx] ? "including" : "discarding");
 	if (ref_valid[k_idx])
 	    nb_ref_stars++;
 
 	if (nb_ref_stars < 2) { // we want both c_idx and k_idx valid
-		gchar *msg = siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the data\n"), "red");
+		gchar *msg = siril_log_error(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the data\n"));
 		*error = g_strdup(msg);
 		return -1;
 	}
@@ -243,7 +243,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 	airmass = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !cstar || !kstar || !airmass) {
 		PRINT_ALLOC_ERR;
-		gchar *msg = siril_log_color_message(_("Out of memory\n"), "red");
+		gchar *msg = siril_log_error(_("Out of memory\n"));
 		*error = g_strdup(msg);
 		free(vmag);
 		free(err);
@@ -262,7 +262,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		// if target or compstar are invalid, we won't log the point
 		if (!seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid ||
 			!seq->photometry[c_idx][i] || !seq->photometry[c_idx][i]->phot_is_valid) {
-				siril_debug_print("Image %d discarded because of invalid calibration data\n", i + 1);
+				siril_log_debug("Image %d discarded because of invalid calibration data\n", i + 1);
 				continue;
 		}
 		double cmag = 0.0, cerr = 0.0, kmag = 0.0;

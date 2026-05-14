@@ -96,7 +96,7 @@ void wavelength_to_display_RGB(double wavelength, double *r, double *g, double *
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(profile_xyz);
 	} else {
-		siril_debug_print("Error: no monitor profile exists. This is a bug!\n");
+		siril_log_debug("Error: no monitor profile exists. This is a bug!\n");
 	}
 	*r = (double) RGB[0];
 	*g = (double) RGB[1];

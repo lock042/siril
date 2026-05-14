@@ -36,7 +36,6 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
 	gchar *msg = NULL;
-	gchar *color = (err < 0) ? "salmon" : "red";
 	gchar addbuf[256];
 	g_snprintf(addbuf, 255, "%s", (!addstr) ? "" : addstr);
 
@@ -101,7 +100,10 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 			msg = _("Internal error");
 			break;
 	}
-	siril_log_color_message("%s %d - %s%s - %s\n", color, startstr, err, msg, addbuf, endstr);
+	if (err < 0)
+		siril_log_warning("%s %d - %s%s - %s\n", startstr, err, msg, addbuf, endstr);
+	else
+		siril_log_error("%s %d - %s%s - %s\n", startstr, err, msg, addbuf, endstr);
 }
 
 pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
@@ -224,7 +226,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	basename =  g_string_free(newbase, FALSE);
 
 	if ((dir = g_dir_open(dirname, 0, &error)) == NULL) {
-		siril_debug_print("wildcard dircheck: %s\n", error->message);
+		siril_log_debug("wildcard dircheck: %s\n", error->message);
 		*status = PATHPARSE_ERR_NO_DIR;
 		display_path_parse_error(*status, dirname);
 		g_clear_error(&error);
@@ -245,15 +247,15 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 				if (!count) {
 					out = g_build_filename(dirname, file, NULL);
 						if (stat(out, &fileInfo))
-							siril_debug_print("stat() failed\n");
+							siril_log_debug("stat() failed\n");
 				} else {
 					currfile = g_build_filename(dirname, file, NULL);
 					if (stat(currfile, &currfileInfo))
-							siril_debug_print("stat() failed\n");
+							siril_log_debug("stat() failed\n");
 					if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
 						out = g_build_filename(dirname, file, NULL);
 						if (stat(out, &fileInfo))
-							siril_debug_print("stat() failed\n");
+							siril_log_debug("stat() failed\n");
 					}
 				}
 				count++;
@@ -264,7 +266,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 				g_regex_match(regex, out, 0, &match_info);
 				if (g_match_info_matches(match_info)) {
 					gchar *date = g_match_info_fetch(match_info, 0);
-					siril_debug_print("Captured date: %s\n", date);
+					siril_log_debug("Captured date: %s\n", date);
 					fds = g_list_append(fds, new_file_date(date, out, isdatetime));
 					g_free(date);
 					count++;
@@ -280,7 +282,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	if (!target_date && count > 1) {
 		*status = PATHPARSE_ERR_MORE_THAN_ONE_HIT;
 		display_path_parse_error(*status, basename);
-		siril_log_color_message(_("Using most recent matching file: %s\n"), "salmon", out);
+		siril_log_warning(_("Using most recent matching file: %s\n"), out);
 	} else if (target_date && count >= 1) { // we sort the date_file list
 		fds = g_list_sort(fds, (GCompareFunc)file_date_compare);
 		GList *ref = g_list_find_custom(fds, ".", (GCompareFunc)file_date_match_file);
@@ -289,7 +291,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 			out = g_strdup(((file_date *)g_list_nth_data(fds, 1))->filename);
 			*status = PATHPARSE_ERR_HITS_ALL_NEWER;
 			display_path_parse_error(*status, basename);
-			siril_log_color_message(_("Using the closest matching file: %s\n"), "salmon", out);
+			siril_log_warning(_("Using the closest matching file: %s\n"), out);
 		} else { // we return the file which has DATE-OBS lteq to reference
 			out = g_strdup(((file_date *)g_list_nth_data(fds, refpos - 1))->filename);
 		}
@@ -632,8 +634,8 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 		g_strfreev(subs);
 	}
 	out = g_strjoinv("", tokens);
-	siril_debug_print("String in: %s\n", expression);
-	siril_debug_print("String out: %s\n", out);
+	siril_log_debug("String in: %s\n", expression);
+	siril_log_debug("String out: %s\n", out);
 	if (has_wildcard) {
 		gchar *foundmatch = wildcard_check(out, status, target_date, isdatetime);
 		g_free(out);

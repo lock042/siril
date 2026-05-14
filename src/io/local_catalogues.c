@@ -150,13 +150,13 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 	cat_debug_print("reading data from catalogue %s\n", path);
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local catalogue %s\n"), path);
+		siril_log_error(_("Could not open local catalogue %s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
+		siril_log_error(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -183,13 +183,13 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 	}
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local catalogue%s\n"), path);
+		siril_log_error(_("Could not open local catalogue%s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
+		siril_log_error(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -209,12 +209,12 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 static struct catalogue_file *catalogue_read_header(FILE *f) {
 	struct top_header top;
 	if (!fread(&top, 127, 1, f)) {
-		siril_debug_print("error reading top header\n");
+		siril_log_debug("error reading top header\n");
 		return NULL;
 	}
 	top.description[123] = '\0'; // we may lose a character, but it shouldn't be bad
 
-	//siril_debug_print("Opened catalogue '%s'\n", top.description);
+	//siril_log_debug("Opened catalogue '%s'\n", top.description);
 
 	struct catalogue_file *cat = calloc(1, sizeof(struct catalogue_file));
 	if (!cat) {
@@ -223,30 +223,30 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	}
 	if (top.endian_id != 0x4B53) {
 		if (top.endian_id != 0x534B) {
-			siril_debug_print("invalid endian ID in header\n");
+			siril_log_debug("invalid endian ID in header\n");
 			free(cat);
 			return NULL;
 		}
-		siril_debug_print("Byteswapping required\n");
+		siril_log_debug("Byteswapping required\n");
 		cat->byteswap = 1;
 	}
-	//siril_debug_print("Version number: %d\n", top.version_no);
+	//siril_log_debug("Version number: %d\n", top.version_no);
 
 	/* reading the fields */
 	if (!fread(&cat->nfields, 2, 1, f)) {
-		siril_debug_print("error reading fields\n");
+		siril_log_debug("error reading fields\n");
 		free(cat);
 		return NULL;
 	}
 	if (cat->nfields != 6 && cat->nfields != 11) {
-		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
+		siril_log_debug("the number of field is not recognized as one of the main catalogues\n");
 		free(cat);
 		return NULL;
 	}
 
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
-	//siril_debug_print("%d fields reported:\n", cat->nfields);
+	//siril_log_debug("%d fields reported:\n", cat->nfields);
 	cat->de = malloc(cat->nfields * sizeof(dataElement));
 	if (!cat->de) {
 		PRINT_ALLOC_ERR;
@@ -256,7 +256,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 
 	for (int i = 0; i < cat->nfields; ++i) {
 		if (!fread(&(cat->de[i]), sizeof(dataElement), 1, f)) {
-			siril_debug_print("error reading field descriptor %d\n", i);
+			siril_log_debug("error reading field descriptor %d\n", i);
 			free(cat->de);
 			free(cat);
 			return NULL;
@@ -268,7 +268,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
-		siril_debug_print("error reading number of trixels\n");
+		siril_log_debug("error reading number of trixels\n");
 		free(cat->de);
 		free(cat);
 		return NULL;
@@ -280,14 +280,14 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->HTM_Level = -1;
 	while (ntrixels >>= 2) ++cat->HTM_Level;
 	/* 512 for level 3, 32768 for NOMAD level 6 */
-	//siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
+	//siril_log_debug("Number of trixels reported = %d (levels: %d)\n",
 	//		cat->ntrixels, cat->HTM_Level);
 
 	// ntrixels is tainted (read from external file): sanitize values
 	// Maximum of 2^20 (MAX_NUM_TRIXELS) currently seems reasonable (and allows plenty
 	// of headroom)
 	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
-		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		siril_log_error(_("Error: number of trixels reported by file is out of limits.\n"));
 		free(cat->de);
 		free(cat);
 		return NULL;
@@ -304,7 +304,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	}
 
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
-		siril_debug_print("unexpected read failure in index table\n");
+		siril_log_debug("unexpected read failure in index table\n");
 		free(cat->indices);
 		free(cat->de);
 		free(cat);
@@ -318,7 +318,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			current->nrecs = bswap_32(current->nrecs);
 		}
 		if (current->trixelID != i) {
-			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
+			siril_log_debug("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
 			free(cat->indices);
 			free(cat->de);
@@ -326,7 +326,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			return NULL;
 		}
 		if (current->nrecs > MAX_STARS_PER_TRIXEL) {
-			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
+			siril_log_debug("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
 			// memory safety as this value is used for memory allocation
 			free(cat->indices);
 			free(cat->de);
@@ -340,17 +340,17 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 
 	struct expansion_field header;
 	if (!fread(&header, sizeof(struct expansion_field), 1, cat->f)) {
-		siril_debug_print("failed to read the trixel header\n");
+		siril_log_debug("failed to read the trixel header\n");
 	}
 	else {
 		if (cat->byteswap) {
 			header.faint_mag = bswap_16(header.faint_mag);
 			header.max_stars = bswap_16(header.max_stars);
 		}
-		//siril_debug_print("faint magnitude: %.2f\n", header.faint_mag / 1000.0);
+		//siril_log_debug("faint magnitude: %.2f\n", header.faint_mag / 1000.0);
 	}
 
-	//siril_debug_print("read the trixel index table, header read complete\n");
+	//siril_log_debug("read the trixel index table, header read complete\n");
 	return cat;
 }
 
@@ -484,13 +484,13 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
 	struct catalogue_index *index = cat->indices + trixel;
 	if (index->trixelID != trixel) {
-		siril_debug_print("INDEX IS WRONG, trixel ID did not match\n");
+		siril_log_debug("INDEX IS WRONG, trixel ID did not match\n");
 		return 1;
 	}
 
-	//siril_debug_print("offset for trixel %u: %u\n", trixel, index->offset);
+	//siril_log_debug("offset for trixel %u: %u\n", trixel, index->offset);
 	if (fseek64(cat->f, index->offset, SEEK_SET)) {
-		siril_debug_print("failed to seek to the trixel offset %u\n", index->offset);
+		siril_log_debug("failed to seek to the trixel offset %u\n", index->offset);
 		return 1;
 	}
 
@@ -504,7 +504,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 
 	if (cat->nfields == 6) {
 		if (fread(trix_stars, sizeof(deepStarData), index->nrecs, cat->f) < index->nrecs) {
-			siril_debug_print("error reading trixel data\n");
+			siril_log_debug("error reading trixel data\n");
 			free(trix_stars);
 			return 1;
 		}
@@ -516,7 +516,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 			return 1;
 		}
 		if (fread(read_stars, sizeof(shallowStarData), index->nrecs, cat->f) < index->nrecs) {
-			siril_debug_print("error reading trixel data\n");
+			siril_log_debug("error reading trixel data\n");
 			free(read_stars);
 			free(trix_stars);
 			return 1;
@@ -560,7 +560,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	double radius_h = pow(sin(0.5 * radius * DEGTORAD), 2);
 	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 
-	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
+	siril_log_debug("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
 	for (; catalogue < nb_catalogues; catalogue++) {
 		if (catalogue == 3 && max_mag < 12.0) {
 			cat_debug_print("not querying NOMAD for this limit magnitude\n");
@@ -626,7 +626,7 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 	int retval = 0, catalogue = 0;
 	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 
-	siril_debug_print("looking for stars in local catalogues for trixel %4d\n", ID);
+	siril_log_debug("looking for stars in local catalogues for trixel %4d\n", ID);
 	for (; catalogue < nb_catalogues; catalogue++) {
 		retval = read_trixelID_from_catalogue(com.pref.catalogue_paths[catalogue],
 				ID,
@@ -726,7 +726,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
 			siril_cat->cat_index != CAT_LOCAL_TRIX) {
-		siril_debug_print("Local cat query - Should not happen\n");
+		siril_log_debug("Local cat query - Should not happen\n");
 		return 0;
 	}
 	deepStarData *stars = NULL;
@@ -854,7 +854,7 @@ gpointer write_trixels(gpointer p) {
 	GFile *file = g_file_new_for_path("trixels.csv");
 	if (g_file_test("trixels.csv", G_FILE_TEST_EXISTS)) { // file already exists, we removed it
 		if (!g_file_delete(file, NULL, &error)) {
-			siril_log_color_message(_("File %s cannot be deleted (%s), aborting\n"), "red", "trixels.csv", (error) ? error->message : "unknown error");
+			siril_log_error(_("File %s cannot be deleted (%s), aborting\n"), "trixels.csv", (error) ? error->message : "unknown error");
 			g_clear_error(&error);
 			g_object_unref(file);
 			siril_add_idle(end_generic, NULL);
@@ -864,7 +864,7 @@ gpointer write_trixels(gpointer p) {
 	// and we open the stream to write to
 	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
-		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", "trixels.csv", (error) ? error->message : "unknown error");
+		siril_log_error(_("Cannot create catalogue file %s (%s)\n"), "trixels.csv", (error) ? error->message : "unknown error");
 		g_clear_error(&error);
 		g_object_unref(file);
 		siril_add_idle(end_generic, NULL);
@@ -904,7 +904,7 @@ gpointer list_trixels(gpointer p) {
 	pix2wcs(gfit, 0., ry, ra + 3, dec + 3);
 	int status = get_htm_indices_around_rectangle(ra, dec, 3, &trixels, &nb_trixels);
 	if (status) {
-		siril_log_color_message(_("Failed\n"), "red");
+		siril_log_error(_("Failed\n"));
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(0);
 	}

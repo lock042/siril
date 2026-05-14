@@ -52,7 +52,7 @@ static double x265_quality_to_crf[] = { 34.0, 31.0, 28.0, 25.0, 22.0 };
 
 #define CHECK_OPT_SET_RETVAL \
 	if (retval == AVERROR_OPTION_NOT_FOUND) { \
-		siril_log_color_message("A codec option was not found when configuring the export\n", "red"); \
+		siril_log_error("A codec option was not found when configuring the export\n"); \
 }
 
 static void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt)
@@ -119,7 +119,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		}
 		int retval = av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
 		if (retval) {
-			siril_log_color_message("An error occurred setting thread count for mp4 encoding\n", "red");
+			siril_log_error("An error occurred setting thread count for mp4 encoding\n");
 		}
 	}
 
@@ -133,7 +133,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			float size_factor = 5.0f * logf((float)(w * h) / (1920.0f * 1080.0f));
 			if (size_factor < -4.0f) size_factor = -4.0f;
 			crf = (int)(vp9_quality_to_crf[ost->quality - 1] - size_factor);
-			siril_debug_print("VP9 constant quality value: %d\n", crf);
+			siril_log_debug("VP9 constant quality value: %d\n", crf);
 			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
 			CHECK_OPT_SET_RETVAL;
 			retval = av_opt_set_int(c->priv_data, "speed", 1, 0);
@@ -145,7 +145,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			break;
 		case AV_CODEC_ID_H264:
 			if (strstr((*codec)->name, "videotoolbox") != NULL) {
-				siril_debug_print("Using VideoToolbox encoder\n");
+				siril_log_debug("Using VideoToolbox encoder\n");
 
 				c->bit_rate = 0;
 
@@ -154,10 +154,10 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 				c->flags |= AV_CODEC_FLAG_QSCALE;
 				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
-				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+				siril_log_debug("VideoToolbox settings: global_quality=%d\n", c->global_quality);
 			} else {
 				crf = x264_quality_to_crf[ost->quality - 1];
-				siril_debug_print("x264 constant quality value: %d\n", crf);
+				siril_log_debug("x264 constant quality value: %d\n", crf);
 				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
 				CHECK_OPT_SET_RETVAL;
 				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
@@ -169,7 +169,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 
 		case AV_CODEC_ID_H265:
 			if (strstr((*codec)->name, "videotoolbox") != NULL) {
-				siril_debug_print("Using VideoToolbox encoder\n");
+				siril_log_debug("Using VideoToolbox encoder\n");
 
 				c->bit_rate = 0;
 
@@ -178,11 +178,11 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 				c->flags |= AV_CODEC_FLAG_QSCALE;
 				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
-				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+				siril_log_debug("VideoToolbox settings: global_quality=%d\n", c->global_quality);
 
 			} else {
 				crf = x265_quality_to_crf[ost->quality - 1];
-				siril_debug_print("x265 constant quality value: %d\n", crf);
+				siril_log_debug("x265 constant quality value: %d\n", crf);
 				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
 				CHECK_OPT_SET_RETVAL;
 				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
@@ -401,7 +401,7 @@ static int write_video_frame(struct mp4_struct *ost, fits *input_image)
 {
 	AVCodecContext *c = ost->enc;
 
-	siril_debug_print("writing video frame\n");
+	siril_log_debug("writing video frame\n");
 
 	ost->frame = get_video_frame(ost, input_image);
 
@@ -409,7 +409,7 @@ static int write_video_frame(struct mp4_struct *ost, fits *input_image)
 	int ret = avcodec_send_frame(c, ost->frame);
 	if (ret < 0) {
 		av_packet_unref(ost->pkt);
-		siril_log_message("Error encoding video frame: %s\n", av_err2str(ret));
+		siril_log_error("Error encoding video frame: %s\n", av_err2str(ret));
 		return 1;
 	}
 
@@ -417,7 +417,7 @@ static int write_video_frame(struct mp4_struct *ost, fits *input_image)
 	if (ret == AVERROR(EAGAIN))
 		return 0;
 	else if (ret == AVERROR(EINVAL)) {
-		siril_log_message("Error while getting video packet: %s\n", av_err2str(ret));
+		siril_log_error("Error while getting video packet: %s\n", av_err2str(ret));
 		return 1;
 	}
 	else if (ret == AVERROR_EOF) {
@@ -425,14 +425,14 @@ static int write_video_frame(struct mp4_struct *ost, fits *input_image)
 		return 1;
 	}
 	else if (ret < 0) {
-		siril_log_message("Error while getting video packat %s\n", av_err2str(ret));
+		siril_log_error("Error while getting video packat %s\n", av_err2str(ret));
 		return 1;
 	}
 
 	ret = write_frame(ost->oc, &c->time_base, ost->st, ost->pkt);
 	av_packet_unref(ost->pkt);
 	if (ret < 0) {
-		siril_log_message("Error while writing video frame: %s\n", av_err2str(ret));
+		siril_log_error("Error while writing video frame: %s\n", av_err2str(ret));
 		return 1;
 	}
 	return 0;
@@ -444,7 +444,7 @@ static void flush_stream(struct mp4_struct *ost)
 
 	ret = avcodec_send_frame(ost->enc, NULL);
 	if (ret < 0) {
-		siril_log_message("Error encoding video frame: %s\n", av_err2str(ret));
+		siril_log_error("Error encoding video frame: %s\n", av_err2str(ret));
 		return;
 	}
 
@@ -453,12 +453,12 @@ static void flush_stream(struct mp4_struct *ost)
 		if (ret == 0) {
 			ret = write_frame(ost->oc, &ost->enc->time_base, ost->st, ost->pkt);
 			if (ret < 0) {
-				siril_log_message("Error while writing video frame: %s\n", av_err2str(ret));
+				siril_log_error("Error while writing video frame: %s\n", av_err2str(ret));
 				return;
 			}
 		}
 		else if (ret == AVERROR(EINVAL)) {
-			siril_log_message("Error while getting video packet: %s\n", av_err2str(ret));
+			siril_log_error("Error while getting video packet: %s\n", av_err2str(ret));
 			return;
 		}
 	}
@@ -517,7 +517,7 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		ret = avformat_alloc_output_context2(&video_st->oc, NULL, "mp4", filename);
 		if (!video_st->oc) {
 			cleanup_video_st(video_st);
-			siril_log_message(_("FFMPEG does not seem to support mp4 format, aborting.\n"));
+			siril_log_error(_("FFMPEG does not seem to support mp4 format, aborting.\n"));
 			return NULL;
 		}
 	}
@@ -549,13 +549,13 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 
 	if (video_st->fmt->video_codec == AV_CODEC_ID_NONE) {
 		cleanup_video_st(video_st);
-		siril_log_message(_("Error: format does not support video codec.\n"));
+		siril_log_error(_("Error: format does not support video codec.\n"));
 		return NULL;
 	}
 
 	if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
 		cleanup_video_st(video_st);
-		siril_log_message(_("Could not add the video stream in the output film, aborting\n"));
+		siril_log_error(_("Could not add the video stream in the output film, aborting\n"));
 		return NULL;
 	}
 
@@ -575,7 +575,7 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 	if (!(video_st->fmt->flags & AVFMT_NOFILE)) {
 		ret = avio_open(&video_st->oc->pb, filename, AVIO_FLAG_WRITE);
 		if (ret < 0) {
-			siril_log_message(_("Could not open '%s': %s\n"), filename, av_err2str(ret));
+			siril_log_error(_("Could not open '%s': %s\n"), filename, av_err2str(ret));
 			cleanup_video_st(video_st);
 			return NULL;
 		}
@@ -583,7 +583,7 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 
 	ret = avformat_write_header(video_st->oc, &opt);
 	if (ret < 0) {
-		siril_log_message(_("Error occurred when opening output file: %s\n"), av_err2str(ret));
+		siril_log_error(_("Error occurred when opening output file: %s\n"), av_err2str(ret));
 		if (!(video_st->fmt->flags & AVFMT_NOFILE))
 			avio_closep(&video_st->oc->pb);
 		cleanup_video_st(video_st);

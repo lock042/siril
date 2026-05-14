@@ -124,14 +124,14 @@ static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int 
 			dy -= (double)fit->ry;
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
-		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
+		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
 	if (shiftx == INT_MIN) {
-		siril_debug_print("Error: image #%d has a wrong shiftx value\n", o + 1);
+		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
 		shiftx += 1;
 	}
 	if (shifty == INT_MIN) {
-		siril_debug_print("Error: image #%d has a wrong shifty value\n", o + 1);
+		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
 		shifty += 1;
 	}
 
@@ -265,13 +265,13 @@ static int stack_minmax_generic(struct stacking_args *stackargs, gboolean ismax)
 		cvGetEye(&Hs);
 		double dx, dy;
 		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
-		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
-		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
+		siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - mmdata->offset[0];
 		Hs.h12 -= dy - mmdata->offset[1];
 		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
 		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
-		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+		siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
 		cvApplyFlips(&Hs, orig_ry, 0);
 		reframe_wcs(result->keywords.wcslib, &Hs);
 		update_wcsdata_from_wcs(result);

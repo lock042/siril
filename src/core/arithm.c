@@ -183,7 +183,7 @@ static int soper_float(fits *a, float scalar, image_operator oper) {
  */
 int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float) {
 	if (oper == OPER_DIV && scalar == 0.f) {
-		siril_log_message(_("Cannot divide by zero, aborting."));
+		siril_log_error(_("Cannot divide by zero, aborting."));
 		return 1;
 	}
 	if (a->type == DATA_USHORT) {
@@ -346,7 +346,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -459,7 +459,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	float *result = NULL;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -525,7 +525,7 @@ static int imoper_with_factor(fits *a, fits *b, image_operator oper, float facto
 	else {
 		if (a->type == DATA_USHORT)
 			return imoper_to_ushort(a, b, oper, factor);
-		siril_log_color_message(_("Image operations can only be kept 16 bits if first input images are 16 bits. Aborting.\n"), "red");
+		siril_log_error(_("Image operations can only be kept 16 bits if first input images are 16 bits. Aborting.\n"));
 	}
 	return 1;
 }
@@ -546,11 +546,11 @@ int addmax(fits *a, fits *b) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 	if (a->type != b->type) {
-		siril_log_color_message(_("Images must have same data type.\n"), "red");
+		siril_log_error(_("Images must have same data type.\n"));
 		return 1;
 	}
 	g_assert(a->naxes[2] == 1 || a->naxes[2] == 3);

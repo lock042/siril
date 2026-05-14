@@ -257,7 +257,7 @@ static void histo_recompute(gboolean for_preview) {
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_data *data = create_mtf_data();
 		if (!data) {
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -274,7 +274,7 @@ static void histo_recompute(gboolean for_preview) {
 		args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
 			destroy_mtf_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -295,7 +295,7 @@ static void histo_recompute(gboolean for_preview) {
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_data *data = create_ght_data();
 		if (!data) {
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -303,7 +303,7 @@ static void histo_recompute(gboolean for_preview) {
 		data->params_ght = malloc(sizeof(struct ght_params));
 		if (!data->params_ght) {
 			destroy_ght_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -325,7 +325,7 @@ static void histo_recompute(gboolean for_preview) {
 		args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
 			destroy_ght_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -919,7 +919,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 			reset_cursors_and_values(FALSE);
 		}
 	} else {
-		siril_log_color_message(_("MTF processing failed.\n"), "red");
+		siril_log_error(_("MTF processing failed.\n"));
 	}
 
 	// Cleanup
@@ -956,7 +956,7 @@ gboolean ght_single_image_idle(gpointer p) {
 			reset_cursors_and_values(FALSE);
 		}
 	} else {
-		siril_log_color_message(_("GHT processing failed.\n"), "red");
+		siril_log_error(_("GHT processing failed.\n"));
 	}
 
 	// Cleanup
@@ -1176,7 +1176,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *args = create_mtf_data();
 			if (!args) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1204,14 +1204,14 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = create_ght_data();
 			if (!args) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
 			args->params_ght = malloc(sizeof(struct ght_params));
 			if (!args->params_ght) {
 				destroy_ght_data(args);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1311,7 +1311,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			if (log_string) {
 				undo_save_state(&undo_fit, log_string);
-				siril_log_color_message("%s\n", "green", log_string);
+				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}
 
@@ -1389,7 +1389,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		if (log_string) {
 			undo_save_state(&undo_fit, log_string);
-			siril_log_color_message("%s\n", "green", log_string);
+			siril_log_info("%s\n", log_string);
 			g_free(log_string);
 		}
 
@@ -1399,7 +1399,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *data = create_mtf_data();
 			if (!data) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1416,7 +1416,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				destroy_mtf_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1436,7 +1436,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *data = create_ght_data();
 			if (!data) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1444,7 +1444,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->params_ght = malloc(sizeof(struct ght_params));
 			if (!data->params_ght) {
 				destroy_ght_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1466,7 +1466,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				destroy_ght_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1538,7 +1538,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		notify_update((gpointer) param);
 		set_controls_active(FALSE);
 	} else {
-		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
+		siril_log_warning(_("Could not compute autostretch parameters, using default values\n"));
 	}
 
 	set_cursor_waiting(FALSE);
@@ -1865,7 +1865,7 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (_LP > _SP) {
 		gtk_spin_button_set_value(button,_SP);
 		if (!lp_warning_given) { // Prevent spamming the warning log message
-			siril_log_message(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
+			siril_log_warning(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
 			lp_warning_given = TRUE;
 		}
 	}
@@ -1913,7 +1913,7 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 		if (do_channel[chan]) {
 			stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 			if (!stats[chan]) {
-				siril_log_message(_("Error: statistics computation failed.\n"));
+				siril_log_error(_("Error: statistics computation failed.\n"));
 				return;
 			}
 			fprintf(stdout,"channel mean: %f\n", stats[chan]->mean);
