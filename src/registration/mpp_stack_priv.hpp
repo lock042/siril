@@ -100,6 +100,7 @@ struct StackBackgroundPatch {
 struct StackState {
 	int drizzle_factor = 1;
 	int stack_size = 0;
+	int num_layers = 1;       /* 1 = mono, 3 = RGB */
 	int dim_y = 0;            /* pre-drizzle intersection size (for background) */
 	int dim_x = 0;
 	int dim_y_drizzled = 0;
@@ -123,6 +124,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
                                       int drizzle_factor,
+                                      int num_layers,
                                       const mpp_config_t &cfg);
 
 /* Stage B: per-AP per-frame shift compute (PSS stack_frames.py's per-(frame, AP)

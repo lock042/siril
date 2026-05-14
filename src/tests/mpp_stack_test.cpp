@@ -349,7 +349,8 @@ Test(mpp_stack, prepare_for_blending_oracle) {
 	cr_assert_not_null(aps);
 	const int stack_size = read_int_text(ss_txt);
 	const auto state = mpp::stack_prepare_for_blending(*aps, avg.intersection,
-	                                                   stack_size, cfg.drizzle_factor, cfg);
+	                                                   stack_size, cfg.drizzle_factor,
+	                                                   /*num_layers=*/1, cfg);
 
 	const auto dims = read_ints_csv(sw_dims_csv);
 	cr_assert_eq(dims.size(), 2u);

@@ -14569,7 +14569,14 @@ int process_pss(int nb) {
 		return CMD_WRONG_N_ARG;
 	}
 
+	/* Siril's SER reader bakes in the debayer choice at open time based on
+	 * `com.pref.debayer.open_debayer`. Force it on for the duration of
+	 * load_sequence so Bayer SERs come back as 3-layer RGB regardless of
+	 * the user's saved preference; restore the pref immediately after. */
+	const gboolean saved_open_debayer = com.pref.debayer.open_debayer;
+	com.pref.debayer.open_debayer = TRUE;
 	sequence *seq = load_sequence(word[1], NULL);
+	com.pref.debayer.open_debayer = saved_open_debayer;
 	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);

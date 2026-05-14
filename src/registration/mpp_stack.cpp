@@ -205,14 +205,17 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
                                       int drizzle_factor,
+                                      int num_layers,
                                       const mpp_config_t &cfg) {
 	StackState s;
 	s.drizzle_factor = drizzle_factor;
 	s.stack_size     = stack_size;
+	s.num_layers     = num_layers;
 	s.dim_y = intersection[1] - intersection[0];
 	s.dim_x = intersection[3] - intersection[2];
 	s.dim_y_drizzled = s.dim_y * drizzle_factor;
 	s.dim_x_drizzled = s.dim_x * drizzle_factor;
+	const int buf_type = (num_layers == 3) ? CV_32FC3 : CV_32F;
 
 	const int M = aps.count;
 	s.patch_drizzled.reserve(M);
@@ -250,8 +253,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 				row[x] = std::min(wy[y], wx[x]);
 		}
 		s.weights_yx.push_back(wyx);
-		s.stacking_buffers.push_back(cv::Mat(wyx.rows, wyx.cols, CV_32F,
-		                                     cv::Scalar(0)));
+		s.stacking_buffers.push_back(cv::Mat(wyx.rows, wyx.cols, buf_type,
+		                                     cv::Scalar(0, 0, 0)));
 
 		/* Accumulate stack_size × weights_yx into the global buffer. */
 		cv::Mat dst = s.sum_single_frame_weights(
@@ -265,8 +268,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	if (s.number_stacking_holes == 0)
 		return s;
 
-	/* Background buffer (pre-drizzle, mono). */
-	s.averaged_background = cv::Mat::zeros(s.dim_y, s.dim_x, CV_32F);
+	/* Background buffer (pre-drizzle). */
+	s.averaged_background = cv::Mat::zeros(s.dim_y, s.dim_x, buf_type);
 
 	/* PSS stack_frames.py:233-277. Count pixels where sum_weights <
 	 * background_blend_threshold * stack_size; if a small fraction, subdivide
@@ -356,8 +359,9 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg) {
 	StackLoopOutput out;
+	const int num_layers = frames_raw.empty() ? 1 : frames_raw[0].channels();
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
-	                                       cfg.drizzle_factor, cfg);
+	                                       cfg.drizzle_factor, num_layers, cfg);
 	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
 	const int N = (int) frames_raw.size();
@@ -474,25 +478,43 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 	return out;
 }
 
+namespace {
+/* Replicate a single-channel matrix into a multi-channel one of the same
+ * spatial size, so cv::multiply / cv::divide can be used against a
+ * multi-channel partner. No-op for n=1. */
+cv::Mat broadcast_channels(const cv::Mat &single, int n) {
+	if (n <= 1) return single;
+	std::vector<cv::Mat> chans(n, single);
+	cv::Mat out;
+	cv::merge(chans, out);
+	return out;
+}
+}  // namespace
+
 cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
                                             const RemapBorder &border,
                                             const mpp_aps_t &aps,
                                             const mpp_config_t &cfg) {
-	/* Global drizzled image buffer (float32). */
-	cv::Mat buf = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, CV_32F);
+	const int C = state.num_layers;
+	const int buf_type = (C == 3) ? CV_32FC3 : CV_32F;
+
+	/* Global drizzled image buffer. */
+	cv::Mat buf = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
 
 	/* For each AP: buf[patch] += stacking_buffer * weights_yx. */
 	for (int a = 0; a < aps.count; ++a) {
 		const auto &p = state.patch_drizzled[a];
 		cv::Mat dst = buf(cv::Range(p[0], p[1]), cv::Range(p[2], p[3]));
 		cv::Mat weighted;
-		cv::multiply(state.stacking_buffers[a], state.weights_yx[a], weighted);
+		const cv::Mat w = broadcast_channels(state.weights_yx[a], C);
+		cv::multiply(state.stacking_buffers[a], w, weighted);
 		dst += weighted;
 	}
 
-	/* buf /= sum_single_frame_weights (cell-wise). PSS guards by initialising
+	/* buf /= sum_single_frame_weights. PSS guards by initialising
 	 * sum_weights to 1e-30, so we never divide by zero. */
-	cv::divide(buf, state.sum_single_frame_weights, buf);
+	const cv::Mat sw = broadcast_channels(state.sum_single_frame_weights, C);
+	cv::divide(buf, sw, buf);
 
 	/* Background blend. PSS computes a foreground_weight ramp and lerps. */
 	if (state.number_stacking_holes > 0) {
@@ -502,10 +524,10 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		state.sum_single_frame_weights.convertTo(fg_weight, CV_32F, 1.0 / denom);
 		cv::min(fg_weight, 1.0f, fg_weight);
 		cv::max(fg_weight, 0.0f, fg_weight);
-		/* buf = (buf - bg) * fg_weight + bg = bg + (buf - bg) * fg_weight. */
+		const cv::Mat fgw = broadcast_channels(fg_weight, C);
 		cv::Mat diff;
 		cv::subtract(buf, state.averaged_background, diff);
-		cv::multiply(diff, fg_weight, diff);
+		cv::multiply(diff, fgw, diff);
 		cv::add(state.averaged_background, diff, buf);
 	}
 
@@ -518,24 +540,21 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		buf = buf(cv::Range(trim_y_lo, trim_y_hi),
 		          cv::Range(trim_x_lo, trim_x_hi)).clone();
 
-	/* Scale and cast to uint16.
-	 * PSS final cast: `img_as_uint(clip(buf / (255 or 65535), 0., 1., ...))`.
-	 * skimage.img_as_uint on a float in [0, 1] uses round + saturate_cast<u16>.
-	 * For Siril values that landed in 0..65535 the scale is 1/65535; the
-	 * round-trip is therefore approximately identity (modulo rounding). */
 	const double in_max = (cfg.bitdepth == 8) ? 255.0 : 65535.0;
 	cv::Mat normalised;
-	buf.convertTo(normalised, CV_32F, 1.0 / in_max);
+	buf.convertTo(normalised, buf_type, 1.0 / in_max);
 	cv::min(normalised, 1.0f, normalised);
 	cv::max(normalised, 0.0f, normalised);
 
-	cv::Mat out(normalised.rows, normalised.cols, CV_16U);
-	/* skimage img_as_uint does floor(x * 65535 + 0.5).  Replicate exactly to
-	 * dodge OpenCV's round-half-to-even at .5. */
+	const int out_type = (C == 3) ? CV_16UC3 : CV_16U;
+	cv::Mat out(normalised.rows, normalised.cols, out_type);
+	/* skimage img_as_uint does floor(x * 65535 + 0.5). Multi-channel-aware
+	 * flat iteration over `cols × channels()`. */
 	for (int y = 0; y < normalised.rows; ++y) {
 		const float *src = normalised.ptr<float>(y);
 		uint16_t *dst = out.ptr<uint16_t>(y);
-		for (int x = 0; x < normalised.cols; ++x) {
+		const int n = normalised.cols * C;
+		for (int x = 0; x < n; ++x) {
 			const double v = (double) src[x] * 65535.0 + 0.5;
 			const int iv = (int) v;
 			dst[x] = (uint16_t) std::clamp(iv, 0, 65535);

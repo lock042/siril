@@ -74,6 +74,31 @@ cv::Mat read_analysis_frame(sequence *seq, int idx) {
 	return view.clone();
 }
 
+/* Read the frame as a multi-channel cv::Mat preserving all layers (1 or 3).
+ * Used by mpp_stack_apply so colour frames carry through to the stacked
+ * output. */
+cv::Mat read_full_frame(sequence *seq, int idx) {
+	FitsBuf buf;
+	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
+		return cv::Mat();
+	const int n = fits_layer_count(&buf.f);
+	if (n == 1) {
+		cv::Mat view = wrap_fits_layer(&buf.f, 0);
+		if (view.empty()) return cv::Mat();
+		return view.clone();
+	}
+	std::vector<cv::Mat> planes;
+	planes.reserve(n);
+	for (int l = 0; l < n; ++l) {
+		cv::Mat view = wrap_fits_layer(&buf.f, l);
+		if (view.empty()) return cv::Mat();
+		planes.push_back(view.clone());
+	}
+	cv::Mat out;
+	cv::merge(planes, out);
+	return out;
+}
+
 /* Reconstruct APQualities from a populated mpp_run_t. Stage B and Stage C
  * both consume this. */
 APQualities apq_from_run(const mpp_run_t *run) {
@@ -245,12 +270,14 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
 
+	/* Read frames preserving all layers — colour data flows through Stage C
+	 * even though Stages A and B use only the green analysis layer. */
 	std::vector<cv::Mat> raw_frames;
 	raw_frames.reserve(run->num_frames);
 	for (int i = 0; i < run->num_frames; ++i) {
-		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
-		if (mono.empty()) return MPP_EIO;
-		raw_frames.push_back(mono);
+		const cv::Mat frame = mpp::read_full_frame(seq, i);
+		if (frame.empty()) return MPP_EIO;
+		raw_frames.push_back(frame);
 	}
 
 	const auto apq = mpp::apq_from_run(run);
@@ -274,25 +301,38 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	    loop.state, loop.border, *run->aps, *cfg);
 
 	/* Pack stacked into the caller-supplied fits. The caller allocates the
-	 * shell (`fits out = {0};`); we fill its members and own `data`. */
+	 * shell (`fits out = {0};`); we fill its members and own `data`. For
+	 * multi-channel stacked (CV_16UC3), Siril expects PLANAR layout in
+	 * `data` (R plane then G plane then B plane), with pdata[0..2]
+	 * pointing into the contiguous buffer. cv::Mat stores interleaved
+	 * BGRBGR... — we split + repack. */
 	clearfits(out);
 	const int H = stacked.rows;
 	const int W = stacked.cols;
-	out->data = (WORD *) std::calloc((size_t) H * W, sizeof(WORD));
+	const int C = stacked.channels();
+	const size_t plane = (size_t) H * W;
+	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
 	if (!out->data) return MPP_ENOMEM;
-	std::memcpy(out->data, stacked.data, (size_t) H * W * sizeof(WORD));
+	if (C == 1) {
+		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
+	} else {
+		std::vector<cv::Mat> planes;
+		cv::split(stacked, planes);
+		for (int c = 0; c < C; ++c)
+			std::memcpy(out->data + c * plane, planes[c].data, plane * sizeof(WORD));
+	}
 	out->rx = W;
 	out->ry = H;
 	out->naxes[0] = W;
 	out->naxes[1] = H;
-	out->naxes[2] = 1;
-	out->naxis = 2;
+	out->naxes[2] = C;
+	out->naxis = (C == 1) ? 2 : 3;
 	out->bitpix = USHORT_IMG;
 	out->orig_bitpix = USHORT_IMG;
 	out->type = DATA_USHORT;
 	out->pdata[0] = out->data;
-	out->pdata[1] = NULL;
-	out->pdata[2] = NULL;
+	out->pdata[1] = (C >= 2) ? out->data + plane     : NULL;
+	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : NULL;
 	return MPP_OK;
 }
 
