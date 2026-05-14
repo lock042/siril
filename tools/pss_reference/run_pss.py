@@ -129,6 +129,10 @@ def run(input_path, input_type, out_dir):
     np.savetxt(out_dir / "global_shifts.csv", shifts, fmt="%d")
     np.savetxt(out_dir / "ap_yx.csv", ap_yx, fmt="%d")
     np.savetxt(out_dir / "ap_box.csv", ap_box, fmt="%d")
+    if patch_yxyx is not None:
+        np.savetxt(out_dir / "align_patch.csv",
+                   np.array(patch_yxyx, dtype=np.int64).reshape(1, 4),
+                   fmt="%d")
 
     # Save reference + stacked as FITS via PSS's own writer (keeps any bit-depth conventions).
     Frames.save_image(str(out_dir / "ref_avg.fits"), average, color=frames.color,

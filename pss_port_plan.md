@@ -75,10 +75,10 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 ## Phase 2 — Global frame alignment
 
-- [ ] 2.1 Implement `mpp_align.cpp` patch picker (`align_frames.compute_alignment_rect` + `quality_measure_threshold_weighted`). Bounds 0.2–0.7 of frame, border 10 px, black threshold 10240.
-- [ ] 2.2 Two-phase correlation: phase 1 stride-2 grid, `cv::TM_CCORR_NORMED`, search half-width `(align_frames_search_width − 4)/2`; phase 2 stride-1, search ±4.
-- [ ] 2.3 Build average reference frame from top `align_frames_average_frame_percent=5%`.
-- [ ] 2.4 Oracle test: per-frame integer shifts exact; patch coordinates exact.
+- [x] 2.1 Implement `mpp_align.cpp` patch picker (`align_frames.compute_alignment_rect` + `quality_measure_threshold_weighted`). Replicates PSS's uint16 modular subtraction in the quality measure so absdiff matches NumPy's `abs(a-b)` for unsigned inputs.
+- [x] 2.2 Two-phase correlation: phase 1 stride-2 grid (with extra 7×7 GaussianBlur on the strided frame window) `cv::TM_CCORR_NORMED` with half-width `(search_width − 4)/2`; phase 2 stride-1, search ±4. Success requires both phases' optima to be in the interior of their search windows. Implements PSS's backward-then-forward cumulative-shift loop.
+- [x] 2.3 Build average reference frame from top `align_frames_average_frame_percent=5%`. Includes `find_best_frames` sliding-window selector for `align_frames_fast_changing_object=true`.
+- [x] 2.4 Oracle test: per-frame integer shifts exact; patch coordinates exact. _(`mpp_align::oracle_equivalence_synthetic` passes — patch `(116,153,119,169)` and all 24 per-frame integer shifts match PSS exactly.)_
 
 ## Phase 3 — Alignment-point grid
 

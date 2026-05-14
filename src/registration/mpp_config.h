@@ -24,6 +24,17 @@ struct mpp_config {
 
 	/* Input bit depth — drives threshold scaling. 8 or 16. */
 	int bitpix;
+
+	/* Global frame alignment (Phase 2). All names mirror PSS configuration.py. */
+	int align_frames_search_width;              /* 34 */
+	double align_frames_rectangle_scale_factor; /* 3.0 */
+	int align_frames_border_width;              /* 10 */
+	int align_frames_rectangle_stride;          /* 2 */
+	int align_frames_rectangle_black_threshold; /* 10240 */
+	double align_frames_rectangle_min_fraction; /* 0.7 */
+	int align_frames_average_frame_percent;     /* 5 */
+	bool align_frames_fast_changing_object;     /* true */
+	int align_frames_best_frames_window_extension; /* 2 */
 };
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg);
