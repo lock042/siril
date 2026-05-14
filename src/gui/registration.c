@@ -1364,7 +1364,9 @@ gboolean end_register_idle(gpointer p) {
 			update_sequences_list(args->new_seq_name);
 		}
 	}
-	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+	set_progress_bar_data(args->mpp_stage_a_only
+	                      ? _("Analysis complete.")
+	                      : _("Registration complete."), PROGRESS_DONE);
 	args->seq->reg_invalidated = FALSE;
 	drawPlot();
 	update_stack_interface(TRUE);
