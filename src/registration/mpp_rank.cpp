@@ -54,19 +54,20 @@ double brightness_threshold(const mpp_config_t &cfg) {
 
 }  // namespace
 
-double rank_score_mat(const cv::Mat &mono, const mpp_config_t &cfg) {
+cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg) {
 	cv::Mat blurred;
 	const int k = cfg.frames_gauss_width;
 	cv::GaussianBlur(mono, blurred, cv::Size(k, k), 0);
-
 	const cv::Mat sub = stride_subsample(blurred, cfg.align_frames_sampling_stride);
-
 	cv::Mat lap;
 	cv::Laplacian(sub, lap, CV_32F);
-
 	cv::Mat lap_u8;
 	cv::convertScaleAbs(lap, lap_u8, cfg.rank_laplacian_alpha);
+	return lap_u8;
+}
 
+double rank_score_mat(const cv::Mat &mono, const mpp_config_t &cfg) {
+	const cv::Mat lap_u8 = rank_blurred_laplacian_u8(mono, cfg);
 	cv::Scalar mean, stddev;
 	cv::meanStdDev(lap_u8, mean, stddev);
 	return stddev[0];

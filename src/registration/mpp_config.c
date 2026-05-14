@@ -29,5 +29,16 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_structure_threshold = 0.04;
 	cfg->alignment_points_dim_fraction_threshold = 0.6;
 	cfg->alignment_points_local_search_subpixel = false;
+
+	/* Phase 5a — stacking */
+	cfg->alignment_points_frame_percent = 10;
+	cfg->alignment_points_frame_number = -1;
+	cfg->alignment_points_rank_pixel_stride = 2;
+	cfg->alignment_points_de_warp = true;
+	cfg->alignment_points_penalty_factor = 0.00025;
+	cfg->stack_frames_background_fraction = 0.3;
+	cfg->stack_frames_background_blend_threshold = 0.2;
+	cfg->stack_frames_background_patch_size = 100;
+	cfg->drizzle_factor = 1;
 	return MPP_OK;
 }

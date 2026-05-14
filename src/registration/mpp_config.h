@@ -50,6 +50,18 @@ struct mpp_config {
 	double alignment_points_structure_threshold; /* 0.04 (post-normalisation) */
 	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
 	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic fit (drizzle path) */
+
+	/* Stacking (Phase 5a). */
+	int alignment_points_frame_percent;          /* 10  — %% of frames per AP (used when frame_number ≤ 0) */
+	int alignment_points_frame_number;           /* -1  — explicit override; positive value overrides percent */
+	int alignment_points_rank_pixel_stride;      /* 2   — used only for xy/Sobel per-AP rank methods */
+	bool alignment_points_de_warp;               /* true */
+	double alignment_points_penalty_factor;       /* 0.00025 — weight matrix off-centre penalty */
+
+	double stack_frames_background_fraction;     /* 0.3 */
+	double stack_frames_background_blend_threshold; /* 0.2 */
+	int stack_frames_background_patch_size;      /* 100 */
+	int drizzle_factor;                          /* 1 — integer multiplier; 3 used for 1.5× display */
 };
 
 /* PSS derives these from alignment_points_half_box_width; helpers keep the

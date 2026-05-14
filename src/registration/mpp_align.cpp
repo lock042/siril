@@ -239,7 +239,8 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              int y_low, int y_high,
                                              int x_low, int x_high,
                                              int gauss_width, int search_width,
-                                             bool subpixel_solve) {
+                                             bool subpixel_solve,
+                                             const cv::Mat &weight_matrix_first_phase) {
 	MultilevelShiftResult result;
 	const int sw2 = 4;
 	const int sw1 = (search_width - sw2) / 2;
@@ -264,7 +265,13 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	cv::Mat ccr1;
 	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, cv::TM_CCORR_NORMED);
 	cv::Point max1;
-	cv::minMaxLoc(ccr1, nullptr, nullptr, nullptr, &max1);
+	if (!weight_matrix_first_phase.empty()) {
+		cv::Mat weighted;
+		cv::multiply(ccr1, weight_matrix_first_phase, weighted);
+		cv::minMaxLoc(weighted, nullptr, nullptr, nullptr, &max1);
+	} else {
+		cv::minMaxLoc(ccr1, nullptr, nullptr, nullptr, &max1);
+	}
 	const int shift_y1 = (sw1 - max1.y) * 2;
 	const int shift_x1 = (sw1 - max1.x) * 2;
 	if (std::abs(shift_y1) == index_ext || std::abs(shift_x1) == index_ext)

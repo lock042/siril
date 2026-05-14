@@ -106,6 +106,20 @@ def run(input_path, input_type, out_dir):
 
     print("+++ Per-AP frame qualities")
     aps_obj.compute_frame_qualities()
+    # Phase 5a oracle artifacts.
+    stack_size = aps_obj.stack_size
+    n_aps = len(aps_obj.alignment_points)
+    n_frames = frames.number
+    ap_qualities = np.zeros((n_aps, n_frames), dtype=np.float64)
+    best_frame_indices = np.zeros((n_aps, stack_size), dtype=np.int64)
+    for aidx, ap in enumerate(aps_obj.alignment_points):
+        ap_qualities[aidx] = ap['frame_qualities']
+        best_frame_indices[aidx] = ap['best_frame_indices']
+    # Per-frame avg brightness (used by stacking for median-equalisation).
+    frame_brightness = np.array(
+        [frames.average_brightness(i) for i in range(n_frames)],
+        dtype=np.float64)
+    print(f"  stack_size={stack_size}")
 
     print("+++ Per-AP per-frame shifts (Phase 4 oracle)")
     # PSS computes per-AP per-frame shifts inside stack_frames; we drive
@@ -130,6 +144,19 @@ def run(input_path, input_type, out_dir):
     print("+++ Stacking")
     stack = StackFrames(config, frames, rank, align, aps_obj, my_timer)
     stack.stack_frames()
+    # stack_frames internally calls prepare_for_stack_blending and doesn't
+    # mutate sum_single_frame_weights further, so capturing here is correct.
+    sum_weights_buf = stack.sum_single_frame_weights.astype(np.float32).copy()
+    number_holes = int(stack.number_stacking_holes)
+    # Phase 5a oracle artifacts captured BEFORE merge (the merge step
+    # consumes them).
+    bg_patches = list(stack.background_patches) if stack.background_patches else []
+    ap_stacking_bufs = [ap['stacking_buffer'].astype(np.float32).copy()
+                        for ap in aps_obj.alignment_points]
+    border_counts = (int(stack.border_y_low), int(stack.border_y_high),
+                     int(stack.border_x_low), int(stack.border_x_high))
+    avg_bg = (stack.averaged_background.astype(np.float32).copy()
+              if stack.averaged_background is not None else None)
     stacked = stack.merge_alignment_point_buffers()
     if config.drizzle_factor_is_1_5:
         stack.half_stacked_image_buffer_resolution()
@@ -178,6 +205,60 @@ def run(input_path, input_type, out_dir):
     # set_reference_boxes_correlation samples from.
     mfb = aps_obj.mean_frame.astype(np.int32)
     mfb.tofile(out_dir / "mean_frame_blurred_raw.bin")
+    # Phase 5a oracles.
+    np.savetxt(out_dir / "ap_qualities.csv", ap_qualities, fmt="%.17g")
+    np.savetxt(out_dir / "best_frame_indices.csv", best_frame_indices, fmt="%d")
+    np.savetxt(out_dir / "frame_brightness.csv", frame_brightness, fmt="%.17g")
+    with open(out_dir / "stack_size.txt", "w") as f:
+        f.write(f"{stack_size}\n")
+    sum_weights_buf.tofile(out_dir / "sum_single_frame_weights.bin")
+    np.savetxt(out_dir / "sum_single_frame_weights_dims.csv",
+               np.array([sum_weights_buf.shape[0], sum_weights_buf.shape[1]],
+                        dtype=np.int64).reshape(1, 2), fmt="%d")
+    with open(out_dir / "number_stacking_holes.txt", "w") as f:
+        f.write(f"{number_holes}\n")
+    # Background patches: one row per patch, (y_lo y_hi x_lo x_hi).
+    if bg_patches:
+        np.savetxt(out_dir / "background_patches.csv",
+                   np.array([(p['patch_y_low'], p['patch_y_high'],
+                              p['patch_x_low'], p['patch_x_high']) for p in bg_patches],
+                            dtype=np.int64),
+                   fmt="%d")
+    else:
+        # Touch an empty file to make the test detect "no patches" deterministically.
+        (out_dir / "background_patches.csv").write_text("")
+    # Border counts: single row of 4 ints (y_lo y_hi x_lo x_hi).
+    np.savetxt(out_dir / "stack_borders.csv",
+               np.array([border_counts], dtype=np.int64), fmt="%d")
+    # Per-AP stacking buffers: concatenated binary + a meta CSV with one row
+    # per AP (rows cols byte_offset).
+    meta = []
+    off = 0
+    with open(out_dir / "ap_stacking_buffers.bin", "wb") as f:
+        for buf in ap_stacking_bufs:
+            assert buf.dtype == np.float32
+            f.write(buf.tobytes(order="C"))
+            meta.append((buf.shape[0], buf.shape[1], off))
+            off += buf.nbytes
+    np.savetxt(out_dir / "ap_stacking_buffers_meta.csv",
+               np.array(meta, dtype=np.int64), fmt="%d")
+    if avg_bg is not None:
+        avg_bg.tofile(out_dir / "averaged_background.bin")
+        np.savetxt(out_dir / "averaged_background_dims.csv",
+                   np.array([avg_bg.shape[0], avg_bg.shape[1]],
+                            dtype=np.int64).reshape(1, 2), fmt="%d")
+    # Final uint16 stacked image (post-merge, post-trim, post-clip).
+    stacked_u16 = np.asarray(stacked, dtype=np.uint16)
+    stacked_u16.tofile(out_dir / "stacked_u16.bin")
+    np.savetxt(out_dir / "stacked_u16_dims.csv",
+               np.array([stacked_u16.shape[0], stacked_u16.shape[1]],
+                        dtype=np.int64).reshape(1, 2), fmt="%d")
+    # used_alignment_points is jagged; flatten with row lengths.
+    used_aps = frames.used_alignment_points
+    with open(out_dir / "used_alignment_points.csv", "w") as f:
+        for fidx in range(n_frames):
+            lst = used_aps[fidx] if fidx < len(used_aps) else []
+            f.write(" ".join(str(a) for a in lst) + "\n")
 
     # Save reference + stacked as FITS via PSS's own writer (keeps any bit-depth conventions).
     Frames.save_image(str(out_dir / "ref_avg.fits"), average, color=frames.color,

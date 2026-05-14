@@ -29,6 +29,12 @@ double rank_average_brightness(const cv::Mat &mono, const mpp_config_t &cfg);
 /* σ / brightness if cfg.frames_normalization, otherwise just σ. */
 double rank_score_normalized(const cv::Mat &mono, const mpp_config_t &cfg);
 
+/* PSS frames.frames_mono_blurred_laplacian: GaussianBlur(7×7) → stride-2
+ * sub-sample → cv::Laplacian(CV_32F) → cv::convertScaleAbs(α=1/256).
+ * Returns a CV_8U image. Per-AP quality ranking in Phase 5a samples patches
+ * from this image. */
+cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg);
+
 }  // namespace mpp
 
 #endif  /* SRC_REGISTRATION_MPP_RANK_PRIV_HPP_ */

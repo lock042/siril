@@ -50,14 +50,18 @@ struct MultilevelShiftResult {
  * default 7). `search_width` is the search half-width PSS describes — total
  * search range is split between phases (phase 2 fixed at ±4, phase 1 gets
  * (search_width − 4)/2 on the coarse grid). If `subpixel_solve`, the phase-2
- * peak is refined by fitting a quadratic over its 3×3 neighbourhood. */
+ * peak is refined by fitting a quadratic over its 3×3 neighbourhood.
+ * `weight_matrix_first_phase`, when non-empty, is element-wise multiplied
+ * into the phase-1 correlation result before argmax — PSS's penalty bias
+ * during stacking (alignment_points_penalty_factor). */
 MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              const cv::Mat &ref_first_phase_f32,
                                              const cv::Mat &frame_mono_blurred,
                                              int patch_y_low, int patch_y_high,
                                              int patch_x_low, int patch_x_high,
                                              int gauss_width, int search_width,
-                                             bool subpixel_solve);
+                                             bool subpixel_solve,
+                                             const cv::Mat &weight_matrix_first_phase = cv::Mat());
 
 /* Phase 2 wrapper. */
 AlignShiftResult align_shift_one_frame(const cv::Mat &reference_window_f32,

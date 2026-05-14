@@ -102,7 +102,7 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 - [x] 4.1 Two-phase multilevel correlation in `mpp_shift.cpp`. Pulled the kernel out into `mpp::multilevel_correlation` (shared with Phase 2) parameterised by `gauss_width` and `search_width`. Per-AP shift uses `alignment_points_search_width=14` (smaller than the 34 for global). Reference boxes come from the *unblurred* `align_frames.mean_frame` (PSS `set_reference_boxes_correlation`, NOT the AlignmentPoints-blurred one used for AP placement — those are different mean frames, and the oracle is unforgiving about which you pick).
 - [x] 4.2 Optional sub-pixel: 6-parameter quadratic surface fit (`f(x,y) = a x² + b y² + c xy + d x + e y + g`) on the 3×3 correlation neighbourhood, solved via PSS's precomputed pseudo-inverse `(AᵀA)⁻¹ Aᵀ` from `miscellaneous.sub_pixel_solve_matrix`. Gated on `alignment_points_local_search_subpixel=true` (default false to match PSS).
-- [ ] 4.3 Penalty matrix for off-centre peaks (`alignment_points_penalty_factor=0.00025`). _Deferred — PSS's default config calls `compute_shift_alignment_point` with `weight_matrix_first_phase=None`, the oracle was captured the same way, so the integer-mode equivalence test passes without it. Wire when a path needs it._
+- [ ] 4.3 Penalty matrix for off-centre peaks (`alignment_points_penalty_factor=0.00025`). _Deferred to Phase 5a (where `stack_frames.py:311-317` builds it and passes it into `compute_shift_alignment_point` during the actual stacking pass; the Phase-4 oracle was captured without the matrix because `compute_frame_qualities` doesn't use it)._
 - [x] 4.4 Sign-convention regression test: full Phase 2+3+4 chain on a jittered sequence; after Phase 2 absorbs the global shift, per-AP residuals settle to (≤1, ≤1) integer pixels including (0, 0) on the best frame.
 - [x] 4.5 Oracle test: per-AP per-frame integer shifts match PSS **exactly** across all 24 frames × 12 APs on the bundled synthetic dataset (`mpp_shift::oracle_equivalence_synthetic`).
 
@@ -110,13 +110,28 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 ## Phase 5a — Bicubic stacking (PSS-faithful)
 
-- [ ] 5a.1 Factor `mpp_stack.cpp` into per-frame resample stage and AP composition stage. Pluggable resample backend interface.
-- [ ] 5a.2 Implement `mpp_resample_bicubic()`: `cv::resize(frame, scale=N, INTER_CUBIC)`.
-- [ ] 5a.3 Implement `mpp_compose_aps()`: top-N per AP via local quality, sub-pixel patch extraction via `cv::getRectSubPix`, ramped 2D weight `min(y_ramp, x_ramp)`, accumulate Σ patch × weight and Σ weight, normalise at end.
-- [ ] 5a.4 Per-frame brightness equalisation (mean match).
-- [ ] 5a.5 Background composition: if AP coverage > `1 − background_fraction` (0.3) use only APs; else compose from non-AP regions and blend at AP edges with ramp width `background_blend_threshold` (0.2).
-- [ ] 5a.6 Drizzle 1.5/2/3 via output buffer dimensions; PSS-faithful path.
-- [ ] 5a.7 Oracle test: synthetic SER end-to-end; per-channel PSNR > 50 dB vs PSS reference.
+- [x] 5a.1 `mpp_stack` factored into `stack_frames_loop` (per-frame brightness equalise → drizzle resize → per-AP shift+remap into per-AP buffers, plus background accumulator) and `stack_merge_alignment_point_buffers` (weighted merge, background blend, border trim, scale+clip to u16). Public C `mpp_stack(seq, …)` still stubbed pending orchestrator.
+- [x] 5a.2 `cv::resize(frame, scale=K, INTER_LINEAR)` — PSS uses INTER_LINEAR for the drizzle expansion, not INTER_CUBIC. _(Plan was wrong; PSS source confirms LINEAR at `stack_frames.py:350`.)_
+- [x] 5a.3 Top-N per AP via `ap_compute_frame_qualities` (`alignment_points.compute_frame_qualities` Laplace+Laplace path with brightness normalisation). 2D weights via PSS's `one_dim_weight × min`. Background composed before merge.
+- [x] 5a.4 Per-frame brightness equalisation against the median frame brightness (`frame × median / (avg + 1e-7)`).
+- [x] 5a.5 Background composition: subdivides the intersection into `background_patch_size`-px tiles, keeps only tiles where some pixel needs background (PSS `stack_frames_background_fraction` decides full vs patch-based). Foreground/background blend uses the `sum_weights / (blend_threshold × stack_size)`, clipped to [0, 1] ramp.
+- [x] 5a.6 Drizzle plumbing in place (`drizzle_factor` config field; per-frame resize, drizzled patch bounds, drizzled global buffer). **Functionally untested for drizzle > 1** — oracle was captured with the PSS default `drizzle="Off"`. Drizzle-specific oracle deferred to a follow-up.
+- [x] 5a.7 End-to-end oracle: final uint16 stacked image matches PSS cell-for-cell on the synthetic dataset with > 99 % exact pixels and worst Δ ≤ 2 levels out of 65535 (`mpp_stack::end_to_end_stacked_oracle`).
+
+**Phase 4.3 closed here:** the penalty-weight matrix (`alignment_points_penalty_factor=0.00025`) was added as an optional parameter to `mpp::multilevel_correlation` and is used by the stacking-time per-AP shift compute. Phase-4-default callers (`align_shift_one_frame`, the Phase 4 oracle path) keep `weight_matrix_first_phase=None`, matching PSS.
+
+### Phase 5a oracle tests (all green)
+
+| Test | Acceptance bar | Notes |
+|---|---|---|
+| `default_config_phase5a` | PSS defaults exact | 10 fields |
+| `one_dim_weight_*` | Reference formulas exact | symmetric / extend_low / extend_high |
+| `weight_matrix_centre_and_corners` | 1.0 at centre, `1 − 2 × penalty` at corners | |
+| `remap_rigid_*` | accumulation + clip + border counts exact | |
+| `ap_compute_frame_qualities_oracle` | quality matrix `1e-9` rel, stack_size + best_frame_indices + used_alignment_points exact | |
+| `prepare_for_blending_oracle` | `sum_single_frame_weights` cell-wise `< 1e-5` abs; number_stacking_holes exact | |
+| `stack_frames_loop_oracle` | per-AP buffer + averaged_background `< 1e-3` rel; bg_patches + border counts exact | depth oracle — exercises every Phase 1–4 module |
+| `end_to_end_stacked_oracle` | u16 stacked image **> 99 % exact, worst Δ ≤ 2 out of 65535** | |
 
 ## Phase 5b — STScI drizzle + Bayer drizzle (Siril-original)
 
