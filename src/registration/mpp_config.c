@@ -20,5 +20,13 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->align_frames_average_frame_percent = 5;
 	cfg->align_frames_fast_changing_object = true;
 	cfg->align_frames_best_frames_window_extension = 2;
+
+	/* Phase 3 — alignment-point grid */
+	cfg->alignment_points_half_box_width = 24;
+	cfg->alignment_points_search_width = 14;
+	cfg->alignment_points_brightness_threshold = 10;
+	cfg->alignment_points_contrast_threshold = 0;
+	cfg->alignment_points_structure_threshold = 0.04;
+	cfg->alignment_points_dim_fraction_threshold = 0.6;
 	return MPP_OK;
 }

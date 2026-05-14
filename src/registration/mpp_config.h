@@ -35,7 +35,28 @@ struct mpp_config {
 	int align_frames_average_frame_percent;     /* 5 */
 	bool align_frames_fast_changing_object;     /* true */
 	int align_frames_best_frames_window_extension; /* 2 */
+
+	/* Alignment-point grid (Phase 3). Per-AP search and stacking parameters
+	 * live with their respective modules. */
+	int alignment_points_half_box_width;        /* 24  → derives half_patch_width and step_size */
+	int alignment_points_search_width;          /* 14 */
+	int alignment_points_brightness_threshold;  /* 10  (gets multiplied by 256 for 16-bit) */
+	int alignment_points_contrast_threshold;    /* 0   (gets multiplied by 256 for 16-bit) */
+	double alignment_points_structure_threshold; /* 0.04 (post-normalisation) */
+	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
 };
+
+/* PSS derives these from alignment_points_half_box_width; helpers keep the
+ * arithmetic in one place. For default half_box_width = 24 both formulas
+ * give exact integers; for odd values they fall back to Python's
+ * banker's-rounding floor behaviour. */
+static inline int mpp_cfg_half_patch_width(const struct mpp_config *c) {
+	return (c->alignment_points_half_box_width * 3) / 2;  /* PSS: round(half_box * 1.5) */
+}
+static inline int mpp_cfg_step_size(const struct mpp_config *c) {
+	/* PSS: round((half_patch_width * 4.5) / 3) == round(half_patch_width * 1.5) */
+	return (mpp_cfg_half_patch_width(c) * 3) / 2;
+}
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg);
 

@@ -82,9 +82,9 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 ## Phase 3 — Alignment-point grid
 
-- [ ] 3.1 Implement `mpp_ap.cpp` staggered grid (`step_size = (half_patch_width × 4.5) / 3`, `half_patch_width = half_box_width × 1.5`, `half_box_width=24`).
-- [ ] 3.2 Per-AP filters: brightness threshold (`10 × 256` in 16-bit), structure threshold (`0.04 × max_σ_in_frame`).
-- [ ] 3.3 Oracle test: AP coordinate set exact match.
+- [x] 3.1 Implement `mpp_ap.cpp` staggered grid (`step_size = (half_patch_width × 4.5) / 3`, `half_patch_width = half_box_width × 1.5`, `half_box_width=24`). PSS pre-blurs the mean frame with `GaussianBlur(7×7)` inside `AlignmentPoints.__init__`; we replicate that as the first step of `ap_create_grid`.
+- [x] 3.2 Per-AP filters: brightness (`max(box) > 10 × 256`), contrast (`max−min > 0` by default — the contrast threshold is 0), dim-fraction COM re-centring (`fraction below threshold > 0.6` triggers a centre-of-mass shift of the AP), and post-normalisation structure threshold (`min(avg|∂x|, avg|∂y|) / max_struct ≥ 0.04`).
+- [x] 3.3 Oracle test: AP coordinate set exact match. _(`mpp_ap::oracle_equivalence_synthetic` passes — 12 APs, every (y, x) centre and (box_y_low, box_y_high, box_x_low, box_x_high) matches PSS exactly.)_
 
 ## Phase 4 — Per-AP local shifts
 
