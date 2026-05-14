@@ -114,11 +114,21 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 
 	/* first we're looking for stars in reference image */
-	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
-		siril_log_error(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
-		return 1;
+	if (regargs->external_ref_path) {
+		if (readfits(regargs->external_ref_path, &fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		regargs->reference_image = -1;
+	} else {
+		if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+			siril_log_error(_("Could not load reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
 	}
 
 	siril_log_info(_("Reference Image:\n"));
@@ -232,11 +242,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
-	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
-	sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
-	sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
-	sadata->current_regdata[regargs->reference_image].background_lvl = B;
-	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
+	if (regargs->reference_image >= 0) {
+		sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
+		sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
+		sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
+		sadata->current_regdata[regargs->reference_image].background_lvl = B;
+		sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
+	}
 
 	return registration_prepare_results(args);
 }
