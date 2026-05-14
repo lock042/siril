@@ -134,7 +134,8 @@ Test(mpp_ap, create_grid_basic_invariants) {
 			if (std::hypot(dy, dx) < 50) ref.at<int32_t>(y, x) = 8000 + (int) (200 * std::sin(0.4 * x + 0.3 * y));
 		}
 
-	mpp_aps_t *aps = mpp::ap_create_grid(ref, cfg);
+	const cv::Mat ref_blurred = mpp::blur_mean_frame_for_ap(ref, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(ref_blurred, cfg);
 	cr_assert_not_null(aps);
 	for (int i = 0; i < aps->count; ++i) {
 		const auto &ap = aps->records[i];
@@ -192,7 +193,8 @@ Test(mpp_ap, oracle_equivalence_synthetic) {
 	cr_assert_gt(avg.mean_frame.rows, 0);
 	cr_assert_gt(avg.mean_frame.cols, 0);
 
-	mpp_aps_t *aps = mpp::ap_create_grid(avg.mean_frame, cfg);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
 	cr_assert_not_null(aps);
 
 	const std::vector<int> oracle_yx  = read_ints_csv(ap_yx_csv);   /* n*2 */

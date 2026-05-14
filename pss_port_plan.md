@@ -100,15 +100,13 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 ## Phase 4 — Per-AP local shifts
 
-The single highest-risk module. Most numerical landmines live here.
+- [x] 4.1 Two-phase multilevel correlation in `mpp_shift.cpp`. Pulled the kernel out into `mpp::multilevel_correlation` (shared with Phase 2) parameterised by `gauss_width` and `search_width`. Per-AP shift uses `alignment_points_search_width=14` (smaller than the 34 for global). Reference boxes come from the *unblurred* `align_frames.mean_frame` (PSS `set_reference_boxes_correlation`, NOT the AlignmentPoints-blurred one used for AP placement — those are different mean frames, and the oracle is unforgiving about which you pick).
+- [x] 4.2 Optional sub-pixel: 6-parameter quadratic surface fit (`f(x,y) = a x² + b y² + c xy + d x + e y + g`) on the 3×3 correlation neighbourhood, solved via PSS's precomputed pseudo-inverse `(AᵀA)⁻¹ Aᵀ` from `miscellaneous.sub_pixel_solve_matrix`. Gated on `alignment_points_local_search_subpixel=true` (default false to match PSS).
+- [ ] 4.3 Penalty matrix for off-centre peaks (`alignment_points_penalty_factor=0.00025`). _Deferred — PSS's default config calls `compute_shift_alignment_point` with `weight_matrix_first_phase=None`, the oracle was captured the same way, so the integer-mode equivalence test passes without it. Wire when a path needs it._
+- [x] 4.4 Sign-convention regression test: full Phase 2+3+4 chain on a jittered sequence; after Phase 2 absorbs the global shift, per-AP residuals settle to (≤1, ≤1) integer pixels including (0, 0) on the best frame.
+- [x] 4.5 Oracle test: per-AP per-frame integer shifts match PSS **exactly** across all 24 frames × 12 APs on the bundled synthetic dataset (`mpp_shift::oracle_equivalence_synthetic`).
 
-- [ ] 4.1 Two-phase multilevel correlation in `mpp_shift.cpp`:
-    - Phase 1: stride-2 grid, Gaussian-blurred reference and frame windows, `cv::TM_CCORR_NORMED`, integer shift = `2 × ((search_width_phase1, search_width_phase1) − maxLoc)`.
-    - Phase 2: stride-1, search ±4, no blur, `TM_CCORR_NORMED`.
-- [ ] 4.2 Optional sub-pixel: fit `f(x,y) = a + bx + cy + dx² + ey² + fxy` over 3×3 correlation neighbourhood; solve 2×2 linear system. Gated on `alignment_points_local_search_subpixel=true`.
-- [ ] 4.3 Penalty matrix for off-centre peaks per `alignment_points_penalty_factor=0.00025`.
-- [ ] 4.4 Sign-convention regression tests: known synthetic shift recovered.
-- [ ] 4.5 Oracle test: per-AP per-frame shifts match within 0.05 px (sub-pixel) / exact (integer).
+**Companion check:** `mpp_align::average_frame_oracle_equivalence` now also locks in bit-for-bit equivalence of `align_average_frame` against PSS's `align_frames.mean_frame` on the same dataset (caught a `convertTo(CV_32S)` rounding divergence — PSS uses `astype(int32)` which truncates toward zero, OpenCV's default rounds half-to-even; fixed by manual truncation).
 
 ## Phase 5a — Bicubic stacking (PSS-faithful)
 

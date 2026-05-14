@@ -190,45 +190,87 @@ cv::Vec4i align_pick_patch(const cv::Mat &best, const mpp_config_t &cfg) {
 	return best_bounds;
 }
 
-AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
-                                       const cv::Mat &ref_window_first_phase_f32,
-                                       const cv::Mat &frame_mono_blurred,
-                                       int y_low, int y_high,
-                                       int x_low, int x_high,
-                                       const mpp_config_t &cfg) {
-	AlignShiftResult result;
-	const int sw = cfg.align_frames_search_width;
-	const int sw2 = 4;                          /* phase-2 fixed */
-	const int sw1 = (sw - sw2) / 2;             /* phase-1 half-width on coarse grid */
+/* PSS sub_pixel_solve_matrix from miscellaneous.py:464 — precomputed
+ * pseudo-inverse `(AᵀA)⁻¹ Aᵀ` for fitting f(x,y) = a x² + b y² + c xy + d x + e y + g
+ * to 9 correlation values on a 3×3 grid (indexed row-major y=0..2, x=0..2 with
+ * the grid centred at (0,0)). */
+static const double SUB_PIXEL_SOLVE[6][9] = {
+	{ 0.16666667, -0.33333333,  0.16666667,  0.16666667, -0.33333333,  0.16666667,  0.16666667, -0.33333333,  0.16666667},
+	{ 0.16666667,  0.16666667,  0.16666667, -0.33333333, -0.33333333, -0.33333333,  0.16666667,  0.16666667,  0.16666667},
+	{ 0.25,        0.,         -0.25,        0.,          0.,          0.,         -0.25,        0.,          0.25      },
+	{-0.16666667,  0.,          0.16666667, -0.16666667,  0.,          0.16666667, -0.16666667,  0.,          0.16666667},
+	{-0.16666667, -0.16666667, -0.16666667,  0.,          0.,          0.,          0.16666667,  0.16666667,  0.16666667},
+	{-0.11111111,  0.22222222, -0.11111111,  0.22222222,  0.55555556,  0.22222222, -0.11111111,  0.22222222, -0.11111111}
+};
+
+namespace {
+
+/* Fit a quadratic surface to a 3×3 patch of correlation values and return
+ * the (y_corr, x_corr) offset to the peak. Returns false on a near-singular
+ * solve. Mirrors PSS Miscellaneous.sub_pixel_solve. */
+bool sub_pixel_solve(const float vals[9], double *y_corr, double *x_corr) {
+	double coeffs[6] = {0, 0, 0, 0, 0, 0};
+	for (int i = 0; i < 6; ++i)
+		for (int j = 0; j < 9; ++j)
+			coeffs[i] += SUB_PIXEL_SOLVE[i][j] * (double) vals[j];
+	const double a_f = coeffs[0], b_f = coeffs[1], c_f = coeffs[2];
+	const double d_f = coeffs[3], e_f = coeffs[4];
+	const double denom_y = c_f * c_f - 4.0 * a_f * b_f;
+	if (std::abs(denom_y) > 1e-10 && std::abs(a_f) > 1e-10) {
+		const double yc = (2.0 * a_f * e_f - c_f * d_f) / denom_y;
+		*y_corr = yc;
+		*x_corr = (-c_f * yc - d_f) / (2.0 * a_f);
+		return true;
+	}
+	if (std::abs(denom_y) > 1e-10 && std::abs(c_f) > 1e-10) {
+		const double yc = (2.0 * a_f * e_f - c_f * d_f) / denom_y;
+		*y_corr = yc;
+		*x_corr = (-2.0 * b_f * yc - e_f) / c_f;
+		return true;
+	}
+	return false;
+}
+
+}  // namespace
+
+MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
+                                             const cv::Mat &ref_first_phase_f32,
+                                             const cv::Mat &frame_mono_blurred,
+                                             int y_low, int y_high,
+                                             int x_low, int x_high,
+                                             int gauss_width, int search_width,
+                                             bool subpixel_solve) {
+	MultilevelShiftResult result;
+	const int sw2 = 4;
+	const int sw1 = (search_width - sw2) / 2;
 	const int index_ext = sw1 * 2;
 	const int H = frame_mono_blurred.rows, W = frame_mono_blurred.cols;
 
-	/* Phase 1: stride-2 window with extra GaussianBlur. */
+	/* Phase 1: stride-2 frame window + GaussianBlur, full-frame reference at
+	 * stride-2. */
 	const int y_lo1 = y_low - index_ext, y_hi1 = y_high + index_ext;
 	const int x_lo1 = x_low - index_ext, x_hi1 = x_high + index_ext;
 	if (y_lo1 < 0 || x_lo1 < 0 || y_hi1 > H || x_hi1 > W)
-		return result;  /* unsuccessful */
+		return result;
 	const cv::Mat fwin = frame_mono_blurred(cv::Range(y_lo1, y_hi1),
 	                                        cv::Range(x_lo1, x_hi1));
 	const cv::Mat fwin_strided = stride_subsample(fwin, 2);
 	cv::Mat fwin_blurred;
-	const int gw = cfg.frames_gauss_width;
-	cv::GaussianBlur(fwin_strided, fwin_blurred, cv::Size(gw, gw), 0);
+	cv::GaussianBlur(fwin_strided, fwin_blurred,
+	                 cv::Size(gauss_width, gauss_width), 0);
 	cv::Mat fwin_f32;
 	fwin_blurred.convertTo(fwin_f32, CV_32F);
 
 	cv::Mat ccr1;
-	cv::matchTemplate(fwin_f32, ref_window_first_phase_f32, ccr1, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin_f32, ref_first_phase_f32, ccr1, cv::TM_CCORR_NORMED);
 	cv::Point max1;
 	cv::minMaxLoc(ccr1, nullptr, nullptr, nullptr, &max1);
 	const int shift_y1 = (sw1 - max1.y) * 2;
 	const int shift_x1 = (sw1 - max1.x) * 2;
-	const bool succ1 = std::abs(shift_y1) != index_ext
-	                && std::abs(shift_x1) != index_ext;
-	if (!succ1)
+	if (std::abs(shift_y1) == index_ext || std::abs(shift_x1) == index_ext)
 		return result;
 
-	/* Phase 2: ±4 window at full resolution. */
+	/* Phase 2: ±4 around phase-1 result, full resolution. */
 	const int y_lo2 = y_low - shift_y1 - sw2;
 	const int y_hi2 = y_high - shift_y1 + sw2;
 	const int x_lo2 = x_low - shift_x1 - sw2;
@@ -241,19 +283,53 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
 	fwin2.convertTo(fwin2_f32, CV_32F);
 
 	cv::Mat ccr2;
-	cv::matchTemplate(fwin2_f32, ref_window_f32, ccr2, cv::TM_CCORR_NORMED);
+	cv::matchTemplate(fwin2_f32, ref_full_f32, ccr2, cv::TM_CCORR_NORMED);
 	cv::Point max2;
 	cv::minMaxLoc(ccr2, nullptr, nullptr, nullptr, &max2);
 	const int shift_y2 = sw2 - max2.y;
 	const int shift_x2 = sw2 - max2.x;
-	const bool succ2 = std::abs(shift_y2) != sw2 && std::abs(shift_x2) != sw2;
-	if (!succ2)
+	if (std::abs(shift_y2) == sw2 || std::abs(shift_x2) == sw2)
 		return result;
 
-	result.dy = shift_y1 + shift_y2;
-	result.dx = shift_x1 + shift_x2;
+	double y_total = (double) (shift_y1 + shift_y2);
+	double x_total = (double) (shift_x1 + shift_x2);
+
+	if (subpixel_solve && max2.x > 0 && max2.x < ccr2.cols - 1
+	                  && max2.y > 0 && max2.y < ccr2.rows - 1) {
+		float vals[9];
+		for (int j = 0; j < 3; ++j)
+			for (int i = 0; i < 3; ++i)
+				vals[j * 3 + i] = ccr2.at<float>(max2.y - 1 + j, max2.x - 1 + i);
+		double y_corr = 0.0, x_corr = 0.0;
+		if (sub_pixel_solve(vals, &y_corr, &x_corr)
+		    && std::abs(y_corr) <= 1.0 && std::abs(x_corr) <= 1.0) {
+			y_total -= y_corr;
+			x_total -= x_corr;
+		}
+	}
+
+	result.dy = y_total;
+	result.dx = x_total;
 	result.success = true;
 	return result;
+}
+
+AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
+                                       const cv::Mat &ref_window_first_phase_f32,
+                                       const cv::Mat &frame_mono_blurred,
+                                       int y_low, int y_high,
+                                       int x_low, int x_high,
+                                       const mpp_config_t &cfg) {
+	const MultilevelShiftResult r = multilevel_correlation(
+	    ref_window_f32, ref_window_first_phase_f32, frame_mono_blurred,
+	    y_low, y_high, x_low, x_high,
+	    cfg.frames_gauss_width, cfg.align_frames_search_width,
+	    /*subpixel_solve=*/false);
+	AlignShiftResult out;
+	out.dy = (int) std::lround(r.dy);
+	out.dx = (int) std::lround(r.dx);
+	out.success = r.success;
+	return out;
 }
 
 AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
@@ -410,7 +486,18 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 	 * code can use a single `× 256` threshold scale. */
 	const double scale = (cfg.bitdepth == 8 ? 256.0 : 1.0) / (double) indices.size();
 	accum *= scale;
-	accum.convertTo(out.mean_frame, CV_32S);
+	/* PSS does `.astype(int32)`, which truncates toward zero (Python/NumPy
+	 * convention). OpenCV's convertTo(CV_32S) uses cvRound (round half to
+	 * even on x86), so we'd get off-by-one diffs at half-pixel values and
+	 * those propagate into the per-AP correlation peaks downstream. Do the
+	 * truncation manually to keep bit-equivalence. */
+	out.mean_frame.create(accum.size(), CV_32S);
+	for (int y = 0; y < accum.rows; ++y) {
+		const float *src = accum.ptr<float>(y);
+		int32_t *dst = out.mean_frame.ptr<int32_t>(y);
+		for (int x = 0; x < accum.cols; ++x)
+			dst[x] = (int32_t) src[x];  /* truncation toward zero */
+	}
 	return out;
 }
 

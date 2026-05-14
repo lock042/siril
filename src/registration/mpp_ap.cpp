@@ -147,23 +147,21 @@ bool fill_ap_record(mpp_ap_record_t &ap, int y, int x,
 
 }  // namespace
 
-mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame_in, const mpp_config_t &cfg) {
-	/* PSS AlignmentPoints.__init__ (alignment_points.py:76) re-blurs the
-	 * mean frame from align_frames before any AP placement:
-	 *
-	 *   mean_frame = GaussianBlur(align_frames.mean_frame.astype(uint16),
-	 *                             (frames_gauss_width,) * 2, 0).astype(int32)
-	 *
-	 * We reproduce that as the first step here so callers can hand us the raw
-	 * average from Phase 2 without knowing this detail. */
-	cv::Mat mean_frame_u16;
-	mean_frame_in.convertTo(mean_frame_u16, CV_16U);
-	cv::Mat mean_frame_blurred_u16;
-	cv::GaussianBlur(mean_frame_u16, mean_frame_blurred_u16,
+cv::Mat blur_mean_frame_for_ap(const cv::Mat &mean_frame_raw, const mpp_config_t &cfg) {
+	/* PSS AlignmentPoints.__init__ (alignment_points.py:76):
+	 *   mean_frame = GaussianBlur(align.mean_frame.astype(uint16),
+	 *                             (frames_gauss_width,)*2, 0).astype(int32) */
+	cv::Mat u16;
+	mean_frame_raw.convertTo(u16, CV_16U);
+	cv::Mat blurred;
+	cv::GaussianBlur(u16, blurred,
 	                 cv::Size(cfg.frames_gauss_width, cfg.frames_gauss_width), 0);
-	cv::Mat mean_frame;
-	mean_frame_blurred_u16.convertTo(mean_frame, CV_32S);
+	cv::Mat out;
+	blurred.convertTo(out, CV_32S);
+	return out;
+}
 
+mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame, const mpp_config_t &cfg) {
 	const int H = mean_frame.rows, W = mean_frame.cols;
 	const int hb = cfg.alignment_points_half_box_width;
 	const int hp = mpp_cfg_half_patch_width(&cfg);

@@ -28,9 +28,17 @@ double ap_quality_measure(const cv::Mat &box);
  * `int(ndimage.measurements.center_of_mass(box)[i])`. */
 std::pair<int, int> ap_center_of_mass(const cv::Mat &box);
 
-/* Build the staggered AP grid on the reference frame `mean_frame` and apply
- * the PSS filtering chain. Output indices_used / structure are populated. */
-mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame, const mpp_config_t &cfg);
+/* PSS AlignmentPoints.__init__ re-blurs the mean frame from align_frames
+ * before any AP placement (alignment_points.py:76):
+ *   mean_frame = GaussianBlur(align.mean_frame.astype(uint16),
+ *                             (frames_gauss_width,)*2, 0).astype(int32)
+ * This helper applies that step. Both ap_create_grid and per-AP shift
+ * computation consume the same blurred output. */
+cv::Mat blur_mean_frame_for_ap(const cv::Mat &mean_frame_raw, const mpp_config_t &cfg);
+
+/* Build the staggered AP grid on a *blurred* mean_frame and apply the PSS
+ * filtering chain. Pass the output of blur_mean_frame_for_ap. */
+mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame_blurred, const mpp_config_t &cfg);
 
 }  // namespace mpp
 

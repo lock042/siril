@@ -107,6 +107,26 @@ def run(input_path, input_type, out_dir):
     print("+++ Per-AP frame qualities")
     aps_obj.compute_frame_qualities()
 
+    print("+++ Per-AP per-frame shifts (Phase 4 oracle)")
+    # PSS computes per-AP per-frame shifts inside stack_frames; we drive
+    # compute_shift_alignment_point directly here so we don't run the full
+    # stacker.  Output is a (num_frames, num_aps, 2) tensor of integer
+    # shifts (subpixel disabled to match the default config).
+    aps_obj.set_reference_boxes_correlation()
+    n_frames = frames.number
+    n_aps = len(aps_obj.alignment_points)
+    ap_shifts = np.zeros((n_frames, n_aps, 2), dtype=np.int64)
+    ap_shift_success = np.zeros((n_frames, n_aps), dtype=np.uint8)
+    for fidx in range(n_frames):
+        mono_blurred = frames.frames_mono_blurred(fidx)
+        for aidx in range(n_aps):
+            shift, ok = aps_obj.compute_shift_alignment_point(
+                mono_blurred, fidx, aidx,
+                de_warp=True, subpixel_solve=False)
+            ap_shifts[fidx, aidx, 0] = int(shift[0])
+            ap_shifts[fidx, aidx, 1] = int(shift[1])
+            ap_shift_success[fidx, aidx] = 1 if ok else 0
+
     print("+++ Stacking")
     stack = StackFrames(config, frames, rank, align, aps_obj, my_timer)
     stack.stack_frames()
@@ -133,6 +153,31 @@ def run(input_path, input_type, out_dir):
         np.savetxt(out_dir / "align_patch.csv",
                    np.array(patch_yxyx, dtype=np.int64).reshape(1, 4),
                    fmt="%d")
+    # Flatten ap_shifts to a 2D CSV of shape (num_frames, 2 * num_aps) so the
+    # whitespace-separated reader in the C++ tests can ingest it row by row.
+    np.savetxt(out_dir / "ap_shifts.csv",
+               ap_shifts.reshape(n_frames, 2 * n_aps), fmt="%d")
+    np.savetxt(out_dir / "ap_shift_success.csv",
+               ap_shift_success, fmt="%d")
+    # Also persist the intersection bounds so the C++ test can build matching
+    # per-frame offsets without re-deriving them.
+    intersect = np.array([align.intersection_shape[0][0],
+                          align.intersection_shape[0][1],
+                          align.intersection_shape[1][0],
+                          align.intersection_shape[1][1]], dtype=np.int64)
+    np.savetxt(out_dir / "intersection.csv", intersect.reshape(1, 4), fmt="%d")
+    # Dump PSS's mean_frame (int32) as a raw binary so C++ tests can diff
+    # against it without depending on a FITS reader. Layout: little-endian
+    # int32, rows * cols values. Companion dims file gives the shape.
+    mf = align.mean_frame.astype(np.int32)
+    mf.tofile(out_dir / "mean_frame_raw.bin")
+    np.savetxt(out_dir / "mean_frame_dims.csv",
+               np.array([mf.shape[0], mf.shape[1]], dtype=np.int64).reshape(1, 2),
+               fmt="%d")
+    # Also the post-AP blurred mean_frame (same convention) — this is what
+    # set_reference_boxes_correlation samples from.
+    mfb = aps_obj.mean_frame.astype(np.int32)
+    mfb.tofile(out_dir / "mean_frame_blurred_raw.bin")
 
     # Save reference + stacked as FITS via PSS's own writer (keeps any bit-depth conventions).
     Frames.save_image(str(out_dir / "ref_avg.fits"), average, color=frames.color,

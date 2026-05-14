@@ -49,6 +49,7 @@ struct mpp_config {
 	int alignment_points_contrast_threshold;    /* 0   (gets multiplied by 256 for 16-bit) */
 	double alignment_points_structure_threshold; /* 0.04 (post-normalisation) */
 	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
+	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic fit (drizzle path) */
 };
 
 /* PSS derives these from alignment_points_half_box_width; helpers keep the

@@ -231,6 +231,66 @@ Test(mpp_align, average_frame_basic) {
 	cr_assert_eq((int) r.indices_used.size(), n_target);
 }
 
+/* Oracle test: align_average_frame must produce the same int32 mean_frame as
+ * PSS's align_frames.average_frame on the bundled dataset, given the same
+ * global shifts. Compared cell-for-cell. */
+Test(mpp_align, average_frame_oracle_equivalence) {
+	const char *data_root = std::getenv("MPP_PSS_TEST_DATA_DIR");
+	if (!data_root) cr_skip_test("MPP_PSS_TEST_DATA_DIR unset");
+	namespace fs = std::filesystem;
+	const fs::path frames_dir  = fs::path(data_root) / "test_data" / "synth_planet";
+	const fs::path mf_bin      = fs::path(data_root) / "oracle_out" / "mean_frame_raw.bin";
+	const fs::path mf_dims_csv = fs::path(data_root) / "oracle_out" / "mean_frame_dims.csv";
+	if (!fs::exists(mf_bin) || !fs::exists(mf_dims_csv))
+		cr_skip_test("PSS mean_frame dump not present — regenerate via run_pss.py");
+
+	std::vector<fs::path> paths;
+	for (const auto &entry : fs::directory_iterator(frames_dir)) {
+		const std::string n = entry.path().filename().string();
+		if (n.rfind("frame_", 0) == 0 && entry.path().extension() == ".png")
+			paths.push_back(entry.path());
+	}
+	std::sort(paths.begin(), paths.end());
+
+	const auto cfg = default_cfg();
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (const auto &p : paths) {
+		cv::Mat m = cv::imread(p.string(), cv::IMREAD_UNCHANGED);
+		frames_raw.push_back(m);
+		frames_blurred.push_back(blurred(m, cfg));
+		q.push_back(mpp::rank_score_normalized(m, cfg));
+	}
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg);
+
+	const auto dims = read_ints_csv(mf_dims_csv);
+	cr_assert_eq(dims.size(), 2u);
+	const int H = dims[0], W = dims[1];
+	cv::Mat oracle_mean(H, W, CV_32S);
+	std::ifstream fin(mf_bin, std::ios::binary);
+	fin.read(reinterpret_cast<char *>(oracle_mean.data),
+	         (std::streamsize) H * W * sizeof(int));
+	cr_assert(fin.good(), "failed to read mean_frame_raw.bin");
+
+	cr_assert_eq(avg.mean_frame.rows, H, "row mismatch: ours=%d oracle=%d",
+	             avg.mean_frame.rows, H);
+	cr_assert_eq(avg.mean_frame.cols, W, "col mismatch: ours=%d oracle=%d",
+	             avg.mean_frame.cols, W);
+	int worst = 0, worst_y = -1, worst_x = -1;
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) {
+			const int d = std::abs(avg.mean_frame.at<int>(y, x)
+			                      - oracle_mean.at<int>(y, x));
+			if (d > worst) { worst = d; worst_y = y; worst_x = x; }
+		}
+	cr_assert_eq(worst, 0,
+	             "mean_frame mismatch at (%d, %d): ours=%d oracle=%d (Δ %d)",
+	             worst_y, worst_x,
+	             avg.mean_frame.at<int>(worst_y, worst_x),
+	             oracle_mean.at<int>(worst_y, worst_x), worst);
+}
+
 /* Oracle test: patch_yxyx and integer shifts match PSS exactly on the bundled
  * synthetic dataset. Acceptance bar from pss_port_plan.md §2.4. */
 Test(mpp_align, oracle_equivalence_synthetic) {

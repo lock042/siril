@@ -28,5 +28,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_contrast_threshold = 0;
 	cfg->alignment_points_structure_threshold = 0.04;
 	cfg->alignment_points_dim_fraction_threshold = 0.6;
+	cfg->alignment_points_local_search_subpixel = false;
 	return MPP_OK;
 }

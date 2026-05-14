@@ -35,13 +35,31 @@ struct AlignShiftResult {
 	bool success = false;
 };
 
-/* PSS multilevel_correlation. Reference windows are pre-prepared float32
- * boxes from the best frame's `frames_mono_blurred`:
- *   reference_window_f32              — full-resolution patch
- *   reference_window_first_phase_f32  — stride-2 view of the above
- * The input `frame_mono_blurred` is whatever dtype the frame source produces
- * (typically uint16); we'll convert internally where matchTemplate requires
- * float32. */
+/* Sub-pixel variant; used by per-AP shift compute when subpixel_solve is on. */
+struct MultilevelShiftResult {
+	double dy = 0.0;     /* same sign convention; fractional when subpixel_solve=true */
+	double dx = 0.0;
+	bool success = false;
+};
+
+/* Generic PSS multilevel_correlation. `ref_full_f32` is the full-resolution
+ * float32 reference patch; `ref_first_phase_f32` is its stride-2 view. The
+ * frame is whatever dtype the source produces; converted to f32 internally
+ * where matchTemplate needs it. `gauss_width` is the kernel size of the
+ * extra blur applied to the frame's phase-1 window (PSS frames_gauss_width;
+ * default 7). `search_width` is the search half-width PSS describes — total
+ * search range is split between phases (phase 2 fixed at ±4, phase 1 gets
+ * (search_width − 4)/2 on the coarse grid). If `subpixel_solve`, the phase-2
+ * peak is refined by fitting a quadratic over its 3×3 neighbourhood. */
+MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
+                                             const cv::Mat &ref_first_phase_f32,
+                                             const cv::Mat &frame_mono_blurred,
+                                             int patch_y_low, int patch_y_high,
+                                             int patch_x_low, int patch_x_high,
+                                             int gauss_width, int search_width,
+                                             bool subpixel_solve);
+
+/* Phase 2 wrapper. */
 AlignShiftResult align_shift_one_frame(const cv::Mat &reference_window_f32,
                                        const cv::Mat &reference_window_first_phase_f32,
                                        const cv::Mat &frame_mono_blurred,
