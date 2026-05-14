@@ -114,6 +114,9 @@
 #include "stacking/sum.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
+#include "registration/mpp_ap.h"
+#include "registration/mpp_config.h"
+#include "registration/mpp_shift.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -14553,13 +14556,124 @@ int process_offline(int nb) {
 }
 
 int process_pss(int nb) {
-	(void) nb;
-	int rc = register_mpp(NULL);
-	if (rc == MPP_ENOTIMPL) {
-		siril_log_message(_("pss: not implemented yet (skeleton — see pss_port_plan.md)\n"));
-		return CMD_OK;
+	/* `pss seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
+	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
+	 *              [-min-brightness=N] [-min-structure=F] [-no-dewarp]
+	 *              [-no-normalize] [-selected]`
+	 *
+	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
+	 * sequence and writes the stacked output to a FITS file. See
+	 * pss_port_plan.md §6 for the full design. */
+	if (nb < 2) {
+		siril_log_color_message(_("pss: missing sequence name\n"), "red");
+		return CMD_WRONG_N_ARG;
 	}
-	return rc == MPP_OK ? CMD_OK : CMD_GENERIC_ERROR;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
+
+	gchar *out_path = NULL;
+	gboolean use_selected = FALSE;
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-out=")) {
+			out_path = g_strdup(word[i] + 5);
+		} else if (g_str_has_prefix(word[i], "-drizzle=")) {
+			const char *v = word[i] + 9;
+			if      (!g_ascii_strcasecmp(v, "Off")) cfg.drizzle_factor = 1;
+			else if (!g_ascii_strcasecmp(v, "1.5")) cfg.drizzle_factor = 3;
+			else if (!g_ascii_strcasecmp(v, "2"))   cfg.drizzle_factor = 2;
+			else if (!g_ascii_strcasecmp(v, "3"))   cfg.drizzle_factor = 3;
+			else {
+				siril_log_color_message(_("pss: unknown -drizzle value '%s'\n"), "red", v);
+				g_free(out_path);
+				return CMD_ARG_ERROR;
+			}
+		} else if (g_str_has_prefix(word[i], "-stack-percent=")) {
+			cfg.alignment_points_frame_percent = atoi(word[i] + 15);
+		} else if (g_str_has_prefix(word[i], "-stack-frames=")) {
+			cfg.alignment_points_frame_number = atoi(word[i] + 14);
+		} else if (g_str_has_prefix(word[i], "-half-box=")) {
+			cfg.alignment_points_half_box_width = atoi(word[i] + 10);
+		} else if (g_str_has_prefix(word[i], "-search-width=")) {
+			cfg.alignment_points_search_width = atoi(word[i] + 14);
+		} else if (g_str_has_prefix(word[i], "-min-brightness=")) {
+			cfg.alignment_points_brightness_threshold = atoi(word[i] + 16);
+		} else if (g_str_has_prefix(word[i], "-min-structure=")) {
+			cfg.alignment_points_structure_threshold = atof(word[i] + 15);
+		} else if (!strcmp(word[i], "-no-dewarp")) {
+			cfg.alignment_points_de_warp = FALSE;
+		} else if (!strcmp(word[i], "-no-normalize")) {
+			cfg.frames_normalization = FALSE;
+		} else if (!strcmp(word[i], "-selected")) {
+			use_selected = TRUE;
+		} else {
+			siril_log_color_message(_("pss: unknown argument '%s'\n"), "red", word[i]);
+			g_free(out_path);
+			return CMD_ARG_ERROR;
+		}
+	}
+	(void) use_selected;  /* TODO Phase 6.x: thread frame-selection through */
+
+	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
+	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
+	                  cfg.drizzle_factor != 1 ? " (drizzle)" : "");
+
+	mpp_run_t *run = NULL;
+	int rc = mpp_analyze(seq, &cfg, &run);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("pss: Stage A failed (code %d)\n"), "red", rc);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: Stage A done — best=%d, %d APs, stack_size=%d\n"),
+	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	rc = mpp_compute_shifts(seq, &cfg, run);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("pss: Stage B failed (code %d)\n"), "red", rc);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: Stage B done — %d shift failures\n"),
+	                  run->shifts ? run->shifts->failure_counter : -1);
+
+	fits stacked = {0};
+	rc = mpp_stack_apply(seq, &cfg, run, &stacked);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("pss: Stage C failed (code %d)\n"), "red", rc);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
+	gchar *resolved_out = out_path;
+	if (!resolved_out) {
+		resolved_out = g_strdup_printf("%s_stacked.fit", seq->seqname);
+	}
+	if (savefits(resolved_out, &stacked)) {
+		siril_log_color_message(_("pss: failed to save %s\n"), "red", resolved_out);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(resolved_out);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: stacked image saved to %s (%dx%d)\n"),
+	                  resolved_out, stacked.rx, stacked.ry);
+
+	clearfits(&stacked);
+	mpp_run_free(run);
+	g_free(resolved_out);
+	return CMD_OK;
 }
 
 int process_pwd(int nb) {

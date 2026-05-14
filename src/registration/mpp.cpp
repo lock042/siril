@@ -273,13 +273,26 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);
 
+	/* Pack stacked into the caller-supplied fits. The caller allocates the
+	 * shell (`fits out = {0};`); we fill its members and own `data`. */
 	clearfits(out);
-	if (new_fit_image(&out, stacked.cols, stacked.rows, 1, DATA_USHORT))
-		return MPP_ENOMEM;
-	std::memcpy(out->data, stacked.data,
-	            (size_t) stacked.rows * stacked.cols * sizeof(uint16_t));
+	const int H = stacked.rows;
+	const int W = stacked.cols;
+	out->data = (WORD *) std::calloc((size_t) H * W, sizeof(WORD));
+	if (!out->data) return MPP_ENOMEM;
+	std::memcpy(out->data, stacked.data, (size_t) H * W * sizeof(WORD));
+	out->rx = W;
+	out->ry = H;
+	out->naxes[0] = W;
+	out->naxes[1] = H;
+	out->naxes[2] = 1;
+	out->naxis = 2;
 	out->bitpix = USHORT_IMG;
 	out->orig_bitpix = USHORT_IMG;
+	out->type = DATA_USHORT;
+	out->pdata[0] = out->data;
+	out->pdata[1] = NULL;
+	out->pdata[2] = NULL;
 	return MPP_OK;
 }
 

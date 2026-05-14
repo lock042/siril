@@ -57,9 +57,13 @@ double brightness_threshold(const mpp_config_t &cfg) {
 cv::Mat blur_mono_for_align(const cv::Mat &mono, const mpp_config_t &cfg) {
 	/* PSS frames.frames_mono_blurred (frames.py:1505-1511): upscales 8-bit
 	 * inputs to 16-bit range before the blur so downstream operations have
-	 * useful Laplacian magnitude after the α=1/256 convertScaleAbs. */
+	 * useful Laplacian magnitude after the α=1/256 convertScaleAbs.
+	 *
+	 * The decision keys on cfg.bitdepth alone, NOT mono.depth(). Siril
+	 * stores 8-bit SER data as WORD (CV_16U) with values still in 0..255;
+	 * checking mono.depth() == CV_8U would miss that path. */
 	cv::Mat src = mono;
-	if (cfg.bitdepth == 8 && mono.depth() == CV_8U) {
+	if (cfg.bitdepth == 8) {
 		cv::Mat upscaled;
 		mono.convertTo(upscaled, CV_16U, 256.0);
 		src = upscaled;

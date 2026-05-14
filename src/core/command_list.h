@@ -153,7 +153,7 @@ static command commands[] = {
 //	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y [-bgremove [-bgpoly=] ] ] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"pss", 0, "pss [-drizzle={1.5|2|3|stsci-2x|stsci-3x|bayer-2x|bayer-3x}]", process_pss, STR_PSS, TRUE, REQ_CMD_NO_THREAD | REQ_CMD_SEQUENCE},
+	{"pss", 1, "pss seqname [-out=file] [-drizzle={Off|1.5|2|3}] [-stack-percent=N] [-stack-frames=N] [-half-box=N] [-search-width=N] [-min-brightness=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-selected]", process_pss, STR_PSS, TRUE, REQ_CMD_NO_THREAD},
 	{"pwd", 0, "pwd", process_pwd, STR_PWD, TRUE, REQ_CMD_NONE},
 	{"pyscript", 1, "pyscript [-async] scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
 
