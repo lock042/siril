@@ -7,7 +7,6 @@
 extern "C" {
 #endif
 
-struct fits;
 
 /* One alignment point. Coordinates are pixel-space on the reference (mean)
  * frame. The patch bounds are extended to the frame border for edge APs
@@ -30,7 +29,7 @@ struct mpp_aps {
 /* Place a staggered AP grid on the reference (mean) frame and apply PSS's
  * brightness, contrast, dim-fraction COM re-centring, and structure
  * filters. On success the caller owns the result and frees via mpp_ap_free. */
-mpp_status_t mpp_ap_place(const struct fits *ref, const mpp_config_t *cfg,
+mpp_status_t mpp_ap_place(const fits *ref, const mpp_config_t *cfg,
                           mpp_aps_t **aps_out);
 
 void mpp_ap_free(mpp_aps_t *aps);

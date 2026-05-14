@@ -548,13 +548,13 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 
 /* ----------------- Public C interface (still stubbed) ----------------- */
 
-extern "C" mpp_status_t mpp_stack(struct sequence *seq,
+extern "C" mpp_status_t mpp_stack(sequence *seq,
                                   const mpp_config_t *cfg,
                                   const mpp_aps_t *aps,
                                   const mpp_shifts_t *shifts,
                                   const int *global_shifts,
                                   mpp_resample_kind_t backend, int upscale,
-                                  struct fits *stacked_out) {
+                                  fits *stacked_out) {
 	(void) seq; (void) cfg; (void) aps; (void) shifts; (void) global_shifts;
 	(void) backend; (void) upscale; (void) stacked_out;
 	return MPP_ENOTIMPL;

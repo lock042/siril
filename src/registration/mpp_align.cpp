@@ -512,12 +512,12 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 
 /* ----------------- Public C interface ----------------- */
 
-extern "C" mpp_status_t mpp_align_global(struct sequence *seq,
+extern "C" mpp_status_t mpp_align_global(sequence *seq,
                                          const mpp_config_t *cfg,
                                          const double *quality,
                                          int *shifts_out,
                                          int patch_yxyx_out[4],
-                                         struct fits *avg_ref_out) {
+                                         fits *avg_ref_out) {
 	(void) seq; (void) cfg; (void) quality;
 	(void) shifts_out; (void) patch_yxyx_out; (void) avg_ref_out;
 	/* Sequence integration lands with mpp_frames (Phase 1.3 / 2). */

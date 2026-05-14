@@ -7,12 +7,11 @@
 extern "C" {
 #endif
 
-struct sequence;
 
 /* Compute per-frame Laplace-sigma quality for every frame in `seq`.
  * On success, *quality_out is a malloc'd array of length seq->number; caller
  * frees. Phase 1. */
-mpp_status_t mpp_rank_sequence(struct sequence *seq, const mpp_config_t *cfg,
+mpp_status_t mpp_rank_sequence(sequence *seq, const mpp_config_t *cfg,
                                double **quality_out);
 
 #ifdef __cplusplus

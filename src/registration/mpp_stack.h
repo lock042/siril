@@ -7,8 +7,6 @@
 extern "C" {
 #endif
 
-struct sequence;
-struct fits;
 
 /* Pluggable per-frame resample backend; see mpp_drizzle.h for STScI variants. */
 typedef enum {
@@ -20,11 +18,11 @@ typedef enum {
 } mpp_resample_kind_t;
 
 /* Top-N-per-AP weighted stacking. Phase 5. */
-mpp_status_t mpp_stack(struct sequence *seq, const mpp_config_t *cfg,
+mpp_status_t mpp_stack(sequence *seq, const mpp_config_t *cfg,
                        const mpp_aps_t *aps, const mpp_shifts_t *shifts,
                        const int *global_shifts,
                        mpp_resample_kind_t backend, int upscale,
-                       struct fits *stacked_out);
+                       fits *stacked_out);
 
 #ifdef __cplusplus
 }

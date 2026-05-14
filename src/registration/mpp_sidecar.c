@@ -1,17 +1,255 @@
+/*
+ * Binary sidecar (`.mpp`) read/write for an mpp_run_t.
+ *
+ * Layout (little-endian; explicit byte order — Siril builds for LE
+ * platforms but we write/read with explicit serialisation so an LE/BE
+ * port doesn't silently corrupt the format):
+ *
+ *   8 bytes : magic   "SIRILMPP"
+ *   uint32  : version (current = 1)
+ *   uint32  : flags (reserved; 0)
+ *   --- mpp_config_t snapshot ---
+ *   sizeof(mpp_config_t) bytes : raw struct (POD)
+ *   --- run header ---
+ *   int32   : num_frames
+ *   int32   : frame_rows
+ *   int32   : frame_cols
+ *   int32   : num_layers
+ *   int32   : bitdepth
+ *   int32[4]: patch_yxyx
+ *   int32[4]: intersection
+ *   int32   : best_frame_idx
+ *   int32   : stack_size
+ *   int32   : mean_frame_rows
+ *   int32   : mean_frame_cols
+ *   int32   : aps_count
+ *   int32   : aps_dropped_dim
+ *   int32   : aps_dropped_structure
+ *   uint8   : has_shifts (0 / 1)
+ *   --- per-frame arrays (length num_frames each) ---
+ *   double[num_frames]                  : quality
+ *   double[num_frames]                  : frame_brightness
+ *   int32 [num_frames]                  : included
+ *   int32 [2 * num_frames]              : global_shifts
+ *   --- mean frame ---
+ *   int32 [mean_frame_rows*cols]        : mean_frame_data
+ *   --- AP records + best_frame_indices ---
+ *   mpp_ap_record_t[aps_count]          : raw POD records
+ *   int32 [aps_count * stack_size]      : best_frame_indices
+ *   --- shifts (only if has_shifts == 1) ---
+ *   int32                               : shifts.num_frames (= num_frames; sanity)
+ *   int32                               : shifts.num_aps    (= aps_count)
+ *   double[2 * num_frames * aps_count]  : shifts.shifts
+ *   uint8 [    num_frames * aps_count]  : shifts.success
+ *   int32                               : shifts.failure_counter
+ *
+ * Future versions can grow the header / append optional sections after
+ * the trailing shifts block, gated on `version`.
+ */
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "registration/mpp.h"
+#include "registration/mpp_ap.h"
+#include "registration/mpp_config.h"
+#include "registration/mpp_shift.h"
 #include "registration/mpp_sidecar.h"
 
+#define MPP_SIDECAR_MAGIC   "SIRILMPP"
+#define MPP_SIDECAR_VERSION 1u
+
+static int write_all(FILE *f, const void *p, size_t n) {
+	return fwrite(p, 1, n, f) == n ? 0 : -1;
+}
+static int read_all(FILE *f, void *p, size_t n) {
+	return fread(p, 1, n, f) == n ? 0 : -1;
+}
+
 mpp_status_t mpp_sidecar_write(const char *path, const mpp_run_t *run) {
-	(void) path; (void) run;
-	return MPP_ENOTIMPL;
+	if (!path || !run || !run->aps || !run->cfg) return MPP_EINVAL;
+
+	FILE *f = fopen(path, "wb");
+	if (!f) return MPP_EIO;
+
+	if (write_all(f, MPP_SIDECAR_MAGIC, 8) != 0) goto err;
+	const uint32_t ver = MPP_SIDECAR_VERSION;
+	const uint32_t flags = 0;
+	if (write_all(f, &ver, 4) != 0) goto err;
+	if (write_all(f, &flags, 4) != 0) goto err;
+
+	/* cfg snapshot. */
+	if (write_all(f, run->cfg, sizeof(mpp_config_t)) != 0) goto err;
+
+	/* Run header — list every scalar individually for forward-compat. */
+	const int32_t h_ints[] = {
+		run->num_frames, run->frame_rows, run->frame_cols,
+		run->num_layers, run->bitdepth,
+		run->patch_yxyx[0], run->patch_yxyx[1],
+		run->patch_yxyx[2], run->patch_yxyx[3],
+		run->intersection[0], run->intersection[1],
+		run->intersection[2], run->intersection[3],
+		run->best_frame_idx, run->stack_size,
+		run->mean_frame_rows, run->mean_frame_cols,
+		run->aps->count, run->aps->dropped_dim, run->aps->dropped_structure,
+	};
+	if (write_all(f, h_ints, sizeof(h_ints)) != 0) goto err;
+	const uint8_t has_shifts = run->shifts ? 1 : 0;
+	if (write_all(f, &has_shifts, 1) != 0) goto err;
+
+	const int N = run->num_frames;
+	const int M = run->aps->count;
+	if (write_all(f, run->quality,          N * sizeof(double)) != 0) goto err;
+	if (write_all(f, run->frame_brightness, N * sizeof(double)) != 0) goto err;
+	if (write_all(f, run->included,         N * sizeof(int32_t)) != 0) goto err;
+	if (write_all(f, run->global_shifts,    2 * N * sizeof(int32_t)) != 0) goto err;
+	if (write_all(f, run->mean_frame_data,
+	              (size_t) run->mean_frame_rows * run->mean_frame_cols
+	              * sizeof(int32_t)) != 0) goto err;
+	if (write_all(f, run->aps->records, M * sizeof(mpp_ap_record_t)) != 0) goto err;
+	if (write_all(f, run->best_frame_indices,
+	              (size_t) M * run->stack_size * sizeof(int32_t)) != 0) goto err;
+
+	if (has_shifts) {
+		const int32_t snf = run->shifts->num_frames;
+		const int32_t sna = run->shifts->num_aps;
+		if (write_all(f, &snf, 4) != 0) goto err;
+		if (write_all(f, &sna, 4) != 0) goto err;
+		if (write_all(f, run->shifts->shifts,
+		              (size_t) 2 * snf * sna * sizeof(double)) != 0) goto err;
+		if (write_all(f, run->shifts->success,
+		              (size_t) snf * sna * sizeof(uint8_t)) != 0) goto err;
+		const int32_t failures = run->shifts->failure_counter;
+		if (write_all(f, &failures, 4) != 0) goto err;
+	}
+
+	fclose(f);
+	return MPP_OK;
+err:
+	fclose(f);
+	return MPP_EIO;
 }
 
 mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
-	(void) path;
-	if (run_out) *run_out = NULL;
-	return MPP_ENOTIMPL;
+	if (!path || !run_out) return MPP_EINVAL;
+	*run_out = NULL;
+
+	FILE *f = fopen(path, "rb");
+	if (!f) return MPP_EIO;
+
+	char magic[8];
+	if (read_all(f, magic, 8) != 0) goto err;
+	if (memcmp(magic, MPP_SIDECAR_MAGIC, 8) != 0) goto err;
+	uint32_t ver, flags;
+	if (read_all(f, &ver, 4) != 0) goto err;
+	if (read_all(f, &flags, 4) != 0) goto err;
+	if (ver != MPP_SIDECAR_VERSION) goto err;
+
+	mpp_run_t *run = mpp_run_alloc();
+	if (!run) goto err;
+
+	run->cfg = (mpp_config_t *) malloc(sizeof(mpp_config_t));
+	if (!run->cfg) { mpp_run_free(run); goto err; }
+	if (read_all(f, run->cfg, sizeof(mpp_config_t)) != 0) { mpp_run_free(run); goto err; }
+
+	int32_t h[20];
+	if (read_all(f, h, sizeof(h)) != 0) { mpp_run_free(run); goto err; }
+	int i = 0;
+	run->num_frames        = h[i++];
+	run->frame_rows        = h[i++];
+	run->frame_cols        = h[i++];
+	run->num_layers        = h[i++];
+	run->bitdepth          = h[i++];
+	for (int j = 0; j < 4; ++j) run->patch_yxyx[j]   = h[i++];
+	for (int j = 0; j < 4; ++j) run->intersection[j] = h[i++];
+	run->best_frame_idx    = h[i++];
+	run->stack_size        = h[i++];
+	run->mean_frame_rows   = h[i++];
+	run->mean_frame_cols   = h[i++];
+	const int aps_count           = h[i++];
+	const int aps_dropped_dim     = h[i++];
+	const int aps_dropped_structure = h[i++];
+
+	uint8_t has_shifts;
+	if (read_all(f, &has_shifts, 1) != 0) { mpp_run_free(run); goto err; }
+
+	const int N = run->num_frames;
+	run->quality          = (double *)  malloc(N * sizeof(double));
+	run->frame_brightness = (double *)  malloc(N * sizeof(double));
+	run->included         = (int *)     malloc(N * sizeof(int32_t));
+	run->global_shifts    = (int *)     malloc(2 * N * sizeof(int32_t));
+	if (!run->quality || !run->frame_brightness
+	 || !run->included || !run->global_shifts) { mpp_run_free(run); goto err; }
+	if (read_all(f, run->quality,          N * sizeof(double)) != 0
+	 || read_all(f, run->frame_brightness, N * sizeof(double)) != 0
+	 || read_all(f, run->included,         N * sizeof(int32_t)) != 0
+	 || read_all(f, run->global_shifts,    2 * N * sizeof(int32_t)) != 0) {
+		mpp_run_free(run); goto err;
+	}
+
+	const size_t mean_count = (size_t) run->mean_frame_rows * run->mean_frame_cols;
+	run->mean_frame_data = (int32_t *) malloc(mean_count * sizeof(int32_t));
+	if (!run->mean_frame_data) { mpp_run_free(run); goto err; }
+	if (read_all(f, run->mean_frame_data, mean_count * sizeof(int32_t)) != 0) {
+		mpp_run_free(run); goto err;
+	}
+
+	mpp_aps_t *aps = (mpp_aps_t *) calloc(1, sizeof(*aps));
+	if (!aps) { mpp_run_free(run); goto err; }
+	aps->count = aps_count;
+	aps->dropped_dim = aps_dropped_dim;
+	aps->dropped_structure = aps_dropped_structure;
+	if (aps_count > 0) {
+		aps->records = (mpp_ap_record_t *) malloc(aps_count * sizeof(mpp_ap_record_t));
+		if (!aps->records) { mpp_ap_free(aps); mpp_run_free(run); goto err; }
+		if (read_all(f, aps->records, aps_count * sizeof(mpp_ap_record_t)) != 0) {
+			mpp_ap_free(aps); mpp_run_free(run); goto err;
+		}
+	}
+	run->aps = aps;
+
+	run->best_frame_indices = (int *) malloc((size_t) aps_count * run->stack_size
+	                                         * sizeof(int32_t));
+	if (!run->best_frame_indices) { mpp_run_free(run); goto err; }
+	if (read_all(f, run->best_frame_indices,
+	             (size_t) aps_count * run->stack_size * sizeof(int32_t)) != 0) {
+		mpp_run_free(run); goto err;
+	}
+
+	if (has_shifts) {
+		mpp_shifts_t *s = (mpp_shifts_t *) calloc(1, sizeof(*s));
+		if (!s) { mpp_run_free(run); goto err; }
+		int32_t snf, sna;
+		if (read_all(f, &snf, 4) != 0 || read_all(f, &sna, 4) != 0) {
+			free(s); mpp_run_free(run); goto err;
+		}
+		s->num_frames = snf;
+		s->num_aps    = sna;
+		s->shifts  = (double *)  malloc((size_t) 2 * snf * sna * sizeof(double));
+		s->success = (uint8_t *) malloc((size_t)     snf * sna * sizeof(uint8_t));
+		if (!s->shifts || !s->success) { mpp_shift_free(s); mpp_run_free(run); goto err; }
+		if (read_all(f, s->shifts,  (size_t) 2 * snf * sna * sizeof(double)) != 0
+		 || read_all(f, s->success, (size_t)     snf * sna * sizeof(uint8_t)) != 0) {
+			mpp_shift_free(s); mpp_run_free(run); goto err;
+		}
+		int32_t failures;
+		if (read_all(f, &failures, 4) != 0) {
+			mpp_shift_free(s); mpp_run_free(run); goto err;
+		}
+		s->failure_counter = failures;
+		run->shifts = s;
+	}
+
+	fclose(f);
+	*run_out = run;
+	return MPP_OK;
+err:
+	fclose(f);
+	return MPP_EIO;
 }
 
 void mpp_sidecar_free(mpp_run_t *run) {
-	(void) run;
+	mpp_run_free(run);
 }

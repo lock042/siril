@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-struct sequence;
-struct fits;
 
 /* Per-AP per-frame shifts. Indexing convention (frame-major):
  *
@@ -32,8 +30,8 @@ struct mpp_shifts {
 
 /* For each AP in `aps`, compute per-frame local shifts via two-phase
  * multilevel correlation against the reference frame. Phase 4. */
-mpp_status_t mpp_shift_compute(struct sequence *seq, const mpp_config_t *cfg,
-                               const mpp_aps_t *aps, const struct fits *ref,
+mpp_status_t mpp_shift_compute(sequence *seq, const mpp_config_t *cfg,
+                               const mpp_aps_t *aps, const fits *ref,
                                const int *global_shifts,
                                mpp_shifts_t **shifts_out);
 

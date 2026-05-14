@@ -107,7 +107,7 @@ double rank_score_normalized(const cv::Mat &mono, const mpp_config_t &cfg) {
 
 /* ----------------- Public C interface ----------------- */
 
-extern "C" mpp_status_t mpp_rank_sequence(struct sequence *seq,
+extern "C" mpp_status_t mpp_rank_sequence(sequence *seq,
                                           const mpp_config_t *cfg,
                                           double **quality_out) {
 	(void) seq; (void) cfg;

@@ -277,7 +277,7 @@ mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame, const mpp_config_t &cfg) {
 
 /* ----------------- Public C interface ----------------- */
 
-extern "C" mpp_status_t mpp_ap_place(const struct fits *ref,
+extern "C" mpp_status_t mpp_ap_place(const fits *ref,
                                      const mpp_config_t *cfg,
                                      mpp_aps_t **aps_out) {
 	(void) ref; (void) cfg;

@@ -135,10 +135,10 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_blurred,
 
 /* ----------------- Public C interface ----------------- */
 
-extern "C" mpp_status_t mpp_shift_compute(struct sequence *seq,
+extern "C" mpp_status_t mpp_shift_compute(sequence *seq,
                                           const mpp_config_t *cfg,
                                           const mpp_aps_t *aps,
-                                          const struct fits *ref,
+                                          const fits *ref,
                                           const int *global_shifts,
                                           mpp_shifts_t **shifts_out) {
 	(void) seq; (void) cfg; (void) aps;

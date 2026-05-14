@@ -64,6 +64,8 @@ struct mpp_config {
 	int drizzle_factor;                          /* 1 — integer multiplier; 3 used for 1.5× display */
 };
 
+typedef struct mpp_config mpp_config_t;
+
 /* PSS derives these from alignment_points_half_box_width; helpers keep the
  * arithmetic in one place. For default half_box_width = 24 both formulas
  * give exact integers; for odd values they fall back to Python's
