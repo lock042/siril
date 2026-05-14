@@ -95,6 +95,28 @@ if criterion_dep.found()
 
      test('siril_spawn_test', siril_spawn_test_exec)
 
+     # MPP / PSS port skeleton — see pss_port_plan.md. Real assertions land per phase.
+     foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
+                  'mpp_shift_test', 'mpp_stack_test', 'mpp_drizzle_test',
+                  'mpp_pipeline_test']
+         mpp_exec = executable(t,
+                               t + '.cpp',
+                               dependencies : [siril_dep, criterion_dep],
+                               link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                               c_args : siril_c_flag,
+                               cpp_args : siril_cpp_flag)
+         test(t, mpp_exec, suite: 'mpp')
+     endforeach
+
+     mpp_sidecar_exec = executable('mpp_sidecar_test',
+                                   'mpp_sidecar_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',
                                    'measure_sorting.c',

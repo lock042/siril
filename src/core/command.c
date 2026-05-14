@@ -113,6 +113,7 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -14549,6 +14550,16 @@ int process_online(int nb) {
 int process_offline(int nb) {
 	set_online_status(FALSE);
 	return CMD_OK;
+}
+
+int process_pss(int nb) {
+	(void) nb;
+	int rc = register_mpp(NULL);
+	if (rc == MPP_ENOTIMPL) {
+		siril_log_message(_("pss: not implemented yet (skeleton — see pss_port_plan.md)\n"));
+		return CMD_OK;
+	}
+	return rc == MPP_OK ? CMD_OK : CMD_GENERIC_ERROR;
 }
 
 int process_pwd(int nb) {

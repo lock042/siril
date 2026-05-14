@@ -71,3 +71,7 @@ src/io/*.rej
 src/siril_python.h
 src/siril_resource.c
 src/spcc-conesearch.cc
+# PSS reference oracle (Phase 0) — generated content
+tools/pss_reference/.venv/
+tools/pss_reference/test_data/
+tools/pss_reference/oracle_out/

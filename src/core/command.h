@@ -154,6 +154,7 @@ int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
+int	process_pss(int nb);
 int	process_pwd(int nb);
 int	process_pyscript(int nb);
 
