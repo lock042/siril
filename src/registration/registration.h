@@ -159,6 +159,15 @@ struct registration_args {
 	 * the "Analyze" button workflow where the user wants to see the rank
 	 * before committing to the heavier per-AP shift compute. */
 	gboolean mpp_stage_a_only;
+	/* REG_MPP / stage_a_only only: the analysis-built mean reference frame,
+	 * stashed here by register_mpp so end_register_idle (main thread) can
+	 * paint it into gfit and the user sees what the AP grid was placed
+	 * over. Single-channel int32, 16-bit-equivalent range. Heap-owned;
+	 * end_register_idle frees it, or register_thread_func cleans up if the
+	 * idle never runs. */
+	int32_t *mpp_ref_frame;
+	int mpp_ref_rows;
+	int mpp_ref_cols;
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,

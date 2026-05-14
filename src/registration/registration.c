@@ -281,6 +281,7 @@ gpointer register_thread_func(gpointer p) {
 		stop_processing_thread();
 		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
 			free_sequence(args->seq, TRUE);
+		free(args->mpp_ref_frame);
 		free(args);
 	}
 	return GINT_TO_POINTER(retval);

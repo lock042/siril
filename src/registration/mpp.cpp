@@ -486,6 +486,27 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	mpp_write_quality_to_regdata(regargs->seq, regargs->layer, run);
 
 	if (stage_a_only) {
+		/* Stash the mean reference frame on the args struct so
+		 * end_register_idle can paint it into gfit on the main thread.
+		 * Single-channel int32, 16-bit-equivalent range. mpp_run_free is
+		 * about to drop the original below, so we copy. */
+		if (run->mean_frame_data && run->mean_frame_rows > 0
+		    && run->mean_frame_cols > 0) {
+			const size_t bytes = (size_t) run->mean_frame_rows
+			                   * run->mean_frame_cols * sizeof(int32_t);
+			regargs->mpp_ref_frame = (int32_t *) std::malloc(bytes);
+			if (regargs->mpp_ref_frame) {
+				std::memcpy(regargs->mpp_ref_frame,
+				            run->mean_frame_data, bytes);
+				regargs->mpp_ref_rows = run->mean_frame_rows;
+				regargs->mpp_ref_cols = run->mean_frame_cols;
+			} else {
+				siril_log_color_message(
+				        _("mpp: out of memory copying ref frame "
+				          "for display; image view not updated\n"),
+				        "salmon");
+			}
+		}
 		gui_iface.set_progress(PROGRESS_DONE, _("Analyze: done"));
 		mpp_run_free(run);
 		return MPP_OK;

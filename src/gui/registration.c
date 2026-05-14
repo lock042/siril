@@ -41,7 +41,9 @@
 #include "gui/stacking.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "algos/statistics.h"
 #include "registration/registration.h"
 #include "registration/3stars.h"
 #include "registration/mpp_config.h"
@@ -1344,6 +1346,50 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
+/* Paint the analysis-built mean reference frame into gfit so the user sees
+ * the image that AP placement was performed against. Single-channel,
+ * 16-bit; values clamped from the int32 source (which carries a 16-bit-
+ * equivalent range per mpp.h). clearfits() would clobber too much
+ * metadata (header, keywords, history, wcs, icc) — instead, manually
+ * free just the pixel buffers and reset the dimension fields. Stats are
+ * invalidated because they reference the old rx/ry. */
+static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols) {
+	if (!src || rows <= 0 || cols <= 0) return;
+	const size_t npix = (size_t) rows * (size_t) cols;
+	WORD *new_data = malloc(npix * sizeof(WORD));
+	if (!new_data) {
+		siril_log_color_message(_("Analyze: out of memory allocating "
+		                          "display buffer for ref frame\n"), "red");
+		return;
+	}
+	for (size_t i = 0; i < npix; ++i) {
+		const int32_t v = src[i];
+		new_data[i] = (WORD) (v < 0 ? 0 : (v > 65535 ? 65535 : v));
+	}
+
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	free(gfit->data);  gfit->data  = NULL;
+	free(gfit->fdata); gfit->fdata = NULL;
+	gfit->pdata[0]  = gfit->pdata[1]  = gfit->pdata[2]  = NULL;
+	gfit->fpdata[0] = gfit->fpdata[1] = gfit->fpdata[2] = NULL;
+	invalidate_stats_from_fit(gfit);
+
+	gfit->data = new_data;
+	gfit->pdata[0] = gfit->pdata[1] = gfit->pdata[2] = gfit->data;
+	gfit->rx = (unsigned int) cols;
+	gfit->ry = (unsigned int) rows;
+	gfit->naxes[0] = cols;
+	gfit->naxes[1] = rows;
+	gfit->naxes[2] = 1;
+	gfit->naxis = 2;
+	gfit->bitpix = USHORT_IMG;
+	gfit->orig_bitpix = USHORT_IMG;
+	gfit->type = DATA_USHORT;
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+
+	notify_gfit_data_modified();
+}
+
 // end of registration, GTK thread. Executed when started from the GUI and in
 // the graphical command line but not from a script (headless mode)
 gboolean end_register_idle(gpointer p) {
@@ -1356,7 +1402,17 @@ gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
-			seq_load_image(args->seq, args->seq->reference_image, TRUE);
+			if (args->mpp_stage_a_only && args->mpp_ref_frame) {
+				/* Skip seq_load_image — it would overwrite the ref frame
+				 * we're about to paint. The user explicitly wants the
+				 * analysis ref frame on screen, not whatever the sequence's
+				 * reference_image happens to be. */
+				paint_mpp_ref_frame_into_gfit(args->mpp_ref_frame,
+				                              args->mpp_ref_rows,
+				                              args->mpp_ref_cols);
+			} else {
+				seq_load_image(args->seq, args->seq->reference_image, TRUE);
+			}
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {
@@ -1386,6 +1442,7 @@ gboolean end_register_idle(gpointer p) {
 	}
 
 	free(args->new_seq_name);
+	free(args->mpp_ref_frame);
 	free(args);
 	return FALSE;
 }
