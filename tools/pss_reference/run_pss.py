@@ -46,7 +46,7 @@ from stack_frames import StackFrames  # noqa: E402
 from timer import timer  # noqa: E402
 
 
-def run(input_path, input_type, out_dir):
+def run(input_path, input_type, out_dir, max_frames=0):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -68,6 +68,19 @@ def run(input_path, input_type, out_dir):
 
     print("+++ Reading frames")
     frames = Frames(config, names, type=input_type)
+    if max_frames > 0 and frames.number > max_frames:
+        frames.number = max_frames
+        frames.number_original = max_frames
+        # Truncate every per-frame array PSS allocated so subsequent code
+        # respects the new count.
+        if hasattr(frames, 'frames_monochrome'):
+            frames.frames_monochrome = frames.frames_monochrome[:max_frames]
+        if hasattr(frames, 'frames_monochrome_blurred'):
+            frames.frames_monochrome_blurred = frames.frames_monochrome_blurred[:max_frames]
+        if hasattr(frames, 'frames_monochrome_blurred_laplacian'):
+            frames.frames_monochrome_blurred_laplacian = frames.frames_monochrome_blurred_laplacian[:max_frames]
+        if hasattr(frames, 'frames_average_brightness'):
+            frames.frames_average_brightness = frames.frames_average_brightness[:max_frames]
     print(f"  number={frames.number} shape={frames.shape} color={frames.color}")
 
     print("+++ Ranking frames")
@@ -276,9 +289,10 @@ def main():
     ap.add_argument("input", help="Path to video file or image directory")
     ap.add_argument("--type", choices=["video", "image"], default="image")
     ap.add_argument("--out-dir", default="oracle_out")
+    ap.add_argument("--n", type=int, default=0, help="Truncate to first N frames (0 = all).")
     args = ap.parse_args()
     try:
-        run(args.input, args.type, args.out_dir)
+        run(args.input, args.type, args.out_dir, max_frames=args.n)
     except Exception:
         traceback.print_exc()
         sys.exit(1)

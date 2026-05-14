@@ -61,17 +61,33 @@ struct FitsBuf {
 	~FitsBuf() { clearfits(&f); }
 };
 
-/* Helper: read a frame and return a mono Mat (cloned, owns its memory
- * after the fits is cleared). For RGB inputs we pick the green channel
- * as the analysis layer (PSS default for non-luminance paths). */
+/* Helper: read a frame and return a mono analysis Mat (cloned, owns its
+ * memory after the fits is cleared). For RGB input, mirrors PSS's
+ * frames_mono default (`frames_mono_channel = 'panchromatic'` →
+ * `color_index = 3` → `cv::cvtColor(RGB, GRAY)`). Mono input passes
+ * through. */
 cv::Mat read_analysis_frame(sequence *seq, int idx) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
 		return cv::Mat();
-	const int layer = analysis_layer_for(&buf.f);
-	cv::Mat view = wrap_fits_layer(&buf.f, layer);
-	if (view.empty()) return cv::Mat();
-	return view.clone();
+	const int n = fits_layer_count(&buf.f);
+	if (n == 1) {
+		cv::Mat view = wrap_fits_layer(&buf.f, 0);
+		return view.empty() ? cv::Mat() : view.clone();
+	}
+	/* RGB → luminance. Siril's pdata[0/1/2] are R/G/B. */
+	std::vector<cv::Mat> planes;
+	planes.reserve(n);
+	for (int l = 0; l < n; ++l) {
+		cv::Mat v = wrap_fits_layer(&buf.f, l);
+		if (v.empty()) return cv::Mat();
+		planes.push_back(v);
+	}
+	cv::Mat merged;
+	cv::merge(planes, merged);
+	cv::Mat gray;
+	cv::cvtColor(merged, gray, cv::COLOR_RGB2GRAY);
+	return gray;
 }
 
 /* Read the frame as a multi-channel cv::Mat preserving all layers (1 or 3).
