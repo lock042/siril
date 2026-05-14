@@ -1302,6 +1302,48 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
+/* Callback for the MPP-tab "Analyze" button: runs Stage A only (rank +
+ * global align + AP placement, no per-AP shift compute, no sidecar).
+ * Shares the register infrastructure via regargs->mpp_stage_a_only — the
+ * function pointer dispatched by register_thread_func is still register_mpp,
+ * which branches on the flag. */
+void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
+	if (!sequence_is_loaded()) {
+		siril_log_color_message(_("Analyze: load a sequence first.\n"), "red");
+		return;
+	}
+	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
+
+	/* fill_registration_structure_from_GUI sets regargs->func to whatever
+	 * the active method's function pointer is. If MPP isn't currently the
+	 * active method, switch to it temporarily so the GUI populates the
+	 * mpp_cfg from our widgets and dispatches to register_mpp. */
+	if (com.pref.gui.reg_settings != REG_MPP) {
+		siril_log_color_message(_("Analyze: select \"Multipoint Registration\" "
+		                          "in the method combo first.\n"), "red");
+		free(regargs);
+		return;
+	}
+
+	if (fill_registration_structure_from_GUI(regargs)) {
+		free(regargs->mpp_cfg);
+		free(regargs);
+		unreserve_thread();
+		return;
+	}
+	regargs->mpp_stage_a_only = TRUE;
+
+	siril_log_color_message(_("Analyze: running Stage A on %d frames\n"), "green",
+	                        regargs->seq->number);
+	set_progress_bar_data(_("Analyze: ranking frames"), PROGRESS_RESET);
+
+	if (!start_in_reserved_thread(register_thread_func, regargs)) {
+		free(regargs->mpp_cfg);
+		free(regargs);
+		unreserve_thread();
+	}
+}
+
 // end of registration, GTK thread. Executed when started from the GUI and in
 // the graphical command line but not from a script (headless mode)
 gboolean end_register_idle(gpointer p) {

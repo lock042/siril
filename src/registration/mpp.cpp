@@ -28,6 +28,7 @@ extern "C" {
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 
@@ -172,6 +173,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	frame_brightness.reserve(N);
 
 	int frame_rows = 0, frame_cols = 0, num_layers = 1, bitpix = 16;
+	int cur_nb = 0;
 	for (int i = 0; i < N; ++i) {
 		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
 		if (mono.empty()) return MPP_EIO;
@@ -180,20 +182,29 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		blurred_frames.push_back(mpp::blur_mono_for_align(mono, *cfg));
 		q_rank.push_back(mpp::rank_score_normalized(mono, *cfg));
 		frame_brightness.push_back(mpp::rank_average_brightness(mono, *cfg));
+		/* g_atomic_int_inc lets us safely parallelise this loop with OpenMP
+		 * later without touching the progress code; matches the pattern used
+		 * by other Siril registration methods (see shift_methods.c:293). */
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress((double) cur_nb / (double) N, NULL);
 	}
 
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
 	bitpix = seq->bitpix;
 
+	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: aligning frames globally"));
 	const auto align = mpp::align_global_from_frames(blurred_frames, q_rank, *cfg);
+	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: building reference frame"));
 	const auto avg = mpp::align_average_frame(analysis_frames, q_rank,
 	                                          align.shifts, *cfg);
+	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
 	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, *cfg);
 	if (!aps || aps->count <= 0) {
 		mpp_ap_free(aps);
 		return MPP_ENODATA;
 	}
+	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: per-AP frame qualities"));
 	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
 	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
 	                                                 *aps, offsets,
@@ -261,16 +272,23 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 
 	std::vector<cv::Mat> blurred_frames;
 	blurred_frames.reserve(run->num_frames);
+	/* The frame-read pass is roughly half the Stage B cost; report it as
+	 * the first half of the [0..1] progress range, leaving the second half
+	 * for the inner stack_compute_shifts (which emits its own 0.5..1). */
+	int cur_nb = 0;
 	for (int i = 0; i < run->num_frames; ++i) {
 		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
 		if (mono.empty()) return MPP_EIO;
 		blurred_frames.push_back(mpp::blur_mono_for_align(mono, *cfg));
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) run->num_frames, NULL);
 	}
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
 	const cv::Mat mean_raw = mpp::mean_frame_from_run(run);
 
+	gui_iface.set_progress(PROGRESS_NONE, _("Register: correlating per-AP boxes"));
 	mpp_shifts_t *shifts = mpp::stack_compute_shifts(blurred_frames, mean_raw,
 	                                                 *run->aps, apq, offsets, *cfg);
 	if (!shifts) return MPP_ENOMEM;
@@ -290,10 +308,14 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 * even though Stages A and B use only the green analysis layer. */
 	std::vector<cv::Mat> raw_frames;
 	raw_frames.reserve(run->num_frames);
+	gui_iface.set_progress(PROGRESS_RESET, _("Stack: reading frames"));
+	int cur_nb = 0;
 	for (int i = 0; i < run->num_frames; ++i) {
 		const cv::Mat frame = mpp::read_full_frame(seq, i);
 		if (frame.empty()) return MPP_EIO;
 		raw_frames.push_back(frame);
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) run->num_frames, NULL);
 	}
 
 	const auto apq = mpp::apq_from_run(run);
@@ -395,38 +417,57 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	}
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(regargs->seq->bitpix);
 
-	siril_log_message(_("pss: Stage A — analyse %d frames\n"), regargs->seq->number);
+	const gboolean stage_a_only = regargs->mpp_stage_a_only;
+	siril_log_color_message(stage_a_only
+	                        ? _("mpp: Stage A — analysing %d frames\n")
+	                        : _("mpp: Stages A + B — registering %d frames\n"),
+	                        "green", regargs->seq->number);
+	gui_iface.set_progress(PROGRESS_RESET,
+	                       stage_a_only ? _("Analyze: ranking frames")
+	                                    : _("Register: ranking frames"));
 	mpp_run_t *run = NULL;
 	const int rc_a = mpp_analyze(regargs->seq, &cfg, &run);
 	if (rc_a != MPP_OK) {
-		siril_log_message(_("pss: Stage A failed (code %d)\n"), rc_a);
+		siril_log_color_message(_("mpp: Stage A failed (code %d)\n"), "red", rc_a);
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 		return rc_a;
 	}
-	siril_log_message(_("pss: Stage A done — best=%d, %d APs, stack_size=%d\n"),
+	siril_log_message(_("mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
 	                  run->best_frame_idx, run->aps->count, run->stack_size);
 
 	/* Phase 9.2: surface per-frame quality through Siril's regdata so the
 	 * existing frame selector and quality plot pick it up. */
 	mpp_write_quality_to_regdata(regargs->seq, regargs->layer, run);
 
-	siril_log_message(_("pss: Stage B — per-AP per-frame shifts\n"));
+	if (stage_a_only) {
+		gui_iface.set_progress(PROGRESS_DONE, _("Analyze: done"));
+		mpp_run_free(run);
+		return MPP_OK;
+	}
+
+	siril_log_message(_("mpp: Stage B — per-AP per-frame shifts\n"));
+	gui_iface.set_progress(PROGRESS_RESET, _("Register: computing per-AP shifts"));
 	const int rc_b = mpp_compute_shifts(regargs->seq, &cfg, run);
 	if (rc_b != MPP_OK) {
-		siril_log_message(_("pss: Stage B failed (code %d)\n"), rc_b);
+		siril_log_color_message(_("mpp: Stage B failed (code %d)\n"), "red", rc_b);
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 		mpp_run_free(run);
 		return rc_b;
 	}
-	siril_log_message(_("pss: Stage B done — %d shifts failed\n"),
+	siril_log_message(_("mpp: Stage B done — %d shifts failed\n"),
 	                  run->shifts ? run->shifts->failure_counter : -1);
 
 	char sidecar_path[2048];
 	snprintf(sidecar_path, sizeof(sidecar_path), "%s.mpp", regargs->seq->seqname);
+	gui_iface.set_progress(PROGRESS_NONE, _("Register: writing sidecar"));
 	if (mpp_sidecar_write(sidecar_path, run) != MPP_OK) {
-		siril_log_message(_("pss: sidecar write to %s failed\n"), sidecar_path);
+		siril_log_message(_("mpp: sidecar write to %s failed\n"), sidecar_path);
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 		mpp_run_free(run);
 		return MPP_EIO;
 	}
-	siril_log_message(_("pss: sidecar written to %s\n"), sidecar_path);
+	siril_log_message(_("mpp: sidecar written to %s\n"), sidecar_path);
+	gui_iface.set_progress(PROGRESS_DONE, _("Register: done"));
 
 	mpp_run_free(run);
 	return MPP_OK;

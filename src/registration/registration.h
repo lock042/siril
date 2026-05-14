@@ -153,6 +153,12 @@ struct registration_args {
 	 * touches registration_args. The actual type is struct mpp_config (see
 	 * src/registration/mpp_config.h). */
 	void *mpp_cfg;
+	/* REG_MPP only: if TRUE, register_mpp runs Stage A only (rank + global
+	 * align + AP placement) and surfaces per-frame quality via regdata. It
+	 * does NOT run Stage B and does NOT write the .mpp sidecar — meant for
+	 * the "Analyze" button workflow where the user wants to see the rank
+	 * before committing to the heavier per-AP shift compute. */
+	gboolean mpp_stage_a_only;
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,

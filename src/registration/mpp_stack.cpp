@@ -34,6 +34,8 @@
 #include "registration/mpp_stack.h"
 #include "registration/mpp_stack_priv.hpp"
 
+#include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
+
 #include <set>
 
 namespace mpp {
@@ -327,6 +329,9 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
 	int failures = 0;
 
+	/* Per-frame progress mapped into the second half of Stage B's bar — the
+	 * outer mpp_compute_shifts used 0..0.5 for the frame read pass. */
+	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
 		for (int a : apq.used_alignment_points[f]) {
@@ -344,6 +349,8 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 			out->success[f * M + a] = r.success ? 1 : 0;
 			if (!r.success) ++failures;
 		}
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) N, NULL);
 	}
 	out->failure_counter = failures;
 	return out;
@@ -382,6 +389,9 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 	for (int i = 0; i < apq.stack_size && i < (int) quality_sorted_idx.size(); ++i)
 		top_for_bg.insert(quality_sorted_idx[i]);
 
+	/* Per-frame progress mapped into the second half of Stage C's bar — the
+	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
+	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
 		const cv::Mat &frame_raw = frames_raw[f];
 
@@ -441,6 +451,8 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 				out.state.averaged_background += src;
 			}
 		}
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) N, NULL);
 	}
 
 	if (out.state.number_stacking_holes > 0) {
