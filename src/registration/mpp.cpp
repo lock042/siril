@@ -162,32 +162,43 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		return MPP_ENODATA;
 
 	const int N = seq->number;
-	std::vector<cv::Mat> analysis_frames;
-	std::vector<cv::Mat> blurred_frames;
-	analysis_frames.reserve(N);
-	blurred_frames.reserve(N);
-
-	std::vector<double> q_rank;
-	std::vector<double> frame_brightness;
-	q_rank.reserve(N);
-	frame_brightness.reserve(N);
+	/* Index-stable storage so parallel threads can write to per-frame slots
+	 * without contention. push_back would force serialisation. */
+	std::vector<cv::Mat> analysis_frames(N);
+	std::vector<cv::Mat> blurred_frames(N);
+	std::vector<double> q_rank(N, 0.0);
+	std::vector<double> frame_brightness(N, 0.0);
 
 	int frame_rows = 0, frame_cols = 0, num_layers = 1, bitpix = 16;
 	int cur_nb = 0;
+	int read_failed = 0;
+	/* Parallel frame read: SER's fd_lock serialises only the actual fread
+	 * call inside ser_read_frame so the rest (decompress, debayer, cvtColor,
+	 * GaussianBlur, Laplace) runs concurrently. Pattern + guard mirror
+	 * shift_methods.c:432 — anything fits-backed needs cfitsio's
+	 * fits_is_reentrant() flag. */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
+    if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
+                                  || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
+#endif
 	for (int i = 0; i < N; ++i) {
+		if (g_atomic_int_get(&read_failed)) continue;
 		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
-		if (mono.empty()) return MPP_EIO;
-		if (i == 0) { frame_rows = mono.rows; frame_cols = mono.cols; }
-		analysis_frames.push_back(mono);
-		blurred_frames.push_back(mpp::blur_mono_for_align(mono, *cfg));
-		q_rank.push_back(mpp::rank_score_normalized(mono, *cfg));
-		frame_brightness.push_back(mpp::rank_average_brightness(mono, *cfg));
-		/* g_atomic_int_inc lets us safely parallelise this loop with OpenMP
-		 * later without touching the progress code; matches the pattern used
-		 * by other Siril registration methods (see shift_methods.c:293). */
+		if (mono.empty()) {
+			g_atomic_int_set(&read_failed, 1);
+			continue;
+		}
+		analysis_frames[i] = mono;
+		blurred_frames[i]  = mpp::blur_mono_for_align(mono, *cfg);
+		q_rank[i]          = mpp::rank_score_normalized(mono, *cfg);
+		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
 		g_atomic_int_inc(&cur_nb);
 		gui_iface.set_progress((double) cur_nb / (double) N, NULL);
 	}
+	if (read_failed) return MPP_EIO;
+	frame_rows = analysis_frames[0].rows;
+	frame_cols = analysis_frames[0].cols;
 
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
 	bitpix = seq->bitpix;
@@ -271,17 +282,21 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
 
 	std::vector<cv::Mat> blurred_frames;
-	blurred_frames.reserve(run->num_frames);
+	blurred_frames.resize(run->num_frames);  /* index-stable; empty Mat for excluded */
+	int n_included = 0;
+	for (int i = 0; i < run->num_frames; ++i)
+		if (run->included[i]) ++n_included;
 	/* The frame-read pass is roughly half the Stage B cost; report it as
 	 * the first half of the [0..1] progress range, leaving the second half
 	 * for the inner stack_compute_shifts (which emits its own 0.5..1). */
 	int cur_nb = 0;
 	for (int i = 0; i < run->num_frames; ++i) {
+		if (!run->included[i]) continue;  /* skip frame entirely — keep empty slot */
 		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
 		if (mono.empty()) return MPP_EIO;
-		blurred_frames.push_back(mpp::blur_mono_for_align(mono, *cfg));
+		blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) run->num_frames, NULL);
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_included, NULL);
 	}
 
 	const auto apq = mpp::apq_from_run(run);
@@ -290,7 +305,8 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 
 	gui_iface.set_progress(PROGRESS_NONE, _("Register: correlating per-AP boxes"));
 	mpp_shifts_t *shifts = mpp::stack_compute_shifts(blurred_frames, mean_raw,
-	                                                 *run->aps, apq, offsets, *cfg);
+	                                                 *run->aps, apq, offsets,
+	                                                 *cfg, run->included);
 	if (!shifts) return MPP_ENOMEM;
 	if (run->shifts) mpp_shift_free(run->shifts);
 	run->shifts = shifts;
@@ -307,22 +323,31 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	/* Read frames preserving all layers — colour data flows through Stage C
 	 * even though Stages A and B use only the green analysis layer. */
 	std::vector<cv::Mat> raw_frames;
-	raw_frames.reserve(run->num_frames);
+	raw_frames.resize(run->num_frames);
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack: reading frames"));
+	int n_included = 0;
+	for (int i = 0; i < run->num_frames; ++i)
+		if (run->included[i]) ++n_included;
 	int cur_nb = 0;
 	for (int i = 0; i < run->num_frames; ++i) {
+		if (!run->included[i]) continue;
 		const cv::Mat frame = mpp::read_full_frame(seq, i);
 		if (frame.empty()) return MPP_EIO;
-		raw_frames.push_back(frame);
+		raw_frames[i] = frame;
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) run->num_frames, NULL);
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_included, NULL);
 	}
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
 
-	std::vector<int> sorted_idx(run->num_frames);
-	std::iota(sorted_idx.begin(), sorted_idx.end(), 0);
+	/* Quality-sorted index for top-N-for-background pick — only included
+	 * frames participate. Otherwise excluded frames would contribute to
+	 * the background blend even though they're skipped from the AP buffers. */
+	std::vector<int> sorted_idx;
+	sorted_idx.reserve(run->num_frames);
+	for (int i = 0; i < run->num_frames; ++i)
+		if (run->included[i]) sorted_idx.push_back(i);
 	std::sort(sorted_idx.begin(), sorted_idx.end(),
 	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
 
@@ -334,7 +359,7 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const auto loop = mpp::stack_apply_shifts(raw_frames, *run->aps, apq,
 	                                          run->shifts, offsets,
 	                                          frame_brightness, sorted_idx,
-	                                          intersection, *cfg);
+	                                          intersection, *cfg, run->included);
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);
 
@@ -409,6 +434,21 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	if (!regargs || !regargs->seq)
 		return MPP_EINVAL;
 
+	/* Detect 1-layer + Bayer-pattern sequences: the CLI (process_pss et al)
+	 * forces debayer-on-open via load_sequence_force_debayer; the GUI path
+	 * goes through whatever pref the user opened the seq with. If they
+	 * loaded a Bayer SER as raw CFA we'd spend Stage A computing rank on
+	 * checker-pattern data — abort early with clear instructions instead. */
+	if (regargs->bayer && regargs->seq->nb_layers == 1) {
+		siril_log_color_message(_("mpp: this sequence has a Bayer pattern but is loaded "
+		                          "as 1-layer raw CFA. mpp expects RGB-debayered input.\n"
+		                          "       Enable Preferences → Debayering → \"Debayer SER "
+		                          "files at opening\", then close and reopen the sequence.\n"),
+		                        "red");
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+		return MPP_EINVAL;
+	}
+
 	mpp_config_t cfg;
 	if (regargs->mpp_cfg) {
 		cfg = *(const mpp_config_t *) regargs->mpp_cfg;
@@ -443,6 +483,25 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		gui_iface.set_progress(PROGRESS_DONE, _("Analyze: done"));
 		mpp_run_free(run);
 		return MPP_OK;
+	}
+
+	/* Honour the GUI's "Selected images only" combo (CLI -selected) for
+	 * Stages B and C. Stage A always processes every frame so the rank
+	 * data covers the whole sequence and the user can review it. */
+	if (regargs->filters.filter_included) {
+		int n_selected = 0;
+		for (int i = 0; i < run->num_frames && i < regargs->seq->number; ++i) {
+			run->included[i] = regargs->seq->imgparam[i].incl ? 1 : 0;
+			if (run->included[i]) ++n_selected;
+		}
+		siril_log_message(_("mpp: filtering to %d selected frames of %d total\n"),
+		                  n_selected, run->num_frames);
+		if (n_selected == 0) {
+			siril_log_color_message(_("mpp: no frames selected — aborting\n"), "red");
+			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+			mpp_run_free(run);
+			return MPP_ENODATA;
+		}
 	}
 
 	siril_log_message(_("mpp: Stage B — per-AP per-frame shifts\n"));

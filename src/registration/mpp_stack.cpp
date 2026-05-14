@@ -308,7 +308,8 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
                                    const mpp_aps_t &aps,
                                    const APQualities &apq,
                                    const std::vector<FrameOffset> &offsets,
-                                   const mpp_config_t &cfg) {
+                                   const mpp_config_t &cfg,
+                                   const int *included) {
 	const int N = (int) frames_mono_blurred.size();
 	const int M = aps.count;
 	const int K = cfg.drizzle_factor;
@@ -331,8 +332,15 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 
 	/* Per-frame progress mapped into the second half of Stage B's bar — the
 	 * outer mpp_compute_shifts used 0..0.5 for the frame read pass. */
+	int n_included = 0;
+	if (included) {
+		for (int f = 0; f < N; ++f) if (included[f]) ++n_included;
+	} else {
+		n_included = N;
+	}
 	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
+		if (included && !included[f]) continue;
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
 		for (int a : apq.used_alignment_points[f]) {
 			const auto &ap = aps.records[a];
@@ -350,7 +358,7 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 			if (!r.success) ++failures;
 		}
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) N, NULL);
+		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
 	}
 	out->failure_counter = failures;
 	return out;
@@ -364,7 +372,8 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const std::vector<double> &frame_brightness,
                                    const std::vector<int> &quality_sorted_idx,
                                    const cv::Vec4i &intersection,
-                                   const mpp_config_t &cfg) {
+                                   const mpp_config_t &cfg,
+                                   const int *included) {
 	StackLoopOutput out;
 	const int num_layers = frames_raw.empty() ? 1 : frames_raw[0].channels();
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
@@ -391,8 +400,15 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 
 	/* Per-frame progress mapped into the second half of Stage C's bar — the
 	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
+	int n_included = 0;
+	if (included) {
+		for (int f = 0; f < N; ++f) if (included[f]) ++n_included;
+	} else {
+		n_included = N;
+	}
 	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
+		if (included && !included[f]) continue;
 		const cv::Mat &frame_raw = frames_raw[f];
 
 		cv::Mat frame_f32;
@@ -452,7 +468,7 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 			}
 		}
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) N, NULL);
+		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
 	}
 
 	if (out.state.number_stacking_holes > 0) {

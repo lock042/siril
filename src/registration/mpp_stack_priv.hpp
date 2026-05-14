@@ -140,12 +140,16 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
                                    const mpp_aps_t &aps,
                                    const APQualities &apq,
                                    const std::vector<FrameOffset> &offsets,
-                                   const mpp_config_t &cfg);
+                                   const mpp_config_t &cfg,
+                                   const int *included = nullptr);
 
 /* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
  * averaged_background. Takes the same shifts vector as Stage B; the rest of
  * the bookkeeping (brightness equalise, drizzle resize, remap_rigid,
- * background accumulate) is identical to stack_frames_loop. */
+ * background accumulate) is identical to stack_frames_loop. `included` is an
+ * optional per-frame mask (length frames_raw.size()); when non-null, frames
+ * with included[f]==0 are skipped entirely from the stack. NULL ⇒ all frames
+ * participate (preserves the Phase-5a unit-test API). */
 struct StackLoopOutput;  /* defined below */
 StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const mpp_aps_t &aps,
@@ -155,7 +159,8 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const std::vector<double> &frame_brightness,
                                    const std::vector<int> &quality_sorted_idx,
                                    const cv::Vec4i &intersection,
-                                   const mpp_config_t &cfg);
+                                   const mpp_config_t &cfg,
+                                   const int *included = nullptr);
 
 /* PSS stack_frames.stack_frames main loop (stack_frames.py:281-506).
  *
