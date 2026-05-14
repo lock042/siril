@@ -117,6 +117,7 @@
 #include "registration/mpp_ap.h"
 #include "registration/mpp_config.h"
 #include "registration/mpp_shift.h"
+#include "registration/mpp_sidecar.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -14555,11 +14556,109 @@ int process_offline(int nb) {
 	return CMD_OK;
 }
 
+/* ----- shared mpp CLI plumbing (used by `pss`, `register_mpp`, `stack_mpp`) -----
+ *
+ * `apply_mpp_flag` parses a single argv entry into `cfg`/`out_path`/`use_selected`.
+ * Flags fall into three categories driven by the matrix in pss_port_plan.md §6:
+ *   register-time  — affect Stage A/B (AP placement + per-AP shift compute)
+ *   stack-time     — affect Stage C  (top-N pick, drizzle resize, blending, output)
+ *   shared         — accepted everywhere
+ * Each command passes `accept_register` and `accept_stack` to opt in/out.
+ *
+ * Returns 1 on a successful parse, 0 if the flag wasn't recognised in the
+ * caller's mode, -1 on a value error. The caller logs the diagnostic message
+ * appropriate to its command name. */
+typedef enum {
+	MPP_FLAG_OK            =  1,
+	MPP_FLAG_NOT_FOR_MODE  =  0,
+	MPP_FLAG_INVALID_VALUE = -1,
+} mpp_flag_status;
+
+static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
+                                      gchar **out_path, gboolean *use_selected,
+                                      gboolean accept_register,
+                                      gboolean accept_stack) {
+	/* shared */
+	if (!strcmp(arg, "-selected")) { *use_selected = TRUE; return MPP_FLAG_OK; }
+
+	/* stack-time */
+	if (accept_stack && g_str_has_prefix(arg, "-out=")) {
+		g_free(*out_path);
+		*out_path = g_strdup(arg + 5);
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-drizzle=")) {
+		const char *v = arg + 9;
+		if      (!g_ascii_strcasecmp(v, "Off")) cfg->drizzle_factor = 1;
+		else if (!g_ascii_strcasecmp(v, "1.5")) cfg->drizzle_factor = 3;
+		else if (!g_ascii_strcasecmp(v, "2"))   cfg->drizzle_factor = 2;
+		else if (!g_ascii_strcasecmp(v, "3"))   cfg->drizzle_factor = 3;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-stack-percent=")) {
+		cfg->alignment_points_frame_percent = atoi(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
+		cfg->alignment_points_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-bg-fraction=")) {
+		cfg->stack_frames_background_fraction = atof(arg + 13); return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-bg-blend=")) {
+		cfg->stack_frames_background_blend_threshold = atof(arg + 10); return MPP_FLAG_OK;
+	}
+
+	/* register-time */
+	if (accept_register && g_str_has_prefix(arg, "-half-box=")) {
+		cfg->alignment_points_half_box_width = atoi(arg + 10); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-search-width=")) {
+		cfg->alignment_points_search_width = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-search-global=")) {
+		cfg->align_frames_search_width = atoi(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-patch-scale=")) {
+		cfg->align_frames_rectangle_scale_factor = atof(arg + 13); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-brightness=")) {
+		cfg->alignment_points_brightness_threshold = atoi(arg + 16); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-contrast=")) {
+		cfg->alignment_points_contrast_threshold = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-structure=")) {
+		cfg->alignment_points_structure_threshold = atof(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-no-dewarp")) {
+		cfg->alignment_points_de_warp = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-no-normalize")) {
+		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
+	}
+
+	return MPP_FLAG_NOT_FOR_MODE;
+}
+
+/* `load_sequence_force_debayer` opens a sequence with `com.pref.debayer.open_debayer`
+ * forced TRUE for the duration of the call, so Bayer SERs come back as 3-layer
+ * RGB regardless of the user's saved preference. Returns the sequence (caller
+ * may have to substitute `&com.seq` via `check_seq_is_comseq`) or NULL. */
+static sequence *load_sequence_force_debayer(const char *name) {
+	const gboolean saved = com.pref.debayer.open_debayer;
+	com.pref.debayer.open_debayer = TRUE;
+	sequence *seq = load_sequence(name, NULL);
+	com.pref.debayer.open_debayer = saved;
+	return seq;
+}
+
 int process_pss(int nb) {
 	/* `pss seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
-	 *              [-min-brightness=N] [-min-structure=F] [-no-dewarp]
-	 *              [-no-normalize] [-selected]`
+	 *              [-search-global=N] [-patch-scale=F] [-min-brightness=N]
+	 *              [-min-contrast=N] [-min-structure=F] [-bg-fraction=F]
+	 *              [-bg-blend=F] [-no-dewarp] [-no-normalize] [-selected]`
 	 *
 	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
 	 * sequence and writes the stacked output to a FITS file. See
@@ -14569,14 +14668,7 @@ int process_pss(int nb) {
 		return CMD_WRONG_N_ARG;
 	}
 
-	/* Siril's SER reader bakes in the debayer choice at open time based on
-	 * `com.pref.debayer.open_debayer`. Force it on for the duration of
-	 * load_sequence so Bayer SERs come back as 3-layer RGB regardless of
-	 * the user's saved preference; restore the pref immediately after. */
-	const gboolean saved_open_debayer = com.pref.debayer.open_debayer;
-	com.pref.debayer.open_debayer = TRUE;
-	sequence *seq = load_sequence(word[1], NULL);
-	com.pref.debayer.open_debayer = saved_open_debayer;
+	sequence *seq = load_sequence_force_debayer(word[1]);
 	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
@@ -14590,42 +14682,13 @@ int process_pss(int nb) {
 	gchar *out_path = NULL;
 	gboolean use_selected = FALSE;
 	for (int i = 2; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-out=")) {
-			out_path = g_strdup(word[i] + 5);
-		} else if (g_str_has_prefix(word[i], "-drizzle=")) {
-			const char *v = word[i] + 9;
-			if      (!g_ascii_strcasecmp(v, "Off")) cfg.drizzle_factor = 1;
-			else if (!g_ascii_strcasecmp(v, "1.5")) cfg.drizzle_factor = 3;
-			else if (!g_ascii_strcasecmp(v, "2"))   cfg.drizzle_factor = 2;
-			else if (!g_ascii_strcasecmp(v, "3"))   cfg.drizzle_factor = 3;
-			else {
-				siril_log_color_message(_("pss: unknown -drizzle value '%s'\n"), "red", v);
-				g_free(out_path);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(word[i], "-stack-percent=")) {
-			cfg.alignment_points_frame_percent = atoi(word[i] + 15);
-		} else if (g_str_has_prefix(word[i], "-stack-frames=")) {
-			cfg.alignment_points_frame_number = atoi(word[i] + 14);
-		} else if (g_str_has_prefix(word[i], "-half-box=")) {
-			cfg.alignment_points_half_box_width = atoi(word[i] + 10);
-		} else if (g_str_has_prefix(word[i], "-search-width=")) {
-			cfg.alignment_points_search_width = atoi(word[i] + 14);
-		} else if (g_str_has_prefix(word[i], "-min-brightness=")) {
-			cfg.alignment_points_brightness_threshold = atoi(word[i] + 16);
-		} else if (g_str_has_prefix(word[i], "-min-structure=")) {
-			cfg.alignment_points_structure_threshold = atof(word[i] + 15);
-		} else if (!strcmp(word[i], "-no-dewarp")) {
-			cfg.alignment_points_de_warp = FALSE;
-		} else if (!strcmp(word[i], "-no-normalize")) {
-			cfg.frames_normalization = FALSE;
-		} else if (!strcmp(word[i], "-selected")) {
-			use_selected = TRUE;
-		} else {
-			siril_log_color_message(_("pss: unknown argument '%s'\n"), "red", word[i]);
-			g_free(out_path);
-			return CMD_ARG_ERROR;
-		}
+		mpp_flag_status rc = apply_mpp_flag(word[i], &cfg, &out_path, &use_selected,
+		                                    TRUE, TRUE);
+		if (rc == MPP_FLAG_OK) continue;
+		const char *err = (rc == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_color_message(_("pss: %s '%s'\n"), "red", err, word[i]);
+		g_free(out_path);
+		return CMD_ARG_ERROR;
 	}
 	(void) use_selected;  /* TODO Phase 6.x: thread frame-selection through */
 
@@ -14675,6 +14738,162 @@ int process_pss(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 	siril_log_message(_("pss: stacked image saved to %s (%dx%d)\n"),
+	                  resolved_out, stacked.rx, stacked.ry);
+
+	clearfits(&stacked);
+	mpp_run_free(run);
+	g_free(resolved_out);
+	return CMD_OK;
+}
+
+/* `register_mpp seqname [register-side flags...]`
+ *
+ * Runs the mpp pipeline Stages A + B (frame ranking, global alignment, AP
+ * placement, per-AP per-frame shift compute) and writes a `<seqname>.mpp`
+ * sidecar in the working directory. Consumed by `stack_mpp`. Mirrors the
+ * register-side flag surface of `pss`; rejects stack-only flags. */
+int process_register_mpp(int nb) {
+	if (nb < 2) {
+		siril_log_color_message(_("register_mpp: missing sequence name\n"), "red");
+		return CMD_WRONG_N_ARG;
+	}
+
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
+
+	gchar *out_path = NULL;  /* unused by register; kept for shared parser */
+	gboolean use_selected = FALSE;
+	for (int i = 2; i < nb; i++) {
+		mpp_flag_status fs = apply_mpp_flag(word[i], &cfg, &out_path, &use_selected,
+		                                    TRUE, FALSE);
+		if (fs == MPP_FLAG_OK) continue;
+		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_color_message(_("register_mpp: %s '%s'\n"), "red", err, word[i]);
+		return CMD_ARG_ERROR;
+	}
+	(void) use_selected;
+
+	siril_log_message(_("register_mpp: %d frames, %dx%d, bitdepth=%d\n"),
+	                  seq->number, seq->rx, seq->ry, cfg.bitdepth);
+
+	mpp_run_t *run = NULL;
+	int rc = mpp_analyze(seq, &cfg, &run);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("register_mpp: Stage A failed (code %d)\n"), "red", rc);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
+	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	rc = mpp_compute_shifts(seq, &cfg, run);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("register_mpp: Stage B failed (code %d)\n"), "red", rc);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: Stage B done — %d shift failures\n"),
+	                  run->shifts ? run->shifts->failure_counter : -1);
+
+	gchar *sidecar_path = g_strdup_printf("%s.mpp", seq->seqname);
+	rc = mpp_sidecar_write(sidecar_path, run);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("register_mpp: sidecar write to %s failed (code %d)\n"),
+		                        "red", sidecar_path, rc);
+		g_free(sidecar_path);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: sidecar written to %s\n"), sidecar_path);
+
+	g_free(sidecar_path);
+	mpp_run_free(run);
+	return CMD_OK;
+}
+
+/* `stack_mpp seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
+ *                   [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]`
+ *
+ * Reads the `<seqname>.mpp` sidecar written by `register_mpp`, runs Stage C
+ * (per-AP remap, weighted merge, drizzle resize, background blend, uint16
+ * cast), and writes the stacked FITS. */
+int process_stack_mpp(int nb) {
+	if (nb < 2) {
+		siril_log_color_message(_("stack_mpp: missing sequence name\n"), "red");
+		return CMD_WRONG_N_ARG;
+	}
+
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	gchar *sidecar_path = g_strdup_printf("%s.mpp", seq->seqname);
+	mpp_run_t *run = NULL;
+	int rc = mpp_sidecar_read(sidecar_path, &run);
+	if (rc != MPP_OK || !run) {
+		siril_log_color_message(_("stack_mpp: cannot read sidecar %s (code %d) — "
+		                          "did you run `register_mpp` first?\n"),
+		                        "red", sidecar_path, rc);
+		g_free(sidecar_path);
+		return CMD_GENERIC_ERROR;
+	}
+	g_free(sidecar_path);
+
+	/* The sidecar carries the cfg snapshot from register-time. Apply only the
+	 * stack-time flag overrides on top of it; never touch register-time
+	 * settings here as those decisions are already baked into run->aps and
+	 * run->shifts. */
+	gchar *out_path = NULL;
+	gboolean use_selected = FALSE;
+	for (int i = 2; i < nb; i++) {
+		mpp_flag_status fs = apply_mpp_flag(word[i], run->cfg, &out_path, &use_selected,
+		                                    FALSE, TRUE);
+		if (fs == MPP_FLAG_OK) continue;
+		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_color_message(_("stack_mpp: %s '%s'\n"), "red", err, word[i]);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_ARG_ERROR;
+	}
+	(void) use_selected;
+
+	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
+	                  run->num_frames, run->frame_cols, run->frame_rows,
+	                  run->aps->count, run->bitdepth,
+	                  run->cfg->drizzle_factor != 1 ? " (drizzle)" : "");
+
+	fits stacked = {0};
+	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);
+	if (rc != MPP_OK) {
+		siril_log_color_message(_("stack_mpp: Stage C failed (code %d)\n"), "red", rc);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
+	gchar *resolved_out = out_path;
+	if (!resolved_out) {
+		resolved_out = g_strdup_printf("%s_mpp_stacked.fit", seq->seqname);
+	}
+	if (savefits(resolved_out, &stacked)) {
+		siril_log_color_message(_("stack_mpp: failed to save %s\n"), "red", resolved_out);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(resolved_out);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("stack_mpp: stacked image saved to %s (%dx%d)\n"),
 	                  resolved_out, stacked.rx, stacked.ry);
 
 	clearfits(&stacked);

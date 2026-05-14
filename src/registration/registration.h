@@ -28,7 +28,8 @@ typedef enum {
 	REG_KOMBAT,
 	REG_COMET,
 	REG_APPLY,
-	REG_2PASS,
+	REG_MPP,
+	REG_2PASS, /* kept at the end: see comment by reg_methods[REG_2PASS] in gui/registration.c */
 	NUMBER_OF_METHODS
 } regmethod_index;
 
@@ -156,6 +157,7 @@ int register_comet(struct registration_args *regargs); // REG_COMET
 int register_3stars(struct registration_args *regargs); // REG_3STARS
 int register_apply_reg(struct registration_args *regargs); // REG_APPLY
 int register_kombat(struct registration_args *args); // REG_KOMBAT
+int register_mpp(struct registration_args *regargs); // REG_MPP (defined in registration/mpp.cpp)
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 
 // comet specific calcs

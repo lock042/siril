@@ -161,6 +161,7 @@ static command commands[] = {
 					"register sequencename ... [-layer=] [-transf=] [-minpairs=] [-maxstars=] [-nostarlist] [-disto=]\n"
 					"register sequencename ... [-interp=] [-noclamp]\n"
 					"register sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
+	{"register_mpp", 1, "register_mpp seqname [-half-box=N] [-search-width=N] [-search-global=N] [-patch-scale=F] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-selected]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= | -maxdim= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -265,6 +266,7 @@ static command commands[] = {
 			"stackall { sum | min | max } [-maximize] [-upscale] [-32b]\n"
 			"stackall { med | median } [-nonorm, norm=] [-32b]\n"
 			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-overlap_norm] [-weight={noise|wfwhm|nbstars|nbstack}] [-feather=] [-rgb_equal] [-out=filename] [-maximize] [-upscale] [-32b]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
+	{"stack_mpp", 1, "stack_mpp seqname [-out=file] [-drizzle={Off|1.5|2|3}] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]", process_stack_mpp, STR_STACK_MPP, TRUE, REQ_CMD_NO_THREAD},
 #ifdef HAVE_LIBTIFF
 	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask] [-mask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
