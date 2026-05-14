@@ -96,6 +96,12 @@ if criterion_dep.found()
      test('siril_spawn_test', siril_spawn_test_exec)
 
      # MPP / PSS port skeleton — see pss_port_plan.md. Real assertions land per phase.
+     # MPP_PSS_TEST_DATA_DIR points at the bundled PSS reference oracle so
+     # tests that compare against pre-computed PSS artifacts can find them;
+     # if the dir is missing those tests skip themselves rather than failing.
+     mpp_test_env = environment()
+     mpp_test_env.set('MPP_PSS_TEST_DATA_DIR',
+                      meson.project_source_root() / 'tools' / 'pss_reference')
      foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
                   'mpp_shift_test', 'mpp_stack_test', 'mpp_drizzle_test',
                   'mpp_pipeline_test']
@@ -105,7 +111,7 @@ if criterion_dep.found()
                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
                                c_args : siril_c_flag,
                                cpp_args : siril_cpp_flag)
-         test(t, mpp_exec, suite: 'mpp')
+         test(t, mpp_exec, suite: 'mpp', env: mpp_test_env)
      endforeach
 
      mpp_sidecar_exec = executable('mpp_sidecar_test',
@@ -115,7 +121,7 @@ if criterion_dep.found()
                                    c_args : siril_c_flag,
                                    cpp_args : siril_cpp_flag)
 
-     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp', env: mpp_test_env)
 
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',

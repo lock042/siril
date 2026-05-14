@@ -123,6 +123,12 @@ def run(input_path, input_type, out_dir):
         ap_box=ap_box,
         align_patch=np.array(patch_yxyx if patch_yxyx is not None else (-1, -1, -1, -1), dtype=np.int64),
     )
+    # Plain-text mirrors of the artifacts that C++ unit tests consume directly,
+    # one value per line (or whitespace-separated for multi-column).
+    np.savetxt(out_dir / "quality.csv", quality, fmt="%.17g")
+    np.savetxt(out_dir / "global_shifts.csv", shifts, fmt="%d")
+    np.savetxt(out_dir / "ap_yx.csv", ap_yx, fmt="%d")
+    np.savetxt(out_dir / "ap_box.csv", ap_box, fmt="%d")
 
     # Save reference + stacked as FITS via PSS's own writer (keeps any bit-depth conventions).
     Frames.save_image(str(out_dir / "ref_avg.fits"), average, color=frames.color,

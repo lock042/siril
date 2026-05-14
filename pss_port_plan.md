@@ -67,11 +67,11 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 
 ## Phase 1 — Quality ranking
 
-- [ ] 1.1 Implement `mpp_rank.cpp`: `cv::Laplacian(blurred_frame, CV_32F)` → `meanStdDev` → σ². Gaussian blur kernel `frames_gauss_width=7`, sigma auto. Pixel stride 2 default.
-- [ ] 1.2 Optional brightness normalisation (mean-divide) gated by `frames_normalization=true`.
-- [ ] 1.3 Wire frame iteration through `mpp_frames` (SER reader from `src/io/ser.c`, optional debayer via `cv::cvtColor`).
-- [ ] 1.4 Oracle test: rank synthetic SER; per-frame quality within 1e-4 relative of PSS.
-- [ ] 1.5 Sanity tests: blur-decreases-quality, brightness-invariance.
+- [x] 1.1 Implement `mpp_rank.cpp`: PSS pipeline = GaussianBlur(7×7) → stride-2 sub-sample (`align_frames_sampling_stride`, NOT `rank_frames_pixel_stride` — the latter is for xy/Sobel only) → `cv::Laplacian(CV_32F)` → `cv::convertScaleAbs(alpha=1/256)` → `meanStdDev[1][0][0]`. Returns σ on the **uint8** Laplacian, matching PSS's `Frames.frames_mono_blurred_laplacian` + `RankFrames.frame_score` chain exactly.
+- [x] 1.2 Optional brightness normalisation: `σ / (cv::mean(threshold(mono, thr, 255, THRESH_TOZERO))[0] + 1e-10)` with `thr = frames_normalization_threshold * 256` for 16-bit input.
+- [ ] 1.3 Wire frame iteration through `mpp_frames` (SER reader from `src/io/ser.c`, optional debayer via `cv::cvtColor`). _(Deferred: stub still returns ENOTIMPL; the algorithm is validated, plumbing through Siril sequence types can ride alongside Phase 2/3 to amortize the work.)_
+- [x] 1.4 Oracle test: rank synthetic dataset; per-frame quality within 1e-4 relative of PSS. _(`mpp_rank::oracle_equivalence_synthetic` — passes.)_
+- [x] 1.5 Sanity tests: blur-decreases-quality, brightness-invariance. _(Plus default-config, score-positive, threshold-scales-with-bitpix → 6 sanity tests, all green.)_
 
 ## Phase 2 — Global frame alignment
 
