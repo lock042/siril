@@ -40,9 +40,8 @@ mpp_config_t default_cfg() {
 }
 
 cv::Mat blurred(const cv::Mat &mono, const mpp_config_t &cfg) {
-	cv::Mat b;
-	cv::GaussianBlur(mono, b, cv::Size(cfg.frames_gauss_width, cfg.frames_gauss_width), 0);
-	return b;
+	/* Match PSS frames_mono_blurred: include the 8-bit → 16-bit upscale. */
+	return mpp::blur_mono_for_align(mono, cfg);
 }
 
 std::vector<double> read_doubles_csv(const std::filesystem::path &p) {
@@ -652,6 +651,127 @@ Test(mpp_stack, end_to_end_stacked_oracle) {
 	             "only %.2f%% of pixels exactly equal PSS (worst Δ=%d)",
 	             exact_pct, worst);
 
+	mpp_ap_free(aps);
+}
+
+/* Real-SER end-to-end oracle: 500 frames extracted from the test-big.ser
+ * Bayer SER (debayered + grey at extract time so PSS and Siril both run
+ * a mono pipeline) compared against PSS's stacked output cell-for-cell.
+ *
+ * Distinct from the 24-frame synthetic oracle in three ways that exercise
+ * code paths the synth doesn't:
+ *   - 8-bit input → cfg.bitdepth = 8 → mean_frame upscale 256/N, threshold
+ *     scale 1.0 in mpp_rank
+ *   - Larger N → 20 APs, stack_size = 50 (vs 12 APs / 3 in synth)
+ *   - Real seeing turbulence → per-AP shifts span a wider range, more
+ *     subpixel divergence opportunities */
+Test(mpp_stack, end_to_end_real_ser_oracle) {
+	const char *data_root = std::getenv("MPP_PSS_TEST_DATA_DIR");
+	if (!data_root) cr_skip_test("MPP_PSS_TEST_DATA_DIR unset");
+	namespace fs = std::filesystem;
+	const fs::path frames_dir   = fs::path(data_root) / "test_data" / "real_jupiter";
+	const fs::path oracle_dir   = fs::path(data_root) / "oracle_out_real";
+	const fs::path stacked_bin  = oracle_dir / "stacked_u16.bin";
+	const fs::path stacked_dims = oracle_dir / "stacked_u16_dims.csv";
+	if (!fs::exists(frames_dir) || !fs::exists(stacked_bin)) {
+		cr_skip_test("real-SER oracle missing — generate via "
+		             "extract_ser_frames.py + run_pss.py --out-dir oracle_out_real");
+	}
+
+	std::vector<fs::path> paths;
+	for (const auto &e : fs::directory_iterator(frames_dir)) {
+		const std::string n = e.path().filename().string();
+		if (n.rfind("frame_", 0) == 0 && e.path().extension() == ".png")
+			paths.push_back(e.path());
+	}
+	std::sort(paths.begin(), paths.end());
+	cr_assert_gt(paths.size(), 0u);
+
+	mpp_config_t cfg = default_cfg();
+	cfg.bitdepth = 8;  /* extracted PNGs are 8-bit */
+
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q_rank;
+	for (const auto &p : paths) {
+		cv::Mat m = cv::imread(p.string(), cv::IMREAD_UNCHANGED);
+		cr_assert_eq(m.depth(), CV_8U, "expected 8-bit PNG, got depth %d", m.depth());
+		/* IMPORTANT: keep at native CV_8U. PSS's GaussianBlur on uint8
+		 * input rounds back to uint8 every step, and that quantisation
+		 * propagates into Laplacian σ and the patch picker. Storing the
+		 * same values in CV_16U would yield a higher-precision blur that
+		 * disagrees with PSS at the σ level. Siril's WORD storage will
+		 * need a downcast wrapper when this lands in the orchestrator. */
+		frames_raw.push_back(m);
+		frames_blurred.push_back(blurred(m, cfg));
+		q_rank.push_back(mpp::rank_score_normalized(m, cfg));
+	}
+	const auto align = mpp::align_global_from_frames(frames_blurred, q_rank, cfg);
+	const auto avg   = mpp::align_average_frame(frames_raw, q_rank, align.shifts, cfg);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	std::vector<double> frame_brightness;
+	for (const auto &m : frames_raw)
+		frame_brightness.push_back(mpp::rank_average_brightness(m, cfg));
+	const int H = frames_raw[0].rows, W = frames_raw[0].cols;
+	const auto apq = mpp::ap_compute_frame_qualities(frames_raw, frame_brightness,
+	                                                 *aps, offsets, H, W, cfg);
+	std::vector<int> sorted_idx(frames_raw.size());
+	std::iota(sorted_idx.begin(), sorted_idx.end(), 0);
+	std::sort(sorted_idx.begin(), sorted_idx.end(),
+	          [&](int a, int b) { return q_rank[a] > q_rank[b]; });
+	const auto loop = mpp::stack_frames_loop(frames_raw, frames_blurred,
+	                                         avg.mean_frame, *aps, apq,
+	                                         offsets, frame_brightness,
+	                                         sorted_idx, avg.intersection, cfg);
+	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
+	    loop.state, loop.border, *aps, cfg);
+
+	const auto dims = read_ints_csv(stacked_dims);
+	cr_assert_eq(dims.size(), 2u);
+	const int eH = dims[0], eW = dims[1];
+	cr_assert_eq(stacked.rows, eH, "height: ours=%d oracle=%d", stacked.rows, eH);
+	cr_assert_eq(stacked.cols, eW, "width: ours=%d oracle=%d", stacked.cols, eW);
+
+	cv::Mat oracle(eH, eW, CV_16U);
+	std::ifstream fin(stacked_bin, std::ios::binary);
+	fin.read(reinterpret_cast<char *>(oracle.data),
+	         (std::streamsize) eH * eW * sizeof(uint16_t));
+	cr_assert(fin.good(), "stacked_u16.bin read failed");
+
+	/* Aggregate statistics. Acceptance bar: ≥ 99 % pixels exact (PSS's own
+	 * floating-point ordering would not deliver more), and worst absolute
+	 * Δ ≤ 4 levels in 65535. Larger tolerance than the synth case because
+	 * 50 frames per AP × 20 APs × float-rounding ordering accumulates
+	 * marginally more single-bit noise. */
+	long long total = (long long) eH * eW;
+	long long exact = 0;
+	int worst = 0, worst_y = -1, worst_x = -1;
+	double sum_abs_diff = 0.0;
+	for (int y = 0; y < eH; ++y) {
+		const uint16_t *o = oracle.ptr<uint16_t>(y);
+		const uint16_t *m = stacked.ptr<uint16_t>(y);
+		for (int x = 0; x < eW; ++x) {
+			const int d = std::abs((int) o[x] - (int) m[x]);
+			if (d == 0) ++exact;
+			if (d > worst) { worst = d; worst_y = y; worst_x = x; }
+			sum_abs_diff += d;
+		}
+	}
+	const double exact_pct = 100.0 * (double) exact / (double) total;
+	const double mean_abs_diff = sum_abs_diff / (double) total;
+	cr_log_info("real-SER stacked diff: exact=%.2f%%, worst Δ=%d at (%d, %d), "
+	            "mean |Δ|=%.4f",
+	            exact_pct, worst, worst_y, worst_x, mean_abs_diff);
+	cr_assert_gt(exact_pct, 99.0,
+	             "only %.2f%% of pixels exactly equal PSS (worst Δ=%d, mean=%.4f)",
+	             exact_pct, worst, mean_abs_diff);
+	cr_assert_leq(worst, 4,
+	             "worst Δ=%d > 4 at (%d, %d): ours=%d oracle=%d",
+	             worst, worst_y, worst_x,
+	             (int) stacked.at<uint16_t>(worst_y, worst_x),
+	             (int) oracle.at<uint16_t>(worst_y, worst_x));
 	mpp_ap_free(aps);
 }
 

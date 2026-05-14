@@ -54,10 +54,24 @@ double brightness_threshold(const mpp_config_t &cfg) {
 
 }  // namespace
 
-cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg) {
+cv::Mat blur_mono_for_align(const cv::Mat &mono, const mpp_config_t &cfg) {
+	/* PSS frames.frames_mono_blurred (frames.py:1505-1511): upscales 8-bit
+	 * inputs to 16-bit range before the blur so downstream operations have
+	 * useful Laplacian magnitude after the α=1/256 convertScaleAbs. */
+	cv::Mat src = mono;
+	if (cfg.bitdepth == 8 && mono.depth() == CV_8U) {
+		cv::Mat upscaled;
+		mono.convertTo(upscaled, CV_16U, 256.0);
+		src = upscaled;
+	}
 	cv::Mat blurred;
-	const int k = cfg.frames_gauss_width;
-	cv::GaussianBlur(mono, blurred, cv::Size(k, k), 0);
+	cv::GaussianBlur(src, blurred,
+	                 cv::Size(cfg.frames_gauss_width, cfg.frames_gauss_width), 0);
+	return blurred;
+}
+
+cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg) {
+	const cv::Mat blurred = blur_mono_for_align(mono, cfg);
 	const cv::Mat sub = stride_subsample(blurred, cfg.align_frames_sampling_stride);
 	cv::Mat lap;
 	cv::Laplacian(sub, lap, CV_32F);

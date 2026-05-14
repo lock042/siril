@@ -131,7 +131,15 @@ The oracle is worthless if PSS itself will not run. Confirm and fix before anyth
 | `ap_compute_frame_qualities_oracle` | quality matrix `1e-9` rel, stack_size + best_frame_indices + used_alignment_points exact | |
 | `prepare_for_blending_oracle` | `sum_single_frame_weights` cell-wise `< 1e-5` abs; number_stacking_holes exact | |
 | `stack_frames_loop_oracle` | per-AP buffer + averaged_background `< 1e-3` rel; bg_patches + border counts exact | depth oracle — exercises every Phase 1–4 module |
-| `end_to_end_stacked_oracle` | u16 stacked image **> 99 % exact, worst Δ ≤ 2 out of 65535** | |
+| `end_to_end_stacked_oracle` | u16 stacked image **> 99 % exact, worst Δ ≤ 2 out of 65535** | 24-frame synthetic |
+| `end_to_end_real_ser_oracle` | u16 stacked image **99.94 % exact, worst Δ ≤ 4 out of 65535, mean \|Δ\| = 6e-4** | **500-frame real Jupiter SER (test-big.ser → debayered+greyscale 8-bit PNGs)** |
+
+### Two 8-bit / 16-bit gotchas caught by the real-SER oracle
+
+The 8-bit path needed PSS-faithful pre-blur upscale to behave correctly:
+
+1. **PSS upscales 8-bit mono to 16-bit range before any GaussianBlur** (`frames.py:1505-1506`: `frame_mono.astype(uint16) * 256`). Without that, blurred-frame Laplacian magnitudes are < 256 and `convertScaleAbs(α=1/256)` zeroes the entire image — Phase 1 σ goes uniformly to 0, the argmax is just "frame 0", and the whole downstream pipeline collapses. Encapsulated in `mpp::blur_mono_for_align(mono, cfg)`; used by `rank_blurred_laplacian_u8` and by every test that feeds blurred frames to align/shift. Raw frames (for brightness, average, stacking-time drizzle resize) stay at native bit depth.
+2. **`frames_average_brightness` uses the raw (non-upscaled) frame**, with threshold = `frames_normalization_threshold × {1, 256}` for {8, 16}-bit. Already correct via `mpp_cfg_threshold_scale`.
 
 ## Phase 5b — STScI drizzle + Bayer drizzle (Siril-original)
 
