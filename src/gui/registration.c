@@ -1349,56 +1349,57 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 /* Paint the analysis-built mean reference frame into gfit so the user sees
  * the image that AP placement was performed against. Single-channel,
  * 16-bit; values clamped from the int32 source (which carries a 16-bit-
- * equivalent range per mpp.h). clearfits() would clobber too much
- * metadata (header, keywords, history, wcs, icc) — instead, manually
- * free just the pixel buffers and reset the dimension fields. Stats are
- * invalidated because they reference the old rx/ry. */
+ * equivalent range per mpp.h).
+ *
+ * Pattern: build a fresh `fits` with the ref-frame pixels and the right
+ * dimension/bitpix fields, then take the writer lock on gfit, clearfits()
+ * to drop the old per-channel cairo cache + stats + WCS + ICC + header,
+ * and memcpy our fresh fits into place. This is the same pattern
+ * stack_function_handler uses for stack results — partial clearing
+ * (freeing data only and rewriting dim fields in place) leaves gui.view[]
+ * cairo surfaces, ICC state, and histogram caches keyed to the old
+ * 3-channel dimensions and breaks subsequent display-mode/slider updates.
+ * The metadata we lose (header, keywords) belonged to whichever frame
+ * was on screen before Analyze; the ref frame is a new image and should
+ * carry no inherited metadata. */
 static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols) {
 	if (!src || rows <= 0 || cols <= 0) return;
 	const size_t npix = (size_t) rows * (size_t) cols;
-	WORD *new_data = malloc(npix * sizeof(WORD));
-	if (!new_data) {
+
+	fits ref_fits;
+	memset(&ref_fits, 0, sizeof(fits));   /* don't touch the rwlock — we won't copy that field */
+	ref_fits.data = malloc(npix * sizeof(WORD));
+	if (!ref_fits.data) {
 		siril_log_color_message(_("Analyze: out of memory allocating "
 		                          "display buffer for ref frame\n"), "red");
 		return;
 	}
 	for (size_t i = 0; i < npix; ++i) {
 		const int32_t v = src[i];
-		new_data[i] = (WORD) (v < 0 ? 0 : (v > 65535 ? 65535 : v));
+		ref_fits.data[i] = (WORD) (v < 0 ? 0 : (v > 65535 ? 65535 : v));
 	}
+	ref_fits.pdata[0] = ref_fits.pdata[1] = ref_fits.pdata[2] = ref_fits.data;
+	ref_fits.rx = (unsigned int) cols;
+	ref_fits.ry = (unsigned int) rows;
+	ref_fits.naxes[0] = cols;
+	ref_fits.naxes[1] = rows;
+	ref_fits.naxes[2] = 1;
+	ref_fits.naxis = 2;
+	/* orig_bitpix drives set_cutoff_sliders_max_values's choice of
+	 * 255-vs-65535 — must be USHORT_IMG so an 8-bit source SER doesn't
+	 * cap the slider at 255 and burn the up-scaled ref frame out. */
+	ref_fits.bitpix = USHORT_IMG;
+	ref_fits.orig_bitpix = USHORT_IMG;
+	ref_fits.type = DATA_USHORT;
 
 	g_rw_lock_writer_lock(&gfit->rwlock);
-	free(gfit->data);  gfit->data  = NULL;
-	free(gfit->fdata); gfit->fdata = NULL;
-	gfit->pdata[0]  = gfit->pdata[1]  = gfit->pdata[2]  = NULL;
-	gfit->fpdata[0] = gfit->fpdata[1] = gfit->fpdata[2] = NULL;
-	invalidate_stats_from_fit(gfit);
-
-	gfit->data = new_data;
-	gfit->pdata[0] = gfit->pdata[1] = gfit->pdata[2] = gfit->data;
-	gfit->rx = (unsigned int) cols;
-	gfit->ry = (unsigned int) rows;
-	gfit->naxes[0] = cols;
-	gfit->naxes[1] = rows;
-	gfit->naxes[2] = 1;
-	gfit->naxis = 2;
-	/* bitpix tracks the current in-memory representation; orig_bitpix is
-	 * what set_cutoff_sliders_max_values() reads to size the histogram
-	 * slider range. For an 8-bit source SER it would otherwise keep
-	 * max=255 and the up-scaled 16-bit ref frame would burn out. */
-	gfit->bitpix = USHORT_IMG;
-	gfit->orig_bitpix = USHORT_IMG;
-	gfit->type = DATA_USHORT;
-	/* Clear the previous image's stretch so init_layers_hi_and_lo_values
-	 * takes the MINMAX path and autostretches to the ref frame's actual
-	 * range rather than the pre-Analyze image's lo/hi. */
-	gfit->keywords.hi = 0;
-	gfit->keywords.lo = 0;
+	clearfits(gfit);
+	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 
-	/* Mirror the post-load display-refresh sequence in seq_load_image
-	 * (io/sequence.c) so the slider max/values and remap pick up the new
-	 * bitpix and dimensions. */
+	/* Mirror seq_load_image's post-load display-refresh sequence so the
+	 * cutoff sliders pick up the new bitpix, autostretch fits the
+	 * ref-frame range, and the canvas re-renders. */
 	sliders_mode sliders = (sliders_mode) gui_iface.get_sliders_mode();
 	if (sliders != USER) {
 		init_layers_hi_and_lo_values(sliders);
@@ -1407,7 +1408,7 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 		gui_iface.set_cutoff_sliders_values();
 		gui_iface.update_display_mode_state();
 	}
-	gui_iface.invalidate_histogram();
+	gui_iface.update_histogram();
 	gui_iface.remap_all_vports();
 	gui_iface.redraw_image(REMAP_ALL);
 }
