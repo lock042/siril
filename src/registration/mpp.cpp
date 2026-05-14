@@ -459,9 +459,15 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 
 	const gboolean stage_a_only = regargs->mpp_stage_a_only;
 	siril_log_color_message(stage_a_only
-	                        ? _("mpp: Stage A — analysing %d frames\n")
-	                        : _("mpp: Stages A + B — registering %d frames\n"),
+	                        ? _("mpp: MODE = ANALYZE (Stage A only, %d frames)\n")
+	                        : _("mpp: MODE = REGISTER (Stages A + B, %d frames)\n"),
 	                        "green", regargs->seq->number);
+	/* Belt-and-braces: prove the flag value to the script log so a regression
+	 * here is immediately visible. mpp_stage_a_only is the only thing that
+	 * gates the early return after Stage A. */
+	siril_debug_print("register_mpp: regargs=%p mpp_stage_a_only=%d filter_included=%d\n",
+	                  (void *) regargs, (int) regargs->mpp_stage_a_only,
+	                  (int) regargs->filters.filter_included);
 	gui_iface.set_progress(PROGRESS_RESET,
 	                       stage_a_only ? _("Analyze: ranking frames")
 	                                    : _("Register: ranking frames"));
