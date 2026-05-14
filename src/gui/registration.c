@@ -1397,6 +1397,28 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 
+	/* Replace com.uniq so display_filename surfaces "REFERENCE IMAGE"
+	 * rather than the original sequence frame name. Free any prior uniq
+	 * (e.g. from a previous Analyze in the same session) — close_single_image
+	 * is too heavy here as it touches the sequence too. */
+	if (com.uniq) {
+		free(com.uniq->filename);
+		free(com.uniq->comment);
+		free(com.uniq);
+		com.uniq = NULL;
+	}
+	com.uniq = calloc(1, sizeof(single));
+	if (com.uniq) {
+		com.uniq->filename  = strdup(_("REFERENCE IMAGE"));
+		com.uniq->comment   = strdup(_("Multipoint analysis reference frame (mono luminance)"));
+		com.uniq->fileexist = FALSE;
+		com.uniq->nb_layers = 1;
+		com.uniq->fit       = gfit;
+	}
+	siril_log_color_message(_("Displaying reference image (mono luminance from analysis frames). "
+	                          "The original sequence is still loaded for the next step.\n"),
+	                        "blue");
+
 	/* update_single_image_from_gfit is the canonical "key aspects of
 	 * gfit have changed (channels, bitpix)" refresh — see comment in
 	 * single_image.c. It runs init_layers_hi_and_lo_values, the slider
