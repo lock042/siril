@@ -137,8 +137,8 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.current = -1;
 	seq.is_variable = check_seq_is_variable(&seq);
 	if (!seq.is_variable) {
-		seq.rx = seq.imgparam[0].rx;
-		seq.ry = seq.imgparam[0].ry;
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
 	}
 	seq.is_drizzle = args->driz != NULL;
 	seq.fz = com.pref.comp.fits_enabled;
@@ -273,7 +273,6 @@ gpointer register_thread_func(gpointer p) {
 		g_date_time_unref(args->reference_date);
 	if (args->wcsref)
 		wcsfree(args->wcsref);
-	g_free(args->external_ref_path);
 	if (!siril_add_idle(end_register_idle, args)) {
 		stop_processing_thread();
 		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
@@ -385,13 +384,8 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	float scale = 1.0;
 	gint64 im_size = 0; // total size of all images after registration
 	if (regargs->func == &register_star_alignment) {// global registration
-		if (regargs->reference_image >= 0 && regargs->seq->is_variable) {
-			w_out = regargs->seq->imgparam[regargs->reference_image].rx;
-			h_out = regargs->seq->imgparam[regargs->reference_image].ry;
-		} else {
-			w_out = regargs->seq->rx;
-			h_out = regargs->seq->ry;
-		}
+		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		scale = regargs->output_scale;
 		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
 	} else if (regargs->func == &register_apply_reg) { // applyreg

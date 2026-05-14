@@ -1224,8 +1224,15 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
 		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
-		if (!star_filename)
-			can_use_cache = FALSE;
+		if (!star_filename) {
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
+			free(curr_findstar_args);
+			curr_findstar_args = NULL;
+			return curr_findstar_args;
+		}
 
 		if (seq->type == SEQ_INTERNAL || !(check_cachefile_date(seq, i, star_filename) == CACHE_NEWER) ||
 				!check_star_list(star_filename, curr_findstar_args))

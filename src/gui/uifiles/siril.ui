@@ -5843,7 +5843,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="show-tabs">False</property>
                                                             <property name="show-border">False</property>
                                                             <child>
-                                                            <!-- n-columns=4 n-rows=5 -->
+                                                            <!-- n-columns=4 n-rows=4 -->
                                                             <object class="GtkGrid" id="global_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -6122,70 +6122,6 @@ When this box is unchecked, the global star registration will be calculated and 
                                                             <property name="left-attach">0</property>
                                                             <property name="top-attach">3</property>
                                                             <property name="width">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkBox" id="reg_referencefilechooser_box">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <child>
-                                                            <object class="GtkEntry" id="reg_reference_entry">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Select a file to read distortion information from:
-- a FITS file which has been platesolved with distortion.
-- a wcs file which was written by a previous registration with distortions.</property>
-                                                            <property name="hexpand">True</property>
-                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="reg_reference_button">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Open a FITS file to use as external reference for registration.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="use-underline">True</property>
-                                                            <signal name="clicked" handler="on_reg_reference_button_clicked" swapped="no"/>
-                                                            <child>
-                                                            <object class="GtkImage">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="icon-name">document-open-symbolic</property>
-                                                            </object>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
-                                                            <property name="width">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="reg_reference_checkbutton">
-                                                            <property name="label" translatable="yes">Use Ext. Ref</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_reg_reference_checkbutton_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>

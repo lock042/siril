@@ -114,10 +114,10 @@ static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 // Statics declarations
 static GtkAdjustment *register_minpairs = NULL;
-static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL, *reg_referencefilechooser_box = NULL;
-static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL, *reg_reference_button = NULL;
+static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
+static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
 static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL, *comboreg_undistort = NULL;
-static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL, *cometseqname_entry = NULL, *reg_reference_entry = NULL;
+static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL, *cometseqname_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
 static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL, *grid_reg_wcs = NULL;
@@ -127,7 +127,7 @@ static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
-static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL, *reg_reference_checkbutton = NULL;
+static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
 GtkWindow *control_window = NULL;
 
 // additional statics
@@ -182,7 +182,6 @@ static void registration_init_statics() {
 		// GtkBox
 		seq_filters_box_reg = GTK_BOX(gtk_builder_get_object(gui.builder, "seq_filters_box_reg"));
 		reg_wcsfilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_wcsfilechooser_box"));
-		reg_referencefilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_referencefilechooser_box"));
 		// GtkButton
 		filter_add4 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add4"));
 		filter_add5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add5"));
@@ -191,7 +190,6 @@ static void registration_init_statics() {
 		proj_estimate = GTK_BUTTON(gtk_builder_get_object(gui.builder, "proj_estimate"));
 		goregister_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "goregister_button"));
 		reg_wcsfile_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "reg_wcsfile_button"));
-		reg_reference_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "reg_reference_button"));
 		// GtkComboBoxText
 		comboboxregmethod = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 		comboboxreglayer = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
@@ -217,7 +215,6 @@ static void registration_init_statics() {
 		regseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "regseqname_entry"));
 		flatname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatname_entry"));
 		reg_wcsfile_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_wcsfile_entry"));
-		reg_reference_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_reference_entry"));
 		// GtkExpander
 		autoreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "autoreg_expander"));
 		manualreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "manualreg_expander"));
@@ -265,7 +262,6 @@ static void registration_init_statics() {
 		checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
 		toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
 		toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
-		reg_reference_checkbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "reg_reference_checkbutton"));
 		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 
 		// additional statics
@@ -459,33 +455,6 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		siril_widget_destroy(widgetdialog);
 		update_reg_interface(TRUE);
-}
-
-void on_reg_reference_checkbutton_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	registration_init_statics();
-	gboolean active = gtk_toggle_button_get_active(togglebutton);
-	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), active);
-}
-
-void on_reg_reference_button_clicked(GtkButton *button, gpointer user_data) {
-	registration_init_statics();
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
-	widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	gtk_file_chooser_set_current_folder(dialog, com.wd);
-	gtk_file_chooser_set_local_only(dialog, FALSE);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
-			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
-	gint res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		gtk_entry_set_text(reg_reference_entry, file);
-		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
-		g_free(file);
-	}
-	siril_widget_destroy(widgetdialog);
 }
 
 gboolean on_switcher_stack_clicked(GtkWidget *widget,
@@ -954,13 +923,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_source_index == DISTO_FILE);
 		}
 	}
-	/* external reference image: only available for global registration */
-	if (is_global) {
-		gboolean use_ext_ref = gtk_toggle_button_get_active(reg_reference_checkbutton);
-		gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_ext_ref);
-	} else {
-		gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), FALSE);
-	}
 
 	/* show the appropriate outputregframe widgets */
 	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
@@ -1155,15 +1117,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
 		regargs->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
 	}
-	if (is_global && gtk_toggle_button_get_active(reg_reference_checkbutton)) {
-		const gchar *path = gtk_entry_get_text(reg_reference_entry);
-		if (!path || path[0] == '\0') {
-			siril_log_color_message(_("External reference image path is empty\n"), "red");
-			return 1;
-		}
-		regargs->external_ref_path = g_strdup(path);
-		regargs->reference_image = -1;
-	}
 	if (is_star_align) {
 		regargs->min_pairs = gtk_spin_button_get_value_as_int(spinbut_minpairs);
 		int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_maxstars));
@@ -1228,7 +1181,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	if (regargs->type == SHIFT_TRANSFORMATION && is_star_align) {
 		siril_log_error(_("Shift-only registration is only possible with OpenCV 4.4\n"));
 		free(regargs->prefix);
-		g_free(regargs->external_ref_path);
 		return 1;
 	}
 #endif
@@ -1277,18 +1229,16 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		unreserve_thread();
 		return;
 	}
-	if (regargs->reference_image >= 0) {
-		fits fit_ref = { 0 };
-		int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
-		if (ret) {
-			siril_log_error(_("Error: unable to read reference frame metadata\n"));
-			free(regargs);
-			unreserve_thread();
-			return;
-		}
-		regargs->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
-		clearfits(&fit_ref);
+	fits fit_ref = { 0 };
+	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
+	if (ret) {
+		siril_log_error(_("Error: unable to read reference frame metadata\n"));
+		free(regargs);
+		unreserve_thread();
+		return;
 	}
+	regargs->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
+	clearfits(&fit_ref);
 
 	regmethod_index regindex = REG_UNDEF;
 	struct registration_method *method = get_selected_registration_method(&regindex);
