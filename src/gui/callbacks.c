@@ -1925,9 +1925,9 @@ gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
 	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1)); // script menu first as it's quick based on an already loaded list
 	populate_spcc_combos_async(NULL); // this after, as it takes a little time to load the actual files
 	// Now, in threads, update the repositories and then update the combos and menu again to reflect any changes
-	if (com.pref.auto_script_update && is_online())
+	if (com.pref.use_scripts_repository && com.pref.auto_script_update && com.pref.auto_script_update && is_online())
 		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
-	if (com.pref.spcc.auto_spcc_update && is_online())
+	if (com.pref.spcc.use_spcc_repository && com.pref.spcc.auto_spcc_update && is_online())
 		g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL)); // this is slow as will require repository syncing
 	return FALSE;
 }
