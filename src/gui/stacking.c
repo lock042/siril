@@ -746,6 +746,19 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
+
+	/* If a .mpp sidecar already exists for this sequence (left by a previous
+	 * "Multipoint Registration" run, or by the CLI register_mpp command),
+	 * default the stack-method combo to STACK_MPP — the only method that can
+	 * consume the sidecar. dont_change_stack_type guards the case where the
+	 * user has already manually picked something. */
+	if (!dont_change_stack_type && stackparam.seq->seqname) {
+		gchar *mpp_path = g_strdup_printf("%s.mpp", stackparam.seq->seqname);
+		if (g_file_test(mpp_path, G_FILE_TEST_EXISTS)) {
+			gtk_combo_box_set_active(method_combo, STACK_MPP);
+		}
+		g_free(mpp_path);
+	}
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
 	gboolean can_upscale = can_reframe && !com.seq.is_variable && !com.seq.is_drizzle;
 	gboolean must_reframe = can_reframe && com.seq.is_variable;
