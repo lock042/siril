@@ -1382,12 +1382,34 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	gfit->naxes[1] = rows;
 	gfit->naxes[2] = 1;
 	gfit->naxis = 2;
+	/* bitpix tracks the current in-memory representation; orig_bitpix is
+	 * what set_cutoff_sliders_max_values() reads to size the histogram
+	 * slider range. For an 8-bit source SER it would otherwise keep
+	 * max=255 and the up-scaled 16-bit ref frame would burn out. */
 	gfit->bitpix = USHORT_IMG;
 	gfit->orig_bitpix = USHORT_IMG;
 	gfit->type = DATA_USHORT;
+	/* Clear the previous image's stretch so init_layers_hi_and_lo_values
+	 * takes the MINMAX path and autostretches to the ref frame's actual
+	 * range rather than the pre-Analyze image's lo/hi. */
+	gfit->keywords.hi = 0;
+	gfit->keywords.lo = 0;
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 
-	notify_gfit_data_modified();
+	/* Mirror the post-load display-refresh sequence in seq_load_image
+	 * (io/sequence.c) so the slider max/values and remap pick up the new
+	 * bitpix and dimensions. */
+	sliders_mode sliders = (sliders_mode) gui_iface.get_sliders_mode();
+	if (sliders != USER) {
+		init_layers_hi_and_lo_values(sliders);
+		gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+		gui_iface.set_cutoff_sliders_max_values();
+		gui_iface.set_cutoff_sliders_values();
+		gui_iface.update_display_mode_state();
+	}
+	gui_iface.invalidate_histogram();
+	gui_iface.remap_all_vports();
+	gui_iface.redraw_image(REMAP_ALL);
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in
