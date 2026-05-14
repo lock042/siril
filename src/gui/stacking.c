@@ -28,6 +28,7 @@
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "registration/registration.h"
+#include "registration/mpp_config.h"
 #include "stacking/sum.h"
 #include "stacking/stacking.h"
 
@@ -49,7 +50,8 @@ static char *filter_tooltip_text[] = {
 };
 
 stack_method stacking_methods[] = {
-	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
+	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin,
+	stack_mpp_handler
 };
 
 void initialize_stacking_methods() {
@@ -98,6 +100,9 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
+	static GtkComboBox *mpp_drizzle_combo = NULL;
+	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
+	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -120,6 +125,12 @@ static void start_stacking() {
 		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
 		overlap_norm = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
 		force32b = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
+		/* STACK_MPP widgets */
+		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
+		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
+		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
+		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
+		mpp_bg_blend      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_blend"));
 	}
 
 	if (processing_is_job_active()) {
@@ -176,14 +187,20 @@ static void start_stacking() {
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
-	// checking regdata is absent, or if present, is only shift
-	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
-		int confirm = siril_confirm_dialog(_("Registration data found"),
-			_("Stacking has detected registration data with more than simple shifts.\n"
-			"Normally, you should apply existing registration before stacking."),
-			_("Stack anyway"));
-		if (!confirm)
-			return;
+	/* STACK_MPP doesn't go through the homography-aware regdata path — it
+	 * reads its own per-AP per-frame shifts from the .mpp sidecar. The
+	 * "registration data with more than simple shifts" prompt would fire
+	 * for a sidecar's quality-only regdata so we skip it for STACK_MPP. */
+	if (stackparam.method != stack_mpp_handler) {
+		// checking regdata is absent, or if present, is only shift
+		if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
+			int confirm = siril_confirm_dialog(_("Registration data found"),
+				_("Stacking has detected registration data with more than simple shifts.\n"
+				"Normally, you should apply existing registration before stacking."),
+				_("Stack anyway"));
+			if (!confirm)
+				return;
+		}
 	}
 
 	if (stackparam.overlap_norm && stackparam.nb_images_to_stack > 20) {
@@ -212,6 +229,31 @@ static void start_stacking() {
 	/* Stacking. Result is in gfit if success */
 	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
+
+	/* For STACK_MPP, capture the stack-side widget values into a fresh
+	 * mpp_config_t and hang it off params. stack_mpp_handler reads from
+	 * params->mpp_cfg and stacking_args_deep_free will release it.
+	 * Allocated AFTER deep_copy so stackparam never owns the pointer
+	 * (avoids a double-free if the user clicks Stack twice in quick
+	 * succession). */
+	if (stackparam.method == stack_mpp_handler) {
+		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
+		mpp_config_defaults(cfg);
+		const int driz_idx = gtk_combo_box_get_active(mpp_drizzle_combo);
+		switch (driz_idx) {
+			case 0: cfg->drizzle_factor = 1; break;  /* Off */
+			case 1: cfg->drizzle_factor = 3; break;  /* 1.5x — TODO 0.5× downsample after stack */
+			case 2: cfg->drizzle_factor = 2; break;  /* 2x */
+			case 3: cfg->drizzle_factor = 3; break;  /* 3x */
+			default: cfg->drizzle_factor = 1; break;
+		}
+		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
+		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
+		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
+		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
+		params->mpp_cfg = cfg;
+	}
+
 	if (!start_in_new_thread(stack_function_handler, params)) {
 		stacking_args_deep_free(params);
 	}

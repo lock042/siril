@@ -648,6 +648,7 @@ void init_stacking_args(struct stacking_args *args) {
 	args->t_start = (struct timeval){ 0 };
 	args->retval = 0;
 	args->result = (fits){ 0 };
+	args->mpp_cfg = NULL;
 }
 
 void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to) {
@@ -663,6 +664,7 @@ void stacking_args_deep_free(struct stacking_args *args) {
 	free(args->image_indices);
 	free(args->description);
 	free(args->critical_value);
+	free(args->mpp_cfg);
 	free(args);
 }
 

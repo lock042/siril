@@ -242,6 +242,7 @@ src_files = [
   'stacking/stacking.c',
   'stacking/stackminmax.c',
   'stacking/sum.c',
+  'stacking/stack_mpp.c',
   'stacking/upscaling.c',
 
   'rt/boxblur.cc',

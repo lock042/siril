@@ -149,6 +149,34 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.05</property>
   </object>
+  <object class="GtkAdjustment" id="adj_mpp_stack_percent">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_stack_frames">
+    <property name="lower">-1</property>
+    <property name="upper">10000</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_bg_fraction">
+    <property name="lower">0</property>
+    <property name="upper">1</property>
+    <property name="value">0.3</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_bg_blend">
+    <property name="lower">0</property>
+    <property name="upper">1</property>
+    <property name="value">0.2</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.1</property>
+  </object>
   <object class="GtkAdjustment" id="adj_midtones">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -8675,7 +8703,9 @@ The median value of the pixels in the stack is computed for each pixel.
 Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
 
 &lt;b&gt;Pixel minimum&lt;/b&gt;: This case could be useful to select the area to be cropped after the stack operation.
-Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
+Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.
+
+&lt;b&gt;Multipoint (PSS-style)&lt;/b&gt;: For planetary imaging. Requires a prior &quot;Multipoint Registration&quot; run on the same sequence (writes a .mpp sidecar). Per-frame brightness equalisation, drizzle resize, per-AP remap into per-AP buffers, weighted top-N merge, background blend, uint16 cast.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Sum stacking</item>
@@ -8683,6 +8713,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <item translatable="yes">Median stacking</item>
                                                             <item translatable="yes">Pixel maximum stacking</item>
                                                             <item translatable="yes">Pixel minimum stacking</item>
+                                                            <item translatable="yes">Multipoint (PSS-style)</item>
                                                             </items>
                                                             <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
                                                             </object>
@@ -9161,6 +9192,164 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                           </object>
                                                           <packing>
                                                             <property name="position">4</property>
+                                                            <property name="tab-fill">False</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <!-- mpp_stack_page: STACK_MPP (see stacking.h) — stack-side params for the multipoint planetary stack consumer. -->
+                                                          <object class="GtkGrid" id="mpp_stack_page">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">6</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">10</property>
+                                                            <child>
+                                                              <object class="GtkLabel">
+                                                                <property name="visible">True</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Drizzle:</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">0</property>
+                                                                <property name="top-attach">0</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkComboBoxText" id="combo_mpp_drizzle">
+                                                                <property name="visible">True</property>
+                                                                <property name="can-focus">False</property>
+                                                                <property name="tooltip-text" translatable="yes">PSS-faithful bicubic drizzle factor applied to each frame before the per-AP remap. Off = native pixels. 1.5x is rendered at 3× and Siril will downsample later (not yet implemented); use 2× or 3× for the cleanest path today.</property>
+                                                                <property name="active">0</property>
+                                                                <items>
+                                                                  <item translatable="yes">Off</item>
+                                                                  <item translatable="yes">1.5x</item>
+                                                                  <item translatable="yes">2x</item>
+                                                                  <item translatable="yes">3x</item>
+                                                                </items>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">1</property>
+                                                                <property name="top-attach">0</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkLabel">
+                                                                <property name="visible">True</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Stack percent:</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">0</property>
+                                                                <property name="top-attach">1</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkSpinButton" id="spin_mpp_stack_percent">
+                                                                <property name="visible">True</property>
+                                                                <property name="can-focus">True</property>
+                                                                <property name="tooltip-text" translatable="yes">PSS alignment_points_frame_percent. Per-AP top-N selection: keep the best N% of frames for each AP. Default 10.</property>
+                                                                <property name="adjustment">adj_mpp_stack_percent</property>
+                                                                <property name="numeric">True</property>
+                                                                <property name="value">10</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">1</property>
+                                                                <property name="top-attach">1</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkLabel">
+                                                                <property name="visible">True</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Stack frames:</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">0</property>
+                                                                <property name="top-attach">2</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkSpinButton" id="spin_mpp_stack_frames">
+                                                                <property name="visible">True</property>
+                                                                <property name="can-focus">True</property>
+                                                                <property name="tooltip-text" translatable="yes">PSS alignment_points_frame_number. Explicit per-AP top-N count; positive value overrides stack-percent. -1 disables (use percent). Default -1.</property>
+                                                                <property name="adjustment">adj_mpp_stack_frames</property>
+                                                                <property name="numeric">True</property>
+                                                                <property name="value">-1</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">1</property>
+                                                                <property name="top-attach">2</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkLabel">
+                                                                <property name="visible">True</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Background fraction:</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">0</property>
+                                                                <property name="top-attach">3</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkSpinButton" id="spin_mpp_bg_fraction">
+                                                                <property name="visible">True</property>
+                                                                <property name="can-focus">True</property>
+                                                                <property name="tooltip-text" translatable="yes">PSS stack_frames_background_fraction. Decides full-frame vs patch-based background composition. Default 0.3.</property>
+                                                                <property name="adjustment">adj_mpp_bg_fraction</property>
+                                                                <property name="digits">2</property>
+                                                                <property name="numeric">True</property>
+                                                                <property name="value">0.3</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">1</property>
+                                                                <property name="top-attach">3</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkLabel">
+                                                                <property name="visible">True</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Background blend:</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">0</property>
+                                                                <property name="top-attach">4</property>
+                                                              </packing>
+                                                            </child>
+                                                            <child>
+                                                              <object class="GtkSpinButton" id="spin_mpp_bg_blend">
+                                                                <property name="visible">True</property>
+                                                                <property name="can-focus">True</property>
+                                                                <property name="tooltip-text" translatable="yes">PSS stack_frames_background_blend_threshold. Controls the soft fg/bg blend ramp. Default 0.2.</property>
+                                                                <property name="adjustment">adj_mpp_bg_blend</property>
+                                                                <property name="digits">2</property>
+                                                                <property name="numeric">True</property>
+                                                                <property name="value">0.2</property>
+                                                              </object>
+                                                              <packing>
+                                                                <property name="left-attach">1</property>
+                                                                <property name="top-attach">4</property>
+                                                              </packing>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="position">5</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child type="tab">
+                                                          <object class="GtkLabel" id="label_mpp_stack">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label">page 6</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="position">5</property>
                                                             <property name="tab-fill">False</property>
                                                           </packing>
                                                         </child>
