@@ -46,7 +46,7 @@ from stack_frames import StackFrames  # noqa: E402
 from timer import timer  # noqa: E402
 
 
-def run(input_path, input_type, out_dir, max_frames=0):
+def run(input_path, input_type, out_dir, max_frames=0, drizzle="Off"):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,6 +65,10 @@ def run(input_path, input_type, out_dir, max_frames=0):
     print(f"+++ Driving PSS oracle on {input_path} ({input_type})")
     config = Configuration()
     config.initialize_configuration()
+    if drizzle != "Off":
+        config.stack_frames_drizzle_factor_string = drizzle
+        config.set_derived_parameters()
+        print(f"+++ Drizzle set to {drizzle} (factor={config.drizzle_factor})")
 
     print("+++ Reading frames")
     frames = Frames(config, names, type=input_type)
@@ -290,9 +294,12 @@ def main():
     ap.add_argument("--type", choices=["video", "image"], default="image")
     ap.add_argument("--out-dir", default="oracle_out")
     ap.add_argument("--n", type=int, default=0, help="Truncate to first N frames (0 = all).")
+    ap.add_argument("--drizzle", choices=["Off", "1.5x", "2x", "3x"], default="Off",
+                    help="PSS drizzle factor string (PSS field: stack_frames_drizzle_factor_string).")
     args = ap.parse_args()
     try:
-        run(args.input, args.type, args.out_dir, max_frames=args.n)
+        run(args.input, args.type, args.out_dir, max_frames=args.n,
+            drizzle=args.drizzle)
     except Exception:
         traceback.print_exc()
         sys.exit(1)
