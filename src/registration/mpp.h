@@ -106,6 +106,10 @@ mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);
 
+/* Publish per-frame Stage-A quality scores into seq->regparam[layer][i].quality
+ * so Siril's existing frame selector and quality plot surface them. */
+void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run);
+
 #ifdef __cplusplus
 }
 #endif

@@ -25,6 +25,7 @@ typedef enum {
 	REG_PAGE_COMET,
 	REG_PAGE_3_STARS,
 	REG_PAGE_KOMBAT,
+	REG_PAGE_MPP,
 	REG_PAGE_MISC
 } reg_notebook_page;
 

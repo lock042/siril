@@ -14743,6 +14743,11 @@ int process_pss(int nb) {
 	siril_log_message(_("pss: Stage A done — best=%d, %d APs, stack_size=%d\n"),
 	                  run->best_frame_idx, run->aps->count, run->stack_size);
 
+	/* Phase 9.2: write quality into Siril's regdata so the frame selector
+	 * and quality plot show PSS Laplace-σ. Layer 1 for RGB (green) / 0 for
+	 * mono — matches the existing register_mpp(args) default. */
+	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
+
 	rc = mpp_compute_shifts(seq, &cfg, run);
 	if (rc != MPP_OK) {
 		siril_log_color_message(_("pss: Stage B failed (code %d)\n"), "red", rc);
@@ -14829,6 +14834,9 @@ int process_register_mpp(int nb) {
 	}
 	siril_log_message(_("register_mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
 	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	/* Phase 9.2: surface quality through Siril regdata for the frame selector. */
+	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
 
 	rc = mpp_compute_shifts(seq, &cfg, run);
 	if (rc != MPP_OK) {

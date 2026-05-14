@@ -145,6 +145,14 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	struct wcsprm* wcsref;	// wcslib struct of the reference image, to recompute values for registered images
 	gchar *new_seq_name;
+
+	/* REG_MPP only: per-call config overrides. NULL → use defaults
+	 * (mpp_config_defaults). Owned by the caller; freed by register_thread_func
+	 * after the registration completes. Forward-declared as void* to avoid
+	 * pulling mpp_config.h (and its mpp.h) into every translation unit that
+	 * touches registration_args. The actual type is struct mpp_config (see
+	 * src/registration/mpp_config.h). */
+	void *mpp_cfg;
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,

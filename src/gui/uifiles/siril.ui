@@ -100,6 +100,55 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_mpp_half_box">
+    <property name="lower">4</property>
+    <property name="upper">96</property>
+    <property name="value">24</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_search_width">
+    <property name="lower">4</property>
+    <property name="upper">32</property>
+    <property name="value">14</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">2</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_search_global">
+    <property name="lower">4</property>
+    <property name="upper">64</property>
+    <property name="value">34</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_patch_scale">
+    <property name="lower">1.5</property>
+    <property name="upper">6</property>
+    <property name="value">3</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_brightness">
+    <property name="lower">0</property>
+    <property name="upper">100</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_contrast">
+    <property name="lower">0</property>
+    <property name="upper">100</property>
+    <property name="value">0</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_structure">
+    <property name="lower">0</property>
+    <property name="upper">1</property>
+    <property name="value">0.04</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.05</property>
+  </object>
   <object class="GtkAdjustment" id="adj_midtones">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -6656,6 +6705,242 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <!-- mpp_page: REG_PAGE_MPP (see src/gui/registration.h) — settings for the planetary multipoint registration method (REG_MPP, register_mpp). -->
+                                                            <object class="GtkGrid" id="mpp_page">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">6</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">10</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Half-box width:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_half_box">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_half_box_width. Per-AP half-box in pixels; the AP-grid step and half-patch derive from this. Default 24.</property>
+                                                            <property name="adjustment">adj_mpp_half_box</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">24</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">AP search width:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_search_width">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_search_width. Per-AP correlation search radius in pixels. Default 14.</property>
+                                                            <property name="adjustment">adj_mpp_search_width</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">14</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Global search width:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_search_global">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS align_frames_search_width. Stage-A global alignment correlation search radius in pixels. Default 34.</property>
+                                                            <property name="adjustment">adj_mpp_search_global</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">34</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Patch scale:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_patch_scale">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS align_frames_rectangle_scale_factor. Multiplies the auto-picked patch dimension during global alignment. Default 3.0.</property>
+                                                            <property name="adjustment">adj_mpp_patch_scale</property>
+                                                            <property name="digits">2</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">3</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Min brightness:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">4</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_min_brightness">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_brightness_threshold (0..255 scale; auto-scaled for 16-bit). APs whose brightest pixel falls below this are rejected. Default 10.</property>
+                                                            <property name="adjustment">adj_mpp_min_brightness</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">10</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">4</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Min contrast:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">5</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_min_contrast">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_contrast_threshold (0..255 scale). Minimum (max - min) over an AP box. Default 0 (off).</property>
+                                                            <property name="adjustment">adj_mpp_min_contrast</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">0</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">5</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Min structure:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">6</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_min_structure">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_structure_threshold. Normalised gradient magnitude minimum (0..1). Default 0.04.</property>
+                                                            <property name="adjustment">adj_mpp_min_structure</property>
+                                                            <property name="digits">3</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">0.04</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">6</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_mpp_dewarp">
+                                                            <property name="label" translatable="yes">De-warp per-AP shifts</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_de_warp. When off, all APs use the same single best-frame shift instead of per-AP shifts (CLI -no-dewarp). Default on.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">7</property>
+                                                            <property name="width">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_mpp_normalize">
+                                                            <property name="label" translatable="yes">Brightness-normalise quality</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">PSS frames_normalization. Divide per-frame Laplace-σ quality by mean above-threshold brightness for invariance to varying exposure (CLI -no-normalize toggles off). Default on.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">8</property>
+                                                            <property name="width">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="position">4</property>
+                                                            <property name="tab-fill">False</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -6663,7 +6948,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes"> </property>
                                                             </object>
                                                             <packing>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>

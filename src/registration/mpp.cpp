@@ -354,12 +354,45 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 
 /* -------------------- Siril register-framework entry point -------------------- */
 
+/* Populate seq->regparam[layer][i].quality from a completed Stage-A run so
+ * Siril's existing frame selector / quality plot displays PSS Laplace-σ.
+ * Public via mpp.h so the CLI (process_pss, process_register_mpp) and the
+ * GUI register_mpp(args) entry can all wire it in. The layer choice is
+ * caller-supplied; PSS's quality is panchromatic (same score on every
+ * channel), but we only populate one layer to mirror Siril's per-layer
+ * regdata model — the existing frame selector reads one layer at a time. */
+extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
+                                             const mpp_run_t *run) {
+	if (!seq || !run || seq->nb_layers <= 0) return;
+	if (layer < 0 || layer >= seq->nb_layers) layer = 0;
+
+	if (!seq->regparam) {
+		seq->regparam = (regdata **) std::calloc(seq->nb_layers, sizeof(regdata *));
+		if (!seq->regparam) return;
+	}
+	if (!seq->regparam[layer]) {
+		seq->regparam[layer] = (regdata *) std::calloc(seq->number, sizeof(regdata));
+		if (!seq->regparam[layer]) return;
+	}
+	for (int i = 0; i < seq->number && i < run->num_frames; ++i) {
+		seq->regparam[layer][i].quality = run->quality[i];
+		/* Match other methods: leave H as the zero homography (identity is
+		 * set by other paths via cvGetEye; mpp shifts are per-AP per-frame
+		 * and not expressible as a single global homography). */
+	}
+	seq->needs_saving = TRUE;
+}
+
 extern "C" int register_mpp(struct registration_args *regargs) {
 	if (!regargs || !regargs->seq)
 		return MPP_EINVAL;
 
 	mpp_config_t cfg;
-	mpp_config_defaults(&cfg);
+	if (regargs->mpp_cfg) {
+		cfg = *(const mpp_config_t *) regargs->mpp_cfg;
+	} else {
+		mpp_config_defaults(&cfg);
+	}
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(regargs->seq->bitpix);
 
 	siril_log_message(_("pss: Stage A — analyse %d frames\n"), regargs->seq->number);
@@ -371,6 +404,10 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	}
 	siril_log_message(_("pss: Stage A done — best=%d, %d APs, stack_size=%d\n"),
 	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	/* Phase 9.2: surface per-frame quality through Siril's regdata so the
+	 * existing frame selector and quality plot pick it up. */
+	mpp_write_quality_to_regdata(regargs->seq, regargs->layer, run);
 
 	siril_log_message(_("pss: Stage B — per-AP per-frame shifts\n"));
 	const int rc_b = mpp_compute_shifts(regargs->seq, &cfg, run);
