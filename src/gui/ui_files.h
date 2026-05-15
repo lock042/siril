@@ -72,7 +72,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/Median_dialog.ui",
 	"/org/siril/ui/merge_cfa_dialog.ui",
 	"/org/siril/ui/mouse_actions.ui",
-	"/org/siril/ui/mpp_ap_editor_dialog.ui",
 	"/org/siril/ui/pixelmath.ui",
 	"/org/siril/ui/resample_dialog.ui",
 	"/org/siril/ui/rgradient_dialog.ui",
@@ -84,6 +83,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
 	"/org/siril/ui/siril.ui",
+	"/org/siril/ui/mpp_ap_editor_dialog.ui",   /* must follow siril.ui — references adj_mpp_* defined there */
 	"/org/siril/ui/spcc_details.ui",
 	"/org/siril/ui/split_cfa_dialog.ui",
 	"/org/siril/ui/starnet_dialog.ui",
