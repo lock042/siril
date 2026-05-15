@@ -1,21 +1,25 @@
 === Phase 7.4 / 7.5 benchmark: bicubic 2x vs STScI 2x vs Bayer 2x on test-big.ser ===
-test-big.ser: 2.6G
-Page cache: Buffers:           32216 kB
-Cached:           584440 kB
+test-big.ser: 2.6G (40,165 frames, 264x258, 8-bit RGGB)
 
 bicubic-2x warm #1: wall=175.93s  out=1244160 bytes
 bicubic-2x warm #2: wall=178.21s  out=1244160 bytes
 stsci-2x   warm #1: wall=1090.11s  out=1287360 bytes
 stsci-2x   warm #2: wall=1089.52s  out=1287360 bytes
-bayer-2x   warm #1: wall=514.66s  out=1287360 bytes
-bayer-2x   warm #2: wall=515.06s  out=1287360 bytes
+bayer-2x   (orig)  wall=514.66s   — INVALID: per-channel-routing bug, see below
+bayer-2x   (orig)  wall=515.06s   — INVALID
+bayer-2x   (fixed) wall=486.64s  out=1287360 bytes  — Y-flip-aware CFA + raw-read
 
-=== Per-stage timings from latest stsci log ===
-log: pss: Stage A done — best=1461, 14 APs, stack_size=4017
-log: pss: Stage B done — 26 shift failures
-log: Total execution time: 18 min 07 s
+Bayer-2x bug: ser_read_frame's `open_debayer=FALSE` parameter is a latent NOP for
+already-opened SERs (the actual debayer call dispatches on ser_file->
+debayer_type_ser, set at SER open time). The Bayer wrapper was reading a
+3-channel debayered RGB fits but treating it as 1-channel Bayer — every CFA
+position fed dobox the same R-channel value. Fix: temporarily flip
+debayer_type_ser to SER_MONO around the read loop and apply Siril's
+adjust_Bayer_pattern_orientation to compensate for ser_read_frame's Y-flip
+(SER raster top-down → FITS bottom-up; CFA pattern flips by row parity).
 
-=== Per-stage timings from latest bicubic log ===
-log: pss: Stage A done — best=1461, 14 APs, stack_size=4017
-log: pss: Stage B done — 26 shift failures
-log: Total execution time: 2 min 55 s
+Per-channel means after fix vs bicubic-2x:
+                Bicubic      STScI      Bayer-fix  (Bayer/bicubic ratio)
+  R              7152        6989       6965       0.974
+  G             11679       11314      11358       0.973
+  B              8111        7909       7928       0.977

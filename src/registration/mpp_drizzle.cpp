@@ -36,6 +36,7 @@ extern "C" {
 #include "core/proto.h"
 #include "core/gui_iface.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
 }
@@ -693,16 +694,33 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
  * 2x2 RLAYER/GLAYER/BLAYER convention Siril's get_compiled_pattern
  * produces (see demosaicing.c:333). */
 namespace {
-/* Returns FALSE if the sequence has no usable Bayer pattern. cfa
- * is filled with 4 bytes on success. */
-bool bayer_cfa_from_ser(struct sequ *seq, unsigned char cfa[4]) {
+/* Returns FALSE if the sequence has no usable Bayer pattern. cfa is
+ * filled with 4 bytes on success.
+ *
+ * ser_read_frame Y-flips the image buffer to convert SER's top-down
+ * raster order to FITS' bottom-up convention (ser.c::ser_read_frame
+ * line 970). The CFA pattern from the SER header describes the on-disk
+ * orientation; after the flip, what arrives at our cv::Mat is rotated.
+ * We use Siril's adjust_Bayer_pattern_orientation helper so the cfa[]
+ * we feed to dobox matches the in-memory mosaic, not the file's
+ * declared pattern. */
+bool bayer_cfa_from_ser(struct sequ *seq, unsigned int ry, unsigned char cfa[4]) {
 	if (!seq || seq->type != SEQ_SER || !seq->ser_file) return false;
-	const int R = 0, G = 1, B = 2;
+	sensor_pattern pat;
 	switch (seq->ser_file->color_id) {
-		case SER_BAYER_RGGB: cfa[0]=R; cfa[1]=G; cfa[2]=G; cfa[3]=B; return true;
-		case SER_BAYER_GRBG: cfa[0]=G; cfa[1]=R; cfa[2]=B; cfa[3]=G; return true;
-		case SER_BAYER_GBRG: cfa[0]=G; cfa[1]=B; cfa[2]=R; cfa[3]=G; return true;
-		case SER_BAYER_BGGR: cfa[0]=B; cfa[1]=G; cfa[2]=G; cfa[3]=R; return true;
+		case SER_BAYER_RGGB: pat = BAYER_FILTER_RGGB; break;
+		case SER_BAYER_GRBG: pat = BAYER_FILTER_GRBG; break;
+		case SER_BAYER_GBRG: pat = BAYER_FILTER_GBRG; break;
+		case SER_BAYER_BGGR: pat = BAYER_FILTER_BGGR; break;
+		default: return false;
+	}
+	adjust_Bayer_pattern_orientation(&pat, ry, TRUE);
+	const int R = 0, G = 1, B = 2;
+	switch (pat) {
+		case BAYER_FILTER_RGGB: cfa[0]=R; cfa[1]=G; cfa[2]=G; cfa[3]=B; return true;
+		case BAYER_FILTER_GRBG: cfa[0]=G; cfa[1]=R; cfa[2]=B; cfa[3]=G; return true;
+		case BAYER_FILTER_GBRG: cfa[0]=G; cfa[1]=B; cfa[2]=R; cfa[3]=G; return true;
+		case BAYER_FILTER_BGGR: cfa[0]=B; cfa[1]=G; cfa[2]=G; cfa[3]=R; return true;
 		default: return false;
 	}
 }
@@ -721,7 +739,7 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 		return MPP_EINVAL;
 	}
 	unsigned char cfa[4];
-	if (!bayer_cfa_from_ser(seq, cfa)) {
+	if (!bayer_cfa_from_ser(seq, (unsigned int) seq->ry, cfa)) {
 		siril_log_color_message(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
 		                          "GBRG / BGGR — cannot derive CFA pattern.\n"),
 		                        "red");
@@ -736,22 +754,31 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	int cur_nb = 0, n_inc = 0;
 	for (int i = 0; i < N; ++i) if (included[i]) ++n_inc;
 
+	/* ser_read_frame's `open_debayer` parameter is a latent NOP for SERs
+	 * already opened with debayer-on-open: the actual debayer call inside
+	 * ser_read_frame dispatches on ser_file->debayer_type_ser (set at SER
+	 * open time from com.pref.debayer.open_debayer), not on the parameter.
+	 * To actually get raw mosaic bytes back we have to flip that field to
+	 * SER_MONO for the duration of our read loop and restore on the way
+	 * out. Stage A/B already ran upstream on debayered frames; nothing
+	 * else is reading from this SER concurrently because Stage C is
+	 * sequential by construction. */
+	const ser_color saved_debayer_type = seq->ser_file->debayer_type_ser;
+	seq->ser_file->debayer_type_ser = SER_MONO;
+
 	gui_iface.set_progress(PROGRESS_RESET,
 	                       _("Stack (Bayer drizzle): reading raw frames"));
+	mpp_status_t read_rc = MPP_OK;
 	for (int i = 0; i < N; ++i) {
 		if (!included[i]) continue;
-		/* Read raw Bayer (open_debayer=FALSE) so we get the mosaic
-		 * bytes regardless of the user's debayer-on-open preference.
-		 * Stage A/B were computed on debayered frames upstream — that's
-		 * fine; the run's pixmap is correctly scaled by Stage A/B's
-		 * intersection geometry. */
 		fits f{};
 		if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
 		                   /*open_debayer=*/FALSE)) {
 			siril_log_color_message(_("Bayer drizzle: ser_read_frame failed "
 			                          "on frame %d\n"), "red", i);
 			clearfits(&f);
-			return MPP_EIO;
+			read_rc = MPP_EIO;
+			break;
 		}
 		/* Wrap the single-channel WORD buffer as cv::Mat (CV_16U). */
 		cv::Mat m(f.ry, f.rx, CV_16U, f.data);
@@ -760,6 +787,10 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 		++cur_nb;
 		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_inc, NULL);
 	}
+
+	seq->ser_file->debayer_type_ser = saved_debayer_type;
+	if (read_rc != MPP_OK) return read_rc;
+
 	return mpp::stack_apply_bayer(frames_raw_bayer, included, brightness,
 	                              run, cfg, cfa, /*cfadim=*/2, out);
 }

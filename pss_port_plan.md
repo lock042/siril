@@ -443,9 +443,17 @@ All runs warm-cache after a single full-fixture warmup; two consecutive runs eac
 | Pair | SSIM R / G / B | PSNR R / G / B (dB) |
 |---|---|---|
 | STScI vs bicubic | 0.9701 / 0.9785 / 0.9718 | 40.57 / 36.36 / 39.37 |
-| Bayer vs bicubic | 0.9630 / 0.9019 / 0.9636 | 40.60 / 18.09 / 30.52 |
+| Bayer vs bicubic | 0.9742 / 0.9709 / 0.9654 | 40.58 / 36.34 / 39.33 |
+| STScI vs Bayer   | 0.9996 / 0.9986 / 0.9993 | 65.83 / 62.34 / 65.85 |
 
-Sharpness (mean Sobel gradient on luminance): bicubic 0.02339, STScI 0.02266 (-3%), Bayer 0.01578 (-33%). The bayer-2x sharpness drop is structural — raw-CFA drizzle leaves half-population holes per channel; a holes-fill post-process is the standard remedy for visual use, but per-channel resolution preservation is the design goal (covered by 5b.6).
+Sharpness (mean Sobel gradient on luminance): bicubic 0.02339, STScI 0.02266 (-3%), Bayer 0.02264 (-3%). All three paths produce comparable visual outputs.
+
+**Bayer-2x bug fixed during this milestone**: the original Bayer wrapper passed `open_debayer=FALSE` to `ser_read_frame`, but that parameter is a latent NOP for SERs that were opened with debayer-on-open — the actual debayer call inside `ser_read_frame` dispatches on `ser_file->debayer_type_ser` (set at open time from `com.pref.debayer.open_debayer`), not on the function parameter. The wrapper was therefore reading a 3-channel debayered fits but treating the first plane (R) as the Bayer mosaic, so every CFA position fed dobox the same debayered-R value. The fix has two parts:
+
+1. Temporarily flip `seq->ser_file->debayer_type_ser` to `SER_MONO` around the read loop (with restore on error), forcing `ser_read_frame` to return the raw single-channel mosaic.
+2. Apply `adjust_Bayer_pattern_orientation` to compensate for `ser_read_frame`'s Y-flip (SER raster is top-down, FITS is bottom-up). For an even-height frame, RGGB on disk arrives as GBRG in the buffer; the cfa[] array we feed to dobox must match the in-memory pattern, not the file header.
+
+Pre-fix per-channel means were a clear diagnostic — R/G/B all averaged ~7000 because all three accumulated the same debayered-R values. Post-fix matches bicubic within 3% per channel.
 
 **Why STScI is 6× slower**: bicubic's stack contribution per frame is `cv::resize(intersection_strip, output_strip, INTER_LINEAR)` — single AVX-optimised pass. STScI's per-frame work is (a) build a pixmap (per-pixel weighted-AP interpolation, ~13× more arithmetic than a single shift add), (b) dobox's per-output-pixel box-area integration with pixfrac<1 (each input pixel touches up to 4 output cells with computed overlap area), (c) three times over for a 3-channel RGB frame after the per-channel-view fix from 5b.5. STScI is the price for true geometric drizzle; bicubic-2x stays the speed-optimal default.
 
