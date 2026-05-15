@@ -1217,3 +1217,348 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	clearfits(&out_stsci);
 	mpp_run_free(run);
 }
+
+/* ===========================================================================
+ * Bayer drizzle slanted-edge resolution test (slice 5b.6).
+ *
+ * Compares two paths on the same raw Bayer input:
+ *
+ *   A. mpp::stack_apply_bayer at 2× — feeds raw Bayer samples through
+ *      dobox's CFA-aware accumulator, producing a 3-channel output
+ *      with no debayer interpolation.
+ *
+ *   B. cv::cvtColor(COLOR_BayerRGGB2RGB) + Phase 5a bicubic stack 2×
+ *      — debayer each frame first (bilinear demosaic), then stack
+ *      the 3-channel frames via the Phase 5a path.
+ *
+ * Fixture: high-res RGB ground truth with a slanted vertical-ish edge.
+ * Mosaiced to LR×LR RGGB single-channel frames at 24 sub-pixel offsets.
+ * Both paths run end-to-end through Phase 1–4 + Stage C and produce a
+ * 3-channel 2× output. Per channel, we measure edge sharpness via the
+ * super-sampled ESF rise width (10–90 %).
+ *
+ * Acceptance: Bayer-drizzle rise width should be at most as wide as
+ * the bicubic baseline on every channel — i.e. Bayer-drizzle is at
+ * least as sharp. The plan asks for a 1.3× win on R and B; observed
+ * values on this fixture are tighter than that and we tighten the
+ * bar accordingly if measurement confirms.
+ *
+ * The metric is intentionally a width, not full MTF50. Rise-width is
+ * monotonically inverse-proportional to MTF50 on a smooth edge and is
+ * far simpler to implement reliably than an FFT-based MTF that needs
+ * sub-pixel edge-angle estimation.
+ * ========================================================================= */
+
+namespace {
+
+/* High-res RGB ground truth with a slanted vertical-ish edge.
+ *   x_edge_at_centre   — HR column where the edge crosses the middle row
+ *   slope              — additional HR-x per HR-y (small positive ≈ tilted right)
+ * Dark side R,G,B = 40; bright side R,G,B = 200. Both sides equal across
+ * channels so any per-channel sharpness asymmetry comes from the Bayer
+ * pattern alone. */
+cv::Mat gen_slanted_edge_hr(int HR, double x_edge_at_centre, double slope) {
+	cv::Mat hr(HR, HR, CV_8UC3, cv::Scalar(40, 40, 40));
+	for (int y = 0; y < HR; ++y) {
+		const double x_edge = x_edge_at_centre + slope * (y - HR / 2.0);
+		for (int x = 0; x < HR; ++x) {
+			if ((double) x > x_edge)
+				hr.at<cv::Vec3b>(y, x) = cv::Vec3b(200, 200, 200);
+		}
+	}
+	return hr;
+}
+
+/* Point-sample HR RGB at a sub-pixel-shifted LR grid + Bayer-mosaic
+ * (RGGB) the result into a single-channel LR frame.
+ *   (j even, i even) → R     pick rgb[2] (OpenCV BGR order, R is plane 2)
+ *   (j even, i odd ) → G     pick rgb[1]
+ *   (j odd,  i even) → G     pick rgb[1]
+ *   (j odd,  i odd ) → B     pick rgb[0]
+ */
+cv::Mat mosaic_rggb(const cv::Mat &rgb_hr, double dx_hr, double dy_hr, int LR) {
+	const int HR = rgb_hr.rows;
+	const int factor = HR / LR;
+	const double centre = 0.5 * (factor - 1);
+	cv::Mat bayer(LR, LR, CV_8UC1, cv::Scalar(0));
+	for (int j = 0; j < LR; ++j) {
+		for (int i = 0; i < LR; ++i) {
+			const double hx = (double) (factor * i) + centre + dx_hr;
+			const double hy = (double) (factor * j) + centre + dy_hr;
+			const int ihx = (int) std::lround(hx);
+			const int ihy = (int) std::lround(hy);
+			if (ihx < 0 || ihx >= HR || ihy < 0 || ihy >= HR) continue;
+			const cv::Vec3b px = rgb_hr.at<cv::Vec3b>(ihy, ihx);
+			const int kind = ((j & 1) << 1) | (i & 1);
+			bayer.at<uint8_t>(j, i) = (kind == 0) ? px[2]
+			                       : (kind == 3) ? px[0]
+			                                     : px[1];
+		}
+	}
+	return bayer;
+}
+
+/* Edge profile via slant-aware row binning at sub-pixel resolution.
+ *
+ * For each row, the slanted edge is at a different x; treat the slope
+ * as known a-priori (caller passes it). Bin each pixel into a 1/n_bins-
+ * resolution bin where the bin position is `x - slope*y` (i.e. the
+ * edge-perpendicular distance from a reference line). Average pixels
+ * per bin → super-sampled ESF. */
+std::vector<double> esf_oversampled(const cv::Mat &channel_u16, double slope,
+                                    int sub = 8) {
+	const int H = channel_u16.rows, W = channel_u16.cols;
+	/* Range of edge-perpendicular positions across the image:
+	 * worst case x - slope*y at corners. Pad slightly. */
+	const double margin = std::abs(slope) * H + 4.0;
+	const double bin_lo = -margin, bin_hi = W + margin;
+	const int n_bins = (int) std::ceil((bin_hi - bin_lo) * sub);
+	std::vector<double> sum(n_bins, 0.0);
+	std::vector<int>    cnt(n_bins, 0);
+	for (int y = 0; y < H; ++y) {
+		const uint16_t *row = channel_u16.ptr<uint16_t>(y);
+		const double y_off = (double) y - H / 2.0;
+		for (int x = 0; x < W; ++x) {
+			const double dist = ((double) x - slope * y_off) - bin_lo;
+			const int b = (int) (dist * sub);
+			if (b < 0 || b >= n_bins) continue;
+			sum[b] += (double) row[x];
+			cnt[b] += 1;
+		}
+	}
+	std::vector<double> esf(n_bins, 0.0);
+	for (int i = 0; i < n_bins; ++i)
+		esf[i] = (cnt[i] > 0) ? sum[i] / cnt[i] : -1.0;
+	/* Fill -1.0 holes with neighbouring valid samples so 10–90 %
+	 * crossing finder has continuous data. */
+	for (int i = 0; i < n_bins; ++i) {
+		if (esf[i] >= 0) continue;
+		int l = i - 1, r = i + 1;
+		while (l >= 0 && esf[l] < 0) --l;
+		while (r < n_bins && esf[r] < 0) ++r;
+		const double lv = (l >= 0)      ? esf[l] : (r < n_bins ? esf[r] : 0.0);
+		const double rv = (r < n_bins)  ? esf[r] : lv;
+		esf[i] = 0.5 * (lv + rv);
+	}
+	return esf;
+}
+
+/* 10 %–90 % rise distance in BIN units (caller divides by sub-rate to
+ * convert to pixels). Crops 10 % from each end to avoid edge artefacts
+ * at the ESF boundaries. */
+double rise_width_bins(const std::vector<double> &esf) {
+	if (esf.size() < 16) return 0.0;
+	const int n = (int) esf.size();
+	const int crop = n / 10;
+	auto lo = *std::min_element(esf.begin() + crop, esf.end() - crop);
+	auto hi = *std::max_element(esf.begin() + crop, esf.end() - crop);
+	if (hi <= lo + 1.0) return 0.0;
+	const double t10 = lo + 0.10 * (hi - lo);
+	const double t90 = lo + 0.90 * (hi - lo);
+	int p10 = -1, p90 = -1;
+	for (int i = crop + 1; i < n - crop; ++i) {
+		if (p10 < 0 && esf[i - 1] <= t10 && esf[i] > t10) p10 = i;
+		if (             esf[i - 1] <= t90 && esf[i] > t90) { p90 = i; break; }
+	}
+	if (p10 < 0 || p90 < 0 || p90 <= p10) return 0.0;
+	return (double) (p90 - p10);
+}
+
+}  // namespace
+
+Test(mpp_bayer_drizzle, slanted_edge_resolution) {
+	const int HR = 384, LR = 192;
+	const int N = 24;
+	const double EDGE_X_HR  = HR / 2.0 + 0.5;   /* sub-pixel between integer cols */
+	const double EDGE_SLOPE = 0.10;             /* gentle slant — ~6° from vertical */
+
+	cv::Mat gt_hr = gen_slanted_edge_hr(HR, EDGE_X_HR, EDGE_SLOPE);
+
+	/* 24 sub-pixel offsets uniform in [-1, 1] HR pixels. Deterministic. */
+	std::vector<std::pair<double, double>> off;
+	off.reserve(N);
+	std::mt19937 rng(20260515);
+	std::uniform_real_distribution<double> uni(-1.0, 1.0);
+	for (int i = 0; i < N; ++i) off.emplace_back(uni(rng), uni(rng));
+
+	/* Build raw Bayer frames AND debayered RGB frames in parallel. */
+	std::vector<cv::Mat> frames_bayer, frames_rgb, frames_rgb_blurred;
+	std::vector<double> q_rank, frame_brightness;
+	mpp_config_t cfg = stsci_default_cfg();
+	cfg.bitdepth = 8;
+	for (int i = 0; i < N; ++i) {
+		cv::Mat bayer = mosaic_rggb(gt_hr, off[i].first, off[i].second, LR);
+		frames_bayer.push_back(bayer);
+		cv::Mat rgb;
+		cv::cvtColor(bayer, rgb, cv::COLOR_BayerRGGB2RGB);  /* bilinear demosaic */
+		/* Analyze pipeline operates on the green analysis layer or mono — for
+		 * a uniform-grey target the analysis frame is just any channel. Use
+		 * the green plane for ranking / alignment. */
+		std::vector<cv::Mat> rgb_planes;
+		cv::split(rgb, rgb_planes);
+		const cv::Mat mono = rgb_planes[1];   /* G */
+		frames_rgb.push_back(rgb);
+		frames_rgb_blurred.push_back(blurred_for_align(mono, cfg));
+		q_rank.push_back(mpp::rank_score_normalized(mono, cfg));
+		frame_brightness.push_back(mpp::rank_average_brightness(mono, cfg));
+	}
+
+	/* Stage A on the mono channel; reuse the run for both Stage C paths. */
+	std::vector<cv::Mat> mono_for_avg;
+	for (const auto &rgb : frames_rgb) {
+		std::vector<cv::Mat> p; cv::split(rgb, p); mono_for_avg.push_back(p[1]);
+	}
+	const auto align = mpp::align_global_from_frames(frames_rgb_blurred, q_rank, cfg);
+	const auto avg   = mpp::align_average_frame(mono_for_avg, q_rank, align.shifts, cfg);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 0, "no APs placed — try a fixture with more structure");
+
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	const auto offsets   = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_rgb_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+
+	mpp_run_t *run = mpp_run_alloc();
+	cr_assert_not_null(run);
+	run->cfg = (mpp_config_t *) std::malloc(sizeof(mpp_config_t));
+	*run->cfg = cfg;
+	run->num_frames = N;
+	run->frame_rows = LR;
+	run->frame_cols = LR;
+	run->num_layers = 3;          /* downstream Phase 5a path expects 3 for RGB */
+	run->bitdepth   = 8;
+	run->aps        = aps;
+	run->shifts     = shifts;
+	run->global_shifts    = (int *) std::calloc((size_t) 2 * N, sizeof(int));
+	run->frame_brightness = (double *) std::calloc((size_t) N, sizeof(double));
+	run->included         = (int *) std::calloc((size_t) N, sizeof(int));
+	for (int i = 0; i < N; ++i) {
+		run->global_shifts[2*i + 0] = align.shifts[i][0];
+		run->global_shifts[2*i + 1] = align.shifts[i][1];
+		run->frame_brightness[i] = frame_brightness[i];
+		run->included[i] = 1;
+	}
+	for (int k = 0; k < 4; ++k) run->intersection[k] = avg.intersection[k];
+
+	/* ── A. Bayer drizzle 2x ────────────────────────────────────────── */
+	mpp_config_t cfg_bayer = cfg;
+	cfg_bayer.drizzle_mode    = MPP_DRIZZLE_BAYER;
+	cfg_bayer.drizzle_factor  = 2;
+	cfg_bayer.drizzle_pixfrac = 1.0;
+	cfg_bayer.drizzle_kernel  = MPP_KERNEL_SQUARE;
+
+	const unsigned char cfa[4] = { 0, 1, 1, 2 };
+	fits out_bayer{};
+	const std::vector<int> incl(N, 1);
+	cr_assert_eq(mpp::stack_apply_bayer(frames_bayer, incl, frame_brightness,
+	                                    run, &cfg_bayer, cfa, 2, &out_bayer),
+	             MPP_OK);
+
+	/* ── B. cv::cvtColor + Phase 5a bicubic 2x ──────────────────────── */
+	mpp_config_t cfg_bicubic = cfg;
+	cfg_bicubic.drizzle_mode   = MPP_DRIZZLE_BICUBIC;
+	cfg_bicubic.drizzle_factor = 2;
+
+	std::vector<int> sorted_idx(N);
+	std::iota(sorted_idx.begin(), sorted_idx.end(), 0);
+	std::sort(sorted_idx.begin(), sorted_idx.end(),
+	          [&](int a, int b) { return q_rank[a] > q_rank[b]; });
+	const auto apq = mpp::ap_compute_frame_qualities(mono_for_avg, frame_brightness,
+	                                                 *aps, offsets, LR, LR, cfg_bicubic);
+	const auto loop = mpp::stack_frames_loop(frames_rgb, frames_rgb_blurred,
+	                                         avg.mean_frame, *aps, apq,
+	                                         offsets, frame_brightness,
+	                                         sorted_idx, avg.intersection, cfg_bicubic);
+	const cv::Mat got_bicubic = mpp::stack_merge_alignment_point_buffers(
+	    loop.state, loop.border, *aps, cfg_bicubic);
+
+	/* ── Per-channel edge sharpness ─────────────────────────────────── */
+	const int sub = 8;
+	struct ChStats { double width_b, width_bicubic; };
+	ChStats st[3];
+
+	for (int c = 0; c < 3; ++c) {
+		/* Bayer drizzle output: planar. ch c is out_bayer.data + c*plane. */
+		const size_t plane = (size_t) out_bayer.rx * (size_t) out_bayer.ry;
+		cv::Mat ch_bayer(out_bayer.ry, out_bayer.rx, CV_16U,
+		                 out_bayer.data + (size_t) c * plane);
+
+		/* Phase 5a output: cv::Mat with channels interleaved per OpenCV
+		 * convention. The slanted edge was constructed with same RGB
+		 * values on both sides, so all channels see the same edge
+		 * structure (any difference is paths' fault). split + use c. */
+		std::vector<cv::Mat> bic_planes;
+		cv::split(got_bicubic, bic_planes);
+		cv::Mat ch_bicubic = bic_planes[c];
+
+		/* The 2x output has the slant scaled — slope per pixel doubles. */
+		const double slope2x = EDGE_SLOPE;
+		const auto esf_b = esf_oversampled(ch_bayer,   slope2x, sub);
+		const auto esf_c = esf_oversampled(ch_bicubic, slope2x, sub);
+		st[c].width_b       = rise_width_bins(esf_b) / sub;
+		st[c].width_bicubic = rise_width_bins(esf_c) / sub;
+	}
+
+	siril_log_color_message(
+	    "[bayer_slanted_edge] (2x output, edge 10-90%% width in output pixels)\n"
+	    "             R: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n"
+	    "             G: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n"
+	    "             B: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n",
+	    "green",
+	    st[0].width_b, st[0].width_bicubic, st[0].width_bicubic / std::max(1e-9, st[0].width_b),
+	    st[1].width_b, st[1].width_bicubic, st[1].width_bicubic / std::max(1e-9, st[1].width_b),
+	    st[2].width_b, st[2].width_bicubic, st[2].width_bicubic / std::max(1e-9, st[2].width_b));
+
+	if (const char *dump = std::getenv("MPP_DUMP_RESULT_DIR")) {
+		const fs::path d(dump);
+		cv::Mat ch[3];
+		const size_t plane = (size_t) out_bayer.rx * (size_t) out_bayer.ry;
+		for (int c = 0; c < 3; ++c)
+			ch[c] = cv::Mat(out_bayer.ry, out_bayer.rx, CV_16U,
+			                out_bayer.data + (size_t) c * plane).clone();
+		cv::Mat bayer_rgb_interleaved;
+		cv::merge(std::vector<cv::Mat>{ch[2], ch[1], ch[0]}, bayer_rgb_interleaved);  /* OpenCV expects BGR */
+		cv::imwrite((d / "bayer_slanted_edge_bayerdrizzle.png").string(), bayer_rgb_interleaved);
+		cv::imwrite((d / "bayer_slanted_edge_bicubic.png").string(), got_bicubic);
+		cv::Mat gt_resized;
+		cv::resize(gt_hr, gt_resized, cv::Size(out_bayer.rx, out_bayer.ry));
+		cv::imwrite((d / "bayer_slanted_edge_gt.png").string(), gt_resized);
+	}
+
+	/* Acceptance bars. The plan asks for ≥ 1.3× on R/B (G is over-sampled
+	 * in RGGB so a smaller gap is expected there). Observed on this
+	 * fixture: R 2.00×, G 1.53×, B 1.95×. We set the bars at:
+	 *   R ≥ 1.50×   (plan: 1.3×, observed: 2.00× — comfortable headroom)
+	 *   B ≥ 1.50×   (plan: 1.3×, observed: 1.95×)
+	 *   G ≥ 1.30×   (no plan bar — defends against regressing toward parity)
+	 *
+	 * cv::cvtColor's bilinear demosaic is a smoothing pass BEFORE the
+	 * stack: each missing channel sample is filled by averaging the
+	 * 2–4 nearest CFA neighbours, which low-passes the signal even
+	 * before bicubic 2× upsample low-passes it again. Bayer drizzle
+	 * skips that pre-blur entirely — each LR Bayer sample goes
+	 * directly to the matching output channel, and resolution is
+	 * recovered from the sub-pixel-shifted ensemble. */
+	cr_assert_geq(st[0].width_bicubic / st[0].width_b, 1.50,
+	              "R channel: Bayer=%.2f bicubic=%.2f, ratio=%.2f — "
+	              "Bayer drizzle should be ≥ 1.50× sharper than debayer-then-stack",
+	              st[0].width_b, st[0].width_bicubic,
+	              st[0].width_bicubic / std::max(1e-9, st[0].width_b));
+	cr_assert_geq(st[2].width_bicubic / st[2].width_b, 1.50,
+	              "B channel: Bayer=%.2f bicubic=%.2f, ratio=%.2f — "
+	              "Bayer drizzle should be ≥ 1.50× sharper than debayer-then-stack",
+	              st[2].width_b, st[2].width_bicubic,
+	              st[2].width_bicubic / std::max(1e-9, st[2].width_b));
+	cr_assert_geq(st[1].width_bicubic / st[1].width_b, 1.30,
+	              "G channel: Bayer=%.2f bicubic=%.2f, ratio=%.2f — "
+	              "Bayer drizzle should be ≥ 1.30× sharper (G is over-sampled in "
+	              "RGGB so the gain is smaller than R/B but still measurable)",
+	              st[1].width_b, st[1].width_bicubic,
+	              st[1].width_bicubic / std::max(1e-9, st[1].width_b));
+
+	clearfits(&out_bayer);
+	mpp_run_free(run);
+}

@@ -335,9 +335,15 @@ Cross-mode validation in `process_register_mpp` / `process_stack_mpp`:
 
 See "Phase 5b test plan" below.
 
-#### 5b.6 — Bayer-drizzle slanted-edge MTF test
+#### 5b.6 — Bayer-drizzle slanted-edge resolution test  ✅
 
-See "Phase 5b test plan" below.
+Done in `mpp_bayer_drizzle::slanted_edge_resolution` (`src/tests/mpp_drizzle_test.cpp`). Implementation notes:
+
+- Fixture: 384×384 8-bit RGB ground truth with a slanted (slope=0.1, ~5.7°) vertical edge running through the centre, sampled at 24 sub-pixel-shifted offsets to RGGB Bayer 192×192 LR frames. Two parallel pipelines run on the same fixture: (A) raw-Bayer → `mpp::stack_apply_bayer` at 2× and (B) `cv::cvtColor(COLOR_BayerRGGB2RGB)` → Phase 5a bicubic at 2×. Both produce 3-channel 384×384 outputs.
+- Metric: slant-aware super-sampled (8×) ESF construction, then 10-90% rise width per channel. Width is monotonically inverse-proportional to MTF50 on a smooth edge — far simpler to implement reliably than a full FFT-based MTF that would need sub-pixel edge-angle estimation. We compute the ratio (bicubic-width / Bayer-width) per channel and assert thresholds.
+- Acceptance bars: **R ≥ 1.50×**, **B ≥ 1.50×**, **G ≥ 1.30×**. The plan's original 1.3× target was a floor; observed values on this fixture comfortably exceed it (R 2.00×, G 1.53×, B 1.95×), so the bars tighten to lock in the realised gain while leaving room for fixture variance. G is over-sampled in RGGB (50% of CFA positions) so its gain is structurally smaller; R and B (25% each) see the biggest wins because cv::cvtColor's bilinear demosaic is most aggressive on those channels.
+- The Bayer-drizzle output retains the CFA mosaic structure (each output cell only receives samples from CFA-matching input positions) — this is correct algorithmic behaviour and visible in the artifact `bayer_slanted_edge_compare.png`. Despite the visible mosaic colouring, the per-channel edge response is sharper.
+- Saved artifacts when `MPP_DUMP_RESULT_DIR` env set: `bayer_slanted_edge_bayerdrizzle.png`, `bayer_slanted_edge_bicubic.png`, `bayer_slanted_edge_gt.png`. The labelled side-by-side `bayer_slanted_edge_compare.png` lives in the project root.
 
 ### Phase 5b test plan
 
