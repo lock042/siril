@@ -39,11 +39,12 @@ extern "C" {
 #include "io/image_format_fits.h"
 }
 
-#include "registration/mpp_stack_priv.hpp"   /* mpp::stack_one_dim_weight */
+#include "registration/mpp_drizzle_priv.hpp"  /* mpp::stack_apply_stsci */
+#include "registration/mpp_stack_priv.hpp"    /* mpp::stack_one_dim_weight */
 
-/* read_full_frame is declared in mpp.cpp's anonymous mpp:: namespace.
- * The pieces we need are accessed via a tiny extern declaration so we
- * don't have to expose the helper publicly. */
+/* read_full_frame is in mpp.cpp's mpp:: namespace (moved out of the
+ * inner anonymous namespace in slice 5b.2). Forward-declared here so we
+ * can read frames without exposing it through a public header. */
 namespace mpp {
 extern cv::Mat read_full_frame(sequence *seq, int idx);
 }
@@ -232,22 +233,28 @@ bool cv_to_planar_fits(const cv::Mat &raw, double scale, fits *out) {
 
 }  // namespace
 
-extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t *cfg,
-                                              const mpp_run_t *run, fits *out) {
-	if (!seq || !cfg || !run || !out || !run->aps || !run->shifts
-	 || !run->included || !run->frame_brightness)
-		return MPP_EINVAL;
+/* Inner C++ entry point. Tests drive this directly with vector<cv::Mat>
+ * so they can run on PNG-extracted frames without constructing a Siril
+ * sequence. The extern "C" mpp_stack_apply_stsci wrapper just reads
+ * frames via mpp::read_full_frame and forwards. */
+mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
+                                    const std::vector<int> &included,
+                                    const std::vector<double> &frame_brightness,
+                                    const mpp_run_t *run,
+                                    const mpp_config_t *cfg,
+                                    fits *out) {
+	if (!cfg || !run || !out || !run->aps || !run->shifts) return MPP_EINVAL;
+	const int N = (int) frames_raw.size();
+	if (N <= 0 || (int) included.size() != N
+	 || (int) frame_brightness.size() != N) return MPP_EINVAL;
+	if (N != run->num_frames) return MPP_EINVAL;
 
 	const int frame_rx = run->frame_cols;
 	const int frame_ry = run->frame_rows;
 	if (frame_rx <= 0 || frame_ry <= 0) return MPP_EINVAL;
 
-	const int int_y_lo = run->intersection[0];
-	const int int_y_hi = run->intersection[1];
-	const int int_x_lo = run->intersection[2];
-	const int int_x_hi = run->intersection[3];
-	const int intersection_rx = int_x_hi - int_x_lo;
-	const int intersection_ry = int_y_hi - int_y_lo;
+	const int intersection_rx = run->intersection[3] - run->intersection[2];
+	const int intersection_ry = run->intersection[1] - run->intersection[0];
 	if (intersection_rx <= 0 || intersection_ry <= 0) return MPP_EINVAL;
 
 	const int factor   = cfg->drizzle_factor < 1 ? 1 : cfg->drizzle_factor;
@@ -270,12 +277,10 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 		return MPP_ENOMEM;
 	}
 
-	/* Median brightness across included frames — same per-frame
-	 * normalisation that Phase 5a's bicubic path uses. */
 	std::vector<double> bright_inc;
-	bright_inc.reserve(run->num_frames);
-	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) bright_inc.push_back(run->frame_brightness[i]);
+	bright_inc.reserve(N);
+	for (int i = 0; i < N; ++i)
+		if (included[i]) bright_inc.push_back(frame_brightness[i]);
 	if (bright_inc.empty()) {
 		mpp_imgmap_free(&pixmap);
 		clearfits(&output_data);
@@ -303,24 +308,16 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 
 	const int n_included = (int) bright_inc.size();
 	int cur_nb = 0;
-
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack (STScI): drizzling frames"));
 
-	for (int f = 0; f < run->num_frames; ++f) {
-		if (!run->included[f]) continue;
+	for (int f = 0; f < N; ++f) {
+		if (!included[f] || frames_raw[f].empty()) continue;
 
-		cv::Mat raw = mpp::read_full_frame(seq, f);
-		if (raw.empty()) {
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EIO;
-		}
-
-		const double scale = median_brightness / (run->frame_brightness[f] + 1e-7);
+		const double scale = median_brightness
+		                   / (frame_brightness[f] + 1e-7);
 
 		fits frame_fit{};
-		if (!cv_to_planar_fits(raw, scale, &frame_fit)) {
+		if (!cv_to_planar_fits(frames_raw[f], scale, &frame_fit)) {
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
 			clearfits(&output_counts);
@@ -340,14 +337,26 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 		driz_param_init(&p);
 		p.driz           = &driz_args;
 		p.kernel         = driz_args.kernel;
-		p.scale          = driz_args.scale;
+		/* p.scale = 1.0 (not driz_args.scale). dobox uses p.scale only
+		 * to compute a `scale²` flux-conservation multiplier on each
+		 * input pixel value — at drizzle=2 every input value would be
+		 * inflated 4× to preserve total energy across the spread of an
+		 * input pixel's footprint over multiple output pixels. PSS's
+		 * bicubic resampler doesn't do that (it just resamples each
+		 * frame per-pixel), and the per-AP top-N weighted mean we feed
+		 * back to dobox via the pixmap already keeps the values in
+		 * input units. The 2x output canvas geometry is fully carried
+		 * by the pixmap's drizzle_scale multiplier, so setting p.scale
+		 * to 1.0 gives values that compare cleanly to PSS's drizzle=2
+		 * reference. */
+		p.scale          = 1.0f;
 		p.pixel_fraction = driz_args.pixel_fraction;
 		p.weight_scale   = 1.0f;
 		p.in_units       = unit_counts;
 		p.out_units      = unit_counts;
 		p.exposure_time  = 1.0f;
 		p.data           = &frame_fit;
-		p.weights        = nullptr;       /* unit per-pixel weight for now (5b.2 v1) */
+		p.weights        = nullptr;
 		p.pixmap         = &pixmap;
 		p.output_data    = &output_data;
 		p.output_counts  = &output_counts;
@@ -355,7 +364,7 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 		p.ymin           = 0;
 		p.xmax           = frame_rx - 1;
 		p.ymax           = frame_ry - 1;
-		p.threads        = 1;             /* dobox runs single-threaded per frame */
+		p.threads        = 1;
 		p.error          = &error;
 
 		if (dobox(&p)) {
@@ -376,24 +385,15 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 
 	mpp_imgmap_free(&pixmap);
 
-	/* Per-channel normalise: data /= counts (with epsilon floor — empty
-	 * cells stay zero). */
-	{
-		const size_t plane = (size_t) out_rx * (size_t) out_ry;
-		for (int c = 0; c < channels; ++c) {
-			float *od = output_data.fdata   + (size_t) c * plane;
-			float *oc = output_counts.fdata + (size_t) c * plane;
-			for (size_t k = 0; k < plane; ++k) {
-				od[k] = (oc[k] > 1e-7f) ? od[k] / oc[k] : 0.0f;
-			}
-		}
-	}
+	/* update_data inside dobox accumulates a running weighted mean — by
+	 * the time the per-frame loop exits, output_data already holds the
+	 * weighted average of every contribution. Empty cells (no frame
+	 * covered them) stay at the calloc'd zero, which is what we want.
+	 * Do NOT divide by output_counts: that would mean / total-weight =
+	 * mean × ~1/N which collapses everything to near-zero. */
+	(void) output_counts;   /* kept around in case BAYER path needs per-channel counts */
 	clearfits(&output_counts);
 
-	/* Pack the float-stacked result into the caller's uint16 fits.
-	 * Layout: planar R/G/B with pdata[0..2] pointing into a single
-	 * contiguous buffer — same shape Phase 5a's mpp_stack_apply
-	 * produces. */
 	clearfits(out);
 	out->rx = out_rx;
 	out->ry = out_ry;
@@ -414,10 +414,49 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t 
 	out->pdata[1] = (channels >= 2) ? out->data + plane     : nullptr;
 	out->pdata[2] = (channels >= 3) ? out->data + 2 * plane : nullptr;
 
+	/* Scale to 16-bit uint range. For 8-bit input, output_data values
+	 * are still in [0, 255] (the raw input range we fed dobox) so we
+	 * multiply by 256 here — mirrors PSS's "mean_frame in 16-bit
+	 * equivalent regardless of bitdepth" convention. For 16-bit input
+	 * the scale is 1.0 and values pass through unchanged.
+	 * NB: mpp_cfg_threshold_scale is the INVERSE direction (scales
+	 * thresholds down to match input units), so we compute the output
+	 * scale inline rather than reusing it. */
+	const double cast_scale = (cfg->bitdepth == 8) ? 256.0 : 1.0;
 	for (size_t k = 0; k < plane * (size_t) channels; ++k) {
-		const float v = output_data.fdata[k];
-		out->data[k] = (WORD) (v < 0.f ? 0 : (v > 65535.f ? 65535 : (int) (v + 0.5f)));
+		const double v = (double) output_data.fdata[k] * cast_scale;
+		out->data[k] = (WORD) (v < 0.0 ? 0
+		                     : (v > 65535.0 ? 65535
+		                                    : (int) (v + 0.5)));
 	}
 	clearfits(&output_data);
 	return MPP_OK;
+}
+
+/* Sequence-side wrapper: reads each included frame via Siril's
+ * sequence I/O and forwards to the inner C++ function. */
+extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
+                                              const mpp_config_t *cfg,
+                                              const mpp_run_t *run,
+                                              fits *out) {
+	if (!seq || !cfg || !run || !run->included || !run->frame_brightness)
+		return MPP_EINVAL;
+	const int N = run->num_frames;
+	std::vector<cv::Mat> frames_raw(N);
+	std::vector<int> included(run->included, run->included + N);
+	std::vector<double> brightness(run->frame_brightness,
+	                                run->frame_brightness + N);
+	int cur_nb = 0, n_inc = 0;
+	for (int i = 0; i < N; ++i) if (included[i]) ++n_inc;
+	gui_iface.set_progress(PROGRESS_RESET, _("Stack (STScI): reading frames"));
+	for (int i = 0; i < N; ++i) {
+		if (!included[i]) continue;
+		cv::Mat m = mpp::read_full_frame(seq, i);
+		if (m.empty()) return MPP_EIO;
+		frames_raw[i] = m;
+		++cur_nb;
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_inc, NULL);
+	}
+	return mpp::stack_apply_stsci(frames_raw, included, brightness,
+	                              run, cfg, out);
 }
