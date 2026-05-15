@@ -2047,6 +2047,7 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 		const int M = run->shifts->num_aps;
 		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
 			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);
+			const double dot_r = 1.8 / dd->zoom;
 			for (int a = 0; a < M; ++a) {
 				const mpp_ap_record_t *ap = &run->aps->records[a];
 				const size_t k = (size_t) fv * M + a;
@@ -2080,6 +2081,12 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 					cairo_close_path(dd->cr);
 					cairo_fill(dd->cr);
 				}
+				/* Always paint a small filled dot at the AP centre so
+				 * zero/sub-pixel-shift APs are still visible (and the
+				 * success/failure colour distinguishes converged-with-
+				 * zero-shift from failed-fallback-to-zero). */
+				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * M_PI);
+				cairo_fill(dd->cr);
 			}
 		}
 	}
