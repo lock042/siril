@@ -1,0 +1,21 @@
+=== Phase 7.4 / 7.5 benchmark: bicubic 2x vs STScI 2x vs Bayer 2x on test-big.ser ===
+test-big.ser: 2.6G
+Page cache: Buffers:           32216 kB
+Cached:           584440 kB
+
+bicubic-2x warm #1: wall=175.93s  out=1244160 bytes
+bicubic-2x warm #2: wall=178.21s  out=1244160 bytes
+stsci-2x   warm #1: wall=1090.11s  out=1287360 bytes
+stsci-2x   warm #2: wall=1089.52s  out=1287360 bytes
+bayer-2x   warm #1: wall=514.66s  out=1287360 bytes
+bayer-2x   warm #2: wall=515.06s  out=1287360 bytes
+
+=== Per-stage timings from latest stsci log ===
+log: pss: Stage A done — best=1461, 14 APs, stack_size=4017
+log: pss: Stage B done — 26 shift failures
+log: Total execution time: 18 min 07 s
+
+=== Per-stage timings from latest bicubic log ===
+log: pss: Stage A done — best=1461, 14 APs, stack_size=4017
+log: pss: Stage B done — 26 shift failures
+log: Total execution time: 2 min 55 s
