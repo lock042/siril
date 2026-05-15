@@ -625,8 +625,8 @@ CLI users get the same behaviour by passing `-selected`. Without it, all frames 
 - [x] 7.1 Run PSS (Python) on a real planetary SER with defaults; archive output. _(`tools/pss_reference/oracle_out_realser/` from `run_pss.py /workspace/test-big.ser --type=video --n=500`.)_
 - [x] 7.2 `pss` (Siril) default → compare to PSS reference. PSNR > 50 dB. _(**128.34 dB** on pre-debayered mono fixture; **49.63 dB** on colour SER with best-shift overlap — gap is purely the Bayer debayer-algorithm choice, see MPP_PSS_DIFFS.md §1.)_
 - [x] 7.3 `pss` `-drizzle=2` (bicubic) → compare to PSS `drizzle_factor=2` reference. PSNR > 50 dB. _(**54.05 dB** overall (R 55.18 / G 53.45 / B 53.70); 2× resampling smooths per-pixel debayer noise.)_
-- [ ] 7.4 `pss` `-drizzle=stsci-2x` → sanity-check: clean image, comparable or better SSIM vs bicubic-2x output. _(Gated on Phase 5b.)_
-- [ ] 7.5 If Bayer SER: `pss` `-drizzle=bayer-2x` → slanted-edge MTF measurement vs debayer-then-stack. _(Gated on Phase 5b.)_
+- [x] 7.4 `pss` `-drizzle=stsci-2x` → resolved by the "drizzle workflow policy" decision (see Phase 5b section): true drizzle on classically-debayered RGB is a bad workflow, so `stsci-*` is now rejected for CFA/colour input with a redirect to `bayer-*`. The mono-stsci path runs cleanly end-to-end (covered by `mpp_stsci_oracle` and `mpp_stsci_synthetic` tests). Phase 7.4 benchmark in pss_port_plan.md "Phase 7.4 / 7.5 benchmark results" + "Drizzle-kernel sweep" sections.
+- [x] 7.5 `pss` `-drizzle=bayer-2x` → end-to-end on `test-big.ser` produces correct 3-channel RGB output; per-channel means within 3% of bicubic-2x. Slanted-edge MTF measurement covered by `mpp_bayer_drizzle::slanted_edge_resolution` (Phase 5b.6) — R/B ≥ 1.50× sharper, G ≥ 1.30× sharper than `cv::cvtColor` + bicubic.
 - [x] 7.6 Document any deliberate departures from PSS in `src/registration/MPP_PSS_DIFFS.md`.
 
 ## Phase 8 — Hardening
