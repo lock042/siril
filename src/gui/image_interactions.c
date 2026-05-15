@@ -39,6 +39,7 @@
 #include "gui/histo_display.h"
 #include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
+#include "registration/mpp_ap.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
@@ -684,15 +685,27 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.cut.cut_end.x = tmp.x;
 		gui.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
-	} else if (mouse_status == MOUSE_ACTION_EDIT_APS
-	           && mpp_ap_editor_get_drag_idx() >= 0) {
-		/* AP editor drag: track button-down motion to move the AP under
-		 * the cursor in real time. Release callback (in
-		 * mouse_action_functions.c) clears the drag index. */
+	} else if (mouse_status == MOUSE_ACTION_EDIT_APS) {
+		/* AP editor: if button is held on an AP, drag it (mpp_ap_move
+		 * each motion event for live tracking). If not dragging, update
+		 * the hover index so the overlay can highlight the AP under the
+		 * cursor. */
 		mpp_run_t *run = mpp_get_cached_run();
 		if (run && inside) {
-			mpp_ap_move(run, mpp_ap_editor_get_drag_idx(),
-			            zoomed.x, zoomed.y);
+			const int drag = mpp_ap_editor_get_drag_idx();
+			if (drag >= 0) {
+				mpp_ap_move(run, drag, zoomed.x, zoomed.y);
+				redraw(REDRAW_OVERLAY);
+			} else {
+				const int new_hover = mpp_ap_hit_test(run, zoomed.x, zoomed.y);
+				if (new_hover != mpp_ap_editor_get_hover_idx()) {
+					mpp_ap_editor_set_hover_idx(new_hover);
+					redraw(REDRAW_OVERLAY);
+				}
+			}
+		} else if (mpp_ap_editor_get_hover_idx() != -1) {
+			/* cursor left the image — clear hover */
+			mpp_ap_editor_set_hover_idx(-1);
 			redraw(REDRAW_OVERLAY);
 		}
 	} else if (gui.drawing) {	// with button 1 down

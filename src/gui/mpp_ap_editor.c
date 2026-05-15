@@ -36,6 +36,11 @@ static GtkSpinButton *spin_structure = NULL;
  * the release callback. */
 static int g_ap_drag_idx = -1;
 
+/* AP currently under the cursor for hover highlighting; -1 if none.
+ * Updated by motion_notify while in MOUSE_ACTION_EDIT_APS, cleared on
+ * dialog hide. */
+static int g_ap_hover_idx = -1;
+
 /* Snapshot of the AP grid taken when the dialog opens. Used by Cancel to
  * revert edits made between show and Cancel. Commit drops it. */
 static mpp_aps_t *g_aps_snapshot = NULL;
@@ -68,6 +73,9 @@ void mpp_ap_editor_refresh_count_label(void) {
 
 int  mpp_ap_editor_get_drag_idx(void)      { return g_ap_drag_idx; }
 void mpp_ap_editor_set_drag_idx(int idx)   { g_ap_drag_idx = idx; }
+
+int  mpp_ap_editor_get_hover_idx(void)     { return g_ap_hover_idx; }
+void mpp_ap_editor_set_hover_idx(int idx)  { g_ap_hover_idx = idx; }
 
 gboolean mpp_ap_editor_is_open(void) {
 	return dialog && gtk_widget_get_visible(dialog);
@@ -124,6 +132,8 @@ void on_mpp_ap_editor_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	g_ap_drag_idx = -1;
+	g_ap_hover_idx = -1;
+	redraw(REDRAW_OVERLAY);   /* clear hover highlight */
 	/* Don't auto-free the snapshot here — Cancel and Commit handle it
 	 * explicitly; this path can run via window-manager close, in which
 	 * case we discard (same as Cancel). */

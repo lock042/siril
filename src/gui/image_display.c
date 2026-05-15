@@ -39,6 +39,7 @@
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_config.h"
+#include "gui/mpp_ap_editor.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -1979,21 +1980,51 @@ static void draw_stars(const draw_data_t* dd) {
 
 /* Draw alignment-point boxes from the cached MPP run (com.mpp_run).
  * Called from redraw_drawingarea right after draw_brg_boxes so APs sit
- * in the same overlay stratum as bgext samples. Yellow stroke at the
- * ref-frame coordinates from each mpp_ap_record_t — same coordinate
- * system as the displayed image (top-down on SER). Skipped silently if
- * no run is cached, so non-MPP workflows pay zero cost. */
+ * in the same overlay stratum as bgext samples.
+ *
+ * AP records hold mean-frame coordinates. When gfit shows the mean ref
+ * frame (== analyze just ran or user re-clicked it), no shift compensation
+ * is needed; otherwise, the user is viewing a source frame and we apply
+ * the per-frame offset (intersection - global_shift) so AP boxes track
+ * the same physical features as they slew through the sequence.
+ *
+ * The "showing ref frame" test compares gfit's dims to the run's mean
+ * frame dims. If global shifts are zero across the sequence, intersection
+ * == frame dims and the test gives a false positive — but then dx,dy = 0
+ * anyway, so the rendered result is still correct.
+ *
+ * Hovered AP (mpp_ap_editor_get_hover_idx) is drawn in orange with a
+ * thicker line so the user knows which AP a click would affect. */
 static void draw_mpp_aps(const draw_data_t* dd) {
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
 	const int hb = run->cfg->alignment_points_half_box_width;
 	if (hb <= 0) return;
 	const int side = 2 * hb;
-	cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
-	cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow, semi-transparent */
+
+	int dx = 0, dy = 0;
+	const gboolean showing_ref = (gfit
+	    && (int) gfit->rx == run->mean_frame_cols
+	    && (int) gfit->ry == run->mean_frame_rows);
+	if (!showing_ref && run->global_shifts && sequence_is_loaded()) {
+		const int i = com.seq.current;
+		if (i >= 0 && i < run->num_frames) {
+			dy = run->intersection[0] - run->global_shifts[2 * i + 0];
+			dx = run->intersection[2] - run->global_shifts[2 * i + 1];
+		}
+	}
+
+	const int hover = mpp_ap_editor_get_hover_idx();
 	for (int i = 0; i < run->aps->count; ++i) {
 		const mpp_ap_record_t *ap = &run->aps->records[i];
-		cairo_rectangle(dd->cr, ap->x - hb, ap->y - hb, side, side);
+		if (i == hover) {
+			cairo_set_line_width(dd->cr, 2.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange */
+		} else {
+			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
+		}
+		cairo_rectangle(dd->cr, ap->x - hb + dx, ap->y - hb + dy, side, side);
 		cairo_stroke(dd->cr);
 	}
 }
