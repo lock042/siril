@@ -170,11 +170,15 @@ static void stage_progress_cb(double fraction, void *user) {
 
 /* Allocation of the 0..1 bar across the Analyze stages. The percentages
  * are rough estimates of relative wall-clock time; the bar doesn't have
- * to be linear in real time, just monotone and visibly moving. */
+ * to be linear in real time, just monotone and visibly moving. Mean
+ * frame build is a tight memory-bandwidth-bound accumulator over ~5%
+ * of N — much faster than global align (per-frame matchTemplate) or
+ * per-AP quality compute (per-frame Laplace + per-AP stddev), so it
+ * gets a slim slice. */
 #define MPP_PROG_READ_END         0.40   /* parallel frame read */
-#define MPP_PROG_GLOBAL_END       0.55   /* per-frame correlation */
-#define MPP_PROG_AVERAGE_END      0.65   /* per-frame accumulator */
-#define MPP_PROG_AP_PLACE_END     0.70   /* single-image AP grid */
+#define MPP_PROG_GLOBAL_END       0.60   /* per-frame correlation */
+#define MPP_PROG_AVERAGE_END      0.63   /* per-frame accumulator (fast) */
+#define MPP_PROG_AP_PLACE_END     0.65   /* single-image AP grid (fast) */
 #define MPP_PROG_QUALITIES_END    1.00   /* per-frame Laplace + per-AP stddev */
 
 extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
