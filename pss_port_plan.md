@@ -187,6 +187,30 @@ mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
 - `mpp::one_dim_weight(int box_low, int box_high, bool extend_low, bool extend_high, double pos) → double` — already exists.
 - `mpp::per_pixel_weight_sum(...)` — pulled out of the per-AP buffer weighting code so 5b can share it.
 
+**Lifetime / reuse strategy:** one pixmap buffer is allocated for the whole stack run and reused across frames — `mpp_pixmap_build` overwrites it in place rather than allocating a fresh map per frame. Concretely:
+
+```c
+imgmap_t pm = { 0 };
+imgmap_alloc(&pm, run->frame_cols, run->frame_rows);   // once
+for (int f : frames_to_stack) {
+    mpp_pixmap_build(run, f, drizzle_scale, &pm);      // overwrites pm
+    /* fill driz_param_t p with &pm and the frame data, call dobox(&p) */
+}
+imgmap_free(&pm);
+```
+
+The build-use-discard pattern (build the pixmap, hand it to dobox, drop it on the floor) wins on three counts and the alternatives don't help us:
+
+| Approach | Memory | Wall time | Notes |
+|---|---|---|---|
+| **One reused buffer (chosen)** | 2 × rx × ry × float ≈ 0.5 MB for 264×258, 16 MB for 4k frames | dobox dominates; pixmap build ≈ 20–30 % of dobox cost | simple, cache-friendly, zero alloc churn |
+| Build all up front | N × that = 250 MB for 500-frame `test-big.ser` at 264×258; ~8 GB for 500 4k frames | pixmap build parallel across frames (small win) | untenable for large sequences |
+| Pool of K buffers + per-thread dobox | K × that, plus K × output canvas for reduce | parallel per-frame, with reduce overhead | revisit only if profiling demands it |
+
+**Intra-frame parallelism stays.** The per-pixel loop inside `mpp_pixmap_build` is embarrassingly parallel (each output coordinate is independent), so we wrap it in `#pragma omp parallel for collapse(2)` over (j, i). With 12 APs and a 264×258 frame that's ~800k independent weight evaluations — saturates a modern CPU's threads. **Inter-frame parallelism is left out** of the initial 5b.2 implementation because dobox writes to a shared output canvas; per-thread output buffers plus reduce would need ~K × output canvas memory (24 MB per thread at drizzle=2 on a 264×258 frame; 384 MB per thread on a 4k frame) which is the same memory problem as "build all pixmaps up front", and the bicubic Phase 5a path is already sequential per-frame for the same reason. Add it only if profiling on `test-big.ser` shows the per-frame loop is the bottleneck (the existing bicubic 5a path stacks 500 frames in ~1 s, so the floor is already low).
+
+`imgmap_alloc` / `imgmap_free` are new tiny helpers next to `mpp_pixmap_build` — just malloc + memset + free, parallel-safe.
+
 **Effort:** ~half a day. The arithmetic is straightforward; the only subtlety is the corner-case "no AP covers this pixel" fallback, which needs a unit test (test `mpp_pixmap_outside_aps` below).
 
 #### 5b.2 — `mpp_drizzle_stsci_path`: integrate `dobox` into Stage C
