@@ -95,13 +95,11 @@ if criterion_dep.found()
 
      test('siril_spawn_test', siril_spawn_test_exec)
 
-     # MPP / PSS port skeleton — see pss_port_plan.md. Real assertions land per phase.
-     # MPP_PSS_TEST_DATA_DIR points at the bundled PSS reference oracle so
-     # tests that compare against pre-computed PSS artifacts can find them;
-     # if the dir is missing those tests skip themselves rather than failing.
-     mpp_test_env = environment()
-     mpp_test_env.set('MPP_PSS_TEST_DATA_DIR',
-                      meson.project_source_root() / 'tools' / 'pss_reference')
+     # MPP unit tests — synthetic / generated data only. Tests that compared
+     # against the PSS Python reference oracle (which lives outside this
+     # repo) have been removed; everything still here either builds its own
+     # fixture in-process or asserts pure-math invariants. No env vars
+     # required.
      foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
                   'mpp_shift_test', 'mpp_stack_test', 'mpp_drizzle_test',
                   'mpp_pipeline_test']
@@ -111,7 +109,7 @@ if criterion_dep.found()
                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
                                c_args : siril_c_flag,
                                cpp_args : siril_cpp_flag)
-         test(t, mpp_exec, suite: 'mpp', env: mpp_test_env)
+         test(t, mpp_exec, suite: 'mpp')
      endforeach
 
      mpp_sidecar_exec = executable('mpp_sidecar_test',
@@ -121,7 +119,7 @@ if criterion_dep.found()
                                    c_args : siril_c_flag,
                                    cpp_args : siril_cpp_flag)
 
-     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp', env: mpp_test_env)
+     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
 
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',

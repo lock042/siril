@@ -75,3 +75,13 @@ src/spcc-conesearch.cc
 tools/pss_reference/.venv/
 tools/pss_reference/test_data/
 tools/pss_reference/oracle_out/
+
+# PSS port working files (planning docs, benchmark outputs, comparison PNGs)
+# These are kept on disk locally but not tracked: planning artefacts, not
+# build inputs. The MPP code itself is the source of truth.
+pss_port_plan.md
+phase_7_4_benchmark.txt
+src/registration/MPP_PSS_DIFFS.md
+jupiter_drizzle_compare.png
+jupiter_kernel_compare.png
+bayer_slanted_edge_compare.png

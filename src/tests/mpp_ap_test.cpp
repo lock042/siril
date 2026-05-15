@@ -33,20 +33,6 @@ mpp_config_t default_cfg() {
 	return cfg;
 }
 
-cv::Mat blurred(const cv::Mat &mono, const mpp_config_t &cfg) {
-	cv::Mat b;
-	cv::GaussianBlur(mono, b, cv::Size(cfg.frames_gauss_width, cfg.frames_gauss_width), 0);
-	return b;
-}
-
-std::vector<int> read_ints_csv(const std::filesystem::path &path) {
-	std::vector<int> v;
-	std::ifstream fin(path);
-	int x;
-	while (fin >> x) v.push_back(x);
-	return v;
-}
-
 }  // namespace
 
 /* ------------------------------------------------------------------------- */
@@ -152,72 +138,3 @@ Test(mpp_ap, create_grid_basic_invariants) {
 	mpp_ap_free(aps);
 }
 
-/* Oracle test: AP centres and box coordinates must match PSS exactly on the
- * bundled synthetic dataset. Acceptance bar from pss_port_plan.md §3.3. */
-Test(mpp_ap, oracle_equivalence_synthetic) {
-	const char *data_root = std::getenv("MPP_PSS_TEST_DATA_DIR");
-	if (!data_root) cr_skip_test("MPP_PSS_TEST_DATA_DIR unset");
-	namespace fs = std::filesystem;
-	const fs::path frames_dir  = fs::path(data_root) / "test_data" / "synth_planet";
-	const fs::path ap_yx_csv   = fs::path(data_root) / "oracle_out" / "ap_yx.csv";
-	const fs::path ap_box_csv  = fs::path(data_root) / "oracle_out" / "ap_box.csv";
-
-	if (!fs::exists(frames_dir) || !fs::exists(ap_yx_csv) || !fs::exists(ap_box_csv))
-		cr_skip_test("oracle artifacts not present — regenerate via run_pss.py");
-
-	std::vector<fs::path> paths;
-	for (const auto &entry : fs::directory_iterator(frames_dir)) {
-		const std::string n = entry.path().filename().string();
-		if (n.rfind("frame_", 0) == 0 && entry.path().extension() == ".png")
-			paths.push_back(entry.path());
-	}
-	std::sort(paths.begin(), paths.end());
-	cr_assert_gt(paths.size(), 0u);
-
-	const auto cfg = default_cfg();
-
-	/* Load raw + blurred views. Raw is for the average frame; blurred is for
-	 * the global aligner. */
-	std::vector<cv::Mat> frames_raw, frames_blurred;
-	std::vector<double> quality;
-	for (const auto &p : paths) {
-		cv::Mat m = cv::imread(p.string(), cv::IMREAD_UNCHANGED);
-		cr_assert_eq(m.depth(), CV_16U);
-		frames_raw.push_back(m);
-		frames_blurred.push_back(blurred(m, cfg));
-		quality.push_back(mpp::rank_score_normalized(m, cfg));
-	}
-
-	const auto align = mpp::align_global_from_frames(frames_blurred, quality, cfg);
-	const auto avg = mpp::align_average_frame(frames_raw, quality, align.shifts, cfg);
-	cr_assert_gt(avg.mean_frame.rows, 0);
-	cr_assert_gt(avg.mean_frame.cols, 0);
-
-	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
-	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
-	cr_assert_not_null(aps);
-
-	const std::vector<int> oracle_yx  = read_ints_csv(ap_yx_csv);   /* n*2 */
-	const std::vector<int> oracle_box = read_ints_csv(ap_box_csv);  /* n*4 */
-	cr_assert_eq(oracle_yx.size() % 2, 0u);
-	cr_assert_eq(oracle_box.size() % 4, 0u);
-	const int oracle_count = (int) (oracle_yx.size() / 2);
-
-	cr_assert_eq(aps->count, oracle_count,
-	             "AP count mismatch: ours=%d oracle=%d", aps->count, oracle_count);
-
-	/* PSS iterates rows-then-columns in the same order we do; compare by
-	 * index. */
-	for (int i = 0; i < aps->count; ++i) {
-		const auto &ap = aps->records[i];
-		cr_assert_eq(ap.y, oracle_yx[2 * i],
-		             "AP %d y mismatch: ours=%d oracle=%d", i, ap.y, oracle_yx[2 * i]);
-		cr_assert_eq(ap.x, oracle_yx[2 * i + 1],
-		             "AP %d x mismatch: ours=%d oracle=%d", i, ap.x, oracle_yx[2 * i + 1]);
-		cr_assert_eq(ap.box_y_low,  oracle_box[4 * i + 0], "AP %d box_y_low",  i);
-		cr_assert_eq(ap.box_y_high, oracle_box[4 * i + 1], "AP %d box_y_high", i);
-		cr_assert_eq(ap.box_x_low,  oracle_box[4 * i + 2], "AP %d box_x_low",  i);
-		cr_assert_eq(ap.box_x_high, oracle_box[4 * i + 3], "AP %d box_x_high", i);
-	}
-	mpp_ap_free(aps);
-}
