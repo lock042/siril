@@ -1347,15 +1347,6 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
-/* Stub for the "Edit APs…" button — opens the AP editor dialog (slice 9
- * brings the dialog itself; this slot just exists so gtk_builder_connect_signals
- * can find the handler at startup). */
-void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
-	(void) button; (void) user_data;
-	if (!mpp_get_cached_run()) return;   /* defensive: button should be insensitive */
-	siril_log_message(_("AP editor: dialog not yet implemented (slice 9).\n"));
-}
-
 /* Toggle "Edit APs..." button sensitivity from com.mpp_run state. Called
  * from end_register_idle (Analyze success) and from close_sequence_idle
  * via gui_iface_impl. The button widget is fetched lazily on first call. */

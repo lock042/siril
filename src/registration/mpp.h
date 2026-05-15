@@ -110,6 +110,21 @@ int register_mpp(struct registration_args *regargs);
  * so Siril's existing frame selector and quality plot surface them. */
 void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run);
 
+/* AP editor support. Mutate the cached run's AP grid in place; per-AP
+ * frame qualities (run->best_frame_indices) are invalidated by every
+ * edit so that register_mpp's Stage B can detect the staleness and
+ * either recompute or abort with a clear message.
+ *
+ * mpp_ap_replace: re-runs auto-placement on the cached mean frame with
+ *   the supplied cfg (typically read from the editor's spinners).
+ *   Replaces run->aps. Updates run->cfg. Returns MPP_ENODATA if zero APs
+ *   would survive the threshold filters with the new cfg.
+ * mpp_ap_clear_all: drops every AP. Useful pre-cursor to manual placement.
+ *
+ * Both are no-ops if run is NULL. */
+mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg);
+void         mpp_ap_clear_all(mpp_run_t *run);
+
 /* GUI-side cache of the current run. Stage A installs the run via
  * mpp_set_cached_run; the AP overlay and the AP editor read it back via
  * mpp_get_cached_run; close_sequence calls mpp_clear_cached_run.

@@ -425,6 +425,40 @@ extern "C" void mpp_clear_cached_run(void) {
 	if (prev) mpp_run_free(prev);
 }
 
+extern "C" mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg) {
+	if (!run || !cfg || !run->mean_frame_data
+	    || run->mean_frame_rows <= 0 || run->mean_frame_cols <= 0)
+		return MPP_EINVAL;
+	cv::Mat mean(run->mean_frame_rows, run->mean_frame_cols, CV_32S,
+	             run->mean_frame_data);
+	cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(mean, *cfg);
+	mpp_aps_t *new_aps = mpp::ap_create_grid(mean_blurred, *cfg);
+	if (!new_aps) return MPP_ENOMEM;
+	if (new_aps->count <= 0) {
+		mpp_ap_free(new_aps);
+		return MPP_ENODATA;
+	}
+	mpp_ap_free(run->aps);
+	run->aps = new_aps;
+	if (run->cfg) *run->cfg = *cfg;
+	/* Per-AP qualities are now stale (different AP set). Clear so
+	 * register_mpp can detect at Stage B time and refuse / recompute. */
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+	return MPP_OK;
+}
+
+extern "C" void mpp_ap_clear_all(mpp_run_t *run) {
+	if (!run) return;
+	if (run->aps) {
+		std::free(run->aps->records);
+		run->aps->records = nullptr;
+		run->aps->count = 0;
+	}
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+}
+
 extern "C" mpp_run_t *mpp_get_cached_run(void) {
 	g_mutex_lock(&mpp_cache_mutex);
 	mpp_run_t *r = (mpp_run_t *) com.mpp_run;
@@ -501,15 +535,55 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	siril_debug_print("register_mpp: regargs=%p mpp_stage_a_only=%d filter_included=%d\n",
 	                  (void *) regargs, (int) regargs->mpp_stage_a_only,
 	                  (int) regargs->filters.filter_included);
-	gui_iface.set_progress(PROGRESS_RESET,
-	                       stage_a_only ? _("Analyze: ranking frames")
-	                                    : _("Register: ranking frames"));
-	mpp_run_t *run = NULL;
-	const int rc_a = mpp_analyze(regargs->seq, &cfg, &run);
-	if (rc_a != MPP_OK) {
-		siril_log_color_message(_("mpp: Stage A failed (code %d)\n"), "red", rc_a);
-		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-		return rc_a;
+	/* Reuse-cached path: if Stage A already ran (Analyze button) and the
+	 * cached run matches this sequence, skip Stage A and go straight to
+	 * Stage B. This is what makes the AP editor's edits actually take
+	 * effect — Register uses the (possibly-edited) cached AP grid rather
+	 * than rebuilding it from scratch. The cache is cleared on
+	 * close_sequence so there's no risk of using a stale run from a
+	 * different sequence. */
+	mpp_run_t *cached = mpp_get_cached_run();
+	const bool reuse_cache = (cached && cached->aps && cached->aps->count > 0
+	                          && cached->num_frames == regargs->seq->number);
+	mpp_run_t *run = nullptr;
+	bool run_owned = true;   /* if false, run is borrowed from com.mpp_run; do not free */
+
+	if (reuse_cache) {
+		run = cached;
+		run_owned = false;
+		siril_log_color_message(stage_a_only
+		                        ? _("mpp: re-Analyze — reusing cached Stage A run; "
+		                            "AP grid will be replaced.\n")
+		                        : _("mpp: reusing cached Stage A run from previous Analyze "
+		                            "(%d APs%s).\n"),
+		                        "green",
+		                        cached->aps->count,
+		                        cached->best_frame_indices ? "" : ", AP-edited");
+		if (stage_a_only) {
+			/* Re-Analyze with cached run: drop the cache here so the fresh
+			 * mpp_analyze below builds a new run that supersedes it. */
+			run = nullptr;
+			run_owned = true;
+		} else if (!cached->best_frame_indices) {
+			siril_log_color_message(_("mpp: APs were edited but per-AP frame qualities are "
+			                          "stale. Please click Analyze again before Register so "
+			                          "Stage B has fresh per-AP qualities for the edited grid.\n"),
+			                        "red");
+			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+			return MPP_EINVAL;
+		}
+	}
+
+	if (!run) {
+		gui_iface.set_progress(PROGRESS_RESET,
+		                       stage_a_only ? _("Analyze: ranking frames")
+		                                    : _("Register: ranking frames"));
+		const int rc_a = mpp_analyze(regargs->seq, &cfg, &run);
+		if (rc_a != MPP_OK) {
+			siril_log_color_message(_("mpp: Stage A failed (code %d)\n"), "red", rc_a);
+			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+			return rc_a;
+		}
 	}
 	siril_log_message(_("mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
 	                  run->best_frame_idx, run->aps->count, run->stack_size);
@@ -542,7 +616,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		if (n_selected == 0) {
 			siril_log_color_message(_("mpp: no frames selected — aborting\n"), "red");
 			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-			mpp_run_free(run);
+			if (run_owned) mpp_run_free(run);
 			return MPP_ENODATA;
 		}
 	}
@@ -553,7 +627,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	if (rc_b != MPP_OK) {
 		siril_log_color_message(_("mpp: Stage B failed (code %d)\n"), "red", rc_b);
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-		mpp_run_free(run);
+		if (run_owned) mpp_run_free(run);
 		return rc_b;
 	}
 	siril_log_message(_("mpp: Stage B done — %d shifts failed\n"),
@@ -565,12 +639,12 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	if (mpp_sidecar_write(sidecar_path, run) != MPP_OK) {
 		siril_log_message(_("mpp: sidecar write to %s failed\n"), sidecar_path);
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-		mpp_run_free(run);
+		if (run_owned) mpp_run_free(run);
 		return MPP_EIO;
 	}
 	siril_log_message(_("mpp: sidecar written to %s\n"), sidecar_path);
 	gui_iface.set_progress(PROGRESS_DONE, _("Register: done"));
 
-	mpp_run_free(run);
+	if (run_owned) mpp_run_free(run);
 	return MPP_OK;
 }
