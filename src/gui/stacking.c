@@ -42,6 +42,13 @@ static float filter_initvals[] = {90., 3.}; // max %, max k
 static float filter_maxvals[] = {100., 5.}; // max %, max k
 static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
 // update_adjustment passed here as a static (instead of function parameter like in registration)
+/* Forward decls for the drizzle-combo CFA-aware filters; the definitions
+ * live further down with on_combo_mpp_drizzle_changed but start_stacking
+ * installs the cell-data-func at widget init. */
+static void mpp_drizzle_combo_cell_func(GtkCellLayout *, GtkCellRenderer *,
+                                         GtkTreeModel *, GtkTreeIter *, gpointer);
+static void mpp_drizzle_combo_validate(GtkComboBox *);
+
 // in order not to mess up all the calls to update_stack_interface
 static int update_adjustment = -1;
 static char *filter_tooltip_text[] = {
@@ -129,6 +136,15 @@ static void start_stacking() {
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
 		mpp_driz_kernel_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
+		/* Install the per-row sensitivity callback so stsci-* greys out
+		 * for CFA input and bayer-* greys out for mono input. */
+		GList *cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(mpp_drizzle_combo));
+		if (cells && cells->data) {
+			gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(mpp_drizzle_combo),
+			                                   GTK_CELL_RENDERER(cells->data),
+			                                   mpp_drizzle_combo_cell_func, NULL, NULL);
+		}
+		g_list_free(cells);
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
@@ -297,6 +313,59 @@ void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	gtk_widget_set_visible(spin_pf,  dobox_mode);
 	gtk_widget_set_visible(lbl_kn,   dobox_mode);
 	gtk_widget_set_visible(combo_kn, dobox_mode);
+}
+
+/* Cell-renderer callback: gray out drizzle-mode combo items that are
+ * incompatible with the loaded sequence's channel layout. STScI modes
+ * (indices 4–5) require mono input — debayer-then-STScI is rejected at
+ * the command-handler level because classical debayer artefacts would
+ * be amplified by drizzle. Bayer modes (indices 6–7) require CFA input.
+ * The bicubic family (0–3) is always available.
+ *
+ * Sensitive=FALSE makes the row unclickable in the dropdown but keeps it
+ * visible so the user sees the available palette of options. The
+ * mpp_drizzle_combo_validate function (called from update_stack_interface)
+ * resets the active selection if the previously-selected mode became
+ * invalid on a sequence-state change. */
+static void mpp_drizzle_combo_cell_func(GtkCellLayout *cell_layout,
+                                         GtkCellRenderer *cell,
+                                         GtkTreeModel *tree_model,
+                                         GtkTreeIter *iter,
+                                         gpointer data) {
+	(void)cell_layout; (void)data;
+	GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
+	if (!path) return;
+	const int idx = gtk_tree_path_get_indices(path)[0];
+	gtk_tree_path_free(path);
+
+	const gboolean seqloaded = sequence_is_loaded();
+	const gboolean is_cfa  = seqloaded && com.seq.nb_layers > 1;
+	const gboolean is_mono = seqloaded && com.seq.nb_layers == 1;
+
+	gboolean sensitive = TRUE;
+	if (idx == 4 || idx == 5) sensitive = !is_cfa;   /* stsci-* needs mono */
+	if (idx == 6 || idx == 7) sensitive = !is_mono;  /* bayer-* needs CFA  */
+	g_object_set(cell, "sensitive", sensitive, NULL);
+}
+
+/* Validate the currently-selected drizzle mode against the loaded
+ * sequence. If the selection became invalid (e.g., user had stsci-2x
+ * selected when no sequence was loaded, then opened a CFA SER), fall
+ * back to "Off" so they don't hit a rejection at stack time. Called
+ * from update_stack_interface on every sequence-state change. */
+static void mpp_drizzle_combo_validate(GtkComboBox *combo) {
+	if (!combo) return;
+	const gboolean seqloaded = sequence_is_loaded();
+	const gboolean is_cfa  = seqloaded && com.seq.nb_layers > 1;
+	const gboolean is_mono = seqloaded && com.seq.nb_layers == 1;
+	const int idx = gtk_combo_box_get_active(combo);
+	gboolean invalid = FALSE;
+	if ((idx == 4 || idx == 5) && is_cfa)  invalid = TRUE;
+	if ((idx == 6 || idx == 7) && is_mono) invalid = TRUE;
+	if (invalid) gtk_combo_box_set_active(combo, 0);
+	/* Force the dropdown to re-evaluate cell sensitivities for the new
+	 * sequence state. cell_data_func reads sequence state on each render. */
+	gtk_widget_queue_draw(GTK_WIDGET(combo));
 }
 
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
@@ -771,6 +840,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	gtk_expander_set_expanded(stack_expander_method, seqloaded);
 	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_output), seqloaded);
 	gtk_expander_set_expanded(stack_expander_output, seqloaded);
+	/* Refresh the mpp drizzle-mode combo against the new sequence's
+	 * channel layout: reset the active selection if it's no longer
+	 * valid, and let the cell renderer grey out inapplicable options. */
+	mpp_drizzle_combo_validate(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle")));
 	if (!seqloaded) {
 		return;
 	}
