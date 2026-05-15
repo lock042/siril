@@ -11562,6 +11562,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	init_stacking_args(&args);
 	args.seq = seq;
 	args.ref_image = sequence_find_refimage(seq);
+	if (seq->ext_ref)
+		siril_log_message(_("External reference alignment detected: using frame #%d as normalization reference for stacking\n"), args.ref_image + 1);
 	// the three below: used only if method is average w/ rejection
 	if (arg->method == stack_mean_with_rejection && (arg->sig[0] != 0.0 || arg->sig[1] != 0.0)) {
 		args.sig[0] = arg->sig[0];
