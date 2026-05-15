@@ -361,12 +361,18 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 
 	/* Phase 5b dispatch: STScI / Bayer paths route through dobox via the
 	 * pixmap built in mpp_drizzle.cpp. Bicubic (and the bicubic-with-
-	 * drizzle_factor=1 default) stays on the Phase 5a cv::resize loop. */
+	 * drizzle_factor=1 default) stays on the Phase 5a cv::resize loop.
+	 * The sequence-side MPP_DRIZZLE_BAYER wrapper isn't implemented yet —
+	 * it would need to re-read the sequence's raw Bayer frames bypassing
+	 * the debayer-on-open pref. The C++ inner entry (mpp::stack_apply_bayer)
+	 * is fully implemented and exercised by the Phase 5b.3 unit tests. */
 	switch (cfg->drizzle_mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
 		case MPP_DRIZZLE_BAYER:
-			siril_log_color_message(_("Stack: Bayer drizzle path not yet "
-			                          "implemented (Phase 5b.3).\n"), "red");
+			siril_log_color_message(
+			    _("Stack: sequence-side Bayer drizzle wrapper pending — "
+			      "use mpp::stack_apply_bayer (C++ API) directly for now.\n"),
+			    "salmon");
 			return MPP_ENOTIMPL;
 		case MPP_DRIZZLE_OFF:
 		case MPP_DRIZZLE_BICUBIC:

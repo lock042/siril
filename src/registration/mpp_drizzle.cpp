@@ -433,6 +433,199 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	return MPP_OK;
 }
 
+/* ============================================================
+ * Bayer drizzle (slice 5b.3).
+ *
+ * Same as the STScI path but:
+ *   - input frames are single-channel raw Bayer (no debayer);
+ *   - driz_args.is_bayer = TRUE with cfa[] + cfadim populated;
+ *   - output is always 3-channel planar (R, G, B), even if input is
+ *     single-channel.
+ *
+ * dobox's do_kernel_square (cdrizzlebox.c:998) reads the CFA channel
+ * from the *input* pixel position, so the per-pixel routing is
+ * intrinsic to (i, j) and works fine with our non-affine pixmap
+ * (every input pixel still has a fixed colour identity regardless of
+ * where the pixmap sends it).
+ * ============================================================ */
+
+mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
+                                    const std::vector<int> &included,
+                                    const std::vector<double> &frame_brightness,
+                                    const mpp_run_t *run,
+                                    const mpp_config_t *cfg,
+                                    const unsigned char *cfa,
+                                    int cfadim,
+                                    fits *out) {
+	if (!cfg || !run || !out || !run->aps || !run->shifts || !cfa) return MPP_EINVAL;
+	if (cfadim != 2) return MPP_EINVAL;     /* 2x2 Bayer only for now */
+	const int N = (int) frames_raw_bayer.size();
+	if (N <= 0 || (int) included.size() != N
+	 || (int) frame_brightness.size() != N) return MPP_EINVAL;
+	if (N != run->num_frames) return MPP_EINVAL;
+	for (const auto &f : frames_raw_bayer) {
+		if (!f.empty() && f.channels() != 1) return MPP_EINVAL;
+	}
+
+	const int frame_rx = run->frame_cols;
+	const int frame_ry = run->frame_rows;
+	if (frame_rx <= 0 || frame_ry <= 0) return MPP_EINVAL;
+
+	const int intersection_rx = run->intersection[3] - run->intersection[2];
+	const int intersection_ry = run->intersection[1] - run->intersection[0];
+	if (intersection_rx <= 0 || intersection_ry <= 0) return MPP_EINVAL;
+
+	const int factor   = cfg->drizzle_factor < 1 ? 1 : cfg->drizzle_factor;
+	const int out_rx   = intersection_rx * factor;
+	const int out_ry   = intersection_ry * factor;
+	const int channels = 3;                  /* Bayer output is always RGB */
+
+	fits output_data{};
+	fits output_counts{};
+	if (!alloc_float_fits(&output_data, out_rx, out_ry, channels)) return MPP_ENOMEM;
+	if (!alloc_float_fits(&output_counts, out_rx, out_ry, channels)) {
+		clearfits(&output_data);
+		return MPP_ENOMEM;
+	}
+
+	imgmap_t pixmap{};
+	if (mpp_imgmap_alloc(&pixmap, frame_rx, frame_ry) != MPP_OK) {
+		clearfits(&output_data);
+		clearfits(&output_counts);
+		return MPP_ENOMEM;
+	}
+
+	std::vector<double> bright_inc;
+	bright_inc.reserve(N);
+	for (int i = 0; i < N; ++i)
+		if (included[i]) bright_inc.push_back(frame_brightness[i]);
+	if (bright_inc.empty()) {
+		mpp_imgmap_free(&pixmap);
+		clearfits(&output_data);
+		clearfits(&output_counts);
+		return MPP_ENODATA;
+	}
+	std::nth_element(bright_inc.begin(),
+	                 bright_inc.begin() + bright_inc.size() / 2,
+	                 bright_inc.end());
+	const double median_brightness = bright_inc[bright_inc.size() / 2];
+
+	struct driz_args_t driz_args;
+	std::memset(&driz_args, 0, sizeof(driz_args));
+	driz_args.kernel         = kernel_from_cfg(cfg->drizzle_kernel);
+	driz_args.scale          = (float) factor;
+	driz_args.pixel_fraction = (float) cfg->drizzle_pixfrac;
+	driz_args.weight_scale   = 1.0f;
+	driz_args.is_bayer       = TRUE;
+	std::memcpy(driz_args.cfa, cfa, 4);
+	driz_args.cfadim         = (size_t) cfadim;
+	driz_args.use_flats      = FALSE;
+	driz_args.flat           = nullptr;
+
+	struct driz_error_t error;
+	std::memset(&error, 0, sizeof(error));
+
+	const int n_included = (int) bright_inc.size();
+	int cur_nb = 0;
+	gui_iface.set_progress(PROGRESS_RESET, _("Stack (Bayer drizzle): processing frames"));
+
+	for (int f = 0; f < N; ++f) {
+		if (!included[f] || frames_raw_bayer[f].empty()) continue;
+
+		const double scale = median_brightness
+		                   / (frame_brightness[f] + 1e-7);
+
+		fits frame_fit{};
+		if (!cv_to_planar_fits(frames_raw_bayer[f], scale, &frame_fit)) {
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_ENOMEM;
+		}
+
+		if (mpp_pixmap_build(run, f, (double) factor, &pixmap) != MPP_OK) {
+			clearfits(&frame_fit);
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EINVAL;
+		}
+
+		struct driz_param_t p;
+		std::memset(&p, 0, sizeof(p));
+		driz_param_init(&p);
+		p.driz           = &driz_args;
+		p.kernel         = driz_args.kernel;
+		p.scale          = 1.0f;            /* same as STScI path — see comment there */
+		p.pixel_fraction = driz_args.pixel_fraction;
+		p.weight_scale   = 1.0f;
+		p.in_units       = unit_counts;
+		p.out_units      = unit_counts;
+		p.exposure_time  = 1.0f;
+		p.data           = &frame_fit;
+		p.weights        = nullptr;
+		p.pixmap         = &pixmap;
+		p.output_data    = &output_data;
+		p.output_counts  = &output_counts;
+		std::memcpy(p.cfa, cfa, 4);
+		p.cfadim         = (size_t) cfadim;
+		p.xmin           = 0;
+		p.ymin           = 0;
+		p.xmax           = frame_rx - 1;
+		p.ymax           = frame_ry - 1;
+		p.threads        = 1;
+		p.error          = &error;
+
+		if (dobox(&p)) {
+			siril_log_color_message(
+			    _("Stack (Bayer): dobox failed on frame %d: %s\n"),
+			    "red", f, error.last_message[0] ? error.last_message : "(no detail)");
+			clearfits(&frame_fit);
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EIO;
+		}
+		clearfits(&frame_fit);
+
+		++cur_nb;
+		gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
+	}
+
+	mpp_imgmap_free(&pixmap);
+	clearfits(&output_counts);
+
+	clearfits(out);
+	out->rx = out_rx;
+	out->ry = out_ry;
+	out->naxes[0] = out_rx;
+	out->naxes[1] = out_ry;
+	out->naxes[2] = channels;
+	out->naxis = 3;
+	out->bitpix = USHORT_IMG;
+	out->orig_bitpix = USHORT_IMG;
+	out->type = DATA_USHORT;
+	const size_t plane = (size_t) out_rx * (size_t) out_ry;
+	out->data = (WORD *) std::calloc(plane * (size_t) channels, sizeof(WORD));
+	if (!out->data) {
+		clearfits(&output_data);
+		return MPP_ENOMEM;
+	}
+	out->pdata[0] = out->data;
+	out->pdata[1] = out->data + plane;
+	out->pdata[2] = out->data + 2 * plane;
+
+	const double cast_scale = (cfg->bitdepth == 8) ? 256.0 : 1.0;
+	for (size_t k = 0; k < plane * (size_t) channels; ++k) {
+		const double v = (double) output_data.fdata[k] * cast_scale;
+		out->data[k] = (WORD) (v < 0.0 ? 0
+		                     : (v > 65535.0 ? 65535
+		                                    : (int) (v + 0.5)));
+	}
+	clearfits(&output_data);
+	return MPP_OK;
+}
+
 /* Sequence-side wrapper: reads each included frame via Siril's
  * sequence I/O and forwards to the inner C++ function. */
 extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,

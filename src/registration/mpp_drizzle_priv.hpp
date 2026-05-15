@@ -41,6 +41,28 @@ mpp_status_t stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
                                const mpp_config_t *cfg,
                                fits *out);
 
+/* Inner Bayer-drizzle stack path. Inputs: per-frame single-channel raw
+ * Bayer-mosaic frames (NO debayering applied), and the same run state
+ * that Stage A produced on the corresponding debayered frames. dobox's
+ * CFA branch routes each input pixel to the appropriate channel of a
+ * 3-channel output canvas via `cfa[]` + `cfadim`, so the geometry from
+ * the run's pixmap is reused unchanged.
+ *
+ * `cfa[]` is a 4-element BYTE array (2x2 pattern): RLAYER=0, GLAYER=1,
+ * BLAYER=2 — same encoding Siril's get_compiled_pattern produces.
+ * `cfadim` must be 2 (only 2x2 Bayer is supported; X-Trans uses cfadim=6
+ * but isn't tested by this path yet).
+ *
+ * Output is always 3-channel uint16 (planar R/G/B with pdata[0..2] set). */
+mpp_status_t stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
+                               const std::vector<int> &included,
+                               const std::vector<double> &frame_brightness,
+                               const mpp_run_t *run,
+                               const mpp_config_t *cfg,
+                               const unsigned char *cfa,
+                               int cfadim,
+                               fits *out);
+
 }  // namespace mpp
 
 #endif  /* SRC_REGISTRATION_MPP_DRIZZLE_PRIV_HPP_ */

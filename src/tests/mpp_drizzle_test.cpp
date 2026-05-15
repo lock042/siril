@@ -736,3 +736,170 @@ Test(mpp_stsci_oracle, real_2x) {
 
 	clearfits(&out);
 }
+
+/* ===========================================================================
+ * Bayer drizzle synthetic-mosaic smoke test (slice 5b.3 gate).
+ *
+ * Generates a synthetic RGGB Bayer mosaic from a known-constant RGB
+ * ground truth and runs mpp::stack_apply_bayer at drizzle=1 pixfrac=1
+ * with a minimal one-frame, zero-shift run. Verifies that dobox's CFA
+ * routing distributes the input samples to the correct output channels
+ * with our non-affine pixmap.
+ *
+ * This is the "does dobox's Bayer branch behave with the MPP pixmap"
+ * gate test the plan calls for. The slanted-edge MTF test (5b.6) lands
+ * later.
+ * ========================================================================= */
+
+namespace {
+mpp_run_t *make_minimal_run(int rx, int ry, int num_layers, int bitdepth,
+                            double brightness = 100.0) {
+	mpp_run_t *run = mpp_run_alloc();
+	if (!run) return nullptr;
+	run->num_frames = 1;
+	run->frame_rows = ry;
+	run->frame_cols = rx;
+	run->num_layers = num_layers;
+	run->bitdepth   = bitdepth;
+	run->intersection[0] = 0;
+	run->intersection[1] = ry;
+	run->intersection[2] = 0;
+	run->intersection[3] = rx;
+	run->cfg = (mpp_config_t *) std::calloc(1, sizeof(mpp_config_t));
+	mpp_config_defaults(run->cfg);
+	run->cfg->bitdepth = bitdepth;
+	run->global_shifts = (int *) std::calloc(2, sizeof(int));
+	run->frame_brightness = (double *) std::calloc(1, sizeof(double));
+	run->frame_brightness[0] = brightness;
+	run->included = (int *) std::calloc(1, sizeof(int));
+	run->included[0] = 1;
+	run->aps = (mpp_aps_t *) std::calloc(1, sizeof(mpp_aps_t));
+	run->aps->count = 1;
+	run->aps->records = (mpp_ap_record_t *) std::calloc(1, sizeof(mpp_ap_record_t));
+	run->aps->records[0].y = ry / 2;
+	run->aps->records[0].x = rx / 2;
+	run->aps->records[0].patch_y_low  = 0;
+	run->aps->records[0].patch_y_high = ry;
+	run->aps->records[0].patch_x_low  = 0;
+	run->aps->records[0].patch_x_high = rx;
+	run->aps->records[0].box_y_low    = 0;
+	run->aps->records[0].box_y_high   = ry;
+	run->aps->records[0].box_x_low    = 0;
+	run->aps->records[0].box_x_high   = rx;
+	run->aps->records[0].structure    = 1.0;
+	run->shifts = (mpp_shifts_t *) std::calloc(1, sizeof(mpp_shifts_t));
+	run->shifts->num_frames = 1;
+	run->shifts->num_aps = 1;
+	run->shifts->shifts = (double *) std::calloc(2, sizeof(double));   /* zero */
+	run->shifts->success = (uint8_t *) std::calloc(1, sizeof(uint8_t));
+	run->shifts->success[0] = 1;
+	return run;
+}
+}  // namespace
+
+Test(mpp_bayer_drizzle, synthetic_mosaic_rggb) {
+	/* Ground truth: 64×64 RGB constant — R=64, G=128, B=192 (in 0..255).
+	 * Pick distinct, non-saturating values so cross-channel leakage in
+	 * the output (if any) shows up clearly. */
+	const int W = 64, H = 64;
+	const uint8_t R_VAL = 64, G_VAL = 128, B_VAL = 192;
+
+	/* Mosaic to RGGB single-channel:
+	 *   row even, col even → R
+	 *   row even, col odd  → G
+	 *   row odd,  col even → G
+	 *   row odd,  col odd  → B           */
+	cv::Mat bayer(H, W, CV_8UC1);
+	for (int y = 0; y < H; ++y) {
+		uint8_t *row = bayer.ptr<uint8_t>(y);
+		for (int x = 0; x < W; ++x) {
+			const int kind = ((y & 1) << 1) | (x & 1);
+			row[x] = (kind == 0) ? R_VAL
+			       : (kind == 3) ? B_VAL
+			       : G_VAL;
+		}
+	}
+
+	mpp_config_t cfg = stsci_default_cfg();
+	cfg.bitdepth = 8;
+	cfg.drizzle_mode    = MPP_DRIZZLE_BAYER;
+	cfg.drizzle_factor  = 1;
+	cfg.drizzle_pixfrac = 1.0;
+	cfg.drizzle_kernel  = MPP_KERNEL_SQUARE;
+
+	mpp_run_t *run = make_minimal_run(W, H, /*num_layers=*/3, /*bitdepth=*/8,
+	                                  /*brightness=*/(R_VAL + 2*G_VAL + B_VAL) / 4.0);
+	cr_assert_not_null(run);
+
+	const std::vector<cv::Mat> frames = { bayer };
+	const std::vector<int> included = { 1 };
+	const std::vector<double> brightness = { run->frame_brightness[0] };
+
+	/* RGGB pattern (matches get_compiled_pattern output for BAYER_RGGB —
+	 * demosaicing.c:333). RLAYER=0, GLAYER=1, BLAYER=2. */
+	const unsigned char cfa[4] = { 0, 1, 1, 2 };
+
+	fits out{};
+	const mpp_status_t rc = mpp::stack_apply_bayer(frames, included, brightness,
+	                                               run, &cfg, cfa, /*cfadim=*/2, &out);
+	cr_assert_eq(rc, MPP_OK);
+	cr_assert_eq(out.naxes[2], 3);
+	cr_assert_eq(out.rx, W);
+	cr_assert_eq(out.ry, H);
+
+	/* Wrap each channel as a cv::Mat for stats. Output layout is planar
+	 * (pdata[0..2] point into a single contiguous buffer). */
+	const size_t plane = (size_t) W * (size_t) H;
+	cv::Mat ch_r(H, W, CV_16U, out.data);
+	cv::Mat ch_g(H, W, CV_16U, out.data + plane);
+	cv::Mat ch_b(H, W, CV_16U, out.data + 2 * plane);
+
+	/* Each channel receives input only at the corresponding CFA positions
+	 * (R: 25 %, G: 50 %, B: 25 % of pixels). Where it doesn't receive,
+	 * the cell stays at calloc'd zero — there's no interpolation in our
+	 * drizzle path. So mean over the whole plane is:
+	 *   mean_R = R_VAL × 0.25 × scale_8_to_16
+	 *   mean_G = G_VAL × 0.50 × scale_8_to_16
+	 *   mean_B = B_VAL × 0.25 × scale_8_to_16   */
+	const double scale_8_to_16 = 256.0;
+	const double exp_R = (double) R_VAL * 0.25 * scale_8_to_16;
+	const double exp_G = (double) G_VAL * 0.50 * scale_8_to_16;
+	const double exp_B = (double) B_VAL * 0.25 * scale_8_to_16;
+	const double mean_R = cv::mean(ch_r)[0];
+	const double mean_G = cv::mean(ch_g)[0];
+	const double mean_B = cv::mean(ch_b)[0];
+
+	siril_log_color_message(
+	    "[bayer_rggb] means R=%.0f (exp %.0f)  G=%.0f (exp %.0f)  B=%.0f (exp %.0f)\n",
+	    "green", mean_R, exp_R, mean_G, exp_G, mean_B, exp_B);
+
+	const double tol = 1.0;   /* 1 / 65535 — should be near-bit-exact */
+	cr_assert_lt(std::abs(mean_R - exp_R), tol,
+	             "R channel mean %.2f drifts from expected %.2f", mean_R, exp_R);
+	cr_assert_lt(std::abs(mean_G - exp_G), tol,
+	             "G channel mean %.2f drifts from expected %.2f", mean_G, exp_G);
+	cr_assert_lt(std::abs(mean_B - exp_B), tol,
+	             "B channel mean %.2f drifts from expected %.2f", mean_B, exp_B);
+
+	/* Cross-channel leakage: at a pixel where the Bayer position says
+	 * "this is a R sample", the G and B channels should be zero (no
+	 * input pixel mapped there for those channels). Check at (0, 0)
+	 * which is an R position in RGGB. */
+	cr_assert_eq(ch_r.at<uint16_t>(0, 0), (uint16_t)(R_VAL * scale_8_to_16),
+	             "R(0,0) should be the R sample value");
+	cr_assert_eq(ch_g.at<uint16_t>(0, 0), 0,
+	             "G(0,0) should be zero (no G sample mapped here)");
+	cr_assert_eq(ch_b.at<uint16_t>(0, 0), 0,
+	             "B(0,0) should be zero (no B sample mapped here)");
+
+	/* And at a G-position (0, 1) and B-position (1, 1): */
+	cr_assert_eq(ch_r.at<uint16_t>(0, 1), 0,                                "R(0,1) zero");
+	cr_assert_eq(ch_g.at<uint16_t>(0, 1), (uint16_t)(G_VAL * scale_8_to_16), "G(0,1) green");
+	cr_assert_eq(ch_b.at<uint16_t>(0, 1), 0,                                "B(0,1) zero");
+	cr_assert_eq(ch_r.at<uint16_t>(1, 1), 0,                                "R(1,1) zero");
+	cr_assert_eq(ch_g.at<uint16_t>(1, 1), 0,                                "G(1,1) zero");
+	cr_assert_eq(ch_b.at<uint16_t>(1, 1), (uint16_t)(B_VAL * scale_8_to_16), "B(1,1) blue");
+
+	clearfits(&out);
+	mpp_run_free(run);
+}
