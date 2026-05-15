@@ -6760,7 +6760,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_half_box">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_half_box_width. Per-AP half-box in pixels; the AP-grid step and half-patch derive from this. Default 24.</property>
+                                                            <property name="tooltip-text" translatable="yes">Per-AP half-box in pixels; the AP-grid step and half-patch derive from this. Default 24.</property>
                                                             <property name="adjustment">adj_mpp_half_box</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">24</property>
@@ -6786,7 +6786,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_search_width">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_search_width. Per-AP correlation search radius in pixels. Default 14.</property>
+                                                            <property name="tooltip-text" translatable="yes">Per-AP correlation search radius in pixels. Default 14.</property>
                                                             <property name="adjustment">adj_mpp_search_width</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">14</property>
@@ -6812,7 +6812,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_search_global">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS align_frames_search_width. Stage-A global alignment correlation search radius in pixels. Default 34.</property>
+                                                            <property name="tooltip-text" translatable="yes">Stage-A global alignment correlation search radius in pixels. Default 34.</property>
                                                             <property name="adjustment">adj_mpp_search_global</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">34</property>
@@ -6838,7 +6838,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_patch_scale">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS align_frames_rectangle_scale_factor. Multiplies the auto-picked patch dimension during global alignment. Default 3.0.</property>
+                                                            <property name="tooltip-text" translatable="yes">Multiplies the auto-picked patch dimension during global alignment. Default 3.0.</property>
                                                             <property name="adjustment">adj_mpp_patch_scale</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -6865,7 +6865,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_min_brightness">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_brightness_threshold (0..255 scale; auto-scaled for 16-bit). APs whose brightest pixel falls below this are rejected. Default 10.</property>
+                                                            <property name="tooltip-text" translatable="yes">APs whose brightest pixel falls below this are rejected. 0..255 scale, auto-scaled for 16-bit input. Default 10.</property>
                                                             <property name="adjustment">adj_mpp_min_brightness</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">10</property>
@@ -6891,7 +6891,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_min_contrast">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_contrast_threshold (0..255 scale). Minimum (max - min) over an AP box. Default 0 (off).</property>
+                                                            <property name="tooltip-text" translatable="yes">Minimum (max - min) over an AP box; APs below this contrast are rejected. 0..255 scale. Default 0 (off).</property>
                                                             <property name="adjustment">adj_mpp_min_contrast</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">0</property>
@@ -6917,7 +6917,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_min_structure">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_structure_threshold. Normalised gradient magnitude minimum (0..1). Default 0.04.</property>
+                                                            <property name="tooltip-text" translatable="yes">Normalised gradient magnitude minimum (0..1) — APs with weaker structure are rejected. Default 0.04.</property>
                                                             <property name="adjustment">adj_mpp_min_structure</property>
                                                             <property name="digits">3</property>
                                                             <property name="numeric">True</property>
@@ -6934,7 +6934,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS alignment_points_de_warp. When off, all APs use the same single best-frame shift instead of per-AP shifts (CLI -no-dewarp). Default on.</property>
+                                                            <property name="tooltip-text" translatable="yes">When off, all APs use the same single best-frame shift instead of per-AP shifts (CLI -no-dewarp). Default on.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -6951,7 +6951,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">PSS frames_normalization. Divide per-frame Laplace-σ quality by mean above-threshold brightness for invariance to varying exposure (CLI -no-normalize toggles off). Default on.</property>
+                                                            <property name="tooltip-text" translatable="yes">Divide per-frame Laplace-σ quality by mean above-threshold brightness for invariance to varying exposure (CLI -no-normalize toggles off). Default on.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -9255,7 +9255,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkComboBoxText" id="combo_mpp_drizzle">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">False</property>
-                                                                <property name="tooltip-text" translatable="yes">PSS-faithful bicubic drizzle factor applied to each frame before the per-AP remap. Off = native pixels. 1.5x is rendered at 3× and Siril will downsample later (not yet implemented); use 2× or 3× for the cleanest path today.</property>
+                                                                <property name="tooltip-text" translatable="yes">Bicubic drizzle factor applied to each frame before the per-AP remap. Off = native pixels. 1.5x is rendered at 3× and Siril will downsample later (not yet implemented); use 2× or 3× for the cleanest path today.</property>
                                                                 <property name="active">0</property>
                                                                 <items>
                                                                   <item translatable="yes">Off</item>
@@ -9284,7 +9284,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkSpinButton" id="spin_mpp_stack_percent">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">True</property>
-                                                                <property name="tooltip-text" translatable="yes">PSS alignment_points_frame_percent. Per-AP top-N selection: keep the best N% of frames for each AP. Default 10.</property>
+                                                                <property name="tooltip-text" translatable="yes">Per-AP top-N selection: keep the best N% of frames for each AP. Default 10.</property>
                                                                 <property name="adjustment">adj_mpp_stack_percent</property>
                                                                 <property name="numeric">True</property>
                                                                 <property name="value">10</property>
@@ -9309,7 +9309,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkSpinButton" id="spin_mpp_stack_frames">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">True</property>
-                                                                <property name="tooltip-text" translatable="yes">PSS alignment_points_frame_number. Explicit per-AP top-N count; positive value overrides stack-percent. -1 disables (use percent). Default -1.</property>
+                                                                <property name="tooltip-text" translatable="yes">Explicit per-AP top-N count; positive value overrides stack-percent. -1 disables (use percent). Default -1.</property>
                                                                 <property name="adjustment">adj_mpp_stack_frames</property>
                                                                 <property name="numeric">True</property>
                                                                 <property name="value">-1</property>
@@ -9334,7 +9334,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkSpinButton" id="spin_mpp_bg_fraction">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">True</property>
-                                                                <property name="tooltip-text" translatable="yes">PSS stack_frames_background_fraction. Decides full-frame vs patch-based background composition. Default 0.3.</property>
+                                                                <property name="tooltip-text" translatable="yes">Decides full-frame vs patch-based background composition. Default 0.3.</property>
                                                                 <property name="adjustment">adj_mpp_bg_fraction</property>
                                                                 <property name="digits">2</property>
                                                                 <property name="numeric">True</property>
@@ -9360,7 +9360,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkSpinButton" id="spin_mpp_bg_blend">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">True</property>
-                                                                <property name="tooltip-text" translatable="yes">PSS stack_frames_background_blend_threshold. Controls the soft fg/bg blend ramp. Default 0.2.</property>
+                                                                <property name="tooltip-text" translatable="yes">Controls the soft fg/bg blend ramp. Default 0.2.</property>
                                                                 <property name="adjustment">adj_mpp_bg_blend</property>
                                                                 <property name="digits">2</property>
                                                                 <property name="numeric">True</property>
