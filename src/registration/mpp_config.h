@@ -62,6 +62,29 @@ struct mpp_config {
 	double stack_frames_background_blend_threshold; /* 0.2 */
 	int stack_frames_background_patch_size;      /* 100 */
 	int drizzle_factor;                          /* 1 — integer multiplier; 3 used for 1.5× display */
+
+	/* Phase 5b — drizzle backend selection. Off / bicubic use the
+	 * existing Phase 5a cv::resize path; STScI / Bayer route through
+	 * dobox() with a per-frame pixmap built by mpp_pixmap_build. */
+	int drizzle_mode;          /* enum mpp_drizzle_mode; default MPP_DRIZZLE_OFF */
+	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — STScI-only */
+	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_SQUARE */
+};
+
+enum mpp_drizzle_mode {
+	MPP_DRIZZLE_OFF     = 0,  /* drizzle_factor implicitly 1; bicubic path with INTER_LINEAR resize */
+	MPP_DRIZZLE_BICUBIC = 1,  /* Phase 5a path; cv::resize per frame */
+	MPP_DRIZZLE_STSCI   = 2,  /* Phase 5b — dobox with debayered or mono input */
+	MPP_DRIZZLE_BAYER   = 3,  /* Phase 5b — dobox with raw Bayer input → 3-channel output */
+};
+
+enum mpp_drizzle_kernel {
+	MPP_KERNEL_SQUARE   = 0,
+	MPP_KERNEL_GAUSSIAN = 1,
+	MPP_KERNEL_POINT    = 2,
+	MPP_KERNEL_TURBO    = 3,
+	MPP_KERNEL_LANCZOS2 = 4,
+	MPP_KERNEL_LANCZOS3 = 5,
 };
 
 typedef struct mpp_config mpp_config_t;

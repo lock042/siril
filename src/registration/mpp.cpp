@@ -35,6 +35,7 @@ extern "C" {
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_config.h"
+#include "registration/mpp_drizzle.h"
 #include "registration/mpp_frames.h"
 #include "registration/mpp_shift.h"
 #include "registration/mpp_sidecar.h"
@@ -91,9 +92,12 @@ cv::Mat read_analysis_frame(sequence *seq, int idx) {
 	return gray;
 }
 
+}  /* close inner anonymous namespace — read_full_frame needs external
+    * linkage so mpp_drizzle.cpp (the STScI stack path) can call it. */
+
 /* Read the frame as a multi-channel cv::Mat preserving all layers (1 or 3).
- * Used by mpp_stack_apply so colour frames carry through to the stacked
- * output. */
+ * Used by mpp_stack_apply and by mpp_stack_apply_stsci so colour frames
+ * carry through to the stacked output. */
 cv::Mat read_full_frame(sequence *seq, int idx) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
@@ -115,6 +119,8 @@ cv::Mat read_full_frame(sequence *seq, int idx) {
 	cv::merge(planes, out);
 	return out;
 }
+
+namespace {   /* reopen anonymous namespace for the remaining helpers */
 
 /* Reconstruct APQualities from a populated mpp_run_t. Stage B and Stage C
  * both consume this. */
@@ -352,6 +358,21 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
                                         const mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
+
+	/* Phase 5b dispatch: STScI / Bayer paths route through dobox via the
+	 * pixmap built in mpp_drizzle.cpp. Bicubic (and the bicubic-with-
+	 * drizzle_factor=1 default) stays on the Phase 5a cv::resize loop. */
+	switch (cfg->drizzle_mode) {
+		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
+		case MPP_DRIZZLE_BAYER:
+			siril_log_color_message(_("Stack: Bayer drizzle path not yet "
+			                          "implemented (Phase 5b.3).\n"), "red");
+			return MPP_ENOTIMPL;
+		case MPP_DRIZZLE_OFF:
+		case MPP_DRIZZLE_BICUBIC:
+		default:
+			break;   /* fall through to the Phase 5a bicubic path below */
+	}
 
 	/* Read frames preserving all layers — colour data flows through Stage C
 	 * even though Stages A and B use only the green analysis layer. */

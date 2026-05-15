@@ -67,6 +67,26 @@ mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
                               double drizzle_scale,
                               imgmap_t *out);
 
+/* -------- STScI stack-path entry (Phase 5b slice 2) -------- */
+/*
+ * Drizzles the run's selected frames into `out` via dobox(). One pass
+ * over all included frames: for each frame, brightness-equalise,
+ * build a pixmap (global + smooth-per-AP-shift warp), call dobox to
+ * accumulate into a shared float output canvas + counts buffer, then
+ * normalise by counts at the end.
+ *
+ * Output dimensions: drizzle_factor x (intersection_w, intersection_h),
+ * number of channels matching the input (1 for mono, 3 for RGB).
+ *
+ * Caller passes a fits shell (`fits out = {0};`). On success, out is
+ * filled with a uint16 stacked image and the caller owns its buffers
+ * (clearfits() to free).
+ *
+ * Used by mpp_stack_apply when cfg->drizzle_mode == MPP_DRIZZLE_STSCI.
+ * Reusable from tests by calling directly. */
+mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t *cfg,
+                                   const mpp_run_t *run, fits *out);
+
 #ifdef __cplusplus
 }
 #endif

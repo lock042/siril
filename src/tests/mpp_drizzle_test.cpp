@@ -18,11 +18,21 @@
 #include <cstring>
 
 extern "C" {
+#include "core/siril.h"
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_drizzle.h"
 #include "registration/mpp_shift.h"
 }
+
+/* Slice 5b.2 pulls Stage-C orchestration into mpp_drizzle.cpp, which
+ * transitively references `cominfo com` (gui_iface, threading prefs,
+ * etc.). Tests linking against the new TU need a stub — same pattern
+ * as imoper_test.c / stacking_blocks_test.c. */
+extern "C" cominfo com;
+extern "C" fits *gfit;
+cominfo com;
+fits   *gfit = nullptr;
 
 namespace {
 

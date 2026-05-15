@@ -40,5 +40,12 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->stack_frames_background_blend_threshold = 0.2;
 	cfg->stack_frames_background_patch_size = 100;
 	cfg->drizzle_factor = 1;
+
+	/* Phase 5b — drizzle backend defaults: off (use Phase 5a bicubic when
+	 * drizzle_factor > 1). Pixfrac / kernel only consulted when
+	 * drizzle_mode = STSCI or BAYER. */
+	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
+	cfg->drizzle_pixfrac = 0.7;
+	cfg->drizzle_kernel  = MPP_KERNEL_SQUARE;
 	return MPP_OK;
 }
