@@ -2009,10 +2009,13 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	if (!showing_ref && run->global_shifts && sequence_is_loaded()) {
 		const int i = com.seq.current;
 		if (i >= 0 && i < run->num_frames) {
-			/* Y inverted vs offsets_from_run because Siril displays
-			 * with a FITS bottom-left origin while AP records are
-			 * top-down (CV_32S mean frame). Tested empirically. */
-			dy = run->global_shifts[2 * i + 0] - run->intersection[0];
+			/* The per-frame Y delta direction was already inverted (sign
+			 * flipped) to match Siril's FITS bottom-left display
+			 * convention. The intersection-corner term in offsets_from_run
+			 * also needs its sign flipped for the same reason — without
+			 * it, the motion was directionally correct but offset by a
+			 * constant. Tested empirically. */
+			dy = run->global_shifts[2 * i + 0] + run->intersection[0];
 			dx = run->intersection[2] - run->global_shifts[2 * i + 1];
 		}
 	}
