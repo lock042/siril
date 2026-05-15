@@ -169,16 +169,13 @@ static void stage_progress_cb(double fraction, void *user) {
 }
 
 /* Allocation of the 0..1 bar across the Analyze stages. The percentages
- * are rough estimates of relative wall-clock time; the bar doesn't have
- * to be linear in real time, just monotone and visibly moving. Mean
- * frame build is a tight memory-bandwidth-bound accumulator over ~5%
- * of N — much faster than global align (per-frame matchTemplate) or
- * per-AP quality compute (per-frame Laplace + per-AP stddev), so it
- * gets a slim slice. */
+ * are rough estimates of relative wall-clock time. AP placement is a
+ * single-image op that finishes essentially instantly — it shares its
+ * fraction with the average build (no separate slice, just a text
+ * update). */
 #define MPP_PROG_READ_END         0.40   /* parallel frame read */
 #define MPP_PROG_GLOBAL_END       0.60   /* per-frame correlation */
-#define MPP_PROG_AVERAGE_END      0.63   /* per-frame accumulator (fast) */
-#define MPP_PROG_AP_PLACE_END     0.65   /* single-image AP grid (fast) */
+#define MPP_PROG_AVERAGE_END      0.65   /* per-frame accumulator */
 #define MPP_PROG_QUALITIES_END    1.00   /* per-frame Laplace + per-AP stddev */
 
 extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
@@ -241,17 +238,17 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	const auto avg = mpp::align_average_frame(analysis_frames, q_rank,
 	                                          align.shifts, *cfg,
 	                                          stage_progress_cb, &gp_avg);
-	gui_iface.set_progress(MPP_PROG_AVERAGE_END, _("Analyze: placing alignment points"));
+	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
 	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, *cfg);
 	if (!aps || aps->count <= 0) {
 		mpp_ap_free(aps);
 		return MPP_ENODATA;
 	}
-	gui_iface.set_progress(MPP_PROG_AP_PLACE_END, _("Analyze: per-AP frame qualities"));
+	gui_iface.set_progress(MPP_PROG_AVERAGE_END, _("Analyze: per-AP frame qualities"));
 	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
-	stage_progress_range gp_qual{MPP_PROG_AP_PLACE_END,
-	                             MPP_PROG_QUALITIES_END - MPP_PROG_AP_PLACE_END};
+	stage_progress_range gp_qual{MPP_PROG_AVERAGE_END,
+	                             MPP_PROG_QUALITIES_END - MPP_PROG_AVERAGE_END};
 	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
 	                                                 *aps, offsets,
 	                                                 frame_rows, frame_cols, *cfg,
