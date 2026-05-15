@@ -17,6 +17,7 @@
 #include "registration/mpp_config.h"
 #include "registration/mpp_shift.h"
 #include "registration/mpp_shift_priv.hpp"   /* for FrameOffset */
+#include "registration/mpp_align_priv.hpp"   /* for progress_cb_fn */
 
 namespace mpp {
 
@@ -76,7 +77,9 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        const mpp_aps_t &aps,
                                        const std::vector<FrameOffset> &offsets,
                                        int frame_rows, int frame_cols,
-                                       const mpp_config_t &cfg);
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress = nullptr,
+                                       void *progress_user = nullptr);
 
 /* PSS prepare_for_stack_blending (stack_frames.py:154-213).
  *

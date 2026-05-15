@@ -341,11 +341,15 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
 
 AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
                                            const std::vector<double> &quality,
-                                           const mpp_config_t &cfg) {
+                                           const mpp_config_t &cfg,
+                                           progress_cb_fn progress,
+                                           void *progress_user) {
 	AlignGlobalResult out;
 	const int N = (int) frames.size();
 	if (N == 0 || (int) quality.size() != N)
 		return out;
+	int done = 0;
+	const int total = N;   /* every frame is visited once across the two passes */
 
 	/* Best frame is argmax of quality. */
 	int best = 0;
@@ -372,7 +376,7 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 	{
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
-			if (idx == best) { out.shifts[idx] = {0, 0}; continue; }
+			if (idx == best) { out.shifts[idx] = {0, 0}; ++done; continue; }
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frames[idx],
 			    py_lo - dy_cum, py_hi - dy_cum,
@@ -381,11 +385,15 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 				/* PSS raises InternalError; tests will see a zero shift and
 				 * notice the divergence. */
 				out.shifts[idx] = {dy_cum, dx_cum};
+				++done;
+				if (progress) progress((double) done / (double) total, progress_user);
 				continue;
 			}
 			dy_cum += r.dy;
 			dx_cum += r.dx;
 			out.shifts[idx] = {dy_cum, dx_cum};
+			++done;
+			if (progress) progress((double) done / (double) total, progress_user);
 		}
 	}
 
@@ -400,11 +408,15 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 			    px_lo - dx_cum, px_hi - dx_cum, cfg);
 			if (!r.success) {
 				out.shifts[idx] = {dy_cum, dx_cum};
+				++done;
+				if (progress) progress((double) done / (double) total, progress_user);
 				continue;
 			}
 			dy_cum += r.dy;
 			dx_cum += r.dx;
 			out.shifts[idx] = {dy_cum, dx_cum};
+			++done;
+			if (progress) progress((double) done / (double) total, progress_user);
 		}
 	}
 
@@ -437,7 +449,9 @@ std::vector<int> align_find_best_frames(const std::vector<double> &quality,
 AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
                                        const std::vector<double> &quality,
                                        const std::vector<cv::Vec2i> &shifts,
-                                       const mpp_config_t &cfg) {
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress,
+                                       void *progress_user) {
 	AlignAverageResult out;
 	const int N = (int) frames_raw.size();
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
@@ -476,6 +490,8 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 
 	const int oh = int_y_hi - int_y_lo, ow = int_x_hi - int_x_lo;
 	cv::Mat accum(oh, ow, CV_32F, cv::Scalar(0));
+	int done = 0;
+	const int total = (int) indices.size();
 	for (int idx : indices) {
 		const auto &s = shifts[idx];
 		const cv::Mat patch = frames_raw[idx](
@@ -484,6 +500,8 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 		cv::Mat patch_f32;
 		patch.convertTo(patch_f32, CV_32F);
 		accum += patch_f32;
+		++done;
+		if (progress) progress((double) done / (double) total, progress_user);
 	}
 
 	/* PSS scales by 256/N for uint8 inputs and 1/N for uint16. Siril stores

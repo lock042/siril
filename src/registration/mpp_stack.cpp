@@ -133,7 +133,9 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        const mpp_aps_t &aps,
                                        const std::vector<FrameOffset> &offsets,
                                        int frame_rows, int frame_cols,
-                                       const mpp_config_t &cfg) {
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress,
+                                       void *progress_user) {
 	APQualities out;
 	const int N = (int) frames.size();
 	const int M = aps.count;
@@ -157,6 +159,7 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 	for (int f = 0; f < N; ++f) {
 		const cv::Mat lap = rank_blurred_laplacian_u8(frames[f], cfg);
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
+		if (progress) progress((double)(f + 1) / (double) N, progress_user);
 		for (int a = 0; a < M; ++a) {
 			const auto &ap = aps.records[a];
 			/* PSS:

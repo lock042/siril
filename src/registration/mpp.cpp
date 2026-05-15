@@ -154,6 +154,29 @@ cv::Mat mean_frame_from_run(const mpp_run_t *run) {
 
 /* -------------------- Stage A: mpp_analyze -------------------- */
 
+/* Driver state for the sub-range scaled progress callback. The C++
+ * helpers report [0, 1] within their own stage; the callback maps that
+ * onto a slice of the full Analyze 0..1 bar so the bar moves continuously
+ * across the whole flow. */
+struct stage_progress_range {
+	double base;    /* fraction at stage start */
+	double span;    /* fraction width allotted to this stage */
+};
+
+static void stage_progress_cb(double fraction, void *user) {
+	const stage_progress_range *r = (const stage_progress_range *) user;
+	gui_iface.set_progress(r->base + r->span * fraction, NULL);
+}
+
+/* Allocation of the 0..1 bar across the Analyze stages. The percentages
+ * are rough estimates of relative wall-clock time; the bar doesn't have
+ * to be linear in real time, just monotone and visibly moving. */
+#define MPP_PROG_READ_END         0.40   /* parallel frame read */
+#define MPP_PROG_GLOBAL_END       0.55   /* per-frame correlation */
+#define MPP_PROG_AVERAGE_END      0.65   /* per-frame accumulator */
+#define MPP_PROG_AP_PLACE_END     0.70   /* single-image AP grid */
+#define MPP_PROG_QUALITIES_END    1.00   /* per-frame Laplace + per-AP stddev */
+
 extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
                                     mpp_run_t **run_out) {
 	if (!seq || !cfg || !run_out)
@@ -194,7 +217,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		q_rank[i]          = mpp::rank_score_normalized(mono, *cfg);
 		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress((double) cur_nb / (double) N, NULL);
+		gui_iface.set_progress(MPP_PROG_READ_END * (double) cur_nb / (double) N, NULL);
 	}
 	if (read_failed) return MPP_EIO;
 	frame_rows = analysis_frames[0].rows;
@@ -203,23 +226,32 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
 	bitpix = seq->bitpix;
 
-	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: aligning frames globally"));
-	const auto align = mpp::align_global_from_frames(blurred_frames, q_rank, *cfg);
-	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: building reference frame"));
+	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
+	stage_progress_range gp_global{MPP_PROG_READ_END,
+	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
+	const auto align = mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
+	                                                 stage_progress_cb, &gp_global);
+	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
+	stage_progress_range gp_avg{MPP_PROG_GLOBAL_END,
+	                            MPP_PROG_AVERAGE_END - MPP_PROG_GLOBAL_END};
 	const auto avg = mpp::align_average_frame(analysis_frames, q_rank,
-	                                          align.shifts, *cfg);
-	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
+	                                          align.shifts, *cfg,
+	                                          stage_progress_cb, &gp_avg);
+	gui_iface.set_progress(MPP_PROG_AVERAGE_END, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
 	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, *cfg);
 	if (!aps || aps->count <= 0) {
 		mpp_ap_free(aps);
 		return MPP_ENODATA;
 	}
-	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: per-AP frame qualities"));
+	gui_iface.set_progress(MPP_PROG_AP_PLACE_END, _("Analyze: per-AP frame qualities"));
 	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	stage_progress_range gp_qual{MPP_PROG_AP_PLACE_END,
+	                             MPP_PROG_QUALITIES_END - MPP_PROG_AP_PLACE_END};
 	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
 	                                                 *aps, offsets,
-	                                                 frame_rows, frame_cols, *cfg);
+	                                                 frame_rows, frame_cols, *cfg,
+	                                                 stage_progress_cb, &gp_qual);
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) { mpp_ap_free(aps); return MPP_ENOMEM; }
@@ -456,18 +488,20 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		}
 		analysis_frames[i] = mono;
 		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress((double) cur_nb / (double) N, NULL);
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) N, NULL);
 	}
 	if (read_failed) return MPP_EIO;
 
-	gui_iface.set_progress(PROGRESS_NONE, _("Register: computing per-AP qualities for edited grid"));
+	gui_iface.set_progress(0.5, _("Register: computing per-AP qualities for edited grid"));
 	const std::vector<double> frame_brightness(run->frame_brightness,
 	                                           run->frame_brightness + N);
 	const auto offsets = mpp::offsets_from_run(run);
+	stage_progress_range rp{0.5, 0.5};
 	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
 	                                                 *run->aps, offsets,
 	                                                 run->frame_rows, run->frame_cols,
-	                                                 *run->cfg);
+	                                                 *run->cfg,
+	                                                 stage_progress_cb, &rp);
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
 	const size_t total = (size_t) run->aps->count * (size_t) stack_size;

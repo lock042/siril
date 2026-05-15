@@ -13,6 +13,11 @@
 
 namespace mpp {
 
+/* Generic progress callback for long stages. fraction is in [0, 1] over
+ * the stage's total work. Called periodically (typically once per
+ * frame). Passing nullptr disables. */
+typedef void (*progress_cb_fn)(double fraction, void *user);
+
 /* PSS quality_measure_threshold_weighted from miscellaneous.py:88.
  * `frame` is the candidate patch (best-frame mono_blurred cropped to (H, W)).
  * Returns the quality score (higher = more structure). Replicates PSS's
@@ -82,7 +87,9 @@ struct AlignGlobalResult {
  * the Gaussian-blurred mono frames (same as PSS's frames_mono_blurred). */
 AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames_mono_blurred,
                                            const std::vector<double> &quality,
-                                           const mpp_config_t &cfg);
+                                           const mpp_config_t &cfg,
+                                           progress_cb_fn progress = nullptr,
+                                           void *progress_user = nullptr);
 
 /* PSS rank_frames.find_best_frames: pick the `number_frames` indices that
  * maximise the summed quality within a sliding window of size `region_size`. */
@@ -102,7 +109,9 @@ struct AlignAverageResult {
 AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_raw,
                                        const std::vector<double> &quality,
                                        const std::vector<cv::Vec2i> &shifts,
-                                       const mpp_config_t &cfg);
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress = nullptr,
+                                       void *progress_user = nullptr);
 
 }  // namespace mpp
 
