@@ -37,6 +37,7 @@ extern "C" {
 #include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
+#include "io/ser.h"
 }
 
 #include "registration/mpp_drizzle_priv.hpp"  /* mpp::stack_apply_stsci */
@@ -652,4 +653,84 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
 	}
 	return mpp::stack_apply_stsci(frames_raw, included, brightness,
 	                              run, cfg, out);
+}
+
+/* Sequence-side wrapper for Bayer drizzle. Reads each frame raw (no
+ * debayer, bypassing com.pref.debayer.open_debayer) and forwards to
+ * the inner mpp::stack_apply_bayer.
+ *
+ * Only SER sequences with a Bayer ColorID are supported. The CFA
+ * pattern is derived from the SER header's color_id, matching the
+ * 2x2 RLAYER/GLAYER/BLAYER convention Siril's get_compiled_pattern
+ * produces (see demosaicing.c:333). */
+namespace {
+/* Returns FALSE if the sequence has no usable Bayer pattern. cfa
+ * is filled with 4 bytes on success. */
+bool bayer_cfa_from_ser(struct sequ *seq, unsigned char cfa[4]) {
+	if (!seq || seq->type != SEQ_SER || !seq->ser_file) return false;
+	const int R = 0, G = 1, B = 2;
+	switch (seq->ser_file->color_id) {
+		case SER_BAYER_RGGB: cfa[0]=R; cfa[1]=G; cfa[2]=G; cfa[3]=B; return true;
+		case SER_BAYER_GRBG: cfa[0]=G; cfa[1]=R; cfa[2]=B; cfa[3]=G; return true;
+		case SER_BAYER_GBRG: cfa[0]=G; cfa[1]=B; cfa[2]=R; cfa[3]=G; return true;
+		case SER_BAYER_BGGR: cfa[0]=B; cfa[1]=G; cfa[2]=G; cfa[3]=R; return true;
+		default: return false;
+	}
+}
+}  // namespace
+
+extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
+                                              const mpp_config_t *cfg,
+                                              const mpp_run_t *run,
+                                              fits *out) {
+	if (!seq || !cfg || !run || !run->included || !run->frame_brightness)
+		return MPP_EINVAL;
+	if (seq->type != SEQ_SER || !seq->ser_file) {
+		siril_log_color_message(_("Bayer drizzle: requires a SER sequence "
+		                          "(other formats don't preserve raw Bayer pattern data).\n"),
+		                        "red");
+		return MPP_EINVAL;
+	}
+	unsigned char cfa[4];
+	if (!bayer_cfa_from_ser(seq, cfa)) {
+		siril_log_color_message(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
+		                          "GBRG / BGGR — cannot derive CFA pattern.\n"),
+		                        "red");
+		return MPP_EINVAL;
+	}
+
+	const int N = run->num_frames;
+	std::vector<cv::Mat> frames_raw_bayer(N);
+	std::vector<int> included(run->included, run->included + N);
+	std::vector<double> brightness(run->frame_brightness,
+	                                run->frame_brightness + N);
+	int cur_nb = 0, n_inc = 0;
+	for (int i = 0; i < N; ++i) if (included[i]) ++n_inc;
+
+	gui_iface.set_progress(PROGRESS_RESET,
+	                       _("Stack (Bayer drizzle): reading raw frames"));
+	for (int i = 0; i < N; ++i) {
+		if (!included[i]) continue;
+		/* Read raw Bayer (open_debayer=FALSE) so we get the mosaic
+		 * bytes regardless of the user's debayer-on-open preference.
+		 * Stage A/B were computed on debayered frames upstream — that's
+		 * fine; the run's pixmap is correctly scaled by Stage A/B's
+		 * intersection geometry. */
+		fits f{};
+		if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
+		                   /*open_debayer=*/FALSE)) {
+			siril_log_color_message(_("Bayer drizzle: ser_read_frame failed "
+			                          "on frame %d\n"), "red", i);
+			clearfits(&f);
+			return MPP_EIO;
+		}
+		/* Wrap the single-channel WORD buffer as cv::Mat (CV_16U). */
+		cv::Mat m(f.ry, f.rx, CV_16U, f.data);
+		frames_raw_bayer[i] = m.clone();   /* own the data; clearfits below frees f */
+		clearfits(&f);
+		++cur_nb;
+		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_inc, NULL);
+	}
+	return mpp::stack_apply_bayer(frames_raw_bayer, included, brightness,
+	                              run, cfg, cfa, /*cfadim=*/2, out);
 }

@@ -100,9 +100,10 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
-	static GtkComboBox *mpp_drizzle_combo = NULL;
+	static GtkComboBox *mpp_drizzle_combo = NULL, *mpp_driz_kernel_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
-	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
+	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL,
+	                     *mpp_pixfrac = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -127,10 +128,12 @@ static void start_stacking() {
 		force32b = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
+		mpp_driz_kernel_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
 		mpp_bg_blend      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_blend"));
+		mpp_pixfrac       = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
 	}
 
 	if (processing_is_job_active()) {
@@ -241,16 +244,26 @@ static void start_stacking() {
 		mpp_config_defaults(cfg);
 		const int driz_idx = gtk_combo_box_get_active(mpp_drizzle_combo);
 		switch (driz_idx) {
-			case 0: cfg->drizzle_factor = 1; break;  /* Off */
-			case 1: cfg->drizzle_factor = 3; break;  /* 1.5x — TODO 0.5× downsample after stack */
-			case 2: cfg->drizzle_factor = 2; break;  /* 2x */
-			case 3: cfg->drizzle_factor = 3; break;  /* 3x */
-			default: cfg->drizzle_factor = 1; break;
+			/* Index → (mode, factor) — must match the GtkComboBoxText item
+			 * order in siril.ui. 0..3 are the Phase 5a bicubic entries
+			 * (legacy); 4..7 are STScI / Bayer variants from Phase 5b. */
+			case 0: cfg->drizzle_mode = MPP_DRIZZLE_OFF;     cfg->drizzle_factor = 1; break;
+			case 1: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; break;  /* 1.5x */
+			case 2: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 2; break;
+			case 3: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; break;
+			case 4: cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 2; break;
+			case 5: cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 3; break;
+			case 6: cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 2; break;
+			case 7: cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 3; break;
+			default: cfg->drizzle_mode = MPP_DRIZZLE_OFF;    cfg->drizzle_factor = 1; break;
 		}
 		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
 		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
+		cfg->drizzle_pixfrac = gtk_spin_button_get_value(mpp_pixfrac);
+		const int k = gtk_combo_box_get_active(mpp_driz_kernel_combo);
+		cfg->drizzle_kernel = (k >= 0 && k <= MPP_KERNEL_LANCZOS3) ? k : MPP_KERNEL_SQUARE;
 		params->mpp_cfg = cfg;
 	}
 
@@ -262,6 +275,28 @@ static void start_stacking() {
 void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_stacking();
+}
+
+/* Show / hide the STScI- and Bayer-only widgets (pixfrac spinner + label,
+ * driz kernel combo + label) based on the drizzle-mode combo selection.
+ * Indices 0..3 are the bicubic family (Off / 1.5x / 2x / 3x); 4..7 are
+ * the dobox-driven modes that consume pixfrac and kernel. */
+void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
+	(void) user_data;
+	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
+	static GtkWidget *lbl_kn = NULL, *combo_kn = NULL;
+	if (!lbl_pf) {
+		lbl_pf   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_pixfrac"));
+		spin_pf  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
+		lbl_kn   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_driz_kernel"));
+		combo_kn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
+	}
+	const int idx = gtk_combo_box_get_active(combo);
+	const gboolean dobox_mode = (idx >= 4);   /* STScI 2x/3x or Bayer 2x/3x */
+	gtk_widget_set_visible(lbl_pf,   dobox_mode);
+	gtk_widget_set_visible(spin_pf,  dobox_mode);
+	gtk_widget_set_visible(lbl_kn,   dobox_mode);
+	gtk_widget_set_visible(combo_kn, dobox_mode);
 }
 
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {

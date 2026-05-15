@@ -14588,11 +14588,39 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-drizzle=")) {
+		/* The value picks both the backend (bicubic / STScI / Bayer) and
+		 * the integer factor. Bicubic stays the default for the bare
+		 * numeric values to preserve Phase 5a behaviour. The
+		 * stsci-* and bayer-* variants land via Phase 5b. */
 		const char *v = arg + 9;
-		if      (!g_ascii_strcasecmp(v, "Off")) cfg->drizzle_factor = 1;
-		else if (!g_ascii_strcasecmp(v, "1.5")) cfg->drizzle_factor = 3;
-		else if (!g_ascii_strcasecmp(v, "2"))   cfg->drizzle_factor = 2;
-		else if (!g_ascii_strcasecmp(v, "3"))   cfg->drizzle_factor = 3;
+		if      (!g_ascii_strcasecmp(v, "Off"))      { cfg->drizzle_mode = MPP_DRIZZLE_OFF;     cfg->drizzle_factor = 1; }
+		else if (!g_ascii_strcasecmp(v, "1.5"))      { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; }
+		else if (!g_ascii_strcasecmp(v, "2"))        { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 2; }
+		else if (!g_ascii_strcasecmp(v, "3"))        { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; }
+		else if (!g_ascii_strcasecmp(v, "stsci-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 2; }
+		else if (!g_ascii_strcasecmp(v, "stsci-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 3; }
+		else if (!g_ascii_strcasecmp(v, "bayer-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 2; }
+		else if (!g_ascii_strcasecmp(v, "bayer-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 3; }
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-pixfrac=")) {
+		/* Stack-time only: per-pixel fraction passed to dobox. Bicubic
+		 * path ignores it (no equivalent), so we don't reject the flag
+		 * on bicubic but log that it's ignored at apply time. */
+		const double v = atof(arg + 9);
+		if (v <= 0.0 || v > 1.0) return MPP_FLAG_INVALID_VALUE;
+		cfg->drizzle_pixfrac = v;
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-driz-kernel=")) {
+		const char *v = arg + 13;
+		if      (!g_ascii_strcasecmp(v, "square"))   cfg->drizzle_kernel = MPP_KERNEL_SQUARE;
+		else if (!g_ascii_strcasecmp(v, "gaussian")) cfg->drizzle_kernel = MPP_KERNEL_GAUSSIAN;
+		else if (!g_ascii_strcasecmp(v, "point"))    cfg->drizzle_kernel = MPP_KERNEL_POINT;
+		else if (!g_ascii_strcasecmp(v, "turbo"))    cfg->drizzle_kernel = MPP_KERNEL_TURBO;
+		else if (!g_ascii_strcasecmp(v, "lanczos2")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS2;
+		else if (!g_ascii_strcasecmp(v, "lanczos3")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS3;
 		else return MPP_FLAG_INVALID_VALUE;
 		return MPP_FLAG_OK;
 	}

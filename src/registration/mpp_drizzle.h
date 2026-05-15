@@ -87,6 +87,13 @@ mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
 mpp_status_t mpp_stack_apply_stsci(sequence *seq, const mpp_config_t *cfg,
                                    const mpp_run_t *run, fits *out);
 
+/* Sequence-side wrapper for the Bayer-drizzle path. Reads each
+ * included frame raw (bypassing the debayer-on-open preference) and
+ * forwards to mpp::stack_apply_bayer. SER input only — the CFA pattern
+ * is derived from the SER header's ColorID. */
+mpp_status_t mpp_stack_apply_bayer(sequence *seq, const mpp_config_t *cfg,
+                                   const mpp_run_t *run, fits *out);
+
 #ifdef __cplusplus
 }
 #endif
