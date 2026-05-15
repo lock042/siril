@@ -793,6 +793,10 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		siril_debug_print("Skipping SPCC mirror checked, already done since program start\n");
 		return;
 	}
+	if (!is_online()) {
+		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
+		return;
+	}
 
 	// Try to read the local cached version of the SPCC mirrors file
 	gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(), "siril", "spcc_mirrors.json", NULL);
@@ -813,11 +817,6 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		}
 	}
 	g_free(spcc_mirror_path);
-
-	if (!is_online()) {
-		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
-		return;
-	}
 	if (!sync) {
 		fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
 		GString *url = g_string_new(GITLAB_URL);

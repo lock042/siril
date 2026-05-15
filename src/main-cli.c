@@ -146,6 +146,8 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
+	initialize_spcc_mirrors();
+	initialize_profiles_and_transforms(); // color management
 
 	siril_debug_print("Initializing processing thread...\n");
 	processing_system_init();
@@ -171,7 +173,12 @@ static void siril_app_activate(GApplication *application) {
 	com.headless = TRUE;
 	siril_initialize_rng();
 	global_initialization();
-	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+
+	// if this is the option provided, we want to check the SPCC mirrors and exit right after, without doing anything else
+	if (main_option_sync_spcc) {
+		siril_check_spcc_mirrors(TRUE, TRUE);
+		exit(EXIT_SUCCESS);
+	}
 
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
@@ -219,6 +226,7 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 	log_num_procs();
+	// python init
 	siril_log_message(_("Supported file types: %s\n"), supported_files);
 	if (!com.python_disabled)
 		initialize_python_venv_in_thread();
@@ -258,14 +266,6 @@ static void siril_app_activate(GApplication *application) {
 	} else {
 		pipe_start(main_option_rpipe_path, main_option_wpipe_path);
 		read_pipe(main_option_rpipe_path);
-	}
-
-	initialize_profiles_and_transforms(); // color management
-	initialize_spcc_mirrors();
-	if (main_option_sync_spcc) {
-		siril_check_spcc_mirrors(TRUE, TRUE);
-		g_free(supported_files);
-		exit(EXIT_SUCCESS);
 	}
 
 	g_free(supported_files);
