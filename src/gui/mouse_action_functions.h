@@ -100,4 +100,8 @@ gboolean scroll_changes_tab(scroll_data *data);
 extern scroll_function_metadata scroll_null_action;
 gboolean scroll_nullfunction(scroll_data *data);
 
+/* MPP AP editor's left-click drag release callback. Defined in
+ * mouse_action_functions.c next to mouse_nullfunction. */
+gboolean mpp_ap_drag_release(mouse_data *data);
+
 #endif

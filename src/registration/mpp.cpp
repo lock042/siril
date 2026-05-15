@@ -459,6 +459,106 @@ extern "C" void mpp_ap_clear_all(mpp_run_t *run) {
 	run->best_frame_indices = nullptr;
 }
 
+/* Fill the box/patch bounds for an AP at (x, y) from cfg. Mirrors PSS's
+ * extend-to-border logic at the frame edges. */
+static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
+                           const mpp_config_t *cfg,
+                           int frame_rows, int frame_cols) {
+	const int hb = cfg->alignment_points_half_box_width;
+	const int hp = mpp_cfg_half_patch_width(cfg);
+	r->x = x;
+	r->y = y;
+	r->box_x_low  = std::max(0, x - hb);
+	r->box_x_high = std::min(frame_cols, x + hb);
+	r->box_y_low  = std::max(0, y - hb);
+	r->box_y_high = std::min(frame_rows, y + hb);
+	r->patch_x_low  = std::max(0, x - hp);
+	r->patch_x_high = std::min(frame_cols, x + hp);
+	r->patch_y_low  = std::max(0, y - hp);
+	r->patch_y_high = std::min(frame_rows, y + hp);
+}
+
+extern "C" mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y) {
+	if (!run || !run->cfg) return MPP_EINVAL;
+	if (!run->aps) {
+		run->aps = (mpp_aps_t *) std::calloc(1, sizeof(*run->aps));
+		if (!run->aps) return MPP_ENOMEM;
+	}
+	const int new_count = run->aps->count + 1;
+	mpp_ap_record_t *grown = (mpp_ap_record_t *) std::realloc(
+		run->aps->records, (size_t) new_count * sizeof(mpp_ap_record_t));
+	if (!grown) return MPP_ENOMEM;
+	run->aps->records = grown;
+	mpp_ap_record_t *r = &grown[run->aps->count];
+	std::memset(r, 0, sizeof(*r));
+	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
+	r->structure = 1.0;   /* user-added APs bypass the structure threshold */
+	run->aps->count = new_count;
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+	return MPP_OK;
+}
+
+extern "C" mpp_status_t mpp_ap_remove(mpp_run_t *run, int i) {
+	if (!run || !run->aps || i < 0 || i >= run->aps->count) return MPP_EINVAL;
+	const int last = run->aps->count - 1;
+	if (i < last) {
+		std::memmove(&run->aps->records[i], &run->aps->records[i + 1],
+		             (size_t)(last - i) * sizeof(mpp_ap_record_t));
+	}
+	run->aps->count = last;
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+	return MPP_OK;
+}
+
+extern "C" mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y) {
+	if (!run || !run->aps || !run->cfg || i < 0 || i >= run->aps->count)
+		return MPP_EINVAL;
+	mpp_ap_record_t *r = &run->aps->records[i];
+	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+	return MPP_OK;
+}
+
+extern "C" int mpp_ap_hit_test(const mpp_run_t *run, int x, int y) {
+	if (!run || !run->aps) return -1;
+	/* Iterate from newest (highest index) backward so user-added APs win
+	 * over older auto-placed ones when boxes overlap. */
+	for (int i = run->aps->count - 1; i >= 0; --i) {
+		const mpp_ap_record_t *r = &run->aps->records[i];
+		if (x >= r->box_x_low && x < r->box_x_high &&
+		    y >= r->box_y_low && y < r->box_y_high)
+			return i;
+	}
+	return -1;
+}
+
+extern "C" mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src) {
+	if (!src) return nullptr;
+	mpp_aps_t *out = (mpp_aps_t *) std::calloc(1, sizeof(*out));
+	if (!out) return nullptr;
+	out->count            = src->count;
+	out->dropped_dim      = src->dropped_dim;
+	out->dropped_structure = src->dropped_structure;
+	if (src->count > 0 && src->records) {
+		const size_t bytes = (size_t) src->count * sizeof(mpp_ap_record_t);
+		out->records = (mpp_ap_record_t *) std::malloc(bytes);
+		if (!out->records) { std::free(out); return nullptr; }
+		std::memcpy(out->records, src->records, bytes);
+	}
+	return out;
+}
+
+extern "C" void mpp_aps_restore(mpp_run_t *run, mpp_aps_t *snapshot) {
+	if (!run || !snapshot) return;
+	mpp_ap_free(run->aps);
+	run->aps = snapshot;
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+}
+
 extern "C" mpp_run_t *mpp_get_cached_run(void) {
 	g_mutex_lock(&mpp_cache_mutex);
 	mpp_run_t *r = (mpp_run_t *) com.mpp_run;

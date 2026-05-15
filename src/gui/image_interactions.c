@@ -37,6 +37,8 @@
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/histo_display.h"
+#include "gui/mpp_ap_editor.h"
+#include "registration/mpp.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
@@ -682,6 +684,17 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.cut.cut_end.x = tmp.x;
 		gui.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
+	} else if (mouse_status == MOUSE_ACTION_EDIT_APS
+	           && mpp_ap_editor_get_drag_idx() >= 0) {
+		/* AP editor drag: track button-down motion to move the AP under
+		 * the cursor in real time. Release callback (in
+		 * mouse_action_functions.c) clears the drag index. */
+		mpp_run_t *run = mpp_get_cached_run();
+		if (run && inside) {
+			mpp_ap_move(run, mpp_ap_editor_get_drag_idx(),
+			            zoomed.x, zoomed.y);
+			redraw(REDRAW_OVERLAY);
+		}
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {
 			if (zoomed.x > gui.start.x) {

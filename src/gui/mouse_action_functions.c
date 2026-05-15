@@ -39,6 +39,9 @@
 #include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
+#include "gui/mpp_ap_editor.h"
+#include "registration/mpp.h"
+#include "registration/mpp_ap.h"
 #include "gui/masks_gui.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
@@ -194,6 +197,14 @@ void cache_widgets() {
 // this is required in order to avoid calling a NULL pointer if the mouse
 // action does not have any other function assigned.
 gboolean mouse_nullfunction(mouse_data *data) {
+	return TRUE;
+}
+
+/* Release callback for the MPP AP editor's left-click drag — clears the
+ * drag-index. Motion events stop affecting an AP once this fires. */
+gboolean mpp_ap_drag_release(mouse_data *data) {
+	(void) data;
+	mpp_ap_editor_set_drag_idx(-1);
 	return TRUE;
 }
 
@@ -579,6 +590,24 @@ gboolean main_action_click(mouse_data *data) {
 				}
 				break;
 			}
+			case MOUSE_ACTION_EDIT_APS: {
+				/* MPP AP editor: left-click on existing AP starts a drag,
+				 * left-click on empty space adds a new AP. Right-click
+				 * removal is in second_action_click below. */
+				mpp_run_t *run = mpp_get_cached_run();
+				if (!run) break;
+				int hit = mpp_ap_hit_test(run, data->zoomed.x, data->zoomed.y);
+				if (hit >= 0) {
+					mpp_ap_editor_set_drag_idx(hit);
+					register_release_callback(mpp_ap_drag_release, data->event->button);
+				} else {
+					if (mpp_ap_add(run, data->zoomed.x, data->zoomed.y) == MPP_OK) {
+						mpp_ap_editor_refresh_count_label();
+						redraw(REDRAW_OVERLAY);
+					}
+				}
+				break;
+			}
 			case MOUSE_ACTION_SELECT_PREVIEW1: {
 				register_release_callback(select_preview1_release, data->event->button);
 				break;
@@ -722,6 +751,16 @@ gboolean second_action_click(mouse_data *data) {
 
 				redraw(REDRAW_OVERLAY);
 				gui_function(redraw_previews, NULL);
+			}
+		} else if (*data->mouse_status == MOUSE_ACTION_EDIT_APS) {
+			/* MPP AP editor: right-click on an AP removes it. */
+			mpp_run_t *run = mpp_get_cached_run();
+			if (run) {
+				int hit = mpp_ap_hit_test(run, data->zoomed.x, data->zoomed.y);
+				if (hit >= 0 && mpp_ap_remove(run, hit) == MPP_OK) {
+					mpp_ap_editor_refresh_count_label();
+					redraw(REDRAW_OVERLAY);
+				}
 			}
 		} else if (*data->mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 			if (sequence_is_loaded()) {

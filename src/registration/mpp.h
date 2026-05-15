@@ -121,9 +121,31 @@ void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run
  *   would survive the threshold filters with the new cfg.
  * mpp_ap_clear_all: drops every AP. Useful pre-cursor to manual placement.
  *
- * Both are no-ops if run is NULL. */
+ * Mouse-driven editing (slice 10):
+ * mpp_ap_add: append an AP centred at (x, y). Box/patch bounds are
+ *   derived from run->cfg->alignment_points_half_box_width. structure
+ *   is set to 1.0 (user-added APs bypass the structure threshold).
+ * mpp_ap_remove: drop AP at index i.
+ * mpp_ap_move: relocate AP at index i to (x, y).
+ * mpp_ap_hit_test: return the topmost (last) AP whose box contains
+ *   (x, y), or -1 if none.
+ *
+ * AP-snapshot helpers (slice 10) for Cancel/revert in the editor:
+ * mpp_aps_snapshot: deep-copy the AP records (returns a new mpp_aps_t).
+ * mpp_aps_restore: replace run->aps with the snapshot (transfers
+ *   ownership; the snapshot pointer must not be freed by the caller
+ *   after this call).
+ *
+ * All are no-ops if run is NULL (return MPP_EINVAL for the int ones). */
 mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg);
 void         mpp_ap_clear_all(mpp_run_t *run);
+mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y);
+mpp_status_t mpp_ap_remove(mpp_run_t *run, int i);
+mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y);
+int          mpp_ap_hit_test(const mpp_run_t *run, int x, int y);
+
+mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src);
+void       mpp_aps_restore(mpp_run_t *run, mpp_aps_t *snapshot);
 
 /* GUI-side cache of the current run. Stage A installs the run via
  * mpp_set_cached_run; the AP overlay and the AP editor read it back via

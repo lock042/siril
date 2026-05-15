@@ -18,6 +18,8 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
+#include "gui/image_interactions.h"
+#include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_config.h"
@@ -28,6 +30,15 @@ static GtkSpinButton *spin_half_box = NULL;
 static GtkSpinButton *spin_brightness = NULL;
 static GtkSpinButton *spin_contrast = NULL;
 static GtkSpinButton *spin_structure = NULL;
+
+/* AP currently being dragged by left-mouse-down; -1 when not dragging.
+ * Set by main_action_click on a hit; read by motion_notify; cleared by
+ * the release callback. */
+static int g_ap_drag_idx = -1;
+
+/* Snapshot of the AP grid taken when the dialog opens. Used by Cancel to
+ * revert edits made between show and Cancel. Commit drops it. */
+static mpp_aps_t *g_aps_snapshot = NULL;
 
 static void editor_init_statics(void) {
 	if (dialog) return;
@@ -47,6 +58,19 @@ static void editor_refresh_count_label(void) {
 	gchar *txt = g_strdup_printf(_("Current APs: %d"), n);
 	gtk_label_set_text(count_label, txt);
 	g_free(txt);
+}
+
+/* Public hook for mouse handlers: refresh the count label after add/remove
+ * from mouse_action_functions.c. No-op if dialog hasn't been shown yet. */
+void mpp_ap_editor_refresh_count_label(void) {
+	editor_refresh_count_label();
+}
+
+int  mpp_ap_editor_get_drag_idx(void)      { return g_ap_drag_idx; }
+void mpp_ap_editor_set_drag_idx(int idx)   { g_ap_drag_idx = idx; }
+
+gboolean mpp_ap_editor_is_open(void) {
+	return dialog && gtk_widget_get_visible(dialog);
 }
 
 /* Open the editor dialog from the "Edit APs…" button on the MPP sub-panel. */
@@ -74,12 +98,30 @@ void on_mpp_ap_editor_dialog_show(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	editor_init_statics();
 	editor_refresh_count_label();
-	/* Slice 10 will flip mouse_status here to MOUSE_ACTION_EDIT_APS. */
+	/* Snapshot APs so Cancel can revert. */
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (run && run->aps) {
+		if (g_aps_snapshot) mpp_ap_free(g_aps_snapshot);
+		g_aps_snapshot = mpp_aps_snapshot(run->aps);
+	}
+	/* Flip mouse mode so left=add, right=remove, drag=move (handlers in
+	 * mouse_action_functions.c). */
+	mouse_status = MOUSE_ACTION_EDIT_APS;
+	siril_log_message(_("AP editor: left-click to add, right-click to remove, "
+	                    "drag to move an AP.\n"));
 }
 
 void on_mpp_ap_editor_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
-	/* Slice 10 will reset mouse_status here. */
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	g_ap_drag_idx = -1;
+	/* Don't auto-free the snapshot here — Cancel and Commit handle it
+	 * explicitly; this path can run via window-manager close, in which
+	 * case we discard (same as Cancel). */
+	if (g_aps_snapshot) {
+		mpp_ap_free(g_aps_snapshot);
+		g_aps_snapshot = NULL;
+	}
 }
 
 /* Read AP-placement params from the dialog's spinners into a config snapshot.
@@ -140,6 +182,12 @@ void on_mpp_ap_editor_clear_clicked(GtkButton *button, gpointer user_data) {
 
 void on_mpp_ap_editor_commit_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
+	/* Drop the snapshot (no revert) before hiding so the show/hide
+	 * snapshot logic doesn't restore it on a subsequent open. */
+	if (g_aps_snapshot) {
+		mpp_ap_free(g_aps_snapshot);
+		g_aps_snapshot = NULL;
+	}
 	if (dialog) gtk_widget_hide(dialog);
 	const mpp_run_t *run = mpp_get_cached_run();
 	if (run && run->aps && !run->best_frame_indices) {
@@ -150,8 +198,12 @@ void on_mpp_ap_editor_commit_clicked(GtkButton *button, gpointer user_data) {
 
 void on_mpp_ap_editor_cancel_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
-	/* Slice 10 will revert from a snapshot taken on dialog show. For
-	 * slice 9, Cancel and Commit are equivalent — both close the dialog
-	 * leaving any Auto-place / Clear edits in place. */
+	mpp_run_t *run = mpp_get_cached_run();
+	if (run && g_aps_snapshot) {
+		mpp_aps_restore(run, g_aps_snapshot);
+		g_aps_snapshot = NULL;   /* ownership transferred */
+		siril_log_message(_("AP editor: edits reverted.\n"));
+		redraw(REDRAW_OVERLAY);
+	}
 	if (dialog) gtk_widget_hide(dialog);
 }
