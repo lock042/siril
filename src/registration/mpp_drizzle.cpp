@@ -333,50 +333,79 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 			return MPP_EINVAL;
 		}
 
-		struct driz_param_t p;
-		std::memset(&p, 0, sizeof(p));
-		driz_param_init(&p);
-		p.driz           = &driz_args;
-		p.kernel         = driz_args.kernel;
-		/* p.scale = 1.0 (not driz_args.scale). dobox uses p.scale only
-		 * to compute a `scale²` flux-conservation multiplier on each
-		 * input pixel value — at drizzle=2 every input value would be
-		 * inflated 4× to preserve total energy across the spread of an
-		 * input pixel's footprint over multiple output pixels. PSS's
-		 * bicubic resampler doesn't do that (it just resamples each
-		 * frame per-pixel), and the per-AP top-N weighted mean we feed
-		 * back to dobox via the pixmap already keeps the values in
-		 * input units. The 2x output canvas geometry is fully carried
-		 * by the pixmap's drizzle_scale multiplier, so setting p.scale
-		 * to 1.0 gives values that compare cleanly to PSS's drizzle=2
-		 * reference. */
-		p.scale          = 1.0f;
-		p.pixel_fraction = driz_args.pixel_fraction;
-		p.weight_scale   = 1.0f;
-		p.in_units       = unit_counts;
-		p.out_units      = unit_counts;
-		p.exposure_time  = 1.0f;
-		p.data           = &frame_fit;
-		p.weights        = nullptr;
-		p.pixmap         = &pixmap;
-		p.output_data    = &output_data;
-		p.output_counts  = &output_counts;
-		p.xmin           = 0;
-		p.ymin           = 0;
-		p.xmax           = frame_rx - 1;
-		p.ymax           = frame_ry - 1;
-		p.threads        = 1;
-		p.error          = &error;
+		/* dobox's do_kernel_square hardcodes get_pixel(p->data, i, j, 0)
+		 * — it always reads channel 0 of the input fits, regardless of
+		 * the input's actual channel count. For multi-channel non-Bayer
+		 * input we have to loop over channels, building a single-channel
+		 * view fits for each channel and pointing dobox at the matching
+		 * plane of output_data + output_counts. For 1-channel input this
+		 * is a single iteration with no extra overhead. */
+		const size_t in_plane  = (size_t) frame_rx * (size_t) frame_ry;
+		const size_t out_plane = (size_t) out_rx * (size_t) out_ry;
+		for (int c = 0; c < channels; ++c) {
+			/* Single-channel view fits pointing into the planar frame_fit. */
+			fits frame_view = frame_fit;
+			frame_view.fdata = frame_fit.fdata + (size_t) c * in_plane;
+			frame_view.fpdata[0] = frame_view.fdata;
+			frame_view.fpdata[1] = nullptr;
+			frame_view.fpdata[2] = nullptr;
+			frame_view.naxes[2]  = 1;
+			frame_view.naxis     = 2;
 
-		if (dobox(&p)) {
-			siril_log_color_message(
-			    _("Stack (STScI): dobox failed on frame %d: %s\n"),
-			    "red", f, error.last_message[0] ? error.last_message : "(no detail)");
-			clearfits(&frame_fit);
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EIO;
+			fits od_view = output_data;
+			od_view.fdata = output_data.fdata + (size_t) c * out_plane;
+			od_view.fpdata[0] = od_view.fdata;
+			od_view.fpdata[1] = nullptr;
+			od_view.fpdata[2] = nullptr;
+			od_view.naxes[2]  = 1;
+			od_view.naxis     = 2;
+
+			fits oc_view = output_counts;
+			oc_view.fdata = output_counts.fdata + (size_t) c * out_plane;
+			oc_view.fpdata[0] = oc_view.fdata;
+			oc_view.fpdata[1] = nullptr;
+			oc_view.fpdata[2] = nullptr;
+			oc_view.naxes[2]  = 1;
+			oc_view.naxis     = 2;
+
+			struct driz_param_t p;
+			std::memset(&p, 0, sizeof(p));
+			driz_param_init(&p);
+			p.driz           = &driz_args;
+			p.kernel         = driz_args.kernel;
+			/* p.scale = 1.0 (not driz_args.scale). dobox uses p.scale only
+			 * to compute a `scale²` flux-conservation multiplier on each
+			 * input pixel value — the 2x output canvas geometry is fully
+			 * carried by the pixmap's drizzle_scale multiplier, so we
+			 * want unit value scaling here. */
+			p.scale          = 1.0f;
+			p.pixel_fraction = driz_args.pixel_fraction;
+			p.weight_scale   = 1.0f;
+			p.in_units       = unit_counts;
+			p.out_units      = unit_counts;
+			p.exposure_time  = 1.0f;
+			p.data           = &frame_view;
+			p.weights        = nullptr;
+			p.pixmap         = &pixmap;
+			p.output_data    = &od_view;
+			p.output_counts  = &oc_view;
+			p.xmin           = 0;
+			p.ymin           = 0;
+			p.xmax           = frame_rx - 1;
+			p.ymax           = frame_ry - 1;
+			p.threads        = 1;
+			p.error          = &error;
+
+			if (dobox(&p)) {
+				siril_log_color_message(
+				    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"),
+				    "red", f, c, error.last_message[0] ? error.last_message : "(no detail)");
+				clearfits(&frame_fit);
+				mpp_imgmap_free(&pixmap);
+				clearfits(&output_data);
+				clearfits(&output_counts);
+				return MPP_EIO;
+			}
 		}
 		clearfits(&frame_fit);
 
