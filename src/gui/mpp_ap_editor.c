@@ -81,7 +81,9 @@ gboolean mpp_ap_editor_is_open(void) {
 	return dialog && gtk_widget_get_visible(dialog);
 }
 
-/* Open the editor dialog from the "Edit APs…" button on the MPP sub-panel. */
+/* Open the editor dialog from the "Edit APs…" button on the MPP sub-panel.
+ * Set transient_for the control window so the editor stays above the
+ * main window when the user clicks on the image to edit APs. */
 void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!mpp_get_cached_run()) {
@@ -91,6 +93,9 @@ void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 	editor_init_statics();
 	if (!dialog) return;
+	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	if (parent)
+		gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
 	gtk_widget_show(dialog);
 }
 

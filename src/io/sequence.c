@@ -660,6 +660,16 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			gui_iface.set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			gui_iface.update_display_mode_state();		// display the display mode in the combo box
 		}
+		/* Re-sync the viewport notebook to gfit's channel count. Normally
+		 * sequence frames within a single sequence all share the same
+		 * layout so the tabs were set at sequence-open time and stay; but
+		 * the MPP Analyze flow temporarily replaces gfit with a single-
+		 * channel reference frame (paint_mpp_ref_frame_into_gfit calls
+		 * close_tab/init_right_tab to fold the RGB tabs away), so when
+		 * the user navigates back to a 3-channel source frame the tabs
+		 * have to expand again. Both calls are idempotent and cheap. */
+		gui_iface.close_tab();
+		gui_iface.init_right_tab();
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		gui_iface.remap_all_vports();
