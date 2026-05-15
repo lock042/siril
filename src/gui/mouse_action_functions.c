@@ -1004,7 +1004,7 @@ gboolean scroll_traverses_sequence(scroll_data *data) {
 	if (idx >= 0 && idx < com.seq.number) {
 		if (seq_load_image(&com.seq, idx, TRUE)) { // if loading fails, we fall back reloading the reference image
 			seq_load_image(&com.seq, com.seq.reference_image, TRUE);
-			siril_log_color_message(_("Error: image load failed, reloading reference image!\n"), "red");
+			siril_log_error(_("Error: image load failed, reloading reference image!\n"));
 		}
 	}
 	return FALSE;

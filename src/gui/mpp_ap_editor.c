@@ -87,8 +87,8 @@ gboolean mpp_ap_editor_is_open(void) {
 void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!mpp_get_cached_run()) {
-		siril_log_color_message(_("AP editor: no analysis result is cached. "
-		                          "Run Analyze first.\n"), "salmon");
+		siril_log_warning(_("AP editor: no analysis result is cached. "
+		                          "Run Analyze first.\n"));
 		return;
 	}
 	editor_init_statics();
@@ -166,7 +166,7 @@ void on_mpp_ap_editor_auto_place_clicked(GtkButton *button, gpointer user_data) 
 	(void) button; (void) user_data;
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run) {
-		siril_log_color_message(_("AP editor: no cached run.\n"), "red");
+		siril_log_error(_("AP editor: no cached run.\n"));
 		return;
 	}
 	mpp_config_t cfg;
@@ -174,19 +174,17 @@ void on_mpp_ap_editor_auto_place_clicked(GtkButton *button, gpointer user_data) 
 	const int rc = mpp_ap_replace(run, &cfg);
 	switch (rc) {
 		case MPP_OK:
-			siril_log_color_message(_("AP editor: auto-placed %d APs.\n"),
-			                        "green", run->aps->count);
+			siril_log_status(_("AP editor: auto-placed %d APs.\n"), run->aps->count);
 			break;
 		case MPP_ENODATA:
-			siril_log_color_message(_("AP editor: zero APs survived the threshold filters. "
-			                          "Loosen min-brightness/contrast/structure and try again.\n"),
-			                        "red");
+			siril_log_error(_("AP editor: zero APs survived the threshold filters. "
+			                          "Loosen min-brightness/contrast/structure and try again.\n"));
 			break;
 		case MPP_ENOMEM:
-			siril_log_color_message(_("AP editor: out of memory.\n"), "red");
+			siril_log_error(_("AP editor: out of memory.\n"));
 			break;
 		default:
-			siril_log_color_message(_("AP editor: auto-place failed (code %d).\n"), "red", rc);
+			siril_log_error(_("AP editor: auto-place failed (code %d).\n"), rc);
 			break;
 	}
 	editor_refresh_count_label();
@@ -198,7 +196,7 @@ void on_mpp_ap_editor_clear_clicked(GtkButton *button, gpointer user_data) {
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run) return;
 	mpp_ap_clear_all(run);
-	siril_log_color_message(_("AP editor: cleared all APs.\n"), "salmon");
+	siril_log_warning(_("AP editor: cleared all APs.\n"));
 	editor_refresh_count_label();
 	redraw(REDRAW_OVERLAY);
 }
@@ -214,9 +212,8 @@ void on_mpp_ap_editor_commit_clicked(GtkButton *button, gpointer user_data) {
 	if (dialog) gtk_widget_hide(dialog);
 	const mpp_run_t *run = mpp_get_cached_run();
 	if (run && run->aps && !run->best_frame_indices) {
-		siril_log_color_message(_("AP editor: edits committed. Register will refresh "
-		                          "per-AP qualities for the edited grid automatically.\n"),
-		                        "blue");
+		siril_log_info(_("AP editor: edits committed. Register will refresh "
+		                          "per-AP qualities for the edited grid automatically.\n"));
 	}
 }
 

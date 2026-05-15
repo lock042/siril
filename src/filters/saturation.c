@@ -57,14 +57,14 @@ static int enhance_saturation_ushort(fits *fit, saturation_params *params) {
 	if (params->background_factor > 0.00) {
 		imstats *stat = statistics(NULL, -1, fit, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		bg = (stat->median + stat->sigma) * params->background_factor;
 		bg /= stat->normValue;
 		free_stats(stat);
 	}
-	siril_debug_print("threshold for saturation: %f\n", bg);
+	siril_log_debug("threshold for saturation: %f\n", bg);
 
 	gboolean loop_range = h_min > h_max;
 	double s_mult = 1.0 + params->coeff;
@@ -111,14 +111,14 @@ static int enhance_saturation_float(fits *fit, saturation_params *params) {
 	if (params->background_factor > 0.00) {
 		imstats *stat = statistics(NULL, -1, fit, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		bg = (float)((stat->median + stat->sigma) * params->background_factor);
 		bg /= (float)stat->normValue;
 		free_stats(stat);
 	}
-	siril_debug_print("threshold for saturation: %f\n", bg);
+	siril_log_debug("threshold for saturation: %f\n", bg);
 
 	gboolean loop_range = h_min > h_max;
 	float s_mult = 1.f + (float)params->coeff;

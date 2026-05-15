@@ -126,7 +126,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	{
 		static int once = 0;
 		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
-			siril_debug_print("calling librtprocess ushort (%d)\n", interpolation);
+			siril_log_debug("calling librtprocess ushort (%d)\n", interpolation);
 	}
 	rpError retval;
 	switch (interpolation) {
@@ -244,7 +244,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	range = max - min;
 	if (range == 0.) {
 		free(rawdata);
-		siril_debug_print("Normalisation for debayering: min = max (%f)\n", min);
+		siril_log_debug("Normalisation for debayering: min = max (%f)\n", min);
 		return NULL;
 	}
 	factor = normvalue / range;
@@ -288,7 +288,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	{
 		static int once = 0;
 		if (g_atomic_int_compare_and_exchange(&once, 0, 1))
-			siril_debug_print("calling librtprocess float (%d)\n", interpolation);
+			siril_log_debug("calling librtprocess float (%d)\n", interpolation);
 	}
 	rpError retval;
 	switch (interpolation) {

@@ -32,17 +32,16 @@ int stack_mpp_handler(struct stacking_args *args) {
 		return ST_GENERIC_ERROR;
 	}
 
-	siril_log_color_message(_("Stack (mpp): reading sidecar\n"), "green");
+	siril_log_status(_("Stack (mpp): reading sidecar\n"));
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack (mpp): reading sidecar"));
 
 	gchar *sidecar_path = g_strdup_printf("%s.mpp", args->seq->seqname);
 	mpp_run_t *run = NULL;
 	int rc = mpp_sidecar_read(sidecar_path, &run);
 	if (rc != MPP_OK || !run) {
-		siril_log_color_message(_("Stack (mpp): cannot read sidecar %s (code %d) — "
+		siril_log_error(_("Stack (mpp): cannot read sidecar %s (code %d) — "
 		                          "run \"Multipoint Registration\" from the registration "
-		                          "tab first.\n"),
-		                        "red", sidecar_path, rc);
+		                          "tab first.\n"), sidecar_path, rc);
 		g_free(sidecar_path);
 		args->retval = ST_GENERIC_ERROR;
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
@@ -71,7 +70,7 @@ int stack_mpp_handler(struct stacking_args *args) {
 	fits stacked = { 0 };
 	rc = mpp_stack_apply(args->seq, run->cfg, run, &stacked);
 	if (rc != MPP_OK) {
-		siril_log_color_message(_("Stack (mpp): Stage C failed (code %d)\n"), "red", rc);
+		siril_log_error(_("Stack (mpp): Stage C failed (code %d)\n"), rc);
 		clearfits(&stacked);
 		mpp_run_free(run);
 		args->retval = ST_GENERIC_ERROR;

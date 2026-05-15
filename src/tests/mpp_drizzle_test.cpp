@@ -537,9 +537,8 @@ Test(mpp_bayer_drizzle, synthetic_mosaic_rggb) {
 	const double mean_G = cv::mean(ch_g)[0];
 	const double mean_B = cv::mean(ch_b)[0];
 
-	siril_log_color_message(
-	    "[bayer_rggb] means R=%.0f (exp %.0f)  G=%.0f (exp %.0f)  B=%.0f (exp %.0f)\n",
-	    "green", mean_R, exp_R, mean_G, exp_G, mean_B, exp_B);
+	siril_log_status(
+	    "[bayer_rggb] means R=%.0f (exp %.0f)  G=%.0f (exp %.0f)  B=%.0f (exp %.0f)\n", mean_R, exp_R, mean_G, exp_G, mean_B, exp_B);
 
 	const double tol = 1.0;   /* 1 / 65535 — should be near-bit-exact */
 	cr_assert_lt(std::abs(mean_R - exp_R), tol,
@@ -850,13 +849,12 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	const double sharp_bicubic = sharpness(got_bicubic, crop);
 	const double sharp_gt      = sharpness(gt_16,       crop);
 
-	siril_log_color_message(
+	siril_log_status(
 	    "[stsci_synth] dims stsci=%dx%d bicubic=%dx%d gt=%dx%d\n"
 	    "             STScI:   PSNR=%.2f dB  SSIM=%.4f  sharpness=%.0f\n"
 	    "             Bicubic: PSNR=%.2f dB  SSIM=%.4f  sharpness=%.0f\n"
 	    "             GT:      sharpness=%.0f (reference)\n"
 	    "             Δ:       PSNR=%+.2f dB  sharpness=%.2fx\n",
-	    "green",
 	    got_stsci.cols, got_stsci.rows, got_bicubic.cols, got_bicubic.rows,
 	    gt_16.cols, gt_16.rows,
 	    psnr_stsci,   ssim_stsci,   sharp_stsci,
@@ -1187,12 +1185,11 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 		st[c].width_bicubic = rise_width_bins(esf_c) / sub;
 	}
 
-	siril_log_color_message(
+	siril_log_status(
 	    "[bayer_slanted_edge] (2x output, edge 10-90%% width in output pixels)\n"
 	    "             R: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n"
 	    "             G: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n"
 	    "             B: Bayer=%.2f  bicubic=%.2f  ratio=%.2f\n",
-	    "green",
 	    st[0].width_b, st[0].width_bicubic, st[0].width_bicubic / std::max(1e-9, st[0].width_b),
 	    st[1].width_b, st[1].width_bicubic, st[1].width_bicubic / std::max(1e-9, st[1].width_b),
 	    st[2].width_b, st[2].width_bicubic, st[2].width_bicubic / std::max(1e-9, st[2].width_b));

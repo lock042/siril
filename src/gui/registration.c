@@ -518,7 +518,7 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 		psf_error error = PSF_NO_ERR;
 		result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h) && error != PSF_NO_ERR) { // we check result is inside the selection box
-			siril_log_color_message(_("Comet PSF center is out of the box, will use selection center instead\n"), "salmon");
+			siril_log_warning(_("Comet PSF center is out of the box, will use selection center instead\n"));
 			free_psf(result);
 			result = NULL;
 		}
@@ -779,7 +779,7 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 static void update_filters_registration(int update_adjustment) {
 	if (!sequence_is_loaded())
 		return;
-	siril_debug_print("updating registration filters GUI\n");
+	siril_log_debug("updating registration filters GUI\n");
 	seq_image_filter criterion;
 	double param;
 	get_reg_sequence_filtering_from_gui(&criterion, &param, update_adjustment);
@@ -897,7 +897,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	regmethod_index regindex = REG_UNDEF;
 	method = get_selected_registration_method(&regindex);
 	if (!method) {
-		siril_log_color_message(_("Failed to determine registration method...\n"), "red");
+		siril_log_error(_("Failed to determine registration method...\n"));
 		return;
 	}
 
@@ -1046,7 +1046,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	if (driz->use_flats) {
 		fits reffit = { 0 };
 		if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
-			siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+			siril_log_error(_("NOT USING FLAT: Could not load reference image\n"));
 			free(driz);
 			clearfits(&reffit);
 			return 1;
@@ -1061,7 +1061,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 			return 1;
 		} else {
 			if (expression[0] == '\0') {
-				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+				siril_log_error(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
 				g_free(expression);
 				return 1;
@@ -1081,7 +1081,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 				} else error = _("NOT USING FLAT: cannot open the file");
 				g_free(expression);
 				if (error) {
-					siril_log_color_message("%s\n", "red", error);
+					siril_log_error("%s\n", error);
 					set_progress_bar_data(error, PROGRESS_DONE);
 					if (driz->flat) {
 						clearfits(driz->flat);
@@ -1149,7 +1149,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
 		regargs->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
 		if (regargs->matchSelection && regargs->seq->is_variable) {
-			siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
+			siril_log_error(_("Cannot use area selection on a sequence with variable image sizes\n"));
 			return 1;
 		}
 		if (!regargs->matchSelection) {
@@ -1221,7 +1221,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 
 #ifndef HAVE_CV44
 	if (regargs->type == SHIFT_TRANSFORMATION && is_star_align) {
-		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+		siril_log_error(_("Shift-only registration is only possible with OpenCV 4.4\n"));
 		free(regargs->prefix);
 		return 1;
 	}
@@ -1229,15 +1229,15 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 
 	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (regargs->output_scale != 1.f || com.seq.is_variable) {
-			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"));
 			return 1;
 		}
 		if (regargs->type > SHIFT_TRANSFORMATION) {
-			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"));
 			return 1;
 		}
 		if (regargs->undistort) {
-			siril_log_color_message(_("When interpolation is set to None, distortions must be set to None as well. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, distortions must be set to None as well. Aborting\n"));
 			return 1;
 		}
 	}
@@ -1275,7 +1275,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	fits fit_ref = { 0 };
 	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
 	if (ret) {
-		siril_log_message(_("Error: unable to read reference frame metadata\n"));
+		siril_log_error(_("Error: unable to read reference frame metadata\n"));
 		free(regargs->mpp_cfg);
 		free(regargs);
 		unreserve_thread();
@@ -1291,8 +1291,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!g_strcmp0(caller, "proj_estimate"))
 		regargs->no_output = TRUE;
 
-	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
-			"green", method->name);
+	msg = siril_log_info(_("Registration: processing using method: %s\n"), method->name);
 	msg[strlen(msg) - 1] = '\0';
 
 	if (regargs->clamp)
@@ -1313,7 +1312,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
  * which branches on the flag. */
 void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!sequence_is_loaded()) {
-		siril_log_color_message(_("Analyze: load a sequence first.\n"), "red");
+		siril_log_error(_("Analyze: load a sequence first.\n"));
 		return;
 	}
 	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
@@ -1323,8 +1322,8 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	 * active method, switch to it temporarily so the GUI populates the
 	 * mpp_cfg from our widgets and dispatches to register_mpp. */
 	if (com.pref.gui.reg_settings != REG_MPP) {
-		siril_log_color_message(_("Analyze: select \"Multipoint Registration\" "
-		                          "in the method combo first.\n"), "red");
+		siril_log_error(_("Analyze: select \"Multipoint Registration\" "
+		                          "in the method combo first.\n"));
 		free(regargs);
 		return;
 	}
@@ -1337,7 +1336,7 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 	regargs->mpp_stage_a_only = TRUE;
 
-	siril_log_color_message(_("Analyze: running Stage A on %d frames\n"), "green",
+	siril_log_status(_("Analyze: running Stage A on %d frames\n"),
 	                        regargs->seq->number);
 	set_progress_bar_data(_("Analyze: ranking frames"), PROGRESS_RESET);
 
@@ -1384,8 +1383,8 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	memset(&ref_fits, 0, sizeof(fits));   /* don't touch the rwlock — we won't copy that field */
 	ref_fits.data = malloc(npix * sizeof(WORD));
 	if (!ref_fits.data) {
-		siril_log_color_message(_("Analyze: out of memory allocating "
-		                          "display buffer for ref frame\n"), "red");
+		siril_log_error(_("Analyze: out of memory allocating "
+		                          "display buffer for ref frame\n"));
 		return;
 	}
 	for (size_t i = 0; i < npix; ++i) {
@@ -1429,9 +1428,8 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 		com.uniq->nb_layers = 1;
 		com.uniq->fit       = gfit;
 	}
-	siril_log_color_message(_("Displaying reference image (mono luminance from analysis frames). "
-	                          "The original sequence is still loaded for the next step.\n"),
-	                        "blue");
+	siril_log_info(_("Displaying reference image (mono luminance from analysis frames). "
+	                          "The original sequence is still loaded for the next step.\n"));
 
 	/* update_single_image_from_gfit is the canonical "key aspects of
 	 * gfit have changed (channels, bitpix)" refresh — see comment in

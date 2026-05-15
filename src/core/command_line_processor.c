@@ -151,7 +151,7 @@ int execute_command(int wordnb) {
 	// verify if command is scriptable
 	if (com.script) {
 		if (!commands[i].scriptable) {
-			siril_log_message(_("This command cannot be used in a script: %s\n"), commands[i].name);
+			siril_log_warning(_("This command cannot be used in a script: %s\n"), commands[i].name);
 			return CMD_NOT_SCRIPTABLE;
 		}
 	}
@@ -193,7 +193,7 @@ int execute_command(int wordnb) {
 	}
 
 	// process the command
-	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
+	siril_log_warning(_("Running command: %s\n"), word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
 	int retval = commands[i].process(wordnb);
 	if (gui_iface.roi_is_active())
@@ -221,8 +221,8 @@ int check_requires(gboolean *checked_requires, gboolean is_required) {
 	if (!g_ascii_strcasecmp(word[0], "requires")) {
 		*checked_requires = TRUE;
 	} else if (is_required && !*checked_requires) {
-		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
-					" This command is needed to check script compatibility.\n"), "red");
+		siril_log_error(_("The \"requires\" command is missing at the top of the script file."
+					" This command is needed to check script compatibility.\n"));
 		retval = CMD_GENERIC_ERROR;
 	}
 	return retval;
@@ -237,7 +237,7 @@ int check_command_mode() {
 			g_ascii_strcasecmp(word[0], "stop_ls") &&
 			g_ascii_strcasecmp(word[0], "exit");
 		if (retval)
-			siril_log_message(_("This command cannot be run while live stacking is active, ignoring.\n"));
+			siril_log_warning(_("This command cannot be run while live stacking is active, ignoring.\n"));
 
 	}
 	return retval;
@@ -275,7 +275,7 @@ gpointer execute_script(gpointer p) {
 		}
 		/* Displays comments */
 		if (buffer[0] == '#') {
-			siril_log_color_message("%s\n", "blue", buffer);
+			siril_log_status("%s\n", buffer);
 			g_free (buffer);
 			continue;
 		}
@@ -305,7 +305,7 @@ gpointer execute_script(gpointer p) {
 		// reference (speculative - not always necessary, but simplest to
 		// call it every time just in case the command ran in the thread.)
 		if (retval && retval != CMD_NO_WAIT) {
-			siril_log_message(_("Error in line %d ('%s'): %s.\n"), line, buffer, cmd_err_to_str(retval));
+			siril_log_error(_("Error in line %d ('%s'): %s.\n"), line, buffer, cmd_err_to_str(retval));
 			siril_log_message(_("Exiting batch processing.\n"));
 			g_free (buffer);
 			break;
@@ -316,7 +316,7 @@ gpointer execute_script(gpointer p) {
 			break;	// abort script on command failure
 		}
 		endmem = get_available_memory() / BYTES_IN_A_MB;
-		siril_debug_print("End of command %s, memory difference: %d MB\n", word[0], startmem - endmem);
+		siril_log_debug("End of command %s, memory difference: %d MB\n", word[0], startmem - endmem);
 		startmem = endmem;
 		memset(word, 0, sizeof word);
 		g_free (buffer);
@@ -338,14 +338,14 @@ gpointer execute_script(gpointer p) {
 		gettimeofday(&t_end, NULL);
 		show_time_msg(t_start, t_end, _("Total execution time"));
 	} else {
-		char *msg = siril_log_message(_("Script execution failed.\n"));
+		char *msg = siril_log_error(_("Script execution failed.\n"));
 		msg[strlen(msg) - 1] = '\0';
 		gui_iface.set_progress(PROGRESS_DONE, msg);
 	}
 	g_free(saved_cwd);
 
 	if (com.script_thread) {
-		siril_debug_print("Script thread exiting\n");
+		siril_log_debug("Script thread exiting\n");
 		com.script_thread_exited = TRUE;
 	}
 	/* If called from the GUI, re-enable widgets blocked during the script */
@@ -406,7 +406,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		ret = execute_command(wordnb);
 
 		if (ret) {
-			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
+			siril_log_error(_("Command execution failed: %s.\n"), cmd_err_to_str(ret));
 			if (!(com.script || com.python_script) && !com.headless &&
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				gui_iface.show_command_help();
@@ -443,7 +443,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 	}
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq()) {
-			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
+			siril_log_error(_("No sequence `%s' found.\n"), name);
 			g_free(file);
 			g_free(altfile);
 			return NULL;
@@ -464,7 +464,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 	if (!seq)
-		siril_log_color_message(_("Loading sequence `%s' failed.\n"), "red", name);
+		siril_log_error(_("Loading sequence `%s' failed.\n"), name);
 	else {
 		if (seq_check_basic_data(seq, FALSE) == -1) {
 			free(seq);

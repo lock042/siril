@@ -148,7 +148,7 @@ int mask_create_ones_like(fits *fit, uint8_t bitpix) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_create_ones_like\n");
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			return 1;
@@ -276,7 +276,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 	if (!fit || !source) return 1;
 
 	if (source->naxes[2] == 1) {
-		siril_debug_print("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
+		siril_log_debug("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
 		return mask_create_from_channel(fit, source, 0, bitpix);
 	}
 
@@ -407,14 +407,14 @@ int mask_create_from_chromaticity_luminance(fits *fit, fits *source,
                                             uint8_t bitpix) {
 	if (!fit || !source) return 1;
 	if (source->naxes[2] == 1) {
-		siril_log_color_message(_("Color mask requires RGB image\n"), "red");
+		siril_log_error(_("Color mask requires RGB image\n"));
 		return 1;
 	}
 
 	// Normalize chromaticity center (in case user didn't)
 	float chrom_sum = chrom_center_r + chrom_center_g + chrom_center_b;
 	if (chrom_sum < 0.001f) {
-		siril_log_color_message(_("Invalid chromaticity center (sum near zero)\n"), "red");
+		siril_log_error(_("Invalid chromaticity center (sum near zero)\n"));
 		return 1;
 	}
 	chrom_center_r /= chrom_sum;
@@ -564,15 +564,15 @@ FAST_MATH_POP
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 						double weight_r, double weight_g, double weight_b, gboolean autostretch) {
 	if (!fit || !filename) {
-		siril_debug_print("mask_create_from_image: invalid parameters\n");
+		siril_log_debug("mask_create_from_image: invalid parameters\n");
 		return 1;
 	}
 	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) {
-		siril_debug_print("mask_create_from_image: bitpix must be 8, 16, or 32\n");
+		siril_log_debug("mask_create_from_image: bitpix must be 8, 16, or 32\n");
 		return 1;
 	}
 	if (chan < -1 || chan > 2) {
-		siril_debug_print("mask_create_from_image: chan must be -1 (luminance), 0 (R), 1 (G), or 2 (B)\n");
+		siril_log_debug("mask_create_from_image: chan must be -1 (luminance), 0 (R), 1 (G), or 2 (B)\n");
 		return 1;
 	}
 
@@ -580,8 +580,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 	if (chan == -1) {
 		double weight_sum = weight_r + weight_g + weight_b;
 		if (weight_sum < 0.99 || weight_sum > 1.01) {
-			siril_log_color_message(_("Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"),
-				"salmon", weight_sum);
+			siril_log_warning(_("Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"), weight_sum);
 			// Normalize weights
 			if (weight_sum > 0.0) {
 				weight_r /= weight_sum;
@@ -603,15 +602,14 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 
 	int retval = readfits(filename, source, FALSE, FALSE);
 	if (retval) {
-		siril_log_color_message(_("Failed to load mask image: %s\n"), "red", filename);
+		siril_log_error(_("Failed to load mask image: %s\n"), filename);
 		free(source);
 		return 1;
 	}
 
 	// Check dimensions match
 	if (fit->rx != source->rx || fit->ry != source->ry) {
-		siril_log_color_message(_("Mask image dimensions (%ux%u) do not match target image (%ux%u)\n"),
-			"red", source->rx, source->ry, fit->rx, fit->ry);
+		siril_log_error(_("Mask image dimensions (%ux%u) do not match target image (%ux%u)\n"), source->rx, source->ry, fit->rx, fit->ry);
 		clearfits(source);
 		free(source);
 		return 1;
@@ -619,8 +617,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 
 	// Check channel validity for the source image
 	if (chan >= 0 && chan >= source->naxes[2]) {
-		siril_log_color_message(_("Channel %d not available in source image (has %u channels)\n"),
-			"red", chan, source->naxes[2]);
+		siril_log_error(_("Channel %d not available in source image (has %u channels)\n"), chan, source->naxes[2]);
 		clearfits(source);
 		free(source);
 		return 1;
@@ -693,7 +690,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 	if (retval == 0) {
 		siril_log_message(_("Mask created successfully from image\n"));
 	} else {
-		siril_log_color_message(_("Failed to create mask from image\n"), "red");
+		siril_log_error(_("Failed to create mask from image\n"));
 	}
 
 	return retval;
@@ -715,11 +712,11 @@ FAST_MATH_PUSH
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	if (!fit) return 1;
 	if (n_fwhm <= 0.f) {
-		siril_debug_print("mask_create_from_stars: n_fwhm must be positive\n");
+		siril_log_debug("mask_create_from_stars: n_fwhm must be positive\n");
 		return 1;
 	}
 	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) {
-		siril_debug_print("mask_create_from_stars: bitpix must be 8, 16, or 32\n");
+		siril_log_debug("mask_create_from_stars: bitpix must be 8, 16, or 32\n");
 		return 1;
 	}
 
@@ -740,7 +737,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		// Need to detect stars
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
-			siril_log_color_message(_("Memory allocation failed\n"), "red");
+			siril_log_error(_("Memory allocation failed\n"));
 			return 1;
 		}
 
@@ -764,7 +761,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		free(sf_data);
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed\n"), "red");
+			siril_log_error(_("Star detection failed\n"));
 			if (stars)
 				free_fitted_stars(stars);
 			return 1;
@@ -773,7 +770,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	}
 
 	if (nb_stars < 1 || !stars) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		if (stars_needs_freeing)
 			free_fitted_stars(stars);
 		return 1;
@@ -1027,16 +1024,16 @@ mask_t *fits_to_mask(fits *mfit) {
 // feather_width: feather zone width on each side of the thresholds
 int mask_threshold(fits *fit, float min_val, float max_val, float feather_width) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_threshold: invalid mask\n");
+		siril_log_debug("mask_threshold: invalid mask\n");
 		return 1;
 	}
 	if (min_val > max_val) {
-		siril_debug_print("mask_threshold: min_val must be <= max_val\n");
+		siril_log_debug("mask_threshold: min_val must be <= max_val\n");
 		return 1;
 	}
 	feather_width /= fit->mask->bitpix == 8 ? 255.f : fit->mask->bitpix == 16 ? 65535.f : 1.f;
 	if (feather_width < 0.f || feather_width > 1.f) {
-		siril_debug_print("mask_threshold: feather_width out of range\n");
+		siril_log_debug("mask_threshold: feather_width out of range\n");
 		return 1;
 	}
 
@@ -1155,7 +1152,7 @@ int mask_threshold(fits *fit, float min_val, float max_val, float feather_width)
 			break;
 		}
 		default:
-			siril_debug_print("mask_threshold: unsupported bitpix %d\n", fit->mask->bitpix);
+			siril_log_debug("mask_threshold: unsupported bitpix %d\n", fit->mask->bitpix);
 			return 1;
 	}
 	return 0;
@@ -1195,7 +1192,7 @@ int mask_invert(fits *fit) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_create_ones_like\n");
 			return 1;
 	}
 	return 0;
@@ -1237,7 +1234,7 @@ int mask_scale(fits *fit, float f) {
 			break;
 		}
 		default:
-			siril_debug_print("Error! Unhandled bitpix in mask_scale\n");
+			siril_log_debug("Error! Unhandled bitpix in mask_scale\n");
 			return 1;
 	}
 	return 0;

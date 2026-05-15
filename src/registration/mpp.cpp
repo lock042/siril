@@ -793,11 +793,10 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	 * above for the rationale. */
 	SerAnalysisDebayerGuard ser_guard;
 	if (maybe_engage_ser_debayer_for_analysis(ser_guard, regargs->seq)) {
-		siril_log_color_message(
+		siril_log_warning(
 		    _("mpp: auto-debayering CFA SER for analysis "
 		      "(Preferences → Debayering → \"Debayer SER files at opening\" is OFF). "
-		      "The raw mosaic is still available to the bayer-* drizzle stack path.\n"),
-		    "salmon");
+		      "The raw mosaic is still available to the bayer-* drizzle stack path.\n"));
 	}
 
 	mpp_config_t cfg;
@@ -809,14 +808,13 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(regargs->seq->bitpix);
 
 	const gboolean stage_a_only = regargs->mpp_stage_a_only;
-	siril_log_color_message(stage_a_only
+	siril_log_status(stage_a_only
 	                        ? _("mpp: MODE = ANALYZE (Stage A only, %d frames)\n")
-	                        : _("mpp: MODE = REGISTER (Stages A + B, %d frames)\n"),
-	                        "green", regargs->seq->number);
+	                        : _("mpp: MODE = REGISTER (Stages A + B, %d frames)\n"), regargs->seq->number);
 	/* Belt-and-braces: prove the flag value to the script log so a regression
 	 * here is immediately visible. mpp_stage_a_only is the only thing that
 	 * gates the early return after Stage A. */
-	siril_debug_print("register_mpp: regargs=%p mpp_stage_a_only=%d filter_included=%d\n",
+	siril_log_debug("register_mpp: regargs=%p mpp_stage_a_only=%d filter_included=%d\n",
 	                  (void *) regargs, (int) regargs->mpp_stage_a_only,
 	                  (int) regargs->filters.filter_included);
 	/* Reuse-cached path: if Stage A already ran (Analyze button) and the
@@ -835,12 +833,11 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	if (reuse_cache) {
 		run = cached;
 		run_owned = false;
-		siril_log_color_message(stage_a_only
+		siril_log_status(stage_a_only
 		                        ? _("mpp: re-Analyze — reusing cached Stage A run; "
 		                            "AP grid will be replaced.\n")
 		                        : _("mpp: reusing cached Stage A run from previous Analyze "
 		                            "(%d APs%s).\n"),
-		                        "green",
 		                        cached->aps->count,
 		                        cached->best_frame_indices ? "" : ", AP-edited");
 		if (stage_a_only) {
@@ -854,8 +851,8 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 			 * but skips rank/global-align/mean-frame build (cached). */
 			const int rc_q = mpp_recompute_qualities(regargs->seq, cached);
 			if (rc_q != MPP_OK) {
-				siril_log_color_message(_("mpp: failed to recompute per-AP qualities "
-				                          "for edited grid (code %d)\n"), "red", rc_q);
+				siril_log_error(_("mpp: failed to recompute per-AP qualities "
+				                          "for edited grid (code %d)\n"), rc_q);
 				gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 				return rc_q;
 			}
@@ -868,7 +865,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		                                    : _("Register: ranking frames"));
 		const int rc_a = mpp_analyze(regargs->seq, &cfg, &run);
 		if (rc_a != MPP_OK) {
-			siril_log_color_message(_("mpp: Stage A failed (code %d)\n"), "red", rc_a);
+			siril_log_error(_("mpp: Stage A failed (code %d)\n"), rc_a);
 			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 			return rc_a;
 		}
@@ -902,7 +899,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		siril_log_message(_("mpp: filtering to %d selected frames of %d total\n"),
 		                  n_selected, run->num_frames);
 		if (n_selected == 0) {
-			siril_log_color_message(_("mpp: no frames selected — aborting\n"), "red");
+			siril_log_error(_("mpp: no frames selected — aborting\n"));
 			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 			if (run_owned) mpp_run_free(run);
 			return MPP_ENODATA;
@@ -913,7 +910,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	gui_iface.set_progress(PROGRESS_RESET, _("Register: computing per-AP shifts"));
 	const int rc_b = mpp_compute_shifts(regargs->seq, &cfg, run);
 	if (rc_b != MPP_OK) {
-		siril_log_color_message(_("mpp: Stage B failed (code %d)\n"), "red", rc_b);
+		siril_log_error(_("mpp: Stage B failed (code %d)\n"), rc_b);
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 		if (run_owned) mpp_run_free(run);
 		return rc_b;

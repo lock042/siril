@@ -398,9 +398,8 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 			p.error          = &error;
 
 			if (dobox(&p)) {
-				siril_log_color_message(
-				    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"),
-				    "red", f, c, error.last_message[0] ? error.last_message : "(no detail)");
+				siril_log_error(
+				    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"), f, c, error.last_message[0] ? error.last_message : "(no detail)");
 				clearfits(&frame_fit);
 				mpp_imgmap_free(&pixmap);
 				clearfits(&output_data);
@@ -608,9 +607,8 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 		p.error          = &error;
 
 		if (dobox(&p)) {
-			siril_log_color_message(
-			    _("Stack (Bayer): dobox failed on frame %d: %s\n"),
-			    "red", f, error.last_message[0] ? error.last_message : "(no detail)");
+			siril_log_error(
+			    _("Stack (Bayer): dobox failed on frame %d: %s\n"), f, error.last_message[0] ? error.last_message : "(no detail)");
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
@@ -733,16 +731,14 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	if (!seq || !cfg || !run || !run->included || !run->frame_brightness)
 		return MPP_EINVAL;
 	if (seq->type != SEQ_SER || !seq->ser_file) {
-		siril_log_color_message(_("Bayer drizzle: requires a SER sequence "
-		                          "(other formats don't preserve raw Bayer pattern data).\n"),
-		                        "red");
+		siril_log_error(_("Bayer drizzle: requires a SER sequence "
+		                          "(other formats don't preserve raw Bayer pattern data).\n"));
 		return MPP_EINVAL;
 	}
 	unsigned char cfa[4];
 	if (!bayer_cfa_from_ser(seq, (unsigned int) seq->ry, cfa)) {
-		siril_log_color_message(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
-		                          "GBRG / BGGR — cannot derive CFA pattern.\n"),
-		                        "red");
+		siril_log_error(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
+		                          "GBRG / BGGR — cannot derive CFA pattern.\n"));
 		return MPP_EINVAL;
 	}
 
@@ -774,8 +770,8 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 		fits f{};
 		if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
 		                   /*open_debayer=*/FALSE)) {
-			siril_log_color_message(_("Bayer drizzle: ser_read_frame failed "
-			                          "on frame %d\n"), "red", i);
+			siril_log_error(_("Bayer drizzle: ser_read_frame failed "
+			                          "on frame %d\n"), i);
 			clearfits(&f);
 			read_rc = MPP_EIO;
 			break;

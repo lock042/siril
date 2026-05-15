@@ -87,8 +87,8 @@ void on_seqmpp_view_shifts_button_clicked(GtkButton *button, gpointer user_data)
 	(void) button; (void) user_data;
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->shifts) {
-		siril_log_color_message(_("Shift viewer: no Stage B shifts cached. "
-		                          "Run Register first.\n"), "salmon");
+		siril_log_warning(_("Shift viewer: no Stage B shifts cached. "
+		                          "Run Register first.\n"));
 		return;
 	}
 	init_statics();

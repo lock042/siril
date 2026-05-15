@@ -98,7 +98,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	}
 
 	if (starcount(stars) < 1) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		return -1;
 	}
 
@@ -223,7 +223,7 @@ static int unpurple_filter(struct unpurpleargs *args) {
 	}
 
 	if (fit == gfit && args->applying) {
-		siril_log_color_message(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"), "green",
+		siril_log_info(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"),
 								args->mod_b, args->thresh, args->withstarmask);
 	}
 
