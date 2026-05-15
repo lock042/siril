@@ -301,6 +301,7 @@ src_files_gui = [
   'gui/mouse_action_functions.c',
   'gui/mouse_action_preferences.c',
   'gui/mpp_ap_editor.c',
+  'gui/mpp_shift_viewer.c',
   'gui/newdeconv.c',
   'gui/nina_light_curve.c',
   'gui/open_dialog.c',

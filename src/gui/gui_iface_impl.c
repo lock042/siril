@@ -61,6 +61,7 @@
 #include "io/sequence.h"
 #include "livestacking/gui.h"
 #include "gui/registration.h"
+#include "gui/mpp_shift_viewer.h"
 #include "gui/script_menu.h"
 #include "gui/siril_actions.h"
 #include "gui/siril-window.h"
@@ -348,6 +349,7 @@ static gboolean close_sequence_idle(gpointer data) {
 	initialize_cut_struct(&gui.cut);
 	reset_cut_gui(NULL);
 	mpp_update_edit_button_sensitivity();   /* MPP run was cleared in close_sequence */
+	mpp_shift_viewer_update_button_sensitivity();
 	if (!data) {
 		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(
 			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));

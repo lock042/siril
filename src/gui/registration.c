@@ -46,6 +46,7 @@
 #include "algos/statistics.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
+#include "gui/mpp_shift_viewer.h"
 #include "registration/3stars.h"
 #include "registration/mpp_config.h"
 #include "stacking/stacking.h"
@@ -1467,6 +1468,7 @@ gboolean end_register_idle(gpointer p) {
 				seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			}
 			mpp_update_edit_button_sensitivity();
+			mpp_shift_viewer_update_button_sensitivity();
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {

@@ -39,7 +39,9 @@
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_config.h"
+#include "registration/mpp_shift.h"
 #include "gui/mpp_ap_editor.h"
+#include "gui/mpp_shift_viewer.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -2032,6 +2034,54 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 		}
 		cairo_rectangle(dd->cr, ap->x - hb + dx, ap->y - hb + dy, side, side);
 		cairo_stroke(dd->cr);
+	}
+
+	/* Diagnostic: when the shift-viewer dialog is open, overlay arrows
+	 * showing per-AP shift vectors for the selected frame on top of the
+	 * AP boxes. Green = Stage B converged, red = fell back to zero shift.
+	 * Arrows are scaled by a user-controlled multiplier because per-AP
+	 * shifts are typically sub-pixel. */
+	if (mpp_shift_viewer_is_open() && run->shifts && run->shifts->shifts) {
+		const int fv = mpp_shift_viewer_get_frame();
+		const double scale = mpp_shift_viewer_get_scale();
+		const int M = run->shifts->num_aps;
+		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
+			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);
+			for (int a = 0; a < M; ++a) {
+				const mpp_ap_record_t *ap = &run->aps->records[a];
+				const size_t k = (size_t) fv * M + a;
+				const double sdy = run->shifts->shifts[2 * k + 0];
+				const double sdx = run->shifts->shifts[2 * k + 1];
+				const uint8_t ok = run->shifts->success[k];
+				if (ok)
+					cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.3, 0.9);
+				else
+					cairo_set_source_rgba(dd->cr, 1.0, 0.2, 0.2, 0.9);
+				const double x0 = ap->x + dx;
+				const double y0 = ap->y + dy;
+				const double x1 = x0 + sdx * scale;
+				const double y1 = y0 + sdy * scale;
+				cairo_move_to(dd->cr, x0, y0);
+				cairo_line_to(dd->cr, x1, y1);
+				cairo_stroke(dd->cr);
+				/* Arrowhead: filled triangle at (x1, y1) pointing along
+				 * the arrow direction. Skip when shift is sub-pixel
+				 * tiny (would be a degenerate triangle anyway). */
+				const double mag = hypot(x1 - x0, y1 - y0);
+				if (mag > 1.5 / dd->zoom) {
+					const double ux = (x1 - x0) / mag;
+					const double uy = (y1 - y0) / mag;
+					const double head = 4.0 / dd->zoom;
+					cairo_move_to(dd->cr, x1, y1);
+					cairo_line_to(dd->cr, x1 - head * ux - 0.5 * head * uy,
+					                       y1 - head * uy + 0.5 * head * ux);
+					cairo_line_to(dd->cr, x1 - head * ux + 0.5 * head * uy,
+					                       y1 - head * uy - 0.5 * head * ux);
+					cairo_close_path(dd->cr);
+					cairo_fill(dd->cr);
+				}
+			}
+		}
 	}
 }
 
