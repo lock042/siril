@@ -157,61 +157,218 @@ This is materially simpler than the alternatives we considered (per-AP cutouts, 
 
 ### Sub-tasks
 
-- [ ] **5b.1 — `mpp_pixmap`: per-frame, per-pixel coordinate map builder**
-  Construct an `imgmap_t` (float `xmap[ry × rx]`, `ymap[ry × rx]`) for input frame `i`:
-  - Base map: identity grid (`xmap[j,i] = i`, `ymap[j,i] = j`).
-  - Add global shift: `xmap += global_shifts[i].dx`, `ymap += global_shifts[i].dy`.
-  - Add per-AP shift contribution: for each output-pixel position, sample the per-AP shift field by:
-    - For each AP `a`, compute its weight at `(i, j)` via the same 2D ramp PSS uses for stack-time per-AP weighting (`stack_frames.py:300+`; already in our codebase as `mpp::one_dim_weight × min` in `mpp_stack.cpp`).
-    - Weighted-average the per-AP `(sdy, sdx)` into a single `(dy, dx)` for that pixel.
-    - Add to `xmap` / `ymap` at that pixel.
-  - Multiply final map by `scale` (the drizzle factor) so output coordinates land in the drizzled canvas.
-  Implementation note: the per-AP weight field is identical to the per-AP buffer weighting we already compute — extract it into a reusable helper. The pixmap build is O(rx × ry × num_aps) but the inner loop is tight (no I/O, no allocs); for 264×258 frames × ~12 APs that's ~800k weight evaluations per frame — sub-millisecond.
+#### 5b.1 — `mpp_pixmap`: per-frame, per-pixel coordinate map builder
 
-- [ ] **5b.2 — `mpp_drizzle_stsci_path`: integrate dobox into Stage C**
-  In `mpp_stack.cpp`, branch on `cfg->drizzle_mode`:
-  - `MPP_DRIZZLE_BICUBIC` (default) → existing Phase 5a path.
-  - `MPP_DRIZZLE_STSCI` → new path:
-    - Allocate output `fits` at `drizzle_factor × frame_dims`.
-    - Allocate `output_counts` (single-channel weight accumulator at the same shape).
-    - For each frame in `best_frame_indices` (selected for this AP / globally per cfg):
-      - Build pixmap via 5b.1.
-      - Fill `driz_param_t` from `cfg`: `kernel`, `pixel_fraction`, `scale`, etc.
-      - Call `dobox(p)` to accumulate this frame into output + counts.
-    - Final normalisation: `output_data /= output_counts` (with eps-floor for empty cells, mirroring Siril's existing post-drizzle pass).
-    - Per-frame brightness equalisation: keep the same `frame × median / (avg + 1e-7)` correction Phase 5a uses, applied to the input frame before pixmap build.
-  - **Background composition**: STScI drizzle's `output_counts` array naturally captures "how many frames contributed to each output pixel" — use it as the foreground/background weight directly (no separate accumulator needed). Cells with `counts < bg_blend_threshold × stack_size` blend in the background.
-  - Use the existing `mpp_drizzle.cpp` file (currently a 14-line stub returning MPP_ENOTIMPL).
-  - New API: `mpp_stack_apply_stsci(seq, cfg, run, fits *out)` — parallel to the existing bicubic `mpp_stack_apply`. Or fold both behind `mpp_stack_apply` with a `cfg->drizzle_mode` switch (preferred — keeps the orchestrator simple).
+**What it is:** a deterministic function that produces an `imgmap_t` describing where each input pixel of frame `i` lands on the drizzled output canvas. This is the only piece that "knows" about MPP's non-affine warp; everything downstream (dobox, weighting, normalisation) treats the warp as a black box.
 
-- [ ] **5b.3 — `mpp_drizzle_bayer_path`: 3-channel drizzle from raw Bayer samples**
-  Stage A/B unchanged (still operate on the debayered analysis frame so the global align + AP shifts have signal). Stage C diverges:
-  - Skip Siril's debayer entirely for this path — read frames as raw single-channel uint16 via a new `read_bayer_frame()` helper in `mpp.cpp` (existing `read_full_frame` always debayers).
-  - Set `driz_param_t::is_bayer = TRUE`, `cfa[...]` from the SER's `bayer_pattern` (RGGB / GRBG / GBRG / BGGR; SER stores this at header offset 18 and Siril already parses it for `com.seq`).
-  - dobox handles the CFA-aware sampling internally (only contributes a green-channel sample where the input pixel falls on a green Bayer pixel, etc. — see existing `cdrizzlebox.c` Bayer branches).
-  - Output is a 3-channel `fits` at `drizzle_factor × frame_dims`.
-  - Pixmap is identical to 5b.1 — Bayer doesn't change the geometry, only the per-pixel channel assignment.
-  - **Sanity check needed**: Siril's existing Bayer drizzle (used in deep-sky stacking) assumes one homography per frame. Verify that dobox's CFA path handles arbitrary pixmaps correctly — if it assumes the input is rectified to the CFA grid in a specific way, MPP's non-affine pixmap might break it. Add a small unit test on a 2× synthetic Bayer mosaic before declaring 5b.3 done.
+**Signature (proposed):**
 
-- [ ] **5b.4 — CLI + GUI flag surface**
-  - Extend `cfg->drizzle_mode` enum: `MPP_DRIZZLE_OFF / MPP_DRIZZLE_BICUBIC / MPP_DRIZZLE_STSCI / MPP_DRIZZLE_BAYER`. Keep `drizzle_factor` separate (1 / 2 / 3 ints; 1.5 still rendered at 3× pending the downsample step).
-  - New cfg fields: `drizzle_pixfrac` (float, default 0.7) and `drizzle_kernel` (enum mirroring `e_kernel_t`: square / gaussian / point / turbo / lanczos2 / lanczos3).
-  - CLI flag parser (`apply_mpp_flag` in `command.c`):
-    - `-drizzle=Off|1.5|2|3` (existing — bicubic).
-    - `-drizzle=stsci-2x|stsci-3x` (new).
-    - `-drizzle=bayer-2x|bayer-3x` (new).
-    - `-pixfrac=<float>` (new; 0 < f ≤ 1).
-    - `-driz-kernel=<name>` (new; one of square|gaussian|point|turbo|lanczos2|lanczos3).
-  - GUI: extend the stack-side MPP sub-panel's drizzle combo with the new entries; add pixfrac spinner + kernel combo, visible only when an STScI mode is selected (`gtk_widget_set_visible` on `drizzle_mode` combo change).
-  - Cross-mode flag validation in `process_register_mpp` / `process_stack_mpp`: pixfrac / kernel are stack-time only; reject if passed to register_mpp.
+```c
+// In mpp_drizzle.h
+mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
+                              int frame_idx,
+                              double drizzle_scale,
+                              imgmap_t *out_pixmap);
+```
 
-- [ ] **5b.5 — STScI synthetic-truth test (`mpp_drizzle_test.cpp`)**
-  Generate a high-resolution ground-truth image (e.g. 1024×1024 synthetic Jupiter with fine surface features) → downsample to 256×256 with prescribed sub-pixel offsets (24 frames, offsets uniformly distributed in [−1, 1] px) → run pipeline at `drizzle=stsci-2x` → upsample → compare to ground truth via PSNR and SSIM.
-  Acceptance: STScI 2× recovers the ground truth with **PSNR > 2 dB better** than bicubic 2× on the same fixture. This is the resolution-recovery claim of STScI drizzle and is the test that justifies the path's existence.
+**Implementation steps:**
 
-- [ ] **5b.6 — Bayer-drizzle slanted-edge MTF test**
-  Generate a high-resolution RGB ground truth with a slanted-edge target → mosaic to RGGB Bayer at 256×256 with prescribed sub-pixel offsets (24 frames) → run pipeline at `drizzle=bayer-2x` → measure MTF50 on the slanted edge in the output per channel.
-  Acceptance: Bayer-2x MTF50 **per channel** exceeds the MTF50 of "debayer-with-cv::cvtColor then bicubic-stack-2x" by at least 1.3× on red and blue channels (green is already over-sampled in RGGB so the gain is smaller). Standard slanted-edge measurement: ISO 12233.
+1. Allocate `out_pixmap->xmap` / `ymap` as `rx × ry` float arrays. `rx, ry` come from `run->frame_cols / frame_rows` (the input frame size — *not* the drizzled output size).
+2. Compute the per-AP weight surface once per frame, reused across both x and y axes. For each AP `a` and each output pixel `(i, j)` define a 2D ramp weight `w_a(i, j) = ramp_x_a(i) × ramp_y_a(j)`, where:
+   - `ramp_x_a(i)` is 1.0 at the AP centre column, falls linearly to 0.0 at the AP's box boundary, and 0.0 outside the box. (Identical formulation to PSS's `one_dim_weight`, already implemented as `mpp::one_dim_weight` in `mpp_stack.cpp`.)
+   - `ramp_y_a` is symmetric.
+3. For each input pixel `(i, j)`:
+   - `dy_local = (Σ_a w_a(i,j) × shifts[2(i_frame × M + a) + 0]) / (Σ_a w_a(i,j))`, with `Σ_a w_a` guaranteed > 0 by the staggered AP grid construction (every pixel is inside at least one AP box for the typical configuration). When `Σ_a w_a = 0` (corner cases at the very edge of the intersection), fall back to the global shift only.
+   - `dy_total = global_shifts[frame_idx].dy + dy_local`; same for `dx_total`.
+   - `xmap[j × rx + i] = drizzle_scale × (i + dx_total)`.
+   - `ymap[j × rx + i] = drizzle_scale × (j + dy_total)`.
+
+**Reusable helpers extracted from `mpp_stack.cpp`:**
+- `mpp::one_dim_weight(int box_low, int box_high, bool extend_low, bool extend_high, double pos) → double` — already exists.
+- `mpp::per_pixel_weight_sum(...)` — pulled out of the per-AP buffer weighting code so 5b can share it.
+
+**Effort:** ~half a day. The arithmetic is straightforward; the only subtlety is the corner-case "no AP covers this pixel" fallback, which needs a unit test (test `mpp_pixmap_outside_aps` below).
+
+#### 5b.2 — `mpp_drizzle_stsci_path`: integrate `dobox` into Stage C
+
+**What it is:** a new stack-time path that replaces the bicubic resize + per-AP cutout + accumulate sequence (Phase 5a) with a single per-frame `dobox()` call into a shared output canvas. The MPP-specific pieces (brightness equalisation, frame selection per AP) wrap around the call.
+
+**Public surface change:** fold STScI behaviour into the existing `mpp_stack_apply` rather than adding a parallel entry point. Add a `drizzle_mode` switch at the top:
+
+```c
+mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
+                             const mpp_run_t *run, fits *out) {
+  switch (cfg->drizzle_mode) {
+    case MPP_DRIZZLE_OFF:
+    case MPP_DRIZZLE_BICUBIC: return mpp_stack_apply_bicubic(seq, cfg, run, out);   // existing
+    case MPP_DRIZZLE_STSCI:   return mpp_stack_apply_stsci  (seq, cfg, run, out);   // new (5b.2)
+    case MPP_DRIZZLE_BAYER:   return mpp_stack_apply_bayer  (seq, cfg, run, out);   // new (5b.3)
+  }
+}
+```
+
+**STScI path skeleton:**
+
+1. Allocate output: `fits out` at `(drizzle_factor × intersection_w, drizzle_factor × intersection_h, num_layers)`, type `DATA_FLOAT`. Per-channel layout matches Siril's existing drizzle output.
+2. Allocate `output_counts`: single-channel `fits` of the same shape — dobox's weight accumulator.
+3. Build sequence-wide `driz_args_t` from cfg: `kernel`, `pixel_fraction`, `scale = drizzle_factor`, `is_bayer = FALSE`.
+4. For each frame index `f` in the union of `best_frame_indices` across all APs (deduplicated):
+   - Read frame `f` (RGB or mono per `run->num_layers`).
+   - Apply per-frame brightness equalisation: `frame × median_brightness / (frame_brightness[f] + 1e-7)`. Same as Phase 5a.
+   - Build pixmap via `mpp_pixmap_build(run, f, drizzle_factor, &pixmap)`.
+   - Fill `driz_param_t p` from `driz_args_t` + per-frame data (`p.data = &frame_fits`, `p.pixmap = &pixmap`, `p.output_data = &out`, `p.output_counts = &output_counts`).
+   - Call `dobox(&p)`. dobox accumulates into `out` and `output_counts` in-place.
+5. Background composition: `output_counts` is dobox's natural weight map — cells with `counts < cfg->stack_frames_background_blend_threshold × n_frames` get the median background blended in (same threshold semantics as Phase 5a, just driven by a different counter).
+6. Final normalisation: `out /= output_counts` with epsilon floor, then scale + cast to uint16.
+
+**Differences vs bicubic path that need attention:**
+- Phase 5a applies per-AP weights at *merge* time (after each AP's buffer is built); 5b applies them at *sample* time (during pixmap build). The two are mathematically distinct; verify visually equivalent on the synthetic dataset (test `pixmap_vs_bicubic_per_ap_weight` below).
+- Phase 5a iterates per-AP × per-frame; 5b iterates per-frame (each frame contributes once to all output pixels at once). Net cost should be lower for large AP counts.
+- Phase 5a's "drizzle expansion" was a `cv::resize(frame, scale=K, INTER_LINEAR)`; 5b does the expansion *inside* dobox via the scaled pixmap. The two paths should produce visually similar output at `drizzle_factor > 1` but **not** bit-identical (different resampling kernels).
+
+**Effort:** ~2 days. dobox is well-encapsulated and Siril already exercises it; the new code is mostly orchestration. Most of the time goes into the test fixtures and the back-and-forth checking that the per-AP weight ramp doesn't bias the output.
+
+#### 5b.3 — `mpp_drizzle_bayer_path`: 3-channel drizzle from raw Bayer samples
+
+**What it is:** the same dobox-based stack path as 5b.2, but feeding raw single-channel Bayer-pattern frames (no debayer) into a 3-channel drizzled output. dobox's CFA-aware sampler decides which output channel each input sample contributes to based on the per-pixel CFA position.
+
+**Stage A/B unchanged:** the analysis frame is still the debayered+luminance projection so the global align + AP shifts have meaningful signal. Only Stage C diverges.
+
+**Implementation steps:**
+
+1. New helper `read_bayer_frame(sequence *seq, int idx, fits *out)` in `mpp.cpp`. Like `read_full_frame` but skips `cv::cvtColor`/`bayer_to_rgb`; output is single-channel uint16 with the raw mosaic.
+2. Verify SER's `bayer_pattern` is populated on `com.seq` for Bayer SERs (it is — Siril parses the SER header at sequence-open time).
+3. In `mpp_stack_apply_bayer`:
+   - Set `driz_args_t::is_bayer = TRUE` and copy the CFA pattern from the SER header into `driz_args_t::cfa[]` / `cfadim`.
+   - Output `fits` is 3-channel (`naxes[2] = 3`); `output_counts` is also 3-channel because each Bayer channel has independent counts.
+   - Per-frame brightness equalisation: compute on the *debayered* frame (Siril already does this for deep-sky Bayer drizzle), then scale the raw Bayer frame by the same factor.
+   - For each frame: build pixmap as in 5b.1, call `dobox` with `is_bayer = TRUE`. dobox routes each input sample to one of the three output channels based on its CFA position; the other channels' weight maps stay zero at that output pixel.
+   - Normalise per channel: `out[c] /= output_counts[c]` with epsilon floor.
+4. **Critical sanity check before claiming 5b.3 works**: dobox's CFA branch in `cdrizzlebox.c` assumes a specific input-pixel-to-CFA mapping. With MPP's non-affine pixmap, the same input pixel `(i, j)` might land at different output positions for different frames — fine — but dobox must still consult the *input* CFA position (which doesn't move) for the channel routing. Read the dobox CFA loop carefully before writing the stack path; if there's an assumption that the output-CFA position equals the input-CFA position (i.e. that pixmap is identity for CFA purposes), the path either needs a refactor in dobox or a workaround in `mpp_drizzle.cpp` (likely: produce three single-channel intermediate outputs at each CFA position then merge). The synthetic Bayer test (`mpp_bayer_drizzle_synthetic_mosaic` below) is the gate for this.
+
+**Effort:** ~3–5 days depending on what the dobox CFA review surfaces. If dobox accepts arbitrary pixmaps cleanly, this is a one-day extension of 5b.2; if it requires a per-CFA-channel split, more like a week.
+
+#### 5b.4 — CLI + GUI flag surface
+
+**`mpp_config_t` changes** (in `mpp_config.h`):
+
+```c
+enum mpp_drizzle_mode {
+    MPP_DRIZZLE_OFF = 0,        // existing — drizzle_factor implicitly 1
+    MPP_DRIZZLE_BICUBIC = 1,    // existing — drizzle_factor 2 or 3
+    MPP_DRIZZLE_STSCI = 2,      // new (5b.2)
+    MPP_DRIZZLE_BAYER = 3,      // new (5b.3)
+};
+enum mpp_drizzle_kernel {       // mirrors e_kernel_t but typed for cfg
+    MPP_KERNEL_SQUARE = 0,
+    MPP_KERNEL_GAUSSIAN,
+    MPP_KERNEL_POINT,
+    MPP_KERNEL_TURBO,
+    MPP_KERNEL_LANCZOS2,
+    MPP_KERNEL_LANCZOS3,
+};
+struct mpp_config {
+    /* ... existing fields ... */
+    enum mpp_drizzle_mode   drizzle_mode;     // default MPP_DRIZZLE_OFF
+    int                     drizzle_factor;   // existing; 1, 2, or 3
+    float                   drizzle_pixfrac;  // new; default 0.7, range (0, 1]
+    enum mpp_drizzle_kernel drizzle_kernel;   // new; default MPP_KERNEL_SQUARE
+};
+```
+
+`mpp_config_defaults` sets pixfrac=0.7 and kernel=SQUARE — matching Siril's existing drizzle defaults.
+
+**CLI flag parser** (`apply_mpp_flag` in `command.c`):
+
+| Flag | Effect on cfg |
+|---|---|
+| `-drizzle=Off` | `drizzle_mode = OFF`, `drizzle_factor = 1` |
+| `-drizzle=1.5` | `drizzle_mode = BICUBIC`, `drizzle_factor = 3` (pending downsample) |
+| `-drizzle=2` | `drizzle_mode = BICUBIC`, `drizzle_factor = 2` |
+| `-drizzle=3` | `drizzle_mode = BICUBIC`, `drizzle_factor = 3` |
+| `-drizzle=stsci-2x` (new) | `drizzle_mode = STSCI`, `drizzle_factor = 2` |
+| `-drizzle=stsci-3x` (new) | `drizzle_mode = STSCI`, `drizzle_factor = 3` |
+| `-drizzle=bayer-2x` (new) | `drizzle_mode = BAYER`, `drizzle_factor = 2` |
+| `-drizzle=bayer-3x` (new) | `drizzle_mode = BAYER`, `drizzle_factor = 3` |
+| `-pixfrac=<f>` (new) | `drizzle_pixfrac = f`; reject if not in (0, 1] |
+| `-driz-kernel=<name>` (new) | parse name → enum; reject unknown |
+
+Cross-mode validation in `process_register_mpp` / `process_stack_mpp`:
+- `-pixfrac` / `-driz-kernel` only valid in stack-time invocations (`stack_mpp` and `pss`); reject when passed to `register_mpp`.
+- `-drizzle=stsci-*` and `-drizzle=bayer-*` rejected for `register_mpp` (Stage B doesn't drizzle).
+- `-drizzle=bayer-*` rejected on non-Bayer sequences (peek SER header, fail with clear message).
+
+**GUI changes** (stack-side MPP sub-panel in `siril.ui`):
+- Extend `combo_mpp_drizzle` with new entries: "Off", "1.5x", "2x", "3x" (existing), "2x (STScI)", "3x (STScI)", "2x (Bayer)", "3x (Bayer)" (new). Map combo index to `(drizzle_mode, drizzle_factor)` in `on_drizzle_combo_changed`.
+- Add `spin_mpp_drizzle_pixfrac` (GtkSpinButton, range 0.1–1.0, step 0.05, default 0.7) and `combo_mpp_drizzle_kernel` (GtkComboBoxText with the 6 kernel names). Wire visibility: shown only when an STScI / Bayer mode is selected.
+- New cfg→GUI sync code in `update_stack_interface` so the widgets reflect a loaded sidecar's cfg.
+
+**Sidecar compatibility:** the `.mpp` sidecar's `drizzle_factor` field (`mpp_sidecar.c`) stores `cfg.drizzle_factor` only. The new `drizzle_mode` / `drizzle_pixfrac` / `drizzle_kernel` are *stack-time* cfg, not register-time, so they don't need to live in the sidecar — the user picks them at stack time. Verify this assumption holds when implementing 5b.2; if STScI registration ever needs to feed back into Stage B (it shouldn't), revisit.
+
+**Effort:** ~half a day for CLI + GUI plumbing, plus 0.5 day for the GUI visibility / wiring testing.
+
+#### 5b.5 — STScI synthetic-truth test (`mpp_drizzle_test.cpp`)
+
+See "Phase 5b test plan" below.
+
+#### 5b.6 — Bayer-drizzle slanted-edge MTF test
+
+See "Phase 5b test plan" below.
+
+### Phase 5b test plan
+
+Three test groups serve different purposes:
+
+1. **Pixmap-builder unit tests** — prove the pixmap is what it says it is, in isolation from dobox.
+2. **STScI sanity-against-bicubic-oracle** — *user's request*: at (scale=1, pixfrac=1) STScI should approximate bicubic-drizzle=1; at (scale=2, pixfrac=0.6) it should approximate bicubic-drizzle=2. Rules out junk output without requiring algorithmic equivalence.
+3. **STScI / Bayer synthetic-truth tests** — the algorithm-justification tests (resolution recovery for STScI; colour resolution for Bayer drizzle).
+
+#### Group 1 — Pixmap unit tests (`mpp_drizzle_test.cpp::mpp_pixmap_*`)
+
+| Test | Setup | Acceptance |
+|---|---|---|
+| `mpp_pixmap_identity` | Zero global shifts, zero per-AP shifts, scale=1. | xmap[j,i]=i and ymap[j,i]=j to within float epsilon for every pixel. |
+| `mpp_pixmap_global_only` | Non-zero integer global shift `(dy, dx) = (3, -2)`, zero per-AP, scale=1. | xmap = i + dx, ymap = j + dy for every pixel. |
+| `mpp_pixmap_per_ap_at_centre` | One AP at `(cy, cx)` with shift `(2, -1)`, zero global, scale=1. | xmap[cy, cx] = cx - 1; ymap[cy, cx] = cy + 2 (the AP wins its own centre). |
+| `mpp_pixmap_per_ap_between` | Two APs at `x = 10` and `x = 30` (same y row) with shifts `(0, +2)` and `(0, -2)`. | xmap at the midpoint `(y, 20)` ≈ x_in + 0 (ramp weights cancel symmetrically); xmap monotonically interpolates from `+2` at AP1 to `-2` at AP2. |
+| `mpp_pixmap_outside_aps` | One AP in the centre; sample at a pixel outside its box. | Fallback path: xmap = i + global_dx; ymap = j + global_dy. No NaN, no divide-by-zero. |
+| `mpp_pixmap_scale` | Global shift `(0, 0)`, zero per-AP, `scale=2`. | xmap[j,i] = 2 × i; ymap[j,i] = 2 × j. |
+
+Total: 6 small unit tests, ~100 LOC, runs in milliseconds. Gates the pixmap code before any dobox integration.
+
+#### Group 2 — STScI sanity against the PSS bicubic oracle (this is the new group from the user request)
+
+Both tests use the bundled real-SER fixture `test-big.ser` (500-frame Bayer Jupiter) and the existing PSS oracle outputs in `tools/pss_reference/oracle_out_realser/`. The PSS oracle is a *bicubic* drizzle; STScI is a *different algorithm*. We're not asking for algorithmic equivalence — just that STScI in its "near-passthrough" and "real-2x" configurations produces a Jupiter image close enough to the oracle to rule out junk (wrong sign, dimensions, bit-depth, total black/white, channels swapped, etc.).
+
+| Test | Setup | Acceptance |
+|---|---|---|
+| `mpp_stsci_near_passthrough_oracle` | `drizzle=stsci-2x` is the smallest drizzle mode; force `drizzle_factor=1` and `pixfrac=1` at the API level (CLI doesn't expose drizzle=1 for stsci — this is a unit test). Compare to PSS oracle stacked at `drizzle="Off"` (the existing `oracle_out_realser/stacked.fits`). | PSNR ≥ 35 dB on the central crop excluding the 10-px border (drizzle output dims may differ slightly from intersection size). SSIM ≥ 0.95. Mean abs diff ≤ 200 / 65535. No pixel anywhere differs by more than 5000 / 65535. **All four criteria must hold.** |
+| `mpp_stsci_real_2x_oracle` | `drizzle=stsci-2x`, `pixfrac=0.6`. Compare to PSS oracle stacked at `drizzle_factor=2` (the existing `oracle_out_realser_drizzle2/stacked.fits`). | PSNR ≥ 25 dB on the central crop. SSIM ≥ 0.85. Mean abs diff ≤ 600 / 65535. The image must be a recognisable Jupiter — quick structural test: cross-correlation between the STScI output and the bicubic reference, downsampled to 64×64, peaks at offset (0, 0) ± 1 pixel. |
+| `mpp_stsci_near_passthrough_oracle_drizzle3x` (optional extension) | `drizzle=stsci-3x`, `pixfrac=1` vs PSS oracle at `drizzle_factor=3`. | Same bars as 2x with PSNR ≥ 30 dB, SSIM ≥ 0.90. |
+
+The fixture and acceptance numbers above are conservative starting points; once 5b.2 lands and we see actual numbers, the bars can be tightened (or loosened to reflect intrinsic differences) before merge. The intent is *correctness floor*, not algorithmic equivalence.
+
+**Implementation note**: the PSS oracles already exist in `tools/pss_reference/oracle_out_realser*/`; the test only needs to add the STScI runs and the PSNR/SSIM/cross-correlation comparisons. Cross-correlation in Python is one `scipy.signal.correlate2d` call; in C++ we can use OpenCV's `matchTemplate(TM_CCORR_NORMED)`.
+
+#### Group 3 — STScI / Bayer synthetic-truth tests
+
+| Test | Setup | Acceptance |
+|---|---|---|
+| `mpp_drizzle_stsci_synthetic_resolution` | Generate 1024×1024 synthetic Jupiter with fine surface features (sinusoidal pattern of varying period, plus the existing synthetic planet). Downsample to 256×256 with 24 frames of prescribed sub-pixel global offsets uniformly in [−1, 1] px. Run pipeline at `drizzle=stsci-2x`, `pixfrac=0.5`. Upsample ground truth to 512×512 for comparison. | PSNR(STScI output vs upsampled-truth) **≥ PSNR(bicubic-2x output vs upsampled-truth) + 2 dB.** This is the resolution-recovery claim. Same fixture stacked at `drizzle=bicubic-2x` is the baseline. |
+| `mpp_bayer_drizzle_synthetic_mosaic` | Generate 1024×1024 RGB ground truth with a slanted edge at 7° tilt, in colour-sensitive regions. Mosaic to RGGB Bayer at 256×256 with 24 frames, sub-pixel offsets. Run at `drizzle=bayer-2x`. Measure MTF50 per channel at the slanted edge (ISO 12233). | MTF50_R(bayer-2x) **≥ 1.3× MTF50_R(debayer-cv::cvtColor then bicubic-2x)**; same for B channel. G can be ≥ 1.0× since it's already 50% sampled. |
+| `mpp_bayer_drizzle_first_smoke` (precedes the MTF test) | Generate a 2× synthetic RGGB mosaic with a known pattern (e.g. red letter "R", green "G", blue "B"); a single frame; run at `drizzle=bayer-2x`, `pixfrac=1`. | Output channels contain their respective letters cleanly. **This is the gate test for the 5b.3 dobox-CFA sanity check.** Skip the MTF test if this fails. |
+
+#### Test runtime budget
+
+The pixmap unit tests are sub-second. Group 2 reuses the existing real-SER fixture which already takes ~3 s in the bicubic oracle test; expect the two STScI runs to add ~6 s. Group 3's synthetic-truth tests on a 24-frame 256×256 fixture should take ~1 s each. Total Phase 5b test addition: well under 30 s.
+
+### Summary of acceptance bars
+
+- **5b.1 (pixmap)**: 6 unit tests green.
+- **5b.2 (STScI path)**: Group 2 tests (passthrough + real-2x against PSS oracle) green at the bars above. Group 3 STScI synthetic-truth test green at ≥ 2 dB PSNR gain over bicubic.
+- **5b.3 (Bayer path)**: Group 3 first-smoke test green (gates the dobox-CFA assumption), then the slanted-edge MTF test green at ≥ 1.3× per channel.
+- **5b.4 (flag surface)**: CLI flag parser unit tests green; GUI manual smoke check (combo updates / widget visibility) signed off.
+- **5b.5, 5b.6**: covered by Group 3 above.
 
 ### Phase 5b tests (all on synthetic ground truth — no PSS oracle exists for these paths)
 
