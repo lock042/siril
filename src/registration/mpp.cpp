@@ -31,6 +31,7 @@ extern "C" {
 #include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/ser.h"
 
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
@@ -354,6 +355,62 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 
 /* -------------------- Stage C: mpp_stack_apply -------------------- */
 
+/* RAII helper: temporarily flips a CFA SER's debayer_type_ser from
+ * SER_MONO to its actual color_id (and bumps nb_layers from 1 to 3) for
+ * the duration of an analysis pass, restoring on destruction. The rank
+ * measure (GaussianBlur 7×7 → Laplace σ) cannot operate sensibly on a
+ * raw Bayer mosaic — the CFA's checker pattern dominates the
+ * measurement, masking the actual seeing-driven sharpness signal — so
+ * analysis always needs debayered input. The bayer-* drizzle stack
+ * path re-reads raw bytes via its own wrapper regardless of this
+ * setting, so flipping for analysis doesn't disturb the raw-mosaic
+ * path that bayer-drizzle relies on at stack time. */
+namespace {
+struct SerAnalysisDebayerGuard {
+	sequence *seq = nullptr;
+	ser_color saved_debayer_type = SER_MONO;
+	int saved_nb_layers = -1;
+	bool active = false;
+
+	~SerAnalysisDebayerGuard() {
+		if (active && seq && seq->ser_file) {
+			seq->ser_file->debayer_type_ser = saved_debayer_type;
+			seq->nb_layers = saved_nb_layers;
+		}
+	}
+};
+
+bool maybe_engage_ser_debayer_for_analysis(SerAnalysisDebayerGuard &g, sequence *seq) {
+	if (!seq || seq->type != SEQ_SER || !seq->ser_file) return false;
+	if (seq->nb_layers != 1) return false;
+	const ser_color cid = seq->ser_file->color_id;
+	if (cid < SER_BAYER_RGGB || cid > SER_BAYER_BGGR) return false;
+	g.seq = seq;
+	g.saved_debayer_type = seq->ser_file->debayer_type_ser;
+	g.saved_nb_layers = seq->nb_layers;
+	g.active = true;
+	seq->ser_file->debayer_type_ser = cid;
+	seq->nb_layers = 3;
+	return true;
+}
+}  // namespace
+
+extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
+	if (!seq) return MPP_INPUT_MONO;
+	if (seq->type == SEQ_SER && seq->ser_file) {
+		const ser_color cid = seq->ser_file->color_id;
+		if (cid >= SER_BAYER_RGGB && cid <= SER_BAYER_BGGR) return MPP_INPUT_CFA;
+		if (cid == SER_RGB || cid == SER_BGR)               return MPP_INPUT_RGB;
+		return MPP_INPUT_MONO;
+	}
+	/* FITS / other: nb_layers heuristic. A CFA-FITS sequence with
+	 * nb_layers=1 + bayer_pattern keyword would be misclassified as
+	 * MONO here — that's a corner case to address if it shows up in the
+	 * field; the SER path covers the common case. */
+	if (seq->nb_layers > 1) return MPP_INPUT_RGB;
+	return MPP_INPUT_MONO;
+}
+
 extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
                                         const mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
@@ -370,6 +427,17 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		default:
 			break;   /* fall through to the Phase 5a bicubic path below */
 	}
+
+	/* Auto-debayer for the bicubic path when a CFA SER was opened raw.
+	 * Without this, mpp::read_full_frame would return a 1-channel mosaic
+	 * and the bicubic stack would produce a single-channel "image" that
+	 * is really the CFA pattern smoothed by INTER_LINEAR — visually
+	 * grey-scale and structurally wrong as a colour stack. The bayer-*
+	 * path above doesn't need the guard because its wrapper reads the
+	 * raw mosaic directly and routes per-CFA-position to the matching
+	 * output channel. */
+	SerAnalysisDebayerGuard ser_guard;
+	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
 
 	/* Read frames preserving all layers — colour data flows through Stage C
 	 * even though Stages A and B use only the green analysis layer. */
@@ -718,19 +786,18 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	if (!regargs || !regargs->seq)
 		return MPP_EINVAL;
 
-	/* Detect 1-layer + Bayer-pattern sequences: the CLI (process_pss et al)
-	 * forces debayer-on-open via load_sequence_force_debayer; the GUI path
-	 * goes through whatever pref the user opened the seq with. If they
-	 * loaded a Bayer SER as raw CFA we'd spend Stage A computing rank on
-	 * checker-pattern data — abort early with clear instructions instead. */
-	if (regargs->bayer && regargs->seq->nb_layers == 1) {
-		siril_log_color_message(_("mpp: this sequence has a Bayer pattern but is loaded "
-		                          "as 1-layer raw CFA. mpp expects RGB-debayered input.\n"
-		                          "       Enable Preferences → Debayering → \"Debayer SER "
-		                          "files at opening\", then close and reopen the sequence.\n"),
-		                        "red");
-		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-		return MPP_EINVAL;
+	/* Auto-debayer for analysis when a CFA SER was opened raw (i.e.
+	 * Preferences → Debayering → "Debayer SER files at opening" is OFF).
+	 * The guard flips the SER state for the duration of this function
+	 * and restores on every return path. See SerAnalysisDebayerGuard
+	 * above for the rationale. */
+	SerAnalysisDebayerGuard ser_guard;
+	if (maybe_engage_ser_debayer_for_analysis(ser_guard, regargs->seq)) {
+		siril_log_color_message(
+		    _("mpp: auto-debayering CFA SER for analysis "
+		      "(Preferences → Debayering → \"Debayer SER files at opening\" is OFF). "
+		      "The raw mosaic is still available to the bayer-* drizzle stack path.\n"),
+		    "salmon");
 	}
 
 	mpp_config_t cfg;

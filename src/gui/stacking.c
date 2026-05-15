@@ -28,6 +28,7 @@
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
 #include "registration/mpp_config.h"
 #include "stacking/sum.h"
 #include "stacking/stacking.h"
@@ -42,12 +43,23 @@ static float filter_initvals[] = {90., 3.}; // max %, max k
 static float filter_maxvals[] = {100., 5.}; // max %, max k
 static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
 // update_adjustment passed here as a static (instead of function parameter like in registration)
-/* Forward decls for the drizzle-combo CFA-aware filters; the definitions
- * live further down with on_combo_mpp_drizzle_changed but start_stacking
- * installs the cell-data-func at widget init. */
-static void mpp_drizzle_combo_cell_func(GtkCellLayout *, GtkCellRenderer *,
-                                         GtkTreeModel *, GtkTreeIter *, gpointer);
-static void mpp_drizzle_combo_validate(GtkComboBox *);
+/* Mpp drizzle-mode combo. The visible item set varies with the loaded
+ * sequence's input layout (mono / CFA / RGB) so we drive the combo's
+ * contents from code via a parallel array that pairs each label with
+ * its (mode, factor) tuple. update_stack_interface calls _repopulate
+ * on every sequence-state change; start_stacking reads (mode, factor)
+ * by index. */
+typedef struct {
+	int mode;     /* MPP_DRIZZLE_OFF, _BICUBIC, _STSCI, _BAYER */
+	int factor;   /* 1, 2, 3 */
+} mpp_drizzle_choice;
+
+#define MPP_DRIZZLE_CHOICES_MAX 8
+static mpp_drizzle_choice mpp_drizzle_choices[MPP_DRIZZLE_CHOICES_MAX];
+static int mpp_drizzle_choice_count = 0;
+
+static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo);
+void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data);
 
 // in order not to mess up all the calls to update_stack_interface
 static int update_adjustment = -1;
@@ -136,15 +148,10 @@ static void start_stacking() {
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
 		mpp_driz_kernel_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
-		/* Install the per-row sensitivity callback so stsci-* greys out
-		 * for CFA input and bayer-* greys out for mono input. */
-		GList *cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(mpp_drizzle_combo));
-		if (cells && cells->data) {
-			gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(mpp_drizzle_combo),
-			                                   GTK_CELL_RENDERER(cells->data),
-			                                   mpp_drizzle_combo_cell_func, NULL, NULL);
-		}
-		g_list_free(cells);
+		/* Replace the .ui XML's fixed item list with the input-type-
+		 * appropriate set so the combo opens already filtered for a
+		 * loaded sequence (or with the full palette if none is loaded). */
+		mpp_drizzle_combo_repopulate(GTK_COMBO_BOX_TEXT(mpp_drizzle_combo));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
@@ -259,19 +266,12 @@ static void start_stacking() {
 		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
 		mpp_config_defaults(cfg);
 		const int driz_idx = gtk_combo_box_get_active(mpp_drizzle_combo);
-		switch (driz_idx) {
-			/* Index → (mode, factor) — must match the GtkComboBoxText item
-			 * order in siril.ui. 0..3 are the Phase 5a bicubic entries
-			 * (legacy); 4..7 are STScI / Bayer variants from Phase 5b. */
-			case 0: cfg->drizzle_mode = MPP_DRIZZLE_OFF;     cfg->drizzle_factor = 1; break;
-			case 1: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; break;  /* 1.5x */
-			case 2: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 2; break;
-			case 3: cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; break;
-			case 4: cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 2; break;
-			case 5: cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 3; break;
-			case 6: cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 2; break;
-			case 7: cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 3; break;
-			default: cfg->drizzle_mode = MPP_DRIZZLE_OFF;    cfg->drizzle_factor = 1; break;
+		if (driz_idx >= 0 && driz_idx < mpp_drizzle_choice_count) {
+			cfg->drizzle_mode   = mpp_drizzle_choices[driz_idx].mode;
+			cfg->drizzle_factor = mpp_drizzle_choices[driz_idx].factor;
+		} else {
+			cfg->drizzle_mode = MPP_DRIZZLE_OFF;
+			cfg->drizzle_factor = 1;
 		}
 		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
 		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
@@ -293,10 +293,84 @@ void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
 	start_stacking();
 }
 
-/* Show / hide the STScI- and Bayer-only widgets (pixfrac spinner + label,
- * driz kernel combo + label) based on the drizzle-mode combo selection.
- * Indices 0..3 are the bicubic family (Off / 1.5x / 2x / 3x); 4..7 are
- * the dobox-driven modes that consume pixfrac and kernel. */
+/* Append one drizzle-mode choice: visible label + the (mode, factor)
+ * tuple stored in the parallel mpp_drizzle_choices array. */
+static void mpp_drizzle_combo_append(GtkComboBoxText *combo,
+                                     const char *label, int mode, int factor) {
+	if (mpp_drizzle_choice_count >= MPP_DRIZZLE_CHOICES_MAX) return;
+	gtk_combo_box_text_append_text(combo, label);
+	mpp_drizzle_choices[mpp_drizzle_choice_count].mode   = mode;
+	mpp_drizzle_choices[mpp_drizzle_choice_count].factor = factor;
+	mpp_drizzle_choice_count++;
+}
+
+/* Rebuild the drizzle-mode combo's item list to match the loaded
+ * sequence's input layout:
+ *   MONO input  → Off + bicubic-{1.5,2,3}x + Drizzle-{2,3}x
+ *   CFA input   → Off + bicubic-{1.5,2,3}x + Bayer drizzle-{2,3}x
+ *   true RGB    → Off + bicubic-{1.5,2,3}x   (drizzle modes both inapplicable)
+ *   no sequence → full palette (default GUI state pre-load)
+ *
+ * "STScI drizzle" is labelled simply "Drizzle" on the mono path because
+ * it's the only drizzle option available there. The Bayer-drizzle entry
+ * keeps the "Bayer" qualifier because it's genuinely a different
+ * algorithm (raw-CFA-routing via dobox, not a per-channel drizzle).
+ *
+ * Selection is preserved by (mode, factor) when valid for the new
+ * sequence type, otherwise falls back to "Off". */
+static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
+	if (!combo) return;
+	mpp_input_type type = MPP_INPUT_MONO;
+	gboolean seqloaded = sequence_is_loaded();
+	if (seqloaded) type = mpp_classify_sequence_input(&com.seq);
+
+	/* Remember previous selection to map it across the rebuild. */
+	const int prev_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	int prev_mode = MPP_DRIZZLE_OFF;
+	int prev_factor = 1;
+	if (prev_idx >= 0 && prev_idx < mpp_drizzle_choice_count) {
+		prev_mode   = mpp_drizzle_choices[prev_idx].mode;
+		prev_factor = mpp_drizzle_choices[prev_idx].factor;
+	}
+
+	g_signal_handlers_block_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
+	gtk_combo_box_text_remove_all(combo);
+	mpp_drizzle_choice_count = 0;
+
+	/* Always available */
+	mpp_drizzle_combo_append(combo, _("Off"),          MPP_DRIZZLE_OFF,     1);
+	mpp_drizzle_combo_append(combo, _("1.5x bicubic"), MPP_DRIZZLE_BICUBIC, 3);  /* legacy: factor=3 maps to 1.5x in the CLI parser */
+	mpp_drizzle_combo_append(combo, _("2x bicubic"),   MPP_DRIZZLE_BICUBIC, 2);
+	mpp_drizzle_combo_append(combo, _("3x bicubic"),   MPP_DRIZZLE_BICUBIC, 3);
+
+	if (!seqloaded || type == MPP_INPUT_MONO) {
+		mpp_drizzle_combo_append(combo, _("2x Drizzle"), MPP_DRIZZLE_STSCI, 2);
+		mpp_drizzle_combo_append(combo, _("3x Drizzle"), MPP_DRIZZLE_STSCI, 3);
+	}
+	if (!seqloaded || type == MPP_INPUT_CFA) {
+		mpp_drizzle_combo_append(combo, _("2x Bayer drizzle"), MPP_DRIZZLE_BAYER, 2);
+		mpp_drizzle_combo_append(combo, _("3x Bayer drizzle"), MPP_DRIZZLE_BAYER, 3);
+	}
+
+	int new_idx = 0;
+	for (int i = 0; i < mpp_drizzle_choice_count; ++i) {
+		if (mpp_drizzle_choices[i].mode == prev_mode
+		 && mpp_drizzle_choices[i].factor == prev_factor) {
+			new_idx = i;
+			break;
+		}
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), new_idx);
+	g_signal_handlers_unblock_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
+	/* Trigger the visibility handler for the new selection (pixfrac /
+	 * kernel widgets show only when the active choice is a dobox mode). */
+	on_combo_mpp_drizzle_changed(GTK_COMBO_BOX(combo), NULL);
+}
+
+/* Show / hide the dobox-only widgets (pixfrac spinner + label, driz
+ * kernel combo + label) based on the drizzle-mode combo selection. The
+ * underlying (mode, factor) lookup uses the parallel array because the
+ * index↔mode mapping varies with sequence type. */
 void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	(void) user_data;
 	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
@@ -308,64 +382,15 @@ void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 		combo_kn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
 	}
 	const int idx = gtk_combo_box_get_active(combo);
-	const gboolean dobox_mode = (idx >= 4);   /* STScI 2x/3x or Bayer 2x/3x */
+	gboolean dobox_mode = FALSE;
+	if (idx >= 0 && idx < mpp_drizzle_choice_count) {
+		const int mode = mpp_drizzle_choices[idx].mode;
+		dobox_mode = (mode == MPP_DRIZZLE_STSCI || mode == MPP_DRIZZLE_BAYER);
+	}
 	gtk_widget_set_visible(lbl_pf,   dobox_mode);
 	gtk_widget_set_visible(spin_pf,  dobox_mode);
 	gtk_widget_set_visible(lbl_kn,   dobox_mode);
 	gtk_widget_set_visible(combo_kn, dobox_mode);
-}
-
-/* Cell-renderer callback: gray out drizzle-mode combo items that are
- * incompatible with the loaded sequence's channel layout. STScI modes
- * (indices 4–5) require mono input — debayer-then-STScI is rejected at
- * the command-handler level because classical debayer artefacts would
- * be amplified by drizzle. Bayer modes (indices 6–7) require CFA input.
- * The bicubic family (0–3) is always available.
- *
- * Sensitive=FALSE makes the row unclickable in the dropdown but keeps it
- * visible so the user sees the available palette of options. The
- * mpp_drizzle_combo_validate function (called from update_stack_interface)
- * resets the active selection if the previously-selected mode became
- * invalid on a sequence-state change. */
-static void mpp_drizzle_combo_cell_func(GtkCellLayout *cell_layout,
-                                         GtkCellRenderer *cell,
-                                         GtkTreeModel *tree_model,
-                                         GtkTreeIter *iter,
-                                         gpointer data) {
-	(void)cell_layout; (void)data;
-	GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
-	if (!path) return;
-	const int idx = gtk_tree_path_get_indices(path)[0];
-	gtk_tree_path_free(path);
-
-	const gboolean seqloaded = sequence_is_loaded();
-	const gboolean is_cfa  = seqloaded && com.seq.nb_layers > 1;
-	const gboolean is_mono = seqloaded && com.seq.nb_layers == 1;
-
-	gboolean sensitive = TRUE;
-	if (idx == 4 || idx == 5) sensitive = !is_cfa;   /* stsci-* needs mono */
-	if (idx == 6 || idx == 7) sensitive = !is_mono;  /* bayer-* needs CFA  */
-	g_object_set(cell, "sensitive", sensitive, NULL);
-}
-
-/* Validate the currently-selected drizzle mode against the loaded
- * sequence. If the selection became invalid (e.g., user had stsci-2x
- * selected when no sequence was loaded, then opened a CFA SER), fall
- * back to "Off" so they don't hit a rejection at stack time. Called
- * from update_stack_interface on every sequence-state change. */
-static void mpp_drizzle_combo_validate(GtkComboBox *combo) {
-	if (!combo) return;
-	const gboolean seqloaded = sequence_is_loaded();
-	const gboolean is_cfa  = seqloaded && com.seq.nb_layers > 1;
-	const gboolean is_mono = seqloaded && com.seq.nb_layers == 1;
-	const int idx = gtk_combo_box_get_active(combo);
-	gboolean invalid = FALSE;
-	if ((idx == 4 || idx == 5) && is_cfa)  invalid = TRUE;
-	if ((idx == 6 || idx == 7) && is_mono) invalid = TRUE;
-	if (invalid) gtk_combo_box_set_active(combo, 0);
-	/* Force the dropdown to re-evaluate cell sensitivities for the new
-	 * sequence state. cell_data_func reads sequence state on each render. */
-	gtk_widget_queue_draw(GTK_WIDGET(combo));
 }
 
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
@@ -841,9 +866,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_output), seqloaded);
 	gtk_expander_set_expanded(stack_expander_output, seqloaded);
 	/* Refresh the mpp drizzle-mode combo against the new sequence's
-	 * channel layout: reset the active selection if it's no longer
-	 * valid, and let the cell renderer grey out inapplicable options. */
-	mpp_drizzle_combo_validate(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle")));
+	 * channel layout — populates only valid choices and preserves the
+	 * previous selection by (mode, factor) when still applicable. */
+	mpp_drizzle_combo_repopulate(
+	    GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle")));
 	if (!seqloaded) {
 		return;
 	}

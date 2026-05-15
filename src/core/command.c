@@ -14718,26 +14718,45 @@ static sequence *load_sequence_force_debayer(const char *name) {
 	return seq;
 }
 
-/* STScI drizzle accepts mono input only. For a CFA sequence (already
- * debayered to 3 channels by load_sequence_force_debayer), the workflow
- * "classical debayer then drizzle" amplifies the debayer's interpolation
- * artefacts and is a bad workflow on principle. The colour-preserving
- * path is `-drizzle=bayer-*` which reconstructs RGB directly from the
- * raw mosaic via dobox's CFA routing. Reject early at the command
- * handler so the user gets a clear redirect, rather than a downstream
- * surprise from a configuration we don't support. */
-static int reject_stsci_on_colour(const sequence *seq, const mpp_config_t *cfg,
-                                  const char *cmd_name) {
-	if (cfg->drizzle_mode != MPP_DRIZZLE_STSCI) return CMD_OK;
-	if (seq->nb_layers <= 1) return CMD_OK;
-	siril_log_color_message(
-	    _("%s: -drizzle=stsci-* requires mono input. For a CFA/colour "
-	      "sequence, use -drizzle=bayer-%dx instead — Bayer drizzle "
-	      "reconstructs colour directly from the raw mosaic without the "
-	      "interpolation artefacts a classical debayer would introduce "
-	      "ahead of drizzle.\n"),
-	    "red", cmd_name, cfg->drizzle_factor);
-	return CMD_ARG_ERROR;
+/* Reject drizzle-mode / input-type mismatches. The three principled
+ * workflows:
+ *   - MONO input + stsci-* (true drizzle)
+ *   - CFA input  + bayer-* (true drizzle with CFA channel routing)
+ *   - Anything   + Off / bicubic-N (no drizzle / cv::resize upscale)
+ *
+ * stsci-* on CFA is rejected because the analysis path debayers (so
+ * "stsci on CFA" becomes "stsci on debayered RGB", i.e. classical
+ * debayer + drizzle — the bad workflow that amplifies the debayer's
+ * interpolation artefacts). bayer-* on non-CFA is rejected because the
+ * raw mosaic the CFA routing needs doesn't exist. */
+static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
+                                   const char *cmd_name) {
+	const mpp_input_type type = mpp_classify_sequence_input(seq);
+	if (cfg->drizzle_mode == MPP_DRIZZLE_STSCI) {
+		if (type == MPP_INPUT_MONO) return CMD_OK;
+		const char *kind = (type == MPP_INPUT_CFA) ? "a CFA/colour sequence" : "a 3-channel RGB sequence";
+		const char *redirect = (type == MPP_INPUT_CFA)
+		                       ? "use -drizzle=bayer-Nx — Bayer drizzle reconstructs colour "
+		                         "directly from the raw mosaic without the interpolation "
+		                         "artefacts a classical debayer would introduce ahead of drizzle"
+		                       : "use -drizzle=N (bicubic) — true drizzle on already-debayered "
+		                         "RGB is not supported";
+		siril_log_color_message(
+		    _("%s: -drizzle=stsci-* requires mono input but this is %s. %s.\n"),
+		    "red", cmd_name, kind, redirect);
+		return CMD_ARG_ERROR;
+	}
+	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER) {
+		if (type == MPP_INPUT_CFA) return CMD_OK;
+		const char *kind = (type == MPP_INPUT_MONO) ? "mono" : "true 3-channel RGB";
+		siril_log_color_message(
+		    _("%s: -drizzle=bayer-* requires CFA input but this is %s. "
+		      "Use -drizzle=N (bicubic) for an upscaled stack, or "
+		      "-drizzle=stsci-Nx if the input is mono.\n"),
+		    "red", cmd_name, kind);
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_pss(int nb) {
@@ -14779,7 +14798,7 @@ int process_pss(int nb) {
 	}
 	(void) use_selected;  /* TODO Phase 6.x: thread frame-selection through */
 
-	const int reject_rc = reject_stsci_on_colour(seq, &cfg, "pss");
+	const int reject_rc = reject_drizzle_mismatch(seq, &cfg, "pss");
 	if (reject_rc != CMD_OK) {
 		g_free(out_path);
 		return reject_rc;
@@ -14968,7 +14987,7 @@ int process_stack_mpp(int nb) {
 	}
 	(void) use_selected;
 
-	const int reject_rc = reject_stsci_on_colour(seq, run->cfg, "stack_mpp");
+	const int reject_rc = reject_drizzle_mismatch(seq, run->cfg, "stack_mpp");
 	if (reject_rc != CMD_OK) {
 		mpp_run_free(run);
 		g_free(out_path);

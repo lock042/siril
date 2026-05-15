@@ -152,7 +152,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="adj_mpp_stack_percent">
     <property name="lower">1</property>
     <property name="upper">100</property>
-    <property name="value">10</property>
+    <property name="value">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">5</property>
   </object>
@@ -9296,10 +9296,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkSpinButton" id="spin_mpp_stack_percent">
                                                                 <property name="visible">True</property>
                                                                 <property name="can-focus">True</property>
-                                                                <property name="tooltip-text" translatable="yes">Per-AP top-N selection: keep the best N% of frames for each AP. Default 10.</property>
+                                                                <property name="tooltip-text" translatable="yes">Per-AP top-N selection: keep the best N% of frames for each AP. Default 100 — keep every included frame. Lower this for automatic culling if you haven't already filtered in the Plot tab.</property>
                                                                 <property name="adjustment">adj_mpp_stack_percent</property>
                                                                 <property name="numeric">True</property>
-                                                                <property name="value">10</property>
+                                                                <property name="value">100</property>
                                                               </object>
                                                               <packing>
                                                                 <property name="left-attach">1</property>

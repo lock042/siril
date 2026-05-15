@@ -30,8 +30,10 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_dim_fraction_threshold = 0.6;
 	cfg->alignment_points_local_search_subpixel = false;
 
-	/* Phase 5a — stacking */
-	cfg->alignment_points_frame_percent = 10;
+	/* Phase 5a — stacking. Default frame_percent=100: keep every included
+	 * frame. Users who want auto top-N can lower the percentage; users
+	 * who pre-filtered in the Plot tab won't get double-eliminated. */
+	cfg->alignment_points_frame_percent = 100;
 	cfg->alignment_points_frame_number = -1;
 	cfg->alignment_points_rank_pixel_stride = 2;
 	cfg->alignment_points_de_warp = true;

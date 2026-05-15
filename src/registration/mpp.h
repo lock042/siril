@@ -106,6 +106,28 @@ mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);
 
+/* Classify a sequence's input layout for drizzle-mode dispatch. Same
+ * answer regardless of the user's debayer-on-open preference, because
+ * the classifier reads the SER ColorID directly (or falls back to
+ * nb_layers for non-SER inputs).
+ *
+ *   MONO: true single-channel (SER_MONO, mono FITS)        — stsci-* OK
+ *   CFA:  Bayer pattern, raw or debayered                  — bayer-* OK
+ *   RGB:  true 3-channel non-Bayer (RGB SER, debayered FITS without bayer_pattern keyword)
+ *                                                            — only bicubic/Off
+ *
+ * Used by:
+ *   - process_pss / process_stack_mpp to reject incompatible -drizzle modes early
+ *   - the GUI drizzle-mode combo to populate only valid choices
+ *   - register_mpp to decide whether to auto-debayer for analysis */
+typedef enum {
+	MPP_INPUT_MONO = 0,
+	MPP_INPUT_CFA  = 1,
+	MPP_INPUT_RGB  = 2,
+} mpp_input_type;
+
+mpp_input_type mpp_classify_sequence_input(const sequence *seq);
+
 /* Publish per-frame Stage-A quality scores into seq->regparam[layer][i].quality
  * so Siril's existing frame selector and quality plot surface them. */
 void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run);
