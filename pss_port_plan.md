@@ -495,7 +495,7 @@ Observations:
 - **Bayer drizzle is structurally less noisy than bicubic** (0.00041 vs 0.00058 std-dev in dark background) regardless of kernel. Drizzle's per-pixel averaging across 4017 frames suppresses per-frame noise more thoroughly than per-AP bicubic resampling does.
 - **Square and lanczos3 have nearly identical sharpness** to each other and to bicubic; lanczos3 doesn't deliver the high-frequency recovery on a smooth planetary target that it would on a high-contrast edge.
 
-Recommendation: ship `turbo` as the default `bayer-*` kernel — same cost as the bicubic baseline, slight noise advantage, no quality penalty on a representative planetary fixture. The synthetic high-frequency tests in `mpp_drizzle_test.cpp::mpp_stsci_synthetic::resolution_recovery` and `::mpp_bayer_drizzle::slanted_edge_resolution` cover the case where kernel choice matters (those tests use `square` explicitly).
+**Decision (recorded)**: `turbo` is now the default kernel — `mpp_config_defaults` sets `drizzle_kernel = MPP_KERNEL_TURBO`, the GUI combo's initial selection is "turbo", and the GUI fallback on invalid state is `MPP_KERNEL_TURBO`. Same cost as the bicubic baseline, slight noise advantage, no quality penalty on this fixture. The synthetic high-frequency tests in `mpp_drizzle_test.cpp::mpp_stsci_synthetic::resolution_recovery` and `::mpp_bayer_drizzle::slanted_edge_resolution` continue to use `square` explicitly, so the kernel-choice acceptance bars are unchanged.
 
 Artifact: `jupiter_kernel_compare.png` (side-by-side 4-kernel comparison with per-kernel SSIM and sharpness annotations).
 

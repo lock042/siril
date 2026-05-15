@@ -43,9 +43,15 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 
 	/* Phase 5b — drizzle backend defaults: off (use Phase 5a bicubic when
 	 * drizzle_factor > 1). Pixfrac / kernel only consulted when
-	 * drizzle_mode = STSCI or BAYER. */
+	 * drizzle_mode = STSCI or BAYER.
+	 *
+	 * Turbo kernel selected as default after the Phase 7.4 / 7.5 kernel
+	 * sweep: same wall-clock as bicubic-2x on test-big.ser (174.6 s vs
+	 * 177.1 s) and 2.8x faster than square with no measurable quality
+	 * difference (SSIM avg 0.9686 vs 0.9701, span across all four kernels
+	 * < 0.15 %). See pss_port_plan.md "Drizzle-kernel sweep" section. */
 	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
 	cfg->drizzle_pixfrac = 0.7;
-	cfg->drizzle_kernel  = MPP_KERNEL_SQUARE;
+	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
 	return MPP_OK;
 }

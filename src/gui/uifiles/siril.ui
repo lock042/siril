@@ -9424,8 +9424,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                               <object class="GtkComboBoxText" id="combo_mpp_driz_kernel">
                                                                 <property name="visible">False</property>
                                                                 <property name="can-focus">False</property>
-                                                                <property name="tooltip-text" translatable="yes">dobox resample kernel. Only applies to STScI / Bayer drizzle modes. 'square' is the canonical pixel-area kernel and the safest default; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further but may ring on hard edges.</property>
-                                                                <property name="active">0</property>
+                                                                <property name="tooltip-text" translatable="yes">dobox resample kernel. Only applies to STScI / Bayer drizzle modes. 'turbo' is the default — same wall-clock cost as bicubic-2x with no measurable quality difference vs square on representative planetary fixtures. 'square' is the canonical pixel-area kernel; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further on high-frequency content but may ring on hard edges and is significantly slower.</property>
+                                                                <property name="active">3</property>
                                                                 <items>
                                                                   <item translatable="yes">square</item>
                                                                   <item translatable="yes">gaussian</item>

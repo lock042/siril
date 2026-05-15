@@ -68,7 +68,7 @@ struct mpp_config {
 	 * dobox() with a per-frame pixmap built by mpp_pixmap_build. */
 	int drizzle_mode;          /* enum mpp_drizzle_mode; default MPP_DRIZZLE_OFF */
 	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — STScI-only */
-	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_SQUARE */
+	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_TURBO */
 };
 
 enum mpp_drizzle_mode {
