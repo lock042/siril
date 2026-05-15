@@ -17,6 +17,7 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/mpp_shift_viewer.h"
+#include "io/sequence.h"
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"
 #include "registration/mpp_shift.h"
@@ -127,7 +128,19 @@ void on_mpp_shift_viewer_dialog_hide(GtkWidget *widget, gpointer user_data) {
 void on_mpp_shift_viewer_frame_changed(GtkSpinButton *spin, gpointer user_data) {
 	(void) spin; (void) user_data;
 	refresh_stats_label();
-	redraw(REDRAW_OVERLAY);
+	/* Also load the frame so the user sees pixel data and shift arrows
+	 * together — otherwise the arrows update but the image doesn't,
+	 * which is counterintuitive. seq_load_image is a no-op if we're
+	 * already on the right frame. */
+	const int f = mpp_shift_viewer_get_frame();
+	if (sequence_is_loaded() && f >= 0 && f < com.seq.number
+	    && com.seq.current != f) {
+		seq_load_image(&com.seq, f, TRUE);
+		/* seq_load_image already triggers a remap+redraw via update_single_image_from_gfit;
+		 * no explicit redraw needed here. */
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
 }
 
 void on_mpp_shift_viewer_scale_changed(GtkSpinButton *spin, gpointer user_data) {

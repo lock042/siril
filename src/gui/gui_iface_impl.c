@@ -329,6 +329,8 @@ static gboolean set_seq_gui(gpointer user_data) {
 	set_GUI_CAMERA();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
+	mpp_update_edit_button_sensitivity();         /* sidecar auto-load may have populated com.mpp_run */
+	mpp_shift_viewer_update_button_sensitivity();
 	notify_gfit_data_modified();
 	gui_iface.redraw_image(REMAP_ALL);
 	drawPlot();

@@ -2036,14 +2036,29 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 		cairo_stroke(dd->cr);
 	}
 
-	/* Diagnostic: when the shift-viewer dialog is open, overlay arrows
-	 * showing per-AP shift vectors for the selected frame on top of the
-	 * AP boxes. Green = Stage B converged, red = fell back to zero shift.
-	 * Arrows are scaled by a user-controlled multiplier because per-AP
-	 * shifts are typically sub-pixel. */
-	if (mpp_shift_viewer_is_open() && run->shifts && run->shifts->shifts) {
-		const int fv = mpp_shift_viewer_get_frame();
-		const double scale = mpp_shift_viewer_get_scale();
+	/* When shift data is cached (Stage B has run for this sequence —
+	 * either via Register or via a loaded .mpp sidecar), overlay arrows
+	 * showing per-AP shift vectors for the current frame:
+	 *   - viewer open  → user-selected frame, user-controlled scale
+	 *   - viewer closed → current displayed frame, unit (1×) scale
+	 * Green = Stage B converged, red = fell back to zero shift. Drawn
+	 * only on source-frame displays (showing_ref == FALSE) because on
+	 * the ref frame all shifts are zero by construction.
+	 */
+	if (run->shifts && run->shifts->shifts) {
+		const gboolean viewer_open = mpp_shift_viewer_is_open();
+		int fv;
+		double scale;
+		if (viewer_open) {
+			fv = mpp_shift_viewer_get_frame();
+			scale = mpp_shift_viewer_get_scale();
+		} else if (!showing_ref && sequence_is_loaded()) {
+			fv = com.seq.current;
+			scale = 1.0;
+		} else {
+			fv = -1;
+			scale = 0.0;
+		}
 		const int M = run->shifts->num_aps;
 		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
 			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);

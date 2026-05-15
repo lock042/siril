@@ -57,6 +57,8 @@
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
+#include "registration/mpp_sidecar.h"
+#include "registration/mpp_ap.h"
 #include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 
@@ -610,6 +612,24 @@ gboolean set_seq(gpointer user_data){
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	update_gain_from_gfit();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
+
+	/* If a .mpp sidecar exists next to this sequence, load it into the
+	 * cached run so the AP overlay (and shift arrows, when shifts were
+	 * computed) come up immediately — no need to re-Analyze or re-Register
+	 * just to inspect a previous registration's output. */
+	if (com.seq.seqname) {
+		gchar *sidecar_path = g_strdup_printf("%s.mpp", com.seq.seqname);
+		if (g_file_test(sidecar_path, G_FILE_TEST_EXISTS)) {
+			mpp_run_t *run = NULL;
+			if (mpp_sidecar_read(sidecar_path, &run) == MPP_OK && run) {
+				siril_log_color_message(_("mpp: loaded sidecar %s — %d APs%s\n"),
+				                        "green", sidecar_path, run->aps->count,
+				                        run->shifts ? ", shifts available" : "");
+				mpp_set_cached_run(run);
+			}
+		}
+		g_free(sidecar_path);
+	}
 
 	if (!com.script && !com.headless) {
 		gui_iface.on_sequence_opened();
