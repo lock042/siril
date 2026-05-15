@@ -14718,6 +14718,28 @@ static sequence *load_sequence_force_debayer(const char *name) {
 	return seq;
 }
 
+/* STScI drizzle accepts mono input only. For a CFA sequence (already
+ * debayered to 3 channels by load_sequence_force_debayer), the workflow
+ * "classical debayer then drizzle" amplifies the debayer's interpolation
+ * artefacts and is a bad workflow on principle. The colour-preserving
+ * path is `-drizzle=bayer-*` which reconstructs RGB directly from the
+ * raw mosaic via dobox's CFA routing. Reject early at the command
+ * handler so the user gets a clear redirect, rather than a downstream
+ * surprise from a configuration we don't support. */
+static int reject_stsci_on_colour(const sequence *seq, const mpp_config_t *cfg,
+                                  const char *cmd_name) {
+	if (cfg->drizzle_mode != MPP_DRIZZLE_STSCI) return CMD_OK;
+	if (seq->nb_layers <= 1) return CMD_OK;
+	siril_log_color_message(
+	    _("%s: -drizzle=stsci-* requires mono input. For a CFA/colour "
+	      "sequence, use -drizzle=bayer-%dx instead — Bayer drizzle "
+	      "reconstructs colour directly from the raw mosaic without the "
+	      "interpolation artefacts a classical debayer would introduce "
+	      "ahead of drizzle.\n"),
+	    "red", cmd_name, cfg->drizzle_factor);
+	return CMD_ARG_ERROR;
+}
+
 int process_pss(int nb) {
 	/* `pss seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
@@ -14756,6 +14778,12 @@ int process_pss(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	(void) use_selected;  /* TODO Phase 6.x: thread frame-selection through */
+
+	const int reject_rc = reject_stsci_on_colour(seq, &cfg, "pss");
+	if (reject_rc != CMD_OK) {
+		g_free(out_path);
+		return reject_rc;
+	}
 
 	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
@@ -14939,6 +14967,13 @@ int process_stack_mpp(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	(void) use_selected;
+
+	const int reject_rc = reject_stsci_on_colour(seq, run->cfg, "stack_mpp");
+	if (reject_rc != CMD_OK) {
+		mpp_run_free(run);
+		g_free(out_path);
+		return reject_rc;
+	}
 
 	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,

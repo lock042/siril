@@ -428,6 +428,19 @@ These re-open once 5b ships:
 - [x] **7.4** `pss test-big.ser -drizzle=stsci-2x` → produce a stacked FITS; visual sanity check (cleaner edges than bicubic-2x); SSIM comparison to bicubic-2x as a quantitative anchor.
 - [x] **7.5** Bayer-2x on a real Bayer SER → produce a stacked FITS; demonstrate raw-CFA drizzle path runs end-to-end. (The slanted-edge MTF acceptance test lives in Phase 5b.6 — `mpp_bayer_drizzle::slanted_edge_resolution`.)
 
+### Drizzle workflow policy
+
+True drizzle should not run on classically-debayered colour input. The justification: drizzle preserves and amplifies high-frequency content, and a classical debayer (BAYER_RCD, bilinear, etc.) introduces interpolation artefacts (zipper effects, false-colour fringes, per-channel low-pass) before drizzle ever sees the data. Debayer-then-drizzle therefore takes those artefacts and amplifies them along with the legitimate signal.
+
+The two supported drizzle workflows are the ones `applyreg.c` already implements:
+
+- **Mono → mono drizzle** (`-drizzle=stsci-*` on single-channel input). No colour reconstruction needed.
+- **CFA → RGB Bayer drizzle** (`-drizzle=bayer-*` on raw mosaic input). Drizzle does the colour reconstruction itself, with no prior interpolation to amplify.
+
+`process_pss` and `process_stack_mpp` reject `-drizzle=stsci-*` on multi-channel input early, with a clear redirect to `-drizzle=bayer-Nx`. The two-step `register_mpp` + `stack_mpp` workflow catches the same configuration at stack-time because the `-drizzle=` flag is stack-side only and `process_stack_mpp` is where the final mode is known.
+
+This policy keeps `do_kernel_*` in `cdrizzlebox.c` unchanged — no multi-channel inner-loop optimisation is needed because the 3-channel-input STScI configuration is now unsupported on principle, not a perf-cost question.
+
 ### Phase 7.4 / 7.5 benchmark results — test-big.ser (40,165 frames, 264×258 Bayer RGGB 8-bit, 2.6 GB)
 
 All runs warm-cache after a single full-fixture warmup; two consecutive runs each to confirm repeatability. Stage A = 14 APs, stack_size = 4017 (10% top-quality slice).
@@ -435,8 +448,10 @@ All runs warm-cache after a single full-fixture warmup; two consecutive runs eac
 | Mode | Output dims | Run 1 | Run 2 | Mean | vs bicubic |
 |---|---|---|---|---|---|
 | `bicubic-2x` (cv::resize INTER_LINEAR per AP buffer) | 460×448 | 175.93 s | 178.21 s | **177.07 s** | 1.00× |
-| `stsci-2x`   (STScI dobox true drizzle, pixfrac=0.7) | 468×456 | 1090.11 s | 1089.52 s | **1089.82 s** | **6.16× slower** |
-| `bayer-2x`   (STScI dobox on raw CFA, pixfrac=0.7)   | 468×456 | 514.66 s  | 515.06 s  | **514.86 s**  | **2.91× slower** |
+| `stsci-2x`   (STScI dobox per-channel on debayered RGB) | 468×456 | 1090.11 s | 1089.52 s | ~1090 s | **rejected as of follow-up commit — bad workflow** |
+| `bayer-2x`   (STScI dobox on raw CFA, pixfrac=0.7)   | 468×456 | 514.66 s¹ | 486.64 s² | **~500 s** | **~2.8× slower** |
+
+¹ first run had a bug — see "Bayer-2x bug fixed during this milestone" below; the wall time of the buggy and fixed paths are within noise of each other.  ² post-fix run.
 
 **Quantitative quality anchor** (central crop 400×412, against the bicubic-2x output as the reference):
 
