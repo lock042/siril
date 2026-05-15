@@ -425,6 +425,70 @@ extern "C" void mpp_clear_cached_run(void) {
 	if (prev) mpp_run_free(prev);
 }
 
+extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
+	if (!seq || !run || !run->aps || run->aps->count <= 0 || !run->cfg)
+		return MPP_EINVAL;
+	if (run->best_frame_indices) return MPP_OK;   /* nothing to do */
+	if (!run->frame_brightness || !run->global_shifts) return MPP_EINVAL;
+	if (run->num_frames != seq->number) return MPP_EINVAL;
+
+	const int N = run->num_frames;
+
+	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
+	                    "(re-reading %d frames)\n"), N);
+	gui_iface.set_progress(PROGRESS_RESET, _("Register: re-reading frames for edited APs"));
+
+	/* Re-read analysis frames using the same parallel pattern as Stage A. */
+	std::vector<cv::Mat> analysis_frames(N);
+	int cur_nb = 0;
+	int read_failed = 0;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
+    if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
+                                  || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
+#endif
+	for (int i = 0; i < N; ++i) {
+		if (g_atomic_int_get(&read_failed)) continue;
+		cv::Mat mono = mpp::read_analysis_frame(seq, i);
+		if (mono.empty()) {
+			g_atomic_int_set(&read_failed, 1);
+			continue;
+		}
+		analysis_frames[i] = mono;
+		g_atomic_int_inc(&cur_nb);
+		gui_iface.set_progress((double) cur_nb / (double) N, NULL);
+	}
+	if (read_failed) return MPP_EIO;
+
+	gui_iface.set_progress(PROGRESS_NONE, _("Register: computing per-AP qualities for edited grid"));
+	const std::vector<double> frame_brightness(run->frame_brightness,
+	                                           run->frame_brightness + N);
+	const auto offsets = mpp::offsets_from_run(run);
+	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
+	                                                 *run->aps, offsets,
+	                                                 run->frame_rows, run->frame_cols,
+	                                                 *run->cfg);
+
+	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
+	const size_t total = (size_t) run->aps->count * (size_t) stack_size;
+	int *bfi = (int *) std::malloc(total * sizeof(int));
+	if (!bfi) return MPP_ENOMEM;
+	for (int a = 0; a < run->aps->count; ++a) {
+		for (int k = 0; k < stack_size; ++k) {
+			bfi[a * stack_size + k] =
+			    (k < (int) apq.best_frame_indices[a].size())
+			        ? apq.best_frame_indices[a][k]
+			        : -1;
+		}
+	}
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = bfi;
+	run->stack_size         = stack_size;
+	siril_log_message(_("mpp: per-AP qualities refreshed for %d edited APs\n"),
+	                  run->aps->count);
+	return MPP_OK;
+}
+
 extern "C" mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg) {
 	if (!run || !cfg || !run->mean_frame_data
 	    || run->mean_frame_rows <= 0 || run->mean_frame_cols <= 0)
@@ -665,12 +729,16 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 			run = nullptr;
 			run_owned = true;
 		} else if (!cached->best_frame_indices) {
-			siril_log_color_message(_("mpp: APs were edited but per-AP frame qualities are "
-			                          "stale. Please click Analyze again before Register so "
-			                          "Stage B has fresh per-AP qualities for the edited grid.\n"),
-			                        "red");
-			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-			return MPP_EINVAL;
+			/* APs were edited since Analyze — refresh per-AP qualities
+			 * for the edited grid before Stage B. Re-reads analysis frames
+			 * but skips rank/global-align/mean-frame build (cached). */
+			const int rc_q = mpp_recompute_qualities(regargs->seq, cached);
+			if (rc_q != MPP_OK) {
+				siril_log_color_message(_("mpp: failed to recompute per-AP qualities "
+				                          "for edited grid (code %d)\n"), "red", rc_q);
+				gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+				return rc_q;
+			}
 		}
 	}
 

@@ -235,7 +235,7 @@ GNU General Public License for more details.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">Re-run automatic AP placement on the cached reference frame using the parameters above. Replaces the entire AP grid. Per-AP frame qualities are invalidated; you must re-Analyze before Register.</property>
+                    <property name="tooltip-text" translatable="yes">Re-run automatic AP placement on the cached reference frame using the parameters above. Replaces the entire AP grid. Per-AP frame qualities will be refreshed automatically at Register time.</property>
                     <signal name="clicked" handler="on_mpp_ap_editor_auto_place_clicked" swapped="no"/>
                   </object>
                   <packing>
@@ -250,7 +250,7 @@ GNU General Public License for more details.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">Drop every AP. Per-AP frame qualities are invalidated; you must re-Analyze before Register.</property>
+                    <property name="tooltip-text" translatable="yes">Drop every AP. Per-AP frame qualities will be refreshed at Register time if any APs are added later.</property>
                     <signal name="clicked" handler="on_mpp_ap_editor_clear_clicked" swapped="no"/>
                   </object>
                   <packing>

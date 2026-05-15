@@ -147,6 +147,17 @@ int          mpp_ap_hit_test(const mpp_run_t *run, int x, int y);
 mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src);
 void       mpp_aps_restore(mpp_run_t *run, mpp_aps_t *snapshot);
 
+/* Recompute per-AP frame qualities for the current run->aps, populating
+ * run->best_frame_indices (which mpp_ap_* edit helpers had cleared). Re-
+ * reads analysis frames from `seq`; uses cached run->frame_brightness and
+ * run->global_shifts (no re-rank, no re-align). Idempotent: returns
+ * MPP_OK immediately if best_frame_indices is already populated.
+ *
+ * Called from register_mpp at Stage B start when the editor has clobbered
+ * best_frame_indices, so manually-edited APs flow through to Register
+ * without the user having to re-Analyze. */
+mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run);
+
 /* GUI-side cache of the current run. Stage A installs the run via
  * mpp_set_cached_run; the AP overlay and the AP editor read it back via
  * mpp_get_cached_run; close_sequence calls mpp_clear_cached_run.

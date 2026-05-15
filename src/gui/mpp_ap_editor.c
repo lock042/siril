@@ -169,8 +169,7 @@ void on_mpp_ap_editor_auto_place_clicked(GtkButton *button, gpointer user_data) 
 	const int rc = mpp_ap_replace(run, &cfg);
 	switch (rc) {
 		case MPP_OK:
-			siril_log_color_message(_("AP editor: auto-placed %d APs. "
-			                          "Re-Analyze before Register to refresh per-AP qualities.\n"),
+			siril_log_color_message(_("AP editor: auto-placed %d APs.\n"),
 			                        "green", run->aps->count);
 			break;
 		case MPP_ENODATA:
@@ -210,8 +209,9 @@ void on_mpp_ap_editor_commit_clicked(GtkButton *button, gpointer user_data) {
 	if (dialog) gtk_widget_hide(dialog);
 	const mpp_run_t *run = mpp_get_cached_run();
 	if (run && run->aps && !run->best_frame_indices) {
-		siril_log_color_message(_("AP editor: edits committed. Click Analyze again to refresh "
-		                          "per-AP frame qualities, then Register.\n"), "blue");
+		siril_log_color_message(_("AP editor: edits committed. Register will refresh "
+		                          "per-AP qualities for the edited grid automatically.\n"),
+		                        "blue");
 	}
 }
 
