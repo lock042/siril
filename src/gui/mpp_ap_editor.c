@@ -86,10 +86,19 @@ void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_show(dialog);
 }
 
-/* GtkDialog "delete-event" -> hide instead of destroy (so we can re-open). */
+/* GtkDialog "delete-event" -> revert + hide. Closing the window with the
+ * X (or Escape if/when bound) is semantically a Cancel — discard edits
+ * made since the dialog was opened. */
 gboolean on_mpp_ap_editor_dialog_delete_event(GtkWidget *widget, GdkEvent *event,
                                               gpointer user_data) {
 	(void) event; (void) user_data;
+	mpp_run_t *run = mpp_get_cached_run();
+	if (run && g_aps_snapshot) {
+		mpp_aps_restore(run, g_aps_snapshot);
+		g_aps_snapshot = NULL;
+		siril_log_message(_("AP editor: edits reverted (window closed).\n"));
+		redraw(REDRAW_OVERLAY);
+	}
 	gtk_widget_hide(widget);
 	return TRUE;   /* swallow the delete so the toplevel isn't destroyed */
 }

@@ -1315,25 +1315,6 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_color_message(_("Analyze: load a sequence first.\n"), "red");
 		return;
 	}
-
-	/* If the user previously edited APs in the editor, a re-Analyze will
-	 * blow them away (mpp_set_cached_run inside register_mpp frees the
-	 * cached run and installs the freshly-built one). best_frame_indices
-	 * == NULL is the marker that mpp_ap_replace/add/remove/move set on
-	 * the edit. */
-	const mpp_run_t *prev = mpp_get_cached_run();
-	if (prev && prev->aps && !prev->best_frame_indices) {
-		if (!siril_confirm_dialog(
-		        _("Discard AP edits?"),
-		        _("You have edited the alignment-point grid since the last Analyze. "
-		          "Re-running Analyze will discard those edits and place a fresh AP grid.\n\n"
-		          "Continue?"),
-		        _("Re-Analyze and discard edits"))) {
-			siril_log_message(_("Analyze: cancelled to preserve AP edits.\n"));
-			return;
-		}
-	}
-
 	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
 
 	/* fill_registration_structure_from_GUI sets regargs->func to whatever
