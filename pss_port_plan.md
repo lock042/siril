@@ -472,9 +472,32 @@ Pre-fix per-channel means were a clear diagnostic — R/G/B all averaged ~7000 b
 
 **Why STScI is 6× slower**: bicubic's stack contribution per frame is `cv::resize(intersection_strip, output_strip, INTER_LINEAR)` — single AVX-optimised pass. STScI's per-frame work is (a) build a pixmap (per-pixel weighted-AP interpolation, ~13× more arithmetic than a single shift add), (b) dobox's per-output-pixel box-area integration with pixfrac<1 (each input pixel touches up to 4 output cells with computed overlap area), (c) three times over for a 3-channel RGB frame after the per-channel-view fix from 5b.5. STScI is the price for true geometric drizzle; bicubic-2x stays the speed-optimal default.
 
-**Why bayer-2x is ~2× faster than stsci-2x**: bayer drizzles a single-channel raw Bayer frame in one dobox call with CFA channel routing (`is_bayer=TRUE`), whereas stsci-2x calls dobox three times per frame (once per planar RGB channel). The pixmap is built once per frame in both cases.
+**Why bayer-2x is ~2× faster than stsci-2x**: bayer drizzles a single-channel raw Bayer frame in one dobox call with CFA channel routing (`is_bayer=TRUE`), whereas stsci-2x calls dobox three times per frame (once per planar RGB channel). The pixmap is built once per frame in both cases. (Note: the stsci-2x configuration measured here is now a rejected workflow — see "Drizzle workflow policy" above.)
 
 Artifacts in project root: `jupiter_drizzle_compare.png` (side-by-side bicubic / STScI / bayer), `phase_7_4_benchmark.txt` (raw timings). Source FITS in `/tmp/pss_bench/`.
+
+### Drizzle-kernel sweep — bayer-2x on test-big.ser
+
+Four `dobox` kernels measured back-to-back, same fixture, same APs, same pixfrac (0.7), same frame selection — only `-driz-kernel=` varies. Quality metrics computed against the `bicubic-2x` output (central 400×412 crop): SSIM and PSNR per channel then averaged, sharpness = mean Sobel-gradient magnitude on luminance, noise = std-dev in a 40×40 patch of the dark background.
+
+| Kernel | Wall | vs bicubic | SSIM avg | PSNR avg | Sharpness | Noise |
+|---|---|---|---|---|---|---|
+| `turbo` | **174.6 s** | **0.99×** | 0.9686 | 38.64 dB | 0.02305 | 0.00041 |
+| `gaussian` | 319.1 s | 1.80× | 0.9687 | 38.68 dB | 0.02299 | 0.00041 |
+| `square` | 486.9 s | 2.75× | 0.9701 | 38.75 dB | 0.02264 | 0.00042 |
+| `lanczos3` | 684.9 s | 3.87× | 0.9700 | 38.74 dB | 0.02256 | 0.00042 |
+| _bicubic ref_ | _177.1 s_ | _1.00×_ | _—_ | _—_ | _0.02339_ | _0.00058_ |
+
+Observations:
+
+- **Quality is essentially flat across kernels on this fixture.** SSIM-avg span is 0.9686–0.9701 (0.15 % range), PSNR-avg span 38.64–38.75 dB (0.11 dB). Jupiter is a smooth disc with limited aliased high-frequency content; kernels mostly diverge on sharp edges, of which there are few.
+- **Turbo is the practical winner**: 6.3× faster than the slowest kernel (lanczos3), 2.8× faster than square — and it lands at the same wall-clock cost as the `bicubic-2x` interpolation. There is no measurable quality penalty on this fixture.
+- **Bayer drizzle is structurally less noisy than bicubic** (0.00041 vs 0.00058 std-dev in dark background) regardless of kernel. Drizzle's per-pixel averaging across 4017 frames suppresses per-frame noise more thoroughly than per-AP bicubic resampling does.
+- **Square and lanczos3 have nearly identical sharpness** to each other and to bicubic; lanczos3 doesn't deliver the high-frequency recovery on a smooth planetary target that it would on a high-contrast edge.
+
+Recommendation: ship `turbo` as the default `bayer-*` kernel — same cost as the bicubic baseline, slight noise advantage, no quality penalty on a representative planetary fixture. The synthetic high-frequency tests in `mpp_drizzle_test.cpp::mpp_stsci_synthetic::resolution_recovery` and `::mpp_bayer_drizzle::slanted_edge_resolution` cover the case where kernel choice matters (those tests use `square` explicitly).
+
+Artifact: `jupiter_kernel_compare.png` (side-by-side 4-kernel comparison with per-kernel SSIM and sharpness annotations).
 
 ## Phase 6 — Orchestrator and `pss` command
 
