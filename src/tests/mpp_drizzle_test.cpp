@@ -551,7 +551,7 @@ Test(mpp_stsci_oracle, near_passthrough) {
 	cfg.drizzle_mode    = MPP_DRIZZLE_STSCI;
 	cfg.drizzle_factor  = 1;
 	cfg.drizzle_pixfrac = 1.0;
-	cfg.drizzle_kernel  = MPP_KERNEL_SQUARE;
+	cfg.drizzle_kernel  = MPP_KERNEL_TURBO;
 
 	BuiltRun b;
 	cr_assert_eq(build_real_run(frames_dir, cfg, b), MPP_OK);
@@ -663,7 +663,7 @@ Test(mpp_stsci_oracle, real_2x) {
 	cfg.drizzle_mode    = MPP_DRIZZLE_STSCI;
 	cfg.drizzle_factor  = 2;
 	cfg.drizzle_pixfrac = 1.0;   /* full-pixel-fraction at 2x: cleanest comparison */
-	cfg.drizzle_kernel  = MPP_KERNEL_SQUARE;
+	cfg.drizzle_kernel  = MPP_KERNEL_TURBO;
 
 	BuiltRun b;
 	cr_assert_eq(build_real_run(frames_dir, cfg, b), MPP_OK);
@@ -826,7 +826,7 @@ Test(mpp_bayer_drizzle, synthetic_mosaic_rggb) {
 	cfg.drizzle_mode    = MPP_DRIZZLE_BAYER;
 	cfg.drizzle_factor  = 1;
 	cfg.drizzle_pixfrac = 1.0;
-	cfg.drizzle_kernel  = MPP_KERNEL_SQUARE;
+	cfg.drizzle_kernel  = MPP_KERNEL_TURBO;
 
 	mpp_run_t *run = make_minimal_run(W, H, /*num_layers=*/3, /*bitdepth=*/8,
 	                                  /*brightness=*/(R_VAL + 2*G_VAL + B_VAL) / 4.0);
@@ -1103,6 +1103,16 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	                                    * keeps the box-drop from blurring across
 	                                    * multiple output cells, which is the
 	                                    * point of drizzle's resolution recovery. */
+	/* Force MPP_KERNEL_SQUARE rather than the runtime default (turbo).
+	 * Square integrates the input-pixel quadrilateral's actual projection
+	 * onto the output canvas, so one input pixel deposits into all 4
+	 * output cells it overlaps at factor=2. Turbo uses a fixed 1×1-output-
+	 * pixel box centred on the pixmap-mapped centroid, which is correct
+	 * coverage-wise only when factor=1 — at factor=2 it covers ¼ of the
+	 * geometric area, producing sparse output unless the frame count is
+	 * very large (4000+). This test uses 24 sub-pixel-shifted synthetic
+	 * frames, well below the coverage threshold, so square is the
+	 * appropriate kernel for the algorithm-correctness measurement. */
 	cfg_stsci.drizzle_kernel  = MPP_KERNEL_SQUARE;
 
 	fits out_stsci{};
@@ -1448,6 +1458,14 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 	cfg_bayer.drizzle_mode    = MPP_DRIZZLE_BAYER;
 	cfg_bayer.drizzle_factor  = 2;
 	cfg_bayer.drizzle_pixfrac = 1.0;
+	/* MPP_KERNEL_SQUARE rather than the runtime default (turbo) — see
+	 * the matching note in mpp_stsci_synthetic::resolution_recovery.
+	 * Turbo's fixed 1-output-pixel box drop covers only ¼ of the
+	 * geometric area at factor=2; with 24 sub-pixel-shifted frames the
+	 * output canvas is too sparsely populated for the rise-width metric
+	 * to function. Square's quadrilateral integration gives correct
+	 * per-pixel area coverage and the slanted-edge resolution test
+	 * passes against its 1.5× R/B and 1.3× G bars. */
 	cfg_bayer.drizzle_kernel  = MPP_KERNEL_SQUARE;
 
 	const unsigned char cfa[4] = { 0, 1, 1, 2 };
