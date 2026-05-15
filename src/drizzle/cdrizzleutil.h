@@ -157,12 +157,10 @@ struct lanczos_param_t {
   float misval;
 };
 
-typedef struct _imgmap_t {
-	float* xmap;
-	float* ymap;
-	int rx;
-	int ry;
-} imgmap_t;
+/* imgmap_t extracted to drizzle/imgmap.h so mpp_drizzle (which is C++)
+ * can use it without dragging driz_portability.h's `#define private`
+ * into C++ TUs. */
+#include "drizzle/imgmap.h"
 
 struct driz_args_t {
   bool_t is_bayer; /* Is this a Bayer drizzle? */
