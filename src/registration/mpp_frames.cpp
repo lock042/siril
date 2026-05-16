@@ -14,9 +14,13 @@
 #include <opencv2/core.hpp>
 
 /* Siril headers don't have `extern "C"` guards; wrap them so the C symbols
- * link from a C++ TU. */
-extern "C" {
+ * link from a C++ TU. core/siril.h goes first (outside the wrap) because
+ * it pulls in <omp.h>, whose libgomp 15 headers declare C++ templates
+ * that can't sit inside an extern "C" block. The header guard then
+ * suppresses the re-include from inside the wrap. */
 #include "core/siril.h"
+
+extern "C" {
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/fits_sequence.h"

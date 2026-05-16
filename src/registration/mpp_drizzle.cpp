@@ -26,6 +26,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+/* registration/mpp.h transitively pulls in core/siril.h → <omp.h>, whose
+ * libgomp 15 headers declare C++ templates that can't sit inside an
+ * extern "C" block. Include core/siril.h first so its header guard
+ * suppresses the re-include from inside the wrap. */
+#include "core/siril.h"
+
 extern "C" {
 #include "registration/mpp.h"
 #include "registration/mpp_ap.h"

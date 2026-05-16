@@ -24,8 +24,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
-extern "C" {
+/* core/siril.h pulls in <omp.h>, which under GCC 15's libgomp declares
+ * C++ templates; those can't sit inside an `extern "C"` block. Include
+ * it first so the header guard fires before the wrap below. */
 #include "core/siril.h"
+
+extern "C" {
 #include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/gui_iface.h"
