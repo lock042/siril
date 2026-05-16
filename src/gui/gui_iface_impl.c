@@ -166,6 +166,11 @@ static void impl_on_stack_complete(void) {
 	gfit_modified_update_gui();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
+	/* Refresh notebook tab visibility for the result's channel count —
+	 * a Bayer-drizzle stack turns a mono Bayer SER sequence into a
+	 * 3-channel result, so the R/G/B/RGB tabs need to be re-shown. */
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	sequence_list_change_current();

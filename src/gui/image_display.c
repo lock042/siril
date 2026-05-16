@@ -2018,17 +2018,24 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	if (!showing_ref && run->global_shifts && sequence_is_loaded()) {
 		const int i = com.seq.current;
 		if (i >= 0 && i < run->num_frames) {
-			/* The per-frame Y delta direction was already inverted (sign
-			 * flipped) to match Siril's FITS bottom-left display
-			 * convention. The intersection-corner term in offsets_from_run
-			 * also needs its sign flipped for the same reason — without
-			 * it, the motion was directionally correct but offset by a
-			 * constant. Tested empirically. */
-			dy = run->global_shifts[2 * i + 0] + run->intersection[0];
+			/* mean_frame row r maps to frame row
+			 *   r + intersection[0] - global_shifts[i]
+			 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
+			 * gives the AP's pdata-row position on frame i. */
+			dy = run->intersection[0] - run->global_shifts[2 * i + 0];
 			dx = run->intersection[2] - run->global_shifts[2 * i + 1];
 		}
 	}
 
+	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata
+	 * convention has row 0 at the bottom of the displayed scene for
+	 * both native FITS and SER-after-load-time-flip). The Cairo
+	 * overlay context has y=0 at the TOP of the surface, so the row
+	 * index has to be flipped to draw at the correct vertical position.
+	 * remap_all_vports already does the same flip when filling
+	 * view->buf from pdata — that's what makes the image itself display
+	 * right-side-up; overlays in pdata-row coords have to redo it. */
+	const int H = (int) gfit->ry;
 	const int hover = mpp_ap_editor_get_hover_idx();
 	for (int i = 0; i < run->aps->count; ++i) {
 		const mpp_ap_record_t *ap = &run->aps->records[i];
@@ -2039,7 +2046,8 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
 			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
 		}
-		cairo_rectangle(dd->cr, ap->x - hb + dx, ap->y - hb + dy, side, side);
+		const int box_y_top = (H - 1) - (ap->y + dy) - hb;
+		cairo_rectangle(dd->cr, ap->x - hb + dx, box_y_top, side, side);
 		cairo_stroke(dd->cr);
 	}
 
@@ -2069,9 +2077,12 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 				else
 					cairo_set_source_rgba(dd->cr, 1.0, 0.2, 0.2, 0.9);
 				const double x0 = ap->x + dx;
-				const double y0 = ap->y + dy;
+				/* Same pdata-row→display-y flip as the box draw above;
+				 * sdy is a pdata-row delta so its display contribution
+				 * is also negated. */
+				const double y0 = (double)(H - 1) - (double)(ap->y + dy);
 				const double x1 = x0 + sdx * scale;
-				const double y1 = y0 + sdy * scale;
+				const double y1 = y0 - sdy * scale;
 				cairo_move_to(dd->cr, x0, y0);
 				cairo_line_to(dd->cr, x1, y1);
 				cairo_stroke(dd->cr);

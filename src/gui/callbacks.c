@@ -1608,7 +1608,16 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
+	/* When a single image is loaded (incl. the stacking result), the
+	 * displayed image is gfit, which may have a different channel count
+	 * than com.seq — Bayer-drizzle in particular produces a 3-channel
+	 * result from a mono Bayer SER sequence. Otherwise (sequence load
+	 * before gfit is updated to a frame), com.seq.nb_layers is the
+	 * authoritative count. */
+	const int displayed_layers = single_image_is_loaded()
+		? (int) gfit->naxes[2]
+		: com.seq.nb_layers;
+	if (displayed_layers == 1) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_hide(page);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
