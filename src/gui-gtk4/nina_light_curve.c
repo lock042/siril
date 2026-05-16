@@ -226,7 +226,7 @@ GtkWidget *get_nina_lc_dialog() {
 
 static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user_data) {
 	(void)self; (void)user_data;
-	siril_debug_print("got response event\n");
+	siril_log_debug("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
 		radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
@@ -272,7 +272,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		}
 	}
 	if (layer == -1) {
-		siril_debug_print("unregistered sequence\n");
+		siril_log_debug("unregistered sequence\n");
 		//siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The sequence must be registered"));
 		if (com.seq.nb_layers == 3)
 			layer = 1;
@@ -305,7 +305,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	args->seq = &com.seq;
 	args->layer = layer;
 	args->display_graph = siril_toggle_get_active(GTK_WIDGET(display_curve));
-	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
+	siril_log_debug("starting PSF analysis of %d stars\n", args->nb);
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		free(args);

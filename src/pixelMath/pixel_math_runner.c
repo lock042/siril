@@ -228,7 +228,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 				g_free(temp);
 				g_free(replace);
 				replaced = TRUE;
-				siril_debug_print("Expression%d: %s\n", c, result);
+				siril_log_debug("Expression%d: %s\n", c, result);
 			}
 
 			g_free(full_match);
@@ -245,7 +245,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 		const gchar *test = g_strrstr(result, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
-			siril_debug_print("found image name %s in the expression %s\n", image[j], result);
+			siril_log_debug("found image name %s in the expression %s\n", image[j], result);
 		}
 	}
 
@@ -323,7 +323,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 			if (omp_get_thread_num() == 0)
 #endif
-				siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression1, err);
+				siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression1, err);
 			failed = TRUE;
 			goto failure;
 		}
@@ -334,7 +334,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression2, err);
+					siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression2, err);
 				failed = TRUE;
 				goto failure;
 			}
@@ -344,7 +344,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression3, err);
+					siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression3, err);
 				failed = TRUE;
 				goto failure;
 			}

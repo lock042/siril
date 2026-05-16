@@ -114,7 +114,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				g_free(expression);
 			}
 			if (error) {
-				siril_log_color_message("%s\n", "red", error);
+				siril_log_error("%s\n", error);
 				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->bias)
 					free(args->bias);
@@ -158,7 +158,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				} else error = _("NOT USING DARK: cannot open the file");
 			}
 			if (error) {
-				siril_log_color_message("%s\n", "red", error);
+				siril_log_error("%s\n", error);
 				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->dark)
 					clearfits(args->dark);
@@ -180,7 +180,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
 			}
 			if (error) {
-				siril_log_color_message("%s\n", "red", error);
+				siril_log_error("%s\n", error);
 				gui_iface.set_progress(PROGRESS_DONE, error);
 				clearfits(args->dark);
 				gtk_editable_set_text(GTK_EDITABLE(entry), "");
@@ -213,7 +213,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (bad_pixel_f[0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						siril_debug_print("cosme file sanity check failed...\n");
+						siril_log_debug("cosme file sanity check failed...\n");
 						has_error = TRUE;
 					}
 				}
@@ -275,7 +275,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 			g_free(expression); // expression not used again after here, free before it falls out of scope
 			if (error) {
-				siril_log_color_message("%s\n", "red", error);
+				siril_log_error("%s\n", error);
 				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->flat)
 					free(args->flat);
@@ -316,12 +316,12 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
-		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
+		siril_log_error(_("Some errors have been detected, Please check the logs.\n"));
 		free(args);
 		return;
 	}
 
-	siril_log_color_message(_("Preprocessing...\n"), "green");
+	siril_log_info(_("Preprocessing...\n"));
 
 	// set output filename (preprocessed file name prefix)
 	args->ppprefix = strdup(gtk_editable_get_text(GTK_EDITABLE(entry)));

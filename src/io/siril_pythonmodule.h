@@ -166,7 +166,8 @@ typedef enum {
 	LOG_RED = 1,
 	LOG_SALMON = 2,
 	LOG_GREEN = 3,
-	LOG_BLUE = 4
+	LOG_BLUE = 4,
+	LOG_BOLD = 5
 } LogColor;
 
 // Config types matching python side

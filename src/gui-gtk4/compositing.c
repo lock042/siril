@@ -241,15 +241,13 @@ static void compute_compositor_mem_limits(fits *fit) {
 			limit = 8;
 		}
 		if (limit < 3) {
-			siril_log_color_message(
+			siril_log_warning(
 				_(
-					"Warning: memory limit check determines that fewer than 3 images of this size can be composited. RGB composition is not possible without freeing up more memory.\n"),
-				"salmon");
+					"Warning: memory limit check determines that fewer than 3 images of this size can be composited. RGB composition is not possible without freeing up more memory.\n"));
 		} else if (limit < 4) {
-			siril_log_color_message(
+			siril_log_warning(
 				_(
-					"Warning: memory limit check determines that fewer than 4 images of this size can be composited. LRGB composition is not possible without freeing up more memory.\n"),
-				"salmon");
+					"Warning: memory limit check determines that fewer than 4 images of this size can be composited. LRGB composition is not possible without freeing up more memory.\n"));
 		} else {
 			siril_log_message(
 				_(
@@ -305,7 +303,7 @@ static gboolean on_chooser_drop(GtkDropTarget *target, const GValue *value,
 	g_free(filename_lower);
 
 	if (!valid) {
-		siril_log_color_message(_("Invalid file type for compositing\n"), "red");
+		siril_log_error(_("Invalid file type for compositing\n"));
 		g_free(filename);
 		return FALSE;
 	}
@@ -597,10 +595,9 @@ void open_compositing_window() {
 	int i;
 	compositing_dialog_init_statics();
 	if (siril_toggle_get_active(GTK_WIDGET(comp_demosaicing_btn))) {
-		siril_log_color_message(
+		siril_log_warning(
 			_(
-				"Disabling debayer-on-open setting: this must be unset in order to open monochrome images in the compositing tool.\n"),
-			"salmon");
+				"Disabling debayer-on-open setting: this must be unset in order to open monochrome images in the compositing tool.\n"));
 		siril_toggle_set_active(GTK_WIDGET(comp_demosaicing_btn), FALSE);
 	}
 
@@ -806,7 +803,7 @@ static void check_gfit_is_ours() {
 	close_single_image();
 	if (copyfits(&layers[update_from_layer]->the_fit, gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
 		clearfits(&layers[update_from_layer]->the_fit);
-		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
+		siril_log_error(_("Could not display image, unloading it\n"));
 		return;
 	}
 	icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
@@ -939,12 +936,12 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
 			                                                         layers[layer]->the_fit.icc_profile)) {
 				if (reference) {
-					siril_log_color_message(_("ICC profile differs to that of the first image loaded. "
-						"Converting this image to match the first one loaded.\n"), "salmon");
+					siril_log_warning(_("ICC profile differs to that of the first image loaded. "
+						"Converting this image to match the first one loaded.\n"));
 					siril_colorspace_transform(&layers[layer]->the_fit, reference);
 				} else {
-					siril_log_color_message(_("Input images have inconsistent ICC profiles. First image "
-						"had no ICC profile. All input layers will be treated as raw data.\n"), "salmon");
+					siril_log_warning(_("Input images have inconsistent ICC profiles. First image "
+						"had no ICC profile. All input layers will be treated as raw data.\n"));
 					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
 					layers[layer]->the_fit.icc_profile = NULL;
 					color_manage(&layers[layer]->the_fit, FALSE);
@@ -1172,10 +1169,9 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	if (variable) {
-		siril_log_color_message(
+		siril_log_error(
 			_(
-				"The image sizes are not consistent. This may happen as the result of previous alignment operations. Please reload the input images.\n"),
-			"red");
+				"The image sizes are not consistent. This may happen as the result of previous alignment operations. Please reload the input images.\n"));
 		return;
 	}
 
@@ -1724,11 +1720,11 @@ void on_colordialog_ok_clicked(GtkButton *button, gpointer user_data) {
 			if (transform) {
 				cmsDoTransform(transform, disp, img, 1);
 				cmsDeleteTransform(transform);
-				siril_debug_print("Color picker transform (display to image): R: %f -> %f, G: %f -> %f, B: %f -> %f\n",
+				siril_log_debug("Color picker transform (display to image): R: %f -> %f, G: %f -> %f, B: %f -> %f\n",
 				                  disp[0], img[0], disp[1], img[1], disp[2], img[2]);
 			} else {
 				memcpy(&img, &disp, 3 * sizeof(float));
-				siril_debug_print("Unable to complete color picker transform\n");
+				siril_log_debug("Unable to complete color picker transform\n");
 			}
 		} else {
 			memcpy(&img, &disp, 3 * sizeof(float));
@@ -2121,10 +2117,10 @@ void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	if (!retval) {
-		siril_log_color_message(_("All layer images saved correctly.\n"), "green");
+		siril_log_info(_("All layer images saved correctly.\n"));
 	} else {
-		siril_log_color_message(
-			_("Error encountered in saving one or more files. Check previous log messages for details.\n"), "red");
+		siril_log_error(
+			_("Error encountered in saving one or more files. Check previous log messages for details.\n"));
 	}
 }
 
@@ -2162,7 +2158,7 @@ void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data)
 	}
 	set_progress_bar_data(_("Linear match layers complete"), 1.0);
 	if (error)
-		siril_log_color_message(_("Error: failed to match %d layers with the reference layer.\n"), "red", error);
+		siril_log_error(_("Error: failed to match %d layers with the reference layer.\n"), error);
 	update_result(1);
 }
 
@@ -2214,9 +2210,9 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
-		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
+		siril_log_error(_("Registering a sequence opened as CFA is a bad idea.\n"));
 
-	siril_log_color_message(_("Reference Image:\n"), "green");
+	siril_log_info(_("Reference Image:\n"));
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
 	// For internal sequences the data / fdata pointer still
@@ -2329,8 +2325,8 @@ int manual_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Registration finished.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
-		siril_log_color_message(str, "green");
-		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+		siril_log_info(str);
+		siril_log_info(_("Total: %d failed, %d registered.\n"), failed, regargs->new_total);
 
 		g_free(str);
 	} else {
@@ -2384,7 +2380,7 @@ int register_manual(struct registration_args *regargs) {
 
 int crop_rgbcomp_seq() {
 	if (!seq) {
-		siril_log_color_message(_("Error: internal RGB composition sequence does not exist\n"), "red");
+		siril_log_error(_("Error: internal RGB composition sequence does not exist\n"));
 		return 1;
 	}
 	struct crop_sequence_data *crop_args = calloc(1, sizeof(struct crop_sequence_data));

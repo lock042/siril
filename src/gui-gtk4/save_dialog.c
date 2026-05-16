@@ -572,7 +572,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
     /* Save JPEG */
     if (savejpg(tmp_template, gfit, args->quality, FALSE)) {
-        siril_debug_print("Failed to save JPEG to temporary file");
+        siril_log_debug("Failed to save JPEG to temporary file");
         goto cleanup;
     }
 
@@ -586,7 +586,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
 cleanup:
     if (g_unlink(tmp_template) != 0) {
-        siril_debug_print("g_unlink() failed for temp file\n");
+        siril_log_debug("g_unlink() failed for temp file\n");
     }
 
     g_free(tmp_template);

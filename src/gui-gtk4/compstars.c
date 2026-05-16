@@ -54,7 +54,7 @@ static void compstars_btn_close_clicked(GtkButton *btn, gpointer ud) { (void)btn
 
 /* Idle callback invoked on the GUI thread when compstars_worker finishes. */
 static gboolean end_compstars(gpointer p) {
-	siril_debug_print("end_compstars\n");
+	siril_log_debug("end_compstars\n");
 	struct compstars_arg *args = (struct compstars_arg *) p;
 
 	clear_stars_list(args->has_GUI);
@@ -273,7 +273,7 @@ static void manual_photometry_data (sequence *seq) {
 	int nb_ref_stars = 0;
 	if (!seq->photometry[0] || !seq->photometry[1]) {
 		g_free(target_name);
-		siril_log_color_message(_("One Variable star and one comparison star at least are required. Cannot create any file\n"), "salmon");
+		siril_log_warning(_("One Variable star and one comparison star at least are required. Cannot create any file\n"));
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
 		g_free(entered_target_name);
 		return;
@@ -282,7 +282,7 @@ static void manual_photometry_data (sequence *seq) {
 
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
-			siril_log_color_message(_("Problem with conversion\n"), "red"); // PB in the conversion pix->wcs
+			siril_log_error(_("Problem with conversion\n")); // PB in the conversion pix->wcs
 			g_free(entered_target_name);
 			g_free(target_name);
 			return;
@@ -402,7 +402,7 @@ GtkWidget *get_compstars_dialog() {
 
 static void on_compstars_response(GtkWindow *self, gint response_id, gpointer user_data) {
 	(void)self; (void)user_data;
-	siril_debug_print("got response event\n");
+	siril_log_debug("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
 		if (compstars_ok_button)
 			gtk_widget_grab_focus(compstars_ok_button);

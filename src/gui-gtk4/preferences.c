@@ -179,7 +179,7 @@ static void update_astrometry_preferences() {
 	if (strlen(com.pref.astrometry.default_obscode) != 3 && strlen(com.pref.astrometry.default_obscode) != 0) {
 		g_free(com.pref.astrometry.default_obscode);
 		com.pref.astrometry.default_obscode = NULL;
-		siril_log_color_message(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"), "red");
+		siril_log_error(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"));
 		gtk_editable_set_text(GTK_EDITABLE(lookup_widget("obscode_entry")), "");
 	}
 	if (com.pref.astrometry.default_obscode && strlen(com.pref.astrometry.default_obscode) == 0) {
@@ -613,7 +613,7 @@ void on_filechooser_swap_file_set(GtkWidget *fileChooser, gpointer user_data) {
 	dir = siril_file_chooser_get_filename (swap_dir);
 
 	if (g_access(dir, W_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+		gchar *msg = siril_log_error(_("You don't have permission to write in this directory: %s\n"), dir);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		siril_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
@@ -634,7 +634,7 @@ void on_filechooser_starnet_file_set(GtkWidget *fileChooser, gpointer user_data)
 	path = siril_file_chooser_get_filename (starnet_exe);
 	printf("%s\n", path);
 	if (g_access(path, X_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to execute this file: %s\n"), "red", path);
+		gchar *msg = siril_log_error(_("You don't have permission to execute this file: %s\n"), path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		siril_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
@@ -670,7 +670,7 @@ void on_filechooser_starnet_weights_file_set(GtkWidget *fileChooser, gpointer us
 	path = siril_file_chooser_get_filename (starnet_weights);
 
 	if (g_access(path, R_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to read this file: %s\n"), "red", path);
+		gchar *msg = siril_log_error(_("You don't have permission to read this file: %s\n"), path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		siril_file_chooser_set_filename(starnet_weights, com.pref.starnet_weights);
@@ -725,7 +725,7 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 //static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
 
 void update_preferences_from_model() {
-	siril_debug_print("updating preferences GUI from settings data\n");
+	siril_log_debug("updating preferences GUI from settings data\n");
 	g_rw_lock_reader_lock(&com.pref_rwlock);
 	preferences *pref = &com.pref;
 	/* tab FITS/SER Debayer */
@@ -999,7 +999,7 @@ static void set_icc_filechooser_directories() {
 }
 
 static void dump_ui_to_global_var() {
-	siril_debug_print("updating settings from preferences GUI\n");
+	siril_log_debug("updating settings from preferences GUI\n");
 	/* tab FITS/SER Debayer */
 	update_debayer_preferences();
 	/* tab FITS Options */
@@ -1028,7 +1028,7 @@ void on_pref_use_gitscripts_toggled(GtkCheckButton *button, gpointer user_data);
 void on_spcc_repo_enable_toggled(GtkCheckButton *button, gpointer user_data);
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
-	siril_debug_print("show preferences window: updating it\n");
+	siril_log_debug("show preferences window: updating it\n");
 	/* GTK4 path-chooser buttons: each GtkButton opens a GtkFileDialog on
 	 * click and stores the selected path on itself.  Wire-up is idempotent
 	 * across show/hide cycles. */

@@ -346,7 +346,7 @@ static double psf_get_mag(gsl_matrix* z, double B) {
 			intensity += gsl_matrix_get(z, i, j) - B;
 	}
 	if (intensity <= 0.0) {
-		siril_debug_print("psf_get_mag: intensity is <= 0, returning default value\n");
+		siril_log_debug("psf_get_mag: intensity is <= 0, returning default value\n");
 		return -DEFAULT_DOUBLE_VALUE; // no star, returning an unmistakable value
 	}
 	return -2.5 * log10(intensity);
@@ -708,7 +708,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 		if (error) *error = PSF_ERR_DIVERGED;
 	}
 #if DEBUG_PSF
-	siril_debug_print("Successful criterion#:%d\n",info);
+	siril_log_debug("Successful criterion#:%d\n",info);
 #endif
 
 	/* computing the covariance to estimate the errors*/

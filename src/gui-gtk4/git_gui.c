@@ -327,7 +327,7 @@ static void on_row_activated(GtkColumnView *cv, guint position, gpointer user_da
 		g_free(contents);
 	} else {
 		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), tmpscriptpath);
-		siril_log_color_message(msg, "red");
+		siril_log_error(msg);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_free(msg);
 	}

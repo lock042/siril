@@ -289,18 +289,18 @@ static gboolean validate_mouse_actions(GSList *list) {
 						outer_action->state == inner_action->state &&
 						outer_action->button == inner_action->button) {
 				duplicate_found = TRUE;
-				siril_log_color_message(_("Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"), "red", outer_action->type, outer_action->state, outer_action->button);
+				siril_log_error(_("Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"), outer_action->type, outer_action->state, outer_action->button);
 			}
 			// Check for actions assigned to double clicks where there is already an action
 			// with lasting impact assigned to the same single click
 			if (outer_action->type == GDK_BUTTON_PRESS && !outer_action->data->doubleclick_compatible && inner_action->type == GDK_DOUBLE_BUTTON_PRESS && outer_action->button == inner_action->button && outer_action->state == inner_action->state) {
 				doubleclick_conflict = TRUE;
-				siril_log_color_message(_("Double click action %s on button %u conflicts with single click action %s on the same button.\n"), "red", inner_action->data->name, outer_action->button, outer_action->data->name);
+				siril_log_error(_("Double click action %s on button %u conflicts with single click action %s on the same button.\n"), inner_action->data->name, outer_action->button, outer_action->data->name);
 			}
 		}
 	}
 	if (!main_action_included) {
-		siril_log_color_message(_("Main mouse action is not configured. This is essential for using Siril and must be assigned to a mouse action.\n"), "red");
+		siril_log_error(_("Main mouse action is not configured. This is essential for using Siril and must be assigned to a mouse action.\n"));
 	}
 
 	gboolean retval = main_action_included && !duplicate_found && !doubleclick_conflict;
@@ -348,7 +348,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 			g_free(name);
 			g_free(action_type);
 			g_free(modifier);
-			siril_log_color_message(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"), "salmon");
+			siril_log_warning(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"));
 			valid = gtk_tree_model_iter_next(model, &iter);
 			continue;
 		}
@@ -358,7 +358,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 
 		// Create a new mouse action and add it to the list
 		mouse_action *action = create_mouse_action(button, type, state, metadata);
-		siril_debug_print("New action created: %s, ref %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->type);
+		siril_log_debug("New action created: %s, ref %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->type);
 
 		new_mouse_actions = g_slist_append(new_mouse_actions, action);
 
@@ -374,7 +374,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 		}
 		gui.mouse_actions = new_mouse_actions;
 		fill_mouse_actions_list(FALSE);
-		siril_log_color_message(_("Mouse configuration updated successfully.\n"), "green");
+		siril_log_info(_("Mouse configuration updated successfully.\n"));
 	}
 }
 
@@ -557,7 +557,7 @@ static gboolean validate_scroll_actions(GSList *list) {
 			if (outer_action->state == inner_action->state &&
 						outer_action->direction == inner_action->direction) {
 				duplicate_found = TRUE;
-				siril_log_color_message(_("Duplicate scroll_actions found with state: %d, direction: %d\n"), "red", outer_action->state, outer_action->direction);
+				siril_log_error(_("Duplicate scroll_actions found with state: %d, direction: %d\n"), outer_action->state, outer_action->direction);
 			}
 		}
 	}
@@ -591,7 +591,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 			g_free(name);
 			g_free(direction);
 			g_free(modifier);
-			siril_log_color_message(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"), "salmon");
+			siril_log_warning(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"));
 			valid = gtk_tree_model_iter_next(model, &iter);
 			continue;
 		}
@@ -614,7 +614,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 
 		// Create a new mouse action and add it to the list
 		scroll_action *action = create_scroll_action(state, metadata, dir);
-		siril_debug_print("New action created: %s, reference %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->direction);
+		siril_log_debug("New action created: %s, reference %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->direction);
 
 		new_scroll_actions = g_slist_append(new_scroll_actions, action);
 
@@ -630,7 +630,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 		}
 		gui.scroll_actions = new_scroll_actions;
 		fill_scroll_actions_list(FALSE);
-		siril_log_color_message(_("Mouse scroll configuration updated successfully.\n"), "green");
+		siril_log_info(_("Mouse scroll configuration updated successfully.\n"));
 	}
 }
 
@@ -838,7 +838,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			// Assign the third part to the result string, trimming leading/trailing whitespace
 			mouse_function_ref reference = (mouse_function_ref) g_ascii_strtoull(tokens[3], NULL, 10);
 			if (reference == MOUSE_REF_NULL || reference >= MOUSE_REF_MAX || map_ref_to_metadata(reference) == &null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -846,7 +846,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			}
 			action->data = map_ref_to_metadata(reference);
 			if (action->data == &null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -854,7 +854,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			}
 		} else {
 			// Handle error: input format is incorrect
-			siril_log_color_message(_("Warning: when parsing mouse action config, config string has incorrect format: \"%s\". Skipping..."), "salmon", input);
+			siril_log_warning(_("Warning: when parsing mouse action config, config string has incorrect format: \"%s\". Skipping..."), input);
 			free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);
@@ -909,7 +909,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			// Assign the third part to the result string, trimming leading/trailing whitespace
 			scroll_function_ref reference = (scroll_function_ref) g_ascii_strtoull(tokens[2], NULL, 10);
 			if (reference == SCROLL_REF_NULL || reference >= SCROLL_REF_MAX || map_scroll_ref_to_metadata(reference) == &scroll_null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -917,7 +917,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			}
 			action->data = map_scroll_ref_to_metadata(reference);
 			if (action->data == &scroll_null_action) {
-				siril_log_color_message(_("Warning: when parsing scroll action config, string parsed to an unknown function: \"%s\". Skipping...\n"), "salmon", input);
+				siril_log_warning(_("Warning: when parsing scroll action config, string parsed to an unknown function: \"%s\". Skipping...\n"), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -925,7 +925,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			}
 		} else {
 			// Handle error: input format is incorrect
-			siril_log_color_message(_("Warning: when parsing mouse action config, string has incorrect format: \"%s\". Skipping...\n"), "salmon", input);
+			siril_log_warning(_("Warning: when parsing mouse action config, string has incorrect format: \"%s\". Skipping...\n"), input);
 			free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);

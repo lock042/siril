@@ -52,7 +52,7 @@ void load_css_style_sheet () {
 
 		gtk_css_provider_load_from_string(css_provider, updated_css);
 
-		siril_debug_print("Successfully loaded /org/siril/ui/siril.css\n");
+		siril_log_debug("Successfully loaded /org/siril/ui/siril.css\n");
 		g_free(first_line);
 		g_bytes_unref(css_buffer);
 		g_free(updated_css);

@@ -173,7 +173,7 @@ void measure_line(fits *fit, point start, point finish, gboolean pref_as) {
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), measurement_buffer);
 		if (deg > 10.0) {
 			control_window_switch_to_tab(OUTPUT_LOGS);
-			siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
+			siril_log_warning(_("Warning: angular measurement > 10º. Error is > 1%\n"));
 		}
 	}
 }
@@ -287,7 +287,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 		} else {
 			timestamp = build_timestamp_filename();
 			*filename = g_strdup_printf("profile_%s", timestamp);
-			siril_debug_print("%s\n", arg->filename);
+			siril_log_debug("%s\n", arg->filename);
 		}
 	}
 	temp = g_path_get_basename(*filename);
@@ -578,7 +578,7 @@ gpointer tri_cut(gpointer p) {
 
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
-		siril_log_color_message("%s\nFit σ: %.2e\n", "blue", coeffs_text, sigma);
+		siril_log_status("%s\nFit σ: %.2e\n", coeffs_text, sigma);
 		g_free(coeffs_text);
 
 		for (int i = 0 ; i < nbr_points ; i++) {
@@ -680,7 +680,7 @@ gpointer cfa_cut(gpointer p) {
 	build_profile_filenames(arg, &filename, &imagefilename);
 	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
-			siril_log_color_message(_("Error: failed to read CFA pattern or invalid found.\n"), "red");
+			siril_log_error(_("Error: failed to read CFA pattern or invalid found.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -691,7 +691,7 @@ gpointer cfa_cut(gpointer p) {
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
-			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			siril_log_error(_("Error: failed to split FITS into CFA sub-patterns.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -699,7 +699,7 @@ gpointer cfa_cut(gpointer p) {
 		}
 	} else {
 		if ((ret = split_cfa_float(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
-			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			siril_log_error(_("Error: failed to split FITS into CFA sub-patterns.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -891,15 +891,15 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		cut_struct *p = malloc(sizeof(cut_struct));
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
-			siril_debug_print("Tri-profile\n");
+			siril_log_debug("Tri-profile\n");
 			if (!start_in_new_thread(tri_cut, p))
 				free(p);
 		} else if (p->cfa) {
-			siril_debug_print("CFA profiling\n");
+			siril_log_debug("CFA profiling\n");
 			if (!start_in_new_thread(cfa_cut, p))
 				free(p);
 		} else {
-			siril_debug_print("Single profile\n");
+			siril_log_debug("Single profile\n");
 			if (!start_in_new_thread(cut_profile, p))
 				free(p);
 		}
@@ -1035,7 +1035,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	int sy = (int) gtk_spin_button_get_value(starty);
 	int fx = (int) gtk_spin_button_get_value(finishx);
 	int fy = (int) gtk_spin_button_get_value(finishy);
-	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
+	siril_log_debug("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
 	// Update the struct gui.cut with the entered values
 	// This is all done at once when Apply is clicked rather than individually in the
 	// GtkSpinButton callbacks in order to avoid the endpoints jumping about and the
@@ -1232,8 +1232,7 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	}

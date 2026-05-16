@@ -96,7 +96,7 @@ static gboolean get_debayer_orientation(fits *fit, gboolean *forced, gboolean *h
 			top_down = FALSE;
 		} else {
 			top_down = com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN;
-			siril_debug_print("No row_order keyword found, falling back to preference\n");
+			siril_log_debug("No row_order keyword found, falling back to preference\n");
 		}
 	}
 	return top_down;
@@ -145,11 +145,11 @@ static void adjust_Bayer_pattern_offset(sensor_pattern *pattern, int xbayeroff, 
 
 static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean flip, int xbayeroff, int ybayeroff) {
 	if (!fit || !pattern) {
-		siril_log_color_message(_("Invalid FITS file or pattern for debayering\n"), "red");
+		siril_log_error(_("Invalid FITS file or pattern for debayering\n"));
 		return 1;
 	}
 	if (*pattern < BAYER_FILTER_MIN || *pattern > BAYER_FILTER_MAX) {
-		siril_log_color_message(_("Invalid Bayer pattern for debayering: %d\n"), "red", *pattern);
+		siril_log_error(_("Invalid Bayer pattern for debayering: %d\n"), *pattern);
 		return 1;
 	}
 	unsigned int ry = (!fit->orig_ry) ? fit->ry : fit->orig_ry;
@@ -173,7 +173,7 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 	int i = 0;
 
 	if (strlen(bayer) != 36) {
-		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done\n"), "red");
+		siril_log_error(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done\n"));
 		return 1;
 	}
 	char bayer_copy[36];
@@ -203,7 +203,7 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 				xtrans[yoff][xoff] = 2;
 				break;
 			default:
-				siril_log_color_message(_("Invalid character in X-Trans filter pattern: %c\n"), "red", bayer_copy[i]);
+				siril_log_error(_("Invalid character in X-Trans filter pattern: %c\n"), bayer_copy[i]);
 				return 1;
 			}
 			i++;
@@ -262,7 +262,7 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 		tmp_pattern = bayer;
 	if (bayer <= BAYER_FILTER_MAX && com.pref.debayer.use_bayer_header) {
 		if (bayer == BAYER_FILTER_NONE) {
-			siril_debug_print("No Bayer pattern found in the header file.\n");
+			siril_log_debug("No Bayer pattern found in the header file.\n");
 			if (!force_debayer)
 				return BAYER_FILTER_NONE;
 		} else {
@@ -273,7 +273,7 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 	gboolean forced = FALSE, header = FALSE;
 	gboolean top_down = get_debayer_orientation(fit, &forced, &header);
 	if (verbose && tmp_pattern >= BAYER_FILTER_MIN) {
-		siril_log_color_message(_("Filter Pattern: %s %s, Orientation: %s %s %s\n"), "blue",
+		siril_log_status(_("Filter Pattern: %s %s, Orientation: %s %s %s\n"),
 		filter_pattern[tmp_pattern],
 		from_header ? _("from header") : _("from settings"),
 		top_down ? _("top-down") : _("bottom-up"),
@@ -285,7 +285,7 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 		int xbayeroff = 0, ybayeroff = 0;
 		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		if (xbayeroff > 1 || ybayeroff > 1) {
-			siril_log_color_message(_("Offsets: %d, %d not suitable for a Bayer pattern (%d), check your preferences\n"), "red", xbayeroff, ybayeroff, tmp_pattern);
+			siril_log_error(_("Offsets: %d, %d not suitable for a Bayer pattern (%d), check your preferences\n"), xbayeroff, ybayeroff, tmp_pattern);
 		}
 		// x_offset and y_offset are non null only when we do a partial read
 		xbayeroff += fit->x_offset;
@@ -309,7 +309,7 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 // force-debayer is passed only when debayer has not been checked
 sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboolean verbose) {
 	if (!fit) {
-		siril_debug_print("No FITS file provided to get_validated_cfa_pattern\n");
+		siril_log_debug("No FITS file provided to get_validated_cfa_pattern\n");
 		return BAYER_FILTER_NONE;
 	}
 	sensor_pattern pattern = BAYER_FILTER_NONE;
@@ -317,7 +317,7 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboo
 		pattern = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
 	} else
 		pattern = get_bayer_pattern(fit, force_debayer, verbose);
-	siril_debug_print("Pattern to debayer: %s (%d)\n", filter_pattern[pattern], fit->debayer_checked);
+	siril_log_debug("Pattern to debayer: %s (%d)\n", filter_pattern[pattern], fit->debayer_checked);
 	return pattern;
 }
 
@@ -344,7 +344,7 @@ int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolea
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
 		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
@@ -475,7 +475,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
 		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
@@ -513,7 +513,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+			siril_log_debug("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
 		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
@@ -557,12 +557,12 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		return 0;
 
 	if (fit->naxes[2] != 1) {
-		siril_log_message(_("Cannot perform debayering on image with more than one channel\n"));
+		siril_log_error(_("Cannot perform debayering on image with more than one channel\n"));
 		return 0;
 	}
 	sensor_pattern pattern = get_validated_cfa_pattern(fit, TRUE, TRUE);
 	if (pattern < BAYER_FILTER_MIN) {
-		siril_log_color_message(_("No pattern found to debayer\n"), "salmon");
+		siril_log_warning(_("No pattern found to debayer\n"));
 		return 1;
 	}
 
@@ -574,7 +574,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 
 	int retval = debayer(fit, algo, pattern);
 	if (retval) {
-		siril_log_message(_("Cannot perform debayering\n"));
+		siril_log_error(_("Cannot perform debayering\n"));
 	}
 	return retval;
 }
@@ -599,14 +599,13 @@ static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean f
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -656,7 +655,7 @@ gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) 
 int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	fits metadata = { 0 };
 	if (seq_read_frame_metadata(args->seq, out_index, &metadata)) {
-		siril_log_message(_("Could not load metadata\n"));
+		siril_log_error(_("Could not load metadata\n"));
 		return 1;
 	}
 	int retval = 0;
@@ -772,7 +771,7 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
 	gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
 	if (!(x_compat && y_compat && c_compat && t_compat)) {
-		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		siril_log_error(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"));
 		if(!x_compat)
 			siril_log_message(_("X dimensions incompatible\n"));
 		if(!y_compat)
@@ -787,7 +786,7 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 
 	// Create output fits twice the width and height of the cfa fits files
 	if (new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype)) {
-		siril_log_color_message(_("Error creating output image\n"), "red");
+		siril_log_error(_("Error creating output image\n"));
 		return NULL;
 	}
 
@@ -841,7 +840,7 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	clearfits(cfa1);
 	clearfits(cfa2);
 	clearfits(cfa3);
-	siril_debug_print("Merge CFA complete\n");
+	siril_log_debug("Merge CFA complete\n");
 	return out;
 }
 
@@ -895,7 +894,7 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 	int pattern_size;	// 2 or 6
 	if (get_compiled_pattern(fit, pattern, &pattern_size, FALSE))
 		return NULL;
-	siril_debug_print("CFA buffer extraction with area\n");
+	siril_log_debug("CFA buffer extraction with area\n");
 
 	// alloc buffer
 	size_t npixels = bounds->w * bounds->h;
@@ -980,7 +979,7 @@ float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, si
 	int pattern_size;	// 2 or 6
 	if (get_compiled_pattern(fit, pattern, &pattern_size, FALSE))
 		return NULL;
-	siril_debug_print("CFA buffer extraction with area\n");
+	siril_log_debug("CFA buffer extraction with area\n");
 
 	// alloc buffer
 	size_t npixels = bounds->w * bounds->h;

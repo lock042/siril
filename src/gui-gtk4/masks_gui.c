@@ -737,7 +737,7 @@ void mask_color_handle_image_click(int x, int y) {
 	selected_color_r = CLAMP(r, 0.0f, 1.0f);
 	selected_color_g = CLAMP(g, 0.0f, 1.0f);
 	selected_color_b = CLAMP(b, 0.0f, 1.0f);
-	siril_debug_print("Selected color R: %f, G: %f, B: %f\n", selected_color_r, selected_color_g, selected_color_b);
+	siril_log_debug("Selected color R: %f, G: %f, B: %f\n", selected_color_r, selected_color_g, selected_color_b);
 
 	/* Redraw the color display */
 	if (drawing_area_color_display) {

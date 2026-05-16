@@ -361,7 +361,7 @@ static void initialize_convert() {
 		return;
 	}
 
-	siril_log_color_message(_("Conversion: processing %d files...\n"), "green", count);
+	siril_log_info(_("Conversion: processing %d files...\n"), count);
 
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);

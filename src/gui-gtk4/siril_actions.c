@@ -558,7 +558,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 		return;
 
 	if (!sequence_is_loaded()) {
-		siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
+		siril_log_error(_("Error: no sequence loaded.\n"));
 		return;
 	}
 
@@ -568,11 +568,11 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 	// Validate selection size
 	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_log_color_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"), "red");
+		siril_log_error(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return;
 	}
 	if (com.selection.w <= 0 || com.selection.h <= 0) {
-		siril_log_color_message(_("Select an area first\n"), "red");
+		siril_log_error(_("Select an area first\n"));
 		return;
 	}
 
@@ -591,7 +591,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, FALSE) ? 1 : 0;
 
 	if (retval != 0) {
-		siril_log_color_message(_("Error running the PSF on the sequence\n"), "red");
+		siril_log_error(_("Error running the PSF on the sequence\n"));
 	}
 }
 
@@ -732,7 +732,7 @@ void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (!has_wcs(gfit) || !gfit->keywords.wcslib->lin.dispre) {
-		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
+		siril_log_error(_("This command only works on plate solved images with distortions included\n"));
 		return;
 	}
 	gui_iface.set_busy(TRUE);

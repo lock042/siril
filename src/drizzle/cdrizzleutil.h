@@ -271,7 +271,7 @@ get_ymap(imgmap_t *p, integer_t xpix, integer_t ypix) {
 static inline_macro int
 oob_pixel(fits *image, integer_t xpix, integer_t ypix) {
     if ((xpix < 0 || xpix >= image->rx) || (ypix < 0 || ypix >= image->ry)) {
-        siril_debug_print("Point [%d,%d] is outside of [%d, %d]",
+        siril_log_debug("Point [%d,%d] is outside of [%d, %d]",
                 xpix, ypix, image->rx, image->ry);
         return 1;
     }

@@ -429,7 +429,7 @@ static void script_edit_action_cb(GSimpleAction *action, GVariant *parameter,
 	} else {
 		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"),
 		                             error ? error->message : "");
-		siril_log_color_message(msg, "red");
+		siril_log_error(msg);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_free(msg);
 		if (error) g_error_free(error);
@@ -531,7 +531,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 		list = search_script(s->data);
 		if (list) {
 			if (verbose)
-				siril_log_color_message(_("Searching for scripts in: \"%s\"...\n"), "green", s->data);
+				siril_log_info(_("Searching for scripts in: \"%s\"...\n"), s->data);
 
 			for (GSList *l = list; l; l = l->next) {
 				if (l->data == NULL)
@@ -578,7 +578,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 			}
 
 			if (!first_run && (!exists && included)) {
-				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", path);
+				siril_log_warning(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), path);
 				// Remove the list element and free it as well as its data
 				g_free(path);
 				com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, l);
@@ -671,7 +671,7 @@ gpointer refresh_scripts_in_thread(gpointer user_data) {
 	// probably badly.
 
 	if (list == NULL) {
-		gchar *err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
+		gchar *err = siril_log_error(_("Cannot refresh the scripts if the list is empty.\n"));
 		queue_warning_message_dialog(_("Warning"), err);
 		g_free(err);
 	} else {

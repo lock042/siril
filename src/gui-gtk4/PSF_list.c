@@ -410,7 +410,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 			return;
 		}
 	}
-	siril_debug_print("Point clicked does not correspond to a known star\n");
+	siril_log_debug("Point clicked does not correspond to a known star\n");
 }
 
 static int compare(void const *a, void const *b) {
@@ -537,7 +537,7 @@ static void psf_export_csv(const char *filename) {
 	}
 
 	if (!ret)
-		siril_log_color_message(_("Error: error writing the CSV.\n"), "red");
+		siril_log_error(_("Error: error writing the CSV.\n"));
 	g_object_unref(data_stream);
 	g_object_unref(output_stream);
 	g_object_unref(file);

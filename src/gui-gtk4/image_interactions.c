@@ -161,9 +161,9 @@ static gboolean scroll_action_match(GdkScrollDirection direction_raw,
 		event_dir = MOUSE_SMOOTH_SCROLL;
 
 #ifdef DEBUG_SCROLL
-	siril_debug_print("Event direction: %u (raw direction: %u), delta x: %f, delta y: %f, modifiers: %u\n",
+	siril_log_debug("Event direction: %u (raw direction: %u), delta x: %f, delta y: %f, modifiers: %u\n",
 		event_dir, direction_raw, dx, dy, state);
-	siril_debug_print("Action drection: %u, modifiers: %u\n", action->direction, action->state);
+	siril_log_debug("Action drection: %u, modifiers: %u\n", action->direction, action->state);
 #endif
 
 	if (action->state == filtered && action->direction == event_dir) {
@@ -211,7 +211,7 @@ void unregister_selection_update_callback(const selection_update_callback f) {
 // send the events
 gboolean new_selection_zone(gpointer user_data) {
 	int i;
-	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
+	siril_log_debug("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
 	for (i = 0; i < _nb_selection_callbacks; ++i) {
 		if (_registered_selection_callbacks[i])
@@ -230,7 +230,7 @@ void delete_selected_area() {
 }
 
 void reset_display_offset() {
-	siril_debug_print("resetting display offset\n");
+	siril_log_debug("resetting display offset\n");
 	gui.display_offset.x = 0;
 	gui.display_offset.y = 0;
 }
@@ -553,7 +553,7 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
-	//siril_debug_print("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
+	//siril_log_debug("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 	if (inside) {
 		histogram_update_cursor_value(zoomed.x, zoomed.y);

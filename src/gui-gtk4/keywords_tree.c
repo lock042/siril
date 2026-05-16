@@ -122,7 +122,7 @@ static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 		case KEY_COL_KEY:
 			if (g_strcmp0(row->key, new_val) != 0) {
 				if (strlen(new_val) > 8) {
-					siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
+					siril_log_error(_("Keyname can contain a maximum of 8 characters.\n"));
 					gtk_editable_set_text(GTK_EDITABLE(lbl), row->key);
 				} else if (!updateFITSKeyword(gfit, row->key, (gchar*)new_val, NULL, NULL, TRUE, FALSE)) {
 					g_free(row->key);
@@ -151,7 +151,7 @@ static void on_key_edit_done(GtkEditableLabel *lbl, KeyEditCtx *ctx) {
 			char commentstring[FLEN_COMMENT];
 			gsize len = g_strlcpy(commentstring, new_val, FLEN_COMMENT);
 			if (len >= FLEN_COMMENT)
-				siril_debug_print("Exceeded FITS COMMENT length\n");
+				siril_log_debug("Exceeded FITS COMMENT length\n");
 			if (g_strcmp0(row->comment, commentstring) != 0) {
 				if (!updateFITSKeyword(gfit, row->key, NULL, row->value, commentstring, TRUE, FALSE)) {
 					g_free(row->comment);

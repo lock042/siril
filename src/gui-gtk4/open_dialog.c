@@ -519,8 +519,7 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	const gchar *path = g_variant_get_string(parameter, NULL);
 	if (!path || !*path) return;
 	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		siril_log_color_message(_("Recent file no longer exists: %s\n"),
-		                        "salmon", path);
+		siril_log_warning(_("Recent file no longer exists: %s\n"), path);
 		/* Best-effort cleanup of the stale recent entry. */
 		gchar *uri = g_filename_to_uri(path, NULL, NULL);
 		if (uri) {

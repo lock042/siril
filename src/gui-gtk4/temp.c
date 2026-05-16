@@ -91,7 +91,7 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 	siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 
 	struct phot_config *ps = phot_set_adjusted_for_image(args->fit);
-	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
+	siril_log_debug("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 	//	Obtain spectrophotometric white balance
@@ -118,7 +118,7 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 		rectangle area = { 0 };
 		float flux[3] = { 0.f };
 		if (make_selection_around_a_star(args->ref_stars->cat_items[i].x, args->ref_stars->cat_items[i].y, &area, args->fit)) {
-			siril_debug_print("star %d is outside image or too close to border\n", i);
+			siril_log_debug("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
@@ -134,7 +134,7 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 				free_psf(photometry);
 		}
 		if (no_phot) {
-			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
+			siril_log_debug("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
 
@@ -163,8 +163,8 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 	if (args->fit->icc_profile) {
 		profile = copyICCProfile(args->fit->icc_profile);
 		if (!fit_icc_is_linear(args->fit)) {
-			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
-					"apply photometric color calibration to linear images.\n"), "salmon");
+			siril_log_warning(_("Image color space is nonlinear. It is recommended to "
+					"apply photometric color calibration to linear images.\n"));
 		}
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);

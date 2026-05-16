@@ -410,7 +410,7 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 	float *result;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 

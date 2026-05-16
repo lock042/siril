@@ -363,7 +363,7 @@ static int allocate_full_surface(struct image_view *view) {
 				|| want_lazy != view->lazy
 				|| !view->tiles
 				|| (!want_lazy && !view->buf_gbytes)) {
-		siril_debug_print("display buffer (re-)allocation %p — %d×%d, %d×%d tiles, %s mode\n",
+		siril_log_debug("display buffer (re-)allocation %p — %d×%d, %d×%d tiles, %s mode\n",
 				view, img_w, img_h, tile_cols, tile_rows,
 				want_lazy ? "lazy" : "eager");
 
@@ -922,7 +922,7 @@ static gboolean prefetch_idle_cb(gpointer data) {
 void check_gfit_profile_identical_to_monitor() {
 	if (!com.headless && gfit->icc_profile && gfit->color_managed)
 		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
-	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
+	siril_log_debug("gfit profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
@@ -931,7 +931,7 @@ static void remaprgb(void) {
 	gint i;
 	int nbdata;
 
-	siril_debug_print("remaprgb\n");
+	siril_log_debug("remaprgb\n");
 	if (!isrgb(gfit))
 		return;
 
@@ -955,7 +955,7 @@ static void remaprgb(void) {
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
 	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
 	if (bufr == NULL || bufg == NULL || bufb == NULL) {
-		siril_debug_print("remaprgb: gray buffers not allocated for display\n");
+		siril_log_debug("remaprgb: gray buffers not allocated for display\n");
 		g_mutex_unlock(&gui.cairo_mutex);
 		return;
 	}
@@ -983,7 +983,7 @@ void allocate_hd_remap_indices() {
 			free(gui.hd_remap_index[i]);
 		gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
 		if (gui.hd_remap_index[i] == NULL) {
-			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
+			siril_log_error(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"));
 			gui.use_hd_remap = FALSE;
 			image_display_init_statics();
 			siril_toggle_set_active(GTK_WIDGET(imgdisp_autohd_item), FALSE);
@@ -1009,7 +1009,7 @@ static int make_hd_index_for_current_display(int vport);
 static int make_index_for_rainbow(BYTE index[][3]);
 
 static void remap_mask(mask_t *mask) {
-	siril_debug_print("mask remap\n");
+	siril_log_debug("mask remap\n");
 
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
@@ -1105,7 +1105,7 @@ static void remap_mask(mask_t *mask) {
 		}
 
 		default: {
-			siril_debug_print("Error: invalid mask bitpix\n");
+			siril_log_debug("Error: invalid mask bitpix\n");
 			break;
 		}
 	}
@@ -1139,13 +1139,13 @@ static void remap(int vport) {
 	WORD *src;
 	float *fsrc;
 	gboolean inverted;
-	siril_debug_print("HISTEQ / STF remap %d\n", vport);
+	siril_log_debug("HISTEQ / STF remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
 	}
 	if (gfit->type == DATA_UNSUPPORTED) {
-		siril_debug_print("data is not loaded yet\n");
+		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
 
@@ -1395,7 +1395,7 @@ static void remap_all_vports() {
 	float *fsrc[3];
 
 	if (gfit->type == DATA_UNSUPPORTED) {
-		siril_debug_print("data is not loaded yet\n");
+		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
 
@@ -1476,7 +1476,7 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_debug_print((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		siril_log_debug((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
 		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
 
 		if (do_transform)
@@ -1715,7 +1715,7 @@ static int make_hd_index_for_current_display(int vport) {
 	 * to cause noticeable quantization of levels */
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
-	siril_debug_print("Rebuilding HD remap_index\n");
+	siril_log_debug("Rebuilding HD remap_index\n");
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gui.unlink_channels ? vport : 0;
 	index = gui.hd_remap_index[target_index];
 
@@ -1771,12 +1771,12 @@ static int make_index_for_current_display(int vport) {
 
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
-		siril_debug_print("Re-using previous gui.remap_index\n");
+		siril_log_debug("Re-using previous gui.remap_index\n");
 		return 0;
 	}
 
 	/************* Building the remap_index **************/
-	siril_debug_print("Rebuilding gui.remap_index %d\n", vport);
+	siril_log_debug("Rebuilding gui.remap_index %d\n", vport);
 	// target_index only used for STF mode
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
@@ -1863,7 +1863,7 @@ typedef struct label_point_struct {
 } label_point;
 
 static void request_gtk_redraw_of_cvport() {
-	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
+	//siril_log_debug("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
 }
@@ -3555,7 +3555,7 @@ static void draw_regframe(const draw_data_t* dd) {
 
 void initialize_image_display() {
 	int i;
-	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth);
+	siril_log_debug("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth);
 	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
 		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
@@ -3598,7 +3598,7 @@ void adjust_vport_size_to_image() {
 	if (zoom <= 0.0) return;
 	/* Init display matrix from current display state */
 	cairo_matrix_t new_matrix;
-	/*siril_debug_print("computing matrix for zoom %g and offset [%g, %g]\n",
+	/*siril_log_debug("computing matrix for zoom %g and offset [%g, %g]\n",
 			zoom, gui.display_offset.x, gui.display_offset.y);*/
 	cairo_matrix_init(&new_matrix,
 			zoom, 0, 0, zoom,
@@ -3611,7 +3611,7 @@ void adjust_vport_size_to_image() {
 		/* Compute the inverse display matrix used for coordinate transformation */
 		gui.image_matrix = gui.display_matrix;
 		cairo_matrix_invert(&gui.image_matrix);
-		//siril_debug_print("  matrix changed\n");
+		//siril_log_debug("  matrix changed\n");
 	}
 }
 
@@ -3702,7 +3702,7 @@ void redraw(remap_type doremap) {
 			redraw_aberration_inspector();
 			break;
 		default:
-			siril_debug_print("UNKNOWN REMAP\n\n");
+			siril_log_debug("UNKNOWN REMAP\n\n");
 	}
 	request_gtk_redraw_of_cvport();
 }

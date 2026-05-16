@@ -226,7 +226,7 @@ typedef struct {
 static gboolean activate_action_idle_cb(gpointer user_data) {
 	ActionIdleData *data = (ActionIdleData*) user_data;
 	if (!data || !data->action_name) {
-		siril_log_color_message(_("activate_action_if_enabled(): incorrect or NULL data\n"), "red");
+		siril_log_error(_("activate_action_if_enabled(): incorrect or NULL data\n"));
 		data->result = ACTION_NULL_DATA;
 		return FALSE;
 	}
@@ -238,7 +238,7 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	} else {
 		GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 		if (!win) {
-			siril_log_color_message(_("activate_action_if_enabled(): control_window not found\n"), "red");
+			siril_log_error(_("activate_action_if_enabled(): control_window not found\n"));
 			data->result = ACTION_WINDOW_MISSING;
 			return FALSE;
 		}
@@ -246,7 +246,7 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	}
 
 	if (!action) {
-		siril_log_color_message(_("activate_action_if_enabled(): action '%s' not found\n"), "red", data->action_name);
+		siril_log_error(_("activate_action_if_enabled(): action '%s' not found\n"), data->action_name);
 		data->result = ACTION_NOT_FOUND;
 		return FALSE;
 	}

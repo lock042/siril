@@ -114,7 +114,7 @@ static gboolean validate_denoise_params(struct denoise_args *params) {
 	}
 
 	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
-		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected.\n"), "red");
+		siril_log_error(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected.\n"));
 		return FALSE;
 	}
 

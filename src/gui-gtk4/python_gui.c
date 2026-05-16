@@ -212,7 +212,7 @@ void add_code_view(GtkBuilder *builder) {
 	language_manager = gtk_source_language_manager_get_default();
 	language = gtk_source_language_manager_get_language(language_manager, "python3");
 	if (language == NULL) {
-		siril_debug_print("Could not find Python language definition\n");
+		siril_log_debug("Could not find Python language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
@@ -855,8 +855,7 @@ static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gp
 	const gchar *path = g_variant_get_string(parameter, NULL);
 	if (!path || !*path) return;
 	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		siril_log_color_message(_("Recent script no longer exists: %s\n"),
-		                        "salmon", path);
+		siril_log_warning(_("Recent script no longer exists: %s\n"), path);
 		gchar *uri = g_filename_to_uri(path, NULL, NULL);
 		if (uri) {
 			gtk_recent_manager_remove_item(
@@ -1314,7 +1313,7 @@ void set_language() {
 		gtk_label_set_text(language_label, _("Siril Script File"));
 	}
 	if (language == NULL) {
-		siril_debug_print("Could not find language definition\n");
+		siril_log_debug("Could not find language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
@@ -1368,7 +1367,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 				siril_log_message(_("Error writing to temporary script file\n"));
 				close(fd);
 				if (g_unlink(temp_filename))
-					siril_debug_print("g_unlink() failed in on_action_file_execute()\n");
+					siril_log_debug("g_unlink() failed in on_action_file_execute()\n");
 				g_free(temp_filename);
 				g_free(text);
 				return;
@@ -1406,7 +1405,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			com.script_thread = g_thread_new("script", execute_script, input_stream);
 			break;
 		default:
-			siril_debug_print("Error: unknown script language\n");
+			siril_log_debug("Error: unknown script language\n");
 			g_free(text);
 			break;
 	}

@@ -97,7 +97,7 @@ void on_spin_sf_minA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 		gtk_spin_button_set_value(spinbutton, maxA - 0.01);
 	}
 	com.pref.starfinder_conf.min_A = gtk_spin_button_get_value(spinbutton);
-	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+	siril_log_debug("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
 }
 
 void on_spin_sf_maxA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -108,7 +108,7 @@ void on_spin_sf_maxA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 		gtk_spin_button_set_value(spinbutton, minA + 0.01);
 	}
 	com.pref.starfinder_conf.max_A = gtk_spin_button_get_value(spinbutton);
-	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+	siril_log_debug("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
 }
 
 void on_spin_sf_maxr_changed(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -119,7 +119,7 @@ void on_spin_sf_maxr_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 		gtk_spin_button_set_value(spinbutton, minr + 0.01);
 	}
 	com.pref.starfinder_conf.max_r = gtk_spin_button_get_value(spinbutton);
-	siril_debug_print("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
+	siril_log_debug("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
 }
 
 void on_psf_amplitude_range_check_button_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
@@ -135,7 +135,7 @@ void on_psf_amplitude_range_check_button_toggled(GtkCheckButton *togglebutton, g
 	}
 	gtk_widget_set_sensitive(minw, enabled);
 	gtk_widget_set_sensitive(maxw, enabled);
-	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+	siril_log_debug("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
 }
 
 void on_psf_roundness_range_check_button_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
@@ -153,7 +153,7 @@ void on_psf_roundness_range_check_button_toggled(GtkCheckButton *togglebutton, g
 	}
 	else com.pref.starfinder_conf.max_r = 1.0;
 	gtk_widget_set_sensitive(maxw, enabled);
-	siril_debug_print("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
+	siril_log_debug("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
 }
 
 void on_combostarfinder_profile_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -220,7 +220,7 @@ void confirm_peaker_GUI() {
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
+		siril_log_error(_("Load an image first, aborted.\n"));
 		return;
 	}
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation

@@ -122,7 +122,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -149,7 +149,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 				nsamples = 3;
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j), buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -163,7 +163,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -205,7 +205,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -232,7 +232,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j),
 						buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -246,7 +246,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -288,7 +288,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -315,7 +315,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j),
 						buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -329,7 +329,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -380,7 +380,7 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			}
 		}
 		else {
-			siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+			siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 		_TIFFfree(raster);
@@ -424,7 +424,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
-		siril_log_message(_("Could not open the TIFF file %s\n"), name);
+		siril_log_error(_("Could not open the TIFF file %s\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -488,13 +488,13 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			} else if (sampleformat == SAMPLEFORMAT_UINT) {
 				retval = readtifstrip32uint(tif, width, height, nsamples, color, &fdata);
 			} else {
-				siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
+				siril_log_error(_("Siril cannot read this TIFF format.\n"));
 				retval = OPEN_IMAGE_ERROR;
 			}
 			break;
 
 		default :
-			siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
+			siril_log_error(_("Siril cannot read this TIFF format.\n"));
 			retval = OPEN_IMAGE_ERROR;
 	}
 
@@ -585,7 +585,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		} else if (orientation == ORIENTATION_BOTLEFT) {
 			; // do nothing
 		} else {
-			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+			siril_log_debug(_("TIFFTAG Orientation not handled.\n"));
 		}
 		break;
 	case 32:
@@ -601,7 +601,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		} else if (orientation == ORIENTATION_BOTLEFT) {
 			; // do nothing
 		} else {
-			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+			siril_log_debug(_("TIFFTAG Orientation not handled.\n"));
 		}
 	}
 	fit->orig_bitpix = fit->bitpix;
@@ -619,12 +619,12 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	if (description) {
 		if (g_str_has_prefix(description, "SIMPLE  =")) {
 			// It is FITS header, copy it
-			siril_debug_print("ASTRO-TIFF detected.\n");
+			siril_log_debug("ASTRO-TIFF detected.\n");
 			if (fit->header) free(fit->header);
 			fit->header = description;
 			int ret = fits_parse_header_str(fit, description);
 			if (ret) {
-				siril_debug_print("ASTRO-TIFF is not well formed.\n");
+				siril_log_debug("ASTRO-TIFF is not well formed.\n");
 			}
 		} else {
 			free(description);
@@ -662,7 +662,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
 	if (!tif) {
-		siril_log_color_message(_("Siril cannot create TIFF file.\n"), "red");
+		siril_log_error(_("Siril cannot create TIFF file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -698,7 +698,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 	} else {
 		TIFFClose(tif);
-		siril_log_color_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"), "red");
+		siril_log_error(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
 	}
@@ -846,7 +846,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 	switch (bitspersample) {
 	case 8:
-		siril_debug_print("Saving 8-bit TIFF file.\n");
+		siril_log_debug("Saving 8-bit TIFF file.\n");
 		BYTE *buf8 = _TIFFmalloc(width * sizeof(unsigned char) * nsamples);
 		if (!buf8) {
 			PRINT_ALLOC_ERR;
@@ -867,7 +867,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf8, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -876,7 +876,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		_TIFFfree(buf8);
 		break;
 	case 16:
-		siril_debug_print("Saving 16-bit TIFF file.\n");
+		siril_log_debug("Saving 16-bit TIFF file.\n");
 		WORD *buf16 = _TIFFmalloc(width * sizeof(WORD) * nsamples);
 		if (!buf16) {
 			PRINT_ALLOC_ERR;
@@ -897,7 +897,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf16, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -906,7 +906,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		_TIFFfree(buf16);
 		break;
 	case 32:
-		siril_debug_print("Saving 32-bit TIFF file.\n");
+		siril_log_debug("Saving 32-bit TIFF file.\n");
 		float *buf32 = _TIFFmalloc(width * sizeof(float) * nsamples);
 		if (!buf32) {
 			PRINT_ALLOC_ERR;
@@ -926,7 +926,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf32, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -946,7 +946,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFClose(tif);
 
 	if (!write_ok) {
-		siril_log_color_message(_("Saving TIFF: Cannot write TIFF file.\n"), "red");
+		siril_log_error(_("Saving TIFF: Cannot write TIFF file.\n"));
 		retval = OPEN_IMAGE_ERROR;
 		if (g_remove(filename))
 			fprintf(stderr, "Error removing file\n");
@@ -1247,16 +1247,16 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		fit->header = formatted_header;
 		int ret = fits_parse_header_str(fit, formatted_header);
 		if (ret) {
-			siril_debug_print("XISF Header cannot be read despite formatting.\n");
+			siril_log_debug("XISF Header cannot be read despite formatting.\n");
 		}
 	} else {
 		// If formatting fails, use the original header
 		fit->header = strdup(xdata->fitsHeader);
-		siril_debug_print("Failed to format XISF header, using original.\n");
+		siril_log_debug("Failed to format XISF header, using original.\n");
 
 		int ret = fits_parse_header_str(fit, fit->header);
 		if (ret) {
-			siril_debug_print("XISF Header cannot be read.\n");
+			siril_log_debug("XISF Header cannot be read.\n");
 		}
 	}
 
@@ -1282,7 +1282,7 @@ int readjpg(const char* name, fits *fit){
 
 	FILE *f = g_fopen(name, "rb");
 	if (f == NULL) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 	cinfo.err = jpeg_std_error(&jerr);
@@ -1325,7 +1325,7 @@ int readjpg(const char* name, fits *fit){
 		siril_log_message(_("Read ICC profile from JPEG.\n"));
 	}
 	else if (cinfo.err->msg_code != JWRN_BOGUS_ICC) {
-		siril_log_message(_("Cannot read an ICC profile from this JPEG, assuming sRGB.\n"));
+		siril_log_warning(_("Cannot read an ICC profile from this JPEG, assuming sRGB.\n"));
 	}
 #else
 	siril_log_message(_("JPEG ICC profile support unavailable, assuming sRGB.\n"));
@@ -1387,7 +1387,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	//## OPEN FILE FOR DATA DESTINATION:
 	FILE *f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		siril_log_color_message(_("Siril cannot create JPG file.\n"), "red");
+		siril_log_error(_("Siril cannot create JPG file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -1537,7 +1537,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	if (profile)
 		jpeg_write_icc_profile(&cinfo, (const JOCTET*) profile, profile_len);
 	else
-		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
+		siril_log_error(_("Error: failed to write ICC profile to JPG\n"));
 #endif
 
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
@@ -1576,7 +1576,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 int readpng(const char *name, fits* fit) {
 	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL,	NULL);
 	if (!png) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1590,7 +1590,7 @@ int readpng(const char *name, fits* fit) {
 
 	FILE *f = g_fopen(name, "rb");
 	if (!f) {
-		siril_log_color_message(_("Error opening the file %s\n"), "red", name);
+		siril_log_error(_("Error opening the file %s\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 	png_init_io(png, f);
@@ -2146,13 +2146,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int ret = siril_libraw_open_file(raw, name);
 	if (ret) {
-		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
+		siril_log_error("Error in libraw %s\n", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
 	ret = libraw_unpack(raw);
 	if (ret) {
-		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
+		siril_log_error("Error in libraw %s\n", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2160,8 +2160,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	 * the case for DNG built from lightroom for example */
 	if (raw->rawdata.raw_image == NULL
 			&& (raw->rawdata.color3_image || raw->rawdata.color4_image)) {
-		siril_log_color_message(_("Siril cannot open this file in CFA mode: "
-				"no RAW data available.\n"), "red");
+		siril_log_error(_("Siril cannot open this file in CFA mode: "
+				"no RAW data available.\n"));
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2432,9 +2432,9 @@ static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nc
 			trc_name = "sRGB-TRC RGB";
 			break;
 		default:
-			siril_log_color_message(_("Error: the specified NCLX TRC is not yet supported in Siril. "
+			siril_log_error(_("Error: the specified NCLX TRC is not yet supported in Siril. "
 										"A linear TRC will be used: you may need to fix this file "
-										"up manually.\n"), "red");
+										"up manually.\n"));
 			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
 			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
 			cmsFreeToneCurve (curve[0]);
@@ -2480,7 +2480,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	// analyze image content
 	int num = heif_context_get_number_of_top_level_images(ctx);
 	if (num == 0) {
-		siril_log_color_message(_("Input file contains no readable images.\n"), "red");
+		siril_log_error(_("Input file contains no readable images.\n"));
 		heif_context_free(ctx);
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 		heif_deinit();
@@ -2548,7 +2548,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			icc_buffer = malloc(icc_length);
 			err = heif_image_handle_get_raw_color_profile(handle, icc_buffer);
 			if (err.code) {
-				siril_log_color_message(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"), "red");
+				siril_log_error(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"));
 			}
 		}
 	} else if (cp_type == heif_color_profile_type_nclx) {
@@ -2561,10 +2561,10 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			cmsCloseProfile(profile);
 		}
 	} else if (cp_type == heif_color_profile_type_not_present) {
-		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
+		siril_log_debug("HEIF does not contain any color profile. Assuming sRGB.\n");
 		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
 	}
-	siril_debug_print("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
+	siril_log_debug("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
 	int bit_depth;
@@ -2573,13 +2573,13 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
 	if (bit_depth < 0) {
-		siril_log_color_message(_("Input image has undefined bit-depth.\n"), "red");
+		siril_log_error(_("Input image has undefined bit-depth.\n"));
 		heif_image_handle_release (handle);
 		heif_context_free (ctx);
 
 		return OPEN_IMAGE_ERROR;
 	} else {
-		siril_debug_print("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
+		siril_log_debug("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
 	}
 
 	if (bit_depth == 8) {
@@ -2744,7 +2744,7 @@ int readjxl(const char* name, fits *fit) {
 	uint8_t* jxl_data = NULL;
 	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
 	if (!success) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		g_error_free(error);
 		return OPEN_IMAGE_ERROR;
 	}
@@ -2759,10 +2759,10 @@ int readjxl(const char* name, fits *fit) {
 			&xsize, &ysize, &zsize, &extra_channels, &bitdepth,
 			&icc_profile, &icc_profile_length, &internal_icc_profile,
 			&internal_icc_profile_length)) {
-		siril_debug_print("Error while decoding the jxl file\n");
+		siril_log_debug("Error while decoding the jxl file\n");
 		return 1;
 	}
-	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
+	siril_log_debug("Image decoded as %d bits per pixel\n", bitdepth);
 	clearfits(fit);
 
 	set_all_keywords_default(fit);
@@ -2802,7 +2802,7 @@ int readjxl(const char* name, fits *fit) {
 		}
 	} else {
 		const uint32_t totchans = zsize + extra_channels;
-		siril_debug_print("Channels: total %u, extra %lu\n", totchans, extra_channels);
+		siril_log_debug("Channels: total %u, extra %lu\n", totchans, extra_channels);
 		if (fit->type == DATA_FLOAT) {
 			for (size_t i = 0 ; i < xsize * ysize ; i++) {
 				size_t pixel = i * totchans;
@@ -2827,7 +2827,7 @@ int readjxl(const char* name, fits *fit) {
 		fit->color_managed = TRUE; // Don't use color_manage() here as we don't want the GUI updated yet
 		gchar* orig_desc = siril_color_profile_get_description(original);
 		gchar* int_desc = siril_color_profile_get_description(internal);
-		siril_debug_print("Transforming from %s to %s\n", int_desc, orig_desc);
+		siril_log_debug("Transforming from %s to %s\n", int_desc, orig_desc);
 		g_free(orig_desc);
 		g_free(int_desc);
 		siril_colorspace_transform(fit, original);
@@ -2865,7 +2865,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 	void *buffer = NULL;
 	int bitdepth;
 	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, FALSE)) {
-		siril_log_color_message(_("Error interleaving image\n"), "red");
+		siril_log_error(_("Error interleaving image\n"));
 	}
 
 	uint32_t profile_len = 0;
@@ -2986,7 +2986,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					&compressed, &compressed_length, effort,
 					quality, profile, profile_len);
 
-	siril_log_color_message(_("Save complete.\n"), "green");
+	siril_log_info(_("Save complete.\n"));
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
 	free(buffer);

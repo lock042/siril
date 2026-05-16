@@ -289,7 +289,7 @@ void selection_H_transform(rectangle *selection, Homography Href, Homography Him
 	cvTransfPoint(&xc, &yc, Href, Himg, 1.);
 	selection->x = round_to_int(xc - selection->w * 0.5);
 	selection->y = round_to_int(yc - selection->h * 0.5);
-	siril_debug_print("boxselect %d %d %d %d\n",
+	siril_log_debug("boxselect %d %d %d %d\n",
 			selection->x, selection->y, selection->w, selection->h);
 }
 
@@ -391,7 +391,7 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	} else if (regargs->func == &register_apply_reg) { // applyreg
 		im_size = (gint64)(regargs->framingd.total_Mpix * 1.e6); // already includes scale and nb_frames
 	} else {
-		siril_debug_print("Unsupported registration function for size computation\n");
+		siril_log_debug("Unsupported registration function for size computation\n");
 		return -1;
 	}
 

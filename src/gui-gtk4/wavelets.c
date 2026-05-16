@@ -184,7 +184,7 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	/* Preview was active: gfit already holds the reconstructed pixels.
 	 * Commit the preview backup as the undo "before" state and close. */
 	undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
-	siril_log_color_message(_("Wavelets Transformation\n"), "green");
+	siril_log_info(_("Wavelets Transformation\n"));
 	siril_close_dialog("wavelets_dialog");
 }
 

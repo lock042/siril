@@ -803,13 +803,13 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (nb_rows > 0) {
 			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
 				if (!icc_warning_given) {
-					siril_log_color_message(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"), "salmon");
+					siril_log_warning(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"));
 					icc_warning_given = TRUE;
 				}
 				if (var_fit[0].icc_profile)
-					siril_log_color_message(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), "salmon", nb_rows + 1);
+					siril_log_warning(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), nb_rows + 1);
 				else
-					siril_log_color_message(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"), "salmon");
+					siril_log_warning(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"));
 				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
 			}
 		}
@@ -1000,7 +1000,7 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 		gchar filter[FLEN_VALUE] = { 0 };
 		fits f = { 0 };
 		if (read_fits_metadata_from_path(filename, &f)) {
-			siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+			siril_log_error(_("Could not open file: %s\n"), filename);
 		} else if (check_files_dimensions(&width, &height, &channel)) {
 			if (width != 0 && (channel != f.naxes[2] ||
 					width != f.naxes[0] || height != f.naxes[1])) {
@@ -1015,7 +1015,7 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 					memcpy(filter, f.keywords.filter, FLEN_VALUE);
 				int idx = search_for_free_index();
 				if (idx >= pm_get_max_images()) {
-					siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
+					siril_log_error(_("Error: maximum variable index exceeded - too many variables!\n"));
 					g_free(filename);
 					clearfits(&f);
 					break;
@@ -1107,7 +1107,7 @@ static void apply_pixel_math() {
 	remove_spaces_from_str(expression3);
 
 	if (pixel_math_evaluate(expression1, expression2, expression3))
-		siril_log_color_message(_("Error evaluating pixelmath expression.\n"), "red");
+		siril_log_error(_("Error evaluating pixelmath expression.\n"));
 }
 
 /* ── Preset list management ─────────────────────────────────────────────── */

@@ -147,7 +147,7 @@ static void start_stacking() {
 		if (weight_type == NOISE_WEIGHT) {
 			int norm_type = gtk_drop_down_get_selected(norm_combo);
 			if (norm_type == NO_NORM) {
-				siril_log_color_message(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"), "red");
+				siril_log_error(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"));
 				weight_type = NO_WEIGHT;
 			} else
 				stackparam.weighting_type = norm_type;
@@ -160,14 +160,14 @@ static void start_stacking() {
 	stackparam.feather_dist = (int)gtk_spin_button_get_value(feather_dist) * gtk_widget_get_visible(blend_frame);
 	stackparam.overlap_norm = siril_toggle_get_active(GTK_WIDGET(overlap_norm)) * gtk_widget_get_visible(blend_frame);
 	if (stackparam.overlap_norm && stackparam.weighting_type == NOISE_WEIGHT) {
-		siril_log_color_message(_("Weighting by noise cannot be used with overlap normalization, ignoring weights.\n"), "red");
+		siril_log_error(_("Weighting by noise cannot be used with overlap normalization, ignoring weights.\n"));
 		stackparam.weighting_type = NO_WEIGHT;
 	}
 
 	stackparam.use_32bit_output = siril_toggle_get_active(GTK_WIDGET(force32b)) || evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);
 	if (error) {
-		siril_log_color_message(error, "red");
+		siril_log_error(error);
 		return;
 	}
 
@@ -202,7 +202,7 @@ static void start_stacking() {
 	 * displays this text
 	 */
 	if (stackparam.method != &stack_summing_generic)
-		siril_log_color_message(_("Stacking: processing...\n"), "green");
+		siril_log_info(_("Stacking: processing...\n"));
 	gettimeofday(&stackparam.t_start, NULL);
 	set_cursor_waiting(TRUE);
 

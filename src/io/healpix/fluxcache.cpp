@@ -33,7 +33,7 @@ std::filesystem::path FluxCache::get_or_create_cache_dir() {
         }
         return siril_subdir;
     } catch (const std::filesystem::filesystem_error& e) {
-        siril_debug_print(_("Can't create directory %s, falling back to system temp\n"),
+        siril_log_debug(_("Can't create directory %s, falling back to system temp\n"),
                           siril_subdir.string().c_str());
         return std::filesystem::temp_directory_path();
     }
@@ -76,7 +76,7 @@ FluxCache::FluxCache(const std::string& dbPath) {
         std::ifstream f(dbPath, std::ios::binary);
         char magic[16];
         if (!f.read(magic, 16) || std::memcmp(magic, "SQLite format 3\000", 16) != 0) {
-            siril_log_color_message(_("FluxCache: Database corrupted. Resetting...\n"), "salmon");
+            siril_log_warning(_("FluxCache: Database corrupted. Resetting...\n"));
             corrupted = true;
         }
         f.close();
@@ -88,7 +88,7 @@ FluxCache::FluxCache(const std::string& dbPath) {
                 // quick_check is fast and catches the most common corruption issues
                 int rc = sqlite3_exec(test_db, "PRAGMA quick_check;", nullptr, nullptr, nullptr);
                 if (rc != SQLITE_OK) {
-                    siril_log_color_message(_("FluxCache: Database corrupted. Resetting...\n"), "salmon");
+                    siril_log_warning(_("FluxCache: Database corrupted. Resetting...\n"));
                     corrupted = true;
                 }
                 sqlite3_close(test_db);
@@ -117,7 +117,7 @@ FluxCache::FluxCache(const std::string& dbPath) {
         sqlite3_exec(db, "PRAGMA synchronous = OFF;", nullptr, nullptr, nullptr);
         sqlite3_exec(db, "PRAGMA journal_mode = WAL;", nullptr, nullptr, nullptr);
     } else {
-        siril_log_color_message(_("FluxCache: Failed to open/create database at %s\n"), "red", dbPath.c_str());
+        siril_log_error(_("FluxCache: Failed to open/create database at %s\n"), dbPath.c_str());
     }
 }
 

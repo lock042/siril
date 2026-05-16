@@ -618,7 +618,7 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 		g_date_time_unref(tsi);
 	} else {
 		julian = (double) image_index + 1; // should not happen
-		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
+		siril_log_debug("no DATE-OBS information for frame %d\n", image_index);
 	}
 	plot->frame[point_index] = (double) image_index + 1;
 
@@ -652,7 +652,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
-				//siril_debug_print("julian0 set to %d\n", julian0);
+				//siril_log_debug("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));
