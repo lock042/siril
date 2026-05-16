@@ -31,6 +31,7 @@ siril-1.4.3
 * Fixed Windows pipes naming (#1921)
 * Fixed the 'Keep all samples' in background extraction
 * Added None as a keyword value for BAYERPAT
+* Fixed seq file corruption (#1204)
 * Fixed file extension handling in Save As dialog (#1748)
 * Fixed crash when loading some Hubble images (#1932)
 * Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
