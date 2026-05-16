@@ -827,7 +827,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
     siril_log_debug("starting do_kernel_turbo\n");
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
-    pfo = p->pixel_fraction / p->scale / 2.0;
+    pfo = p->pixel_fraction * p->scale / 2.0;
     scale2 = p->scale * p->scale;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
