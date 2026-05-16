@@ -517,8 +517,13 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	out->orig_bitpix = USHORT_IMG;
 	out->type = DATA_USHORT;
 	out->pdata[0] = out->data;
-	out->pdata[1] = (C >= 2) ? out->data + plane     : NULL;
-	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : NULL;
+	/* Siril's mono convention: pdata[1]/pdata[2] alias pdata[0] (not
+	 * NULL). remap_all_vports's per-vport memcpy loops c=0..2
+	 * unconditionally, so a NULL plane pointer crashes the GUI
+	 * refresh that runs immediately after stack_function_handler
+	 * swaps gfit. */
+	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
+	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
 	return MPP_OK;
 }
 

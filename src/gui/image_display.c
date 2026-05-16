@@ -2000,6 +2000,13 @@ static void draw_stars(const draw_data_t* dd) {
 static void draw_mpp_aps(const draw_data_t* dd) {
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
+	/* AP coordinates live in the sequence's mean-frame space. When the
+	 * user is viewing a single image rather than a sequence frame
+	 * (com.seq.current < 0 → RESULT_IMAGE after stack, or SCALED_IMAGE),
+	 * the overlay no longer corresponds to what's on screen, so suppress
+	 * it. APs reappear automatically when the user navigates back into
+	 * the sequence. */
+	if (com.seq.current < 0) return;
 	const int hb = run->cfg->alignment_points_half_box_width;
 	if (hb <= 0) return;
 	const int side = 2 * hb;

@@ -447,8 +447,12 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 		return MPP_ENOMEM;
 	}
 	out->pdata[0] = out->data;
-	out->pdata[1] = (channels >= 2) ? out->data + plane     : nullptr;
-	out->pdata[2] = (channels >= 3) ? out->data + 2 * plane : nullptr;
+	/* Siril's mono convention: pdata[1]/pdata[2] alias pdata[0] (not
+	 * NULL). Various GUI paths — notably remap_all_vports's per-vport
+	 * memcpy — iterate c=0..2 unconditionally, so a NULL plane pointer
+	 * crashes during display refresh after the stack swap. */
+	out->pdata[1] = (channels >= 2) ? out->data + plane     : out->data;
+	out->pdata[2] = (channels >= 3) ? out->data + 2 * plane : out->data;
 
 	/* Scale to 16-bit uint range. For 8-bit input, output_data values
 	 * are still in [0, 255] (the raw input range we fed dobox) so we
