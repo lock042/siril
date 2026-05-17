@@ -266,8 +266,14 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			float a, b;
 			siril_fit_linear(data->xf, data->yf, data->m_x, data->m_dx2, N, &b, &a);
 			float sigma = 0.f;
-			for (int frame = 0; frame < N; frame++)
-				sigma += fabsf(stack[frame] - (a * frame + b));
+			if (N >= STACK_SIMD_N_THRESHOLD) {
+#pragma omp simd reduction(+:sigma)
+				for (int frame = 0; frame < N; frame++)
+					sigma += fabsf(stack[frame] - (a * frame + b));
+			} else {
+				for (int frame = 0; frame < N; frame++)
+					sigma += fabsf(stack[frame] - (a * frame + b));
+			}
 			sigma /= (float) N;
 			for (int frame = 0; frame < N; frame++) {
 				if (N - r <= 4) {
