@@ -403,7 +403,8 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : true)
+  # 4.5 (Nov 2015) needed for `#pragma omp simd reduction(min:...) reduction(max:...)`
+  openmp_dep = dependency('openmp', version : '>=4.5', required : true)
   endif
 else
   message('OpenMP disabled')
