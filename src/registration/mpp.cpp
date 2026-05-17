@@ -200,6 +200,11 @@ typedef enum {
 	MPP_MEM_STREAMING   = 2,
 } mpp_mem_mode;
 
+typedef struct {
+	int mode;       /* mpp_mem_mode */
+	int threads;    /* 1..max_threads, clamped to fit the budget */
+} mpp_mem_pick;
+
 static const char *mpp_mem_mode_name(int m) {
 	switch (m) {
 		case MPP_MEM_CACHED:      return "cached";
@@ -209,66 +214,125 @@ static const char *mpp_mem_mode_name(int m) {
 	}
 }
 
+/* Picks the most performant memory tier whose working set fits in
+ * get_max_memory_in_MB(), and the largest thread count whose
+ * in-flight working set also fits. Iterates tiers CACHED →
+ * HALF_CACHED → STREAMING; within each tier, picks T in [1,
+ * max_threads] inversely proportional to the per-thread cost.
+ *
+ * Total peak per tier:
+ *   CACHED:      cached_copies      · N · F  +  T · per_thread_in_flight · F + output
+ *   HALF_CACHED: half_cached_copies · N · F  +  T · per_thread_in_flight · F + output
+ *   STREAMING:                                  T · per_thread_in_flight · F + output
+ *
+ * Per-thread cost reflects what each parallel iteration of the
+ * caller's hottest loop holds in scratch (e.g. raw + transient blur
+ * during the rank pass = 2). For purely sequential callers, pass
+ * max_threads=1, per_thread_in_flight=1.
+ *
+ * Pass copies=0 to disable a tier the caller doesn't support.
+ * Returns MPP_ENOMEM if no enabled tier fits even at T=1. */
 static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
                                          int cached_copies,
                                          int half_cached_copies,
-                                         int streaming_in_flight,
+                                         int max_threads,
+                                         int per_thread_in_flight,
                                          uint64_t output_bytes,
                                          const char *stage_name,
-                                         int *mode_out) {
-	if (N <= 0 || rx <= 0 || ry <= 0 || channels < 1 || !mode_out)
+                                         mpp_mem_pick *out) {
+	if (N <= 0 || rx <= 0 || ry <= 0 || channels < 1 || !out
+	    || max_threads < 1 || per_thread_in_flight < 1)
 		return MPP_EINVAL;
 	const uint64_t per_frame = (uint64_t) rx * (uint64_t) ry
 	                         * (uint64_t) channels * 2ull;  /* WORD */
 	const uint64_t budget    = (uint64_t) get_max_memory_in_MB()
 	                         * (uint64_t) BYTES_IN_A_MB;
+	const uint64_t per_thread_bytes = (uint64_t) per_thread_in_flight * per_frame;
 
-	const uint64_t bytes_cached  = (uint64_t) cached_copies      * (uint64_t) N * per_frame + output_bytes;
-	const uint64_t bytes_half    = (uint64_t) half_cached_copies * (uint64_t) N * per_frame + output_bytes;
-	const uint64_t bytes_stream  = (uint64_t) streaming_in_flight                * per_frame + output_bytes;
+	/* For each tier, the largest T in [1, max_threads] such that
+	 *     tier_persistent + T · per_thread_bytes + output ≤ budget.
+	 * Returns 0 if even T=1 doesn't fit. */
+	auto best_threads_for = [&](uint64_t tier_persistent) -> int {
+		const uint64_t fixed = tier_persistent + output_bytes;
+		if (fixed >= budget) return 0;
+		const uint64_t headroom = budget - fixed;
+		const uint64_t max_T_fit = headroom / per_thread_bytes;
+		if (max_T_fit < 1) return 0;
+		return (int) std::min((uint64_t) max_threads, max_T_fit);
+	};
 
-	int pick = -1;
-	uint64_t pick_bytes = 0;
-	if (cached_copies > 0 && bytes_cached <= budget) {
-		pick = MPP_MEM_CACHED;       pick_bytes = bytes_cached;
-	} else if (half_cached_copies > 0 && bytes_half <= budget) {
-		pick = MPP_MEM_HALF_CACHED;  pick_bytes = bytes_half;
-	} else if (streaming_in_flight > 0 && bytes_stream <= budget) {
-		pick = MPP_MEM_STREAMING;    pick_bytes = bytes_stream;
+	const uint64_t cached_persistent = (uint64_t) cached_copies * (uint64_t) N * per_frame;
+	const uint64_t half_persistent   = (uint64_t) half_cached_copies * (uint64_t) N * per_frame;
+
+	int picked_mode = -1;
+	int picked_T = 0;
+	uint64_t picked_bytes = 0;
+
+	if (cached_copies > 0) {
+		const int T = best_threads_for(cached_persistent);
+		if (T > 0) {
+			picked_mode = MPP_MEM_CACHED;
+			picked_T = T;
+			picked_bytes = cached_persistent + (uint64_t) T * per_thread_bytes + output_bytes;
+		}
+	}
+	if (picked_mode < 0 && half_cached_copies > 0) {
+		const int T = best_threads_for(half_persistent);
+		if (T > 0) {
+			picked_mode = MPP_MEM_HALF_CACHED;
+			picked_T = T;
+			picked_bytes = half_persistent + (uint64_t) T * per_thread_bytes + output_bytes;
+		}
+	}
+	if (picked_mode < 0) {
+		const int T = best_threads_for(0);
+		if (T > 0) {
+			picked_mode = MPP_MEM_STREAMING;
+			picked_T = T;
+			picked_bytes = (uint64_t) T * per_thread_bytes + output_bytes;
+		}
 	}
 
-	if (pick < 0) {
-		/* No enabled tier fits. Report the cheapest enabled tier's cost
-		 * as the "need" figure so the user sees an achievable target.
-		 * If streaming is enabled it's necessarily the cheapest. */
-		uint64_t need = bytes_cached;
-		if (streaming_in_flight > 0)        need = bytes_stream;
-		else if (half_cached_copies > 0)    need = bytes_half;
+	if (picked_mode < 0) {
+		/* Nothing fits, not even single-threaded streaming. Report the
+		 * absolute minimum (one in-flight frame + output) as the need
+		 * figure so the user sees an achievable target. */
+		const uint64_t need = per_thread_bytes + output_bytes;
 		gchar *need_str  = g_format_size_full(need, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *avail_str = g_format_size_full(budget, G_FORMAT_SIZE_IEC_UNITS);
-		siril_log_error(_("%s: not enough memory — would need %s for %d "
-		                  "frames (%dx%dx%d), %s considered available. "
-		                  "Lower the frame count, use a smaller crop, or "
-		                  "increase the memory ratio in Preferences.\n"),
-		                stage_name, need_str, N, rx, ry, channels, avail_str);
+		siril_log_error(_("%s: not enough memory — even a single in-flight "
+		                  "frame (%s for %dx%dx%d) exceeds the %s budget. "
+		                  "Use a smaller crop or increase the memory "
+		                  "ratio in Preferences.\n"),
+		                stage_name, need_str, rx, ry, channels, avail_str);
 		g_free(need_str);
 		g_free(avail_str);
 		return MPP_ENOMEM;
 	}
 
-	*mode_out = pick;
-	/* Log when we drop below the fastest available tier so the user
-	 * understands why subsequent passes take longer. */
-	const bool dropped_from_cached = (cached_copies > 0 && pick != MPP_MEM_CACHED);
-	if (dropped_from_cached) {
-		gchar *need_cached = g_format_size_full(bytes_cached, G_FORMAT_SIZE_IEC_UNITS);
-		gchar *use_str     = g_format_size_full(pick_bytes,   G_FORMAT_SIZE_IEC_UNITS);
-		gchar *avail_str   = g_format_size_full(budget,       G_FORMAT_SIZE_IEC_UNITS);
-		siril_log_message(_("%s: %s mode (cached would need %s, %s available, "
-		                    "using %s)\n"),
-		                  stage_name, mpp_mem_mode_name(pick),
-		                  need_cached, avail_str, use_str);
-		g_free(need_cached);
+	out->mode    = picked_mode;
+	out->threads = picked_T;
+
+	/* Log when we drop below CACHED (the fastest tier) or when threads
+	 * are clamped — both have user-visible perf implications. */
+	const bool dropped_tier = (cached_copies > 0 && picked_mode != MPP_MEM_CACHED);
+	const bool clamped_threads = (picked_T < max_threads);
+	if (dropped_tier || clamped_threads) {
+		gchar *use_str   = g_format_size_full(picked_bytes, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *avail_str = g_format_size_full(budget,       G_FORMAT_SIZE_IEC_UNITS);
+		if (dropped_tier) {
+			gchar *cached_str = g_format_size_full(
+			    cached_persistent + (uint64_t) max_threads * per_thread_bytes + output_bytes,
+			    G_FORMAT_SIZE_IEC_UNITS);
+			siril_log_message(_("%s: %s mode, %d thread(s) "
+			                    "(cached would need %s, %s available, using %s)\n"),
+			                  stage_name, mpp_mem_mode_name(picked_mode),
+			                  picked_T, cached_str, avail_str, use_str);
+			g_free(cached_str);
+		} else {
+			siril_log_message(_("%s: %d/%d threads (%s used, %s available)\n"),
+			                  stage_name, picked_T, max_threads, use_str, avail_str);
+		}
 		g_free(use_str);
 		g_free(avail_str);
 	}
@@ -314,30 +378,33 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 *   CACHED      — raw + blurred (2 copies); 1 disk pass.
 	 *   HALF_CACHED — raw only; Pass 2 re-blurs on demand. 1 disk pass.
 	 *   STREAMING   — neither cached; Passes 2/3/4 re-read from disk.
-	 *                 3 disk passes total but only ~1 frame per thread in
-	 *                 RAM.
-	 * streaming_in_flight is com.max_thread because Pass 1 (rank+brightness)
-	 * stays parallel even in streaming mode — each thread holds one frame
-	 * mid-iteration. Passes 2/3/4 are sequential so they don't widen the
-	 * peak further. */
+	 *                 ~3 disk passes total but only T frames in RAM.
+	 * Pass 1 (rank + brightness) is parallel in all three tiers; the
+	 * picker clamps T down to whatever fits. Passes 2/3/4 are sequential
+	 * regardless of tier (algorithmic dependency in P2, single-frame
+	 * accumulator in P3/P4) so they don't widen the in-flight cost.
+	 * per_thread_in_flight = 2: each Pass 1 iteration holds the raw mono
+	 * plus a transient blur (inside rank_score_normalized) at peak. */
 #ifdef _OPENMP
-	const int streaming_in_flight = std::max(1, com.max_thread);
+	const int max_threads = std::max(1, com.max_thread);
 #else
-	const int streaming_in_flight = 1;
+	const int max_threads = 1;
 #endif
-	int mem_mode = MPP_MEM_CACHED;
+	mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads};
 	{
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    /*cached_copies=*/2,
 		    /*half_cached_copies=*/1,
-		    streaming_in_flight,
+		    max_threads,
+		    /*per_thread_in_flight=*/2,
 		    /*output_bytes=*/0,
-		    "Analyze", &mem_mode);
+		    "Analyze", &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
-	const bool cache_raw     = (mem_mode != MPP_MEM_STREAMING);
-	const bool cache_blurred = (mem_mode == MPP_MEM_CACHED);
+	const bool cache_raw     = (mem_pick.mode != MPP_MEM_STREAMING);
+	const bool cache_blurred = (mem_pick.mode == MPP_MEM_CACHED);
+	const int pass1_threads  = mem_pick.threads;
 
 	/* Index-stable storage so parallel threads can write to per-frame slots
 	 * without contention. push_back would force serialisation.
@@ -360,7 +427,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * shift_methods.c:432 — anything fits-backed needs cfitsio's
 	 * fits_is_reentrant() flag. */
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
+#pragma omp parallel for num_threads(pass1_threads) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
@@ -511,23 +578,23 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
 
 	/* Stage B streams: each frame is read + blurred inside the
-	 * correlation loop and discarded at iteration end. Peak working
-	 * set is one frame. Disk traffic is identical to the previous
-	 * cached two-pass design (1 read per included frame) — the cache
-	 * never saved any I/O, only RAM. The picker call here is just
-	 * the lower-bound sanity check that even a single frame fits. */
-	int mem_mode = MPP_MEM_STREAMING;
+	 * correlation loop and discarded at iteration end. Sequential, so
+	 * max_threads=1 and per_thread_in_flight=1 — the picker just
+	 * verifies that a single frame fits. Disk traffic is identical to
+	 * the previous cached two-pass design (1 read per included frame). */
+	mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1};
 	{
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
-		    /*streaming_in_flight=*/1,
+		    /*max_threads=*/1,
+		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Register", &mem_mode);
+		    "Register", &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
-	(void) mem_mode;
+	(void) mem_pick;
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
@@ -628,25 +695,25 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		const mpp_input_type t = mpp_classify_sequence_input(seq);
 		mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
 	}
-	/* Pre-flight memory check. All Stack paths stream — the dobox
-	 * wrappers and the bicubic loop below both hold one in-flight
-	 * frame at a time, plus the drizzle output canvases (small relative
-	 * to per-frame). Disk traffic is identical to the previous cached
-	 * design; only RAM differs. */
+	/* Pre-flight memory check. All Stack paths stream sequentially —
+	 * the dobox wrappers and the bicubic loop below both hold one
+	 * in-flight frame at a time, plus the drizzle output canvases
+	 * (small relative to per-frame). */
 	{
 		const int channels = (mode == MPP_DRIZZLE_BAYER)
 		                   ? 1
 		                   : (run->num_layers > 0 ? run->num_layers : 1);
-		int mem_mode = MPP_MEM_STREAMING;
+		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1};
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, run->frame_cols, run->frame_rows, channels,
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
-		    /*streaming_in_flight=*/1,
+		    /*max_threads=*/1,
+		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Stack (mpp)", &mem_mode);
+		    "Stack (mpp)", &mem_pick);
 		if (mem != MPP_OK) return mem;
-		(void) mem_mode;
+		(void) mem_pick;
 	}
 	switch (mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
@@ -772,18 +839,25 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	if (run->num_frames != seq->number) return MPP_EINVAL;
 
 	const int N = run->num_frames;
-	int mem_mode = MPP_MEM_CACHED;
+#ifdef _OPENMP
+	const int max_threads = std::max(1, com.max_thread);
+#else
+	const int max_threads = 1;
+#endif
+	mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads};
 	{
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    /*cached_copies=*/1,
 		    /*half_cached_copies=*/0,
-		    /*streaming_in_flight=*/1,
+		    max_threads,
+		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Register (per-AP quality refresh)", &mem_mode);
+		    "Register (per-AP quality refresh)", &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
-	const bool cache_raw = (mem_mode != MPP_MEM_STREAMING);
+	const bool cache_raw      = (mem_pick.mode != MPP_MEM_STREAMING);
+	const int preread_threads = mem_pick.threads;
 
 	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
 	                    "(re-reading %d frames)\n"), N);
@@ -801,7 +875,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		int cur_nb = 0;
 		int read_failed = 0;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
+#pragma omp parallel for num_threads(preread_threads) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
