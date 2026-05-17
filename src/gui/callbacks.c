@@ -2638,6 +2638,17 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 		update_display_fwhm();
 }
 
+/* Main control-tab change. The MPP AP overlay (draw_mpp_aps) is
+ * gated to the Registration tab — it's a registration-workflow tool
+ * and is visual clutter on other tabs. Repaint on switch so the
+ * overlay appears / disappears immediately rather than waiting on
+ * the next unrelated trigger. */
+void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
+		guint page_num, gpointer user_data) {
+	(void) notebook; (void) page; (void) page_num; (void) user_data;
+	redraw(REDRAW_OVERLAY);
+}
+
 struct checkSeq_filter_data {
 	int retvalue;
 };

@@ -3987,6 +3987,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                 <property name="can-focus">True</property>
                                 <property name="show-border">False</property>
                                 <property name="scrollable">True</property>
+                                <signal name="switch-page" handler="on_notebook_center_box_switch_page" swapped="no"/>
                                 <child>
                                   <object class="GtkScrolledWindow" id="conversion_tab">
                                     <property name="visible">True</property>
