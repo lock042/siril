@@ -311,35 +311,47 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	const int N = seq->number;
 	/* Analysis is always mono (RGB inputs are luminance-converted in
 	 * read_analysis_frame). Memory tiers:
-	 *   CACHED      — raw + blurred (2 copies)
-	 *   HALF_CACHED — raw only; Pass 2 re-blurs on demand
-	 *   STREAMING   — not yet implemented for Analyze (Tier 3 work).
-	 * Output bytes are dominated by mean_frame (≤ rx*ry*4) plus a
-	 * handful of N-sized double/int arrays — small enough to ignore
-	 * here; the picker rounds to MB anyway. */
+	 *   CACHED      — raw + blurred (2 copies); 1 disk pass.
+	 *   HALF_CACHED — raw only; Pass 2 re-blurs on demand. 1 disk pass.
+	 *   STREAMING   — neither cached; Passes 2/3/4 re-read from disk.
+	 *                 3 disk passes total but only ~1 frame per thread in
+	 *                 RAM.
+	 * streaming_in_flight is com.max_thread because Pass 1 (rank+brightness)
+	 * stays parallel even in streaming mode — each thread holds one frame
+	 * mid-iteration. Passes 2/3/4 are sequential so they don't widen the
+	 * peak further. */
+#ifdef _OPENMP
+	const int streaming_in_flight = std::max(1, com.max_thread);
+#else
+	const int streaming_in_flight = 1;
+#endif
 	int mem_mode = MPP_MEM_CACHED;
 	{
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    /*cached_copies=*/2,
 		    /*half_cached_copies=*/1,
-		    /*streaming_in_flight=*/0,
+		    streaming_in_flight,
 		    /*output_bytes=*/0,
 		    "Analyze", &mem_mode);
 		if (mem != MPP_OK) return mem;
 	}
+	const bool cache_raw     = (mem_mode != MPP_MEM_STREAMING);
 	const bool cache_blurred = (mem_mode == MPP_MEM_CACHED);
+
 	/* Index-stable storage so parallel threads can write to per-frame slots
 	 * without contention. push_back would force serialisation.
-	 * blurred_frames stays empty in HALF_CACHED mode — Pass 2 will blur
-	 * on demand from analysis_frames. */
-	std::vector<cv::Mat> analysis_frames(N);
+	 * Both vectors stay empty when their tier is disabled — Passes 2/3/4
+	 * will re-read from disk via providers in those cases. */
+	std::vector<cv::Mat> analysis_frames;
+	if (cache_raw) analysis_frames.resize(N);
 	std::vector<cv::Mat> blurred_frames;
 	if (cache_blurred) blurred_frames.resize(N);
 	std::vector<double> q_rank(N, 0.0);
 	std::vector<double> frame_brightness(N, 0.0);
 
-	int frame_rows = 0, frame_cols = 0, num_layers = 1, bitpix = 16;
+	int frame_rows = (int) seq->ry, frame_cols = (int) seq->rx;
+	int num_layers = 1, bitpix = 16;
 	int cur_nb = 0;
 	int read_failed = 0;
 	/* Parallel frame read: SER's fd_lock serialises only the actual fread
@@ -359,50 +371,64 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			g_atomic_int_set(&read_failed, 1);
 			continue;
 		}
-		analysis_frames[i] = mono;
-		if (cache_blurred)
-			blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
+		if (cache_raw)     analysis_frames[i] = mono;
+		if (cache_blurred) blurred_frames[i]  = mpp::blur_mono_for_align(mono, *cfg);
 		q_rank[i]          = mpp::rank_score_normalized(mono, *cfg);
 		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
 		g_atomic_int_inc(&cur_nb);
 		gui_iface.set_progress(MPP_PROG_READ_END * (double) cur_nb / (double) N, NULL);
 	}
 	if (read_failed) return MPP_EIO;
-	frame_rows = analysis_frames[0].rows;
-	frame_cols = analysis_frames[0].cols;
 
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
 	bitpix = seq->bitpix;
 
+	/* Lambda providers for the streaming branches of Passes 2/3/4.
+	 * Captures live until the end of mpp_analyze; each call reads one
+	 * frame fresh from disk. Pass 2's provider also blurs because the
+	 * align path needs blurred input. */
+	auto blurred_provider = [seq, cfg](int i) -> cv::Mat {
+		const cv::Mat m = mpp::read_analysis_frame(seq, i);
+		return m.empty() ? cv::Mat() : mpp::blur_mono_for_align(m, *cfg);
+	};
+	auto raw_provider = [seq](int i) -> cv::Mat {
+		return mpp::read_analysis_frame(seq, i);
+	};
+
 	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
 	stage_progress_range gp_global{MPP_PROG_READ_END,
 	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
-	/* In HALF_CACHED mode Pass 2 re-blurs each frame from analysis_frames
-	 * on demand — Pass 1 didn't store the blur. The blur produced inside
-	 * rank_score_normalized in Pass 1 is also discarded after computing the
-	 * sigma, so cached mode is paying for two blurs per frame and getting
-	 * to keep one; half-cached pays for two and keeps none. CPU cost is
-	 * therefore the same; only memory differs. */
-	const auto align = cache_blurred
-	    ? mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
-	                                    stage_progress_cb, &gp_global)
-	    : mpp::align_global_from_provider(
-	          [&analysis_frames, cfg](int i) {
-	              return mpp::blur_mono_for_align(analysis_frames[i], *cfg);
-	          },
-	          N, q_rank, *cfg, stage_progress_cb, &gp_global);
-	/* Cached mode: drop blurred_frames now so the remaining passes have
-	 * an extra N·rx·ry·2 bytes of headroom. Half-cached mode: nothing
-	 * to free. shrink_to_fit returns the pointer array to the allocator;
-	 * clear destroys each cv::Mat (refcount → 0 returns pixel buffers). */
+	/* Pass 2 — global align. CACHED uses cached blurred (no I/O, no blur).
+	 * HALF_CACHED blurs cached raw on demand (no I/O, ~N blurs).
+	 * STREAMING re-reads from disk and blurs (N reads + N blurs). */
+	const auto align =
+	    cache_blurred
+	      ? mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
+	                                      stage_progress_cb, &gp_global)
+	    : cache_raw
+	      ? mpp::align_global_from_provider(
+	            [&analysis_frames, cfg](int i) {
+	                return mpp::blur_mono_for_align(analysis_frames[i], *cfg);
+	            },
+	            N, q_rank, *cfg, stage_progress_cb, &gp_global)
+	      : mpp::align_global_from_provider(
+	            blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global);
+	/* Drop blurred_frames now so the remaining passes have an extra
+	 * N·rx·ry·2 bytes of headroom (CACHED mode only; the others held
+	 * no blur cache to begin with). */
 	blurred_frames.clear();
 	blurred_frames.shrink_to_fit();
 	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
 	stage_progress_range gp_avg{MPP_PROG_GLOBAL_END,
 	                            MPP_PROG_AVERAGE_END - MPP_PROG_GLOBAL_END};
-	const auto avg = mpp::align_average_frame(analysis_frames, q_rank,
-	                                          align.shifts, *cfg,
-	                                          stage_progress_cb, &gp_avg);
+	/* Pass 3 — average frame. STREAMING re-reads only the top-N indices
+	 * the picker picked (typically ~10% of N). */
+	const auto avg = cache_raw
+	    ? mpp::align_average_frame(analysis_frames, q_rank, align.shifts, *cfg,
+	                               stage_progress_cb, &gp_avg)
+	    : mpp::align_average_frame_streamed(raw_provider, N, frame_rows, frame_cols,
+	                                        q_rank, align.shifts, *cfg,
+	                                        stage_progress_cb, &gp_avg);
 	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
 	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, *cfg);
@@ -414,10 +440,15 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
 	stage_progress_range gp_qual{MPP_PROG_AVERAGE_END,
 	                             MPP_PROG_QUALITIES_END - MPP_PROG_AVERAGE_END};
-	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
-	                                                 *aps, offsets,
-	                                                 frame_rows, frame_cols, *cfg,
-	                                                 stage_progress_cb, &gp_qual);
+	/* Pass 4 — per-AP qualities. STREAMING re-reads every frame. */
+	const auto apq = cache_raw
+	    ? mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
+	                                      *aps, offsets, frame_rows, frame_cols, *cfg,
+	                                      stage_progress_cb, &gp_qual)
+	    : mpp::ap_compute_frame_qualities_streamed(raw_provider, N, frame_brightness,
+	                                               *aps, offsets,
+	                                               frame_rows, frame_cols, *cfg,
+	                                               stage_progress_cb, &gp_qual);
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) { mpp_ap_free(aps); return MPP_ENOMEM; }
@@ -597,18 +628,21 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		const mpp_input_type t = mpp_classify_sequence_input(seq);
 		mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
 	}
-	/* Pre-flight memory check. Bayer drizzle reads 1-channel raw mosaic;
-	 * STScI and bicubic preserve the source layer count. */
+	/* Pre-flight memory check. All Stack paths stream — the dobox
+	 * wrappers and the bicubic loop below both hold one in-flight
+	 * frame at a time, plus the drizzle output canvases (small relative
+	 * to per-frame). Disk traffic is identical to the previous cached
+	 * design; only RAM differs. */
 	{
 		const int channels = (mode == MPP_DRIZZLE_BAYER)
 		                   ? 1
 		                   : (run->num_layers > 0 ? run->num_layers : 1);
-		int mem_mode = MPP_MEM_CACHED;
+		int mem_mode = MPP_MEM_STREAMING;
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, run->frame_cols, run->frame_rows, channels,
-		    /*cached_copies=*/1,
+		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
-		    /*streaming_in_flight=*/0,
+		    /*streaming_in_flight=*/1,
 		    /*output_bytes=*/0,
 		    "Stack (mpp)", &mem_mode);
 		if (mem != MPP_OK) return mem;
@@ -633,24 +667,6 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	SerAnalysisDebayerGuard ser_guard;
 	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
 
-	/* Read frames preserving all layers — colour data flows through Stage C
-	 * even though Stages A and B use only the green analysis layer. */
-	std::vector<cv::Mat> raw_frames;
-	raw_frames.resize(run->num_frames);
-	gui_iface.set_progress(PROGRESS_RESET, _("Stack: reading frames"));
-	int n_included = 0;
-	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) ++n_included;
-	int cur_nb = 0;
-	for (int i = 0; i < run->num_frames; ++i) {
-		if (!run->included[i]) continue;
-		const cv::Mat frame = mpp::read_full_frame(seq, i);
-		if (frame.empty()) return MPP_EIO;
-		raw_frames[i] = frame;
-		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_included, NULL);
-	}
-
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
 
@@ -669,10 +685,15 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const cv::Vec4i intersection(run->intersection[0], run->intersection[1],
 	                             run->intersection[2], run->intersection[3]);
 
-	const auto loop = mpp::stack_apply_shifts(raw_frames, *run->aps, apq,
-	                                          run->shifts, offsets,
-	                                          frame_brightness, sorted_idx,
-	                                          intersection, *cfg, run->included);
+	gui_iface.set_progress(PROGRESS_RESET, _("Stack: drizzling frames"));
+	auto provider = [seq](int i) -> cv::Mat {
+		return mpp::read_full_frame(seq, i);
+	};
+	const int num_layers = run->num_layers > 0 ? run->num_layers : 1;
+	const auto loop = mpp::stack_apply_shifts_streamed(
+	    provider, run->num_frames, num_layers, *run->aps, apq,
+	    run->shifts, offsets, frame_brightness, sorted_idx,
+	    intersection, *cfg, run->included);
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);
 
@@ -751,55 +772,69 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	if (run->num_frames != seq->number) return MPP_EINVAL;
 
 	const int N = run->num_frames;
+	int mem_mode = MPP_MEM_CACHED;
 	{
-		int mem_mode = MPP_MEM_CACHED;
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    /*cached_copies=*/1,
 		    /*half_cached_copies=*/0,
-		    /*streaming_in_flight=*/0,
+		    /*streaming_in_flight=*/1,
 		    /*output_bytes=*/0,
 		    "Register (per-AP quality refresh)", &mem_mode);
 		if (mem != MPP_OK) return mem;
-		(void) mem_mode;
 	}
+	const bool cache_raw = (mem_mode != MPP_MEM_STREAMING);
 
 	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
 	                    "(re-reading %d frames)\n"), N);
 	gui_iface.set_progress(PROGRESS_RESET, _("Register: re-reading frames for edited APs"));
 
-	/* Re-read analysis frames using the same parallel pattern as Stage A. */
-	std::vector<cv::Mat> analysis_frames(N);
-	int cur_nb = 0;
-	int read_failed = 0;
+	/* CACHED: re-read all frames in parallel into the analysis_frames
+	 * vector, then call the cached overload. STREAMING: skip the cache
+	 * entirely and let ap_compute_frame_qualities_streamed pull frames
+	 * from disk one at a time. The streaming variant is sequential, so
+	 * it pays full disk-read latency in series; the cached variant
+	 * exploits the parallel read but doubles the working set. */
+	std::vector<cv::Mat> analysis_frames;
+	if (cache_raw) {
+		analysis_frames.resize(N);
+		int cur_nb = 0;
+		int read_failed = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
-	for (int i = 0; i < N; ++i) {
-		if (g_atomic_int_get(&read_failed)) continue;
-		cv::Mat mono = mpp::read_analysis_frame(seq, i);
-		if (mono.empty()) {
-			g_atomic_int_set(&read_failed, 1);
-			continue;
+		for (int i = 0; i < N; ++i) {
+			if (g_atomic_int_get(&read_failed)) continue;
+			cv::Mat mono = mpp::read_analysis_frame(seq, i);
+			if (mono.empty()) {
+				g_atomic_int_set(&read_failed, 1);
+				continue;
+			}
+			analysis_frames[i] = mono;
+			g_atomic_int_inc(&cur_nb);
+			gui_iface.set_progress(0.5 * (double) cur_nb / (double) N, NULL);
 		}
-		analysis_frames[i] = mono;
-		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) N, NULL);
+		if (read_failed) return MPP_EIO;
 	}
-	if (read_failed) return MPP_EIO;
 
 	gui_iface.set_progress(0.5, _("Register: computing per-AP qualities for edited grid"));
 	const std::vector<double> frame_brightness(run->frame_brightness,
 	                                           run->frame_brightness + N);
 	const auto offsets = mpp::offsets_from_run(run);
 	stage_progress_range rp{0.5, 0.5};
-	const auto apq = mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
-	                                                 *run->aps, offsets,
-	                                                 run->frame_rows, run->frame_cols,
-	                                                 *run->cfg,
-	                                                 stage_progress_cb, &rp);
+	const auto apq = cache_raw
+	    ? mpp::ap_compute_frame_qualities(analysis_frames, frame_brightness,
+	                                      *run->aps, offsets,
+	                                      run->frame_rows, run->frame_cols,
+	                                      *run->cfg,
+	                                      stage_progress_cb, &rp)
+	    : mpp::ap_compute_frame_qualities_streamed(
+	          [seq](int i) { return mpp::read_analysis_frame(seq, i); },
+	          N, frame_brightness, *run->aps, offsets,
+	          run->frame_rows, run->frame_cols, *run->cfg,
+	          stage_progress_cb, &rp);
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
 	const size_t total = (size_t) run->aps->count * (size_t) stack_size;

@@ -128,16 +128,16 @@ void stack_remap_rigid(const cv::Mat &frame, cv::Mat &buffer,
 	dst += src;
 }
 
-APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
-                                       const std::vector<double> &frame_brightness,
-                                       const mpp_aps_t &aps,
-                                       const std::vector<FrameOffset> &offsets,
-                                       int frame_rows, int frame_cols,
-                                       const mpp_config_t &cfg,
-                                       progress_cb_fn progress,
-                                       void *progress_user) {
+APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
+                                                int N,
+                                                const std::vector<double> &frame_brightness,
+                                                const mpp_aps_t &aps,
+                                                const std::vector<FrameOffset> &offsets,
+                                                int frame_rows, int frame_cols,
+                                                const mpp_config_t &cfg,
+                                                progress_cb_fn progress,
+                                                void *progress_user) {
 	APQualities out;
-	const int N = (int) frames.size();
 	const int M = aps.count;
 	const int stride = cfg.align_frames_sampling_stride;
 	const bool normalise = cfg.frames_normalization;
@@ -157,7 +157,12 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 	out.qualities.assign(M, std::vector<double>(N, 0.0));
 
 	for (int f = 0; f < N; ++f) {
-		const cv::Mat lap = rank_blurred_laplacian_u8(frames[f], cfg);
+		const cv::Mat frame = provider(f);
+		if (frame.empty()) {
+			if (progress) progress((double)(f + 1) / (double) N, progress_user);
+			continue;
+		}
+		const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
 		if (progress) progress((double)(f + 1) / (double) N, progress_user);
 		for (int a = 0; a < M; ++a) {
@@ -204,6 +209,20 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 			out.used_alignment_points[indices[i]].push_back(a);
 	}
 	return out;
+}
+
+APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
+                                       const std::vector<double> &frame_brightness,
+                                       const mpp_aps_t &aps,
+                                       const std::vector<FrameOffset> &offsets,
+                                       int frame_rows, int frame_cols,
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress,
+                                       void *progress_user) {
+	return ap_compute_frame_qualities_streamed(
+	    [&frames](int i) { return frames[i]; },
+	    (int) frames.size(), frame_brightness, aps, offsets,
+	    frame_rows, frame_cols, cfg, progress, progress_user);
 }
 
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,
@@ -306,7 +325,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	return s;
 }
 
-mpp_shifts_t *stack_compute_shifts_streamed(const BlurredFrameProvider &provider,
+mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             int N,
                                             const cv::Mat &mean_frame_raw,
                                             const mpp_aps_t &aps,
@@ -388,18 +407,19 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 	    mean_frame_raw, aps, apq, offsets, cfg, included);
 }
 
-StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
-                                   const mpp_aps_t &aps,
-                                   const APQualities &apq,
-                                   const mpp_shifts_t *shifts,
-                                   const std::vector<FrameOffset> &offsets,
-                                   const std::vector<double> &frame_brightness,
-                                   const std::vector<int> &quality_sorted_idx,
-                                   const cv::Vec4i &intersection,
-                                   const mpp_config_t &cfg,
-                                   const int *included) {
+StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
+                                            int N,
+                                            int num_layers,
+                                            const mpp_aps_t &aps,
+                                            const APQualities &apq,
+                                            const mpp_shifts_t *shifts,
+                                            const std::vector<FrameOffset> &offsets,
+                                            const std::vector<double> &frame_brightness,
+                                            const std::vector<int> &quality_sorted_idx,
+                                            const cv::Vec4i &intersection,
+                                            const mpp_config_t &cfg,
+                                            const int *included) {
 	StackLoopOutput out;
-	const int num_layers = frames_raw.empty() ? 1 : frames_raw[0].channels();
 	/* This is the cv::resize / no-upscale path — the dobox drizzle paths
 	 * never enter stack_apply_shifts. The buffer arithmetic in
 	 * stack_prepare_for_blending only handles integer factors, so
@@ -411,7 +431,6 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 	                                       K, num_layers, cfg);
 	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
-	const int N = (int) frames_raw.size();
 	const int M = aps.count;
 
 	double median_brightness = 0.0;
@@ -439,7 +458,12 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
 		if (included && !included[f]) continue;
-		const cv::Mat &frame_raw = frames_raw[f];
+		const cv::Mat frame_raw = provider(f);
+		if (frame_raw.empty()) {
+			g_atomic_int_inc(&cur_nb);
+			gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
+			continue;
+		}
 
 		cv::Mat frame_f32;
 		if (cfg.frames_normalization) {
@@ -513,6 +537,24 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 	}
 
 	return out;
+}
+
+StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const mpp_shifts_t *shifts,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const std::vector<double> &frame_brightness,
+                                   const std::vector<int> &quality_sorted_idx,
+                                   const cv::Vec4i &intersection,
+                                   const mpp_config_t &cfg,
+                                   const int *included) {
+	const int N = (int) frames_raw.size();
+	const int num_layers = N == 0 ? 1 : frames_raw[0].channels();
+	return stack_apply_shifts_streamed(
+	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
+	    N, num_layers, aps, apq, shifts, offsets, frame_brightness,
+	    quality_sorted_idx, intersection, cfg, included);
 }
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,

@@ -339,7 +339,7 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
 	return out;
 }
 
-AlignGlobalResult align_global_from_provider(const BlurredFrameProvider &provider,
+AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              int N,
                                              const std::vector<double> &quality,
                                              const mpp_config_t &cfg,
@@ -461,17 +461,17 @@ std::vector<int> align_find_best_frames(const std::vector<double> &quality,
 	return best;
 }
 
-AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
-                                       const std::vector<double> &quality,
-                                       const std::vector<cv::Vec2i> &shifts,
-                                       const mpp_config_t &cfg,
-                                       progress_cb_fn progress,
-                                       void *progress_user) {
+AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
+                                                int N,
+                                                int H, int W,
+                                                const std::vector<double> &quality,
+                                                const std::vector<cv::Vec2i> &shifts,
+                                                const mpp_config_t &cfg,
+                                                progress_cb_fn progress,
+                                                void *progress_user) {
 	AlignAverageResult out;
-	const int N = (int) frames_raw.size();
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
 		return out;
-	const int H = frames_raw[0].rows, W = frames_raw[0].cols;
 
 	int max_dy = INT_MIN, min_dy = INT_MAX, max_dx = INT_MIN, min_dx = INT_MAX;
 	for (const auto &s : shifts) {
@@ -509,7 +509,9 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 	const int total = (int) indices.size();
 	for (int idx : indices) {
 		const auto &s = shifts[idx];
-		const cv::Mat patch = frames_raw[idx](
+		const cv::Mat frame = provider(idx);
+		if (frame.empty()) { ++done; continue; }
+		const cv::Mat patch = frame(
 		    cv::Range(int_y_lo - s[0], int_y_hi - s[0]),
 		    cv::Range(int_x_lo - s[1], int_x_hi - s[1]));
 		cv::Mat patch_f32;
@@ -539,6 +541,20 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 			dst[x] = (int32_t) src[x];  /* truncation toward zero */
 	}
 	return out;
+}
+
+AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
+                                       const std::vector<double> &quality,
+                                       const std::vector<cv::Vec2i> &shifts,
+                                       const mpp_config_t &cfg,
+                                       progress_cb_fn progress,
+                                       void *progress_user) {
+	const int N = (int) frames_raw.size();
+	const int H = N > 0 ? frames_raw[0].rows : 0;
+	const int W = N > 0 ? frames_raw[0].cols : 0;
+	return align_average_frame_streamed(
+	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
+	    N, H, W, quality, shifts, cfg, progress, progress_user);
 }
 
 }  // namespace mpp

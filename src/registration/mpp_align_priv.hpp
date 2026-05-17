@@ -83,16 +83,19 @@ struct AlignGlobalResult {
 	int best_frame_idx = -1;
 };
 
-/* Returns the blurred mono frame for index `i`. Used by the streamed /
- * half-cached overload of align_global_from_frames so the caller can
- * decide whether the blur is read from a cache, computed lazily from a
- * raw cache, or read fresh from disk. The returned cv::Mat may be a
- * cheap view (when cached) or own its pixels (when freshly produced);
- * the inner loop only requires it to stay valid for that single
- * iteration. Empty Mat signals read failure (currently unhandled —
- * matches the cached path's "empty frames count as zero shift"
- * semantics). */
-using BlurredFrameProvider = std::function<cv::Mat(int idx)>;
+/* Returns the cv::Mat for frame index `i`. The pixel type / channel
+ * count is whatever the consumer requires (blurred mono for the
+ * align/shift paths, raw mono for the average-frame and per-AP-quality
+ * paths, raw multi-channel for the stack paths) — the typedef is
+ * intentionally semantic-free.
+ *
+ * Used by every "_streamed" / "_from_provider" overload so the caller
+ * can decide whether each frame is fetched from a cached vector
+ * (cheap view), lazily derived from a raw cache (one blur per call),
+ * or read fresh from disk. The Mat only needs to stay valid for the
+ * single iteration it's used in. Empty Mat signals read failure — the
+ * inner loops treat this the same as an excluded frame. */
+using FrameProvider = std::function<cv::Mat(int idx)>;
 
 /* Pick a patch on the best (max-quality) frame and compute per-frame integer
  * shifts via PSS's backward-then-forward cumulative-shift loop. `frames` are
@@ -107,7 +110,7 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames_mo
  * one frame at a time so the caller controls how the blurred frames are
  * sourced (cached vector, lazy blur from raw cache, or fresh disk read).
  * The thin overload above is implemented in terms of this one. */
-AlignGlobalResult align_global_from_provider(const BlurredFrameProvider &provider,
+AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              int num_frames,
                                              const std::vector<double> &quality,
                                              const mpp_config_t &cfg,
@@ -135,6 +138,20 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_r
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress = nullptr,
                                        void *progress_user = nullptr);
+
+/* Streamed overload — the provider returns the raw mono frame for
+ * index `i`. Frame dims are also passed because no upfront frame is
+ * available to read them from. Only the frames listed in the computed
+ * `indices` are actually requested (top-N by quality), so on a 10% top-N
+ * the streaming path reads ~N/10 frames. */
+AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
+                                                int num_frames,
+                                                int frame_rows, int frame_cols,
+                                                const std::vector<double> &quality,
+                                                const std::vector<cv::Vec2i> &shifts,
+                                                const mpp_config_t &cfg,
+                                                progress_cb_fn progress = nullptr,
+                                                void *progress_user = nullptr);
 
 }  // namespace mpp
 

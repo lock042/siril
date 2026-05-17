@@ -246,14 +246,14 @@ bool cv_to_planar_fits(const cv::Mat &raw, double scale, fits *out) {
  * so they can run on PNG-extracted frames without constructing a Siril
  * sequence. The extern "C" mpp_stack_apply_stsci wrapper just reads
  * frames via mpp::read_full_frame and forwards. */
-mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
-                                    const std::vector<int> &included,
-                                    const std::vector<double> &frame_brightness,
-                                    const mpp_run_t *run,
-                                    const mpp_config_t *cfg,
-                                    fits *out) {
+mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
+                                             int N,
+                                             const std::vector<int> &included,
+                                             const std::vector<double> &frame_brightness,
+                                             const mpp_run_t *run,
+                                             const mpp_config_t *cfg,
+                                             fits *out) {
 	if (!cfg || !run || !out || !run->aps || !run->shifts) return MPP_EINVAL;
-	const int N = (int) frames_raw.size();
 	if (N <= 0 || (int) included.size() != N
 	 || (int) frame_brightness.size() != N) return MPP_EINVAL;
 	if (N != run->num_frames) return MPP_EINVAL;
@@ -320,13 +320,15 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack (STScI): drizzling frames"));
 
 	for (int f = 0; f < N; ++f) {
-		if (!included[f] || frames_raw[f].empty()) continue;
+		if (!included[f]) continue;
+		const cv::Mat frame_raw = provider(f);
+		if (frame_raw.empty()) continue;
 
 		const double brightness_scale = median_brightness
 		                              / (frame_brightness[f] + 1e-7);
 
 		fits frame_fit{};
-		if (!cv_to_planar_fits(frames_raw[f], brightness_scale, &frame_fit)) {
+		if (!cv_to_planar_fits(frame_raw, brightness_scale, &frame_fit)) {
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
 			clearfits(&output_counts);
@@ -474,6 +476,17 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	return MPP_OK;
 }
 
+mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
+                                    const std::vector<int> &included,
+                                    const std::vector<double> &frame_brightness,
+                                    const mpp_run_t *run,
+                                    const mpp_config_t *cfg,
+                                    fits *out) {
+	return mpp::stack_apply_stsci_streamed(
+	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
+	    (int) frames_raw.size(), included, frame_brightness, run, cfg, out);
+}
+
 /* ============================================================
  * Bayer drizzle (slice 5b.3).
  *
@@ -490,23 +503,20 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
  * where the pixmap sends it).
  * ============================================================ */
 
-mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
-                                    const std::vector<int> &included,
-                                    const std::vector<double> &frame_brightness,
-                                    const mpp_run_t *run,
-                                    const mpp_config_t *cfg,
-                                    const unsigned char *cfa,
-                                    int cfadim,
-                                    fits *out) {
+mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
+                                             int N,
+                                             const std::vector<int> &included,
+                                             const std::vector<double> &frame_brightness,
+                                             const mpp_run_t *run,
+                                             const mpp_config_t *cfg,
+                                             const unsigned char *cfa,
+                                             int cfadim,
+                                             fits *out) {
 	if (!cfg || !run || !out || !run->aps || !run->shifts || !cfa) return MPP_EINVAL;
 	if (cfadim != 2) return MPP_EINVAL;     /* 2x2 Bayer only for now */
-	const int N = (int) frames_raw_bayer.size();
 	if (N <= 0 || (int) included.size() != N
 	 || (int) frame_brightness.size() != N) return MPP_EINVAL;
 	if (N != run->num_frames) return MPP_EINVAL;
-	for (const auto &f : frames_raw_bayer) {
-		if (!f.empty() && f.channels() != 1) return MPP_EINVAL;
-	}
 
 	const int frame_rx = run->frame_cols;
 	const int frame_ry = run->frame_rows;
@@ -571,13 +581,21 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack (Bayer drizzle): processing frames"));
 
 	for (int f = 0; f < N; ++f) {
-		if (!included[f] || frames_raw_bayer[f].empty()) continue;
+		if (!included[f]) continue;
+		const cv::Mat frame_raw = provider(f);
+		if (frame_raw.empty()) continue;
+		if (frame_raw.channels() != 1) {
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EINVAL;
+		}
 
 		const double brightness_scale = median_brightness
 		                              / (frame_brightness[f] + 1e-7);
 
 		fits frame_fit{};
-		if (!cv_to_planar_fits(frames_raw_bayer[f], brightness_scale, &frame_fit)) {
+		if (!cv_to_planar_fits(frame_raw, brightness_scale, &frame_fit)) {
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
 			clearfits(&output_counts);
@@ -666,8 +684,29 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	return MPP_OK;
 }
 
-/* Sequence-side wrapper: reads each included frame via Siril's
- * sequence I/O and forwards to the inner C++ function. */
+mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
+                                    const std::vector<int> &included,
+                                    const std::vector<double> &frame_brightness,
+                                    const mpp_run_t *run,
+                                    const mpp_config_t *cfg,
+                                    const unsigned char *cfa,
+                                    int cfadim,
+                                    fits *out) {
+	for (const auto &f : frames_raw_bayer) {
+		if (!f.empty() && f.channels() != 1) return MPP_EINVAL;
+	}
+	return mpp::stack_apply_bayer_streamed(
+	    [&frames_raw_bayer](int i) -> cv::Mat { return frames_raw_bayer[i]; },
+	    (int) frames_raw_bayer.size(), included, frame_brightness, run, cfg,
+	    cfa, cfadim, out);
+}
+
+/* Sequence-side wrapper: streams each included frame via Siril's
+ * sequence I/O and forwards to the inner streamed C++ function. The
+ * dobox loop pays the per-frame disk read inline rather than pre-
+ * loading the whole sequence — memory peak collapses from N frames to
+ * one, disk traffic is identical (one read per included frame either
+ * way). */
 extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
                                               const mpp_config_t *cfg,
                                               const mpp_run_t *run,
@@ -675,23 +714,14 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
 	if (!seq || !cfg || !run || !run->included || !run->frame_brightness)
 		return MPP_EINVAL;
 	const int N = run->num_frames;
-	std::vector<cv::Mat> frames_raw(N);
 	std::vector<int> included(run->included, run->included + N);
 	std::vector<double> brightness(run->frame_brightness,
 	                                run->frame_brightness + N);
-	int cur_nb = 0, n_inc = 0;
-	for (int i = 0; i < N; ++i) if (included[i]) ++n_inc;
-	gui_iface.set_progress(PROGRESS_RESET, _("Stack (STScI): reading frames"));
-	for (int i = 0; i < N; ++i) {
-		if (!included[i]) continue;
-		cv::Mat m = mpp::read_full_frame(seq, i);
-		if (m.empty()) return MPP_EIO;
-		frames_raw[i] = m;
-		++cur_nb;
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_inc, NULL);
-	}
-	return mpp::stack_apply_stsci(frames_raw, included, brightness,
-	                              run, cfg, out);
+	auto provider = [seq](int i) -> cv::Mat {
+		return mpp::read_full_frame(seq, i);
+	};
+	return mpp::stack_apply_stsci_streamed(provider, N, included, brightness,
+	                                       run, cfg, out);
 }
 
 /* Sequence-side wrapper for Bayer drizzle. Reads each frame raw (no
@@ -754,50 +784,37 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	}
 
 	const int N = run->num_frames;
-	std::vector<cv::Mat> frames_raw_bayer(N);
 	std::vector<int> included(run->included, run->included + N);
 	std::vector<double> brightness(run->frame_brightness,
 	                                run->frame_brightness + N);
-	int cur_nb = 0, n_inc = 0;
-	for (int i = 0; i < N; ++i) if (included[i]) ++n_inc;
 
 	/* ser_read_frame's `open_debayer` parameter is a latent NOP for SERs
 	 * already opened with debayer-on-open: the actual debayer call inside
 	 * ser_read_frame dispatches on ser_file->debayer_type_ser (set at SER
 	 * open time from com.pref.debayer.open_debayer), not on the parameter.
 	 * To actually get raw mosaic bytes back we have to flip that field to
-	 * SER_MONO for the duration of our read loop and restore on the way
-	 * out. Stage A/B already ran upstream on debayered frames; nothing
-	 * else is reading from this SER concurrently because Stage C is
-	 * sequential by construction. */
+	 * SER_MONO for the duration of the provider's reads and restore on
+	 * the way out. Stage A/B already ran upstream on debayered frames;
+	 * nothing else is reading from this SER concurrently because Stage C
+	 * is sequential by construction. */
 	const ser_color saved_debayer_type = seq->ser_file->debayer_type_ser;
 	seq->ser_file->debayer_type_ser = SER_MONO;
 
-	gui_iface.set_progress(PROGRESS_RESET,
-	                       _("Stack (Bayer drizzle): reading raw frames"));
-	mpp_status_t read_rc = MPP_OK;
-	for (int i = 0; i < N; ++i) {
-		if (!included[i]) continue;
+	auto provider = [seq](int i) -> cv::Mat {
 		fits f{};
 		if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
 		                   /*open_debayer=*/FALSE)) {
-			siril_log_error(_("Bayer drizzle: ser_read_frame failed "
-			                          "on frame %d\n"), i);
 			clearfits(&f);
-			read_rc = MPP_EIO;
-			break;
+			return cv::Mat();
 		}
-		/* Wrap the single-channel WORD buffer as cv::Mat (CV_16U). */
 		cv::Mat m(f.ry, f.rx, CV_16U, f.data);
-		frames_raw_bayer[i] = m.clone();   /* own the data; clearfits below frees f */
+		cv::Mat owned = m.clone();   /* own the data before clearfits frees f */
 		clearfits(&f);
-		++cur_nb;
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_inc, NULL);
-	}
+		return owned;
+	};
+	const mpp_status_t rc = mpp::stack_apply_bayer_streamed(
+	    provider, N, included, brightness, run, cfg, cfa, /*cfadim=*/2, out);
 
 	seq->ser_file->debayer_type_ser = saved_debayer_type;
-	if (read_rc != MPP_OK) return read_rc;
-
-	return mpp::stack_apply_bayer(frames_raw_bayer, included, brightness,
-	                              run, cfg, cfa, /*cfadim=*/2, out);
+	return rc;
 }

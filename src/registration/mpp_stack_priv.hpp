@@ -81,6 +81,21 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        progress_cb_fn progress = nullptr,
                                        void *progress_user = nullptr);
 
+/* Streamed overload — the provider returns the raw mono frame for the
+ * requested index. Each iteration reads one frame, computes its strided
+ * LoG once, scores every AP against it, then discards. Sequential by
+ * construction (parallel reads would multiply the in-flight working
+ * set by thread count). */
+APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
+                                                int num_frames,
+                                                const std::vector<double> &frame_brightness,
+                                                const mpp_aps_t &aps,
+                                                const std::vector<FrameOffset> &offsets,
+                                                int frame_rows, int frame_cols,
+                                                const mpp_config_t &cfg,
+                                                progress_cb_fn progress = nullptr,
+                                                void *progress_user = nullptr);
+
 /* PSS prepare_for_stack_blending (stack_frames.py:154-213).
  *
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
@@ -152,7 +167,7 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
  * correlation loop and immediately discard it, keeping memory to a
  * single frame instead of N. The thin overload above is implemented in
  * terms of this one. */
-mpp_shifts_t *stack_compute_shifts_streamed(const BlurredFrameProvider &provider,
+mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             int num_frames,
                                             const cv::Mat &mean_frame_raw,
                                             const mpp_aps_t &aps,
@@ -179,6 +194,25 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg,
                                    const int *included = nullptr);
+
+/* Streamed overload — `num_frames` and `num_layers` are passed
+ * explicitly because there's no upfront vector to introspect. The
+ * provider returns the raw frame for each index; iteration is
+ * sequential by construction (the per-AP and background accumulators
+ * have shared state so parallelising would need per-thread buffers).
+ * Cached overload above is a thin wrapper. */
+StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
+                                            int num_frames,
+                                            int num_layers,
+                                            const mpp_aps_t &aps,
+                                            const APQualities &apq,
+                                            const mpp_shifts_t *shifts,
+                                            const std::vector<FrameOffset> &offsets,
+                                            const std::vector<double> &frame_brightness,
+                                            const std::vector<int> &quality_sorted_idx,
+                                            const cv::Vec4i &intersection,
+                                            const mpp_config_t &cfg,
+                                            const int *included = nullptr);
 
 /* PSS stack_frames.stack_frames main loop (stack_frames.py:281-506).
  *

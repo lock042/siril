@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "registration/mpp.h"
+#include "registration/mpp_align_priv.hpp"   /* FrameProvider */
 #include "registration/mpp_config.h"
 
 namespace mpp {
@@ -41,6 +42,17 @@ mpp_status_t stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
                                const mpp_config_t *cfg,
                                fits *out);
 
+/* Streamed overload. provider(f) returns the raw frame (channel count
+ * matching run->num_layers). num_frames must equal included.size().
+ * One frame in flight at a time; sequential. */
+mpp_status_t stack_apply_stsci_streamed(const FrameProvider &provider,
+                                        int num_frames,
+                                        const std::vector<int> &included,
+                                        const std::vector<double> &frame_brightness,
+                                        const mpp_run_t *run,
+                                        const mpp_config_t *cfg,
+                                        fits *out);
+
 /* Inner Bayer-drizzle stack path. Inputs: per-frame single-channel raw
  * Bayer-mosaic frames (NO debayering applied), and the same run state
  * that Stage A produced on the corresponding debayered frames. dobox's
@@ -62,6 +74,19 @@ mpp_status_t stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
                                const unsigned char *cfa,
                                int cfadim,
                                fits *out);
+
+/* Streamed Bayer overload. provider(f) returns the single-channel raw
+ * mosaic frame; num_frames must equal included.size(). One frame in
+ * flight at a time; sequential. */
+mpp_status_t stack_apply_bayer_streamed(const FrameProvider &provider,
+                                        int num_frames,
+                                        const std::vector<int> &included,
+                                        const std::vector<double> &frame_brightness,
+                                        const mpp_run_t *run,
+                                        const mpp_config_t *cfg,
+                                        const unsigned char *cfa,
+                                        int cfadim,
+                                        fits *out);
 
 }  // namespace mpp
 
