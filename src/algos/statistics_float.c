@@ -70,19 +70,23 @@ static void select_area_float(fits *fit, float *data, int layer, const rectangle
 }
 
 // in this case, N is the number of frames, so int is fine
+// #pragma omp simd reduction lets the compiler auto-vectorize on any
+// architecture (AVX2, AVX-512, NEON, etc.) — no intrinsics needed.
 float siril_stats_float_sd(const float data[], const int N, float *m) {
-	double accumulator = 0.0; // accumulating in double precision is important for accuracy
-	for (int i = 0; i < N; ++i) {
-		accumulator += data[i];
+	double sum = 0.0;
+#pragma omp simd reduction(+:sum)
+	for (int i = 0; i < N; i++) sum += (double)data[i];
+	float mean = (float)(sum / N);
+
+	double vsum = 0.0;
+#pragma omp simd reduction(+:vsum)
+	for (int i = 0; i < N; i++) {
+		float d = data[i] - mean;
+		vsum += (double)(d * d);
 	}
-	float mean = (float)(accumulator / N);
-	accumulator = 0.0;
-	for (int i = 0; i < N; ++i)
-		accumulator += (data[i] - mean) * (data[i] - mean);
 
 	if (m) *m = mean;
-
-	return sqrtf((float)(accumulator / (N - 1)));
+	return sqrtf((float)(vsum / (N - 1)));
 }
 
 /* For a univariate data set X1, X2, ..., Xn, the MAD is defined as the median
