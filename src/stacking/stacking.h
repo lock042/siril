@@ -7,6 +7,11 @@
 //#define STACK_DEBUG
 
 #define MAX_IMAGES_FOR_OVERLAP 30 // if normalizing on overlaps with more than MAX_IMAGES_FOR_OVERLAP selected, it will trigger a warning
+
+/* Threshold below which #pragma omp simd reductions over a per-pixel frame
+ * stack are skipped in favour of plain scalar — the vector prologue/epilogue
+ * cost otherwise dominates. Matches SIRIL_STATS_FLOAT_SD_SIMD_THRESHOLD. */
+#define STACK_SIMD_N_THRESHOLD 16
 /* the stacking method */
 typedef int (*stack_method)(struct stacking_args *args);
 
