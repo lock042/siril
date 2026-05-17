@@ -316,7 +316,7 @@ static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 	gtk_combo_box_text_remove_all(combo);
 	mpp_drizzle_choice_count = 0;
 
-	mpp_drizzle_combo_append(combo, _("Off"),  1.0);
+	mpp_drizzle_combo_append(combo, _("1x"),   1.0);
 	mpp_drizzle_combo_append(combo, _("1.5x"), 1.5);
 	mpp_drizzle_combo_append(combo, _("2x"),   2.0);
 	mpp_drizzle_combo_append(combo, _("3x"),   3.0);
@@ -333,26 +333,32 @@ static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 	on_combo_mpp_drizzle_changed(GTK_COMBO_BOX(combo), NULL);
 }
 
-/* Show / hide the drizzle-only widgets (pixfrac spinner + label, driz
- * kernel combo + label) — visible whenever scale > 1. */
+/* Show / hide the scaling-method widgets.
+ *   - Scaling-method combo: always visible. Even at 1x the choice
+ *     matters (drizzle vs Upscale fallback, where drizzle on CFA
+ *     input bypasses classical-debayer artefacts at no upscale cost).
+ *   - Pixfrac spinner: only meaningful when the picked method is a
+ *     drizzle kernel — the Upscale path ignores it entirely. */
 void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	(void) user_data;
+	(void) combo;
 	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
-	static GtkWidget *lbl_kn = NULL, *combo_kn = NULL;
+	static GtkComboBox *combo_kn = NULL;
 	if (!lbl_pf) {
 		lbl_pf   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_pixfrac"));
 		spin_pf  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
-		lbl_kn   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_driz_kernel"));
-		combo_kn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
+		combo_kn = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
 	}
-	const int idx = gtk_combo_box_get_active(combo);
-	gboolean dobox_mode = FALSE;
-	if (idx >= 0 && idx < mpp_drizzle_choice_count)
-		dobox_mode = (mpp_drizzle_choices[idx].scale > 1.001);
-	gtk_widget_set_visible(lbl_pf,   dobox_mode);
-	gtk_widget_set_visible(spin_pf,  dobox_mode);
-	gtk_widget_set_visible(lbl_kn,   dobox_mode);
-	gtk_widget_set_visible(combo_kn, dobox_mode);
+	const int k_idx = combo_kn ? gtk_combo_box_get_active(combo_kn) : -1;
+	const gboolean drizzle_kernel = (k_idx >= 0 && k_idx != MPP_KERNEL_UPSCALE);
+	gtk_widget_set_visible(lbl_pf,  drizzle_kernel);
+	gtk_widget_set_visible(spin_pf, drizzle_kernel);
+}
+
+/* Kernel-combo signal handler: pixfrac visibility depends on whether
+ * a drizzle kernel or Upscale is picked, so re-evaluate on change. */
+void on_combo_mpp_driz_kernel_changed(GtkComboBox *combo, gpointer user_data) {
+	on_combo_mpp_drizzle_changed(NULL, user_data);
 }
 
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {

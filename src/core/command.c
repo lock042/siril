@@ -14582,37 +14582,32 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		*out_path = g_strdup(arg + 5);
 		return MPP_FLAG_OK;
 	}
-	if (accept_stack && g_str_has_prefix(arg, "-drizzle=")) {
-		/* Scale picks the output upscale; the stack dispatcher routes
-		 * scale > 1 to STScI (mono/RGB) or Bayer (CFA SER) dobox by
-		 * input type. Accept Off plus 1.5/2/3 explicitly so typos like
-		 * "-drizzle=4" fail loudly rather than silently picking the
-		 * nearest value. The legacy stsci-* / bayer-* aliases stay
-		 * accepted for scripts that pin a path. */
-		const char *v = arg + 9;
-		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* default: auto-route */
-		if      (!g_ascii_strcasecmp(v, "Off"))      cfg->drizzle_scale = 1.0;
-		else if (!g_ascii_strcasecmp(v, "1.5"))      cfg->drizzle_scale = 1.5;
-		else if (!g_ascii_strcasecmp(v, "2"))        cfg->drizzle_scale = 2.0;
-		else if (!g_ascii_strcasecmp(v, "3"))        cfg->drizzle_scale = 3.0;
-		else if (!g_ascii_strcasecmp(v, "stsci-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI; cfg->drizzle_scale = 2.0; }
-		else if (!g_ascii_strcasecmp(v, "stsci-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI; cfg->drizzle_scale = 3.0; }
-		else if (!g_ascii_strcasecmp(v, "bayer-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER; cfg->drizzle_scale = 2.0; }
-		else if (!g_ascii_strcasecmp(v, "bayer-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER; cfg->drizzle_scale = 3.0; }
-		else return MPP_FLAG_INVALID_VALUE;
+	if (accept_stack && g_str_has_prefix(arg, "-scale=")) {
+		/* Numeric output scale factor in [1.0, 3.0]. The dispatcher
+		 * routes scale > 1 to dobox unless -scale-method=upscale is
+		 * set; at scale=1 the picked method still chooses between a
+		 * drizzle stack and the plain Upscale (bicubic + classical
+		 * debayer) path. */
+		const char *v = arg + 7;
+		char *end = NULL;
+		const double s = g_ascii_strtod(v, &end);
+		if (end == v || *end != '\0' || s < 1.0 || s > 3.0)
+			return MPP_FLAG_INVALID_VALUE;
+		cfg->drizzle_scale = s;
+		cfg->drizzle_mode  = MPP_DRIZZLE_OFF;   /* let dispatcher auto-route */
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-pixfrac=")) {
-		/* Stack-time only: per-pixel fraction passed to dobox. Bicubic
-		 * path ignores it (no equivalent), so we don't reject the flag
-		 * on bicubic but log that it's ignored at apply time. */
+		/* Per-pixel fraction passed to dobox. Ignored by the Upscale
+		 * method (no equivalent in cv::resize), so we don't reject the
+		 * flag when -scale-method=upscale is set but it has no effect. */
 		const double v = atof(arg + 9);
 		if (v <= 0.0 || v > 1.0) return MPP_FLAG_INVALID_VALUE;
 		cfg->drizzle_pixfrac = v;
 		return MPP_FLAG_OK;
 	}
-	if (accept_stack && g_str_has_prefix(arg, "-driz-kernel=")) {
-		const char *v = arg + 13;
+	if (accept_stack && g_str_has_prefix(arg, "-scale-method=")) {
+		const char *v = arg + 14;
 		if      (!g_ascii_strcasecmp(v, "square"))   cfg->drizzle_kernel = MPP_KERNEL_SQUARE;
 		else if (!g_ascii_strcasecmp(v, "gaussian")) cfg->drizzle_kernel = MPP_KERNEL_GAUSSIAN;
 		else if (!g_ascii_strcasecmp(v, "point"))    cfg->drizzle_kernel = MPP_KERNEL_POINT;
@@ -14717,49 +14712,34 @@ static sequence *load_sequence_force_debayer(const char *name) {
 	return seq;
 }
 
-/* Reject drizzle-mode / input-type mismatches. The three principled
- * workflows:
- *   - MONO input + stsci-* (true drizzle)
- *   - CFA input  + bayer-* (true drizzle with CFA channel routing)
- *   - Anything   + Off / bicubic-N (no drizzle / cv::resize upscale)
- *
- * stsci-* on CFA is rejected because the analysis path debayers (so
- * "stsci on CFA" becomes "stsci on debayered RGB", i.e. classical
- * debayer + drizzle — the bad workflow that amplifies the debayer's
- * interpolation artefacts). bayer-* on non-CFA is rejected because the
- * raw mosaic the CFA routing needs doesn't exist. */
+/* Reject drizzle-mode / input-type mismatches in sidecars from
+ * older runs that explicitly pinned a backend. New sidecars produced
+ * by either the CLI (-scale=) or the GUI always leave drizzle_mode =
+ * OFF and let the dispatcher auto-route; this defensive check only
+ * fires for a stale pinned mode that doesn't match the loaded
+ * sequence's input type. */
 static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
                                    const char *cmd_name) {
 	const mpp_input_type type = mpp_classify_sequence_input(seq);
-	/* Bare -drizzle=N uses MPP_DRIZZLE_OFF and auto-routes via
-	 * mpp_stack_apply; skip the legacy-alias compat check. */
 	if (cfg->drizzle_mode == MPP_DRIZZLE_OFF) return CMD_OK;
-	if (cfg->drizzle_mode == MPP_DRIZZLE_STSCI) {
-		if (type != MPP_INPUT_CFA) return CMD_OK;
-		const char *kind = (type == MPP_INPUT_CFA) ? "a CFA/colour sequence" : "a 3-channel RGB sequence";
-		const char *redirect = (type == MPP_INPUT_CFA)
-		                       ? "use -drizzle=bayer-Nx — Bayer drizzle reconstructs colour "
-		                         "directly from the raw mosaic without the interpolation "
-		                         "artefacts a classical debayer would introduce ahead of drizzle"
-		                       : "use -drizzle=N (bicubic) — true drizzle on already-debayered "
-		                         "RGB is not supported";
-		siril_log_error(_("%s: -drizzle=stsci-* requires mono input but this is %s. %s.\n"), cmd_name, kind, redirect);
+	if (cfg->drizzle_mode == MPP_DRIZZLE_STSCI && type == MPP_INPUT_CFA) {
+		siril_log_error(_("%s: sidecar pins STScI drizzle on a CFA sequence "
+		                  "(would amplify debayer artefacts). Re-run "
+		                  "Analyse to regenerate the sidecar, then stack "
+		                  "with -scale=N.\n"), cmd_name);
 		return CMD_ARG_ERROR;
 	}
-	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER) {
-		if (type == MPP_INPUT_CFA) return CMD_OK;
-		const char *kind = (type == MPP_INPUT_MONO) ? "mono" : "true 3-channel RGB";
-		siril_log_error(
-		    _("%s: -drizzle=bayer-* requires a CFA SER but this is %s. "
-		      "Use -drizzle=N to auto-pick the right backend.\n"),
-		    cmd_name, kind);
+	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER && type != MPP_INPUT_CFA) {
+		siril_log_error(_("%s: sidecar pins Bayer drizzle but this is not a "
+		                  "CFA SER. Re-run Analyse to regenerate the "
+		                  "sidecar, then stack with -scale=N.\n"), cmd_name);
 		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
 }
 
 int process_pss(int nb) {
-	/* `pss seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
+	/* `pss seqname [-out=file] [-scale=N (1..3)] [-scale-method=K] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
 	 *              [-search-global=N] [-patch-scale=F] [-min-brightness=N]
 	 *              [-min-contrast=N] [-min-structure=F] [-bg-fraction=F]
@@ -14936,7 +14916,7 @@ int process_register_mpp(int nb) {
 	return CMD_OK;
 }
 
-/* `stack_mpp seqname [-out=file] [-drizzle=Off|1.5|2|3] [-stack-percent=N]
+/* `stack_mpp seqname [-out=file] [-scale=N (1..3)] [-scale-method=K] [-stack-percent=N]
  *                   [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]`
  *
  * Reads the `<seqname>.mpp` sidecar written by `register_mpp`, runs Stage C

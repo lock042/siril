@@ -678,26 +678,30 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
 
-	/* Dispatch: when the user asks for any upscale (scale > 1) the dobox
-	 * drizzle paths produce a better result than cv::resize, so we route
-	 * by sequence input type — Bayer SER goes through the CFA-aware
-	 * stack_apply_bayer, everything else through stack_apply_stsci which
-	 * handles mono and multi-channel input alike. The legacy bicubic
-	 * (cv::resize) path stays available as the MPP_KERNEL_UPSCALE
-	 * fallback — true drizzle can occasionally resonate on fine
-	 * high-contrast structure (Saturn's rings is the canonical case)
-	 * and a plain interpolation upscale sidesteps that.
+	/* Dispatch: the picked scaling method determines the backend.
+	 *   - MPP_KERNEL_UPSCALE: cv::resize bicubic path. At scale=1 this
+	 *     is a no-op upscale + classical-debayer-and-average for CFA
+	 *     input. At scale > 1 it's a plain bicubic upscale + average,
+	 *     the reliable fallback for cases where true drizzle resonates
+	 *     on fine high-contrast structure.
+	 *   - Any drizzle kernel: dobox path. Auto-routed by input type —
+	 *     CFA SER → stack_apply_bayer (direct CFA-position accumulation,
+	 *     no debayer interpolation artefacts even at scale=1); mono / RGB
+	 *     → stack_apply_stsci (sub-pixel-aware accumulation via pixmap).
+	 *     Drizzle at scale=1 is principled — every input pixel
+	 *     contributes its actual measurement, missing colours fill in
+	 *     from sub-pixel-shifted frames.
 	 *
-	 * cfg->drizzle_mode is still honoured if explicitly set (sidecar /
-	 * scripts), so callers can pin a specific path; the default of
-	 * MPP_DRIZZLE_OFF triggers the auto routing here. */
+	 * cfg->drizzle_mode is honoured if explicitly set (sidecar /
+	 * scripts); the default MPP_DRIZZLE_OFF triggers the kernel-driven
+	 * routing here. */
 	const double scale = cfg->drizzle_scale;
 	int mode = cfg->drizzle_mode;
-	if (scale > 1.001 && mode == MPP_DRIZZLE_OFF) {
+	if (mode == MPP_DRIZZLE_OFF) {
 		if (cfg->drizzle_kernel == MPP_KERNEL_UPSCALE) {
 			/* Stay on MPP_DRIZZLE_OFF — falls through to the cv::resize
-			 * bicubic path below, which already handles K = round(scale)
-			 * upscale and auto-debayers CFA SER inputs. */
+			 * bicubic path below. At scale=1 cv::resize is skipped
+			 * entirely (K=1) and frames are stacked at native res. */
 		} else {
 			const mpp_input_type t = mpp_classify_sequence_input(seq);
 			mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
