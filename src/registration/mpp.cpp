@@ -33,6 +33,7 @@ extern "C" {
 #include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/gui_iface.h"
+#include "core/OS_utils.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
@@ -163,6 +164,53 @@ cv::Mat mean_frame_from_run(const mpp_run_t *run) {
 }  // namespace
 }  // namespace mpp
 
+/* -------------------- Memory pre-flight -------------------- */
+
+/* Each MPP stage holds *all* sequence frames in RAM simultaneously
+ * (index-stable vector<cv::Mat>) — this is structurally different from
+ * Siril's normal sequence ops, which stream frame-by-frame. The peak is
+ *     N * rx * ry * channels * 2 bytes * simultaneous_copies
+ * which on planetary workloads (8000+ frames) easily runs to tens of GB.
+ *
+ * If that peak exceeds get_max_memory_in_MB() (the user's memory-mode
+ * setting — RATIO of free RAM, or AMOUNT cap) we refuse the operation
+ * upfront with a clear message rather than letting the OOM killer or the
+ * swap subsystem hang the whole desktop. Pattern mirrors
+ * compute_nb_images_fit_memory / star_align_compute_mem_limits.
+ *
+ * `channels` is the per-frame channel count actually held (1 for the
+ * analysis path that converts RGB to luminance; full layer count for the
+ * stack path where colour is preserved). `simultaneous_copies` covers
+ * both transient duplicates that overlap in lifetime (e.g. analysis_frames
+ * + blurred_frames in Stage A). */
+static mpp_status_t mpp_check_memory_for_stage(int N, int rx, int ry,
+                                               int channels,
+                                               int simultaneous_copies,
+                                               const char *stage_name) {
+	if (N <= 0 || rx <= 0 || ry <= 0 || channels < 1 || simultaneous_copies < 1)
+		return MPP_EINVAL;
+	const uint64_t bytes_needed = (uint64_t) N * (uint64_t) rx * (uint64_t) ry
+	                            * (uint64_t) channels * 2ull   /* WORD */
+	                            * (uint64_t) simultaneous_copies;
+	const uint64_t mb_needed = bytes_needed / BYTES_IN_A_MB;
+	const uint64_t mb_avail  = (uint64_t) get_max_memory_in_MB();
+	if (mb_needed <= mb_avail) return MPP_OK;
+
+	gchar *need_str  = g_format_size_full(bytes_needed,
+	                                      G_FORMAT_SIZE_IEC_UNITS);
+	gchar *avail_str = g_format_size_full(mb_avail * BYTES_IN_A_MB,
+	                                      G_FORMAT_SIZE_IEC_UNITS);
+	siril_log_error(_("%s: not enough memory — would need %s for %d frames "
+	                  "(%dx%dx%d × %d copies), %s considered available. "
+	                  "Lower the frame count, use a smaller crop, or "
+	                  "increase the memory ratio in Preferences.\n"),
+	                stage_name, need_str, N, rx, ry, channels,
+	                simultaneous_copies, avail_str);
+	g_free(need_str);
+	g_free(avail_str);
+	return MPP_ENOMEM;
+}
+
 /* -------------------- Stage A: mpp_analyze -------------------- */
 
 /* Driver state for the sub-range scaled progress callback. The C++
@@ -197,6 +245,16 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		return MPP_ENODATA;
 
 	const int N = seq->number;
+	/* Analysis is always mono (RGB inputs are luminance-converted in
+	 * read_analysis_frame). Two simultaneous copies: analysis_frames (raw
+	 * mono) + blurred_frames (Gaussian-blurred mono, freed after the
+	 * global-align stage below). */
+	{
+		const mpp_status_t mem = mpp_check_memory_for_stage(
+		    N, (int) seq->rx, (int) seq->ry,
+		    /*channels=*/1, /*simultaneous_copies=*/2, "Analyze");
+		if (mem != MPP_OK) return mem;
+	}
 	/* Index-stable storage so parallel threads can write to per-frame slots
 	 * without contention. push_back would force serialisation. */
 	std::vector<cv::Mat> analysis_frames(N);
@@ -243,6 +301,15 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
 	const auto align = mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
 	                                                 stage_progress_cb, &gp_global);
+	/* blurred_frames is last consumed above; drop it now so the
+	 * average-frame + per-AP-qualities passes have an extra
+	 * N*rx*ry*2 bytes of headroom. shrink_to_fit releases the
+	 * vector's pointer array; clear() destroys each cv::Mat (refcount
+	 * drops to zero, OpenCV returns the pixel buffers to the allocator).
+	 * On planetary workloads (8000 frames at 600x600 mono) this frees
+	 * about 5.7 GB before the average-frame pass starts. */
+	blurred_frames.clear();
+	blurred_frames.shrink_to_fit();
 	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
 	stage_progress_range gp_avg{MPP_PROG_GLOBAL_END,
 	                            MPP_PROG_AVERAGE_END - MPP_PROG_GLOBAL_END};
@@ -325,6 +392,12 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
                                            mpp_run_t *run) {
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
 
+	{
+		const mpp_status_t mem = mpp_check_memory_for_stage(
+		    run->num_frames, (int) seq->rx, (int) seq->ry,
+		    /*channels=*/1, /*simultaneous_copies=*/1, "Register");
+		if (mem != MPP_OK) return mem;
+	}
 	std::vector<cv::Mat> blurred_frames;
 	blurred_frames.resize(run->num_frames);  /* index-stable; empty Mat for excluded */
 	int n_included = 0;
@@ -436,6 +509,17 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	if (scale > 1.001 && mode == MPP_DRIZZLE_OFF) {
 		const mpp_input_type t = mpp_classify_sequence_input(seq);
 		mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
+	}
+	/* Pre-flight memory check. Bayer drizzle reads 1-channel raw mosaic;
+	 * STScI and bicubic preserve the source layer count. */
+	{
+		const int channels = (mode == MPP_DRIZZLE_BAYER)
+		                   ? 1
+		                   : (run->num_layers > 0 ? run->num_layers : 1);
+		const mpp_status_t mem = mpp_check_memory_for_stage(
+		    run->num_frames, run->frame_cols, run->frame_rows,
+		    channels, /*simultaneous_copies=*/1, "Stack (mpp)");
+		if (mem != MPP_OK) return mem;
 	}
 	switch (mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
@@ -574,6 +658,13 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	if (run->num_frames != seq->number) return MPP_EINVAL;
 
 	const int N = run->num_frames;
+	{
+		const mpp_status_t mem = mpp_check_memory_for_stage(
+		    N, (int) seq->rx, (int) seq->ry,
+		    /*channels=*/1, /*simultaneous_copies=*/1,
+		    "Register (per-AP quality refresh)");
+		if (mem != MPP_OK) return mem;
+	}
 
 	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
 	                    "(re-reading %d frames)\n"), N);
