@@ -31,6 +31,7 @@
 #include "gui/callbacks.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "algos/statistics.h"
 
 
 #define PREVIEW_DELAY 200
@@ -139,7 +140,12 @@ int copy_backup_to_gfit() {
 		} else if (!com.script) {
 			copy_backup_icc_to_gfit();
 		}
-		if (retval == 0) copy_fits_metadata(&preview_gfit_backup, gfit);
+		if (retval == 0) {
+			copy_fits_metadata(&preview_gfit_backup, gfit);
+			/* Stats were computed on preview-modified pixels; invalidate them
+			 * so stale values are never saved back to the input sequence. */
+			invalidate_stats_from_fit(gfit);
+		}
 		if (gui.roi.active && restore_roi()) {
 			siril_log_debug("Image copy error in ROI\n");
 			retval = 1;

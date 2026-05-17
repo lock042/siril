@@ -25,7 +25,7 @@ siril-1.4.4
 --/--/--
 
 **Fixes**
-* Fixed seq file corruption (#1204)
+* Fixed seq file corruption (#1204, #1934)
 
 siril-1.4.3
 05/07/26
