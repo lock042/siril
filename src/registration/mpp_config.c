@@ -41,11 +41,11 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->stack_frames_background_fraction = 0.3;
 	cfg->stack_frames_background_blend_threshold = 0.2;
 	cfg->stack_frames_background_patch_size = 100;
-	cfg->drizzle_factor = 1;
+	cfg->drizzle_scale = 1.0;
 
-	/* Phase 5b — drizzle backend defaults: off (use Phase 5a bicubic when
-	 * drizzle_factor > 1). Pixfrac / kernel only consulted when
-	 * drizzle_mode = STSCI or BAYER.
+	/* Drizzle backend defaults: off. drizzle_mode is auto-set at stack
+	 * time from input type (mpp_classify_sequence_input); pixfrac /
+	 * kernel only consulted when scale > 1.0.
 	 *
 	 * Turbo kernel selected as default after the Phase 7.4 / 7.5 kernel
 	 * sweep: same wall-clock as bicubic-2x on test-big.ser (174.6 s vs

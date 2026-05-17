@@ -1495,6 +1495,15 @@ gboolean end_register_idle(gpointer p) {
 			control_window_switch_to_tab(REGISTRATION); // if there are some warnings we stay on the Console tab
 	}
 
+	/* MPP Analyze and Register: return to the Registration tab on
+	 * success so the user can see where to continue the workflow.
+	 * fill_registration_structure_from_GUI auto-switched to OUTPUT_LOGS
+	 * at run start; with the run done, the logs are still visible if
+	 * the user wants them but the Registration tab is the natural next
+	 * step. Failures stay on the console so warnings are visible. */
+	if (args->func == &register_mpp && !args->retval)
+		control_window_switch_to_tab(REGISTRATION);
+
 	free(args->new_seq_name);
 	free(args);
 	return FALSE;

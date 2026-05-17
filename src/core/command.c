@@ -14583,19 +14583,22 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-drizzle=")) {
-		/* The value picks both the backend (bicubic / STScI / Bayer) and
-		 * the integer factor. Bicubic stays the default for the bare
-		 * numeric values to preserve Phase 5a behaviour. The
-		 * stsci-* and bayer-* variants land via Phase 5b. */
+		/* Scale picks the output upscale; the stack dispatcher routes
+		 * scale > 1 to STScI (mono/RGB) or Bayer (CFA SER) dobox by
+		 * input type. Accept Off plus 1.5/2/3 explicitly so typos like
+		 * "-drizzle=4" fail loudly rather than silently picking the
+		 * nearest value. The legacy stsci-* / bayer-* aliases stay
+		 * accepted for scripts that pin a path. */
 		const char *v = arg + 9;
-		if      (!g_ascii_strcasecmp(v, "Off"))      { cfg->drizzle_mode = MPP_DRIZZLE_OFF;     cfg->drizzle_factor = 1; }
-		else if (!g_ascii_strcasecmp(v, "1.5"))      { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; }
-		else if (!g_ascii_strcasecmp(v, "2"))        { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 2; }
-		else if (!g_ascii_strcasecmp(v, "3"))        { cfg->drizzle_mode = MPP_DRIZZLE_BICUBIC; cfg->drizzle_factor = 3; }
-		else if (!g_ascii_strcasecmp(v, "stsci-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 2; }
-		else if (!g_ascii_strcasecmp(v, "stsci-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI;   cfg->drizzle_factor = 3; }
-		else if (!g_ascii_strcasecmp(v, "bayer-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 2; }
-		else if (!g_ascii_strcasecmp(v, "bayer-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER;   cfg->drizzle_factor = 3; }
+		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* default: auto-route */
+		if      (!g_ascii_strcasecmp(v, "Off"))      cfg->drizzle_scale = 1.0;
+		else if (!g_ascii_strcasecmp(v, "1.5"))      cfg->drizzle_scale = 1.5;
+		else if (!g_ascii_strcasecmp(v, "2"))        cfg->drizzle_scale = 2.0;
+		else if (!g_ascii_strcasecmp(v, "3"))        cfg->drizzle_scale = 3.0;
+		else if (!g_ascii_strcasecmp(v, "stsci-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI; cfg->drizzle_scale = 2.0; }
+		else if (!g_ascii_strcasecmp(v, "stsci-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_STSCI; cfg->drizzle_scale = 3.0; }
+		else if (!g_ascii_strcasecmp(v, "bayer-2x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER; cfg->drizzle_scale = 2.0; }
+		else if (!g_ascii_strcasecmp(v, "bayer-3x")) { cfg->drizzle_mode = MPP_DRIZZLE_BAYER; cfg->drizzle_scale = 3.0; }
 		else return MPP_FLAG_INVALID_VALUE;
 		return MPP_FLAG_OK;
 	}
@@ -14727,8 +14730,11 @@ static sequence *load_sequence_force_debayer(const char *name) {
 static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
                                    const char *cmd_name) {
 	const mpp_input_type type = mpp_classify_sequence_input(seq);
+	/* Bare -drizzle=N uses MPP_DRIZZLE_OFF and auto-routes via
+	 * mpp_stack_apply; skip the legacy-alias compat check. */
+	if (cfg->drizzle_mode == MPP_DRIZZLE_OFF) return CMD_OK;
 	if (cfg->drizzle_mode == MPP_DRIZZLE_STSCI) {
-		if (type == MPP_INPUT_MONO) return CMD_OK;
+		if (type != MPP_INPUT_CFA) return CMD_OK;
 		const char *kind = (type == MPP_INPUT_CFA) ? "a CFA/colour sequence" : "a 3-channel RGB sequence";
 		const char *redirect = (type == MPP_INPUT_CFA)
 		                       ? "use -drizzle=bayer-Nx — Bayer drizzle reconstructs colour "
@@ -14743,9 +14749,9 @@ static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
 		if (type == MPP_INPUT_CFA) return CMD_OK;
 		const char *kind = (type == MPP_INPUT_MONO) ? "mono" : "true 3-channel RGB";
 		siril_log_error(
-		    _("%s: -drizzle=bayer-* requires CFA input but this is %s. "
-		      "Use -drizzle=N (bicubic) for an upscaled stack, or "
-		      "-drizzle=stsci-Nx if the input is mono.\n"), cmd_name, kind);
+		    _("%s: -drizzle=bayer-* requires a CFA SER but this is %s. "
+		      "Use -drizzle=N to auto-pick the right backend.\n"),
+		    cmd_name, kind);
 		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
@@ -14798,7 +14804,7 @@ int process_pss(int nb) {
 
 	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
-	                  cfg.drizzle_factor != 1 ? " (drizzle)" : "");
+	                  cfg.drizzle_scale > 1.001 ? " (drizzle)" : "");
 
 	mpp_run_t *run = NULL;
 	int rc = mpp_analyze(seq, &cfg, &run);
@@ -14987,7 +14993,7 @@ int process_stack_mpp(int nb) {
 	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_factor != 1 ? " (drizzle)" : "");
+	                  run->cfg->drizzle_scale > 1.001 ? " (drizzle)" : "");
 
 	fits stacked = {0};
 	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);

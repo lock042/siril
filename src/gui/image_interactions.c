@@ -692,12 +692,16 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		 * cursor. */
 		mpp_run_t *run = mpp_get_cached_run();
 		if (run && inside) {
+			int ap_x, ap_y;
+			mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+			                        com.seq.current,
+			                        zoomed.x, zoomed.y, &ap_x, &ap_y);
 			const int drag = mpp_ap_editor_get_drag_idx();
 			if (drag >= 0) {
-				mpp_ap_move(run, drag, zoomed.x, zoomed.y);
+				mpp_ap_move(run, drag, ap_x, ap_y);
 				redraw(REDRAW_OVERLAY);
 			} else {
-				const int new_hover = mpp_ap_hit_test(run, zoomed.x, zoomed.y);
+				const int new_hover = mpp_ap_hit_test(run, ap_x, ap_y);
 				if (new_hover != mpp_ap_editor_get_hover_idx()) {
 					mpp_ap_editor_set_hover_idx(new_hover);
 					redraw(REDRAW_OVERLAY);

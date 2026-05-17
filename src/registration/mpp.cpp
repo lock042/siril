@@ -420,16 +420,29 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
 
-	/* Phase 5b dispatch: STScI / Bayer paths route through dobox via the
-	 * pixmap built in mpp_drizzle.cpp. Bicubic (and the bicubic-with-
-	 * drizzle_factor=1 default) stays on the Phase 5a cv::resize loop. */
-	switch (cfg->drizzle_mode) {
+	/* Dispatch: when the user asks for any upscale (scale > 1) the dobox
+	 * drizzle paths produce a better result than cv::resize, so we route
+	 * by sequence input type — Bayer SER goes through the CFA-aware
+	 * stack_apply_bayer, everything else through stack_apply_stsci which
+	 * handles mono and multi-channel input alike. The legacy bicubic
+	 * (cv::resize) path stays available only for scale == 1, where it is
+	 * effectively a no-op upscale and the dobox cost would be unnecessary.
+	 *
+	 * cfg->drizzle_mode is still honoured if explicitly set (sidecar /
+	 * scripts), so callers can pin a specific path; the default of
+	 * MPP_DRIZZLE_OFF triggers the auto routing here. */
+	const double scale = cfg->drizzle_scale;
+	int mode = cfg->drizzle_mode;
+	if (scale > 1.001 && mode == MPP_DRIZZLE_OFF) {
+		const mpp_input_type t = mpp_classify_sequence_input(seq);
+		mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
+	}
+	switch (mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
 		case MPP_DRIZZLE_BAYER: return mpp_stack_apply_bayer(seq, cfg, run, out);
 		case MPP_DRIZZLE_OFF:
-		case MPP_DRIZZLE_BICUBIC:
 		default:
-			break;   /* fall through to the Phase 5a bicubic path below */
+			break;   /* fall through to the cv::resize no-upscale path */
 	}
 
 	/* Auto-debayer for the bicubic path when a CFA SER was opened raw.
@@ -727,6 +740,33 @@ extern "C" int mpp_ap_hit_test(const mpp_run_t *run, int x, int y) {
 			return i;
 	}
 	return -1;
+}
+
+extern "C" void mpp_display_to_ap_coord(const mpp_run_t *run,
+                                        int gfit_rx, int gfit_ry,
+                                        int current_frame_idx,
+                                        int click_x, int click_y,
+                                        int *out_x, int *out_y) {
+	if (!out_x || !out_y) return;
+	if (!run || gfit_ry <= 0) {
+		*out_x = click_x;
+		*out_y = click_y;
+		return;
+	}
+	int dx = 0, dy = 0;
+	const bool showing_ref = (gfit_rx == run->mean_frame_cols &&
+	                          gfit_ry == run->mean_frame_rows);
+	if (!showing_ref && run->global_shifts &&
+	    current_frame_idx >= 0 && current_frame_idx < run->num_frames) {
+		dy = run->intersection[0] - run->global_shifts[2 * current_frame_idx + 0];
+		dx = run->intersection[2] - run->global_shifts[2 * current_frame_idx + 1];
+	}
+	/* Inverse of the draw-time mapping:
+	 *   display_x = ap.x + dx
+	 *   display_y = (gfit_ry - 1) - (ap.y + dy)
+	 */
+	*out_x = click_x - dx;
+	*out_y = (gfit_ry - 1) - click_y - dy;
 }
 
 extern "C" mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src) {

@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,15 +44,12 @@ static float filter_initvals[] = {90., 3.}; // max %, max k
 static float filter_maxvals[] = {100., 5.}; // max %, max k
 static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
 // update_adjustment passed here as a static (instead of function parameter like in registration)
-/* Mpp drizzle-mode combo. The visible item set varies with the loaded
- * sequence's input layout (mono / CFA / RGB) so we drive the combo's
- * contents from code via a parallel array that pairs each label with
- * its (mode, factor) tuple. update_stack_interface calls _repopulate
- * on every sequence-state change; start_stacking reads (mode, factor)
- * by index. */
+/* Mpp drizzle scale combo. User picks a scale factor; the dispatcher
+ * (mpp_stack_apply) then picks STScI vs Bayer dobox automatically based
+ * on the sequence input type. Items are static — sequence-type-specific
+ * gating happens at run time, not at menu time. */
 typedef struct {
-	int mode;     /* MPP_DRIZZLE_OFF, _BICUBIC, _STSCI, _BAYER */
-	int factor;   /* 1, 2, 3 */
+	double scale;   /* 1.0 = off; 1.5 / 2.0 / 3.0 = drizzle */
 } mpp_drizzle_choice;
 
 #define MPP_DRIZZLE_CHOICES_MAX 8
@@ -266,13 +264,11 @@ static void start_stacking() {
 		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
 		mpp_config_defaults(cfg);
 		const int driz_idx = gtk_combo_box_get_active(mpp_drizzle_combo);
-		if (driz_idx >= 0 && driz_idx < mpp_drizzle_choice_count) {
-			cfg->drizzle_mode   = mpp_drizzle_choices[driz_idx].mode;
-			cfg->drizzle_factor = mpp_drizzle_choices[driz_idx].factor;
-		} else {
-			cfg->drizzle_mode = MPP_DRIZZLE_OFF;
-			cfg->drizzle_factor = 1;
-		}
+		if (driz_idx >= 0 && driz_idx < mpp_drizzle_choice_count)
+			cfg->drizzle_scale = mpp_drizzle_choices[driz_idx].scale;
+		else
+			cfg->drizzle_scale = 1.0;
+		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* let the dispatcher auto-route by input type */
 		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
 		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
@@ -293,84 +289,52 @@ void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
 	start_stacking();
 }
 
-/* Append one drizzle-mode choice: visible label + the (mode, factor)
- * tuple stored in the parallel mpp_drizzle_choices array. */
+/* Append one drizzle-scale choice. */
 static void mpp_drizzle_combo_append(GtkComboBoxText *combo,
-                                     const char *label, int mode, int factor) {
+                                     const char *label, double scale) {
 	if (mpp_drizzle_choice_count >= MPP_DRIZZLE_CHOICES_MAX) return;
 	gtk_combo_box_text_append_text(combo, label);
-	mpp_drizzle_choices[mpp_drizzle_choice_count].mode   = mode;
-	mpp_drizzle_choices[mpp_drizzle_choice_count].factor = factor;
+	mpp_drizzle_choices[mpp_drizzle_choice_count].scale = scale;
 	mpp_drizzle_choice_count++;
 }
 
-/* Rebuild the drizzle-mode combo's item list to match the loaded
- * sequence's input layout:
- *   MONO input  → Off + bicubic-{1.5,2,3}x + Drizzle-{2,3}x
- *   CFA input   → Off + bicubic-{1.5,2,3}x + Bayer drizzle-{2,3}x
- *   true RGB    → Off + bicubic-{1.5,2,3}x   (drizzle modes both inapplicable)
- *   no sequence → full palette (default GUI state pre-load)
- *
- * "STScI drizzle" is labelled simply "Drizzle" on the mono path because
- * it's the only drizzle option available there. The Bayer-drizzle entry
- * keeps the "Bayer" qualifier because it's genuinely a different
- * algorithm (raw-CFA-routing via dobox, not a per-channel drizzle).
- *
- * Selection is preserved by (mode, factor) when valid for the new
- * sequence type, otherwise falls back to "Off". */
+/* Populate the drizzle combo. Item set is the same regardless of
+ * sequence type — the dispatcher in mpp_stack_apply auto-routes
+ * scale > 1 to STScI (mono / RGB) or Bayer (CFA SER) dobox based on
+ * mpp_classify_sequence_input. Previously this menu duplicated the
+ * scale across "bicubic" / "Drizzle" / "Bayer drizzle" entries, which
+ * confused users into picking the wrong path. */
 static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 	if (!combo) return;
-	mpp_input_type type = MPP_INPUT_MONO;
-	gboolean seqloaded = sequence_is_loaded();
-	if (seqloaded) type = mpp_classify_sequence_input(&com.seq);
 
-	/* Remember previous selection to map it across the rebuild. */
 	const int prev_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-	int prev_mode = MPP_DRIZZLE_OFF;
-	int prev_factor = 1;
-	if (prev_idx >= 0 && prev_idx < mpp_drizzle_choice_count) {
-		prev_mode   = mpp_drizzle_choices[prev_idx].mode;
-		prev_factor = mpp_drizzle_choices[prev_idx].factor;
-	}
+	double prev_scale = 1.0;
+	if (prev_idx >= 0 && prev_idx < mpp_drizzle_choice_count)
+		prev_scale = mpp_drizzle_choices[prev_idx].scale;
 
 	g_signal_handlers_block_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
 	gtk_combo_box_text_remove_all(combo);
 	mpp_drizzle_choice_count = 0;
 
-	/* Always available */
-	mpp_drizzle_combo_append(combo, _("Off"),          MPP_DRIZZLE_OFF,     1);
-	mpp_drizzle_combo_append(combo, _("1.5x bicubic"), MPP_DRIZZLE_BICUBIC, 3);  /* legacy: factor=3 maps to 1.5x in the CLI parser */
-	mpp_drizzle_combo_append(combo, _("2x bicubic"),   MPP_DRIZZLE_BICUBIC, 2);
-	mpp_drizzle_combo_append(combo, _("3x bicubic"),   MPP_DRIZZLE_BICUBIC, 3);
-
-	if (!seqloaded || type == MPP_INPUT_MONO) {
-		mpp_drizzle_combo_append(combo, _("2x Drizzle"), MPP_DRIZZLE_STSCI, 2);
-		mpp_drizzle_combo_append(combo, _("3x Drizzle"), MPP_DRIZZLE_STSCI, 3);
-	}
-	if (!seqloaded || type == MPP_INPUT_CFA) {
-		mpp_drizzle_combo_append(combo, _("2x Bayer drizzle"), MPP_DRIZZLE_BAYER, 2);
-		mpp_drizzle_combo_append(combo, _("3x Bayer drizzle"), MPP_DRIZZLE_BAYER, 3);
-	}
+	mpp_drizzle_combo_append(combo, _("Off"),  1.0);
+	mpp_drizzle_combo_append(combo, _("1.5x"), 1.5);
+	mpp_drizzle_combo_append(combo, _("2x"),   2.0);
+	mpp_drizzle_combo_append(combo, _("3x"),   3.0);
 
 	int new_idx = 0;
 	for (int i = 0; i < mpp_drizzle_choice_count; ++i) {
-		if (mpp_drizzle_choices[i].mode == prev_mode
-		 && mpp_drizzle_choices[i].factor == prev_factor) {
+		if (fabs(mpp_drizzle_choices[i].scale - prev_scale) < 0.01) {
 			new_idx = i;
 			break;
 		}
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), new_idx);
 	g_signal_handlers_unblock_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
-	/* Trigger the visibility handler for the new selection (pixfrac /
-	 * kernel widgets show only when the active choice is a dobox mode). */
 	on_combo_mpp_drizzle_changed(GTK_COMBO_BOX(combo), NULL);
 }
 
-/* Show / hide the dobox-only widgets (pixfrac spinner + label, driz
- * kernel combo + label) based on the drizzle-mode combo selection. The
- * underlying (mode, factor) lookup uses the parallel array because the
- * index↔mode mapping varies with sequence type. */
+/* Show / hide the drizzle-only widgets (pixfrac spinner + label, driz
+ * kernel combo + label) — visible whenever scale > 1. */
 void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	(void) user_data;
 	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
@@ -383,10 +347,8 @@ void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	}
 	const int idx = gtk_combo_box_get_active(combo);
 	gboolean dobox_mode = FALSE;
-	if (idx >= 0 && idx < mpp_drizzle_choice_count) {
-		const int mode = mpp_drizzle_choices[idx].mode;
-		dobox_mode = (mode == MPP_DRIZZLE_STSCI || mode == MPP_DRIZZLE_BAYER);
-	}
+	if (idx >= 0 && idx < mpp_drizzle_choice_count)
+		dobox_mode = (mpp_drizzle_choices[idx].scale > 1.001);
 	gtk_widget_set_visible(lbl_pf,   dobox_mode);
 	gtk_widget_set_visible(spin_pf,  dobox_mode);
 	gtk_widget_set_visible(lbl_kn,   dobox_mode);

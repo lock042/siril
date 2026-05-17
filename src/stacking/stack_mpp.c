@@ -55,7 +55,10 @@ int stack_mpp_handler(struct stacking_args *args) {
 	 * into the sidecar and not adjustable here. */
 	if (args->mpp_cfg) {
 		const mpp_config_t *gui = (const mpp_config_t *) args->mpp_cfg;
-		run->cfg->drizzle_factor                          = gui->drizzle_factor;
+		run->cfg->drizzle_scale                           = gui->drizzle_scale;
+		run->cfg->drizzle_mode                            = gui->drizzle_mode;
+		run->cfg->drizzle_pixfrac                         = gui->drizzle_pixfrac;
+		run->cfg->drizzle_kernel                          = gui->drizzle_kernel;
 		run->cfg->alignment_points_frame_percent          = gui->alignment_points_frame_percent;
 		run->cfg->alignment_points_frame_number           = gui->alignment_points_frame_number;
 		run->cfg->stack_frames_background_fraction        = gui->stack_frames_background_fraction;
@@ -65,7 +68,7 @@ int stack_mpp_handler(struct stacking_args *args) {
 	siril_log_message(_("Stack (mpp): %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_factor != 1 ? " (drizzle)" : "");
+	                  run->cfg->drizzle_scale > 1.001 ? " (drizzle)" : "");
 
 	fits stacked = { 0 };
 	rc = mpp_stack_apply(args->seq, run->cfg, run, &stacked);

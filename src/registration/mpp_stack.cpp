@@ -315,8 +315,11 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
                                    const int *included) {
 	const int N = (int) frames_mono_blurred.size();
 	const int M = aps.count;
-	const int K = cfg.drizzle_factor;
-	const bool use_subpixel = (K != 1);
+	/* Sub-pixel correlation is worthwhile when any drizzle upscale is
+	 * being asked for — the dobox path uses the fractional shifts and
+	 * the bicubic no-op path does not, but turning it on for the latter
+	 * costs nothing relative to the integer fit. */
+	const bool use_subpixel = (cfg.drizzle_scale > 1.001);
 
 	mpp_shifts_t *out = (mpp_shifts_t *) std::calloc(1, sizeof(*out));
 	if (!out) return nullptr;
@@ -379,13 +382,19 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const int *included) {
 	StackLoopOutput out;
 	const int num_layers = frames_raw.empty() ? 1 : frames_raw[0].channels();
+	/* This is the cv::resize / no-upscale path — the dobox drizzle paths
+	 * never enter stack_apply_shifts. The buffer arithmetic in
+	 * stack_prepare_for_blending only handles integer factors, so
+	 * non-integer scales (1.5x) round to the nearest integer. The
+	 * dispatcher routes scale > 1 to dobox unless the caller pinned
+	 * drizzle_mode = OFF explicitly. */
+	const int K = std::max(1, (int) std::lround(cfg.drizzle_scale));
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
-	                                       cfg.drizzle_factor, num_layers, cfg);
+	                                       K, num_layers, cfg);
 	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
 	const int N = (int) frames_raw.size();
 	const int M = aps.count;
-	const int K = cfg.drizzle_factor;
 
 	double median_brightness = 0.0;
 	if (cfg.frames_normalization) {

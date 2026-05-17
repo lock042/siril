@@ -491,7 +491,7 @@ Test(mpp_bayer_drizzle, synthetic_mosaic_rggb) {
 	mpp_config_t cfg = stsci_default_cfg();
 	cfg.bitdepth = 8;
 	cfg.drizzle_mode    = MPP_DRIZZLE_BAYER;
-	cfg.drizzle_factor  = 1;
+	cfg.drizzle_scale   = 1.0;
 	cfg.drizzle_pixfrac = 1.0;
 	cfg.drizzle_kernel  = MPP_KERNEL_TURBO;
 
@@ -764,7 +764,7 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	/* ── STScI 2x ──────────────────────────────────────────────────────── */
 	mpp_config_t cfg_stsci = cfg;
 	cfg_stsci.drizzle_mode    = MPP_DRIZZLE_STSCI;
-	cfg_stsci.drizzle_factor  = 2;
+	cfg_stsci.drizzle_scale   = 2.0;
 	cfg_stsci.drizzle_pixfrac = 0.6;   /* canonical drizzle value — pixfrac<1
 	                                    * keeps the box-drop from blurring across
 	                                    * multiple output cells, which is the
@@ -789,8 +789,8 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 
 	/* ── Bicubic 2x via Phase 5a path ─────────────────────────────────── */
 	mpp_config_t cfg_bicubic = cfg;
-	cfg_bicubic.drizzle_mode   = MPP_DRIZZLE_BICUBIC;
-	cfg_bicubic.drizzle_factor = 2;
+	cfg_bicubic.drizzle_mode   = MPP_DRIZZLE_OFF;
+	cfg_bicubic.drizzle_scale = 2.0;
 
 	/* Sort the frame indices by quality so stack_frames_loop's background
 	 * top-N picks consistently. */
@@ -1121,7 +1121,7 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 	/* ── A. Bayer drizzle 2x ────────────────────────────────────────── */
 	mpp_config_t cfg_bayer = cfg;
 	cfg_bayer.drizzle_mode    = MPP_DRIZZLE_BAYER;
-	cfg_bayer.drizzle_factor  = 2;
+	cfg_bayer.drizzle_scale   = 2.0;
 	cfg_bayer.drizzle_pixfrac = 1.0;
 	/* MPP_KERNEL_SQUARE rather than the runtime default (turbo) — see
 	 * the matching note in mpp_stsci_synthetic::resolution_recovery.
@@ -1142,8 +1142,8 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 
 	/* ── B. cv::cvtColor + Phase 5a bicubic 2x ──────────────────────── */
 	mpp_config_t cfg_bicubic = cfg;
-	cfg_bicubic.drizzle_mode   = MPP_DRIZZLE_BICUBIC;
-	cfg_bicubic.drizzle_factor = 2;
+	cfg_bicubic.drizzle_mode   = MPP_DRIZZLE_OFF;
+	cfg_bicubic.drizzle_scale = 2.0;
 
 	std::vector<int> sorted_idx(N);
 	std::iota(sorted_idx.begin(), sorted_idx.end(), 0);

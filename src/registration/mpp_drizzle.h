@@ -75,7 +75,7 @@ mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
  * accumulate into a shared float output canvas + counts buffer, then
  * normalise by counts at the end.
  *
- * Output dimensions: drizzle_factor x (intersection_w, intersection_h),
+ * Output dimensions: drizzle_scale x (intersection_w, intersection_h),
  * number of channels matching the input (1 for mono, 3 for RGB).
  *
  * Caller passes a fits shell (`fits out = {0};`). On success, out is

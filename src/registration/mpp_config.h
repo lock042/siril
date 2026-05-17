@@ -61,21 +61,31 @@ struct mpp_config {
 	double stack_frames_background_fraction;     /* 0.3 */
 	double stack_frames_background_blend_threshold; /* 0.2 */
 	int stack_frames_background_patch_size;      /* 100 */
-	int drizzle_factor;                          /* 1 — integer multiplier; 3 used for 1.5× display */
 
-	/* Phase 5b — drizzle backend selection. Off / bicubic use the
-	 * existing Phase 5a cv::resize path; STScI / Bayer route through
-	 * dobox() with a per-frame pixmap built by mpp_pixmap_build. */
+	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
+	 * routes to STScI dobox for mono / RGB input and Bayer dobox for raw
+	 * CFA input. Non-integer values (e.g. 1.5) are supported natively —
+	 * the dobox pixmap is built with a double scale and output dimensions
+	 * round to nearest. */
+	double drizzle_scale;
+
+	/* Phase 5b — drizzle backend selection. Now derived from input type
+	 * at stack time (see mpp_stack_apply); user-facing surface is just
+	 * the scale factor. The enum still exists so the dispatcher can
+	 * record which path it picked, and so older sidecar code keeps
+	 * compiling. */
 	int drizzle_mode;          /* enum mpp_drizzle_mode; default MPP_DRIZZLE_OFF */
-	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — STScI-only */
+	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — drizzle-only */
 	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_TURBO */
 };
 
 enum mpp_drizzle_mode {
-	MPP_DRIZZLE_OFF     = 0,  /* drizzle_factor implicitly 1; bicubic path with INTER_LINEAR resize */
-	MPP_DRIZZLE_BICUBIC = 1,  /* Phase 5a path; cv::resize per frame */
-	MPP_DRIZZLE_STSCI   = 2,  /* Phase 5b — dobox with debayered or mono input */
-	MPP_DRIZZLE_BAYER   = 3,  /* Phase 5b — dobox with raw Bayer input → 3-channel output */
+	MPP_DRIZZLE_OFF     = 0,  /* scale = 1.0; cv::resize no-op path */
+	/* slot 1 was MPP_DRIZZLE_BICUBIC (Phase 5a cv::resize upscale) —
+	 * deprecated, the OFF path covers the scale=1 case and dobox covers
+	 * upscale better. Numbering preserved so saved configs keep meaning. */
+	MPP_DRIZZLE_STSCI   = 2,  /* dobox with debayered / mono / RGB input */
+	MPP_DRIZZLE_BAYER   = 3,  /* dobox with raw Bayer input → 3-channel output */
 };
 
 enum mpp_drizzle_kernel {

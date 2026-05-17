@@ -25,10 +25,10 @@ namespace mpp {
  * the brightness-equalisation pre-scale.
  *
  * `run` must have aps, shifts, global_shifts, intersection, and
- * frame_brightness populated. `cfg` drives drizzle_factor, pixfrac,
+ * frame_brightness populated. `cfg` drives drizzle_scale, pixfrac,
  * and kernel.
  *
- * Output dimensions: drizzle_factor * intersection_w × intersection_h,
+ * Output dimensions: drizzle_scale * intersection_w × intersection_h,
  * num_layers channels.
  *
  * Returns MPP_OK on success; output uint16 stacked image filled into

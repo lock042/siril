@@ -596,12 +596,17 @@ gboolean main_action_click(mouse_data *data) {
 				 * removal is in second_action_click below. */
 				mpp_run_t *run = mpp_get_cached_run();
 				if (!run) break;
-				int hit = mpp_ap_hit_test(run, data->zoomed.x, data->zoomed.y);
+				int ap_x, ap_y;
+				mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+				                        com.seq.current,
+				                        data->zoomed.x, data->zoomed.y,
+				                        &ap_x, &ap_y);
+				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
 				if (hit >= 0) {
 					mpp_ap_editor_set_drag_idx(hit);
 					register_release_callback(mpp_ap_drag_release, data->event->button);
 				} else {
-					if (mpp_ap_add(run, data->zoomed.x, data->zoomed.y) == MPP_OK) {
+					if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
 						mpp_ap_editor_refresh_count_label();
 						redraw(REDRAW_OVERLAY);
 					}
@@ -756,7 +761,12 @@ gboolean second_action_click(mouse_data *data) {
 			/* MPP AP editor: right-click on an AP removes it. */
 			mpp_run_t *run = mpp_get_cached_run();
 			if (run) {
-				int hit = mpp_ap_hit_test(run, data->zoomed.x, data->zoomed.y);
+				int ap_x, ap_y;
+				mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+				                        com.seq.current,
+				                        data->zoomed.x, data->zoomed.y,
+				                        &ap_x, &ap_y);
+				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
 				if (hit >= 0 && mpp_ap_remove(run, hit) == MPP_OK) {
 					mpp_ap_editor_refresh_count_label();
 					redraw(REDRAW_OVERLAY);

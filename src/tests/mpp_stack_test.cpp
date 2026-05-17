@@ -59,7 +59,7 @@ Test(mpp_stack, default_config_phase5a) {
 	cr_assert_float_eq(cfg.stack_frames_background_fraction, 0.3, 1e-12);
 	cr_assert_float_eq(cfg.stack_frames_background_blend_threshold, 0.2, 1e-12);
 	cr_assert_eq(cfg.stack_frames_background_patch_size, 100);
-	cr_assert_eq(cfg.drizzle_factor, 1);
+	cr_assert_float_eq(cfg.drizzle_scale, 1.0, 1e-12);
 }
 
 /* PSS one_dim_weight reference values for a symmetric ramp:

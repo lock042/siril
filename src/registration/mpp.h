@@ -195,6 +195,18 @@ void mpp_set_cached_run(mpp_run_t *run);
 void mpp_clear_cached_run(void);
 mpp_run_t *mpp_get_cached_run(void);
 
+/* Convert a click in display (overlay) coords — top-left origin, matching
+ * what cairo_matrix_transform_point(image_matrix, ...) yields — to the
+ * mean_frame pdata-row coord the AP records use. Inverse of the draw-time
+ * transform in draw_mpp_aps: applies the Y flip, and when viewing a
+ * sequence frame (current_frame_idx in [0, num_frames)) also subtracts
+ * the per-frame global shift so a click on a feature on frame i is stored
+ * as that feature's position in the mean_frame. */
+void mpp_display_to_ap_coord(const mpp_run_t *run, int gfit_rx, int gfit_ry,
+                             int current_frame_idx,
+                             int click_x, int click_y,
+                             int *out_x, int *out_y);
+
 #ifdef __cplusplus
 }
 #endif

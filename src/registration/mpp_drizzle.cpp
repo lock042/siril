@@ -19,6 +19,7 @@
 
 /* === C++ std + Siril's C++-side headers FIRST === */
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -265,9 +266,9 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	const int intersection_ry = run->intersection[1] - run->intersection[0];
 	if (intersection_rx <= 0 || intersection_ry <= 0) return MPP_EINVAL;
 
-	const int factor   = cfg->drizzle_factor < 1 ? 1 : cfg->drizzle_factor;
-	const int out_rx   = intersection_rx * factor;
-	const int out_ry   = intersection_ry * factor;
+	const double scale = cfg->drizzle_scale < 1.0 ? 1.0 : cfg->drizzle_scale;
+	const int out_rx   = (int) std::lround((double) intersection_rx * scale);
+	const int out_ry   = (int) std::lround((double) intersection_ry * scale);
 	const int channels = run->num_layers > 0 ? run->num_layers : 1;
 
 	fits output_data{};
@@ -303,7 +304,7 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
 	driz_args.kernel         = kernel_from_cfg(cfg->drizzle_kernel);
-	driz_args.scale          = (float) factor;
+	driz_args.scale          = (float) scale;
 	driz_args.pixel_fraction = (float) cfg->drizzle_pixfrac;
 	driz_args.weight_scale   = 1.0f;
 	driz_args.is_bayer       = FALSE;
@@ -321,18 +322,18 @@ mpp_status_t mpp::stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 	for (int f = 0; f < N; ++f) {
 		if (!included[f] || frames_raw[f].empty()) continue;
 
-		const double scale = median_brightness
-		                   / (frame_brightness[f] + 1e-7);
+		const double brightness_scale = median_brightness
+		                              / (frame_brightness[f] + 1e-7);
 
 		fits frame_fit{};
-		if (!cv_to_planar_fits(frames_raw[f], scale, &frame_fit)) {
+		if (!cv_to_planar_fits(frames_raw[f], brightness_scale, &frame_fit)) {
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
 			clearfits(&output_counts);
 			return MPP_ENOMEM;
 		}
 
-		if (mpp_pixmap_build(run, f, (double) factor, &pixmap) != MPP_OK) {
+		if (mpp_pixmap_build(run, f, scale, &pixmap) != MPP_OK) {
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
@@ -515,9 +516,9 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	const int intersection_ry = run->intersection[1] - run->intersection[0];
 	if (intersection_rx <= 0 || intersection_ry <= 0) return MPP_EINVAL;
 
-	const int factor   = cfg->drizzle_factor < 1 ? 1 : cfg->drizzle_factor;
-	const int out_rx   = intersection_rx * factor;
-	const int out_ry   = intersection_ry * factor;
+	const double scale = cfg->drizzle_scale < 1.0 ? 1.0 : cfg->drizzle_scale;
+	const int out_rx   = (int) std::lround((double) intersection_rx * scale);
+	const int out_ry   = (int) std::lround((double) intersection_ry * scale);
 	const int channels = 3;                  /* Bayer output is always RGB */
 
 	fits output_data{};
@@ -553,7 +554,7 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
 	driz_args.kernel         = kernel_from_cfg(cfg->drizzle_kernel);
-	driz_args.scale          = (float) factor;
+	driz_args.scale          = (float) scale;
 	driz_args.pixel_fraction = (float) cfg->drizzle_pixfrac;
 	driz_args.weight_scale   = 1.0f;
 	driz_args.is_bayer       = TRUE;
@@ -572,18 +573,18 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	for (int f = 0; f < N; ++f) {
 		if (!included[f] || frames_raw_bayer[f].empty()) continue;
 
-		const double scale = median_brightness
-		                   / (frame_brightness[f] + 1e-7);
+		const double brightness_scale = median_brightness
+		                              / (frame_brightness[f] + 1e-7);
 
 		fits frame_fit{};
-		if (!cv_to_planar_fits(frames_raw_bayer[f], scale, &frame_fit)) {
+		if (!cv_to_planar_fits(frames_raw_bayer[f], brightness_scale, &frame_fit)) {
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
 			clearfits(&output_counts);
 			return MPP_ENOMEM;
 		}
 
-		if (mpp_pixmap_build(run, f, (double) factor, &pixmap) != MPP_OK) {
+		if (mpp_pixmap_build(run, f, scale, &pixmap) != MPP_OK) {
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
