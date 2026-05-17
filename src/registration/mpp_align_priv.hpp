@@ -6,6 +6,7 @@
 #define SRC_REGISTRATION_MPP_ALIGN_PRIV_HPP_
 
 #include <opencv2/core.hpp>
+#include <functional>
 #include <vector>
 
 #include "registration/mpp.h"
@@ -82,6 +83,17 @@ struct AlignGlobalResult {
 	int best_frame_idx = -1;
 };
 
+/* Returns the blurred mono frame for index `i`. Used by the streamed /
+ * half-cached overload of align_global_from_frames so the caller can
+ * decide whether the blur is read from a cache, computed lazily from a
+ * raw cache, or read fresh from disk. The returned cv::Mat may be a
+ * cheap view (when cached) or own its pixels (when freshly produced);
+ * the inner loop only requires it to stay valid for that single
+ * iteration. Empty Mat signals read failure (currently unhandled —
+ * matches the cached path's "empty frames count as zero shift"
+ * semantics). */
+using BlurredFrameProvider = std::function<cv::Mat(int idx)>;
+
 /* Pick a patch on the best (max-quality) frame and compute per-frame integer
  * shifts via PSS's backward-then-forward cumulative-shift loop. `frames` are
  * the Gaussian-blurred mono frames (same as PSS's frames_mono_blurred). */
@@ -90,6 +102,17 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames_mo
                                            const mpp_config_t &cfg,
                                            progress_cb_fn progress = nullptr,
                                            void *progress_user = nullptr);
+
+/* Streamed overload — identical algorithm, but the provider supplies
+ * one frame at a time so the caller controls how the blurred frames are
+ * sourced (cached vector, lazy blur from raw cache, or fresh disk read).
+ * The thin overload above is implemented in terms of this one. */
+AlignGlobalResult align_global_from_provider(const BlurredFrameProvider &provider,
+                                             int num_frames,
+                                             const std::vector<double> &quality,
+                                             const mpp_config_t &cfg,
+                                             progress_cb_fn progress = nullptr,
+                                             void *progress_user = nullptr);
 
 /* PSS rank_frames.find_best_frames: pick the `number_frames` indices that
  * maximise the summed quality within a sliding window of size `region_size`. */

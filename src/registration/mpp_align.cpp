@@ -339,14 +339,14 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
 	return out;
 }
 
-AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
-                                           const std::vector<double> &quality,
-                                           const mpp_config_t &cfg,
-                                           progress_cb_fn progress,
-                                           void *progress_user) {
+AlignGlobalResult align_global_from_provider(const BlurredFrameProvider &provider,
+                                             int N,
+                                             const std::vector<double> &quality,
+                                             const mpp_config_t &cfg,
+                                             progress_cb_fn progress,
+                                             void *progress_user) {
 	AlignGlobalResult out;
-	const int N = (int) frames.size();
-	if (N == 0 || (int) quality.size() != N)
+	if (N <= 0 || (int) quality.size() != N)
 		return out;
 	int done = 0;
 	const int total = N;   /* every frame is visited once across the two passes */
@@ -357,15 +357,18 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 		if (quality[i] > quality[best]) best = i;
 	out.best_frame_idx = best;
 
-	/* Patch on best frame's mono_blurred. */
-	const cv::Vec4i patch = align_pick_patch(frames[best], cfg);
+	/* Patch on best frame's mono_blurred. Hold the best frame for the
+	 * full duration of both sweeps — we need to re-derive ref_window
+	 * from it (a view, not a copy). */
+	const cv::Mat best_blurred = provider(best);
+	const cv::Vec4i patch = align_pick_patch(best_blurred, cfg);
 	out.patch_yxyx = patch;
 	const int py_lo = patch[0], py_hi = patch[1];
 	const int px_lo = patch[2], px_hi = patch[3];
 
 	/* Reference windows: best frame mono_blurred cropped & cast to float32. */
 	cv::Mat best_f32;
-	frames[best].convertTo(best_f32, CV_32F);
+	best_blurred.convertTo(best_f32, CV_32F);
 	const cv::Mat ref_window = best_f32(cv::Range(py_lo, py_hi),
 	                                    cv::Range(px_lo, px_hi));
 	const cv::Mat ref_window_first = stride_subsample(ref_window, 2);
@@ -377,8 +380,9 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
 			if (idx == best) { out.shifts[idx] = {0, 0}; ++done; continue; }
+			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
-			    ref_window, ref_window_first, frames[idx],
+			    ref_window, ref_window_first, frame,
 			    py_lo - dy_cum, py_hi - dy_cum,
 			    px_lo - dx_cum, px_hi - dx_cum, cfg);
 			if (!r.success) {
@@ -402,8 +406,9 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 	{
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
+			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
-			    ref_window, ref_window_first, frames[idx],
+			    ref_window, ref_window_first, frame,
 			    py_lo - dy_cum, py_hi - dy_cum,
 			    px_lo - dx_cum, px_hi - dx_cum, cfg);
 			if (!r.success) {
@@ -421,6 +426,16 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
 	}
 
 	return out;
+}
+
+AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
+                                           const std::vector<double> &quality,
+                                           const mpp_config_t &cfg,
+                                           progress_cb_fn progress,
+                                           void *progress_user) {
+	return align_global_from_provider(
+	    [&frames](int i) -> cv::Mat { return frames[i]; },
+	    (int) frames.size(), quality, cfg, progress, progress_user);
 }
 
 std::vector<int> align_find_best_frames(const std::vector<double> &quality,

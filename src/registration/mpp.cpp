@@ -166,49 +166,113 @@ cv::Mat mean_frame_from_run(const mpp_run_t *run) {
 
 /* -------------------- Memory pre-flight -------------------- */
 
-/* Each MPP stage holds *all* sequence frames in RAM simultaneously
+/* Each MPP stage may hold all sequence frames in RAM simultaneously
  * (index-stable vector<cv::Mat>) — this is structurally different from
- * Siril's normal sequence ops, which stream frame-by-frame. The peak is
- *     N * rx * ry * channels * 2 bytes * simultaneous_copies
- * which on planetary workloads (8000+ frames) easily runs to tens of GB.
+ * Siril's normal sequence ops, which stream frame-by-frame. On planetary
+ * workloads (8000+ frames) the cached peak can run to tens of GB.
  *
- * If that peak exceeds get_max_memory_in_MB() (the user's memory-mode
- * setting — RATIO of free RAM, or AMOUNT cap) we refuse the operation
- * upfront with a clear message rather than letting the OOM killer or the
- * swap subsystem hang the whole desktop. Pattern mirrors
- * compute_nb_images_fit_memory / star_align_compute_mem_limits.
+ * mpp_pick_memory_mode tries three tiers in order of decreasing speed
+ * and increasing safety, and returns the most performant mode whose
+ * working set fits in get_max_memory_in_MB() (the user's memory-mode
+ * preference — RATIO of free RAM, or AMOUNT cap).
  *
- * `channels` is the per-frame channel count actually held (1 for the
- * analysis path that converts RGB to luminance; full layer count for the
- * stack path where colour is preserved). `simultaneous_copies` covers
- * both transient duplicates that overlap in lifetime (e.g. analysis_frames
- * + blurred_frames in Stage A). */
-static mpp_status_t mpp_check_memory_for_stage(int N, int rx, int ry,
-                                               int channels,
-                                               int simultaneous_copies,
-                                               const char *stage_name) {
-	if (N <= 0 || rx <= 0 || ry <= 0 || channels < 1 || simultaneous_copies < 1)
-		return MPP_EINVAL;
-	const uint64_t bytes_needed = (uint64_t) N * (uint64_t) rx * (uint64_t) ry
-	                            * (uint64_t) channels * 2ull   /* WORD */
-	                            * (uint64_t) simultaneous_copies;
-	const uint64_t mb_needed = bytes_needed / BYTES_IN_A_MB;
-	const uint64_t mb_avail  = (uint64_t) get_max_memory_in_MB();
-	if (mb_needed <= mb_avail) return MPP_OK;
+ *   CACHED      — hold every frame, often in multiple representations
+ *                 (e.g. raw + blurred in Stage A). One disk read pass.
+ *   HALF_CACHED — Stage A only: hold raw frames, drop the blurred
+ *                 cache and re-blur on demand. One disk pass; ~2× the
+ *                 blur compute (cheap vs disk).
+ *   STREAMING   — keep only the in-flight frame(s). 2-3× disk reads
+ *                 but ~constant memory. Not implemented for every
+ *                 stage yet — callers pass streaming_in_flight=0 to
+ *                 disable.
+ *
+ * Each tier's byte cost is N · rx · ry · channels · 2 · copies
+ * (for cached/half_cached) or in_flight · rx · ry · channels · 2
+ * (for streaming), plus output_bytes (mean_frame accumulator, shifts
+ * arrays, drizzle output canvas).
+ *
+ * Pass copies = 0 (or in_flight = 0) to disable a tier when the stage
+ * doesn't support it. Returns MPP_ENOMEM with a clear message if no
+ * enabled tier fits. */
+typedef enum {
+	MPP_MEM_CACHED      = 0,
+	MPP_MEM_HALF_CACHED = 1,
+	MPP_MEM_STREAMING   = 2,
+} mpp_mem_mode;
 
-	gchar *need_str  = g_format_size_full(bytes_needed,
-	                                      G_FORMAT_SIZE_IEC_UNITS);
-	gchar *avail_str = g_format_size_full(mb_avail * BYTES_IN_A_MB,
-	                                      G_FORMAT_SIZE_IEC_UNITS);
-	siril_log_error(_("%s: not enough memory — would need %s for %d frames "
-	                  "(%dx%dx%d × %d copies), %s considered available. "
-	                  "Lower the frame count, use a smaller crop, or "
-	                  "increase the memory ratio in Preferences.\n"),
-	                stage_name, need_str, N, rx, ry, channels,
-	                simultaneous_copies, avail_str);
-	g_free(need_str);
-	g_free(avail_str);
-	return MPP_ENOMEM;
+static const char *mpp_mem_mode_name(int m) {
+	switch (m) {
+		case MPP_MEM_CACHED:      return "cached";
+		case MPP_MEM_HALF_CACHED: return "half-cached";
+		case MPP_MEM_STREAMING:   return "streaming";
+		default:                  return "?";
+	}
+}
+
+static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
+                                         int cached_copies,
+                                         int half_cached_copies,
+                                         int streaming_in_flight,
+                                         uint64_t output_bytes,
+                                         const char *stage_name,
+                                         int *mode_out) {
+	if (N <= 0 || rx <= 0 || ry <= 0 || channels < 1 || !mode_out)
+		return MPP_EINVAL;
+	const uint64_t per_frame = (uint64_t) rx * (uint64_t) ry
+	                         * (uint64_t) channels * 2ull;  /* WORD */
+	const uint64_t budget    = (uint64_t) get_max_memory_in_MB()
+	                         * (uint64_t) BYTES_IN_A_MB;
+
+	const uint64_t bytes_cached  = (uint64_t) cached_copies      * (uint64_t) N * per_frame + output_bytes;
+	const uint64_t bytes_half    = (uint64_t) half_cached_copies * (uint64_t) N * per_frame + output_bytes;
+	const uint64_t bytes_stream  = (uint64_t) streaming_in_flight                * per_frame + output_bytes;
+
+	int pick = -1;
+	uint64_t pick_bytes = 0;
+	if (cached_copies > 0 && bytes_cached <= budget) {
+		pick = MPP_MEM_CACHED;       pick_bytes = bytes_cached;
+	} else if (half_cached_copies > 0 && bytes_half <= budget) {
+		pick = MPP_MEM_HALF_CACHED;  pick_bytes = bytes_half;
+	} else if (streaming_in_flight > 0 && bytes_stream <= budget) {
+		pick = MPP_MEM_STREAMING;    pick_bytes = bytes_stream;
+	}
+
+	if (pick < 0) {
+		/* No enabled tier fits. Report the cheapest enabled tier's cost
+		 * as the "need" figure so the user sees an achievable target.
+		 * If streaming is enabled it's necessarily the cheapest. */
+		uint64_t need = bytes_cached;
+		if (streaming_in_flight > 0)        need = bytes_stream;
+		else if (half_cached_copies > 0)    need = bytes_half;
+		gchar *need_str  = g_format_size_full(need, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *avail_str = g_format_size_full(budget, G_FORMAT_SIZE_IEC_UNITS);
+		siril_log_error(_("%s: not enough memory — would need %s for %d "
+		                  "frames (%dx%dx%d), %s considered available. "
+		                  "Lower the frame count, use a smaller crop, or "
+		                  "increase the memory ratio in Preferences.\n"),
+		                stage_name, need_str, N, rx, ry, channels, avail_str);
+		g_free(need_str);
+		g_free(avail_str);
+		return MPP_ENOMEM;
+	}
+
+	*mode_out = pick;
+	/* Log when we drop below the fastest available tier so the user
+	 * understands why subsequent passes take longer. */
+	const bool dropped_from_cached = (cached_copies > 0 && pick != MPP_MEM_CACHED);
+	if (dropped_from_cached) {
+		gchar *need_cached = g_format_size_full(bytes_cached, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *use_str     = g_format_size_full(pick_bytes,   G_FORMAT_SIZE_IEC_UNITS);
+		gchar *avail_str   = g_format_size_full(budget,       G_FORMAT_SIZE_IEC_UNITS);
+		siril_log_message(_("%s: %s mode (cached would need %s, %s available, "
+		                    "using %s)\n"),
+		                  stage_name, mpp_mem_mode_name(pick),
+		                  need_cached, avail_str, use_str);
+		g_free(need_cached);
+		g_free(use_str);
+		g_free(avail_str);
+	}
+	return MPP_OK;
 }
 
 /* -------------------- Stage A: mpp_analyze -------------------- */
@@ -246,19 +310,32 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 
 	const int N = seq->number;
 	/* Analysis is always mono (RGB inputs are luminance-converted in
-	 * read_analysis_frame). Two simultaneous copies: analysis_frames (raw
-	 * mono) + blurred_frames (Gaussian-blurred mono, freed after the
-	 * global-align stage below). */
+	 * read_analysis_frame). Memory tiers:
+	 *   CACHED      — raw + blurred (2 copies)
+	 *   HALF_CACHED — raw only; Pass 2 re-blurs on demand
+	 *   STREAMING   — not yet implemented for Analyze (Tier 3 work).
+	 * Output bytes are dominated by mean_frame (≤ rx*ry*4) plus a
+	 * handful of N-sized double/int arrays — small enough to ignore
+	 * here; the picker rounds to MB anyway. */
+	int mem_mode = MPP_MEM_CACHED;
 	{
-		const mpp_status_t mem = mpp_check_memory_for_stage(
-		    N, (int) seq->rx, (int) seq->ry,
-		    /*channels=*/1, /*simultaneous_copies=*/2, "Analyze");
+		const mpp_status_t mem = mpp_pick_memory_mode(
+		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
+		    /*cached_copies=*/2,
+		    /*half_cached_copies=*/1,
+		    /*streaming_in_flight=*/0,
+		    /*output_bytes=*/0,
+		    "Analyze", &mem_mode);
 		if (mem != MPP_OK) return mem;
 	}
+	const bool cache_blurred = (mem_mode == MPP_MEM_CACHED);
 	/* Index-stable storage so parallel threads can write to per-frame slots
-	 * without contention. push_back would force serialisation. */
+	 * without contention. push_back would force serialisation.
+	 * blurred_frames stays empty in HALF_CACHED mode — Pass 2 will blur
+	 * on demand from analysis_frames. */
 	std::vector<cv::Mat> analysis_frames(N);
-	std::vector<cv::Mat> blurred_frames(N);
+	std::vector<cv::Mat> blurred_frames;
+	if (cache_blurred) blurred_frames.resize(N);
 	std::vector<double> q_rank(N, 0.0);
 	std::vector<double> frame_brightness(N, 0.0);
 
@@ -283,7 +360,8 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			continue;
 		}
 		analysis_frames[i] = mono;
-		blurred_frames[i]  = mpp::blur_mono_for_align(mono, *cfg);
+		if (cache_blurred)
+			blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
 		q_rank[i]          = mpp::rank_score_normalized(mono, *cfg);
 		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
 		g_atomic_int_inc(&cur_nb);
@@ -299,15 +377,24 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
 	stage_progress_range gp_global{MPP_PROG_READ_END,
 	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
-	const auto align = mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
-	                                                 stage_progress_cb, &gp_global);
-	/* blurred_frames is last consumed above; drop it now so the
-	 * average-frame + per-AP-qualities passes have an extra
-	 * N*rx*ry*2 bytes of headroom. shrink_to_fit releases the
-	 * vector's pointer array; clear() destroys each cv::Mat (refcount
-	 * drops to zero, OpenCV returns the pixel buffers to the allocator).
-	 * On planetary workloads (8000 frames at 600x600 mono) this frees
-	 * about 5.7 GB before the average-frame pass starts. */
+	/* In HALF_CACHED mode Pass 2 re-blurs each frame from analysis_frames
+	 * on demand — Pass 1 didn't store the blur. The blur produced inside
+	 * rank_score_normalized in Pass 1 is also discarded after computing the
+	 * sigma, so cached mode is paying for two blurs per frame and getting
+	 * to keep one; half-cached pays for two and keeps none. CPU cost is
+	 * therefore the same; only memory differs. */
+	const auto align = cache_blurred
+	    ? mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
+	                                    stage_progress_cb, &gp_global)
+	    : mpp::align_global_from_provider(
+	          [&analysis_frames, cfg](int i) {
+	              return mpp::blur_mono_for_align(analysis_frames[i], *cfg);
+	          },
+	          N, q_rank, *cfg, stage_progress_cb, &gp_global);
+	/* Cached mode: drop blurred_frames now so the remaining passes have
+	 * an extra N·rx·ry·2 bytes of headroom. Half-cached mode: nothing
+	 * to free. shrink_to_fit returns the pointer array to the allocator;
+	 * clear destroys each cv::Mat (refcount → 0 returns pixel buffers). */
 	blurred_frames.clear();
 	blurred_frames.shrink_to_fit();
 	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
@@ -392,38 +479,38 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
                                            mpp_run_t *run) {
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
 
+	/* Stage B streams: each frame is read + blurred inside the
+	 * correlation loop and discarded at iteration end. Peak working
+	 * set is one frame. Disk traffic is identical to the previous
+	 * cached two-pass design (1 read per included frame) — the cache
+	 * never saved any I/O, only RAM. The picker call here is just
+	 * the lower-bound sanity check that even a single frame fits. */
+	int mem_mode = MPP_MEM_STREAMING;
 	{
-		const mpp_status_t mem = mpp_check_memory_for_stage(
-		    run->num_frames, (int) seq->rx, (int) seq->ry,
-		    /*channels=*/1, /*simultaneous_copies=*/1, "Register");
+		const mpp_status_t mem = mpp_pick_memory_mode(
+		    run->num_frames, (int) seq->rx, (int) seq->ry, /*channels=*/1,
+		    /*cached_copies=*/0,
+		    /*half_cached_copies=*/0,
+		    /*streaming_in_flight=*/1,
+		    /*output_bytes=*/0,
+		    "Register", &mem_mode);
 		if (mem != MPP_OK) return mem;
 	}
-	std::vector<cv::Mat> blurred_frames;
-	blurred_frames.resize(run->num_frames);  /* index-stable; empty Mat for excluded */
-	int n_included = 0;
-	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) ++n_included;
-	/* The frame-read pass is roughly half the Stage B cost; report it as
-	 * the first half of the [0..1] progress range, leaving the second half
-	 * for the inner stack_compute_shifts (which emits its own 0.5..1). */
-	int cur_nb = 0;
-	for (int i = 0; i < run->num_frames; ++i) {
-		if (!run->included[i]) continue;  /* skip frame entirely — keep empty slot */
-		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
-		if (mono.empty()) return MPP_EIO;
-		blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
-		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 * (double) cur_nb / (double) n_included, NULL);
-	}
+	(void) mem_mode;
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
 	const cv::Mat mean_raw = mpp::mean_frame_from_run(run);
 
-	gui_iface.set_progress(PROGRESS_NONE, _("Register: correlating per-AP boxes"));
-	mpp_shifts_t *shifts = mpp::stack_compute_shifts(blurred_frames, mean_raw,
-	                                                 *run->aps, apq, offsets,
-	                                                 *cfg, run->included);
+	gui_iface.set_progress(PROGRESS_RESET, _("Register: correlating per-AP boxes"));
+	auto provider = [seq, cfg](int f) -> cv::Mat {
+		cv::Mat mono = mpp::read_analysis_frame(seq, f);
+		if (mono.empty()) return cv::Mat();
+		return mpp::blur_mono_for_align(mono, *cfg);
+	};
+	mpp_shifts_t *shifts = mpp::stack_compute_shifts_streamed(
+	    provider, run->num_frames, mean_raw, *run->aps, apq, offsets,
+	    *cfg, run->included);
 	if (!shifts) return MPP_ENOMEM;
 	if (run->shifts) mpp_shift_free(run->shifts);
 	run->shifts = shifts;
@@ -516,10 +603,16 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		const int channels = (mode == MPP_DRIZZLE_BAYER)
 		                   ? 1
 		                   : (run->num_layers > 0 ? run->num_layers : 1);
-		const mpp_status_t mem = mpp_check_memory_for_stage(
-		    run->num_frames, run->frame_cols, run->frame_rows,
-		    channels, /*simultaneous_copies=*/1, "Stack (mpp)");
+		int mem_mode = MPP_MEM_CACHED;
+		const mpp_status_t mem = mpp_pick_memory_mode(
+		    run->num_frames, run->frame_cols, run->frame_rows, channels,
+		    /*cached_copies=*/1,
+		    /*half_cached_copies=*/0,
+		    /*streaming_in_flight=*/0,
+		    /*output_bytes=*/0,
+		    "Stack (mpp)", &mem_mode);
 		if (mem != MPP_OK) return mem;
+		(void) mem_mode;
 	}
 	switch (mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
@@ -659,11 +752,16 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 
 	const int N = run->num_frames;
 	{
-		const mpp_status_t mem = mpp_check_memory_for_stage(
-		    N, (int) seq->rx, (int) seq->ry,
-		    /*channels=*/1, /*simultaneous_copies=*/1,
-		    "Register (per-AP quality refresh)");
+		int mem_mode = MPP_MEM_CACHED;
+		const mpp_status_t mem = mpp_pick_memory_mode(
+		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
+		    /*cached_copies=*/1,
+		    /*half_cached_copies=*/0,
+		    /*streaming_in_flight=*/0,
+		    /*output_bytes=*/0,
+		    "Register (per-AP quality refresh)", &mem_mode);
 		if (mem != MPP_OK) return mem;
+		(void) mem_mode;
 	}
 
 	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "

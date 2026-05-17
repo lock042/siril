@@ -306,14 +306,14 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	return s;
 }
 
-mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurred,
-                                   const cv::Mat &mean_frame_raw,
-                                   const mpp_aps_t &aps,
-                                   const APQualities &apq,
-                                   const std::vector<FrameOffset> &offsets,
-                                   const mpp_config_t &cfg,
-                                   const int *included) {
-	const int N = (int) frames_mono_blurred.size();
+mpp_shifts_t *stack_compute_shifts_streamed(const BlurredFrameProvider &provider,
+                                            int N,
+                                            const cv::Mat &mean_frame_raw,
+                                            const mpp_aps_t &aps,
+                                            const APQualities &apq,
+                                            const std::vector<FrameOffset> &offsets,
+                                            const mpp_config_t &cfg,
+                                            const int *included) {
 	const int M = aps.count;
 	/* Sub-pixel correlation is worthwhile when any drizzle upscale is
 	 * being asked for — the dobox path uses the fractional shifts and
@@ -336,8 +336,6 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
 	int failures = 0;
 
-	/* Per-frame progress mapped into the second half of Stage B's bar — the
-	 * outer mpp_compute_shifts used 0..0.5 for the frame read pass. */
 	int n_included = 0;
 	if (included) {
 		for (int f = 0; f < N; ++f) if (included[f]) ++n_included;
@@ -348,11 +346,13 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 	for (int f = 0; f < N; ++f) {
 		if (included && !included[f]) continue;
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
+		const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
+		                                      * cached vector view in cached mode */
 		for (int a : apq.used_alignment_points[f]) {
 			const auto &ap = aps.records[a];
 			const MultilevelShiftResult r = multilevel_correlation(
 			    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
-			    frames_mono_blurred[f],
+			    frame,
 			    ap.box_y_low + dy, ap.box_y_high + dy,
 			    ap.box_x_low + dx, ap.box_x_high + dx,
 			    cfg.frames_gauss_width, cfg.alignment_points_search_width,
@@ -364,10 +364,28 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
 			if (!r.success) ++failures;
 		}
 		g_atomic_int_inc(&cur_nb);
+		/* Streaming mode pays full read+blur cost in this loop (no
+		 * separate read pass), so map progress across the full bar.
+		 * Cached mode's caller already moved through 0..0.5 during its
+		 * own read pass and the 0.5 base here means we restart the
+		 * second half — preserves the old visible behaviour. */
 		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
 	}
 	out->failure_counter = failures;
 	return out;
+}
+
+mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurred,
+                                   const cv::Mat &mean_frame_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const mpp_config_t &cfg,
+                                   const int *included) {
+	return stack_compute_shifts_streamed(
+	    [&frames_mono_blurred](int i) { return frames_mono_blurred[i]; },
+	    (int) frames_mono_blurred.size(),
+	    mean_frame_raw, aps, apq, offsets, cfg, included);
 }
 
 StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,

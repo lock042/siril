@@ -146,6 +146,21 @@ mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurr
                                    const mpp_config_t &cfg,
                                    const int *included = nullptr);
 
+/* Streamed overload: identical algorithm, but the caller supplies a
+ * provider lambda that returns the blurred mono frame for the requested
+ * index. Used by mpp_compute_shifts to read+blur each frame in the
+ * correlation loop and immediately discard it, keeping memory to a
+ * single frame instead of N. The thin overload above is implemented in
+ * terms of this one. */
+mpp_shifts_t *stack_compute_shifts_streamed(const BlurredFrameProvider &provider,
+                                            int num_frames,
+                                            const cv::Mat &mean_frame_raw,
+                                            const mpp_aps_t &aps,
+                                            const APQualities &apq,
+                                            const std::vector<FrameOffset> &offsets,
+                                            const mpp_config_t &cfg,
+                                            const int *included = nullptr);
+
 /* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
  * averaged_background. Takes the same shifts vector as Stage B; the rest of
  * the bookkeeping (brightness equalise, drizzle resize, remap_rigid,
