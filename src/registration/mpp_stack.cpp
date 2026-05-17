@@ -35,6 +35,7 @@
 #include "registration/mpp_stack_priv.hpp"
 
 #include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
+#include "core/processing.h"                   /* processing_should_continue */
 
 #include <set>
 
@@ -157,6 +158,10 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	out.qualities.assign(M, std::vector<double>(N, 0.0));
 
 	for (int f = 0; f < N; ++f) {
+		if (!processing_should_continue()) {
+			out.stack_size = 0;   /* cancellation sentinel */
+			return out;
+		}
 		const cv::Mat frame = provider(f);
 		if (frame.empty()) {
 			if (progress) progress((double)(f + 1) / (double) N, progress_user);
@@ -364,6 +369,10 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
 		if (included && !included[f]) continue;
+		if (!processing_should_continue()) {
+			out->failure_counter = -1;   /* cancellation sentinel */
+			return out;
+		}
 		const int dy = offsets[f].dy, dx = offsets[f].dx;
 		const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
 		                                      * cached vector view in cached mode */
@@ -458,6 +467,10 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	int cur_nb = 0;
 	for (int f = 0; f < N; ++f) {
 		if (included && !included[f]) continue;
+		if (!processing_should_continue()) {
+			out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
+			return out;
+		}
 		const cv::Mat frame_raw = provider(f);
 		if (frame_raw.empty()) {
 			g_atomic_int_inc(&cur_nb);

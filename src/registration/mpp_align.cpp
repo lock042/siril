@@ -31,6 +31,7 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include "core/processing.h"
 #include "registration/mpp.h"
 #include "registration/mpp_align.h"
 #include "registration/mpp_align_priv.hpp"
@@ -379,6 +380,10 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	{
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
+			if (!processing_should_continue()) {
+				out.best_frame_idx = -1;   /* cancellation sentinel */
+				return out;
+			}
 			if (idx == best) { out.shifts[idx] = {0, 0}; ++done; continue; }
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
@@ -406,6 +411,10 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	{
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
+			if (!processing_should_continue()) {
+				out.best_frame_idx = -1;
+				return out;
+			}
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
@@ -508,6 +517,10 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	int done = 0;
 	const int total = (int) indices.size();
 	for (int idx : indices) {
+		if (!processing_should_continue()) {
+			out.mean_frame.release();   /* cancellation sentinel */
+			return out;
+		}
 		const auto &s = shifts[idx];
 		const cv::Mat frame = provider(idx);
 		if (frame.empty()) { ++done; continue; }

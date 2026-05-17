@@ -25,6 +25,9 @@ extern "C" {
 #include "registration/mpp_config.h"
 }
 
+cominfo com;
+fits *gfit = nullptr;
+
 namespace {
 
 cv::Mat make_textured_frame(int rows = 200, int cols = 240, int seed = 1) {

@@ -42,6 +42,7 @@ extern "C" {
 
 #include "core/proto.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
@@ -321,6 +322,12 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 
 	for (int f = 0; f < N; ++f) {
 		if (!included[f]) continue;
+		if (!processing_should_continue()) {
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EINTR;
+		}
 		const cv::Mat frame_raw = provider(f);
 		if (frame_raw.empty()) continue;
 
@@ -582,6 +589,12 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 
 	for (int f = 0; f < N; ++f) {
 		if (!included[f]) continue;
+		if (!processing_should_continue()) {
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EINTR;
+		}
 		const cv::Mat frame_raw = provider(f);
 		if (frame_raw.empty()) continue;
 		if (frame_raw.channels() != 1) {

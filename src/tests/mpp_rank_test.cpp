@@ -25,6 +25,9 @@ extern "C" {
 #include "registration/mpp_rank.h"
 }
 
+cominfo com;
+fits *gfit = nullptr;
+
 namespace {
 
 /* Synthesise a textured 16-bit mono frame with a bright disk + speckles, so

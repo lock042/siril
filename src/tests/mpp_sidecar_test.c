@@ -101,6 +101,9 @@ static mpp_run_t *make_test_run(int with_shifts) {
 	return run;
 }
 
+cominfo com;
+fits *gfit = NULL;
+
 Test(mpp_sidecar, roundtrip_without_shifts) {
 	mpp_run_t *src = make_test_run(0);
 	cr_assert_not_null(src);

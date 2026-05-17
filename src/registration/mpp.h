@@ -24,7 +24,8 @@ typedef enum {
 	MPP_EINVAL = -2,
 	MPP_ENOMEM = -3,
 	MPP_EIO = -4,
-	MPP_ENODATA = -5
+	MPP_ENODATA = -5,
+	MPP_EINTR = -6      /* user-requested cancellation */
 } mpp_status_t;
 
 /* mpp_config.h includes us back, so we can't include it here — would

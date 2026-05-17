@@ -72,6 +72,14 @@ int stack_mpp_handler(struct stacking_args *args) {
 
 	fits stacked = { 0 };
 	rc = mpp_stack_apply(args->seq, run->cfg, run, &stacked);
+	if (rc == MPP_EINTR) {
+		siril_log_message(_("Stack (mpp): cancelled by user.\n"));
+		clearfits(&stacked);
+		mpp_run_free(run);
+		args->retval = ST_GENERIC_ERROR;
+		gui_iface.set_progress(PROGRESS_DONE, _("Cancelled"));
+		return ST_GENERIC_ERROR;
+	}
 	if (rc != MPP_OK) {
 		siril_log_error(_("Stack (mpp): Stage C failed (code %d)\n"), rc);
 		clearfits(&stacked);

@@ -34,6 +34,7 @@ extern "C" {
 #include "core/proto.h"
 #include "core/gui_iface.h"
 #include "core/OS_utils.h"
+#include "core/processing.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
@@ -426,13 +427,18 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * GaussianBlur, Laplace) runs concurrently. Pattern + guard mirror
 	 * shift_methods.c:432 — anything fits-backed needs cfitsio's
 	 * fits_is_reentrant() flag. */
+	int cancelled = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(pass1_threads) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 	for (int i = 0; i < N; ++i) {
-		if (g_atomic_int_get(&read_failed)) continue;
+		if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
+		if (!processing_should_continue()) {
+			g_atomic_int_set(&cancelled, 1);
+			continue;
+		}
 		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
 		if (mono.empty()) {
 			g_atomic_int_set(&read_failed, 1);
@@ -445,6 +451,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		g_atomic_int_inc(&cur_nb);
 		gui_iface.set_progress(MPP_PROG_READ_END * (double) cur_nb / (double) N, NULL);
 	}
+	if (cancelled) return MPP_EINTR;
 	if (read_failed) return MPP_EIO;
 
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
@@ -485,6 +492,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * no blur cache to begin with). */
 	blurred_frames.clear();
 	blurred_frames.shrink_to_fit();
+	if (align.best_frame_idx < 0) return MPP_EINTR;   /* cancellation sentinel */
 	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
 	stage_progress_range gp_avg{MPP_PROG_GLOBAL_END,
 	                            MPP_PROG_AVERAGE_END - MPP_PROG_GLOBAL_END};
@@ -496,6 +504,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	    : mpp::align_average_frame_streamed(raw_provider, N, frame_rows, frame_cols,
 	                                        q_rank, align.shifts, *cfg,
 	                                        stage_progress_cb, &gp_avg);
+	if (avg.mean_frame.empty()) return MPP_EINTR;
 	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
 	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, *cfg);
@@ -516,6 +525,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	                                               *aps, offsets,
 	                                               frame_rows, frame_cols, *cfg,
 	                                               stage_progress_cb, &gp_qual);
+	if (apq.stack_size <= 0) { mpp_ap_free(aps); return MPP_EINTR; }
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) { mpp_ap_free(aps); return MPP_ENOMEM; }
@@ -610,6 +620,10 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	    provider, run->num_frames, mean_raw, *run->aps, apq, offsets,
 	    *cfg, run->included);
 	if (!shifts) return MPP_ENOMEM;
+	if (shifts->failure_counter == -1) {   /* cancellation sentinel */
+		mpp_shift_free(shifts);
+		return MPP_EINTR;
+	}
 	if (run->shifts) mpp_shift_free(run->shifts);
 	run->shifts = shifts;
 	return MPP_OK;
@@ -773,6 +787,7 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	    provider, run->num_frames, num_layers, *run->aps, apq,
 	    run->shifts, offsets, frame_brightness, sorted_idx,
 	    intersection, *cfg, run->included);
+	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);
 
@@ -886,13 +901,18 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		analysis_frames.resize(N);
 		int cur_nb = 0;
 		int read_failed = 0;
+		int cancelled = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(preread_threads) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 		for (int i = 0; i < N; ++i) {
-			if (g_atomic_int_get(&read_failed)) continue;
+			if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
+			if (!processing_should_continue()) {
+				g_atomic_int_set(&cancelled, 1);
+				continue;
+			}
 			cv::Mat mono = mpp::read_analysis_frame(seq, i);
 			if (mono.empty()) {
 				g_atomic_int_set(&read_failed, 1);
@@ -902,6 +922,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 			g_atomic_int_inc(&cur_nb);
 			gui_iface.set_progress(0.5 * (double) cur_nb / (double) N, NULL);
 		}
+		if (cancelled)  return MPP_EINTR;
 		if (read_failed) return MPP_EIO;
 	}
 
@@ -921,6 +942,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	          N, frame_brightness, *run->aps, offsets,
 	          run->frame_rows, run->frame_cols, *run->cfg,
 	          stage_progress_cb, &rp);
+	if (apq.stack_size <= 0) return MPP_EINTR;
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
 	const size_t total = (size_t) run->aps->count * (size_t) stack_size;
@@ -1223,6 +1245,11 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		                       stage_a_only ? _("Analyze: ranking frames")
 		                                    : _("Register: ranking frames"));
 		const int rc_a = mpp_analyze(regargs->seq, &cfg, &run);
+		if (rc_a == MPP_EINTR) {
+			siril_log_message(_("mpp: Stage A cancelled by user.\n"));
+			gui_iface.set_progress(PROGRESS_DONE, _("Cancelled"));
+			return rc_a;
+		}
 		if (rc_a != MPP_OK) {
 			siril_log_error(_("mpp: Stage A failed (code %d)\n"), rc_a);
 			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
@@ -1268,6 +1295,12 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	siril_log_message(_("mpp: Stage B — per-AP per-frame shifts\n"));
 	gui_iface.set_progress(PROGRESS_RESET, _("Register: computing per-AP shifts"));
 	const int rc_b = mpp_compute_shifts(regargs->seq, &cfg, run);
+	if (rc_b == MPP_EINTR) {
+		siril_log_message(_("mpp: Stage B cancelled by user.\n"));
+		gui_iface.set_progress(PROGRESS_DONE, _("Cancelled"));
+		if (run_owned) mpp_run_free(run);
+		return rc_b;
+	}
 	if (rc_b != MPP_OK) {
 		siril_log_error(_("mpp: Stage B failed (code %d)\n"), rc_b);
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));

@@ -29,6 +29,9 @@ extern "C" {
 #include "registration/mpp_shift.h"
 }
 
+cominfo com;
+fits *gfit = nullptr;
+
 namespace {
 
 mpp_config_t default_cfg() {
