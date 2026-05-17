@@ -9454,7 +9454,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <child>
                                                             <object class="GtkComboBoxText" id="combo_mpp_driz_kernel">
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">dobox resample kernel. Only applies to STScI / Bayer drizzle modes. 'turbo' is the default — same wall-clock cost as bicubic-2x with no measurable quality difference vs square on representative planetary fixtures. 'square' is the canonical pixel-area kernel; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further on high-frequency content but may ring on hard edges and is significantly slower.</property>
+                                                            <property name="tooltip-text" translatable="yes">Resample kernel used to produce the upscaled stack. 'turbo' is the default — same wall-clock cost as bicubic-2x with no measurable quality difference vs square on representative planetary fixtures. 'square' is the canonical pixel-area kernel; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further on high-frequency content but may ring on hard edges and is significantly slower. 'upscale' is NOT a real drizzle kernel — it routes through a plain cv::resize bicubic upscale and is a reliable fallback for rare cases where true drizzle resonates on fine high-contrast structure such as Saturn's rings or a sharp planetary terminator.</property>
                                                             <property name="active">3</property>
                                                             <items>
                                                             <item translatable="yes">square</item>
@@ -9463,6 +9463,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <item translatable="yes">turbo</item>
                                                             <item translatable="yes">lanczos2</item>
                                                             <item translatable="yes">lanczos3</item>
+                                                            <item translatable="yes">upscale</item>
                                                             </items>
                                                             </object>
                                                             <packing>

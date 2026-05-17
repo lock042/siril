@@ -95,6 +95,12 @@ enum mpp_drizzle_kernel {
 	MPP_KERNEL_TURBO    = 3,
 	MPP_KERNEL_LANCZOS2 = 4,
 	MPP_KERNEL_LANCZOS3 = 5,
+	/* Not a real drizzle kernel — when picked, mpp_stack_apply
+	 * routes through the cv::resize bicubic path instead of dobox.
+	 * Reliable fallback for rare cases where true drizzle produces
+	 * resonance / ringing on fine high-contrast structure (Saturn's
+	 * rings, planetary terminator edges). */
+	MPP_KERNEL_UPSCALE  = 6,
 };
 
 typedef struct mpp_config mpp_config_t;

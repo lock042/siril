@@ -14619,6 +14619,7 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		else if (!g_ascii_strcasecmp(v, "turbo"))    cfg->drizzle_kernel = MPP_KERNEL_TURBO;
 		else if (!g_ascii_strcasecmp(v, "lanczos2")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS2;
 		else if (!g_ascii_strcasecmp(v, "lanczos3")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS3;
+		else if (!g_ascii_strcasecmp(v, "upscale"))  cfg->drizzle_kernel = MPP_KERNEL_UPSCALE;
 		else return MPP_FLAG_INVALID_VALUE;
 		return MPP_FLAG_OK;
 	}

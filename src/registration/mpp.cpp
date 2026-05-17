@@ -683,8 +683,10 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 * by sequence input type — Bayer SER goes through the CFA-aware
 	 * stack_apply_bayer, everything else through stack_apply_stsci which
 	 * handles mono and multi-channel input alike. The legacy bicubic
-	 * (cv::resize) path stays available only for scale == 1, where it is
-	 * effectively a no-op upscale and the dobox cost would be unnecessary.
+	 * (cv::resize) path stays available as the MPP_KERNEL_UPSCALE
+	 * fallback — true drizzle can occasionally resonate on fine
+	 * high-contrast structure (Saturn's rings is the canonical case)
+	 * and a plain interpolation upscale sidesteps that.
 	 *
 	 * cfg->drizzle_mode is still honoured if explicitly set (sidecar /
 	 * scripts), so callers can pin a specific path; the default of
@@ -692,8 +694,14 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const double scale = cfg->drizzle_scale;
 	int mode = cfg->drizzle_mode;
 	if (scale > 1.001 && mode == MPP_DRIZZLE_OFF) {
-		const mpp_input_type t = mpp_classify_sequence_input(seq);
-		mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
+		if (cfg->drizzle_kernel == MPP_KERNEL_UPSCALE) {
+			/* Stay on MPP_DRIZZLE_OFF — falls through to the cv::resize
+			 * bicubic path below, which already handles K = round(scale)
+			 * upscale and auto-debayers CFA SER inputs. */
+		} else {
+			const mpp_input_type t = mpp_classify_sequence_input(seq);
+			mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
+		}
 	}
 	/* Pre-flight memory check. All Stack paths stream sequentially —
 	 * the dobox wrappers and the bicubic loop below both hold one

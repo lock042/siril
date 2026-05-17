@@ -275,7 +275,7 @@ static void start_stacking() {
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
 		cfg->drizzle_pixfrac = gtk_spin_button_get_value(mpp_pixfrac);
 		const int k = gtk_combo_box_get_active(mpp_driz_kernel_combo);
-		cfg->drizzle_kernel = (k >= 0 && k <= MPP_KERNEL_LANCZOS3) ? k : MPP_KERNEL_TURBO;
+		cfg->drizzle_kernel = (k >= 0 && k <= MPP_KERNEL_UPSCALE) ? k : MPP_KERNEL_TURBO;
 		params->mpp_cfg = cfg;
 	}
 
