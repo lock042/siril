@@ -28,16 +28,14 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
-#include "gui/utils.h"
+#include "core/gui_iface.h"
 #include "core/siril_update.h"
+#include "algos/photometric_cc.h" /* spcc_mirrors, initialize_spcc_mirrors */
 
 #if defined(HAVE_LIBCURL)
 #include "yyjson.h"
 #include "core/siril_networking.h"
 #include "core/processing.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
@@ -49,7 +47,7 @@
 
 #endif
 
-extern gchar** spcc_mirrors;
+/* spcc_mirrors is declared in algos/photometric_cc.h (included above) */
 
 // ============================================================================
 // UTILITY FUNCTIONS - Independent of libcurl
@@ -151,6 +149,7 @@ int compare_version(version_number v1, version_number v2) {
 				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
 				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
 				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
+				if (v2.beta_version && !v1.rc_version && !v1.beta_version) return 1;
 
 				/* check for patched version */
 				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
@@ -172,25 +171,8 @@ int compare_version(version_number v1, version_number v2) {
 
 #if defined(HAVE_LIBCURL)
 
-static version_number get_last_version_number(gchar *version_str) {
-	gchar **v;
-	version_number version = { 0 };
-
-	v = g_strsplit_set(version_str, ".-", -1);
-
-	if (v[0])
-		version.major_version = g_ascii_strtoull(v[0], NULL, 10);
-	if (v[0] && v[1])
-		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
-	if (v[0] && v[1] && v[2])
-		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3]) {
-		remove_alpha(v[3], &version.rc_version, &version.beta_version);
-		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
-	}
-
-	g_strfreev(v);
-	return version;
+static version_number get_last_version_number(const gchar *version_str) {
+	return get_version_number_from_string(version_str);
 }
 
 static gboolean siril_update_get_highest(yyjson_doc *doc,
@@ -322,10 +304,14 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 				*build_comment = g_strdup(yyjson_get_str(comment));
 			}
 
-			// Parse release date
-			gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
-			GDateTime *datetime = g_date_time_new_from_iso8601(str, NULL);
-			g_free(str);
+			// Parse release date: try full ISO8601 first (e.g. "2024-01-15T00:00:00Z"),
+			// then fall back to appending midnight UTC for bare date strings ("2024-01-15").
+			GDateTime *datetime = g_date_time_new_from_iso8601(release_date, NULL);
+			if (!datetime) {
+				gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
+				datetime = g_date_time_new_from_iso8601(str, NULL);
+				g_free(str);
+			}
 
 			if (datetime) {
 				*release_timestamp = g_date_time_to_unix(datetime);
@@ -392,7 +378,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	guint z = last_version_available.micro_version;
 	if (x == 0 && y == 0 && z == 0) {
 		if (*verbose)
-			msg = siril_log_message(_("No update check: cannot fetch version file\n"));
+			msg = siril_log_warning(_("No update check: cannot fetch version file\n"));
 	} else {
 		if (compare_version(current_version, last_version_available) < 0) {
 			gchar *url = NULL;
@@ -445,14 +431,14 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	gint build_revision = 0;
 	gchar *msg = NULL;
 	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
+	SirilMessageType message_type = SIRIL_MSG_ERROR;
 
 	// Parse JSON
 	yyjson_read_err err = { 0 };
-	yyjson_doc *doc = yyjson_read(args->content, strlen(args->content), 0);
+	yyjson_doc *doc = yyjson_read_opts(args->content, strlen(args->content), 0, NULL, &err);
 	if (!doc) {
-		g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC,
-				   args->url, err.msg);
+		g_printerr("%s: parsing of %s failed: %s at position %zu\n", G_STRFUNC,
+				   args->url, err.msg, err.pos);
 		return NULL;
 	}
 
@@ -460,15 +446,15 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
 		msg = check_version(last_version, &(args->verbose), &data);
-		message_type = GTK_MESSAGE_INFO;
+		message_type = SIRIL_MSG_INFO;
 	} else {
-		msg = siril_log_message(_("Cannot fetch version file\n"));
+		msg = siril_log_warning(_("Cannot fetch version file\n"));
 	}
 
 	if (args->verbose) {
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
+			gui_iface.data_dialog(message_type, _("Software Update"), msg, data);
 		}
 	}
 
@@ -485,10 +471,10 @@ static gboolean end_update_idle(gpointer p) {
 		check_update_version(args);
 
 	/* free data */
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -503,13 +489,13 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 	// Parse JSON from string using yyjson
 	yyjson_doc *doc = yyjson_read(jsonString, strlen(jsonString), YYJSON_READ_NOFLAG);
 	if (!doc) {
-		siril_log_color_message(_("Error parsing JSON from URL: Failed to parse JSON\n"), "red");
+		siril_log_error(_("Error parsing JSON from URL: Failed to parse JSON\n"));
 		return 1;
 	}
 
 	yyjson_val *root = yyjson_doc_get_root(doc);
 	if (!yyjson_is_obj(root) && !yyjson_is_arr(root)) {
-		siril_log_color_message(_("Error parsing JSON from URL: JSON root is not an object or array\n"), "red");
+		siril_log_error(_("Error parsing JSON from URL: JSON root is not an object or array\n"));
 		yyjson_doc_free(doc);
 		return 1;
 	}
@@ -527,7 +513,7 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 	} else if (yyjson_is_obj(root)) {
 		length = 1;  // Single object as message
 	} else {
-		siril_log_color_message(_("Error parsing JSON from URL: Invalid root JSON structure\n"), "red");
+		siril_log_error(_("Error parsing JSON from URL: Invalid root JSON structure\n"));
 		yyjson_doc_free(doc);
 		g_date_time_unref(currentTime);
 		return 1;
@@ -537,7 +523,7 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 	for (size_t i = 0; i < length; i++) {
 		yyjson_val *message = (!yyjson_is_arr(root)) ? root : yyjson_arr_get(messages, i);
 		if (!yyjson_is_obj(message)) {
-			siril_log_color_message(_("Error parsing JSON from URL: Message is not a valid object\n"), "red");
+			siril_log_error(_("Error parsing JSON from URL: Message is not a valid object\n"));
 			continue;
 		}
 
@@ -548,7 +534,7 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 		yyjson_val *priority_val = yyjson_obj_get(message, "priority");
 
 		if (!validFromStr || !validToStr || !messageStr || !priority_val || !yyjson_is_int(priority_val)) {
-			siril_log_color_message(_("Error parsing JSON from URL: Required fields missing or invalid\n"), "red");
+			siril_log_error(_("Error parsing JSON from URL: Required fields missing or invalid\n"));
 			continue;
 		}
 
@@ -556,7 +542,7 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 		GDateTime *validFrom = g_date_time_new_from_iso8601(validFromStr, NULL);
 		GDateTime *validTo = g_date_time_new_from_iso8601(validToStr, NULL);
 		if (!validFrom || !validTo) {
-			siril_log_color_message(_("Error parsing JSON from URL: Invalid ISO8601 date format\n"), "red");
+			siril_log_error(_("Error parsing JSON from URL: Invalid ISO8601 date format\n"));
 			if (validFrom) g_date_time_unref(validFrom);
 			if (validTo) g_date_time_unref(validTo);
 			continue;
@@ -625,19 +611,23 @@ static gboolean end_notifier_idle(gpointer p) {
 		goto end_notifier_idle_error;
 	GSList *validNotifications = NULL;
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.show_panel("output_logs", TRUE);
 
 	// Fetch and parse JSON file from URL and populate validNotifications list
 	if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
-		siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
+		siril_log_error(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
 		goto end_notifier_idle_error;
 	}
 
 	// Print and then free valid notifications
 	for (GSList *iter = validNotifications; iter; iter = iter->next) {
 		notification *notif = (notification *) iter->data;
-		char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
-		siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, notif->messageString->str);
+		if (notif->status == 1)
+			siril_log_info(_("*** SIRIL NOTIFICATION ***\n%s\n"), notif->messageString->str);
+		else if (notif->status == 2)
+			siril_log_warning(_("*** SIRIL NOTIFICATION ***\n%s\n"), notif->messageString->str);
+		else
+			siril_log_error(_("*** SIRIL NOTIFICATION ***\n%s\n"), notif->messageString->str);
 
 		// Free allocated memory for notification
 		g_string_free(notif->messageString, TRUE);
@@ -647,18 +637,18 @@ static gboolean end_notifier_idle(gpointer p) {
 
 end_notifier_idle_error:
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
 
 void siril_check_updates(gboolean verbose) {
 	if (!is_online()) {
-		siril_log_color_message(_("Error: Siril is in offline mode, cannot check updates.\n"), "red");
+		siril_log_error(_("Error: Siril is in offline mode, cannot check updates.\n"));
 		return;
 	}
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
@@ -667,9 +657,9 @@ void siril_check_updates(gboolean verbose) {
 	args->verbose = verbose;
 	args->idle_function = end_update_idle;
 
-	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for updates..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-update", fetch_url_async, args);
@@ -682,14 +672,14 @@ void siril_check_notifications(gboolean verbose) {
 	GString *url = g_string_new(GITLAB_URL);
 	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);
-	siril_debug_print("Notification URL: %s\n", args->url);
+	siril_log_debug("Notification URL: %s\n", args->url);
 	args->content = NULL;
 	args->verbose = verbose;
 	args->idle_function = end_notifier_idle;
-	siril_debug_print("Checking notifications...\n");
-	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
+	siril_log_debug("Checking notifications...\n");
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for notifications..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-notifications", fetch_url_async, args);
@@ -706,20 +696,20 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	// Parse JSON from string using yyjson
 	yyjson_doc *doc = yyjson_read(jsonString, strlen(jsonString), YYJSON_READ_NOFLAG);
 	if (!doc) {
-		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Failed to parse JSON\n"), "red");
+		siril_log_error(_("Error parsing SPCC mirrors JSON: Failed to parse JSON\n"));
 		return 1;
 	}
 
 	yyjson_val *root = yyjson_doc_get_root(doc);
 	if (!yyjson_is_arr(root)) {
-		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Root is not an array\n"), "red");
+		siril_log_error(_("Error parsing SPCC mirrors JSON: Root is not an array\n"));
 		yyjson_doc_free(doc);
 		return 1;
 	}
 
 	size_t length = yyjson_arr_size(root);
 	if (length == 0) {
-		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Empty array\n"), "red");
+		siril_log_error(_("Error parsing SPCC mirrors JSON: Empty array\n"));
 		yyjson_doc_free(doc);
 		return 1;
 	}
@@ -732,7 +722,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	for (size_t i = 0; i < length; i++) {
 		yyjson_val *mirror = yyjson_arr_get(root, i);
 		if (!yyjson_is_obj(mirror)) {
-			siril_log_color_message(_("Error parsing SPCC mirrors JSON: Entry is not a valid object\n"), "red");
+			siril_log_error(_("Error parsing SPCC mirrors JSON: Entry is not a valid object\n"));
 			continue;
 		}
 
@@ -741,7 +731,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 		const char *description = yyjson_get_str(yyjson_obj_get(mirror, "description"));
 
 		if (!url || !description) {
-			siril_log_color_message(_("Error parsing SPCC mirrors JSON: Required fields missing\n"), "red");
+			siril_log_error(_("Error parsing SPCC mirrors JSON: Required fields missing\n"));
 			continue;
 		}
 
@@ -749,7 +739,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 		spcc_mirrors[valid_count] = g_strdup(url);
 		valid_count++;
 
-		siril_debug_print("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
+		siril_log_debug("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
 	}
 
 	// Clean up
@@ -758,7 +748,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	if (valid_count == 0) {
 		g_strfreev(spcc_mirrors);
 		spcc_mirrors = NULL;
-		siril_log_color_message(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"), "red");
+		siril_log_error(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"));
 		return 1;
 	}
 	return 0;
@@ -776,35 +766,35 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	GError *error = NULL;
 
 	if (g_file_set_contents(spcc_mirror_path, args->content, -1, &error)) {
-		siril_debug_print("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
+		siril_log_debug("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
 	} else {
 		// Handle error
-		siril_debug_print("Failed to write spcc_mirrors.json file: %s\n", error->message);
+		siril_log_debug("Failed to write spcc_mirrors.json file: %s\n", error->message);
 		g_error_free(error);
 	}
 
 	// Parse JSON file and populate spcc_mirrors
 	if (parseJsonSpccMirrors(args->content) != 0) {
-		siril_log_color_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"), "red");
+		siril_log_error(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
 		goto end_spcc_mirrors_error;
 	}
 	spcc_mirrors_checked = TRUE;
 	/* pre-check the Gaia archive status */
-	check_gaia_archive_status();
+	gui_iface.check_gaia_status();
 
 end_spcc_mirrors_error:
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
 
 void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 	if (spcc_mirrors_checked) { // no need to check more than once per Siril instance
-		siril_debug_print("Skipping SPCC mirror checked, already done since program start\n");
+		siril_log_debug("Skipping SPCC mirror checked, already done since program start\n");
 		return;
 	}
 
@@ -816,20 +806,20 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		GError *error = NULL;
 		if (g_file_get_contents(spcc_mirror_path, &content, &length, &error)) {
 			if (parseJsonSpccMirrors(content))
-				siril_debug_print("Failed to parse spcc_mirrors.json file\n");
+				siril_log_debug("Failed to parse spcc_mirrors.json file\n");
 			else
-				siril_debug_print("Read spcc_mirrors.json file at %s\n", spcc_mirror_path);
+				siril_log_debug("Read spcc_mirrors.json file at %s\n", spcc_mirror_path);
 			g_free(content);
 		} else {
 			// Handle error
-			siril_debug_print("Failed to read spcc_mirrors.json: %s", error->message);
+			siril_log_debug("Failed to read spcc_mirrors.json: %s", error->message);
 			g_error_free(error);
 		}
 	}
 	g_free(spcc_mirror_path);
 
 	if (!is_online()) {
-		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
+		siril_log_error(_("Siril is in offline mode, cannot check SPCC mirrors.\n"));
 		return;
 	}
 	if (!sync) {
@@ -837,7 +827,7 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		GString *url = g_string_new(GITLAB_URL);
 		g_string_append_printf(url, "/%s/%s", BRANCH, SPCC_MIRRORS);
 		args->url = g_string_free(url, FALSE);
-		siril_debug_print("SPCC mirrors URL: %s\n", args->url);
+		siril_log_debug("SPCC mirrors URL: %s\n", args->url);
 		args->content = NULL;
 		args->verbose = verbose;
 		args->idle_function = end_spcc_mirrors_idle;
@@ -856,18 +846,18 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		g_free(url);
 		if (interror || length < 1) {
 			free(content);
-			siril_log_color_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"), "red");
+			siril_log_error(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
 			return;
 		}
 		// Cache the JSON locally
 		gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(),"siril", "spcc_mirrors.json", NULL);
 		GError *error = NULL;
-		siril_debug_print("%s\n", content);
+		siril_log_debug("%s\n", content);
 		if (g_file_set_contents(spcc_mirror_path, content, -1, &error)) {
-			siril_debug_print("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
+			siril_log_debug("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
 		} else {
 			// Handle error
-			siril_debug_print("Failed to write spcc_mirrors.json file: %s\n", error->message);
+			siril_log_debug("Failed to write spcc_mirrors.json file: %s\n", error->message);
 			g_error_free(error);
 			free(content);
 			return;
@@ -875,14 +865,14 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 
 		// Parse JSON file and populate spcc_mirrors
 		if (parseJsonSpccMirrors(content) != 0) {
-			siril_log_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
+			siril_log_error(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
 			free(content);
 			return;
 		}
 		free(content);
 		spcc_mirrors_checked = TRUE;
 		/* pre-check the Gaia archive status */
-		gaia_check(NULL);
+		gui_iface.trigger_gaia_check();
 	}
 }
 

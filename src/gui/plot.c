@@ -81,6 +81,13 @@ static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f"
 static GtkMenu *menu = NULL;
 static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
 static gboolean popup_already_shown = FALSE, has_item3 = TRUE;
+static GtkWindow *plot_control_window = NULL;
+static GtkWidget *plot_aavso_dialog = NULL;
+static GtkEntry *plot_obscode_entry = NULL, *plot_starid_entry = NULL;
+static GtkEntry *plot_cname_entry = NULL, *plot_kname_entry = NULL;
+static GtkEntry *plot_cstd_entry = NULL, *plot_chart_entry = NULL, *plot_notes_entry = NULL;
+static GtkComboBoxText *plot_obstype_combo = NULL, *plot_filter_combo = NULL;
+static GtkComboBoxText *plot_cstar_combo = NULL, *plot_kstar_combo = NULL;
 
 static void formatX(double v, char *buf, size_t bufsz) {
 	char *fmt;
@@ -565,7 +572,7 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 		g_date_time_unref(tsi);
 	} else {
 		julian = (double) image_index + 1; // should not happen
-		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
+		siril_log_debug("no DATE-OBS information for frame %d\n", image_index);
 	}
 	plot->frame[point_index] = (double) image_index + 1;
 
@@ -599,7 +606,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
-				//siril_debug_print("julian0 set to %d\n", julian0);
+				//siril_log_debug("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));
@@ -1017,20 +1024,33 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 
 static void fill_plot_statics() {
 	if (drawingPlot == NULL) {
-		drawingPlot = lookup_widget("DrawingPlot");
-		combo = lookup_widget("plotCombo");
-		comboX = lookup_widget("plotComboX");
-		photometry_output1 = lookup_widget("varCurvePhotometry");
-		photometry_output2 = lookup_widget("exportAAVSO_button");
-		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
-		arcsec = lookup_widget("arcsecPhotometry");
-		julianw = lookup_widget("JulianPhotometry");
-		label_display_plot = lookup_widget("label_display_plot");
-		sourceCombo = lookup_widget("plotSourceCombo");
-		photo_clear_button = lookup_widget("photo_clear_button");
-		buttonClearAll = lookup_widget("clearAllPhotometry");
-		buttonClearLatest = lookup_widget("clearLastPhotometry");
-		layer_selector = lookup_widget("seqlist_dialog_combo");
+		drawingPlot = GTK_WIDGET(gtk_builder_get_object(gui.builder, "DrawingPlot"));
+		combo = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plotCombo"));
+		comboX = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plotComboX"));
+		photometry_output1 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "varCurvePhotometry"));
+		photometry_output2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "exportAAVSO_button"));
+		buttonSaveCSV = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ButtonSaveCSV"));
+		arcsec = GTK_WIDGET(gtk_builder_get_object(gui.builder, "arcsecPhotometry"));
+		julianw = GTK_WIDGET(gtk_builder_get_object(gui.builder, "JulianPhotometry"));
+		label_display_plot = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_display_plot"));
+		sourceCombo = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plotSourceCombo"));
+		photo_clear_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "photo_clear_button"));
+		buttonClearAll = GTK_WIDGET(gtk_builder_get_object(gui.builder, "clearAllPhotometry"));
+		buttonClearLatest = GTK_WIDGET(gtk_builder_get_object(gui.builder, "clearLastPhotometry"));
+		layer_selector = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
+		plot_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+		plot_aavso_dialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "aavso_dialog"));
+		plot_obscode_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "observationcode_entry"));
+		plot_obstype_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "obstype_combo"));
+		plot_starid_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "starid_entry"));
+		plot_cname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "cname_entry"));
+		plot_filter_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "aavso_filter_combo"));
+		plot_kname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "kname_entry"));
+		plot_cstd_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "cstd_entry"));
+		plot_cstar_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "cstar_combo"));
+		plot_kstar_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "kstar_combo"));
+		plot_chart_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "chart_entry"));
+		plot_notes_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "notes_entry"));
 	}
 }
 
@@ -1262,7 +1282,8 @@ static void set_filter(GtkFileChooser *dialog, const gchar *format) {
 }
 
 static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, gchar **, void *), gchar **error, void *ptr) {
-	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	fill_plot_statics();
+	GtkWindow *control_window = plot_control_window;
 	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
 	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
 
@@ -1295,7 +1316,7 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("aavso_dialog"));
+	gtk_widget_hide(plot_aavso_dialog);
 }
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -1304,17 +1325,18 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* temporary code */
 	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
 
-	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("observationcode_entry")));
-	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
-	aavso_ptr->starid = gtk_entry_get_text(GTK_ENTRY(lookup_widget("starid_entry")));
-	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));
-	aavso_ptr->filter = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("aavso_filter_combo")));
-	aavso_ptr->kname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("kname_entry")));
-	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
-	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("cstar_combo")));
-	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("kstar_combo")));
-	aavso_ptr->chart = gtk_entry_get_text(GTK_ENTRY(lookup_widget("chart_entry")));
-	aavso_ptr->notes = gtk_entry_get_text(GTK_ENTRY(lookup_widget("notes_entry")));
+	fill_plot_statics();
+	aavso_ptr->obscode = gtk_entry_get_text(plot_obscode_entry);
+	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(plot_obstype_combo);
+	aavso_ptr->starid = gtk_entry_get_text(plot_starid_entry);
+	aavso_ptr->cname = gtk_entry_get_text(plot_cname_entry);
+	aavso_ptr->filter = gtk_combo_box_text_get_active_text(plot_filter_combo);
+	aavso_ptr->kname = gtk_entry_get_text(plot_kname_entry);
+	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(plot_cstd_entry), NULL);
+	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(plot_cstar_combo));
+	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(plot_kstar_combo));
+	aavso_ptr->chart = gtk_entry_get_text(plot_chart_entry);
+	aavso_ptr->notes = gtk_entry_get_text(plot_notes_entry);
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
@@ -1335,7 +1357,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 		g_free(error);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
-	gtk_widget_hide(lookup_widget("aavso_dialog"));
+	gtk_widget_hide(plot_aavso_dialog);
 
 	set_cursor_waiting(FALSE);
 }
@@ -1352,14 +1374,15 @@ void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void fill_combo_boxes() {
-	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")));
-	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")));
+	fill_plot_statics();
+	gtk_combo_box_text_remove_all(plot_cstar_combo);
+	gtk_combo_box_text_remove_all(plot_kstar_combo);
 	int n = get_number_of_stars(&com.seq);
 
 	for (int i = 1; i < n; i++) {
 		gchar *txt = g_strdup_printf("%d", i);
-		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")), i, NULL, txt);
-		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")), i, NULL, txt);
+		gtk_combo_box_text_insert(plot_cstar_combo, i, NULL, txt);
+		gtk_combo_box_text_insert(plot_kstar_combo, i, NULL, txt);
 
 		g_free(txt);
 	}
@@ -1367,7 +1390,7 @@ static void fill_combo_boxes() {
 
 void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	fill_combo_boxes();
-	gtk_widget_show_all(lookup_widget("aavso_dialog"));
+	gtk_widget_show_all(plot_aavso_dialog);
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
@@ -2004,11 +2027,11 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, const GdkEventButton 
 	if (index < 0) return;
 
 	if (!menu) {
-		menu = GTK_MENU(lookup_widget("menu_plot"));
+		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menu_plot"));
 		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
-		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
-		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
-		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
+		menu_item1 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item3"));
 	}
 	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item1, str);
@@ -2020,7 +2043,7 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, const GdkEventButton 
 		popup_already_shown = TRUE;
 	}
 	if (has_item3) {
-		gtk_container_remove(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		gtk_container_remove(GTK_CONTAINER(menu), GTK_WIDGET(menu_item3));
 		has_item3 = FALSE;
 	}
 	g_free(str);
@@ -2043,16 +2066,16 @@ static void do_popup_selectionmenu(GtkWidget *my_widget, const GdkEventButton *e
 	}
 
 	if (!menu) {
-		menu = GTK_MENU(lookup_widget("menu_plot"));
+		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menu_plot"));
 		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
-		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
-		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
-		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
+		menu_item1 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menu_plot_item3"));
 	}
 	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
 	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
 	if (!has_item3) {
-		gtk_container_add(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		gtk_container_add(GTK_CONTAINER(menu), GTK_WIDGET(menu_item3));
 		has_item3 = TRUE;
 	}
 	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));

@@ -21,6 +21,9 @@
 #include <glib.h>
 #include "mtf.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+void destroy_mtf_data(void *args); /* forward decl */
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 
@@ -184,7 +187,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 
 	// Log the parameters for each channel
 	if (from->naxes[2] == 3) {
-		siril_debug_print("Applying inverse MTF with values:\n"
+		siril_log_debug("Applying inverse MTF with values:\n"
 				"  Red:   %f, %f, %f\n"
 				"  Green: %f, %f, %f\n"
 				"  Blue:  %f, %f, %f\n",
@@ -192,7 +195,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 				params[1].shadows, params[1].midtones, params[1].highlights,
 				params[2].shadows, params[2].midtones, params[2].highlights);
 	} else {
-		siril_debug_print("Applying inverse MTF with values %f, %f, %f\n",
+		siril_log_debug("Applying inverse MTF with values %f, %f, %f\n",
 				params[0].shadows, params[0].midtones, params[0].highlights);
 	}
 
@@ -312,7 +315,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->highlights = 1.0f;
 
-		siril_debug_print("autostretch: (%f, %f, %f)\n",
+		siril_log_debug("autostretch: (%f, %f, %f)\n",
 				result->shadows, result->midtones, result->highlights);
 	} else {
 		for (i = 0; i < nb_channels; ++i) {
@@ -426,7 +429,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
 			results[i].highlights = 1.0;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 	} else {
@@ -443,7 +446,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 
@@ -456,5 +459,83 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 int find_unlinked_midtones_balance_default(fits *fit, struct mtf_params *results) {
 	return find_unlinked_midtones_balance(fit,
 			AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, results);
+}
+
+/* ── MTF data lifecycle (moved from gui/histogram.c) ───────────────────── */
+
+struct mtf_data *create_mtf_data(void) {
+	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	data->linked     = TRUE;
+	data->destroy_fn = destroy_mtf_data;
+	return data;
+}
+
+void destroy_mtf_data(void *args) {
+	if (!args) return;
+	struct mtf_data *data = (struct mtf_data *)args;
+	free(data->seqEntry);
+	free(data);
+}
+
+/* ── MTF processing hooks (moved from gui/histogram.c) ─────────────────── */
+
+gchar *generate_mtf_log_message(const struct mtf_data *data,
+		log_hook_detail detail) {
+	gchar *log_string = NULL;
+	if (!data->linked) {
+		if (detail == SUMMARY) {
+			float mid = (data->uparams[0].midtones + data->uparams[1].midtones + data->uparams[2].midtones) / 3.f;
+			float sh  = (data->uparams[0].shadows   + data->uparams[1].shadows   + data->uparams[2].shadows  ) / 3.f;
+			float hi  = (data->uparams[0].highlights + data->uparams[1].highlights + data->uparams[2].highlights) / 3.f;
+			log_string = g_strdup_printf(_("Unlinked MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"), sh, mid, hi);
+		} else {
+			log_string = g_strdup_printf(
+				_("Unlinked MTF stretch (Ch 0: lo=%.6f, mid=%.6f, hi=%.6f; "
+				  "Ch 1: lo=%.6f, mid=%.6f, hi=%.6f; "
+				  "Ch 2: lo=%.6f, mid=%.6f, hi=%.6f)"),
+				data->uparams[0].shadows, data->uparams[0].midtones, data->uparams[0].highlights,
+				data->uparams[1].shadows, data->uparams[1].midtones, data->uparams[1].highlights,
+				data->uparams[2].shadows, data->uparams[2].midtones, data->uparams[2].highlights);
+		}
+	} else {
+		log_string = g_strdup_printf(_("Linked MTF stretch (mid=%.6f, lo=%.6f, hi=%.6f)"),
+			data->params.midtones, data->params.shadows, data->params.highlights);
+	}
+	return log_string;
+}
+
+gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
+	return generate_mtf_log_message((struct mtf_data *)p, detail);
+}
+
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
+	struct mtf_data *data = (struct mtf_data *)p;
+	return g_strdup_printf(_("Inverse MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
+		data->params.shadows, data->params.midtones, data->params.highlights);
+}
+
+int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	(void)threads;
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data) return 1;
+	if (data->linked)
+		apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
+	else
+		apply_unlinked_mtf_to_fits(fit, fit, data->uparams);
+	if (data->auto_display_compensation)
+		gui_iface.apply_display_icc_compensation((gpointer)fit);
+	return 0;
+}
+
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	(void)threads;
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data) return 1;
+	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
+	return 0;
 }
 

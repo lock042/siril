@@ -32,7 +32,6 @@
 #include "stacking/rejection_float.c"
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 
 float set1[] = { 145, 125, 190, 135, 220, 130, 210, 3, 165, 165, 150, 350, 170, 180, 195, 440, 215, 135, 410, 40, 140, 175 };

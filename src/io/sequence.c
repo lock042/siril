@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -43,12 +42,7 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
-#include "gui/utils.h"
-#include "gui/cut.h"
-#include "gui/callbacks.h"
-#include "gui/message_dialog.h"
-#include "gui/plot.h"
-#include "gui/registration.h"
+#include "core/gui_iface.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -56,21 +50,13 @@
 #endif
 #include "single_image.h"
 #include "image_format_fits.h"
-#include "gui/histogram.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"	// clear_stars_list
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
-#include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"	// for update_stack_interface
+#include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 
 #include "sequence.h"
@@ -92,46 +78,8 @@
  * single images when a sequence is loaded or not.
  */
 
-static void fillSeqAviExport() {
-	char width[6], height[6];
-	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-
-	g_snprintf(width, sizeof(width), "%d", com.seq.rx);
-	g_snprintf(height, sizeof(width), "%d", com.seq.ry);
-	gtk_entry_set_text(widthEntry, width);
-	gtk_entry_set_text(heightEntry, height);
-	if (com.seq.type == SEQ_SER) {
-		GtkEntry *entryAviFps = GTK_ENTRY(lookup_widget("entryAviFps"));
-
-		if (com.seq.ser_file != NULL) {
-			char fps[7];
-
-			if (com.seq.ser_file->fps <= 0.0) {
-				g_snprintf(fps, sizeof(fps), "25.000");
-			} else {
-				g_snprintf(fps, sizeof(fps), "%2.3lf", com.seq.ser_file->fps);
-			}
-			gtk_entry_set_text(entryAviFps, fps);
-		}
-	}
-}
-
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq);
-
-gboolean populate_seqcombo(gpointer user_data) {
-	const gchar *realname = (const gchar*) user_data;
-	control_window_switch_to_tab(IMAGE_SEQ);
-	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
-	gtk_combo_box_text_remove_all(combo_box_text);
-	gchar *rname = g_path_get_basename(realname);
-	gtk_combo_box_text_append(combo_box_text, 0, rname);
-	g_signal_handlers_block_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_text), 0);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	g_free(rname);
-	return FALSE;
-}
+/* fillSeqAviExport and populate_seqcombo moved to gui/gui_iface_impl.c */
 
 /* normalizes sequence name
  * takes a string and
@@ -160,7 +108,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *dirname = g_path_get_dirname(realname);
 	if (!siril_change_dir(dirname, NULL)) {
 		writeinitfile();
-		gui_function(set_GUI_CWD, NULL);
+		gui_iface.set_gui_cwd();
 	}
 	g_free(dirname);
 
@@ -198,7 +146,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *fname = g_path_get_basename(name);
 	if (!set_seq(fname) && !com.script) {
 		/* if it loads, make it selected and only element in the list of sequences */
-		gui_function(populate_seqcombo, realname);
+		gui_iface.populate_seq_combo(realname);
 	}
 	else retval = 1;
 	g_free(fname);
@@ -222,10 +170,10 @@ int check_seq() {
 	sequence **sequences;
 	int i, nb_seq = 0, max_seq = 10;
 
-	siril_log_color_message(_("Checking sequences in the directory: %s.\n"), "blue", com.wd);
+	siril_log_status(_("Checking sequences in the directory: %s.\n"), com.wd);
 
 	if (!com.wd) {
-		siril_log_message(_("Current working directory is not set, aborting.\n"));
+		siril_log_error(_("Current working directory is not set, aborting.\n"));
 		return 1;
 	}
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL) {
@@ -242,7 +190,7 @@ int check_seq() {
 		g_dir_close(dir);
 		return 1;
 	}
-	set_progress_bar_data(NULL, PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, NULL);
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		sequence *new_seq;
@@ -281,7 +229,7 @@ int check_seq() {
 					sequences[nb_seq] = new_seq;
 					current_seq = nb_seq;
 					nb_seq++;
-					siril_debug_print("Found a sequence (number %d) with base name"
+					siril_log_debug("Found a sequence (number %d) with base name"
 							" \"%s\", looking for first and last indexes.\n",
 							nb_seq, basename);
 				}
@@ -308,7 +256,7 @@ int check_seq() {
 			}
 		}
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	g_dir_close(dir);
 
 	if (nb_seq > 0) {
@@ -336,7 +284,7 @@ int check_seq() {
 					continue;
 				}
 			}
-			siril_debug_print(_("sequence %d, found: %d to %d\n"),
+			siril_log_debug(_("sequence %d, found: %d to %d\n"),
 					i + 1, sequences[i]->beg, sequences[i]->end);
 			if (!buildseqfile(sequences[i], 0) && retval) {
 				retval = 0;	// at least one succeeded to be created
@@ -369,7 +317,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
 	GDir* dir = g_dir_open(search_folder, 0, &error);
 	g_free(search_folder);
 	if (error) {
-		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
+		siril_log_error(_("Error opening directory: %s\n"), error->message);
 		g_error_free(error);
 		free(root);
 		return NULL;
@@ -406,7 +354,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
 		g_match_info_free(match_info);
 	}
 	if (n < 2) {
-		siril_log_color_message(_("Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"), "salmon", seqname);
+		siril_log_warning(_("Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"), seqname);
 		free_sequence(new_seq, TRUE);
 		return NULL;
 	}
@@ -420,7 +368,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
 /* Creates a .seq file for one-file sequence passed in argument */
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq) {
 	if (!com.wd) {
-		siril_log_message(_("Current working directory is not set, aborting.\n"));
+		siril_log_error(_("Current working directory is not set, aborting.\n"));
 		return NULL;
 	}
 	int fnlen = strlen(name);
@@ -443,7 +391,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		new_seq->number = ser_file->frame_count;
 		new_seq->type = SEQ_SER;
 		new_seq->ser_file = ser_file;
-		siril_debug_print("Found a SER sequence\n");
+		siril_log_debug("Found a SER sequence\n");
 	}
 #ifdef HAVE_FFMS2
 	else if (!check_for_film_extensions(ext)) {
@@ -461,7 +409,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		new_seq->number = film_file->frame_count;
 		new_seq->type = SEQ_AVI;
 		new_seq->film_file = film_file;
-		siril_debug_print("Found a AVI sequence\n");
+		siril_log_debug("Found a AVI sequence\n");
 	}
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
@@ -495,7 +443,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		new_seq->type = SEQ_FITSEQ;
 		new_seq->fitseq_file = fitseq_file;
 		new_seq->fz = is_fz;
-		siril_debug_print("Found a FITS sequence\n");
+		siril_log_debug("Found a FITS sequence\n");
 	}
 
 	if (new_seq) {
@@ -505,8 +453,8 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 				new_seq = NULL;
 			}
 		} else if (new_seq->type == SEQ_SER) {
-			siril_log_color_message(_("Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
-					"Please convert the SER file into FITS file.\n"), "salmon");
+			siril_log_warning(_("Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
+					"Please convert the SER file into FITS file.\n"));
 		}
 	}
 	return new_seq;
@@ -595,53 +543,7 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 	return TRUE;
 }
 
-static gboolean set_seq_gui(gpointer user_data) {
-	sequence *seq = (sequence *) user_data;
-	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-	set_cutoff_sliders_values();	// update values for contrast sliders for this image
-	int layer = set_layers_for_registration();	// set layers in the combo box for registration
-	update_seqlist(layer);
-	fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-	set_output_filename_to_sequence_name();
-	sliders_mode_set_state(gui.sliders);
-	initialize_display_mode();
-	update_zoom_label();
-	reset_plot(); // reset all plots
-	reset_3stars();
-
-	/* initialize image-related runtime data */
-	set_display_mode();		// display the display mode in the combo box
-	display_filename();		// display filename in gray window
-	gui_function(set_precision_switch, NULL); // set precision on screen
-	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
-	update_reg_interface(FALSE);	// change the registration prereq message
-	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-	adjust_reginfo();		// change registration displayed/editable values
-	update_gfit_histogram_if_needed();
-	adjust_sellabel();
-	fillSeqAviExport();	// fill GtkEntry of export box
-
-	/* update menus */
-	update_MenuItem(NULL);
-	/* update parameters in GUI */
-	set_GUI_CAMERA();
-
-	/* redraw and display image */
-	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
-	gui_function(init_right_tab, NULL);
-
-	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
-	drawPlot();
-	return FALSE;
-}
-
-static void free_cbbt_layers() {
-	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxreglayer"));
-	gtk_combo_box_text_remove_all(cbbt_layers);
-}
+/* set_seq_gui and free_cbbt_layers moved to gui/gui_iface_impl.c */
 
 /* load a sequence and initializes everything that relates */
 gboolean set_seq(gpointer user_data){
@@ -660,16 +562,16 @@ gboolean set_seq(gpointer user_data){
 	int convert = (int)((com.headless));
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = siril_confirm_dialog(_("Deprecated sequence"),
+			convert = gui_iface.confirm_dialog(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
 							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
 		}
 	} else {
-		siril_log_color_message(_("Warning: deprecated sequence. Film sequences are now deprecated "
+		siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
 			"in Siril: some features are disabled and others may crash. Continuing, but "
 							"we strongly encourage you to convert this sequence into a SER file."
-							"SER file format is a simple image sequence format, similar to uncompressed films.\n"), "salmon");
+							"SER file format is a simple image sequence format, similar to uncompressed films.\n"));
 	}
 	if (convert) {
 		close_sequence(FALSE);
@@ -687,7 +589,7 @@ gboolean set_seq(gpointer user_data){
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		if (seq_read_frame(seq, image_to_load, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
-			siril_log_color_message(_("could not load reference image from sequence\n"), "red");
+			siril_log_error(_("could not load reference image from sequence\n"));
 			free_sequence(seq, TRUE);
 			return TRUE;
 		}
@@ -709,7 +611,7 @@ gboolean set_seq(gpointer user_data){
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (!com.script && !com.headless) {
-		execute_idle_and_wait_for_it(set_seq_gui, seq);
+		gui_iface.on_sequence_opened();
 	}
 
 	free(seq);
@@ -723,12 +625,15 @@ gboolean set_seq(gpointer user_data){
 // This function is OK to have GUI calls in it as it is only ever called from GUI functions
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
-	if (!single_image_is_loaded())
+	if (!single_image_is_loaded()) {
+		if (gui_iface.is_preview_active())
+			full_stats_invalidation_from_fit(gfit);
 		save_stats_from_fit(gfit, seq, seq->current);
-	on_clear_roi(); // Always clear a ROI when changing images
+	}
+	gui_iface.clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
-	invalidate_gfit_histogram();
+	gui_iface.invalidate_histogram();
 	undo_flush();
 	close_single_image();
 	g_rw_lock_writer_lock(&gfit->rwlock);
@@ -740,46 +645,47 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	seq->current = index;
 
 	if (load_it && !com.script) {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 			return 1;
 		}
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
 
-		if (gui.sliders != USER) {
-			init_layers_hi_and_lo_values(gui.sliders);
-			sliders_mode_set_state(gui.sliders);
-			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-			set_cutoff_sliders_values();	// update values for contrast sliders for this image
-			set_display_mode();		// display the display mode in the combo box
+		sliders_mode seq_sliders = (sliders_mode)gui_iface.get_sliders_mode();
+		if (seq_sliders != USER) {
+			init_layers_hi_and_lo_values(seq_sliders);
+			gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+			gui_iface.set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+			gui_iface.set_cutoff_sliders_values();	// update values for contrast sliders for this image
+			gui_iface.update_display_mode_state();		// display the display mode in the combo box
 		}
 		if (do_refresh_annotations)
 			refresh_found_objects();
-		remap_all();
-		redraw(REMAP_ALL);
+		gui_iface.remap_all_vports();
+		gui_iface.redraw_image(REMAP_ALL);
 		if (seq->is_variable)
-			clear_previews();
+			gui_iface.clear_previews();
 		else
-			gui_function(redraw_previews, NULL);		// redraw registration preview areas
-		display_filename();		// display filename in gray window
-		gui_function(set_precision_switch, NULL); // set precision on screen
-		adjust_reginfo();		// change registration displayed/editable values
-		update_display_fwhm();
-		update_gfit_histogram_if_needed();
-		set_cursor_waiting(FALSE);
-		reset_3stars();
+			gui_iface.redraw_previews();		// redraw registration preview areas
+		gui_iface.display_filename();		// display filename in gray window
+		gui_iface.set_precision_switch(); // set precision on screen
+		gui_iface.adjust_reginfo();		// change registration displayed/editable values
+		gui_iface.update_display_fwhm();
+		gui_iface.update_histogram();
+		gui_iface.set_busy(FALSE);
+		gui_iface.reset_3stars_gui();
 	} else {
 		/* clearfits was done above; if we're not loading, release the lock now */
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 
-	gui_function(update_MenuItem, NULL);		// initialize menu gui
-	set_GUI_CAMERA();		// update image information
-	sequence_list_change_current();
-	adjust_refimage(index);	// check or uncheck reference image checkbox
+	gui_iface.update_menu_item();		// initialize menu gui
+	gui_iface.set_GUI_CAMERA();		// update image information
+	gui_iface.sequence_list_change_current();
+	gui_iface.adjust_refimage(index);	// check or uncheck reference image checkbox
 
 	return 0;
 }
@@ -922,7 +828,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 				ret = readfits(base, dest, NULL, force_float);
 				free(base);
 				if (ret) {
-					siril_log_message(_("Could not load image %d from sequence %s\n"),
+					siril_log_error(_("Could not load image %d from sequence %s\n"),
 							index, seq->seqname);
 					return 1;
 				}
@@ -931,7 +837,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 		case SEQ_SER:
 			assert(seq->ser_file);
 			if (ser_read_frame(seq->ser_file, index, dest, force_float, com.pref.debayer.open_debayer)) {
-				siril_log_message(_("Could not load frame %d from SER sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from SER sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -939,7 +845,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
 			if (fitseq_read_frame(seq->fitseq_file, index, dest, force_float, thread_id)) {
-				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from FITS sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -949,7 +855,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 		case SEQ_AVI:
 			assert(seq->film_file);
 			if (film_read_frame(seq->film_file, index, dest)) {
-				siril_log_message(_("Could not load frame %d from AVI sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from AVI sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -977,7 +883,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			break;
 	}
 	if (seq->nb_layers > 0 &&  seq->nb_layers != dest->naxes[2]) {
-		siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), "red",
+		siril_log_error(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
@@ -987,7 +893,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	seq->imgparam[index].rx = dest->rx;
 	seq->imgparam[index].ry = dest->ry;
 	if (seq->rx != 0 && seq->ry != 0 && (dest->rx != seq->rx || dest->ry != seq->ry)) {
-		siril_debug_print("sequence detected as containing images of different sizes\n");
+		siril_log_debug("sequence detected as containing images of different sizes\n");
 		seq->is_variable = TRUE;
 	}
 	return 0;
@@ -1006,7 +912,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (readfits_partial(filename, layer, dest, area, do_photometry)) {
-				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
+				siril_log_error(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1014,7 +920,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 		case SEQ_SER:
 			assert(seq->ser_file);
 			if (ser_read_opened_partial_fits(seq->ser_file, layer, index, dest, area)) {
-				siril_log_message(_("Could not load frame %d from SER sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from SER sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1022,7 +928,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
 			if (fitseq_read_partial_fits(seq->fitseq_file, layer, index, dest, area, do_photometry, thread_id)) {
-				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
+				siril_log_error(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1033,7 +939,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			assert(seq->film_file);
 			memset(&tmp_fit, 0, sizeof(fits));
 			if (film_read_frame(seq->film_file, index, &tmp_fit)) {
-				siril_log_message(_("Could not load frame %d from AVI sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from AVI sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1058,7 +964,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (read_fits_metadata_from_path(filename, dest)) {
-				siril_log_message(_("Could not load image %d from sequence %s\n"),
+				siril_log_error(_("Could not load image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1066,7 +972,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 		case SEQ_SER:
 			assert(seq->ser_file);
 			if (ser_metadata_as_fits(seq->ser_file, dest)) {
-				siril_log_message(_("Could not load frame %d from SER sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from SER sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1080,12 +986,12 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 				int status = 0;
 				fits_movabs_hdu(dest->fptr, seq->fitseq_file->hdu_index[index], NULL, &status);
 				if (status) {
-					siril_log_message(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
+					siril_log_error(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
 							index, seq->seqname, status);
 					return 1;
 				}
 				if (read_fits_metadata(dest)) {
-					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+					siril_log_error(_("Could not load frame %d from FITS sequence %s\n"),
 							index, seq->seqname);
 					return 1;
 				}
@@ -1096,7 +1002,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 				dest->fptr = seq->fitseq_file->fptr;
 				if (fitseq_set_current_frame(seq->fitseq_file, index) ||
 						read_fits_metadata(dest)) {
-					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+					siril_log_error(_("Could not load frame %d from FITS sequence %s\n"),
 							index, seq->seqname);
 					return 1;
 				}
@@ -1108,7 +1014,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			assert(seq->film_file);
 			// TODO: do a metadata-only read in films
 			if (film_read_frame(seq->film_file, index, dest)) {
-				siril_log_message(_("Could not load frame %d from AVI sequence %s\n"),
+				siril_log_error(_("Could not load frame %d from AVI sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
@@ -1460,9 +1366,9 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 	len = strlen(basename) + 5 + strlen(prefix);
 	seqname = malloc(len);
 	g_snprintf(seqname, len, "%s%s.seq", prefix, basename);
-	siril_debug_print("Removing %s\n", seqname);
+	siril_log_debug("Removing %s\n", seqname);
 	if (g_unlink(seqname))
-		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
+		siril_log_debug("g_unlink() failed\n"); // removing the seqfile
 	free(seqname);
 	g_free(basename);
 
@@ -1474,9 +1380,9 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 			// filter to leave the images to be up-scaled.
 			char *filename = fit_sequence_get_image_filename_prefixed(
 					seq, prefix, i);
-			siril_debug_print("Removing %s\n", filename);
+			siril_log_debug("Removing %s\n", filename);
 			if (g_unlink(filename))
-				siril_debug_print("g_unlink() failed\n");
+				siril_log_debug("g_unlink() failed\n");
 			free(filename);
 		}
 		break;
@@ -1488,9 +1394,9 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 		len = strlen(basename) + strlen(prefix) + 1;
 		seqname = malloc(len);
 		g_snprintf(seqname, len, "%s%s", prefix, basename);
-		siril_debug_print("Removing %s\n", seqname);
+		siril_log_debug("Removing %s\n", seqname);
 		if (g_unlink(seqname))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 		free(seqname);
 		break;
 	}
@@ -1499,18 +1405,18 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
 		const gchar *star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", prefix);
-		siril_debug_print("Removing %s\n", star_filename);
+		siril_log_debug("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 	}
 }
 
 void remove_prefixed_drizzle_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
 		const gchar *drizzle_filename = get_sequence_cache_filename(seq, i, "drizztmp", "fit", prefix);
-		siril_debug_print("Removing %s\n", drizzle_filename);
+		siril_log_debug("Removing %s\n", drizzle_filename);
 		if (g_unlink(drizzle_filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 	}
 }
 
@@ -1536,7 +1442,7 @@ void initialize_sequence(sequence *seq, gboolean is_zeroed) {
  * (= do it for com.seq) */
 void free_sequence(sequence *seq, gboolean free_seq_too) {
 	if (seq == NULL) return;
-	siril_debug_print("free_sequence(%s)\n", seq->seqname ? seq->seqname : "null name");
+	siril_log_debug("free_sequence(%s)\n", seq->seqname ? seq->seqname : "null name");
 	int layer, j;
 
 	// free regparam
@@ -1692,34 +1598,7 @@ gboolean check_seq_is_variable(const sequence *seq) {
 }
 
 
-gboolean close_sequence_idle(gpointer data) {
-	fprintf(stdout, "closing sequence idle\n");
-	free_cbbt_layers();
-	clear_sequence_list();
-	clear_stars_list(TRUE);
-	reset_3stars();
-	clear_previews();
-	free_reference_image();
-	update_stack_interface(TRUE);
-	adjust_sellabel();
-	update_seqlist(-1);
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
-	/* unselect the sequence in the sequence list if it's not the one
-	 * being loaded */
-	if (!data) { // loading_sequence_from_combo
-		GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
-		gtk_combo_box_set_active(seqcombo, -1);
-	}
-	return FALSE;
-}
-
-static void close_sequence_gui(gboolean loading_sequence_from_combo) {
-	if (com.script || com.python_command)
-		execute_idle_and_wait_for_it(close_sequence_idle,
-				GINT_TO_POINTER(loading_sequence_from_combo));
-	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
-}
+/* close_sequence_idle and close_sequence_gui moved to gui/gui_iface_impl.c */
 
 /* Close the com.seq sequence */
 void close_sequence(int loading_sequence_from_combo) {
@@ -1735,7 +1614,7 @@ void close_sequence(int loading_sequence_from_combo) {
 		initialize_sequence(&com.seq, FALSE);
 
 		if (!com.headless)
-			close_sequence_gui(loading_sequence_from_combo);
+			gui_iface.on_sequence_closed(loading_sequence_from_combo);
 	}
 }
 
@@ -1834,8 +1713,7 @@ gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer) {
 	if (regmax > SHIFT_TRANSFORMATION)
 		return FALSE;
 	else if (regmax == SHIFT_TRANSFORMATION) {
-		siril_log_color_message(_("This operation will use registration data of layer %d\n"),
-				"salmon", reglayer);
+		siril_log_warning(_("This operation will use registration data of layer %d\n"), reglayer);
 	}
 	return TRUE;
 }
@@ -1981,8 +1859,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		/* for photometry ? */
 		if (spsfargs->for_photometry) {
 			if (data->psf->s_mag > 9.0 || !data->psf->phot_is_valid) {
-				siril_log_color_message(_("Photometry analysis failed for image %d (%s)\n"),
-						"salmon", index, psf_error_to_string(error));
+				siril_log_warning(_("Photometry analysis failed for image %d (%s)\n"), index, psf_error_to_string(error));
 			}
 		}
 		// TODO: should we check for error or not?
@@ -1997,7 +1874,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
 			args->area.x = round_to_int(data->psf->xpos - args->area.w*0.5);
 			args->area.y = round_to_int(data->psf->ypos - args->area.h*0.5);
-			siril_debug_print("moving area to %d, %d\n", args->area.x, args->area.y);
+			siril_log_debug("moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
 		if (!args->seq->imgparam[index].date_obs && fit->keywords.date_obs)
@@ -2008,13 +1885,11 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
-			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-						" error %s (use a larger area?)\n"),
-					"red", index, area->x, area->y, psf_error_to_string(error));
+			siril_log_error(_("No star found in the area image %d around %d,%d:"
+						" error %s (use a larger area?)\n"), index, area->x, area->y, psf_error_to_string(error));
 		} else {
-			siril_log_color_message(_("No star found in the area image %d around %d,%d:"
-					" error %s (use 'follow star' option?)\n"),
-				"red", index, area->x, area->y, psf_error_to_string(error));
+			siril_log_error(_("No star found in the area image %d around %d,%d:"
+					" error %s (use 'follow star' option?)\n"), index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
 	if (handle_cfa) {
@@ -2097,7 +1972,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		/* check exposure consistency */
 		if (seq->exposure > 0.0 && data->psf && seq->exposure != data->exposure &&
 				!displayed_warning) {
-			siril_log_color_message(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"), "red");
+			siril_log_error(_("Star analysis does not give consistent results when exposure changes across the sequence.\n"));
 			displayed_warning = TRUE;
 		}
 		seq->exposure = data->exposure;
@@ -2114,10 +1989,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 				psf_star *psf = seq->photometry[photometry_index][j];
 				if (first) {
 					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, j);
-					siril_debug_print("image_index magnitude error fwhm amplitude background\n");
+					siril_log_debug("image_index magnitude error fwhm amplitude background\n");
 					first = FALSE;
 				}
-				siril_debug_print("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+				siril_log_debug("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
 			}
 		}
 
@@ -2158,7 +2033,7 @@ gboolean end_seqpsf(gpointer p) {
 			for (int i = 0; i < seq->nb_layers; i++)
 				has_any_regdata = has_any_regdata || seq->regparam[i];
 			if (!seq->regparam[layer] && has_any_regdata) {
-				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+				write_to_regdata = gui_iface.confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
 			}
@@ -2182,13 +2057,13 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		if (seq->type != SEQ_INTERNAL) {
 			// update the list in the GUI
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+			gui_iface.update_seqlist(layer);
+			gui_iface.fill_sequence_list(seq, layer, FALSE);
 		}
-		set_layers_for_registration();	// update display of available reg data
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
+		gui_iface.set_layers_for_registration();	// update display of available reg data
+		gui_iface.draw_plot();
+		gui_iface.notify_new_photometry();	// switch to and update plot tab
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 proper_ending:
@@ -2196,7 +2071,7 @@ proper_ending:
 		g_slist_free_full(spsfargs->list, free);
 
 	if (seq == &com.seq)
-		adjust_sellabel();
+		gui_iface.adjust_sellabel();
 
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -2238,7 +2113,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	if (framing == REGISTERED_FRAME) {
 		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
 		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
-			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
+			siril_log_error(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"));
 			free(args);
 			free(spsfargs);
 			return 1;
@@ -2246,7 +2121,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 		// transform selection back from current to ref frame coordinates
 		if (seq->current != seq->reference_image) {
 			if (guess_transform_from_H(seq->regparam[layer][seq->current].H) == NULL_TRANSFORMATION) {
-				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"), "red");
+				siril_log_error(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -2254,7 +2129,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
 			if (args->area.x < 0 || args->area.x > seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
-				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				siril_log_error(_("This area is outside of the reference image. Please select the reference image to select another star.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -2263,9 +2138,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	}
 
 	if (framing == FOLLOW_STAR_FRAME)
-		siril_log_color_message(_("The sequence analysis of the PSF will use a sliding selection area centred on the previous found star; this disables parallel processing.\n"), "salmon");
+		siril_log_warning(_("The sequence analysis of the PSF will use a sliding selection area centred on the previous found star; this disables parallel processing.\n"));
 	else if (framing == REGISTERED_FRAME)
-		siril_log_color_message(_("The sequence analysis of the PSF will use registration data to move the selection area for each image; this is compatible with parallel processing.\n"), "salmon");
+		siril_log_warning(_("The sequence analysis of the PSF will use registration data to move the selection area for each image; this is compatible with parallel processing.\n"));
 	args->layer_for_partial = layer;
 	args->regdata_for_partial = framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = !for_registration;
@@ -2298,16 +2173,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 
 void free_reference_image() {
 	fprintf(stdout, "Purging previously saved reference frame data.\n");
-	if (gui.refimage_regbuffer) {
-		free(gui.refimage_regbuffer);
-		gui.refimage_regbuffer = NULL;
-	}
-	if (gui.refimage_surface) {
-		cairo_surface_destroy(gui.refimage_surface);
-		gui.refimage_surface = NULL;
-	}
+	gui_iface.free_reference_image_display();
 	if (com.seq.reference_image == -1)
-		enable_view_reference_checkbox(FALSE);
+		gui_iface.enable_view_reference_checkbox(FALSE);
 }
 
 /* returns the number of images of the sequence that can fit into memory based
@@ -2316,7 +2184,7 @@ static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_l
 	int max_memory_MB = get_max_memory_in_MB();
 
 	if (factor > 3.0) {
-		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
+		siril_log_debug("Info: image scaling is very large! (> 3.0)\n");
 	}
 	uint64_t newx = round_to_int((double) rx * factor);
 	uint64_t newy = round_to_int((double) ry * factor);
@@ -2397,7 +2265,7 @@ gboolean sequence_ref_has_wcs(sequence *seq) {
 	int refidx = sequence_find_refimage(seq);
 	fits ref = { 0 };
 	if (seq_read_frame_metadata(seq, refidx, &ref)) {
-		siril_log_message(_("Could not load reference image\n"));
+		siril_log_error(_("Could not load reference image\n"));
 		return FALSE;
 	}
 	gboolean ret = has_wcs(&ref);
@@ -2415,7 +2283,7 @@ struct wcsprm *get_wcs_ref(sequence *seq) {
 	} else { // we are in GUI with another image loaded or we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &ref)) {
-			siril_log_message(_("Could not load reference image\n"));
+			siril_log_error(_("Could not load reference image\n"));
 			return FALSE;
 		}
 		if (has_wcs(&ref))
@@ -2427,7 +2295,7 @@ struct wcsprm *get_wcs_ref(sequence *seq) {
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	if (!seq->regparam || !seq->regparam[reglayer]) {
-		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
+		siril_log_warning(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
 		return FALSE;
 	}
 	double orig_x = (double)(seq->rx / 2.);
@@ -2439,11 +2307,11 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H, 1.);
 		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
 		if (dist > threshold) {
-			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);
+			siril_log_warning(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), (int)dist, i);
 			return TRUE;
 		}
 	}
-	siril_debug_print("no heavy drift detected\n");
+	siril_log_debug("no heavy drift detected\n");
 	return FALSE;
 }
 
@@ -2516,9 +2384,9 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 				stat(cache_filename, &cachefileInfo))
 			return CACHE_NOT_FOUND;
 		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime - margin) {
-			siril_debug_print("%s is older than %s, removing\n", cache_filename, img_filename);
+			siril_log_debug("%s is older than %s, removing\n", cache_filename, img_filename);
 			if (g_unlink(cache_filename))
-				siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+				siril_log_debug(_("Removed outdated cache file %s failed\n"), cache_filename);
 			return CACHE_OLDER;
 		}
 		return CACHE_NEWER;
@@ -2531,9 +2399,9 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return CACHE_NOT_FOUND;
 	if (cachefileInfo.st_mtime < imgfileInfo.st_mtime) {
-		siril_debug_print("%s is older than %s, removing\n", cache_filename, seqname);
+		siril_log_debug("%s is older than %s, removing\n", cache_filename, seqname);
 		if (g_unlink(cache_filename)) {
-			siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+			siril_log_debug(_("Removed outdated cache file %s failed\n"), cache_filename);
 		}
 		return CACHE_OLDER;
 	}

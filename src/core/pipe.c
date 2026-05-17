@@ -53,7 +53,6 @@
 #include "command_line_processor.h"
 #include "io/single_image.h"
 #include "core/processing_thread.h"
-#include "gui/progress_and_log.h"
 
 #ifdef _WIN32
 LPTSTR lpszPipename_r = TEXT("\\\\.\\pipe\\" PIPE_NAME_R);
@@ -99,7 +98,7 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 			NULL);                    // default security attribute
 	if (hPipe_w == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message(_("Output pipe creation failed with error %d\n"), GetLastError());
+		siril_log_error(_("Output pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 
@@ -116,7 +115,7 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 			NULL);                    // default security attribute
 	if (hPipe_r == INVALID_HANDLE_VALUE)
 	{
-		siril_log_message(_("Input pipe creation failed with error %d\n"), GetLastError());
+		siril_log_error(_("Input pipe creation failed with error %d\n"), GetLastError());
 		return -1;
 	}
 #else
@@ -138,13 +137,13 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 	struct stat st;
 	if (stat(r_path, &st)) {
 		if (mkfifo(r_path, 0666)) {
-			siril_log_message(_("Could not create the named pipe %s\n"), r_path);
+			siril_log_error(_("Could not create the named pipe %s\n"), r_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), r_path);
+		siril_log_error(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), r_path);
 		return -1;
 	}
 
@@ -153,13 +152,13 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 		w_path = w_path_option;
 	if (stat(w_path, &st)) {
 		if (mkfifo(w_path, 0666)) {
-			siril_log_message(_("Could not create the named pipe %s\n"), w_path);
+			siril_log_error(_("Could not create the named pipe %s\n"), w_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), w_path);
+		siril_log_error(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), w_path);
 		return -1;
 	}
 #endif
@@ -296,7 +295,7 @@ void *read_pipe(void *p) {
 		/* try to open the pipe */
 		// will block until the other end is opened
 		if (!ConnectNamedPipe(hPipe_r, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			break;
 		}
 		fprintf(stdout, "opened read pipe\n");
@@ -375,7 +374,7 @@ void *read_pipe(void *p) {
 			r_path = (char *)p;
 		fprintf(stdout, "read pipe %s waiting to be opened...\n", r_path);
 		if ((pipe_fd_r = open(r_path, O_RDONLY)) == -1) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
 		}
@@ -532,7 +531,7 @@ static void *write_pipe(void *p) {
 		fprintf(stdout, "write pipe waiting to be opened...\n");
 		// will block until the other end is opened
 		if (!ConnectNamedPipe(hPipe_w, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			break;
 		}
 #else
@@ -542,7 +541,7 @@ static void *write_pipe(void *p) {
 		fprintf(stdout, "write pipe %s waiting to be opened...\n", w_path);
 		// open will block until the other end is opened
 		if ((pipe_fd_w = open(w_path, O_WRONLY)) == -1) {
-			siril_log_message(_("Could not open the named pipe\n"));
+			siril_log_error(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
 		}

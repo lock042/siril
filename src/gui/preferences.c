@@ -48,6 +48,42 @@
 #include "io/siril_git.h"
 
 #include "preferences.h"
+
+/* ── Language combo (moved from core/siril_language.c) ────────────────────── */
+
+void siril_language_fill_combo(const gchar *language) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	GList *list = g_hash_table_get_keys(siril_language_get_full_list());
+	gboolean lang_changed = FALSE;
+	int i = 1;
+
+	gtk_combo_box_text_remove_all(lang_combo);
+	gtk_combo_box_text_append(lang_combo, 0, _("System Language"));
+
+	list = g_list_sort(list, (GCompareFunc) locale_compare);
+
+	for (GList *l = list; l; l = l->next) {
+		gtk_combo_box_text_append_text(lang_combo, l->data);
+		gchar *locale = extract_locale_from_string(l->data);
+		if (!g_strcmp0(language, locale)) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), i);
+			lang_changed = TRUE;
+		}
+		g_free(locale);
+		i++;
+	}
+	if (!lang_changed)
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), 0);
+	g_list_free(list);
+}
+
+gchar *get_interface_language(void) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0)
+		return g_strdup("");
+	gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
+	return extract_locale_from_string(str);
+}
 #include "filters/starnet.h"
 
 #ifndef W_OK
@@ -143,7 +179,7 @@ static void update_astrometry_preferences() {
 	if (strlen(com.pref.astrometry.default_obscode) != 3 && strlen(com.pref.astrometry.default_obscode) != 0) {
 		g_free(com.pref.astrometry.default_obscode);
 		com.pref.astrometry.default_obscode = NULL;
-		siril_log_color_message(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"), "red");
+		siril_log_error(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"));
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), "");
 	}
 	if (com.pref.astrometry.default_obscode && strlen(com.pref.astrometry.default_obscode) == 0) {
@@ -357,7 +393,7 @@ static void update_color_management_preferences() {
 	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
 	com.pref.icc.pedantic_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_pedantic_linear")));
 	com.icc.rendering_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
-	gui.icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+	com.gui_icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
 	com.pref.icc.autoassignment = 	((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_load"))) * ICC_ASSIGN_ON_LOAD) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stack"))) * ICC_ASSIGN_ON_STACK) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +
@@ -571,7 +607,7 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	dir = gtk_file_chooser_get_filename (swap_dir);
 
 	if (g_access(dir, W_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+		gchar *msg = siril_log_error(_("You don't have permission to write in this directory: %s\n"), dir);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
@@ -592,7 +628,7 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 	path = gtk_file_chooser_get_filename (starnet_exe);
 	printf("%s\n", path);
 	if (g_access(path, X_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to execute this file: %s\n"), "red", path);
+		gchar *msg = siril_log_error(_("You don't have permission to execute this file: %s\n"), path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
@@ -628,7 +664,7 @@ void on_filechooser_starnet_weights_file_set(GtkFileChooserButton *fileChooser, 
 	path = gtk_file_chooser_get_filename (starnet_weights);
 
 	if (g_access(path, R_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to read this file: %s\n"), "red", path);
+		gchar *msg = siril_log_error(_("You don't have permission to read this file: %s\n"), path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(starnet_weights, com.pref.starnet_weights);
@@ -683,7 +719,7 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 //static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
 
 void update_preferences_from_model() {
-	siril_debug_print("updating preferences GUI from settings data\n");
+	siril_log_debug("updating preferences GUI from settings data\n");
 	g_rw_lock_reader_lock(&com.pref_rwlock);
 	preferences *pref = &com.pref;
 	/* tab FITS/SER Debayer */
@@ -954,7 +990,7 @@ static void set_icc_filechooser_directories() {
 }
 
 static void dump_ui_to_global_var() {
-	siril_debug_print("updating settings from preferences GUI\n");
+	siril_log_debug("updating settings from preferences GUI\n");
 	/* tab FITS/SER Debayer */
 	update_debayer_preferences();
 	/* tab FITS Options */
@@ -983,7 +1019,7 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data);
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
-	siril_debug_print("show preferences window: updating it\n");
+	siril_log_debug("show preferences window: updating it\n");
 	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")), "filter_namedstars", "Catalogue");
 	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2")), "filter_unnamedstars", "Catalogue");
 	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3")), "filter_deepstars", "Catalogue");

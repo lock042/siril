@@ -1,4 +1,5 @@
 #ifndef UI_FILES_H
+#include <gtk/gtk.h>
 #define UI_FILES_H
 
 /***************************************************************

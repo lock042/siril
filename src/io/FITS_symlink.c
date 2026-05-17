@@ -38,7 +38,6 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
 
 #include "FITS_symlink.h"
 
@@ -75,8 +74,8 @@ gboolean test_if_symlink_is_ok(gboolean verbose) {
 	DWORD cr = read_registre_value(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
 	if (cr != 1 ) {
 		if (verbose)
-			siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic "
-						"links instead of simply copying files.\n"), "salmon");
+			siril_log_warning(_("You should enable the Developer Mode in order to create symbolic "
+						"links instead of simply copying files.\n"));
 		return FALSE;
 	}
 	return TRUE;
@@ -92,7 +91,7 @@ int symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_
 	GStatBuf dest_stat;
 	if (g_lstat(dest_filename, &dest_stat) == 0) {
 		if (g_unlink(dest_filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 	}
 
 #ifdef _WIN32
@@ -118,7 +117,7 @@ int symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_
 		char err[150];
 		strerror_r(errno, err, 150);
 		if (!warned) {
-			siril_log_color_message(_("Symbolic link could not be made, copying the file. Error: %s\n"), "salmon", err);
+			siril_log_warning(_("Symbolic link could not be made, copying the file. Error: %s\n"), err);
 			warned = TRUE;
 		}
 		retval = copy_fits_from_file(src_filename, dest_filename);

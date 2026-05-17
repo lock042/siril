@@ -26,10 +26,10 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "gui/callbacks.h"
 #include "algos/colors.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
+#include "core/gui_iface.h"
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *
@@ -98,7 +98,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	}
 
 	if (starcount(stars) < 1) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		return -1;
 	}
 
@@ -219,11 +219,11 @@ static int unpurple_filter(struct unpurpleargs *args) {
 	}
 
 	if (fit == gfit && args->applying && !com.script) {
-		populate_roi();
+		gui_iface.populate_roi();
 	}
 
 	if (fit == gfit && args->applying) {
-		siril_log_color_message(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"), "green",
+		siril_log_info(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"),
 								args->mod_b, args->thresh, args->withstarmask);
 	}
 

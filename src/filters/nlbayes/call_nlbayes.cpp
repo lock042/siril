@@ -42,6 +42,7 @@
 extern "C" {
 #include "core/proto.h"
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "io/image_format_fits.h"
@@ -116,10 +117,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     imSize.wh = width * height;
     imSize.whc = width * height * nchans;
 
-    set_progress_bar_data(_("NL-Bayes denoising..."), 0.0);
+    gui_iface.set_progress(0.0, _("NL-Bayes denoising..."));
 
     if(!processing_should_continue()) {
-        siril_debug_print("do_nlbayes: processing_should_continue() returned FALSE\n");
+        siril_log_debug("do_nlbayes: processing_should_continue() returned FALSE\n");
         return EXIT_FAILURE;
     }
     if (do_anscombe) {
@@ -138,7 +139,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       fSigma = (float) intermediate_bgnoise;
       if (fSigma > lastfSigma * 1.01f) {
         // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
-        siril_log_color_message(_("Error: SOS is not converging. Try a smaller value of rho.\n"),"red");
+        siril_log_error(_("Error: SOS is not converging. Try a smaller value of rho.\n"));
         bgr_vout = std::move(bgr_v_orig);
         break;
       }
@@ -158,7 +159,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       }
       // Operate the NL-Bayes algorithm
       if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS) {
-        siril_debug_print("do_nlbayes: runNlBayes returned an error code\n");
+        siril_log_debug("do_nlbayes: runNlBayes returned an error code\n");
         return EXIT_FAILURE;
       }
 
@@ -199,14 +200,14 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       Image guide(bgr_fout, height, width, nchans);
       // DA3D doesn't work if a color image has monochromatic noise
       if (input.channels()>1 && isMonochrome(input)) {
-        siril_log_color_message(_("Warning: input color image has monochromatic noise! Converting to monochrome."), "red");
+        siril_log_error(_("Warning: input color image has monochromatic noise! Converting to monochrome."));
         input = makeMonochrome(input);
         guide = makeMonochrome(guide);
       }
       int retval = 0;
       Image output = DA3D(retval, input, guide, lastfSigma);
       if (retval != 0) {
-        siril_debug_print("do_nlbayes: DA3D returned an error code\n");
+        siril_log_debug("do_nlbayes: DA3D returned an error code\n");
         return EXIT_FAILURE;
       }
       bgr_da3dout = output.data();

@@ -27,8 +27,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #include "noise.h"
 
@@ -37,7 +36,7 @@ static GThread *thread;
 static gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 
 	if (args->display_start_end) {
 		struct timeval t_end;
@@ -54,8 +53,7 @@ gpointer noise_worker(gpointer p) {
 	args->mean_noise = 0.0;
 
 	if (args->display_start_end) {
-		siril_log_color_message(_("Noise standard deviation: calculating...\n"),
-				"green");
+		siril_log_info(_("Noise standard deviation: calculating...\n"));
 		gettimeofday(&args->t_start, NULL);
 	}
 
@@ -89,7 +87,7 @@ gpointer noise_worker(gpointer p) {
 	}
 
 	if (retval) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		args->mean_noise = -1.0;
 	} else {
 		args->mean_noise = args->mean_noise / (double)args->fit->naxes[2];
@@ -119,8 +117,8 @@ void evaluate_noise_in_image() {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
-	set_cursor_waiting(TRUE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.set_busy(TRUE);
+	gui_iface.show_panel("output_logs", TRUE);
 	// Use the command processor
 	process_bgnoise(0);
 }
@@ -129,7 +127,7 @@ void evaluate_noise_in_image() {
 // bgnoise_await() has to be called to free resources
 void bgnoise_async(fits *fit, gboolean display_values) {
 	if (thread) {
-		siril_debug_print("bgnoise request ignored, still running\n");
+		siril_log_debug("bgnoise request ignored, still running\n");
 		return;
 	}
 	struct noise_data *args = calloc(1, sizeof(struct noise_data));

@@ -23,6 +23,7 @@
 #include "algos/fitting.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/cut.h"
 #include "core/siril_date.h"
 #include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
@@ -52,7 +53,7 @@ gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to a
 	return FALSE;
 }
 
-static gboolean reset_cut_gui(gpointer user_data) {
+gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
@@ -91,54 +92,7 @@ static gboolean reset_cut_gui(gpointer user_data) {
 	return FALSE;
 }
 
-void initialize_cut_struct(cut_struct *arg) {
-	arg->fit = gfit;
-	arg->seq = NULL;
-	arg->imgnumber = -1;
-	arg->cut_start.x = -1;
-	arg->cut_start.y = -1;
-	arg->cut_end.x = -1;
-	arg->cut_end.y = -1;
-	arg->cut_wn1.x = -1;
-	arg->cut_wn1.y = -1;
-	arg->cut_wn2.x = -1;
-	arg->cut_wn2.y = -1;
-	arg->cut_measure = FALSE;
-	arg->plot_as_wavenumber = FALSE;
-	arg->wavenumber1 = -1;
-	arg->wavenumber2 = -1;
-	arg->plot_spectro_bg = FALSE;
-	arg->bg_poly_order = 3;
-	arg->tri = FALSE;
-	arg->mode = CUT_MONO;
-	arg->width = 1;
-	arg->step = 1;
-	arg->display_graph = TRUE;
-	g_free(arg->filename);
-	arg->filename = NULL;
-	g_free(arg->title);
-	arg->title = NULL;
-	g_free(arg->user_title);
-	arg->user_title = NULL;
-	arg->title_has_sequence_numbers = FALSE;
-	arg->save_dat = FALSE;
-	arg->save_png_too = FALSE;
-	arg->pref_as = gfit->keywords.wcsdata.pltsolvd;
-	arg->vport = -1;
-	gui_function(reset_cut_gui, NULL);
-}
 
-void free_cut_args(cut_struct *arg) {
-	g_free(arg->filename);
-	arg->filename = NULL;
-	g_free(arg->title);
-	arg->title = NULL;
-	g_free(arg->user_title);
-	arg->user_title = NULL;
-	if (arg != &gui.cut)
-		free(arg);
-	return;
-}
 
 gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 	gchar* str = NULL;
@@ -177,92 +131,6 @@ gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 	return str;
 }
 
-gboolean cut_struct_is_valid(cut_struct *arg) {
-	// define # layers
-	int nb_layers = (arg->seq) ? arg->seq->nb_layers : arg->fit->naxes[2];
-	// checking mutually exclusive choices
-	if (arg->tri && arg->cfa) {
-		siril_log_color_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-	if (arg->tri && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: color plot and tri-profile are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-	if (nb_layers == 1 && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: mono image is loaded: color mode is unavailable.\n"), "red");
-		return FALSE;
-	}
-	if (nb_layers == 1 && arg->vport > 0) {
-		siril_log_color_message(_("Error: mono image is loaded: colored layers cannot be specified.\n"), "red");
-		return FALSE;
-	}
-	if (arg->cfa && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: color plot and CFA mode are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-		if (arg->cut_start.x == arg->cut_end.x && arg->cut_start.y == arg->cut_end.y) {
-		siril_log_message(_("Error: start and finish points are the same.\n"));
-		return FALSE;
-	}
-	if (arg->seq && arg->seq->is_variable) {
-		siril_log_message(_("Error: variable image size in sequence.\n"));
-		return FALSE;
-	}
-
-	// Check args are cromulent
-	int rx = (arg->seq) ? arg->seq->rx : gfit->rx;
-	int ry = (arg->seq) ? arg->seq->ry : gfit->ry;
-
-	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
-		siril_log_message(_("Error: wavenumber points are the same.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber / wavelength for point 1 is not set.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber / wavelength for point 2 is not set.\n"));
-		return FALSE;
-	}
-	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber / wavelength set for point 1 but corresponding location is not set.\n"));
-		return FALSE;
-	}
-	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber / wavelength set for point 2 but corresponding location is not set.\n"));
-		return FALSE;
-	}
-	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) &&
-		(!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
-		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn1.x > rx - 1 || arg->cut_wn2.x > rx - 1 || arg->cut_wn1.y > ry - 1 || arg->cut_wn2.y > ry - 1) {
-		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->cut_start.x > rx - 1 || arg->cut_start.y > ry - 1 || arg->cut_end.x > rx - 1 || arg->cut_end.y > ry - 1) {
-		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->step != 1 && !arg->tri) {
-		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
-		return FALSE;
-	}
-	if (arg->vport < 0 || arg->vport > nb_layers) {
-		siril_log_message(_("Error: layer out of range.\n"));
-		return FALSE;
-	}
-
-	if (arg->bg_poly_order < 1 || arg->bg_poly_order > 6) {
-		siril_log_message(_("Error: background removal polynomial degree should be >= 1 and <= 6.\n"));
-		return FALSE;
-	}
-	return TRUE;
-
-}
 
 double get_conversion_factor(fits *fit) {
 	gboolean unit_is_as = (fit->keywords.focal_length > 0.0) && (fit->keywords.pixel_size_x > 0.0) && (fit->keywords.pixel_size_y == fit->keywords.pixel_size_x);
@@ -305,7 +173,7 @@ void measure_line(fits *fit, point start, point finish, gboolean pref_as) {
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), measurement_buffer);
 		if (deg > 10.0) {
 			control_window_switch_to_tab(OUTPUT_LOGS);
-			siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
+			siril_log_warning(_("Warning: angular measurement > 10º. Error is > 1%\n"));
 		}
 	}
 }
@@ -419,7 +287,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 		} else {
 			timestamp = build_timestamp_filename();
 			*filename = g_strdup_printf("profile_%s", timestamp);
-			siril_debug_print("%s\n", arg->filename);
+			siril_log_debug("%s\n", arg->filename);
 		}
 	}
 	temp = g_path_get_basename(*filename);
@@ -710,7 +578,7 @@ gpointer tri_cut(gpointer p) {
 
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
-		siril_log_color_message("%s\nFit σ: %.2e\n", "blue", coeffs_text, sigma);
+		siril_log_status("%s\nFit σ: %.2e\n", coeffs_text, sigma);
 		g_free(coeffs_text);
 
 		for (int i = 0 ; i < nbr_points ; i++) {
@@ -812,7 +680,7 @@ gpointer cfa_cut(gpointer p) {
 	build_profile_filenames(arg, &filename, &imagefilename);
 	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
-			siril_log_color_message(_("Error: failed to read CFA pattern or invalid found.\n"), "red");
+			siril_log_error(_("Error: failed to read CFA pattern or invalid found.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -823,7 +691,7 @@ gpointer cfa_cut(gpointer p) {
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
-			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			siril_log_error(_("Error: failed to split FITS into CFA sub-patterns.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -831,7 +699,7 @@ gpointer cfa_cut(gpointer p) {
 		}
 	} else {
 		if ((ret = split_cfa_float(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
-			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			siril_log_error(_("Error: failed to split FITS into CFA sub-patterns.\n"));
 			retval = 1;
 			free_siril_plot_data(spl_data);
 			spl_data = NULL;
@@ -1023,15 +891,15 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		cut_struct *p = malloc(sizeof(cut_struct));
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
-			siril_debug_print("Tri-profile\n");
+			siril_log_debug("Tri-profile\n");
 			if (!start_in_new_thread(tri_cut, p))
 				free(p);
 		} else if (p->cfa) {
-			siril_debug_print("CFA profiling\n");
+			siril_log_debug("CFA profiling\n");
 			if (!start_in_new_thread(cfa_cut, p))
 				free(p);
 		} else {
-			siril_debug_print("Single profile\n");
+			siril_log_debug("Single profile\n");
 			if (!start_in_new_thread(cut_profile, p))
 				free(p);
 		}
@@ -1167,7 +1035,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	int sy = (int) gtk_spin_button_get_value(starty);
 	int fx = (int) gtk_spin_button_get_value(finishx);
 	int fy = (int) gtk_spin_button_get_value(finishy);
-	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
+	siril_log_debug("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
 	// Update the struct gui.cut with the entered values
 	// This is all done at once when Apply is clicked rather than individually in the
 	// GtkSpinButton callbacks in order to avoid the endpoints jumping about and the
@@ -1362,8 +1230,7 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	}

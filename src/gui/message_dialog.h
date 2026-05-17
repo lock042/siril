@@ -1,4 +1,5 @@
 #ifndef SRC_MESSAGE_DIALOG_H_
+#include <gtk/gtk.h>
 #define SRC_MESSAGE_DIALOG_H_
 
 #include "core/siril.h"

@@ -33,6 +33,12 @@ static GSList *key_handler_windows = NULL;
 static SirilUIIntro *current_ui = NULL;
 static guint current_timeout_id = 0;
 static gboolean processing_key = FALSE;
+static GtkWindow *intro_control_window = NULL;
+
+static void siril_intro_init_statics(void) {
+	if (intro_control_window) return;
+	intro_control_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+}
 
 /* Structure to keep track of windows and their key handlers */
 typedef struct {
@@ -97,7 +103,8 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
-			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			siril_intro_init_statics();
+			hide_all_except(intro_control_window);
 			go_next = TRUE;
 			go_prev = FALSE;
 		} else if (event->keyval == GDK_KEY_Left && tip_index > 1) {
@@ -105,7 +112,8 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
-			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			siril_intro_init_statics();
+			hide_all_except(intro_control_window);
 			tip_index -= 2; // Go back two steps (one for the previous tip, one to counter the increment)
 			go_next = TRUE;
 			go_prev = TRUE;
@@ -114,7 +122,8 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 			g_free(current_ui);
 			current_ui = NULL;
-			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			siril_intro_init_statics();
+			hide_all_except(intro_control_window);
 			tip_index = G_N_ELEMENTS(intro_tips); // Go at the end, and close everything
 		}
 
@@ -287,7 +296,8 @@ static gboolean intro_popover_close(gpointer user_data) {
 		gtk_style_context_remove_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
 		g_free(ui);
 		current_ui = NULL;
-		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+		siril_intro_init_statics();
+		hide_all_except(intro_control_window);
 		go_next = TRUE;
 	}
 
@@ -298,7 +308,7 @@ static gboolean intro_popover_close(gpointer user_data) {
 static gboolean intro_popover_update(gpointer user_data) {
 	if (go_next) {
 		current_ui = g_new(SirilUIIntro, 1);
-		current_ui->widget = lookup_widget(intro_tips[tip_index].widget);
+		current_ui->widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, intro_tips[tip_index].widget));
 		ensure_widget_and_parents_visible(current_ui->widget);
 		gtk_style_context_add_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 

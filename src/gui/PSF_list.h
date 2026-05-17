@@ -5,8 +5,8 @@
 #include "algos/PSF.h"
 
 void refresh_star_list();
-void clear_stars_list(gboolean refresh_GUI);
-gboolean clear_stars_list_as_idle(gpointer user_data);
+/* clear_stars_list and clear_stars_list_as_idle are in algos/PSF.h */
+void clear_psf_list_display(void); /* GTK star list widget reset, called from impl_clear_star_list */
 void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update);
 void pick_a_star();
 void set_iter_of_clicked_psf(double x, double y);

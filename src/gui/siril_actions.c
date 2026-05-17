@@ -25,7 +25,7 @@
 #include "core/undo.h"
 #include "core/masks.h"
 #include "core/siril_update.h"
-#include "core/siril_cmd_help.h"
+#include "gui/siril_cmd_help.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
@@ -37,6 +37,7 @@
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "compositing/compositing.h"
 #include "filters/synthstar.h"
 #include "gui/about_dialog.h"
@@ -59,6 +60,7 @@
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"
+#include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
 #include "gui/user_polygons.h"
@@ -70,7 +72,7 @@
 #define CHECK_FOR_OPENED_DIALOG \
     do { \
         if (is_a_dialog_opened()) { \
-            siril_message_dialog(GTK_MESSAGE_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
+            gui_iface.message_dialog(SIRIL_MSG_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
             return; \
         } \
     } while (0)
@@ -86,7 +88,7 @@ void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkWidget *w = lookup_widget("livestacking_player");
+	GtkWidget *w = GTK_WIDGET(gtk_builder_get_object(gui.builder, "livestacking_player"));
 
 	gtk_widget_show(w);
 	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
@@ -109,15 +111,15 @@ void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpoin
 }
 
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	undo_display_data(UNDO);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void redo_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	undo_display_data(REDO);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void quit_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
@@ -140,7 +142,7 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 #if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
 #else
-	siril_log_message(_("Cannot check for updates with this version, missing dependency\n"));
+	siril_log_warning(_("Cannot check for updates with this version, missing dependency\n"));
 #endif
 }
 
@@ -152,9 +154,9 @@ static gboolean is_extended = FALSE;
 
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWindow *window;
-	GtkWidget *toolbarbox = lookup_widget("toolbarbox");
-	GtkWidget *control_center_box = lookup_widget("control_center_box");
-	GtkButton *button = GTK_BUTTON(lookup_widget("button_paned"));
+	GtkWidget *toolbarbox = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toolbarbox"));
+	GtkWidget *control_center_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_center_box"));
+	GtkButton *button = GTK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_paned")));
 	gboolean is_control_box_visible;
 	gboolean is_fullscreen;
 
@@ -179,8 +181,8 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+	GtkPaned *paned = GTK_PANED(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_panel")));
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_paned"))))));
 	GtkWidget *widget = gtk_paned_get_child2(paned);
 
 	gboolean is_visible = gtk_widget_is_visible(widget);
@@ -189,7 +191,7 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 
 	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
-		if (gui.icc.iso12646)
+		if (com.gui_icc.iso12646)
 			disable_iso12646_conditions(TRUE, FALSE, TRUE);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
@@ -237,7 +239,7 @@ void tab_logs_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkWidget *w = lookup_widget("toolbarbox");
+	GtkWidget *w = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toolbarbox"));
 	gtk_widget_set_visible(w, !gtk_widget_get_visible(w));
 }
 
@@ -257,10 +259,10 @@ void on_histogram_overlay_activate(GSimpleAction *action, GVariant *parameter, g
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
-		if (gui.icc.iso12646)
+		if (com.gui_icc.iso12646)
 			disable_iso12646_conditions(FALSE, TRUE, TRUE);
 		reset_display_offset();
-		redraw(REDRAW_IMAGE);
+		gui_iface.redraw_image(REDRAW_IMAGE);
 	} else {
 		gui.zoom_value = get_zoom_val();
 	}
@@ -279,14 +281,14 @@ void zoom_fit_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void zoom_in_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_IN);
-	if (gui.icc.iso12646)
+	if (com.gui_icc.iso12646)
 		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
 void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_OUT);
-	if (gui.icc.iso12646)
+	if (com.gui_icc.iso12646)
 		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
@@ -295,16 +297,16 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 	gui.zoom_value = ZOOM_NONE;
 	reset_display_offset();
 	update_zoom_label();
-	redraw(REDRAW_IMAGE);
+	gui_iface.redraw_image(REDRAW_IMAGE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -320,7 +322,7 @@ void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data
 	g_simple_action_set_state(action, state);
 	free(gui.qphot);
 	gui.qphot = NULL;
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -333,11 +335,11 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -351,10 +353,10 @@ static void update_chain_channels_ui(gboolean linked) {
 
 	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps",
 									linked ? "chain-linked.svg" : "chain.svg", NULL);
-	GtkWidget *image = lookup_widget("autostretch_linked_icon");
+	GtkWidget *image = GTK_WIDGET(gtk_builder_get_object(gui.builder, "autostretch_linked_icon"));
 	gtk_image_set_from_resource((GtkImage*) image, name);
 
-	GtkWidget *button = lookup_widget("linked_autostretch_button");
+	GtkWidget *button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "linked_autostretch_button"));
 	gchar *tooltip_text = g_strdup_printf(_("Link/unlink channels in autostretch viewer mode.\nCurrent state: %s."),
 										linked ? _("linked") : _("unlinked"));
 	gtk_widget_set_tooltip_text(button, tooltip_text);
@@ -404,7 +406,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	if (!(com.selection.h && com.selection.w))
 		return;
 	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Current selection is too large"),
+		gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Current selection is too large"),
 				_("To determine the PSF, please make a selection around a star."));
 		return;
 	}
@@ -422,7 +424,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 		return;
 
 	if (!sequence_is_loaded()) {
-		siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
+		siril_log_error(_("Error: no sequence loaded.\n"));
 		return;
 	}
 
@@ -432,11 +434,11 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 	// Validate selection size
 	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_log_color_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"), "red");
+		siril_log_error(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return;
 	}
 	if (com.selection.w <= 0 || com.selection.h <= 0) {
-		siril_log_color_message(_("Select an area first\n"), "red");
+		siril_log_error(_("Select an area first\n"));
 		return;
 	}
 
@@ -445,8 +447,9 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	if (!seq->regparam[layer])
 		framing = ORIGINAL_FRAME;
 	if (framing == ORIGINAL_FRAME) {
-		// com.headless is FALSE, so we execute the GUI path
-		execute_idle_and_wait_for_it(get_followstar_idle, &framing);
+		// com.headless is FALSE, so we can read the toggle directly
+		if (registration_get_follow_star())
+			framing = FOLLOW_STAR_FRAME;
 	}
 
 	// Run PSF
@@ -454,7 +457,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, FALSE) ? 1 : 0;
 
 	if (retval != 0) {
-		siril_log_color_message(_("Error running the PSF on the sequence\n"), "red");
+		siril_log_error(_("Error running the PSF on the sequence\n"));
 	}
 }
 
@@ -487,13 +490,13 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	gui.show_wcs_grid = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -514,10 +517,10 @@ void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	GtkToggleButton *drawframe;
-	drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
+	drawframe = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check")));
 	gtk_toggle_button_set_active(drawframe, g_variant_get_boolean(state));
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -528,12 +531,12 @@ void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (gtk_widget_get_visible(lookup_widget("seqlist_dialog"))) {
+	if (gtk_widget_get_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_dialog")))) {
 		siril_close_dialog("seqlist_dialog");
 	} else {
 		gboolean confirm = TRUE;
 		if (com.seq.current == RESULT_IMAGE) {
-			confirm = siril_confirm_dialog(_("Save your changes before loading a frame of the sequence."),
+			confirm = gui_iface.confirm_dialog(_("Save your changes before loading a frame of the sequence."),
 					_("The image currently displayed is the result of the previous stack. "
 							"If you load an image from the sequence, you might lose the entire process you performed on the image, "
 							"but not the image itself. You need to save your data before doing this."),
@@ -548,10 +551,10 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	computeStat();
 	siril_open_dialog("StatWindow");
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -573,16 +576,16 @@ void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (g_variant_get_boolean(state)) {
 		draw_sensor_tilt(gfit);
 
 	} else {
 		clear_sensor_tilt();
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -595,16 +598,16 @@ void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (!has_wcs(gfit) || !gfit->keywords.wcslib->lin.dispre) {
-		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
+		siril_log_error(_("This command only works on plate solved images with distortions included\n"));
 		return;
 	}
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	gui.show_wcs_disto = g_variant_get_boolean(state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 	g_simple_action_set_state(action, state);
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -713,7 +716,7 @@ void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
 	}
 	siril_open_dialog("rotation_dialog");
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -759,24 +762,24 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch")), "filefilter_fits", "FITS files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"))), "filefilter_fits", "FITS files");
 	siril_open_dialog("linearmatch_dialog");
 }
 
 void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkFileChooserButton *magbutton, *phasebutton;
 
-	magbutton = GTK_FILE_CHOOSER_BUTTON(lookup_widget("filechooser_mag"));
-	phasebutton = GTK_FILE_CHOOSER_BUTTON(lookup_widget("filechooser_phase"));
+	magbutton = GTK_FILE_CHOOSER_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag")));
+	phasebutton = GTK_FILE_CHOOSER_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase")));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(magbutton), com.wd);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(phasebutton), com.wd);
-	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")), "filefilter_fits", "FITS files");
-	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_phase")), "filefilter_fits", "FITS files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag"))), "filefilter_fits", "FITS files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase"))), "filefilter_fits", "FITS files");
 	siril_open_dialog("dialog_FFT");
 }
 
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (single_image_is_loaded() && siril_confirm_dialog(_("Close current image?"), _("Opening the RGB Composition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
+	if (single_image_is_loaded() && gui_iface.confirm_dialog(_("Close current image?"), _("Opening the RGB Composition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
 		close_single_image();
 	}
 	close_sequence(FALSE);
@@ -784,7 +787,7 @@ void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (single_image_is_loaded() && siril_confirm_dialog(_("Close current image?"), _("Opening the Star Recomposition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
+	if (single_image_is_loaded() && gui_iface.confirm_dialog(_("Close current image?"), _("Opening the Star Recomposition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
 		close_single_image();
 	}
 	close_sequence(FALSE);
@@ -877,7 +880,7 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkToggleToolButton *button = (GtkToggleToolButton*) lookup_widget("cut_button");
+	GtkToggleToolButton *button = (GtkToggleToolButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_button"));
 	if (gtk_toggle_tool_button_get_active(button)) {
 		mouse_status = MOUSE_ACTION_CUT_SELECT;
 		siril_open_dialog("cut_dialog");
@@ -936,7 +939,7 @@ void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!gfit || !gfit->mask || !gfit->mask->data) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("No mask present"),
 		                     _("There is no mask to autostretch."));
 		return;
 	}
@@ -966,7 +969,7 @@ void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!gfit || !gfit->mask || !gfit->mask->data) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("No mask present"),
 		                     _("There is no mask to invert."));
 		return;
 	}

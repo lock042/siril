@@ -97,43 +97,8 @@ static void setup_hsl();
 static void clear_hsl();
 static void stretch_dialog_compute_histograms(fits *thefit);
 
-struct mtf_data* create_mtf_data() {
-	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
-	if (!data) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
-	data->destroy_fn = destroy_mtf_data;
-	return data;
-}
-
-struct ght_data* create_ght_data() {
-	struct ght_data *data = calloc(1, sizeof(struct ght_data));
-	if (!data) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-	data->destroy_fn = destroy_ght_data;
-	return data;
-}
-
-void destroy_mtf_data(void *args) {
-	if (!args)
-		return;
-	struct mtf_data *data = (struct mtf_data *)args;
-	free(data->seqEntry);
-	free(data);
-}
-
-void destroy_ght_data(void *args) {
-	if (!args)
-		return;
-	struct ght_data *data = (struct ght_data *)args;
-	free(data->seqEntry);
-	free(data->params_ght);
-	free(data);
-}
+/* create_mtf_data, destroy_mtf_data, create_ght_data, destroy_ght_data
+ * moved to filters/mtf.c and filters/ght.c */
 
 static int get_width_of_histo() {
 	return gtk_widget_get_allocated_width(lookup_widget("drawingarea_histograms"));
@@ -248,30 +213,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 	remove_roi_callback(histo_change_between_roi_and_image);
 }
 
-static void hsl_to_fit (void* h, void* s, void* l) {
-	size_t npixels = fit->rx * fit->ry;
-	if (fit->type == DATA_FLOAT) {
-		float *hf = (float*) h;
-		float* sf = (float*) s;
-		float* lf = (float*) l;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			hsl_to_rgbf(hf[i], sf[i], lf[i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
-		}
-	} else {
-		WORD *hw = (WORD*) h;
-		WORD* sw = (WORD*) s;
-		WORD* lw = (WORD*) l;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			hslw_to_rgbw(hw[i], sw[i], lw[i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
-		}
-	}
-}
 
 static void fit_to_hsl() {
 	size_t npixels = fit->rx * fit->ry;
@@ -316,7 +257,7 @@ static void histo_recompute(gboolean for_preview) {
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_data *data = create_mtf_data();
 		if (!data) {
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -333,7 +274,7 @@ static void histo_recompute(gboolean for_preview) {
 		args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
 			destroy_mtf_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -354,7 +295,7 @@ static void histo_recompute(gboolean for_preview) {
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_data *data = create_ght_data();
 		if (!data) {
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -362,7 +303,7 @@ static void histo_recompute(gboolean for_preview) {
 		data->params_ght = malloc(sizeof(struct ght_params));
 		if (!data->params_ght) {
 			destroy_ght_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -384,7 +325,7 @@ static void histo_recompute(gboolean for_preview) {
 		args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
 			destroy_ght_data(data);
-			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			siril_log_error(_("Memory allocation failed.\n"));
 			return;
 		}
 
@@ -949,139 +890,6 @@ void refresh_histogram_if_visible() {
 		queue_window_redraw();
 }
 
-int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	struct mtf_data *data = (struct mtf_data *)args->user;
-	if (!data)
-		return 1;
-	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
-	return 0;
-}
-
-int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	struct mtf_data *data = (struct mtf_data *)args->user;
-	if (!data)
-		return 1;
-
-	// Apply the MTF transform
-	if (data->linked)
-		apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
-	else
-		apply_unlinked_mtf_to_fits(fit, fit, data->uparams);
-
-	// Handle auto display compensation if requested
-	if (data->auto_display_compensation) {
-		int depth = fit->naxes[2];
-		if (depth == 1) {
-			fits_change_depth(fit, 3);
-			if (fit->type == DATA_FLOAT) {
-				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
-				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
-			} else {
-				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
-				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
-			}
-		}
-
-		// Apply ICC transform to monitor profile
-		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(gui.icc.monitor);
-		siril_colorspace_transform(fit, temp);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(temp);
-		cmsCloseProfile(temp);
-
-		if (depth == 1) {
-			size_t npixels = fit->rx * fit->ry;
-			if (fit->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0; i < npixels; i++) {
-					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) / 3.f;
-				}
-			} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0; i < npixels; i++) {
-					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) / 3;
-				}
-			}
-			fits_change_depth(fit, 1);
-		}
-	}
-
-	return 0;
-}
-
-int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	struct ght_data *data = (struct ght_data *)args->user;
-	if (!data || !data->params_ght)
-		return 1;
-
-	// Apply the GHT transform
-	if (data->params_ght->payne_colourstretchmodel == COL_SAT) {
-		// Process saturation channel
-		if (fit->type == DATA_FLOAT)
-			apply_linked_ght_to_fbuf_indep((float*)satbuf_orig, (float*)satbuf_working,
-				fit->rx * fit->ry, 1, data->params_ght, TRUE);
-		else
-			apply_linked_ght_to_Wbuf_indep((WORD*)satbuf_orig, (WORD*)satbuf_working,
-				fit->rx * fit->ry, 1, data->params_ght, TRUE);
-
-		// Convert back from HSL to RGB
-		hsl_to_fit(huebuf, satbuf_working, lumbuf);
-	} else {
-		apply_linked_ght_to_fits(fit, fit, data->params_ght, TRUE);
-	}
-
-	// Handle auto display compensation if requested
-	if (data->auto_display_compensation) {
-		int depth = fit->naxes[2];
-		if (depth == 1) {
-			fits_change_depth(fit, 3);
-			if (fit->type == DATA_FLOAT) {
-				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
-				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
-			} else {
-				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
-				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
-			}
-		}
-
-		// Apply ICC transform to monitor profile
-		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(gui.icc.monitor);
-		siril_colorspace_transform(fit, temp);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(temp);
-		cmsCloseProfile(temp);
-
-		if (depth == 1) {
-			size_t npixels = fit->rx * fit->ry;
-			if (fit->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0; i < npixels; i++) {
-					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) / 3.f;
-				}
-			} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0; i < npixels; i++) {
-					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) / 3;
-				}
-			}
-			fits_change_depth(fit, 1);
-		}
-	}
-
-	return 0;
-}
 
 gboolean mtf_single_image_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
@@ -1111,7 +919,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 			reset_cursors_and_values(FALSE);
 		}
 	} else {
-		siril_log_color_message(_("MTF processing failed.\n"), "red");
+		siril_log_error(_("MTF processing failed.\n"));
 	}
 
 	// Cleanup
@@ -1148,7 +956,7 @@ gboolean ght_single_image_idle(gpointer p) {
 			reset_cursors_and_values(FALSE);
 		}
 	} else {
-		siril_log_color_message(_("GHT processing failed.\n"), "red");
+		siril_log_error(_("GHT processing failed.\n"));
 	}
 
 	// Cleanup
@@ -1341,103 +1149,6 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 	return FALSE;
 }
 
-static gchar* generate_stretch_log_message(gpointer p, int invocation, log_hook_detail detail) {
-	// TODO: make the detailed string include whether each channel was done
-	gchar *log_string = NULL;
-
-	if (invocation == HISTO_STRETCH) {
-		struct mtf_data *data = (struct mtf_data *)p;
-		if (!data->linked) {
-			if (detail == SUMMARY) {
-				data->params.midtones = (data->uparams[0].midtones + data->uparams[1].midtones + data->uparams[2].midtones) / 3.f;
-				data->params.shadows = (data->uparams[0].shadows + data->uparams[1].shadows + data->uparams[2].shadows) / 3.f;
-				data->params.highlights = (data->uparams[0].highlights + data->uparams[1].highlights + data->uparams[2].highlights) / 3.f;
-				log_string = g_strdup_printf(_("Unlinked MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
-						data->params.shadows, data->params.midtones, data->params.highlights);
-			} else {
-				log_string = g_strdup_printf(_("Unlinked MTF stretch (Ch 0: lo=%.6f, mid=%.6f, hi=%.6f; Ch 1: lo=%.6f, mid=%.6f, hi=%.6f; Ch 2: lo=%.6f, mid=%.6f, hi=%.6f)"),
-						data->uparams[0].shadows, data->uparams[0].midtones, data->uparams[0].highlights,
-						data->uparams[1].shadows, data->uparams[1].midtones, data->uparams[1].highlights,
-						data->uparams[2].shadows, data->uparams[2].midtones, data->uparams[2].highlights);
-			}
-		} else {
-			log_string = g_strdup_printf(_("Linked MTF stretch (mid=%.6f, lo=%.6f, hi=%.6f)"),
-					data->params.midtones, data->params.shadows, data->params.highlights);
-		}
-
-	} else if (invocation == GHT_STRETCH) {
-		struct ght_params *params = (struct ght_params *)p;
-
-		siril_debug_print("Applying generalised hyperbolic stretch (D=%2.6f, B=%2.6f, LP=%2.3f, SP=%2.6f, HP=%2.6f",
-			params->D, params->B, params->LP, params->SP, params->HP);
-
-		if (params->payne_colourstretchmodel != COL_SAT) {
-			switch (params->stretchtype) {
-				case STRETCH_PAYNE_NORMAL:
-					log_string = g_strdup_printf(_("GHS pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->B, params->LP, params->HP);
-					break;
-				case STRETCH_PAYNE_INVERSE:
-					log_string = g_strdup_printf(_("GHS INV pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->B, params->LP, params->HP);
-					break;
-				case STRETCH_ASINH:
-					log_string = g_strdup_printf(_("GHS ASINH pivot: %.6f, amount: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->LP, params->HP);
-					break;
-				case STRETCH_INVASINH:
-					log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.6f, amount: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->LP, params->HP);
-					break;
-				case STRETCH_LINEAR:
-					log_string = g_strdup_printf(_("GHS LINEAR BP: %.6f"), params->BP);
-					break;
-			}
-		} else {
-			switch (params->stretchtype) {
-				case STRETCH_PAYNE_NORMAL:
-					log_string = g_strdup_printf(_("GHS SAT pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->B, params->LP, params->HP);
-					break;
-				case STRETCH_PAYNE_INVERSE:
-					log_string = g_strdup_printf(_("GHS INV SAT pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->B, params->LP, params->HP);
-					break;
-				case STRETCH_ASINH:
-					log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.6f, amount: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->LP, params->HP);
-					break;
-				case STRETCH_INVASINH:
-					log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.6f, amount: %.6f [%.6f %.6f]"),
-						params->SP, params->D, params->LP, params->HP);
-					break;
-				case STRETCH_LINEAR:
-					log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.6f"), params->BP);
-					break;
-			}
-		}
-	}
-	return log_string;
-}
-
-gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
-	struct mtf_data *data = (struct mtf_data*) p;
-	gchar *message = g_strdup_printf(_("Inverse MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
-						data->params.shadows, data->params.midtones, data->params.highlights);
-	return message;
-}
-
-gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
-	struct mtf_data *args = (struct mtf_data*) p;
-	gchar *message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
-	return message;
-}
-
-gchar *ght_log_hook(gpointer p, log_hook_detail detail) {
-	struct ght_data *args = (struct ght_data*) p;
-	gchar *message = generate_stretch_log_message(args->params_ght, GHT_STRETCH, detail);
-	return message;
-}
 
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
@@ -1465,7 +1176,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *args = create_mtf_data();
 			if (!args) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1493,14 +1204,14 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = create_ght_data();
 			if (!args) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
 			args->params_ght = malloc(sizeof(struct ght_params));
 			if (!args->params_ght) {
 				destroy_ght_data(args);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1578,7 +1289,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.auto_display_compensation = FALSE,
 					.is_preview = FALSE
 				};
-				log_string = generate_stretch_log_message(&data, invocation, SUMMARY);
+				log_string = generate_mtf_log_message(&data, SUMMARY);
 
 			} else if (invocation == GHT_STRETCH) {
 				struct ght_params params = {
@@ -1595,12 +1306,12 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 					.do_blue = do_channel[2],
 					.clip_mode = _clip_mode
 				};
-				log_string = generate_stretch_log_message(&params, invocation, SUMMARY);
+				log_string = generate_ght_log_message(&params);
 			}
 
 			if (log_string) {
 				undo_save_state(&undo_fit, log_string);
-				siril_log_color_message("%s\n", "green", log_string);
+				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}
 
@@ -1638,15 +1349,25 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		gchar *log_string = NULL;
 
 		if (invocation == HISTO_STRETCH) {
-			struct mtf_params params = {
-				.midtones = _midtones,
-				.shadows = _shadows,
-				.highlights = _highlights,
-				.do_red = do_channel[0],
-				.do_green = do_channel[1],
-				.do_blue = do_channel[2]
+			struct mtf_data data = {
+					.destroy_fn = NULL,
+					.fit = NULL,
+					.seq = NULL,
+					.linked = TRUE,
+					.params = {
+						.midtones = _midtones,
+						.shadows = _shadows,
+						.highlights = _highlights,
+						.do_red = do_channel[0],
+						.do_green = do_channel[1],
+						.do_blue = do_channel[2]
+					},
+					.uparams = {},
+					.seqEntry = NULL,
+					.auto_display_compensation = FALSE,
+					.is_preview = FALSE
 			};
-			log_string = generate_stretch_log_message(&params, invocation, SUMMARY);
+			log_string = generate_mtf_log_message(&data, SUMMARY);
 
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_params params = {
@@ -1663,12 +1384,12 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				.do_blue = do_channel[2],
 				.clip_mode = _clip_mode
 			};
-			log_string = generate_stretch_log_message(&params, invocation, SUMMARY);
+			log_string = generate_ght_log_message(&params);
 		}
 
 		if (log_string) {
 			undo_save_state(&undo_fit, log_string);
-			siril_log_color_message("%s\n", "green", log_string);
+			siril_log_info("%s\n", log_string);
 			g_free(log_string);
 		}
 
@@ -1678,7 +1399,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *data = create_mtf_data();
 			if (!data) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1695,7 +1416,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				destroy_mtf_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1715,7 +1436,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *data = create_ght_data();
 			if (!data) {
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1723,7 +1444,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			data->params_ght = malloc(sizeof(struct ght_params));
 			if (!data->params_ght) {
 				destroy_ght_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1745,7 +1466,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				destroy_ght_data(data);
-				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				siril_log_error(_("Memory allocation failed.\n"));
 				return;
 			}
 
@@ -1808,7 +1529,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		update_histo_mtf();
 
 		// Set auto display compensation flag and trigger recompute
-		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
+		if (fit->color_managed && !profiles_identical(fit->icc_profile, com.gui_icc.monitor))
 			auto_display_compensation = TRUE;
 
 		update_image *param = malloc(sizeof(update_image));
@@ -1817,7 +1538,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		notify_update((gpointer) param);
 		set_controls_active(FALSE);
 	} else {
-		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
+		siril_log_warning(_("Could not compute autostretch parameters, using default values\n"));
 	}
 
 	set_cursor_waiting(FALSE);
@@ -2144,7 +1865,7 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (_LP > _SP) {
 		gtk_spin_button_set_value(button,_SP);
 		if (!lp_warning_given) { // Prevent spamming the warning log message
-			siril_log_message(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
+			siril_log_warning(_("Shadow preservation point cannot be set higher than stretch focal point\n"));
 			lp_warning_given = TRUE;
 		}
 	}
@@ -2192,7 +1913,7 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 		if (do_channel[chan]) {
 			stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 			if (!stats[chan]) {
-				siril_log_message(_("Error: statistics computation failed.\n"));
+				siril_log_error(_("Error: statistics computation failed.\n"));
 				return;
 			}
 			fprintf(stdout,"channel mean: %f\n", stats[chan]->mean);

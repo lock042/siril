@@ -1,6 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
-bin_PROGRAMS = siril siril-cli
+# siril-cli is always built; siril (GUI) is built only when --enable-gtk
+# is in effect (the default).  When --disable-gtk is used, GTK_CFLAGS,
+# GTKSOURCEVIEW_CFLAGS, GTK_MAC_CFLAGS and their *_LIBS counterparts are
+# all empty (PKG_CHECK_MODULES skipped them), so leaving the variable
+# references in AM_CPPFLAGS / *_LDADD is harmless.
+
+# siril is only built when --enable-gtk is in effect; EXTRA_PROGRAMS keeps
+# automake aware of it so siril_SOURCES are tracked for dist purposes.
+bin_PROGRAMS = siril-cli
+EXTRA_PROGRAMS = siril
+if ENABLE_GTK
+bin_PROGRAMS += siril
+endif
 
 AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR='"$(datadir)/${PACKAGE}"' \
@@ -9,7 +21,12 @@ AM_CPPFLAGS = \
 	${OPENCV_CFLAGS} \
 	$(FFMPEG_CFLAGS) \
 	$(GIO_CFLAGS) \
+	$(GLIB_CFLAGS) \
 	$(JSON_GLIB_CFLAGS) \
+	$(CAIRO_CFLAGS) \
+	$(PANGO_CFLAGS) \
+	$(PANGOCAIRO_CFLAGS) \
+	$(GDK_PIXBUF_CFLAGS) \
 	$(GTK_CFLAGS) \
 	${GTK_MAC_CFLAGS} \
 	$(LIBTIFF_CFLAGS) \
@@ -22,6 +39,9 @@ AM_CPPFLAGS = \
 	$(LIBCONFIG_CFLAGS) \
 	$(LCMS2_CFLAGS)  \
 	$(LIBGIT_CFLAGS) \
+	$(SQLITE_CFLAGS) \
+	$(LIBJXL_CFLAGS) \
+	$(LIBJXL_THREADS_CFLAGS) \
 	$(GTKSOURCEVIEW_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
@@ -30,15 +50,19 @@ siril_resource.c: siril_resource.h
 	$(AM_V_GEN)
 	glib-compile-resources \
 	--sourcedir=$(top_builddir) \
-	--sourcedir=$(sourcedir) \
+	--sourcedir=$(top_srcdir) \
+	--sourcedir=$(top_builddir)/src \
+	--sourcedir=$(srcdir) \
 	--target=$@ \
 	--generate-source \
 	--c-name siril_resource \
 	$(srcdir)/siril_resource.xml
 
-siril_common_SOURCES: siril_resource.h
-
-siril_common_SOURCES = \
+# ── Core (GTK-free) sources ─────────────────────────────────────────────────
+# Compiled into both siril and siril-cli.  Must not include <gtk/gtk.h> or
+# any other GUI-only header (directly or transitively).  This mirrors
+# meson's src_files list — keep them in sync.
+siril_core_sources = \
 	core/siril.h \
 	core/proto.h \
 	algos/anscombe.c \
@@ -56,10 +80,11 @@ siril_common_SOURCES = \
 	algos/Def_Math.h \
 	algos/Def_Wavelet.h \
 	algos/Def_Mem.h \
-	algos/extraction.c \
-	algos/extraction.h \
 	algos/demosaicing.c \
 	algos/demosaicing.h \
+	algos/demosaicing_rtp.cpp \
+	algos/extraction.c \
+	algos/extraction.h \
 	algos/fitting.c \
 	algos/fitting.h \
 	algos/fix_xtrans_af.c \
@@ -119,8 +144,6 @@ siril_common_SOURCES = \
 	algos/lcms_acceleration/threaded_split.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
-	compositing/compositing.c \
-	compositing/compositing.h \
 	compositing/filters.c \
 	compositing/filters.h \
 	core/arithm.c \
@@ -131,6 +154,10 @@ siril_common_SOURCES = \
 	core/command_line_processor.c \
 	core/command_line_processor.h \
 	core/command_list.h \
+	core/cut.c \
+	core/cut.h \
+	core/gui_iface.h \
+	core/gui_iface_stubs.c \
 	core/icc_profile.c \
 	core/icc_profile.h \
 	core/initfile.c \
@@ -154,14 +181,10 @@ siril_common_SOURCES = \
 	core/signals.c \
 	core/signals.h \
 	core/siril.c \
-	core/siril_actions.c \
-	core/siril_actions.h \
 	core/siril_alloc.c \
 	core/siril_alloc.h \
 	core/siril_app_dirs.c \
 	core/siril_app_dirs.h \
-	core/siril_cmd_help.c \
-	core/siril_cmd_help.h \
 	core/siril_date.c \
 	core/siril_date.h \
 	core/siril_language.c \
@@ -182,7 +205,7 @@ siril_common_SOURCES = \
 	drizzle/cdrizzlebox.c \
 	drizzle/cdrizzlebox.h \
 	drizzle/cdrizzlemap.c \
-	drizzzle/cdrizzlemap.h \
+	drizzle/cdrizzlemap.h \
 	drizzle/cdrizzleutil.c \
 	drizzle/cdrizzleutil.h \
 	drizzle/driz_portability.h \
@@ -260,126 +283,22 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
-	gui/about_dialog.c \
-	gui/about_dialog.h \
-	gui/annotate.c \
-	gui/annotations_pref.c \
-	gui/astrometry_solver.c \
-	gui/denoisegui.c \
-	gui/background_extraction.c \
-	gui/callbacks.c \
-	gui/callbacks.h \
-	gui/catmag.c \
-	gui/catmag.h \
-	gui/compstars.c \
-	gui/compstars.h \
-	gui/conversion.c \
-	gui/conversion.h \
-	gui/colors.c \
-	gui/colors.h \
-	gui/curves.c \
-	gui/curves.h \
-	gui/cut.c \
-	gui/dialog_preview.c \
-	gui/dialog_preview.h \
-	gui/dialogs.c \
-	gui/dialogs.h \
-	gui/documentation.c \
-	gui/documentation.h \
-	gui/epf.c \
-	gui/epf.h \
-	gui/fix_xtrans_af.c \
-	gui/fix_xtrans_af.h \
-	gui/git_gui.c \
-	gui/histo_display.c \
-	gui/histo_display.h \
-	gui/histogram.c \
-	gui/histogram.h \
-	gui/histogram_utils.c \
-	gui/histogram_utils.h \
-	gui/keywords_tree.c \
-	gui/keywords_tree.h \
-	gui/icc_profile.c \
-	gui/icc_profile.h \
-	gui/image_display.c \
-	gui/image_display.h \
-	gui/image_interactions.c \
-	gui/image_interactions.h \
-	gui/linear_match.c \
-	gui/masks_gui.c \
-	gui/masks_gui.h \
-	gui/menu_gray_geometry.c \
-	gui/menu_gray_geometry.h \
-	gui/menu_gray_selection.c \
-	gui/merge_cfa.c \
-	gui/message_dialog.c \
-	gui/message_dialog.h \
-	gui/mouse_action_functions.c \
-	gui/mouse_action_functions.h \
-	gui/mouse_action_preferences.c \
-	gui/newdeconv.c \
-	gui/nina_light_curve.c \
-	gui/nina_light_curve.h \
-	gui/open_dialog.c \
-	gui/open_dialog.h \
-	gui/photometric_cc.c \
-	gui/photometric_cc.h \
-	gui/plot.c \
-	gui/plot.h \
-	gui/preferences.c \
-	gui/preferences.h \
-	gui/progress_and_log.c \
-	gui/progress_and_log.h \
-	gui/PSF_list.h \
-	gui/PSF_list.c \
-	gui/python_gui.h \
-	gui/python_gui.c \
-	gui/registration.h \
-	gui/registration.c \
-	gui/registration_preview.c \
-	gui/remixer.c \
-	gui/remixer.h \
-	gui/save_dialog.c \
-	gui/save_dialog.h \
-	gui/script_menu.c \
-	gui/script_menu.h \
-	gui/sequence_list.c \
-	gui/sequence_list.h \
-	gui/single_image.c \
-	gui/single_image.h \
-	gui/siril_css.c \
-	gui/siril_css.h \
-	gui/siril_intro.c \
-	gui/siril_intro.h \
-	gui/siril_preview.c \
-	gui/siril_preview.h \
-	gui/siril_plot.c \
-	gui/siril_plot.h \
-	gui/siril-window.c \
-	gui/siril-window.h \
-	gui/splashscreen.c \
-	gui/splashscreen.h \
-	gui/split_cfa.c \
-	gui/stacking.c \
-	gui/stacking.h \
-	gui/star_finder.c \
-	gui/starnetgui.c \
-	gui/starnetgui.h \
-	gui/statistics_list.c \
-	gui/unpurple.c \
-	gui/unpurple.h \
-	gui/user_polygons.c \
-	gui/user_polygons.h \
-	gui/utils.c \
-	gui/utils.h \
-	io/annotation_catalogues.c \
-	io/annotation_catalogues.h \
 	io/aavso_extended.c \
 	io/aavso_extended.h \
+	io/annotation_catalogues.c \
+	io/annotation_catalogues.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
-	io/kstars/binfile.h \
-	io/kstars/byteorder.h \
+	io/avi_pipp/pipp_avi_write.cpp \
+	io/avi_pipp/pipp_avi_write.h \
+	io/avi_pipp/pipp_avi_write_dib.cpp \
+	io/avi_pipp/pipp_avi_write_dib.h \
+	io/avi_pipp/pipp_utf8.h \
+	io/avi_pipp/pipp_buffer.cpp \
+	io/avi_pipp/pipp_buffer.h \
+	io/avi_pipp/pipp_video_write.h \
+	io/avi_pipp/avi_writer.cpp \
+	io/avi_pipp/avi_writer.h \
 	io/conversion.c \
 	io/conversion.h \
 	io/films.c \
@@ -392,10 +311,16 @@ siril_common_SOURCES = \
 	io/FITS_symlink.h \
 	io/healpix/healpix.cpp \
 	io/healpix/healpix_cat.h \
+	io/healpix/fluxcache.cpp \
+	io/healpix/fluxcache.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
 	io/image_formats_libraries.c \
+	io/kstars/binfile.h \
+	io/kstars/byteorder.h \
+	io/kstars/htmesh_wrapper.cpp \
+	io/kstars/htmesh_wrapper.h \
 	io/local_catalogues.c \
 	io/local_catalogues.h \
 	io/mp4_output.c \
@@ -424,11 +349,19 @@ siril_common_SOURCES = \
 	io/siril_pythoncommands.c \
 	io/siril_pythonmodule.h \
 	io/siril_pythonmodule.c \
+	io/SirilXISFReader.cpp \
+	io/SirilXISFReader.h \
+	io/SirilXISFWraper.h \
+	io/SirilJpegXLWrapper.cpp \
 	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
-	livestacking/gui.c \
-	livestacking/gui.h \
+	opencv/opencv.cpp \
+	opencv/opencv.h \
+	opencv/guidedfilter.cpp \
+	opencv/guidedfilter.h \
+	opencv/kombat/kombat.cpp \
+	opencv/kombat/kombat.h \
 	pixelMath/pixel_math_runner.c \
 	pixelMath/pixel_math_runner.h \
 	pixelMath/tinyexpr.c \
@@ -461,9 +394,162 @@ siril_common_SOURCES = \
 	stacking/sum.c \
 	stacking/sum.h \
 	stacking/upscaling.c \
+	core/exif.cpp \
+	core/exif.h \
 	rt/rt_algo.cc \
 	rt/gauss.cc \
 	rt/boxblur.cc
+
+# ── GUI (GTK-dependent) sources ─────────────────────────────────────────────
+# Compiled into siril only.  Each file may include <gtk/gtk.h>.
+# Mirrors meson's src_files_gui — keep in sync.
+siril_gui_sources = \
+	gui/about_dialog.c \
+	gui/about_dialog.h \
+	gui/annotate.c \
+	gui/annotations_pref.c \
+	gui/asinh.c \
+	gui/astrometry_solver.c \
+	gui/background_extraction.c \
+	gui/banding.c \
+	gui/callbacks.c \
+	gui/callbacks.h \
+	gui/catmag.c \
+	gui/catmag.h \
+	gui/ccd-inspector.c \
+	gui/clahe.c \
+	gui/colors.c \
+	gui/colors.h \
+	gui/compositing.c \
+	gui/compstars.c \
+	gui/compstars.h \
+	gui/conversion.c \
+	gui/conversion.h \
+	gui/cosmetic_correction.c \
+	gui/curves.c \
+	gui/curves.h \
+	gui/cut.c \
+	gui/denoisegui.c \
+	gui/dialog_preview.c \
+	gui/dialog_preview.h \
+	gui/dialogs.c \
+	gui/dialogs.h \
+	gui/documentation.c \
+	gui/documentation.h \
+	gui/epf.c \
+	gui/epf.h \
+	gui/fft.c \
+	gui/fix_xtrans_af.c \
+	gui/fix_xtrans_af.h \
+	gui/geometry.c \
+	gui/git_gui.c \
+	gui/gui_iface_impl.c \
+	gui/gui_state.h \
+	gui/histo_display.c \
+	gui/histo_display.h \
+	gui/histogram.c \
+	gui/histogram.h \
+	gui/histogram_utils.c \
+	gui/histogram_utils.h \
+	gui/icc_profile.c \
+	gui/icc_profile.h \
+	gui/image_display.c \
+	gui/image_display.h \
+	gui/image_interactions.c \
+	gui/image_interactions.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
+	gui/linear_match.c \
+	gui/livestacking_gui.c \
+	gui/masks_gui.c \
+	gui/masks_gui.h \
+	gui/median.c \
+	gui/menu_gray_geometry.c \
+	gui/menu_gray_geometry.h \
+	gui/menu_gray_selection.c \
+	gui/merge_cfa.c \
+	gui/message_dialog.c \
+	gui/message_dialog.h \
+	gui/mouse_action_functions.c \
+	gui/mouse_action_functions.h \
+	gui/mouse_action_preferences.c \
+	gui/newdeconv.c \
+	gui/nina_light_curve.c \
+	gui/nina_light_curve.h \
+	gui/open_dialog.c \
+	gui/open_dialog.h \
+	gui/photometric_cc.c \
+	gui/photometric_cc.h \
+	gui/pixelmath.c \
+	gui/plot.c \
+	gui/plot.h \
+	gui/preferences.c \
+	gui/preferences.h \
+	gui/preprocess.c \
+	gui/progress_and_log.c \
+	gui/progress_and_log.h \
+	gui/PSF_list.h \
+	gui/PSF_list.c \
+	gui/python_gui.h \
+	gui/python_gui.c \
+	gui/registration.h \
+	gui/registration.c \
+	gui/registration_preview.c \
+	gui/remixer.c \
+	gui/remixer.h \
+	gui/rgradient.c \
+	gui/saturation.c \
+	gui/save_dialog.c \
+	gui/save_dialog.h \
+	gui/scnr.c \
+	gui/script_console.c \
+	gui/script_menu.c \
+	gui/script_menu.h \
+	gui/search_objects.c \
+	gui/sequence_export.c \
+	gui/sequence_list.c \
+	gui/sequence_list.h \
+	gui/single_image.c \
+	gui/single_image.h \
+	gui/siril_actions.c \
+	gui/siril_actions.h \
+	gui/siril_cmd_help.c \
+	gui/siril_cmd_help.h \
+	gui/siril_css.c \
+	gui/siril_css.h \
+	gui/siril_intro.c \
+	gui/siril_intro.h \
+	gui/siril_preview.c \
+	gui/siril_preview.h \
+	gui/siril_plot.c \
+	gui/siril_plot.h \
+	gui/siril-window.c \
+	gui/siril-window.h \
+	gui/splashscreen.c \
+	gui/splashscreen.h \
+	gui/split_cfa.c \
+	gui/stacking.c \
+	gui/stacking.h \
+	gui/star_finder.c \
+	gui/starnetgui.c \
+	gui/starnetgui.h \
+	gui/statistics.c \
+	gui/statistics_list.c \
+	gui/undo_gui.c \
+	gui/unpurple.c \
+	gui/unpurple.h \
+	gui/user_polygons.c \
+	gui/user_polygons.h \
+	gui/utils.c \
+	gui/utils.h \
+	gui/wavelets.c
+
+# ── Headless stubs ──────────────────────────────────────────────────────────
+# Compiled into siril-cli only.  Provides no-op implementations of GUI
+# functions still called directly from core code (matches meson's
+# siril_headless_lib).
+siril_headless_sources = \
+	core/headless_stubs.c
 
 if PLATFORM_WIN32
 libdbghelp = -ldbghelp
@@ -508,11 +594,12 @@ libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
 AM_CPPFLAGS += -I$(top_srcdir)/subprojects/healpix_cxx
 libhealpix_cxxlibs = $(top_builddir)/subprojects/healpix_cxx/build/libhealpix_cxx.a
 
+# ── Common link inputs ──────────────────────────────────────────────────────
+# GTK_LIBS, GTKSOURCEVIEW_LIBS and GTK_MAC_LIBS are intentionally NOT
+# included here: they are linked only into siril (the GUI executable).
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
 	$(FFMPEG_LIBS) \
-	$(GTK_LIBS) \
-	${GTK_MAC_LIBS} \
 	$(LIBRAW_LIBS) \
 	$(LIBHEIF_LIBS) \
 	$(LIBTIFF_LIBS) \
@@ -523,6 +610,12 @@ siril_common_LDADD = \
 	$(LCMS2_LIBS) \
 	$(GSL_LIBS) \
 	$(JSON_GLIB_LIBS) \
+	$(GLIB_LIBS) \
+	$(GIO_LIBS) \
+	$(CAIRO_LIBS) \
+	$(PANGO_LIBS) \
+	$(PANGOCAIRO_LIBS) \
+	$(GDK_PIXBUF_LIBS) \
 	$(FFMS2_LIBS) \
 	$(LIBCONFIG_LIBS) \
 	$(LIBCURL) \
@@ -532,46 +625,25 @@ siril_common_LDADD = \
 	$(libdbghelp) \
 	$(librtprocesslibs) \
 	$(LIBGIT_LIBS) \
+	$(SQLITE_LIBS) \
+	$(LIBJXL_LIBS) \
+	$(LIBJXL_THREADS_LIBS) \
 	$(YYJSON_LIBS) \
-	$(GTKSOURCEVIEW_LIBS)
+	$(OPENCV_LIBS) \
+	$(EXIV2_LIBS) \
+	$(libhtmeshlibs) \
+	$(libhealpix_cxxlibs)
 
-siril_common_SOURCES += \
-	algos/demosaicing_rtp.cpp \
-	io/avi_pipp/pipp_avi_write.cpp \
-	io/avi_pipp/pipp_avi_write.h \
-	io/avi_pipp/pipp_avi_write_dib.cpp \
-	io/avi_pipp/pipp_avi_write_dib.h \
-	io/avi_pipp/pipp_utf8.h \
-	io/avi_pipp/pipp_buffer.cpp \
-	io/avi_pipp/pipp_buffer.h \
-	io/avi_pipp/pipp_video_write.h \
-	io/avi_pipp/avi_writer.cpp \
-	io/avi_pipp/avi_writer.h \
-	io/SirilXISFReader.cpp \
-	io/SirilXISFReader.h \
-	io/SirilXISFWraper.h \
-	opencv/opencv.cpp \
-	opencv/opencv.h \
-	opencv/guidedfilter.cpp \
-	opencv/guidedfilter.h \
-	opencv/kombat/kombat.cpp \
-	opencv/kombat/kombat.h \
-	core/exif.cpp \
-	core/exif.h \
-	io/kstars/htmesh_wrapper.cpp \
-	io/kstars/htmesh_wrapper.h \
-	io/healpix/fluxcache.cpp \
-	io/healpix/fluxcache.h
+# ── Targets ─────────────────────────────────────────────────────────────────
+# siril-cli is always built; siril is built only when --enable-gtk.
 
-siril_common_LDADD += $(OPENCV_LIBS) \
-		      $(EXIV2_LIBS) \
-		      $(libhtmeshlibs) \
-		      $(libhealpix_cxxlibs)
-
-siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
-siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
-siril_LDADD = $(siril_common_LDADD)
+siril_cli_SOURCES = $(siril_core_sources) $(siril_headless_sources) main-cli.c
 siril_cli_LDADD = $(siril_common_LDADD)
+
+# Unconditionally defined so they appear in EXTRA_DIST regardless of
+# whether siril is built this configuration.
+siril_SOURCES = $(siril_core_sources) $(siril_gui_sources) siril_resource.c siril_resource.h main.c
+siril_LDADD = $(siril_common_LDADD) $(GTK_LIBS) ${GTK_MAC_LIBS} $(GTKSOURCEVIEW_LIBS)
 
 if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols
@@ -587,3 +659,4 @@ endif
 endif
 
 siril_LINK = $(CXXLINK)
+siril_cli_LINK = $(CXXLINK)

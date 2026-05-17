@@ -40,8 +40,10 @@
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_preview.h"
+#include "core/gui_iface.h"
+/* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
+ * should move to gui/ so that image_format_fits.c is GDK-free. */
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "algos/spcc.h"
@@ -129,8 +131,8 @@ int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
 	if (status) {
 		report_fits_error(status); /* print any error message */
 	} else {
-		siril_debug_print("  minimum value = %f\n", minval);
-		siril_debug_print("  maximum value = %f\n", maxval);
+		siril_log_debug("  minimum value = %f\n", minval);
+		siril_log_debug("  maximum value = %f\n", maxval);
 		*maxi = maxval;
 		*mini = minval;
 	}
@@ -171,7 +173,7 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 		hdu_changed = TRUE;
 		if (type == IMAGE_HDU)
 			break;
-		siril_debug_print("history read from another HDU (CHDU changed)\n");
+		siril_log_debug("history read from another HDU (CHDU changed)\n");
 		read_history_in_hdu(fptr, &list);
 	} while (1);
 
@@ -319,7 +321,7 @@ char *copy_header(fits *fit) {
 		hdu_changed = TRUE;
 		if (type == IMAGE_HDU)
 			break;
-		siril_debug_print("header read from another HDU (CHDU changed)\n");
+		siril_log_debug("header read from another HDU (CHDU changed)\n");
 		if (copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength))
 			break;
 	} while (1);
@@ -453,7 +455,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 		case ULONG_IMG:		// 32-bit unsigned integer pixels
 			data32 = (unsigned long *)from;
 			if (data_max > 0.0) {
-				siril_debug_print("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
+				siril_log_debug("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
 				for (i = 0; i < nbdata; i++)
 					to[i] = (float)(((double)(data32[i])) / data_max);
 			} else {
@@ -474,7 +476,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 		case LONG_IMG:		// 32-bit signed integer pixels
 			sdata32 = (long *)from;
 			if (data_max > 0.0) {
-				siril_debug_print("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
+				siril_log_debug("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
 				for (i = 0; i < nbdata; i++)
 					to[i] = (float)(((double)(sdata32[i])) / data_max);
 			} else {
@@ -577,7 +579,7 @@ static int siril_fits_move_first_image(fitsfile* fp) {
 		}
 	} while (!status);
 
-	//siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
+	//siril_log_debug("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
 	return status;
 }
 
@@ -950,12 +952,12 @@ int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 
 	// Success! Clean up and return
 	g_free(profile);
-	siril_debug_print("ICC profile embedded in FITS file\n");
+	siril_log_debug("ICC profile embedded in FITS file\n");
 	return 0;
 
 ERROR_MESSAGE_AND_RETURN:
 	free(profile);
-	siril_log_color_message(_("Warning: error encountered writing ICC profile to FITS.\n"), "salmon");
+	siril_log_warning(_("Warning: error encountered writing ICC profile to FITS.\n"));
 	return status;
 }
 
@@ -988,7 +990,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		status = BAD_HDU_NUM;
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int strsize = 1620;
@@ -998,7 +1000,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		PRINT_ALLOC_ERR;
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
@@ -1006,7 +1008,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		free(header);
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	// Get the ICC Profile length
@@ -1017,7 +1019,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		free(header);
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int zero = 0;
@@ -1027,7 +1029,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		free(header);
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
@@ -1036,17 +1038,17 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		free(header);
 		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return NULL;
 	}
 	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
 	if (icc_profile)
-		siril_debug_print("Embedded ICC profile read from FITS\n");
+		siril_log_debug("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
 	fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
 	if (status)
-		siril_debug_print("Error returning to original HDU!\n");
+		siril_log_debug("Error returning to original HDU!\n");
 	return icc_profile;
 }
 
@@ -1055,7 +1057,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype, orig_hdu = 1;
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
-	// siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
+	// siril_log_debug("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
@@ -1084,7 +1086,7 @@ int read_icc_profile_from_fits(fits *fit) {
 		PRINT_ALLOC_ERR;
 		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return 1;
 	}
 	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
@@ -1092,7 +1094,7 @@ int read_icc_profile_from_fits(fits *fit) {
 		free(header);
 		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return 1;
 	}
 	// Get the ICC Profile length
@@ -1103,7 +1105,7 @@ int read_icc_profile_from_fits(fits *fit) {
 		free(header);
 		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return 1;
 	}
 	int zero = 0;
@@ -1113,7 +1115,7 @@ int read_icc_profile_from_fits(fits *fit) {
 		free(header);
 		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return 1;
 	}
 	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
@@ -1122,12 +1124,12 @@ int read_icc_profile_from_fits(fits *fit) {
 		free(header);
 		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		if (status)
-			siril_debug_print("Error returning to original HDU!\n");
+			siril_log_debug("Error returning to original HDU!\n");
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
 	if (fit->icc_profile) {
-		siril_debug_print("Embedded ICC profile read from FITS\n");
+		siril_log_debug("Embedded ICC profile read from FITS\n");
 		color_manage(fit, TRUE);
 	} else {
 		color_manage(fit, FALSE);
@@ -1136,7 +1138,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	free(header);
 	fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 	if (status)
-		siril_debug_print("Error returning to original HDU!\n");
+		siril_log_debug("Error returning to original HDU!\n");
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
 	return 0;
 }
@@ -1215,12 +1217,12 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 				char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
 				fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
 				fits_encode_chksum(hdusum, TRUE, ascii);
-				siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+				siril_log_error(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), ascii, checksum);
 			}
 			if (dataok == -1) {
 				char checksum[FLEN_VALUE];
 				fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
-				siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+				siril_log_error(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), datasum, checksum);
 			}
 		}
 	}
@@ -1272,6 +1274,23 @@ GDateTime* get_date_from_fits(const gchar *filename) {
 	return date;
 }
 
+gchar *get_original_filename_from_fits(const gchar *filename) {
+	fitsfile *fptr = NULL;
+	gchar *original_filename = NULL;
+	int status = 0;
+	fits_open_diskfile(&fptr, filename, READONLY, &status);
+	if (!status) {
+		status = siril_fits_move_first_image(fptr);
+		char filenamekey[FLEN_VALUE] = { 0 };
+		fits_read_key(fptr, TSTRING, "FILENAME", &filenamekey, NULL, &status);
+		if (!status)
+			original_filename = g_strdup(filenamekey);
+	}
+	status = 0;
+	fits_close_file(fptr, &status);
+	return original_filename;
+}
+
 // reset a fit data structure, deallocates everything in it but keep the data:
 // useful in processing internal_fits in SEQ_INTERNAL sequences
 void clearfits_header(fits *fit) {
@@ -1309,8 +1328,8 @@ void clearfits_header(fits *fit) {
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
-	if (fit == gfit && is_preview_active())
-		clear_backup();
+	if (fit == gfit && gui_iface.is_preview_active())
+		gui_iface.clear_backup();
 	memset(fit, 0, offsetof(struct ffit, rwlock));
 	// Do not mess with the rwlock, this must only be engaged with using g_rwlock_* functions
 	// and preserving the lock in a fits struct being copied into relies on it not being cleared here
@@ -1475,7 +1494,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
-	siril_debug_print("Loaded partial FITS file %s\n", filename);
+	siril_log_debug("Loaded partial FITS file %s\n", filename);
 	return 0;
 }
 
@@ -1588,7 +1607,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
-	siril_debug_print("Loaded partial FITS file %s\n", filename);
+	siril_log_debug("Loaded partial FITS file %s\n", filename);
 	return 0;
 }
 
@@ -1610,7 +1629,7 @@ int read_fits_metadata(fits *fit) {
 	fit->ry = fit->naxes[1];
 
 	if (fit->naxis == 3 && fit->naxes[2] != 3) {
-		siril_log_color_message(_("The FITS image contains more than 3 channels (%ld). Opening only the three first.\n"), "salmon", fit->naxes[2]);
+		siril_log_warning(_("The FITS image contains more than 3 channels (%ld). Opening only the three first.\n"), fit->naxes[2]);
 		if (fit->naxis == 3) fit->naxes[2] = 3;
 	}
 
@@ -1744,11 +1763,11 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 int siril_fits_compress(fits *f) {
 	int status = 0;
 	int comp_type = -1;
-	siril_debug_print("Compressing FIT file with method %d and quantization %f\n",
+	siril_log_debug("Compressing FIT file with method %d and quantization %f\n",
 				com.pref.comp.fits_method,
 				com.pref.comp.fits_quantization);
 	comp_type = get_compression_type(com.pref.comp.fits_method);
-	siril_debug_print("cfitsio compression type %d\n",
+	siril_log_debug("cfitsio compression type %d\n",
 				comp_type);
 	if (comp_type < 0) {
 		siril_log_message(_("Unknown FITS compression method in internal conversion\n"));
@@ -1788,7 +1807,7 @@ int siril_fits_compress(fits *f) {
 			report_fits_error(status);
 			return 1;
 		}
-		siril_debug_print("FITS HCompress scale factor %f\n",
+		siril_log_debug("FITS HCompress scale factor %f\n",
 				com.pref.comp.fits_hcompress_scale);
 		status = 0;
 	}
@@ -1860,7 +1879,7 @@ int savefits(const char *name, fits *f) {
 	if (!filename) return 1;
 
 	if (g_unlink(filename))
-		siril_debug_print("g_unlink() failed\n"); /* Delete old file if it already exists */
+		siril_log_debug("g_unlink() failed\n"); /* Delete old file if it already exists */
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
@@ -1899,7 +1918,7 @@ int savefits(const char *name, fits *f) {
 		if (f->icc_profile) {
 			write_icc_profile_to_fits(f);
 		} else {
-			siril_debug_print("Info: FITS has no assigned ICC profile, saving without one.\n");
+			siril_log_debug("Info: FITS has no assigned ICC profile, saving without one.\n");
 		}
 	}
 
@@ -2387,7 +2406,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
 		if (status) {
 			wcsfree(to->keywords.wcslib);
-			siril_debug_print("could not copy wcslib struct\n");
+			siril_log_debug("could not copy wcslib struct\n");
 		}
 	}
 
@@ -2762,7 +2781,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 		fit->fpdata[1] = NULL;
 		fit->fpdata[2] = NULL;
 
-		siril_debug_print("Changed a fit data (WORD)\n");
+		siril_log_debug("Changed a fit data (WORD)\n");
 	} else if (newtype == DATA_FLOAT) {
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG;
@@ -2782,7 +2801,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 		fit->pdata[0] = NULL;
 		fit->pdata[1] = NULL;
 		fit->pdata[2] = NULL;
-		siril_debug_print("Changed a fit data (FLOAT)\n");
+		siril_log_debug("Changed a fit data (FLOAT)\n");
 	}
 }
 
@@ -2873,7 +2892,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	TRYFITS(siril_fits_open_diskfile, &fp, filename, READONLY);
 
 	if (siril_fits_move_first_image(fp)) {
-		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
+		siril_log_error(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
 		return NULL;
 	}
 
@@ -2887,7 +2906,26 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	if (w <= 0 || h <= 0)
 		return NULL;
 
+	/* Build description from header data — always available regardless of image size */
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype), frames,
+				ngettext("frame", "frames", frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype));
+	}
+	*descr = description;
+
 	size_t sz = (size_t)w * h * n_channels;
+	/* Skip pixel loading for images too large to thumbnail (>256 M floats ≈ 1 GB) */
+	if (sz > 256UL * 1024 * 1024) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
+
 	ima_data = malloc(sz * sizeof(float));
 	if (!ima_data) {
 		fits_close_file(fp, &status);
@@ -2902,25 +2940,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	const int Ws = w / pixScale;            // preview width
 	const int Hs = h / pixScale;            // preview height
 
-	if (fitseq_is_fitseq(filename, &frames)) {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype), frames,
-				ngettext("frame", "frames", frames));
-	} else {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype));
-	}
-
 	/* Allocate preview_data */
 	size_t prev_size = (size_t)Ws * Hs;
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
 		free(ima_data);
 		fits_close_file(fp, &status);
-		g_free(description);
-		return NULL;
+		return NULL;  /* description already in *descr; caller owns it */
 	}
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2941,11 +2967,11 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 					for (int l = 0; l < pixScale && (M + l) < h; l++) {
 						for (int k = 0; k < pixScale && (N + k) < w; k++) {
-							int idx;
+							size_t idx;
 							if (is_color) {
-								idx = ch * w * h + (M + l) * w + (N + k);
+								idx = (size_t)ch * (size_t)w * h + (size_t)(M + l) * w + (N + k);
 							} else {
-								idx = (M + l) * w + (N + k);
+								idx = (size_t)(M + l) * w + (N + k);
 							}
 							sum += ima_data[idx];
 							count++;
@@ -3081,7 +3107,7 @@ int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldna
 	int bitpix = 0, naxis = -1;
 	fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
 	if (status) {
-		siril_log_message(_("Opening image failed\n"));
+		siril_log_error(_("Opening image failed\n"));
 		fits_report_error(stderr, status); /* print error message */
 		return -1;
 	}
@@ -3149,7 +3175,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	// input validation
 	if (!f || !f[0] || !result) {
-		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
+		siril_log_debug("merge_fits_headers_to_result2: No headers to merge\n");
 		return;
 	}
 	/* copy all from the first */
@@ -3172,7 +3198,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 			int status = -1;
 			result->keywords.wcslib = wcs_deepcopy(current->keywords.wcslib, &status);
 			if (status)
-				siril_debug_print("could not copy wcslib struct\n");
+				siril_log_debug("could not copy wcslib struct\n");
 			else {
 				result->keywords.wcsdata = current->keywords.wcsdata;
 				found_WCS = TRUE;
@@ -3244,7 +3270,7 @@ typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
 static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc strl_func) {
 	gsize len = strl_func(dest, src, maxlen);
 	if (len >= maxlen) {
-		siril_debug_print("Exceeded FITS card length: %s, %lu, %lu\n", dest, len, maxlen);
+		siril_log_debug("Exceeded FITS card length: %s, %lu, %lu\n", dest, len, maxlen);
 	}
 }
 
@@ -3348,16 +3374,16 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 	save_fits_header(&tmpfit);
 
 	if (key && fits_read_card(fptr, key, card, &status)) { // key is NULL if only comment
-		siril_debug_print("Keyword does not exist\n");
+		siril_log_debug("Keyword does not exist\n");
 		card[0] = '\0';
 		oldcomment[0] = '\0';
 		status = 0; /* reset status after error */
 	} else
-		siril_debug_print("%s\n", card);
+		siril_log_debug("%s\n", card);
 
 	/* check if this is a protected keyword that must not be changed */
 	if (*card && keyword_is_protected(card, fit)) {
-		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
+		siril_log_error("Protected keyword cannot be modified.\n");
 		return 1;
 	} else {
 		/* Modifying keyname */
@@ -3409,7 +3435,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			fits_modify_name(tmpfit.fptr, card, new_name, &status);
 			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
 			if (verbose) {
-				siril_log_color_message("Keyword %s has been renamed to %s\n", "green", card, new_name);
+				siril_log_info("Keyword %s has been renamed to %s\n", card, new_name);
 			}
 			break;
 		case -1:
@@ -3417,14 +3443,14 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			fits_delete_key(tmpfit.fptr, key, &status);
 			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
 			if (verbose) {
-				siril_log_color_message("Keyword %s has been removed\n", "green", key);
+				siril_log_info("Keyword %s has been removed\n", key);
 			}
 			break;
 		case 0:
 			// Update the card if it already exists, otherwise append a new card
 			fits_update_card(tmpfit.fptr, key, card, &status);
 			if (verbose) {
-				siril_log_color_message("Keyword has been changed to:\n", "green");
+				siril_log_info("Keyword has been changed to:\n");
 				siril_log_message("%s\n", card);
 			}
 			break;
@@ -3433,7 +3459,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			//fits_write_record(tmpfit.fptr, card, &status);
 			fits_write_comment(tmpfit.fptr, g_strstrip(card), &status); // here we use card for comment
 			if (verbose) {
-				siril_log_color_message("Comment \"%s\" has been added\n", "green", g_strstrip(card));
+				siril_log_info("Comment \"%s\" has been added\n", g_strstrip(card));
 			}
 			break;
 		case 2:
@@ -3536,7 +3562,7 @@ int save_wcs_fits(fits *f, const gchar *name) {
 		return 1;
 
 	if (g_unlink(name))
-		siril_debug_print("g_unlink() failed\n");
+		siril_log_debug("g_unlink() failed\n");
 	
 
 	status = 0;
@@ -3588,7 +3614,7 @@ int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
 		return 1;
 
 	if (g_unlink(name))
-		siril_debug_print("g_unlink() failed\n");
+		siril_log_debug("g_unlink() failed\n");
 
 	status = 0;
 	if (siril_fits_create_diskfile(&fptr, name, &status)) {
@@ -3643,12 +3669,12 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 		return 1;
 	}
 	if (naxes[0] < area->w) {
-		siril_debug_print("area too wide\n");
+		siril_log_debug("area too wide\n");
 		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
-		siril_debug_print("area too high\n");
+		siril_log_debug("area too high\n");
 		fits_close_file(fptr, &status);
 		return 1;
 	}
@@ -3659,7 +3685,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	}
 	fits_close_file(fptr, &status);
 	if (!status) {
-		siril_debug_print("Read mask file %s\n", name);
+		siril_log_debug("Read mask file %s\n", name);
 	} else {
 		report_fits_error(status);
 	}
@@ -3701,12 +3727,12 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 		return 1;
 	}
 	if (naxes[0] < area->w) {
-		siril_debug_print("area too wide\n");
+		siril_log_debug("area too wide\n");
 		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
-		siril_debug_print("area too high\n");
+		siril_log_debug("area too high\n");
 		fits_close_file(fptr, &status);
 		return 1;
 	}
@@ -3723,7 +3749,7 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 	}
 	fits_close_file(fptr, &status);
 	if (!status) {
-		siril_debug_print("Read drizz file %s\n", name);
+		siril_log_debug("Read drizz file %s\n", name);
 	} else {
 		report_fits_error(status);
 	}
@@ -3883,5 +3909,5 @@ void interpolate_nongreen(fits *fit) {
 		interpolate_nongreen_ushort(fit, cfa, cfadim);
 	}
 	invalidate_stats_from_fit(fit);
-	siril_debug_print("Interpolating non-green pixels\n");
+	siril_log_debug("Interpolating non-green pixels\n");
 }

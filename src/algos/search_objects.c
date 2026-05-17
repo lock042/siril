@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include "algos/search_objects.h"
+#include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
@@ -28,8 +30,6 @@
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
-#include "gui/dialogs.h"
-#include "gui/utils.h"
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
@@ -55,10 +55,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	case (QUERY_SERVER_SIMBAD_PHOTO):
 		// In case of a bad request...
 		if (nargs <= 2 || g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id") || g_str_has_prefix(buffer, "!!")) {
-			siril_log_color_message(_("SIMBAD server returned:\n"), "red");
+			siril_log_error(_("SIMBAD server returned:\n"));
 			int max_lines = min(4, nargs); // we display 4 lines max
 			for (int i = 0; i < max_lines; i++)
-				siril_log_color_message(_("%s\n"), "red", token[i]);
+				siril_log_error(_("%s\n"), token[i]);
 			g_strfreev(token);
 			args->retval = 1;
 			return args->retval;
@@ -131,10 +131,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	// This is for a Miriade emphemcc search (SSO)
 	case QUERY_SERVER_EPHEMCC:
 		if (!g_str_has_prefix(buffer, "# Flag: 1")) {
-			siril_log_color_message(_("IMCCE server returned:\n"), "red");
+			siril_log_error(_("IMCCE server returned:\n"));
 			int max_lines = min(3, nargs); // we display 3 lines max
 			for (int i = 0; i < max_lines; i++)
-				siril_log_color_message(_("%s\n"), "red", token[i]);
+				siril_log_error(_("%s\n"), token[i]);
 			g_strfreev(token);
 			args->retval = 1;
 			return args->retval;
@@ -159,7 +159,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			args->retval = 1;
 			return 1;
 		}
-		siril_debug_print("Object name: %s\n", objname);
+		siril_log_debug("Object name: %s\n", objname);
 		// Then, retrieve the data
 		gchar **fields = g_strsplit(token[4], ",", -1);
 		guint n = g_strv_length(fields);
@@ -188,7 +188,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			vdec = g_strtod(fields[9], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[5], NULL);
 		} else {
-			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
+			siril_log_warning(_("Could not parse the server response: %s\n"), token[4]);
 			g_strfreev(token);
 			g_free(objname);
 			g_free(objtype);
@@ -196,7 +196,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			return 1;
 		}
 		if (isnan(ra) || isnan(dec) || isnan(vra) || isnan(vdec) || isnan(mag)) {
-			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
+			siril_log_warning(_("Could not parse the server response: %s\n"), token[4]);
 			g_strfreev(token);
 			g_free(objname);
 			g_free(objtype);
@@ -226,7 +226,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		g_strfreev(fields);
 		break;
 	default:
-		siril_debug_print("unknown query catalogue\n");
+		siril_log_debug("unknown query catalogue\n");
 		break;
 	}
 	g_strfreev(token);
@@ -298,42 +298,6 @@ int cached_object_lookup(sky_object_query_args *args) {
 	}
 	return args->retval;
 }
-
-void search_object(GtkEntry *entry) {
-	if (!has_wcs(gfit))
-		return;
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	sky_object_query_args *query_args = init_sky_object_query();
-	query_args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-	query_args->fit = gfit;
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		free_sky_object_query(query_args);
-		PRINT_ALLOC_ERR;
-		return;
-	}
-	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = catsearch_image_hook;
-	args->description = _("Catalog search");
-	args->verbose = TRUE;
-	args->command_updates_gfit = FALSE;
-	args->command = FALSE;
-	args->idle_function = end_process_catsearch;
-	args->user = query_args;
-	args->log_hook = catsearch_log_hook;
-
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
-		siril_log_color_message(_("Error running image worker for catsearch\n"), "red");
-		return;
-	}
-}
-
-void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
-	search_object(entry);
-}
-
 
 /********** object lookup for astrometry, can we merge both? ************/
 
@@ -456,7 +420,7 @@ static gchar *retrieve_site_coord(fits *fit) {
 // free the result with free
 char *search_in_online_catalogs(sky_object_query_args *args) {
 #ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	siril_log_error(_("Siril was compiled without networking support, cannot do this operation\n"));
 	return NULL;
 #else
 	GString *string_url = NULL;
@@ -490,7 +454,7 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	case QUERY_SERVER_EPHEMCC:
 		// see https://ssp.imcce.fr/webservices/miriade/api/ephemcc/
 		if (!args->fit->keywords.date_obs) {
-			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			siril_log_error(_("This command only works on images that have observation date information\n"));
 			g_string_free(string_url, TRUE);
 			return NULL;
 		}
@@ -503,7 +467,7 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
 		if (!g_strcmp0(formatted_site, "@500")) {
-			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
+			siril_log_warning(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"));
 		} else {
 			double elev = (args->fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : args->fit->keywords.siteelev;
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->keywords.sitelat,
@@ -525,7 +489,7 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
 	g_free(url);
-	siril_debug_print("URL: %s\n", cleaned_url);
+	siril_log_debug("URL: %s\n", cleaned_url);
 	gsize length;
 	int error;
 	char *result = fetch_url(cleaned_url, &length, &error, FALSE);
@@ -539,7 +503,7 @@ int catsearch_image_hook(struct generic_img_args *args, fits *fit, int threads) 
 	sky_object_query_args *query_args = (sky_object_query_args *)args->user;
 
 	if (!has_wcs(fit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		siril_log_error(_("This command only works on plate solved images\n"));
 		return 1;
 	}
 
@@ -578,7 +542,7 @@ gpointer catsearch_worker(gpointer p) {
 	gboolean found_it = !cached_object_lookup(args);
 
 	if (!com.script)
-		execute_idle_and_wait_for_it(end_process_catsearch, args);
+		gui_iface.execute_idle_sync(end_process_catsearch, args);
 
 	return GINT_TO_POINTER(!found_it);
 }

@@ -37,7 +37,6 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #ifdef HAVE_FFMS2
@@ -280,10 +279,10 @@ sequence * readseqfile(const char *name){
 					 * channel, both would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
-						siril_debug_print("- using CFA registration info\n");
+						siril_log_debug("- using CFA registration info\n");
 						to_backup = 0;
 					} else {
-						siril_debug_print("- backing up CFA registration info\n");
+						siril_log_debug("- backing up CFA registration info\n");
 						to_backup = 1;
 					}
 					current_layer = 0;
@@ -293,7 +292,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
-						siril_debug_print("- stats: backing up demosaiced registration info\n");
+						siril_log_debug("- stats: backing up demosaiced registration info\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -541,10 +540,10 @@ sequence * readseqfile(const char *name){
 					 * would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
-						siril_debug_print("- stats: using CFA stats\n");
+						siril_log_debug("- stats: using CFA stats\n");
 						to_backup = 0;
 					} else {
-						siril_debug_print("- stats: backing up CFA stats\n");
+						siril_log_debug("- stats: backing up CFA stats\n");
 						to_backup = 1;
 					}
 					current_layer = 0;
@@ -554,7 +553,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
-						siril_debug_print("- stats: backing up demosaiced stats\n");
+						siril_log_debug("- stats: backing up demosaiced stats\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -651,7 +650,7 @@ sequence * readseqfile(const char *name){
 	if (ser_is_cfa(seq->ser_file) && com.pref.debayer.open_debayer &&
 			seq->regparam_bkp && seq->regparam_bkp[0] &&
 			seq->regparam && seq->nb_layers == 3 && !seq->regparam[1]) {
-		siril_log_color_message(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), "salmon", seqfilename);
+		siril_log_warning(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), seqfilename);
 		seq->regparam[1] = calloc(seq->number, sizeof(regdata));
 		for (image = 0; image < seq->number; image++) {
 			memcpy(&seq->regparam[1][image], &seq->regparam_bkp[0][image], sizeof(regdata));
@@ -666,7 +665,7 @@ error:
 	if (seq->seqname)
 		free(seq->seqname);
 	free(seq);
-	siril_log_message(_("Could not load sequence %s\n"), name);
+	siril_log_error(_("Could not load sequence %s\n"), name);
 
 	free(seqfilename);
 	return NULL;

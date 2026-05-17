@@ -30,7 +30,6 @@
 #include "registration/registration.h"
 #include "io/sequence.h"
 #include "stacking/stacking.h"
-#include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 #include "core/siril_log.h"
 
@@ -346,8 +345,8 @@ int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 			j++;
 		}
 		else if (i == args->ref_image) {
-			siril_log_color_message(_("The reference image is not in the selected set of images. "
-					"To avoid issues, please change it or change the filtering parameters.\n"), "red");
+			siril_log_error(_("The reference image is not in the selected set of images. "
+					"To avoid issues, please change it or change the filtering parameters.\n"));
 			args->ref_image = -1;
 		}
 	}
@@ -395,7 +394,7 @@ static double generic_compute_accepted_value(sequence *seq, int layer, double pe
 			if (val[i] == extreme_value)
 				break;
 		number_images_with_data = i;
-		siril_log_message(_("Warning: some images don't have information available for best "
+		siril_log_warning(_("Warning: some images don't have information available for best "
 				"images selection, using only available data (%d images on %d).\n"),
 				number_images_with_data, seq->number);
 	}
@@ -437,7 +436,7 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 		return 0.0;
 	}
 	if (n < seq->number) {
-		siril_log_message(_("Warning: some images don't have information available for best "
+		siril_log_warning(_("Warning: some images don't have information available for best "
 				"images selection, using only available data (%d images on %d).\n"),
 				n, seq->number);
 	}

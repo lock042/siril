@@ -22,7 +22,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/pipe.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 /* This function writes a message on Siril's console/log. It is not thread safe.
  * There is a limit in number of characters that it is able to write in one call: 1023.
@@ -45,13 +45,13 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 
 	if (msg[0] == '\n' && msg[1] == '\0') {
 		fputc('\n', stdout);
-		gui_log_message("\n", NULL);
+		gui_iface.log_message("\n", NULL);
 		return NULL;
 	}
 
 	g_print("log: %s", msg);
 	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
-	gui_log_message(msg, color);
+	gui_iface.log_message(msg, color);
 
 	return msg;
 }
@@ -66,11 +66,61 @@ char* siril_log_message(const char* format, ...) {
 	return msg;
 }
 
-char* siril_log_color_message(const char* format, const char* color, ...) {
+static char* siril_log_color_message(const char* format, const char* color, ...) {
 	va_list args;
 	va_start(args, color);
 	g_mutex_lock(&com.mutex);
 	char *msg = siril_log_internal(format, color, args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_error(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, "red", args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_warning(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, "salmon", args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_info(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, "green", args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_bold(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, "bold", args);
+	g_mutex_unlock(&com.mutex);
+	va_end(args);
+	return msg;
+}
+
+char* siril_log_status(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	g_mutex_lock(&com.mutex);
+	char *msg = siril_log_internal(format, "blue", args);
 	g_mutex_unlock(&com.mutex);
 	va_end(args);
 	return msg;

@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
@@ -28,11 +29,6 @@
 #include "ser.h"
 #include "stacking/stacking.h"
 #include "registration/registration.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
-#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/Astro-TIFF.h"
 #include "opencv/opencv.h"
@@ -45,36 +41,7 @@
 #endif
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
-
-/* same order as in the combo box 'combo_export_preset' */
-typedef enum {
-	PRESET_RATIO,
-	PRESET_FREE,
-	PRESET_FULLHD,
-	PRESET_4K,
-	PRESET_8K
-} export_presets;
-
-struct exportseq_args {
-	sequence *seq;
-	seq_image_filter filtering_criterion;
-	double filtering_parameter;
-
-	char *basename;
-	export_format output;
-	gboolean normalize;
-
-	gboolean tiff_compression; // compression of TIFF files
-
-	int film_fps;		// has to be int for avi or ffmpeg
-	int film_quality;	// [1, 5], for mp4 and webm
-
-	gboolean resample;
-	int32_t dest_width, dest_height;
-
-	gboolean crop;
-	rectangle crop_area;
-};
+#include "io/sequence_export.h"
 
 
 /* Used for avi exporter, creates buffer as BGRBGR from ushort FITS */
@@ -94,7 +61,7 @@ static uint8_t *fits_to_uint8(fits *fit) {
 			}
 		}
 	} else {
-		siril_debug_print("converting from ushort\n");
+		siril_log_debug("converting from ushort\n");
 		for (i = 0, j = 0; i < n; i += channel, j++) {
 			data[i + step] = (BYTE)(fit->pdata[RLAYER][j] >> 8);
 			if (channel > 1) {
@@ -223,7 +190,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 			if (avi_file_create(dest, out_width, out_height, avi_format,
 					AVI_WRITER_CODEC_DIB, args->film_fps)) {
-				siril_log_color_message(_("AVI file `%s' could not be created\n"), "red", dest);
+				siril_log_error(_("AVI file `%s' could not be created\n"), dest);
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
@@ -306,7 +273,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 	if (reglayer != -1 && args->seq->regparam[reglayer]) {
 		if (!test_regdata_is_valid_and_shift(args->seq, reglayer)) {
-			siril_log_color_message(_("Export has detected registration data with more than simple shifts, this is not supported\n"), "red");
+			siril_log_error(_("Export has detected registration data with more than simple shifts, this is not supported\n"));
 			goto free_and_reset_progress_bar;
 		}
 		translation_from_H(args->seq->regparam[reglayer][refindex].H, &dxref, &dyref);
@@ -351,7 +318,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 	long naxes[3];
 	size_t nbpix = 0;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gboolean icc_msg_given = FALSE;
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!processing_should_continue()) {
@@ -374,14 +341,14 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames));
+		gui_iface.set_progress((double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames), tmpmsg);
 		g_free(tmpmsg);
 
 		/* we read the full frame */
 		fits fit = { 0 };
 		if (seq_read_frame(args->seq, i, &fit, FALSE, -1)) {
 			seqwriter_release_memory();
-			siril_log_message(_("Export: could not read frame, aborting\n"));
+			siril_log_error(_("Export: could not read frame, aborting\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
 		}
@@ -396,7 +363,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 			else {
 				if (memcmp(naxes, fit.naxes, sizeof naxes)) {
-					siril_log_color_message(_("An image of the sequence doesn't have the same dimensions\n"), "red");
+					siril_log_error(_("An image of the sequence doesn't have the same dimensions\n"));
 					retval = -3;
 					clearfits(&fit);
 					seqwriter_release_memory();
@@ -642,11 +609,11 @@ free_and_reset_progress_bar:
 	}
 
 	if (retval) {
-		set_progress_bar_data(_("Sequence export failed. Check the log."), PROGRESS_RESET);
-		siril_log_message(_("Sequence export failed\n"));
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export failed. Check the log."));
+		siril_log_error(_("Sequence export failed\n"));
 	}
 	else {
-		set_progress_bar_data(_("Sequence export succeeded."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export succeeded."));
 		siril_log_message(_("Sequence export succeeded.\n"));
 	}
 	if (aborted) { //disposing of the file if Stop button was hit
@@ -678,222 +645,11 @@ free_and_reset_progress_bar:
 	return NULL;
 }
 
-void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
-	int selected = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboExport")));
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
-	const char *bname = gtk_entry_get_text(entry);
-	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
-
-	if (bname[0] == '\0') {
-		widget_set_class(GTK_WIDGET(entry), "warning", "");
-		return;
-	}
-	if (selected == -1) return;
-
-	// checking regdata is absent, or if present, is only shift
-	if (!test_regdata_is_valid_and_shift(&com.seq, get_registration_layer(&com.seq))) {
-		int confirm = siril_confirm_dialog(_("Registration data found"),
-			_("Export has detected registration data with more than simple shifts.\n"
-			"Normally, you should apply existing registration before exporting."),
-			_("Export anyway"));
-		if (!confirm)
-			return;
-	}
-
-	struct exportseq_args *args = calloc(1, sizeof(struct exportseq_args));
-	args->seq = &com.seq;
-	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
-	args->basename = g_str_to_ascii(bname, NULL);
-	args->output = (export_format)selected;
-	args->normalize = normalize;
-	args->resample = FALSE;
-	args->crop = com.selection.w && com.selection.h;
-	if (args->crop)
-		memcpy(&args->crop_area, &com.selection, sizeof(rectangle));
-
-	if (args->output == EXPORT_AVI || args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
-		GtkEntry *fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
-		args->film_fps = round_to_int(g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL));
-		if (args->film_fps <= 0) args->film_fps = 1;
-	}
-	if (args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
-		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustmentqualscale"));
-		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
-		args->film_quality = (int)gtk_adjustment_get_value(adjQual);
-		args->resample = gtk_toggle_button_get_active(checkResize);
-		if (args->resample) {
-			GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-			GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-			args->dest_width = g_ascii_strtoll(gtk_entry_get_text(widthEntry), NULL, 10);
-			args->dest_height = g_ascii_strtoll(gtk_entry_get_text(heightEntry), NULL, 10);
-			if (args->dest_height == 0 || args->dest_width == 0) {
-				siril_log_message(_("Width or height cannot be null. Not resizing.\n"));
-				gtk_toggle_button_set_active(checkResize, FALSE);
-				args->resample = FALSE;
-			} else if (args->dest_height == args->seq->ry && args->dest_width == args->seq->rx) {
-				gtk_toggle_button_set_active(checkResize, FALSE);
-				args->resample = FALSE;
-			}
-		}
-	}
-	else if (args->output == EXPORT_FITS || args->output == EXPORT_TIFF) {
-		// add a trailing '_' for multiple-files sequences
-		args->basename = format_basename(args->basename, TRUE);
-		if (args->output == EXPORT_TIFF) {
-#ifdef HAVE_LIBTIFF
-			args->tiff_compression = get_tiff_compression();
-#endif
-		}
-	}
-	// Display a useful warning because I always forget to remove selection
-	if (args->crop) {
-		gboolean confirm = siril_confirm_dialog(_("Export cropped sequence?"),
-				_("An active selection was detected. The exported sequence will only contain data within the drawn selection. You can confirm the crop or cancel it. "
-						"If you choose to click on cancel, the exported sequence will contain all data."), _("Confirm Crop"));
-		args->crop = confirm;
-	}
-
-	set_cursor_waiting(TRUE);
+gboolean sequence_export_start(struct exportseq_args *args) {
 	if (!start_in_new_thread(export_sequence, args)) {
 		g_free(args->basename);
 		free(args);
+		return FALSE;
 	}
-}
-
-void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
-	GtkWidget *avi_options = lookup_widget("boxAviOptions");
-	GtkWidget *checkAviResize = lookup_widget("checkAviResize");
-	GtkWidget *quality = lookup_widget("exportQualScale");
-	int output_type = gtk_combo_box_get_active(box);
-	gtk_widget_set_visible(avi_options, output_type >= EXPORT_AVI);
-	gtk_widget_set_visible(quality, output_type >= EXPORT_MP4);
-	gtk_widget_set_sensitive(checkAviResize, output_type >= EXPORT_MP4);
-}
-
-void on_checkAviResize_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkWidget *heightEntry = lookup_widget("entryAviHeight");
-	GtkWidget *widthEntry = lookup_widget("entryAviWidth");
-	GtkWidget *combo_export_preset = lookup_widget("combo_export_preset");
-	gtk_widget_set_sensitive(heightEntry, gtk_toggle_button_get_active(togglebutton));
-	gtk_widget_set_sensitive(widthEntry, gtk_toggle_button_get_active(togglebutton));
-	gtk_widget_set_sensitive(combo_export_preset, gtk_toggle_button_get_active(togglebutton));
-}
-
-void update_export_crop_label() {
-	static GtkLabel *label = NULL;
-	if (!label)
-		label = GTK_LABEL(lookup_widget("exportLabel"));
-	if (com.selection.w && com.selection.h)
-		gtk_label_set_text(label, _("Cropping to selection"));
-	else gtk_label_set_text(label, _("Select area to crop"));
-}
-
-void on_entryExportSeq_changed(GtkEditable *editable, gpointer user_data){
-	gchar *name = (gchar *)gtk_entry_get_text(GTK_ENTRY(editable));
-	if (*name != 0) {
-		if (check_if_seq_exist(name, !g_str_has_suffix(name, ".ser"))) {
-			set_icon_entry(GTK_ENTRY(editable), "dialog-warning");
-		} else {
-			set_icon_entry(GTK_ENTRY(editable), NULL);
-		}
-	} else {
-		set_icon_entry(GTK_ENTRY(editable), NULL);
-	}
-}
-
-void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data);
-
-void on_entryAviWidth_changed(GtkEditable *editable, gpointer user_data) {
-	double ratio, width, height;
-	gchar *c_height;
-	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-
-	if (com.selection.w && com.selection.h) return;
-	ratio = (double) com.seq.ry / (double) com.seq.rx;
-	width = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)),NULL);
-	height = ratio * width;
-	c_height = g_strdup_printf("%d", (int)(height));
-
-	g_signal_handlers_block_by_func(heightEntry, on_entryAviHeight_changed, NULL);
-	gtk_entry_set_text(heightEntry, c_height);
-	g_signal_handlers_unblock_by_func(heightEntry, on_entryAviHeight_changed, NULL);
-	g_free(c_height);
-}
-
-void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data) {
-	double ratio, width, height;
-	gchar *c_width;
-	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-
-	if (com.selection.w && com.selection.h) return;
-	ratio = (double) com.seq.rx / (double) com.seq.ry;
-	height = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
-	width = ratio * height;
-	c_width = g_strdup_printf("%d", (int)(width));
-
-	g_signal_handlers_block_by_func(widthEntry, on_entryAviWidth_changed, NULL);
-	gtk_entry_set_text(widthEntry, c_width);
-	g_signal_handlers_unblock_by_func(widthEntry, on_entryAviWidth_changed, NULL);
-	g_free(c_width);
-}
-
-static gboolean g_signal_handlers_is_blocked_by_func(gpointer instance, GFunc func, gpointer data) {
-	return g_signal_handler_find(instance,
-			G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA
-					| G_SIGNAL_MATCH_UNBLOCKED, 0, 0, NULL, func, data) == 0;
-}
-
-void on_combo_export_preset_changed(GtkComboBox *box, gpointer user_data) {
-	int preset = gtk_combo_box_get_active(box);
-	GtkWidget *widthEntry = lookup_widget("entryAviWidth");
-	GtkWidget *heightEntry = lookup_widget("entryAviHeight");
-
-	switch(preset) {
-	default:
-	case PRESET_RATIO:
-		if (g_signal_handlers_is_blocked_by_func(GTK_ENTRY(widthEntry), (GFunc) on_entryAviWidth_changed, NULL)) {
-			g_signal_handlers_unblock_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-			g_signal_handlers_unblock_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		}
-		gtk_widget_set_sensitive(widthEntry, TRUE);
-		gtk_widget_set_sensitive(heightEntry, TRUE);
-		break;
-	case PRESET_FREE:
-		if (!g_signal_handlers_is_blocked_by_func(GTK_ENTRY(widthEntry), (GFunc) on_entryAviWidth_changed, NULL)) {
-			g_signal_handlers_block_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-			g_signal_handlers_block_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		}
-		gtk_widget_set_sensitive(widthEntry, TRUE);
-		gtk_widget_set_sensitive(heightEntry, TRUE);
-		break;
-	case PRESET_FULLHD:
-		g_signal_handlers_block_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_block_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		gtk_entry_set_text(GTK_ENTRY(widthEntry), "1920");
-		gtk_entry_set_text(GTK_ENTRY(heightEntry), "1080");
-		gtk_widget_set_sensitive(widthEntry, FALSE);
-		gtk_widget_set_sensitive(heightEntry, FALSE);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		break;
-	case PRESET_4K:
-		g_signal_handlers_block_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_block_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		gtk_entry_set_text(GTK_ENTRY(widthEntry), "3840");
-		gtk_entry_set_text(GTK_ENTRY(heightEntry), "2160");
-		gtk_widget_set_sensitive(widthEntry, FALSE);
-		gtk_widget_set_sensitive(heightEntry, FALSE);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		break;
-	case PRESET_8K:
-		g_signal_handlers_block_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_block_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-		gtk_entry_set_text(GTK_ENTRY(widthEntry), "7680");
-		gtk_entry_set_text(GTK_ENTRY(heightEntry), "4320");
-		gtk_widget_set_sensitive(widthEntry, FALSE);
-		gtk_widget_set_sensitive(heightEntry, FALSE);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(widthEntry), on_entryAviWidth_changed, NULL);
-		g_signal_handlers_unblock_by_func(GTK_ENTRY(heightEntry), on_entryAviHeight_changed, NULL);
-	}
+	return TRUE;
 }

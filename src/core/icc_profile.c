@@ -27,14 +27,7 @@
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "icc_default_profiles.h"
-#include "gui/image_display.h"
-#include "gui/icc_profile.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
-#include "gui/siril_plot.h"
-#include "gui/siril_preview.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/siril_plot.h"
@@ -53,56 +46,11 @@ static GMutex display_transform_mutex;
 static gboolean profile_check_verbose = TRUE;
 
 ////// Functions //////
-struct cm_struct {
-	fits *fit;
-	gboolean active;
-};
-
-static gboolean cm_worker(gpointer user_data) {
-	struct cm_struct *data = (struct cm_struct*) user_data;
-	fits *fit = data->fit;
-	gboolean active = data->active;
-	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
-	gchar *tooltip = NULL;
-	if (active) {
-		if (fit->icc_profile) {
-			buffer = siril_color_profile_get_description(fit->icc_profile);
-			monitor = siril_color_profile_get_description(gui.icc.monitor);
-		}
-		if (gui.icc.soft_proof)
-			proof = siril_color_profile_get_description(gui.icc.soft_proof);
-		else
-			proof = g_strdup(monitor);
-
-		tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
-		if (!tooltip)
-			tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-	} else {
-		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-	}
-	GtkWidget *image = lookup_widget("color_managed_icon");
-	GtkWidget *button = lookup_widget("icc_main_window_button");
-	gtk_image_set_from_resource((GtkImage*) image, name);
-	gtk_widget_set_tooltip_text(button, tooltip);
-	g_free(name);
-	g_free(buffer);
-	g_free(monitor);
-	g_free(proof);
-	g_free(tooltip);
-	return FALSE;
-}
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	struct cm_struct data = { fit, active };
-	if (fit == gfit && !com.script) {
-		if (g_main_context_is_owner(g_main_context_default())) {
-			cm_worker(&data);
-		} else {
-			execute_idle_and_wait_for_it(cm_worker, &data);
-		}
-	}
+	if (fit == gfit && !com.script)
+		gui_iface.update_icc_status_icon(fit, active);
 }
 
 static gchar *siril_color_profile_get_info (cmsHPROFILE profile, cmsInfoType info) {
@@ -216,9 +164,9 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename) {
 	path = g_build_filename(com.wd, filename, NULL);
 	free(filename);
 	if (cmsSaveProfileToFile(profile, path)) {
-		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
+		siril_log_info(_("Exported ICC profile to %s\n"), path);
 	} else {
-		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
+		siril_log_error(_("Failed to export ICC profile to %s\n"), path);
 	}
 	free(path);
 }
@@ -236,18 +184,23 @@ void display_index_transform(BYTE* index, int vport) {
 	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
 	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
 	memcpy(chan, index, USHRT_MAX + 1);
-	cmsDoTransformLineStride(gui.icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
+	cmsDoTransformLineStride(com.gui_icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
 	memcpy(index, chan, USHRT_MAX + 1);
 }
 
+void icc_lock_monitor_profile(void)   { g_mutex_lock(&monitor_profile_mutex); }
+void icc_unlock_monitor_profile(void) { g_mutex_unlock(&monitor_profile_mutex); }
+void icc_lock_soft_proof_profile(void)   { g_mutex_lock(&soft_proof_profile_mutex); }
+void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mutex); }
+
 cmsHTRANSFORM initialize_proofing_transform() {
-	g_assert(gui.icc.monitor);
+	g_assert(com.gui_icc.monitor);
 	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
 		return NULL;
-	cmsUInt32Number flags = gui.icc.proofing_flags;
+	cmsUInt32Number flags = com.gui_icc.proofing_flags;
 	if (fit_icc_is_linear(gfit))
 		flags |= cmsFLAGS_NOOPTIMIZE;
-	gboolean gamutcheck = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkgamut")));
+	gboolean gamutcheck = gui_iface.get_gamut_check_active();
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
@@ -258,9 +211,9 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						com.icc.context_single,
 						gfit->icc_profile,
 						type,
-						gui.icc.monitor,
+						com.gui_icc.monitor,
 						TYPE_RGB_8_PLANAR,
-						(gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : gui.icc.monitor,
+						(com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : com.gui_icc.monitor,
 						com.pref.icc.rendering_intent,
 						com.pref.icc.proofing_intent,
 						flags);
@@ -329,20 +282,20 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 				((com.pref.icc.proofing_intent == INTENT_ABSOLUTE_COLORIMETRIC) && memcmp(a_w, c_w, sizeof(cmsCIEXYZ))))
 			return FALSE;
 	}
-	siril_debug_print("Primaries are the same\n");
+	siril_log_debug("Primaries are the same\n");
 	return TRUE;
 }
 
 void reset_icc_transforms() {
 	g_mutex_lock(&display_transform_mutex);
 //	if (gfit->color_managed) {
-		if (gui.icc.proofing_transform) {
-			cmsDeleteTransform(gui.icc.proofing_transform);
-			gui.icc.proofing_transform = NULL;
+		if (com.gui_icc.proofing_transform) {
+			cmsDeleteTransform(com.gui_icc.proofing_transform);
+			com.gui_icc.proofing_transform = NULL;
 		}
 //	}
-	gui.icc.same_primaries = FALSE;
-	gui.icc.profile_changed = TRUE;
+	com.gui_icc.same_primaries = FALSE;
+	com.gui_icc.profile_changed = TRUE;
 	g_mutex_unlock(&display_transform_mutex);
 }
 
@@ -350,42 +303,42 @@ void validate_custom_profiles() {
 	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0' && com.pref.icc.custom_monitor_profile_active) {
 		g_mutex_lock(&monitor_profile_mutex);
 		if (validate_profile(com.pref.icc.icc_path_monitor)) {
-			if (gui.icc.monitor)
-				cmsCloseProfile(gui.icc.monitor);
-			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
-			if (!gui.icc.monitor) {
-				gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
-				siril_log_color_message(_("Error opening custom monitor profile. "
-								"Monitor profile set to sRGB.\n"), "red");
+			if (com.gui_icc.monitor)
+				cmsCloseProfile(com.gui_icc.monitor);
+			com.gui_icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
+			if (!com.gui_icc.monitor) {
+				com.gui_icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
+				siril_log_error(_("Error opening custom monitor profile. "
+								"Monitor profile set to sRGB.\n"));
 			}
 		} else {
-			if (gui.icc.monitor)
-				cmsCloseProfile(gui.icc.monitor);
-			gui.icc.monitor = srgb_trc();
-			siril_log_message(_("Warning: custom monitor profile set but could not "
+			if (com.gui_icc.monitor)
+				cmsCloseProfile(com.gui_icc.monitor);
+			com.gui_icc.monitor = srgb_trc();
+			siril_log_warning(_("Warning: custom monitor profile set but could not "
 								"be loaded. Display will use a sRGB profile with "
 								"the standard sRGB TRC.\n"));
 		}
 		g_mutex_unlock(&monitor_profile_mutex);
 	} else {
 		g_mutex_lock(&monitor_profile_mutex);
-		if (gui.icc.monitor)
-			cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
+		if (com.gui_icc.monitor)
+			cmsCloseProfile(com.gui_icc.monitor);
+		com.gui_icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
 		g_mutex_unlock(&monitor_profile_mutex);
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
 		g_mutex_lock(&soft_proof_profile_mutex);
 		if (validate_profile(com.pref.icc.icc_path_soft_proof)) {
-			if (gui.icc.soft_proof)
-				cmsCloseProfile(gui.icc.soft_proof);
-			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
+			if (com.gui_icc.soft_proof)
+				cmsCloseProfile(com.gui_icc.soft_proof);
+			com.gui_icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
 		} else {
-			if (gui.icc.soft_proof)
-				cmsCloseProfile(gui.icc.soft_proof);
-			gui.icc.soft_proof = NULL;
-			siril_log_message(_("Warning: soft proofing profile set but could not "
+			if (com.gui_icc.soft_proof)
+				cmsCloseProfile(com.gui_icc.soft_proof);
+			com.gui_icc.soft_proof = NULL;
+			siril_log_warning(_("Warning: soft proofing profile set but could not "
 								"be loaded. Soft proofing will be unavailable.\n"));
 		}
 		g_mutex_unlock(&soft_proof_profile_mutex);
@@ -425,7 +378,7 @@ void validate_custom_profiles() {
 			com.icc.working_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r");
 			if (!com.icc.working_standard) {
 				com.icc.working_standard = srgb_trc();
-				siril_log_color_message(_("Error opening nonlinear working profile. Profile set to sRGB.\n"), "red");
+				siril_log_error(_("Error opening nonlinear working profile. Profile set to sRGB.\n"));
 			}
 		} else {
 			com.icc.working_standard = srgb_trc();
@@ -440,7 +393,7 @@ void validate_custom_profiles() {
 			com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r");
 			if (!com.icc.mono_standard) {
 				com.icc.mono_standard = gray_srgbtrc();
-				siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with sRGB tone response curve.\n"), "red");
+				siril_log_error(_("Error opening matched grayscale working profile. Profile set to Gray with sRGB tone response curve.\n"));
 			}
 		} else {
 			com.icc.mono_standard = gray_srgbtrc();
@@ -469,7 +422,7 @@ void initialize_profiles_and_transforms() {
 	cmsSetAlarmCodesTHR(com.icc.context_single, alarmcodes); // Out of gamut colours will be shown in magenta
 
 	com.icc.rendering_flags |= ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
-	gui.icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+	com.gui_icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
 
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
@@ -483,9 +436,9 @@ void initialize_profiles_and_transforms() {
 
 	// ICC availability
 	gboolean available = (com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
-	gboolean gui_available = available && gui.icc.monitor;
+	gboolean gui_available = available && com.gui_icc.monitor;
 	if ((com.headless && !available) || (!com.headless && !gui_available)) {
-		siril_log_message(_("Error: standard color management profiles "
+		siril_log_error(_("Error: standard color management profiles "
 							"could not be loaded. Cannot continue. "
 							"Please report this error.\n"));
 		exit(1);
@@ -500,8 +453,8 @@ void initialize_profiles_and_transforms() {
 #endif
 	}
 	if (gui_available) {
-		gui.icc.same_primaries = FALSE;
-		gui.icc.profile_changed = TRUE;
+		com.gui_icc.same_primaries = FALSE;
+		com.gui_icc.profile_changed = TRUE;
 	}
 }
 
@@ -520,160 +473,19 @@ void cleanup_common_profiles() {
 		cmsCloseProfile(com.icc.working_out);
 	if (com.icc.mono_out)
 		cmsCloseProfile(com.icc.mono_out);
-	if (gui.icc.monitor)
-		cmsCloseProfile(gui.icc.monitor);
-	if (gui.icc.soft_proof)
-		cmsCloseProfile(gui.icc.soft_proof);
-	if (gui.icc.proofing_transform)
-		cmsDeleteTransform(gui.icc.proofing_transform);
-	memset(&gui.icc, 0, sizeof(struct gui_icc));
+	if (com.gui_icc.monitor)
+		cmsCloseProfile(com.gui_icc.monitor);
+	if (com.gui_icc.soft_proof)
+		cmsCloseProfile(com.gui_icc.soft_proof);
+	if (com.gui_icc.proofing_transform)
+		cmsDeleteTransform(com.gui_icc.proofing_transform);
+	memset(&com.gui_icc, 0, sizeof(struct gui_icc));
 	if (com.icc.context_single)
 		cmsDeleteContext(com.icc.context_single);
 	if (com.icc.context_threaded)
 		cmsDeleteContext(com.icc.context_threaded);
 	memset(&com.icc, 0, sizeof(struct common_icc));
-	siril_debug_print("ICC profiles cleaned up\n");
-}
-
-void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
-	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
-	gtk_file_chooser_unselect_all(filechooser);
-	cmsHPROFILE old_monitor = copyICCProfile(gui.icc.monitor);
-	g_mutex_lock(&monitor_profile_mutex);
-	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
-		g_free(com.pref.icc.icc_path_monitor);
-		com.pref.icc.icc_path_monitor = NULL;
-		cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
-		if (gui.icc.monitor) {
-			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
-		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-			exit(1);
-		}
-	}
-	g_mutex_unlock(&monitor_profile_mutex);
-	gtk_toggle_button_set_active(togglebutton, FALSE);
-	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
-	if (!profiles_identical(old_monitor, gui.icc.monitor)) {
-		refresh_icc_transforms();
-		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
-	}
-	cmsCloseProfile(old_monitor);
-}
-
-void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
-	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
-	g_mutex_lock(&soft_proof_profile_mutex);
-
-	gtk_file_chooser_unselect_all(filechooser);
-	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
-		g_free(com.pref.icc.icc_path_soft_proof);
-		com.pref.icc.icc_path_soft_proof = NULL;
-	}
-	if (gui.icc.soft_proof)
-		cmsCloseProfile(gui.icc.soft_proof);
-	gui.icc.soft_proof = NULL;
-
-	g_mutex_unlock(&soft_proof_profile_mutex);
-	gtk_toggle_button_set_active(togglebutton, FALSE);
-	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-}
-
-void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
-	gboolean no_file = FALSE;
-	gboolean active = gtk_toggle_button_get_active(button);
-	g_mutex_lock(&monitor_profile_mutex);
-	if (gui.icc.monitor) {
-		cmsCloseProfile(gui.icc.monitor);
-	}
-	if (active) {
-		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			com.pref.icc.icc_path_monitor = g_strdup(gtk_file_chooser_get_filename(filechooser));
-		}
-		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for custom monitor profile.\n"), "red");
-			no_file = TRUE;
-		} else {
-			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
-		}
-		if (gui.icc.monitor) {
-			siril_log_message(_("Monitor profile loaded from %s\n"), com.pref.icc.icc_path_monitor, "r");
-			g_mutex_unlock(&monitor_profile_mutex);
-			refresh_icc_transforms();
-			return;
-		} else {
-			if (!no_file) {
-				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_monitor);
-			}
-			gui.icc.monitor = srgb_monitor_perceptual();
-			if (gui.icc.monitor) {
-				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
-			} else {
-				siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-				exit(1);
-			}
-		}
-	} else {
-		gui.icc.monitor = srgb_monitor_perceptual();
-		if (gui.icc.monitor) {
-			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
-		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-			exit(1);
-		}
-	}
-	g_mutex_unlock(&monitor_profile_mutex);
-	refresh_icc_transforms();
-}
-
-void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
-	gboolean no_file = FALSE;
-	gboolean active = gtk_toggle_button_get_active(button);
-	g_mutex_lock(&soft_proof_profile_mutex);
-	if (gui.icc.soft_proof) {
-		cmsCloseProfile(gui.icc.soft_proof);
-		gui.icc.soft_proof = NULL;
-	}
-	if (active) {
-		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			com.pref.icc.icc_path_soft_proof = g_strdup(gtk_file_chooser_get_filename(filechooser));
-		}
-		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for output device proofing profile.\n"), "red");
-			no_file = TRUE;
-		} else {
-			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
-		}
-		if (gui.icc.soft_proof) {
-			siril_log_message(_("Output device proofing profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
-			g_mutex_unlock(&soft_proof_profile_mutex);
-			refresh_icc_transforms();
-			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
-			return;
-		} else {
-			if (!no_file) {
-				siril_log_color_message(_("Output device proofing profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_soft_proof);
-			}
-			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
-		}
-	} else {
-		siril_log_message(_("Output device proofing profile deactivated. Soft proofing will proof to the monitor profile.\n"));
-	}
-	g_mutex_unlock(&soft_proof_profile_mutex);
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	siril_log_debug("ICC profiles cleaned up\n");
 }
 
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {
@@ -709,22 +521,22 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
  * lcms2 takes care of populating all 3 output channels for us.
  */
 cmsHTRANSFORM initialize_display_transform() {
-	g_assert(gui.icc.monitor);
+	g_assert(com.gui_icc.monitor);
 	cmsHTRANSFORM transform = NULL;
 	if (gfit->icc_profile == NULL || !gfit->color_managed) {
-		siril_debug_print("NULL display transform\n");
+		siril_log_debug("NULL display transform\n");
 		return NULL;
 	}
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit->icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit->type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
 	// The display transform is always single threaded as OpenMP is used within the remap function
-	transform = cmsCreateTransformTHR(com.icc.context_single, gfit->icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	transform = cmsCreateTransformTHR(com.icc.context_single, gfit->icc_profile, srctype, com.gui_icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
-		siril_log_message("Error: failed to create display_transform!\n");
+		siril_log_error("Error: failed to create display_transform!\n");
 	else
-		siril_debug_print("Display transform created (gfit->icc_profile to gui.icc.monitor)\n");
+		siril_log_debug("Display transform created (gfit->icc_profile to com.gui_icc.monitor)\n");
 	return transform;
 }
 
@@ -738,25 +550,25 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	if (transform == NULL)
-		siril_log_message("Error: failed to create export colorspace transform!\n");
+		siril_log_error("Error: failed to create export colorspace transform!\n");
 	return transform;
 }
 
 /* Refreshes the display and proofing transforms after a profile is changed. */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
-		if (gui.icc.proofing_transform)
-			cmsDeleteTransform(gui.icc.proofing_transform);
-		gui.icc.proofing_transform = initialize_proofing_transform();
+		if (com.gui_icc.proofing_transform)
+			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		g_mutex_unlock(&display_transform_mutex);
-		gui.icc.profile_changed = TRUE;
+		com.gui_icc.profile_changed = TRUE;
 
 	}
-	if (is_preview_active())
-		copy_gfit_icc_to_backup();
-	check_gfit_profile_identical_to_monitor();
+	if (gui_iface.is_preview_active())
+		gui_iface.copy_gfit_icc_to_backup();
+	gui_iface.check_icc_identical_to_monitor();
 }
 
 // Returns the full ICC profile data
@@ -771,7 +583,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 		ret = cmsSaveProfileToMem(profile, (void*) block, &length);
 	}
 	if (!ret) {
-		siril_debug_print("Error preparing ICC profile for embedding...\n");
+		siril_log_debug("Error preparing ICC profile for embedding...\n");
 		return NULL;
 	}
 	*len = length;
@@ -1036,7 +848,7 @@ void check_profile_correct(fits* fit) {
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 			color_manage(fit, TRUE);
 		} else {
-			siril_debug_print("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
+			siril_log_debug("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
 		}
@@ -1047,12 +859,12 @@ void check_profile_correct(fits* fit) {
 			cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
-			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"), "salmon");
+			siril_log_warning(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"));
 		}
 	}
 	if (fit->color_managed && !fit->icc_profile) {
 		color_manage(fit, FALSE);
-		siril_debug_print("fit->color_managed inconsistent with missing profile");
+		siril_log_debug("fit->color_managed inconsistent with missing profile");
 	}
 }
 
@@ -1192,7 +1004,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			if (fit->icc_profile)
 				cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = copyICCProfile(profile);
-			siril_debug_print("siril_colorspace_transform() assigned a profile\n");
+			siril_log_debug("siril_colorspace_transform() assigned a profile\n");
 			gchar *desc = siril_color_profile_get_description(profile);
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
 			g_free(desc);
@@ -1200,7 +1012,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			color_manage(fit, TRUE);
 			return;
 		} else {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
+			gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
 			return;
 		}
 	}
@@ -1210,7 +1022,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
 	void *data = NULL;
@@ -1239,9 +1051,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
 			g_free(desc);
 		color_manage(fit, TRUE);
-		siril_debug_print("siril_colorspace_transform() converted a profile\n");
+		siril_log_debug("siril_colorspace_transform() converted a profile\n");
 	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}
 }
 
@@ -1310,25 +1122,25 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 
 		else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
 			if (!fit->color_managed) {
-				proceed = siril_confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
+				proceed = gui_iface.confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
 			} else {
-				proceed = siril_confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
+				proceed = gui_iface.confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
 			}
 		}
 	}
 
 	// If the conversion has been triggered automatically or via the dialog, do it.
 	if (proceed) {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		if (fit == gfit && !com.headless) {
-			set_source_information();
+			gui_iface.set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 }
 
@@ -1344,8 +1156,8 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 	// Check if the occasion matches the preference
 	if (com.pref.icc.autoassignment & occasion) {
-		siril_debug_print("Auto assigning working profile\n");
-		set_cursor_waiting(TRUE);
+		siril_log_debug("Auto assigning working profile\n");
+		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		color_manage(fit, TRUE);
@@ -1356,12 +1168,12 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 		color_manage(fit, FALSE);
 	}
 	if (fit == gfit) {
-		set_source_information();
+		gui_iface.set_source_information();
 		refresh_icc_transforms();
 		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 const char* default_system_icc_path() {
@@ -1379,7 +1191,7 @@ const char* default_system_icc_path() {
  * is used to create the transform, to prevent bad things happening
  * if the user changes the profile at the same time as Siril is trying
  * to create the transform. It is not required for transforms solely using
- * gui.icc.display or gui.icc.soft_proof, as they have their own
+ * com.gui_icc.display or com.gui_icc.soft_proof, as they have their own
  * gMutices. It is also not required for creating transforms between
  * fit->icc_profile and another profile (such as the temporary one created
  * when carrying out autostretches), as there is no risk of a concurrency
@@ -1411,14 +1223,14 @@ static void reset_working_profile_to_srgb() {
 }
 
 static void error_loading_profile() {
-	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
+	gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error loading profile"),
 						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
 	reset_working_profile_to_srgb();
 }
 
 static void reset_custom_to_srgb() {
-	siril_log_color_message(_("Error: the preferred colorspace profiles are not all set, or some are not valid. "
-							  "You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"), "red");
+	siril_log_error(_("Error: the preferred colorspace profiles are not all set, or some are not valid. "
+							  "You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"));
 	reset_working_profile_to_srgb();
 }
 
@@ -1522,7 +1334,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 		return;
 	}
 	if (! siril_color_profile_get_rgb_matrix_colorants_d50 (profile, &XYZtriple, &whitepoint)) {
-		siril_log_message(_("Error reading chromaticities\n"));
+		siril_log_error(_("Error reading chromaticities\n"));
 		free_siril_plot_data(spl_data);
 		return;
 	}
@@ -1574,7 +1386,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
 	n++;
 	if (!siril_plot_set_background(spl_data, "CIE1931xy.svg"))
-		siril_log_color_message(_("Could not load background\n"), "red");
+		siril_log_error(_("Could not load background\n"));
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
@@ -1588,7 +1400,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	free(horseshoe_x);
 	free(horseshoe_y);
 
-	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+	gui_iface.show_siril_plot(spl_data);
 	siril_add_idle(end_generic, NULL);
 }
 
@@ -1624,7 +1436,7 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	}
 	siril_colorspace_transform(fit, args->profile);
 	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error assigning ICC profile.\n"), "red");
+		siril_log_error(_("Error assigning ICC profile.\n"));
 		color_manage(fit, FALSE);
 		return 1;
 	}
@@ -1649,7 +1461,7 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	siril_colorspace_transform(fit, args->profile);
 	com.pref.icc.processing_intent = temp_intent;
 	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
+		siril_log_error(_("Error converting ICC color space.\n"));
 		return 1;
 	}
 	return 0;

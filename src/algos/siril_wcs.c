@@ -75,15 +75,28 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 		return NULL;
 	}
 	wcsdst->flag = -1;
-	int statuscpy = wcssub(0, wcssrc, &nsub, axes, wcsdst);
+	if (wcssrc->lin.dispre && strcmp(wcssrc->lin.dispre->dtype[0], "SIP") != 0) {
+		disfree(wcssrc->lin.dispre);
+		wcssrc->lin.dispre = NULL;
+	}
+	if (wcssrc->lin.disseq && strcmp(wcssrc->lin.disseq->dtype[0], "SIP") != 0) {
+		disfree(wcssrc->lin.disseq);
+		wcssrc->lin.disseq = NULL;
+	}
+	int statuscpy = wcssub(1, wcssrc, &nsub, axes, wcsdst);
 	if (statuscpy) {
 		if (status)
 			*status = statuscpy;
 		wcsfree(wcsdst);
 		return NULL;
 	}
-	wcsdst->flag = 0;
-	wcsset(wcsdst);
+	int statusset = wcsset(wcsdst);
+	if (statusset) {
+		if (status)
+			*status = statusset;
+		wcsfree(wcsdst);
+		return NULL;
+	}
 	if (status)
 		*status = 0;
 	return wcsdst;
@@ -105,7 +118,8 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 		for (int i = 0; i < nwcs; i++) {
 			/* Find the master celestial WCS coordinates */
 			wcsprm_t *prm = data + i;
-			wcsset(prm); // is it necessary?
+			prm->flag = 1;
+			wcsset(prm); // needed to populate the lat and lng members
 			if (prm->lng >= 0 && prm->lat >= 0
 					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
 				int status = -1;
@@ -118,7 +132,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs->altlin = 1;
 						wcs->flag = 0;
 						wcsset(wcs);
-						siril_debug_print("contains CD\n");
+						siril_log_debug("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
 						wcs_pc2mat(wcs, pc);
@@ -127,18 +141,18 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_decompose_cd(wcs, cd); // we decompose again CD in case PC/CDELT do not follow the expected formalism (CDELT to unity instead of scales)
 						wcs->flag = 0;
 						wcsset(wcs);
-						// siril_debug_print("contains PC\n");
+						// siril_log_debug("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
-						siril_debug_print("wcs did not contain enough info\n");
+						siril_log_debug("wcs did not contain enough info\n");
 						free(wcs);
 						wcs = NULL;
 						break;
 					}
-					// siril_debug_print("at header readout\n");
+					// siril_log_debug("at header readout\n");
 					// wcs_print(wcs);
 					break;
 				} else {
-					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
+					siril_log_debug("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
 					wcsfree(wcs);
 					wcs = NULL;
 				}
@@ -169,7 +183,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	free(header);
 
 	if (!wcs) {
-		siril_debug_print("No world coordinate systems found.\n");
+		siril_log_debug("No world coordinate systems found.\n");
 		wcsfree(wcs);
 		return FALSE;
 	}
@@ -206,7 +220,7 @@ int wcs2pix2(wcsprm_t *wcslib, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
 	if (!wcslib) {
-		siril_debug_print("No WCS data available.\n");
+		siril_log_debug("No WCS data available.\n");
 		return WCSERR_UNSET;
 	}
 	int status, stat[NWCSFIX];
@@ -235,7 +249,7 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
 	if (!fit->keywords.wcslib) {
-		siril_debug_print("No WCS data available.\n");
+		siril_log_debug("No WCS data available.\n");
 		return WCSERR_UNSET;
 	}
 	double xx = -1., yy = -1.;
@@ -243,7 +257,7 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (status)
 		return status;
 	if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
-		// siril_debug_print("outside image but valid return\n");
+		// siril_log_debug("outside image but valid return\n");
 		// wcss2p returns values between 0 and 9, picking a new one
 		status = 10;
 	}
@@ -282,7 +296,7 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 				if (x) x[i] = xx - 0.5;
 				if (y) y[i] = yy - 0.5;
 				if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
-					//siril_debug_print("outside image but valid return\n");
+					//siril_log_debug("outside image but valid return\n");
 					// wcss2p returns values between 0 and 9, picking a new one
 					status[i] = 10;
 				}
@@ -585,7 +599,7 @@ wcsprm_t *wcs_copy_linear(wcsprm_t *prm_in) {
 	int status = 0;
 	wcsprm_t *prm = wcs_deepcopy(prm_in, &status);
 	if (status != 0) {
-		siril_debug_print("wcs_copy_linear: error copying WCS structure: %d\n", status);
+		siril_log_debug("wcs_copy_linear: error copying WCS structure: %d\n", status);
 		free(prm);
 		return NULL;
 	}

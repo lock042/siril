@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -38,10 +37,7 @@
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/utils.h"
-#include "gui/siril_plot.h"
+#include "core/gui_iface.h"
 
 void free_conesearch_params(void *p);
 void free_conesearch_args(void *p);
@@ -369,23 +365,23 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 	for (int i = 0; i < nbcols; i++) {
 		int val = get_column_index(fields[i]);
 		if (val < 0) {
-			siril_debug_print("Unknown column %s found in the catalog, ignoring\n", fields[i]);
+			siril_log_debug("Unknown column %s found in the catalog, ignoring\n", fields[i]);
 			continue;
 		}
 		indexes[i] = val;
 		res |= (1 << val);
 	}
 	if (res == catspec) {
-		siril_debug_print("Found same columns as in the catalog spec\n");
+		siril_log_debug("Found same columns as in the catalog spec\n");
 		*collist = res;
 		return TRUE;
 	}
 	if ((res & catspec) == catspec) {
-		siril_debug_print("Found more columns than in the catalog spec, keeping them\n");
+		siril_log_debug("Found more columns than in the catalog spec, keeping them\n");
 		*collist = res;
 		return TRUE;
 	}
-	siril_log_color_message(_("Did not find the minimal set of columns necessary for the catalog %s, aborting\n"), "red", catalog_to_str(Catalog));
+	siril_log_error(_("Did not find the minimal set of columns necessary for the catalog %s, aborting\n"), catalog_to_str(Catalog));
 	return FALSE;
 }
 
@@ -466,7 +462,7 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 // copies all the data from a catalogue to another
 void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only) {
 	if (!from || !to) {
-		siril_debug_print("no catalogue to copy from or to\n");
+		siril_log_debug("no catalogue to copy from or to\n");
 		return;
 	}
 	memcpy(to, from, sizeof(siril_catalogue));
@@ -491,7 +487,7 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean m
 // copies all the data from an item to another item
 void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 	if (!from || !to) {
-		siril_debug_print("no item to copy from or to\n");
+		siril_log_debug("no item to copy from or to\n");
 		return;
 	}
 	memcpy(to, from, sizeof(cat_item));
@@ -563,7 +559,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 		return NULL;
 	}
 	if (!has_wcs(fit)) {
-		siril_debug_print("This only works on plate solved images\n");
+		siril_log_debug("This only works on plate solved images\n");
 		return NULL;
 	}
 	siril_catalogue *siril_cat = siril_catalog_new(cat);
@@ -609,12 +605,12 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
 	if (siril_cat->cat_items && siril_cat->cat_index != CAT_SHOW) {
-		siril_debug_print("trying to fetch a catalog while a list already exists, should not happen\n");
+		siril_log_debug("trying to fetch a catalog while a list already exists, should not happen\n");
 		return 0;
 	}
 	if (siril_cat->cat_index < CAT_AN_MESSIER) {
 #ifndef HAVE_LIBCURL
-		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+		siril_log_error(_("Siril was compiled without networking support, cannot do this operation\n"));
 		return 0;
 #else
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
@@ -625,7 +621,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
 	} else {
-		siril_debug_print("trying to conesearch an invalid catalog type\n");
+		siril_log_debug("trying to conesearch an invalid catalog type\n");
 	}
 
 	return nbstars;
@@ -642,10 +638,10 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	int retval = 1;
 	if (!input_stream) {
 		if (error != NULL) {
-			siril_log_message(_("Could not open the catalog (%s)\n"), error->message);
+			siril_log_error(_("Could not open the catalog (%s)\n"), error->message);
 			g_clear_error(&error);
 		} else
-			siril_log_message(_("Could not open the catalog (%s)\n"), "generic error");
+			siril_log_error(_("Could not open the catalog (%s)\n"), "generic error");
 		return retval;
 	}
 
@@ -686,7 +682,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			gchar **fields = g_strsplit(line + offset, ",", -1);
 			nbcols = g_strv_length(fields);
 			if (!nbcols) {
-				siril_log_color_message(_("No columns found in the catalogue\n"), "red");
+				siril_log_error(_("No columns found in the catalogue\n"));
 				has_error = TRUE;
 			} else {
 				indexes = malloc(nbcols * sizeof(int));
@@ -706,7 +702,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 		gchar **vals = g_strsplit(line, ",", -1);
 		int size = g_strv_length(vals);
 		if (size != nbcols) { // checking that current line has a number of columns consistent with the headers
-			siril_log_color_message(_("Malformed line found %s\n"), "red", line);
+			siril_log_error(_("Malformed line found %s\n"), line);
 			g_strfreev(vals);
 			goto siril_catalog_load_from_file_exit_on_error;
 		}
@@ -739,7 +735,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 		g_strfreev(vals);
 	}
 	if (nb_items == 0) {
-		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
+		siril_log_warning(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), filename);
 		retval = -1;
 		goto siril_catalog_load_from_file_exit_on_error;
 	}
@@ -749,7 +745,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	siril_cat->nbincluded = nb_items;
 	if (header)
 		siril_cat->header = g_string_free(header, FALSE);
-	siril_debug_print("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
+	siril_log_debug("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
 
@@ -800,7 +796,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		}
 		g_free(columns_str);
 	} else {
-		siril_debug_print("no columns to write");
+		siril_log_debug("no columns to write");
 		g_error_free(error);
 		return FALSE;
 	}
@@ -842,7 +838,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	GFile *file = g_file_new_for_path(filename);
 	if (g_file_test(filename, G_FILE_TEST_EXISTS)) { // file already exists, we removed it
 		if (!g_file_delete(file, NULL, &error)) {
-			siril_log_color_message(_("File %s cannot be deleted (%s), aborting\n"), "red", filename, (error) ? error->message : "unknown error");
+			siril_log_error(_("File %s cannot be deleted (%s), aborting\n"), filename, (error) ? error->message : "unknown error");
 			g_object_unref(file);
 			return FALSE;
 		}
@@ -851,7 +847,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	// and we open the stream to write to
 	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
-		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filename, (error) ? error->message : "unknown error");
+		siril_log_error(_("Cannot create catalogue file %s (%s)\n"), filename, (error) ? error->message : "unknown error");
 		g_clear_error(&error);
 		g_object_unref(file);
 		return FALSE;
@@ -884,14 +880,14 @@ static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->keywords.date_obs) {
-		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
+		// siril_log_debug("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
 		return FALSE;
 	}
 	if (!has_field(siril_cat, PMRA) || !has_field(siril_cat, PMDEC)) {
-		// siril_debug_print("This catalog does not have proper motion info, will not be computed\n");
+		// siril_log_debug("This catalog does not have proper motion info, will not be computed\n");
 		return FALSE;
 	}
-	siril_debug_print("Catalogue %s will account for proper motions\n", catalog_to_str(siril_cat->cat_index));
+	siril_log_debug("Catalogue %s will account for proper motions\n", catalog_to_str(siril_cat->cat_index));
 	return TRUE;
 }
 
@@ -899,14 +895,14 @@ static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->keywords.date_obs) {
-		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
+		// siril_log_debug("This image does not have any DATE-OBS information, cannot account for velocity\n");
 		return FALSE;
 	}
 	if (!has_field(siril_cat, VRA) || !has_field(siril_cat, VDEC)) {
-		// siril_debug_print("This catalog does not have velocity info, will not be computed\n");
+		// siril_log_debug("This catalog does not have velocity info, will not be computed\n");
 		return FALSE;
 	}
-	siril_debug_print("Catalogue %s will account for velocities\n", catalog_to_str(siril_cat->cat_index));
+	siril_log_debug("Catalogue %s will account for velocities\n", catalog_to_str(siril_cat->cat_index));
 	return TRUE;
 }
 
@@ -917,7 +913,7 @@ static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 // in the catalogue (vra and vdec fields)
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
-		siril_debug_print("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cat_index));
+		siril_log_debug("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cat_index));
 		return 1;
 	}
 	int nbincluded = 0;
@@ -947,8 +943,8 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 				deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
 				use_tcat = TRUE;
 			} else {
-				siril_log_color_message(_("Cannot correct for velocities, will use ra/dec as is\n"), "salmon");
-				siril_log_color_message(_("To tag solar system objects, please refer to conesearch command\n"), "salmon");
+				siril_log_warning(_("Cannot correct for velocities, will use ra/dec as is\n"));
+				siril_log_warning(_("To tag solar system objects, please refer to conesearch command\n"));
 				use_velocity = FALSE;
 			}
 		}
@@ -1036,10 +1032,10 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
 	if (use_proper_motion) {
 		if (!date_obs) {
-			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
+			siril_log_warning(_("no DATE-OBS information, cannot account for stars proper motions\n"));
 			use_proper_motion = FALSE;
 		} else if (!has_field(siril_cat, PMRA) || !has_field(siril_cat, PMDEC)) {
-			siril_log_color_message(_("This catalog does not have proper motion info, will not be computed\n"), "salmon");
+			siril_log_warning(_("This catalog does not have proper motion info, will not be computed\n"));
 			use_proper_motion = FALSE;
 		} else {
 			GDateTime *dt = g_date_time_ref(date_obs);
@@ -1075,25 +1071,16 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	return 0;
 }
 
-// TODO: move to a file for callbacks and remove gtk include
 static gboolean end_conesearch(gpointer p) {
 	siril_catalogue *temp_cat = (siril_catalogue *) p;
 	if (temp_cat) {
 		// purge_user_catalogue(CAT_AN_USER_TEMP); // we don't clear so as to accumulate displays of various conesearches/show commands
 		if (!load_siril_cat_to_temp(temp_cat)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			// refresh_annotation_to_temp(); // may need to make that an option later on
-			refresh_annotation_visibility();
-			if (!gtk_toggle_tool_button_get_active(button)) {
-				gtk_toggle_tool_button_set_active(button, TRUE);
-			} else {
-				refresh_found_objects();
-				redraw(REDRAW_OVERLAY);
-			}
+			gui_iface.activate_annotation_display();
 		}
 	}
 //	return end_generic(NULL); // don't call this as it calls stop_processing_thread which causes a deadlock
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
 	return FALSE;
 }
@@ -1103,15 +1090,15 @@ static gboolean end_conesearch(gpointer p) {
 // Sanity checks for conesearch args
 int check_conesearch_args(conesearch_args *args) {
 	if (args->display_log && !has_field(args->siril_cat, NAME)) {
-		siril_log_color_message(_("Won't log list of objects for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cat_index));
+		siril_log_warning(_("Won't log list of objects for catalog %s which does not have name information\n"), catalog_to_str(args->siril_cat->cat_index));
 		args->display_log = FALSE;
 	}
 	if (args->display_tag && !args->has_GUI) {
-		siril_log_color_message(_("Won't show objects tags as there is no display, ignoring\n"), "salmon", catalog_to_str(args->siril_cat->cat_index));
+		siril_log_warning(_("Won't show objects tags as there is no display, ignoring\n"), catalog_to_str(args->siril_cat->cat_index));
 		args->display_tag = FALSE;
 	}
 	if (args->display_tag && !has_field(args->siril_cat, NAME)) {
-		siril_log_color_message(_("Won't display objects tags for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cat_index));
+		siril_log_warning(_("Won't display objects tags for catalog %s which does not have name information\n"), catalog_to_str(args->siril_cat->cat_index));
 		args->display_tag = FALSE;
 	}
 	return 0;
@@ -1119,7 +1106,7 @@ int check_conesearch_args(conesearch_args *args) {
 
 int execute_conesearch(conesearch_params *params) {
 	if (!has_wcs(gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		siril_log_error(_("This command only works on plate solved images\n"));
 		free_conesearch_params(params);
 		return CMD_FOR_PLATE_SOLVED;
 	}
@@ -1133,7 +1120,7 @@ int execute_conesearch(conesearch_params *params) {
 				siril_log_message(_("Using default observatory code %s\n"), params->obscode);
 		} else {
 			siril_cat->IAUcode = g_strdup("500");
-			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
+			siril_log_warning(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"));
 		}
 	} else if (params->obscode) {
 		g_free(params->obscode);
@@ -1142,7 +1129,7 @@ int execute_conesearch(conesearch_params *params) {
 	if (params->cat == CAT_LOCAL_TRIX)
 		siril_cat->trixel = params->trixel;
 
-	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
+	siril_log_debug("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 	conesearch_args *args = init_conesearch_args();
 	args->fit = gfit;
 	args->siril_cat = siril_cat;
@@ -1165,13 +1152,13 @@ int execute_conesearch(conesearch_params *params) {
 }
 int execute_show_command(show_params *params) {
 	if (!has_wcs(gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		siril_log_error(_("This command only works on plate solved images\n"));
 		return CMD_FOR_PLATE_SOLVED;
 	}
 
 	if (params->clear) { // this is safe even in script/headless,used by the command, not the UI
 		purge_user_catalogue(CAT_AN_USER_TEMP);
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 	siril_catalogue *siril_cat = siril_catalog_new(CAT_SHOW);	
@@ -1244,12 +1231,12 @@ gpointer conesearch_worker(gpointer p) {
 
 	// Check initial args
 	if (!siril_cat) {
-		siril_debug_print("no query passed");
+		siril_log_debug("no query passed");
 		goto exit_conesearch;
 	}
 	if (args->compare && !args->has_GUI) {
 		args->compare = FALSE;
-		siril_debug_print("Compare available only with GUI\n");
+		siril_log_debug("Compare available only with GUI\n");
 	}
 
 	// Launch the query
@@ -1276,7 +1263,7 @@ gpointer conesearch_worker(gpointer p) {
 	}
 	if (siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, TRUE)) {
 		if (siril_cat->projected == CAT_PROJ_WCS)
-			siril_log_color_message(_("No item found in the image\n"), "salmon");
+			siril_log_warning(_("No item found in the image\n"));
 		goto exit_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
@@ -1386,7 +1373,7 @@ gpointer conesearch_worker(gpointer p) {
 			rectangle area = { 0 };
 			cat_item tmp = { .x = x, .y = y };
 			if (make_selection_around_a_star(&tmp, &area, args->fit, NULL)) {
-				siril_debug_print("star %d is outside image or too close to border\n", i);
+				siril_log_debug("star %d is outside image or too close to border\n", i);
 				continue;
 			}
 			psf_error error = PSF_NO_ERR;
@@ -1468,7 +1455,7 @@ gpointer conesearch_worker(gpointer p) {
 		if (siril_catalog_write_to_file(temp_cat, args->outfilename)) {
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
 		} else {
-			siril_log_message(_("Failed to save list to %s\n"), args->outfilename);
+			siril_log_error(_("Failed to save list to %s\n"), args->outfilename);
 		}
 	}
 	// The catalogue has been written, we can now remove the names if needed for display
@@ -1516,8 +1503,8 @@ exit_conesearch:
 
 		if (go_idle) {
 			if (spl_data)
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+				gui_iface.show_siril_plot(spl_data);
+			gui_iface.execute_idle_sync(end_conesearch, temp_cat);
 			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);
@@ -1599,7 +1586,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return NULL;
 	if (siril_cat->projected == CAT_PROJ_NONE) {
-		siril_debug_print("Catalog has not been projected\n");
+		siril_log_debug("Catalog has not been projected\n");
 	}
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG))
 		return NULL;
@@ -1609,7 +1596,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		if (siril_cat->cat_items[i].included) {
 			if (n >= siril_cat->nbincluded) {
-				siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
+				siril_log_debug("problem when converting siril_cat to psf_stars, more than allocated");
 				break;
 			}
 			results[n] = new_psf_star();
@@ -1626,7 +1613,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	}
 	results[n] = NULL;
 	if (n != siril_cat->nbincluded) {
-		siril_debug_print("problem when converting siril_cat to psf_stars, number differs from catalogue info");
+		siril_log_debug("problem when converting siril_cat to psf_stars, number differs from catalogue info");
 		free_fitted_stars(results);
 		return NULL;
 	}

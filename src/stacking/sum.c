@@ -29,7 +29,6 @@
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "stacking.h"
-#include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "algos/siril_wcs.h"
 #include "opencv/opencv.h"
@@ -121,7 +120,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		dweights = calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
 		int layer = (args->seq->nb_layers == 1) ? 0 : 4; // 4 means all layers, 0 means only the first layer
 		if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dweights)) {
-			siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", i + 1,
+			siril_log_error(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), i + 1,
 			drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
 			return ST_SEQUENCE_ERROR;
 		}
@@ -154,14 +153,14 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 			dy -= (double)fit->ry;
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
-		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
+		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
 	if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-		siril_debug_print("Error: image #%d has a wrong shiftx value\n", o + 1);
+		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
 		shiftx += 1;
 	}
 	if (shifty == INT_MIN) { // mainly to avoid static checker warning
-		siril_debug_print("Error: image #%d has a wrong shifty value\n", o + 1);
+		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
 		shifty += 1;
 	}
 
@@ -311,7 +310,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double ratio = 1.0;
 			if (max > USHRT_MAX) {
 				ratio = USHRT_MAX_DOUBLE / (double)max;
-				siril_log_color_message(_("Reducing the stacking output to a 16-bit image will result in precision loss\n"), "salmon");
+				siril_log_warning(_("Reducing the stacking output to a 16-bit image will result in precision loss\n"));
 			}
 
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
@@ -407,13 +406,13 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		cvGetEye(&Hs);
 		double dx, dy;
 		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
-		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
-		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
+		siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - ssdata->offset[0];
 		Hs.h12 -= dy - ssdata->offset[1];
 		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
 		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
-		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+		siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
 		cvApplyFlips(&Hs, orig_ry, 0);
 		reframe_wcs(result->keywords.wcslib, &Hs);
 		update_wcsdata_from_wcs(result);

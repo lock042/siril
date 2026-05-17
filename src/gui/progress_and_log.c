@@ -33,6 +33,15 @@
 
 #include "progress_and_log.h"
 
+static GtkTextView *plog_output_textview = NULL;
+static GtkWindow *plog_control_window = NULL;
+
+static void progress_and_log_init_statics(void) {
+	if (plog_output_textview) return;
+	plog_output_textview = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "output"));
+	plog_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+}
+
 /*************************** P R O G R E S S    B A R ***************************/
 
 static void progress_bar_set_text(const char *text) {
@@ -195,8 +204,9 @@ void initialize_log_tags() {
 	if (log_tags_initialized)
 		return;
 
+	progress_and_log_init_statics();
 	/* Create tags associated with the buffer for the output text. */
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("output")));
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(plog_output_textview));
 	/* Tag with weight bold and tag name "bold" . */
 	gtk_text_buffer_create_tag (tbuf, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
 	/* Tag with style normal */
@@ -221,7 +231,8 @@ static void save_log_file(gchar *filename) {
 	gchar *str;
 	GError *error = NULL;
 
-	tv = GTK_TEXT_VIEW(lookup_widget("output"));
+	progress_and_log_init_statics();
+	tv = plog_output_textview;
 	log = gtk_text_view_get_buffer(tv);
 	gtk_text_buffer_get_bounds(log, &start, &end);
 	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
@@ -234,7 +245,7 @@ static void save_log_file(gchar *filename) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
+			siril_log_error(_("Cannot create logfile [%s]\n"), filename);
 		}
 		g_object_unref(file);
 		return;
@@ -259,7 +270,8 @@ static gboolean get_log_as_string_idle(gpointer user_data) {
 	const gchar *str;
 	gchar **strptr = (gchar **) user_data;
 
-	tv = GTK_TEXT_VIEW(lookup_widget("output"));
+	progress_and_log_init_statics();
+	tv = plog_output_textview;
 	log = gtk_text_view_get_buffer(tv);
 	gtk_text_buffer_get_bounds(log, &start, &end);
 	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
@@ -284,7 +296,8 @@ static void set_filter(GtkFileChooser *dialog) {
 static void save_log_dialog() {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
-	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	progress_and_log_init_statics();
+	GtkWindow *control_window = plog_control_window;
 	gint res;
 	gchar *filename;
 

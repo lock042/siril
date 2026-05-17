@@ -1,4 +1,10 @@
 # Build properties
+option('gtk',
+ type : 'boolean',
+ value : true,
+ description: 'build with GTK support (required to build the siril GUI executable; disable for a headless CLI-only build)'
+)
+
 option('relocatable-bundle',
  type: 'combo',
  value: 'platform-default',

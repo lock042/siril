@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/proto.h"
 #include "io/annotation_catalogues.h"
 #include "algos/siril_wcs.h"

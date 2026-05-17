@@ -26,6 +26,7 @@
 #include "core/proto.h"
 
 #include "registration.h"
+#include "registration/3stars.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
@@ -33,19 +34,10 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
-#include "gui/image_interactions.h"
-#include "gui/utils.h"
-#include "gui/PSF_list.h"	// clear_stars_list
+#include "core/gui_iface.h"
 
-static int awaiting_star = 0;
-static int selected_stars = 0;
-
-static GtkWidget *three_buttons[3] = { 0 };
-static GtkWidget *go_register = NULL;
-static GtkLabel *labelreginfo = NULL;
-static GtkImage *image_3stars[3] = { NULL };
-static GtkWidget *follow = NULL, *onlyshift = NULL;
-static GtkComboBox *reg_all_sel_box = NULL, *comboboxreglayer = NULL;
+int awaiting_star = 0;
+int selected_stars = 0;
 
 struct _3psf {
 	psf_star *stars[3];
@@ -54,151 +46,7 @@ struct _3psf {
 static struct _3psf *results;
 static int results_size;
 
-static rectangle _3boxes[3];
-
-/* UI functions */
-static void set_registration_ready(gboolean ready) {
-	if (!go_register)
-		go_register = lookup_widget("goregister_button");
-	gtk_widget_set_sensitive(go_register, ready);
-}
-
-static void update_label(gchar* str) {
-	if (!labelreginfo)
-		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
-	gtk_label_set_text(labelreginfo, str);
-}
-
-static void update_icons(int idx, gboolean OK) {
-	if (!image_3stars[0]) {
-		image_3stars[0] = GTK_IMAGE(lookup_widget("3stars-image1"));
-		image_3stars[1] = GTK_IMAGE(lookup_widget("3stars-image2"));
-		image_3stars[2] = GTK_IMAGE(lookup_widget("3stars-image3"));
-	}
-	gtk_image_set_from_icon_name(image_3stars[idx],
-			OK ? "gtk-yes" : "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
-
-}
-
-static void reset_icons() {
-	for (int i = 0; i < 3; i++) {
-		update_icons(i, FALSE);
-	}
-}
-
-void reset_3stars(){
-	if (!GTK_IS_WIDGET(three_buttons[0])) return;
-	reset_icons();
-	for (int i = 1; i < 3; i++) {
-		unset_suggested(three_buttons[i]);
-		gtk_widget_set_sensitive(three_buttons[i], FALSE);
-	}
-	set_suggested(three_buttons[0]);
-	gtk_widget_set_sensitive(three_buttons[0], TRUE);
-	set_registration_ready(FALSE);
-	clear_stars_list(TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
-	gtk_widget_set_sensitive(onlyshift, FALSE);
-	awaiting_star = 0;
-	selected_stars = 0;
-}
-
-int _3stars_get_number_selected_stars() {
-	return selected_stars;
-}
-
-gboolean _3stars_check_selection() {
-	if (com.seq.current < 0)
-		return FALSE;
-
-	if (!follow) {
-		follow = lookup_widget("followStarCheckButton");
-		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
-		onlyshift = lookup_widget("onlyshift_checkbutton");
-	}
-	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
-	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
-
-	if (dofollow) {
-		if (doall && com.seq.current != 0) {
-			gtk_label_set_text(labelreginfo, _("Make sure you load the first image"));
-			return FALSE;
-		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
-			gtk_label_set_text(labelreginfo, _("Make sure you load the first selected image"));
-			return FALSE;
-		}
-	}
-	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
-		update_label(_("Make sure you load an image which is included"));
-		return FALSE;
-	}
-	return TRUE;
-}
-
-void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
-	if (!three_buttons[0]) {
-		three_buttons[0] = lookup_widget("pickstar1");
-		three_buttons[1] = lookup_widget("pickstar2");
-		three_buttons[2] = lookup_widget("pickstar3");
-	}
-	if (!com.selection.w || !com.selection.h) {
-		update_label(_("Draw a selection around the star"));
-		return;
-	}
-
-	if (!_3stars_check_selection()) return;
-
-	GtkWidget *widget = GTK_WIDGET(button);
-	if (three_buttons[0] == widget) {
-		reset_icons();
-		clear_stars_list(TRUE);
-		selected_stars = 0;
-		awaiting_star = 1;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), TRUE);
-		gtk_widget_set_sensitive(onlyshift, FALSE);
-	} else if (three_buttons[1] == widget) {
-		awaiting_star = 2;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
-		gtk_widget_set_sensitive(onlyshift, TRUE);
-	} else if (three_buttons[2] == widget) {
-		awaiting_star = 3;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
-		gtk_widget_set_sensitive(onlyshift, TRUE);
-	} else {
-		fprintf(stderr, "unknown button clicked\n");
-		return;
-	}
-
-	g_rw_lock_writer_lock(&com.stars_lock);
-	if (!com.stars)
-		com.stars = calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
-	g_rw_lock_writer_unlock(&com.stars_lock);
-
-	int index;
-	if (!comboboxreglayer)
-		comboboxreglayer = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
-	int layer = gtk_combo_box_get_active(comboboxreglayer);
-	if (layer < 0) {
-		fprintf(stderr, "invalid registration layer\n");
-		return;
-	}
-	add_star(gfit, layer, &index);
-	if (index == -1) {
-		update_label(_("No star found, make another selection"));
-	} else {
-		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
-		selected_stars ++;
-		unset_suggested(three_buttons[awaiting_star - 1]);
-		gtk_widget_set_sensitive(three_buttons[awaiting_star - 1], FALSE);
-		if (awaiting_star < 3) {
-			set_suggested(three_buttons[awaiting_star]);
-			gtk_widget_set_sensitive(three_buttons[awaiting_star], TRUE);
-		}
-		update_icons(awaiting_star - 1, TRUE);
-		delete_selected_area();
-	}
-}
+rectangle _3boxes[3];
 
 /* seqpsf hooks and main process */
 static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
@@ -206,8 +54,8 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 	if (args->retval) {
 		if (args->seq->current != 0)
-			update_label(_("Make sure you load the first image"));
-		else update_label(_("Star analysis failed"));
+			gui_iface.update_registration_status(_("Make sure you load the first image"));
+		else gui_iface.update_registration_status(_("Star analysis failed"));
 		goto psf_end;
 	}
 
@@ -219,7 +67,7 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 	int refimage = sequence_find_refimage(&com.seq);
 	if (!results[refimage].stars[awaiting_star - 1]) {
-		siril_log_color_message(_("The star was not found in the reference image. Change the selection or the reference image\n"), "red");
+		siril_log_error(_("The star was not found in the reference image. Change the selection or the reference image\n"));
 		for (int i = 0 ; i < com.seq.number; i++)
 			results[i].stars[awaiting_star - 1] = NULL;
 		args->retval = 1;
@@ -265,7 +113,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
 		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
-			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
+			siril_log_error(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"));
 			free(args);
 			free(spsfargs);
 			return 1;
@@ -273,7 +121,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
 			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == NULL_TRANSFORMATION) {
-				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
+				siril_log_error(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -281,7 +129,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
-				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
+				siril_log_error(_("This area is outside of the reference image. Please select the reference image to select another star.\n"));
 				free(args);
 				free(spsfargs);
 				return 1;
@@ -298,7 +146,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	}
 	args->seq = regargs->seq;
 	args->partial_image = TRUE;
-	args->layer_for_partial = (spsfargs->framing == REGISTERED_FRAME) ? get_registration_layer(&com.seq) : gtk_combo_box_get_active(comboboxreglayer);
+	args->layer_for_partial = (spsfargs->framing == REGISTERED_FRAME) ? get_registration_layer(&com.seq) : gui_iface.get_reg_layer();
 	args->regdata_for_partial = spsfargs->framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = FALSE;
 	args->image_hook = seqpsf_image_hook;
@@ -339,31 +187,31 @@ int register_3stars(struct registration_args *regargs) {
 	int nb_stars_ref = 0;
 	int refimage = regargs->reference_image;
 	Homography H = { 0 };
-	delete_selected_area();
+	gui_iface.delete_selection();
 	gboolean onestar = selected_stars == 1;
 	// for the selection, we use the com.stars x/y pos to redraw a box
 	for (int i = 0; i < selected_stars; i++) {
-		// delete_selected_area();
+		// gui_iface.delete_selection();
 		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
 		// gui_function(new_selection_zone, NULL);
 		awaiting_star = i + 1;
-		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
+		siril_log_warning(_("Processing star #%d\n"), awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;
 		if (results[refimage].stars[i] != NULL) nb_stars_ref++;
 		// Determine if it's worth going on, i.e. if enough stars were found in ref image
 		// before we proceed with next star
 		if (!onestar && ((selected_stars == 2 && nb_stars_ref <= i) || (selected_stars == 3 && i == 1 && nb_stars_ref == 0))) {
-			siril_log_color_message(_("Less than two stars were found in the reference image, try setting another as reference?\n"), "red");
+			siril_log_error(_("Less than two stars were found in the reference image, try setting another as reference?\n"));
 			_3stars_free_results();
 			return 1;
 		}
 		if (onestar && nb_stars_ref <= i) {
-			siril_log_color_message(_("No star was found in the reference image, try setting another as reference?\n"), "red");
+			siril_log_error(_("No star was found in the reference image, try setting another as reference?\n"));
 			_3stars_free_results();
 			return 1;
 		}
 	}
-	delete_selected_area();
+	gui_iface.delete_selection();
 
 	regdata *current_regdata = registration_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
@@ -371,7 +219,7 @@ int register_3stars(struct registration_args *regargs) {
 	char *msg;
 	msg = siril_log_message(_("Saving the transformation matrices\n"));
 	msg[strlen(msg)-1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, msg);
 	int processed = 0, failed = 0;
 
 	// local flag accounting both for process_all_frames flag and collecting failures along the process
@@ -396,7 +244,7 @@ int register_3stars(struct registration_args *regargs) {
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
 		if (!(i % 32)) {
-			set_progress_bar_data(NULL, (double)i / regargs->seq->number);
+			gui_iface.set_progress((double)i / regargs->seq->number, NULL);
 		}
 
 		/* we choose to initialize all frames
@@ -432,7 +280,7 @@ int register_3stars(struct registration_args *regargs) {
 			included[i] = TRUE;
 			scores[i] = current_regdata[i].weighted_fwhm;
 		} else {
-			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+			siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 			failed++;
 			continue;
 		}
@@ -455,7 +303,7 @@ int register_3stars(struct registration_args *regargs) {
 		if (i != refimage) {
 			if (regargs->type == SHIFT_TRANSFORMATION) { // shift only 2-3 stars or onestar
 				if (nb_stars == 0) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					failed++;
 					continue;
 				}
@@ -481,7 +329,7 @@ int register_3stars(struct registration_args *regargs) {
 					}
 					err = pow(err, 0.5);
 					if (err > current_regdata[i].fwhm) {
-						siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+						siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 						printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
 						failed++;
 						continue;
@@ -492,7 +340,7 @@ int register_3stars(struct registration_args *regargs) {
 				regargs->seq->imgparam[i].filenum, shiftx, shifty);
 			} else { // 2-3 stars reg with rotation
 				if (nb_stars < 2) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					failed++;
 					continue;
 				}
@@ -517,7 +365,7 @@ int register_3stars(struct registration_args *regargs) {
 				free(arrayref);
 				free(arraycur);
 				if (err > current_regdata[i].fwhm) {
-					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+					siril_log_error(_("Cannot perform star matching: Image %d skipped\n"),  regargs->seq->imgparam[i].filenum);
 					printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
 					failed++;
 					continue;
@@ -538,7 +386,7 @@ int register_3stars(struct registration_args *regargs) {
 
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_message(_("Registration finished.\n"));
-	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+	siril_log_info(_("Total: %d failed, %d registered.\n"), failed, regargs->new_total);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	return 0;

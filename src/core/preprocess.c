@@ -31,9 +31,7 @@
 #include "algos/statistics.h"
 #include "algos/fix_xtrans_af.h"
 #include "filters/cosmetic_correction.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "algos/demosaicing.h"
@@ -75,7 +73,7 @@ static float evaluateNoiseOfCalibratedImage(fits *fit, fits *dark,
 		/* STATS_SIGMEAN computes mean and normvalue */
 		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, SINGLE_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return -1.0;
 		}
 		noise += stat->sigma / stat->normValue;
@@ -102,7 +100,7 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	fd = evaluateNoiseOfCalibratedImage(raw, dark, d, allow_32bits);
 	if (fc == fd) return 1.f;
 	do {
-		siril_debug_print("Iter: %d (%1.2f, %1.2f)\n", ++iter, c, d);
+		siril_log_debug("Iter: %d (%1.2f, %1.2f)\n", ++iter, c, d);
 		if (fc < 0.f || fd < 0.f)
 			return -1.f;
 		if (fc < fd) {
@@ -168,7 +166,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	fits dark_tmp = { 0 };
 
 	if (memcmp(raw->naxes, dark->naxes, sizeof raw->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions\n"), "red");
+		siril_log_error(_("Images must have same dimensions\n"));
 		return 1;
 	}
 
@@ -179,27 +177,27 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 
 	if (args->use_exposure) {
 		if (dark->keywords.exposure <= 0.0) {
-			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
+			siril_log_error(_("The dark frame contains no exposure data or incorrect exposure data.\n"));
 			clearfits(&dark_tmp);
 			return 1;
 		}
 		if (raw->keywords.exposure <= 0.0) {
-			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index + 1);
+			siril_log_error(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), in_index + 1);
 			clearfits(&dark_tmp);
 			return 1;
 		}
 		/* linear scale with time */
 		k0 = raw->keywords.exposure / dark->keywords.exposure;
 		if (k0 > 1.f) {
-			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
-						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+			siril_log_warning(_("Warning: master dark is shorter than lights. It is "
+						"recommended that the master dark be at least as long as the lights.\n"));
 		}
 	} else {
 		/* Minimization of background noise to find better k */
 		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
 	}
 	if (k0 < 0.f) {
-		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+		siril_log_error(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
 	} else {
 		/* Multiply coefficient to master-dark */
@@ -211,7 +209,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 			if (hist)
 				hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
 		}
-		else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+		else siril_log_error(_("Dark optimization of image %d failed\n"), in_index);
 	}
 	clearfits(&dark_tmp);
 	return ret;
@@ -273,15 +271,14 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-			siril_debug_print("%u MB avail for writer\n", MB_avail - required * thread_limit);
+			siril_log_debug("%u MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 	}
 	if (limit == 0) {
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -292,7 +289,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
 				required, MB_per_input_image, MB_per_output_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -346,7 +343,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, MULTI_THREADED);
 			if (!stat) {
-				siril_log_message(_("Error: statistics computation failed.\n"));
+				siril_log_error(_("Error: statistics computation failed.\n"));
 				return 1;
 			}
 			prepro->normalisation = stat->mean;
@@ -389,7 +386,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
 		if (strlen(prepro->dark->keywords.bayer_pattern) > 4) {
-			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
+			siril_log_error(_("Cosmetic correction cannot be applied on X-Trans files.\n"));
 			prepro->use_cosmetic_correction = FALSE;
 		} else {
 			if (prepro->dark->naxes[2] == 1) {
@@ -490,7 +487,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
 	if (!prepro->ignore_exclusion) {
-		siril_debug_print("Ignoring exclusions: frames marked as excluded will still be processed.\n");
+		siril_log_debug("Ignoring exclusions: frames marked as excluded will still be processed.\n");
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = prepro->seq->selnum;
 	}
@@ -524,7 +521,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 	int ret = 0;
 
 	msg = g_strdup_printf(_("Pre-processing image %s"), com.uniq->filename);
-	set_progress_bar_data(msg, 0.5);
+	gui_iface.set_progress(0.5, msg);
 	g_free(msg);
 
 	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
@@ -542,7 +539,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 		g_free(filename);
 		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
 		msg = g_strdup_printf(_("Saving image %s"), filename_noext);
-		set_progress_bar_data(msg, PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, msg);
 		ret = savefits(dest_filename, &fit);
 
 		if (!ret) {
@@ -577,7 +574,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 	struct generic_seq_args generic = { .user = args };
 
 	if (readfits(file, &fit, NULL, !com.pref.force_16bit)) {
-		siril_log_message(_("Could not load the image, aborting.\n"));
+		siril_log_error(_("Could not load the image, aborting.\n"));
 		return 1;
 	}
 
@@ -672,400 +669,3 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 	return TRUE;
 }
 
-static gboolean test_for_master_files(struct preprocessing_data *args) {
-	GtkToggleButton *tbutton;
-	GtkEntry *entry;
-	gboolean has_error = FALSE;
-	args->bias_level = FLT_MAX;
-	args->bad_pixel_map_file = NULL;
-	fits reffit = { 0 };
-	gboolean isseq = (args->seq != NULL);
-	if (isseq) {
-		// loading the sequence reference image's metadata in case it's needed
-		int image_to_load = sequence_find_refimage(args->seq);
-		if (seq_read_frame_metadata(args->seq, image_to_load, &reffit)) {
-			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-			has_error = TRUE;
-		}
-	} else {
-		reffit = *gfit;
-	}
-
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
-	if (gtk_toggle_button_get_active(tbutton)) {
-		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
-		filename = gtk_entry_get_text(entry);
-		if (filename[0] == '\0') {
-			gtk_toggle_button_set_active(tbutton, FALSE);
-		} else {
-			const char *error = NULL;
-			if (filename[0] == '=') { // offset is specified as a level not a file
-				set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
-				int offsetlevel = evaluateoffsetlevel(filename + 1, gfit);
-				if (!offsetlevel) {
-					error = _("NOT USING OFFSET: the offset value could not be parsed");
-					args->use_bias = FALSE;
-				} else {
-					siril_log_message(_("Synthetic offset: Level = %d\n"),offsetlevel);
-					int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-					if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
-						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
-						args->use_bias = FALSE;
-					} else {
-						args->bias_level = (float)offsetlevel;
-						args->bias_level *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
-						args->use_bias = TRUE;
-					}
-				}
-			} else {
-				int status;
-				gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
-				if (status) {
-					error = _("NOT USING OFFSET: could not parse the expression\n");
-					has_error = TRUE;
-				} else {
-					args->bias = calloc(1, sizeof(fits));
-					set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
-					if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
-						if (args->bias->naxes[2] != gfit->naxes[2]) {
-							error = _("NOT USING OFFSET: number of channels is different");
-						} else if (args->bias->naxes[0] != gfit->naxes[0] ||
-								args->bias->naxes[1] != gfit->naxes[1]) {
-							error = _("NOT USING OFFSET: image dimensions are different");
-						} else {
-							args->use_bias = TRUE;
-							// if input is 8b, we assume 32b master needs to be rescaled
-							if ((args->bias->type == DATA_FLOAT) && (gfit->orig_bitpix == BYTE_IMG)) {
-								soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-							}
-						}
-					} else
-						error = _("NOT USING OFFSET: cannot open the file");
-				}
-				g_free(expression);
-			}
-			if (error) {
-				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
-				if (args->bias)
-					free(args->bias);
-				args->use_bias = FALSE;
-				has_error = TRUE;
-			}
-		}
-	}
-
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
-	if (gtk_toggle_button_get_active(tbutton)) {
-		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("darkname_entry"));
-		filename = gtk_entry_get_text(entry);
-		if (filename[0] == '\0') {
-			gtk_toggle_button_set_active(tbutton, FALSE);
-		} else {
-			const char *error = NULL;
-			int status;
-			gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
-			if (status) {
-				error = _("NOT USING DARK: could not parse the expression");
-				has_error = TRUE;
-			} else {
-				set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
-				args->dark = calloc(1, sizeof(fits));
-				if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
-					if (args->dark->naxes[2] != gfit->naxes[2]) {
-						error = _("NOT USING DARK: number of channels is different");
-					} else if (args->dark->naxes[0] != gfit->naxes[0] ||
-							args->dark->naxes[1] != gfit->naxes[1]) {
-						error = _("NOT USING DARK: image dimensions are different");
-					} else {
-						args->use_dark = TRUE;
-						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->dark->type == DATA_FLOAT) && (gfit->orig_bitpix == BYTE_IMG)) {
-							soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
-						}
-					}
-
-				} else error = _("NOT USING DARK: cannot open the file");
-			}
-			if (error) {
-				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
-				if (args->dark)
-					clearfits(args->dark);
-				args->dark = NULL; // in order to be sure it is freed
-				args->use_dark = FALSE;
-				has_error = TRUE;
-			}
-			g_free(expression);
-
-		}
-
-		if (args->use_dark) {
-			// dark optimization
-			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboDarkOptimize")));
-			args->use_dark_optim = optim != 0;
-			args->use_exposure = optim == 2;
-			const char *error = NULL;
-			if ((gfit->orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
-				error = _("Dark optimization: This process cannot be applied to 8b images");
-			}
-			if (error) {
-				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
-				clearfits(args->dark);
-				gtk_entry_set_text(entry, "");
-				args->use_dark_optim = FALSE;
-				has_error = TRUE;
-			}
-
-			// cosmetic correction
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
-			args->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
-
-			if (args->use_cosmetic_correction) {
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
-				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
-					args->sigma[0] = gtk_spin_button_get_value(sigCold);
-				} else args->sigma[0] = -1.0;
-
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
-				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
-					args->sigma[1] = gtk_spin_button_get_value(sigHot);
-				} else args->sigma[1] = -1.0;
-
-				/* Using Bad Pixel Map ? */
-				const gchar *bad_pixel_f;
-				entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
-				bad_pixel_f = gtk_entry_get_text(entry);
-				/* test for file */
-				if (bad_pixel_f[0] != '\0') {
-					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
-					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						siril_debug_print("cosme file sanity check failed...\n");
-						has_error = TRUE;
-					}
-				}
-			}
-		}
-	}
-
-	/* now we want to know which cosmetic correction we choose */
-	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
-	GtkWidget *w = gtk_stack_get_visible_child(stack);
-	args->cc_from_dark = TRUE; // default value
-	if (w) {
-		GValue value = G_VALUE_INIT;
-		g_value_init(&value, G_TYPE_INT);
-		gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
-		gint position = g_value_get_int(&value);
-		args->cc_from_dark = position == 0 ? TRUE : FALSE;
-		g_value_unset(&value);
-	}
-
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
-	if (gtk_toggle_button_get_active(tbutton)) {
-		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("flatname_entry"));
-		filename = gtk_entry_get_text(entry);
-		if (filename[0] == '\0') {
-			gtk_toggle_button_set_active(tbutton, FALSE);
-		} else {
-			const char *error = NULL;
-			int status;
-			gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
-			if (status) {
-				error = _("NOT USING FLAT: could not parse the expression");
-				has_error = TRUE;
-			} else {
-				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-				args->flat = calloc(1, sizeof(fits));
-				if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
-					if (args->flat->naxes[2] != gfit->naxes[2]) {
-						error = _("NOT USING FLAT: number of channels is different");
-					} else if (args->flat->naxes[0] != gfit->naxes[0] ||
-							args->flat->naxes[1] != gfit->naxes[1]) {
-						error = _("NOT USING FLAT: image dimensions are different");
-					} else {
-						args->use_flat = TRUE;
-						// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
-					}
-
-				} else error = _("NOT USING FLAT: cannot open the file");
-			}
-			g_free(expression); // expression not used again after here, free before it falls out of scope
-			if (error) {
-				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
-				if (args->flat)
-					free(args->flat);
-				args->use_flat = FALSE;
-				has_error = TRUE;
-			}
-
-			if (args->use_flat) {
-				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
-				args->autolevel = gtk_toggle_button_get_active(autobutton);
-				if (!args->autolevel) {
-					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
-					args->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
-				}
-			}
-		}
-	}
-	if (isseq)
-		clearfits(&reffit);
-	return has_error;
-}
-
-void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
-	if (!single_image_is_loaded() && !sequence_is_loaded())
-		return;
-	if (!single_image_is_loaded() && processing_is_job_active()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("preproseqname_entry"));
-	GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
-	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
-	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
-	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
-	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
-	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
-
-	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
-	if (test_for_master_files(args)) {
-		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
-		free(args);
-		return;
-	}
-
-	siril_log_color_message(_("Preprocessing...\n"), "green");
-
-	// set output filename (preprocessed file name prefix)
-	args->ppprefix = strdup(gtk_entry_get_text(entry));
-
-	args->ignore_exclusion = gtk_toggle_button_get_active(preprocess_excluded);
-	args->is_cfa = gtk_toggle_button_get_active(CFA);
-	args->debayer = gtk_toggle_button_get_active(debayer);
-	args->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
-	args->fix_xtrans = gtk_toggle_button_get_active(fix_xtrans);
-
-	/****/
-
-	if (sequence_is_loaded()) {
-		args->is_sequence = TRUE;
-		args->seq = &com.seq;
-		args->output_seqtype = gtk_combo_box_get_active(output_type);
-		if (args->output_seqtype < 0 || args->output_seqtype > SEQ_FITSEQ)
-			args->output_seqtype = SEQ_REGULAR;
-		args->allow_32bit_output = !com.pref.force_16bit && args->output_seqtype != SEQ_SER;
-		set_cursor_waiting(TRUE);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		start_sequence_preprocessing(args);
-	} else {
-		int retval;
-		args->is_sequence = FALSE;
-		args->output_seqtype = SEQ_REGULAR;
-		args->allow_32bit_output = !com.pref.force_16bit;
-		set_cursor_waiting(TRUE);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-
-		retval = calibrate_single_image(args);
-
-		free(args);
-
-		if (retval)
-			set_progress_bar_data(_("Error in preprocessing."), PROGRESS_NONE);
-		else {
-			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-			invalidate_gfit_histogram();
-			gui_function(open_single_image_from_gfit, NULL);
-		}
-		set_cursor_waiting(FALSE);
-	}
-}
-
-void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
-	GtkEntry *entry;
-	GtkLabel *label[2];
-	GtkWidget *widget[2];
-	const char *filename;
-	gchar *str[2];
-	double sig[2];
-	long icold = 0L, ihot = 0L;
-	double rate, total;
-	fits fit = { 0 };
-	fits reffit = { 0 };
-	int status;
-	gboolean isseq = FALSE;
-	if (sequence_is_loaded()) {
-		// loading the sequence reference image's metadata
-		int image_to_load = sequence_find_refimage(&com.seq);
-		if (seq_read_frame_metadata(&com.seq, image_to_load, &reffit)) {
-			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-			return;
-		}
-		isseq = TRUE;
-	} else {
-		reffit = *gfit;
-	}
-
-	set_cursor_waiting(TRUE);
-	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold")));
-	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot")));
-	widget[0] = lookup_widget("GtkLabelColdCC");
-	widget[1] = lookup_widget("GtkLabelHotCC");
-	label[0] = GTK_LABEL(lookup_widget("GtkLabelColdCC"));
-	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
-	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
-	filename = gtk_entry_get_text(entry);
-	gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
-	if (status || readfits(expression, &fit, NULL, !com.pref.force_16bit)) {
-		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
-		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
-		gtk_label_set_markup(label[0], str[0]);
-		gtk_label_set_markup(label[1], str[1]);
-		set_cursor_waiting(FALSE);
-		g_free(expression);
-		return;
-	}
-	find_deviant_pixels(&fit, sig, &icold, &ihot, TRUE);
-	printf("sig[0]=%lf\n", sig[0]);
-	printf("sig[1]=%lf\n", sig[1]);
-	total = fit.rx * fit.ry;
-	clearfits(&fit);
-	rate = (double)icold / total;
-	/* 1% of cold pixels seems to be a reasonable limit */
-	if (rate > 0.01) {
-		str[0] = g_markup_printf_escaped("<span foreground=\"red\">%ld px</span>", icold);
-		gtk_widget_set_tooltip_text(widget[0], _("This value may be too high. Please, consider to change sigma value or uncheck the box."));
-	}
-	else {
-		str[0] = g_markup_printf_escaped("%ld px", icold);
-		gtk_widget_set_tooltip_text(widget[0], "");
-	}
-	gtk_label_set_markup(label[0], str[0]);
-
-	rate = (double)ihot / total;
-	/* 1% of hot pixels seems to be a reasonable limit */
-	if (rate > 0.01) {
-		str[1] = g_markup_printf_escaped("<span foreground=\"red\">%ld px</span>", ihot);
-		gtk_widget_set_tooltip_text(widget[1], _("This value may be too high. Please, consider to change sigma value or uncheck the box."));
-	}
-	else {
-		str[1] = g_markup_printf_escaped("%ld px", ihot);
-		gtk_widget_set_tooltip_text(widget[1], "");
-	}
-	gtk_label_set_markup(label[1], str[1]);
-	g_free(str[0]);
-	g_free(str[1]);
-	set_cursor_waiting(FALSE);
-	g_free(expression);
-	if (isseq)
-		clearfits(&reffit);
-}

@@ -30,6 +30,7 @@
 #include "io/ser.h"
 #include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
+#include "core/gui_iface.h"
 
 
 static void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
@@ -97,9 +98,7 @@ int register_shift_dft(struct registration_args *args) {
 	/* loading reference frame */
 	ref_image = sequence_find_refimage(args->seq);
 
-	set_progress_bar_data(
-			_("Register DFT: loading and processing reference frame"),
-			PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Register DFT: loading and processing reference frame"));
 	ret = seq_read_frame_metadata(args->seq, ref_image, &fit_ref);
 	if (!ret)
 		ret = seq_read_frame_part(args->seq, args->layer, ref_image, &fit_ref,
@@ -204,7 +203,7 @@ int register_shift_dft(struct registration_args *args) {
 
 		seq_get_image_filename(args->seq, frame, tmpfilename);
 		g_snprintf(tmpmsg, 1024, _("Register: processing image %s"), tmpfilename);
-		set_progress_bar_data(tmpmsg, PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, tmpmsg);
 		int thread_id = -1;
 #ifdef _OPENMP
 		thread_id = omp_get_thread_num();
@@ -292,7 +291,7 @@ int register_shift_dft(struct registration_args *args) {
 					current_regdata[frame].quality);
 #endif
 			g_atomic_int_inc(&cur_nb);
-			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
+			gui_iface.set_progress((float)cur_nb / nb_frames, NULL);
 			fftwf_free(img);
 			fftwf_free(out2);
 		} else {
@@ -311,7 +310,7 @@ int register_shift_dft(struct registration_args *args) {
 		normalizeQualityData(args, q_min, q_max);
 
 		siril_log_message(_("Registration finished.\n"));
-		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
+		siril_log_bold(_("Best frame: #%d.\n"), q_index + 1);
 	} else {
 		free(args->seq->regparam[args->layer]);
 		args->seq->regparam[args->layer] = NULL;
@@ -386,9 +385,7 @@ int register_kombat(struct registration_args *args) {
 	full.w = args->seq->rx;
 	full.h = args->seq->ry;
 
-	set_progress_bar_data(
-			_("Register using KOMBAT: loading and processing reference frame"),
-			PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Register using KOMBAT: loading and processing reference frame"));
 
 	/* we want pattern (the selection) to be located on each image */
 	ret_templ = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
@@ -451,14 +448,14 @@ int register_kombat(struct registration_args *args) {
 			seq_get_image_filename(args->seq, frame, tmpfilename);
 			g_snprintf(tmpmsg, 1024, _("Register: processing image %s"),
 					tmpfilename);
-			set_progress_bar_data(tmpmsg, PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, tmpmsg);
 			int thread_id = -1;
 #ifdef _OPENMP
 			thread_id = omp_get_thread_num();
 #endif
 
 			if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
-				siril_log_message(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
+				siril_log_error(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
 				/* we exclude this frame */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
@@ -478,7 +475,7 @@ int register_kombat(struct registration_args *args) {
 			reg_kombat cur_align;
 			if (kombat_find_template(frame, args, &fit_templ, &cur_fit,
 					&cur_align, &ref_align, &(caches[thread_id + 1]))) {
-				siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"),	"red", frame);
+				siril_log_error(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), frame);
 				/* we exclude this frame too */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 			} else {
@@ -492,7 +489,7 @@ int register_kombat(struct registration_args *args) {
 			}
 
 			g_atomic_int_inc(&cur_nb);
-			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
+			gui_iface.set_progress((float)cur_nb / nb_frames, NULL);
 
 			// We don't need fit anymore, we can destroy it.
 			clearfits(&cur_fit);
@@ -515,7 +512,7 @@ int register_kombat(struct registration_args *args) {
 	clearfits(&fit_templ);
 	clearfits(&fit_ref);
 
-	siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
+	siril_log_bold(_("Best frame: #%d.\n"), q_index + 1);
 
 	for (int i = 0; i < max_threads; i++)
 		kombat_done(&caches[i]);
@@ -595,11 +592,11 @@ int register_shift_fwhm(struct registration_args *args) {
 		fprintf(stderr, "reg: file %d, shiftx=%f shifty=%f\n",
 				args->seq->imgparam[frame].filenum, shiftx, shifty);
 		cur_nb += 1.f;
-		set_progress_bar_data(NULL, cur_nb / nb_frames);
+		gui_iface.set_progress(cur_nb / nb_frames, NULL);
 	}
 
 	siril_log_message(_("Registration finished.\n"));
-	siril_log_color_message(_("Best frame: #%d with fwhm=%.3g.\n"), "bold",
+	siril_log_bold(_("Best frame: #%d with fwhm=%.3g.\n"),
 			fwhm_index + 1, fwhm_min);
 	return 0;
 }

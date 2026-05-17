@@ -415,7 +415,7 @@ public:
                 break;
         }
         int adjustment = overlap << 1;
-        siril_debug_print("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
+        siril_log_debug("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
         process_in_slices(output, slice_size.width - adjustment, slice_size.height - adjustment, overlap, process_func);
     }
 

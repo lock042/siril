@@ -33,7 +33,6 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/fits_keywords.h"
 
@@ -217,12 +216,12 @@ int readbmp(const char *name, fits *fit) {
 	unsigned short nbplane = 0;
 
 	if ((file = g_fopen(name, "rb")) == NULL) {
-		siril_log_color_message(_("Error opening BMP.\n"), "red");
+		siril_log_error(_("Error opening BMP.\n"));
 		return -1;
 	}
 
 	if ((count = fread(header, 1, 54, file)) != 54) {
-		siril_log_color_message(_("readbmp: %ld header bytes read instead of 54\n"), "red", count);
+		siril_log_error(_("readbmp: %ld header bytes read instead of 54\n"), count);
 		perror("readbmp");
 		fclose(file);
 		return -1;
@@ -232,7 +231,7 @@ int readbmp(const char *name, fits *fit) {
 
 	get_image_size(header, &width, &height);
 	if (width < 1 || height < 1 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
-		siril_log_color_message(_("readbmp: file reports negative, zero or excessive dimensions\n"), "red");
+		siril_log_error(_("readbmp: file reports negative, zero or excessive dimensions\n"));
 		perror("readbmp");
 		fclose(file);
 		return -1;
@@ -245,7 +244,7 @@ int readbmp(const char *name, fits *fit) {
 	size_t nbdata = width * height * nbplane + height * padsize;
 
 	if (fseek(file, data_offset, SEEK_SET) == -1) {
-		siril_debug_print("BMP fseek for data");
+		siril_log_debug("BMP fseek for data");
 		fclose(file);
 		return -1;
 	}
@@ -258,7 +257,7 @@ int readbmp(const char *name, fits *fit) {
 	}
 	unsigned long f;
 	if (nbdata != (f = fread(buf, 1, nbdata, file))) {
-		siril_log_color_message(_("readbmp: could not read all data: (%zu, %lu)\n"), "red", nbdata, f);
+		siril_log_error(_("readbmp: could not read all data: (%zu, %lu)\n"), nbdata, f);
 		free(buf);
 		fclose(file);
 		return -1;
@@ -281,8 +280,8 @@ int readbmp(const char *name, fits *fit) {
 			bmp32tofits48(buf, width, height, fit);
 			break;
 		default:
-			siril_log_color_message(_("Sorry but Siril cannot "
-						"open this kind of BMP. Try to convert it before.\n"), "red");
+			siril_log_error(_("Sorry but Siril cannot "
+						"open this kind of BMP. Try to convert it before.\n"));
 	}
 	fit->type = DATA_USHORT;
 	free(buf);
@@ -393,7 +392,7 @@ int savebmp(const char *name, fits *fit) {
 
 	f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		siril_log_color_message(_("Can't create BMP file.\n"), "red");
+		siril_log_error(_("Can't create BMP file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -472,7 +471,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	size_t stride;
 
 	if ((file = g_fopen(filename, "rb")) == NULL) {
-		siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
+		siril_log_error(_("Sorry but Siril cannot open this file.\n"));
 		return -1;
 	}
 	if (fgets(buf, 256, file) == NULL) {
@@ -481,9 +480,9 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	if (buf[0] != 'P' || buf[1] < '5' || buf[1] > '6' || buf[2] != '\n') {
-		siril_log_color_message(
+		siril_log_error(
 				_("Wrong magic cookie in PNM file, ASCII types and"
-					" b&w bitmaps are not supported.\n"), "red");
+					" b&w bitmaps are not supported.\n"));
 		fclose(file);
 		return -1;
 	}
@@ -568,7 +567,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		}
 		fit->data = tmp;
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
+			siril_log_error(_("Error reading 8-bit PPM image data.\n"));
 			fclose(file);
 			free(tmpbuf);
 			free(fit->data);
@@ -597,8 +596,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				return -1;
 			}
 			if (fread(fit->data, stride, fit->ry, file) < fit->ry) {
-				siril_log_color_message(
-						_("Error reading 16-bit gray PPM image data.\n"), "red");
+				siril_log_error(
+						_("Error reading 16-bit gray PPM image data.\n"));
 				fclose(file);
 				free(fit->data);
 				fit->data = NULL;
@@ -631,8 +630,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			}
 			fit->data = tmp;
 			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-				siril_log_color_message(
-						_("Error reading 16-bit color PPM image data.\n"), "red");
+				siril_log_error(
+						_("Error reading 16-bit color PPM image data.\n"));
 				fclose(file);
 				free(tmpbuf);
 				free(fit->data);
@@ -646,7 +645,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fit->keywords.binning_x = fit->keywords.binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else {
-		siril_log_color_message(_("Not handled max value for PNM: %d.\n"), "red",
+		siril_log_error(_("Not handled max value for PNM: %d.\n"),
 				max_val);
 		fclose(file);
 		return -1;
@@ -669,7 +668,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
 	if (!fp) {
-		siril_log_color_message(_("Error opening file %s\n"), "red", name);
+		siril_log_error(_("Error opening file %s\n"), name);
 		return 1;
 	}
 	size_t i, ndata = fit->rx * fit->ry;
@@ -911,8 +910,8 @@ static int _pic_read_header(struct pic_struct *pic_file) {
 	memcpy(&pic_file->magic, header, 4);
 
 	if (pic_file->magic != 0x12231fc) {
-		siril_log_color_message(_("Wrong magic cookie in PIC file. "
-					"This image is not supported.\n"), "red");
+		siril_log_error(_("Wrong magic cookie in PIC file. "
+					"This image is not supported.\n"));
 		return -1;
 	}
 
@@ -951,8 +950,8 @@ int readpic(const char *name, fits *fit) {
 	pic_file = calloc(1, sizeof(struct pic_struct));
 
 	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
-		siril_log_color_message(
-				_("Sorry but Siril cannot open the PIC file: %s.\n"), "red", name);
+		siril_log_error(
+				_("Sorry but Siril cannot open the PIC file: %s.\n"), name);
 		free(pic_file);
 		return -1;
 	}
@@ -975,20 +974,20 @@ int readpic(const char *name, fits *fit) {
 	size_t nbdata = fit->rx * fit->ry;
 
 	if (fseek(pic_file->file, 290, SEEK_SET)) {
-		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		siril_log_error(_("Error: seek failure in file.\n"));
 		_pic_close_file(pic_file);
 		return -1;
 	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 	if (!buf) {
-		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
+		siril_log_error(_("Error: memory allocation failure.\n"));
 		_pic_close_file(pic_file);
 		return -1;
 	}
 
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
 			!= nbdata * pic_file->nbplane * sizeof(WORD)) {
-		siril_log_color_message(_("Error: Cannot read the data\n"), "red");
+		siril_log_error(_("Error: Cannot read the data\n"));
 		free(buf);
 		_pic_close_file(pic_file);
 		return -1;
@@ -1003,7 +1002,7 @@ int readpic(const char *name, fits *fit) {
 			break;
 		default:
 			retval = -1;
-			siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
+			siril_log_error(_("Sorry but Siril cannot open this file.\n"));
 	}
 	free(buf);
 

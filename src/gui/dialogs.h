@@ -1,8 +1,10 @@
 #ifndef SRC_GUI_DIALOGS_H_
 #define SRC_GUI_DIALOGS_H_
+#include <gtk/gtk.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "gui/gui_state.h"
 
 typedef enum {
 	NO_DIALOG = -1,

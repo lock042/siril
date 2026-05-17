@@ -61,10 +61,12 @@
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
-#include "core/siril_actions.h"
+#include "algos/photometric_cc.h"
+#include "gui/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/processing_thread.h"
@@ -75,6 +77,7 @@
 #include "core/siril_networking.h"
 #include "io/siril_pythonmodule.h"
 #include "core/siril_update.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "io/sequence.h"
@@ -86,16 +89,20 @@
 #include "gui/siril_css.h"
 #include "gui/splashscreen.h"
 
-// Forward decl to avoid including all of photometric_cc.h
-void initialize_spcc_mirrors();
+/* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui/photometric_cc.h) */
 void force_paned_restore();
+
+/* the global variables of the whole project */
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
+fits *gfit = NULL;	// currently loaded image
 
 /* Callback to close splash screen and show main window after delay */
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	close_splash_screen();
 
 	/* Make window visible */
-	GtkWidget *control_window = lookup_widget("control_window");
+	GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	gtk_widget_set_opacity(control_window, 1.0);
 
 	force_paned_restore();
@@ -105,17 +112,13 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
-/* the global variables of the whole project */
-cominfo com = { 0 };	// the core data struct
-guiinfo gui = { 0 };	// the gui data struct
-fits *gfit = NULL;	// currently loaded image
-
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
 static gchar *main_option_initfile = NULL;
 static gchar *main_option_rpipe_path = NULL;
 static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
+static gboolean main_option_sync_spcc = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
@@ -155,6 +158,7 @@ static GOptionEntry main_option[] = {
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
+	{ "sync_spcc", 0, 0, G_OPTION_ARG_NONE, &main_option_sync_spcc, N_("fetch the current SPCC mirror list from the internet and cache it locally, then exit"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -223,7 +227,7 @@ void load_ui_files() {
 		exit(EXIT_FAILURE);
 	}
 #ifdef DEBUG_MAIN
-	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+	siril_log_debug("Successfully loaded '%s'\n", ui_files[0]);
 #endif
 
 	uint32_t i = 1;
@@ -238,7 +242,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 #ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 #endif
 		i++;
 	}
@@ -256,7 +260,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 		#ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 		#endif
 		i++;
 	}
@@ -285,7 +289,7 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
-	gui.repo_scripts = NULL;
+	com.repo_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
@@ -297,7 +301,7 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
-	siril_debug_print("Initializing processing thread...\n");
+	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref
@@ -475,9 +479,10 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
 		init_histogram_overlay();
+		siril_register_gui_iface();
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
-		GtkWidget *control_window = lookup_widget("control_window");
+		GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 		gtk_widget_set_opacity(control_window, 0.0);
 
 		/* Passing GApplication to the control center */
@@ -500,8 +505,8 @@ static void siril_app_activate(GApplication *application) {
 		}
 
 #else
-		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
-		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_updates")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame24")), FALSE);
 #endif
 	}
 
@@ -525,6 +530,10 @@ static void siril_app_activate(GApplication *application) {
 	/* last initialization because now, GUI is built and logs can be displayed */
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
+	if (main_option_sync_spcc) {
+		siril_check_spcc_mirrors(TRUE, TRUE);
+		exit(EXIT_SUCCESS);
+	}
 	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
@@ -546,8 +555,8 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 				} else {
 					set_seq(path);
 					if (!com.script) {
-						populate_seqcombo(path);
-						gui_function(set_GUI_CWD, NULL);
+						gui_iface.populate_seq_combo(path);
+						gui_iface.set_gui_cwd();
 					}
 				}
 				g_free(sequence_dir);

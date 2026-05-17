@@ -25,7 +25,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
-#include "gui/keywords_tree.h"
+#include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/path_parse.h"
@@ -37,8 +37,8 @@
 
 #define PRINT_PARSING_ERROR \
 		do { \
-				siril_debug_print("Error parsing value: %s\n", value); \
-				siril_debug_print("Parsing stopped at: %s\n", end); \
+				siril_log_debug("Error parsing value: %s\n", value); \
+				siril_log_debug("Parsing stopped at: %s\n", end); \
 		} while (0)
 
 
@@ -99,7 +99,7 @@ static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info
 	/* Handle some bad BAYER PATTERN from Maxim DL */
 	if (strstr(fit->keywords.bayer_pattern, "INVALID") ||
 		strstr(fit->keywords.bayer_pattern, "NONE")) {
-		siril_debug_print("Ignoring INVALID or NONE Bayer pattern\n");
+		siril_log_debug("Ignoring INVALID or NONE Bayer pattern\n");
 		fit->keywords.bayer_pattern[0] = '\0';
 		}
 }
@@ -139,7 +139,7 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 	if (token_size > 1 && token[1])	{
 		for (int i = 0; i < token_size; ++i) {
 			if (g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp)) >= sizeof(sitelong_dump_tmp))
-				siril_debug_print("Truncation occurred in g_strlcat\n");
+				siril_log_debug("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 		}
@@ -153,7 +153,7 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 		if (fit->keywords.sitelong_str == end) {
 			fit->keywords.sitelong = DEFAULT_DOUBLE_VALUE;
 			info->used = FALSE;
-			siril_debug_print("Cannot read SITELONG\n");
+			siril_log_debug("Cannot read SITELONG\n");
 		}
 	} else {
 		fit->keywords.sitelong = d_sitelong_dump;
@@ -169,7 +169,7 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 		for (int i = 0; i < token_size; ++i) {
 			if (g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp)) >= sizeof(sitelat_dump_tmp))
-				siril_debug_print("Truncation occurred in g_strlcat\n");
+				siril_log_debug("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 		}
@@ -183,7 +183,7 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 		if (fit->keywords.sitelat_str == end) {
 			fit->keywords.sitelat = DEFAULT_DOUBLE_VALUE;
 			info->used = FALSE;
-			siril_debug_print("Cannot read SITELAT\n");
+			siril_log_debug("Cannot read SITELAT\n");
 		}
 	} else {
 		fit->keywords.sitelat = d_sitelat_dump;
@@ -209,7 +209,7 @@ static void ra_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 		info->used = FALSE;
 	}
 	else
-		siril_debug_print("read RA as HMS\n");
+		siril_log_debug("read RA as HMS\n");
 }
 
 static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
@@ -219,7 +219,7 @@ static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 		info->used = FALSE;
 	}
 	else
-		siril_debug_print("read DEC as DMS\n");
+		siril_log_debug("read DEC as DMS\n");
 
 }
 
@@ -586,7 +586,7 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_USHORT:
 			status = 0;
-			us = (*((int*) keys->data));
+			us = (*((gushort*) keys->data));
 			if (us) {
 				fits_update_key(fit->fptr, TUSHORT, keys->key, &us, keys->comment, &status);
 			}
@@ -638,7 +638,7 @@ int save_fits_keywords(fits *fit) {
 			}
 			break;
 		default:
-			siril_debug_print("Save_fits_keywords: Error. Type is not handled: %s.\n", keys->key);
+			siril_log_debug("Save_fits_keywords: Error. Type is not handled: %s.\n", keys->key);
 		}
 		keys++;
 	}
@@ -656,10 +656,10 @@ int remove_all_fits_keywords(fits *fit) {
 	fits_get_hdrspace(fit->fptr, &nkeys, NULL, &status); /* get # of keywords */
 	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
 		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
-		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
+		siril_log_debug("%3d:%s=%s\n", i, keyname, value);
 		if (!keyword_is_protected(keyname, fit)) {
 			fits_delete_record(fit->fptr, i, &status);
-			siril_debug_print("%s removed\n", keyname);
+			siril_log_debug("%s removed\n", keyname);
 		}
 	}
 	return 0;
@@ -822,11 +822,10 @@ int save_history_keywords(fits *fit) {
 	}
 
 	status = 0;
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0')
-				fits_write_history(fit->fptr, com.history[i].history, &status);
-		}
+	for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+		historic *h = (historic *)l->data;
+		if (h->history[0] != '\0')
+			fits_write_history(fit->fptr, h->history, &status);
 	}
 
 	return status;
@@ -957,6 +956,8 @@ int read_fits_keywords(fits *fit) {
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
+	GRegex *wcs_regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
+
 	// Loop through each keyword
 #ifdef DEBUG_PRINT_HEADER
 	printf("FITS Header:\n");
@@ -995,8 +996,6 @@ int read_fits_keywords(fits *fit) {
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
-			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
-
 			if (strncmp(card, "HISTORY", 7) == 0
 					|| strncmp(card, "CHECKSUM", 8) == 0
 					|| strncmp(card, "DATASUM", 7) == 0) {
@@ -1004,17 +1003,14 @@ int read_fits_keywords(fits *fit) {
 			}
 
 			GMatchInfo *match_info = NULL;
-			if (g_regex_match(regex, card, 0, &match_info)) {
+			if (g_regex_match(wcs_regex, card, 0, &match_info)) {
 				g_match_info_free(match_info);
-				g_regex_unref(regex);
 				continue;
 			}
 
 			if (match_info) {
 				g_match_info_free(match_info);
 			}
-
-			g_regex_unref(regex);
 
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
@@ -1043,8 +1039,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_INT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < G_MININT || double_value > G_MAXINT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for INT: %s\n",
-						"salmon", keyname, value);
+				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for INT: %s\n"), keyname, value);
 			}
 			int_value = (int) double_value;
 			if (value != end) {
@@ -1057,8 +1052,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_UINT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < 0 || double_value > G_MAXUINT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for UINT: %s\n",
-						"salmon", keyname, value);
+				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for UINT: %s\n"), keyname, value);
 			}
 			uint_value = (guint) double_value;
 			if (value != end) {
@@ -1071,8 +1065,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_USHORT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < 0 || double_value > G_MAXUSHORT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n",
-						"salmon", keyname, value);
+				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"), keyname, value);
 			}
 			ushort_value = (gushort) double_value;
 			if (value != end) {
@@ -1102,13 +1095,15 @@ int read_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_STR:
 			unquoted = g_shell_unquote(value, NULL);
+			if (!unquoted) break;
 			str_value = g_strstrip(unquoted);
-			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
+			g_strlcpy((char*) current_key->data, str_value, FLEN_VALUE);
 			g_free(unquoted);
 			current_key->used = TRUE;
 			break;
 		case KTYPE_DATE:
 			unquoted = g_shell_unquote(value, NULL);
+			if (!unquoted) break;
 			str_value = g_strstrip(unquoted);
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
@@ -1133,6 +1128,8 @@ int read_fits_keywords(fits *fit) {
 			current_key->special_handler_read(fit, comment, current_key);
 		}
 	}
+
+	g_regex_unref(wcs_regex);
 
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
@@ -1186,12 +1183,14 @@ static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_has
 			case KTYPE_STR:
 				memset((char*) keyword_info->data, 0, FLEN_VALUE);
 				break;
-			case KTYPE_DATE:
-				if ((GDateTime*) keyword_info->data) {
-					g_date_time_unref((GDateTime*) keyword_info->data);
-					keyword_info->data = NULL;
+			case KTYPE_DATE: {
+				GDateTime **dt_ptr = (GDateTime **) keyword_info->data;
+				if (dt_ptr && *dt_ptr) {
+					g_date_time_unref(*dt_ptr);
+					*dt_ptr = NULL;
 				}
 				break;
+			}
 			default:
 				break;
 			}
@@ -1213,7 +1212,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READONLY mode, we close it
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_log_color_message(_("Error when closing fitseq\n"), "red");
+			siril_log_error(_("Error when closing fitseq\n"));
 			g_free(filename);
 			return 1;
 		}
@@ -1221,7 +1220,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 		arg->seq->fitseq_file->filename = g_strdup(filename); // freed in fitseq_destroy
 		// and we reopen in READWRITE mode to update it
 		if (fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
-			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
+			siril_log_error(_("Error when reopening fitseq\n"));
 			g_free(filename);
 			return 1;
 		}
@@ -1244,7 +1243,7 @@ static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits 
 		}
 	} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
 		save_fits_header(fit);
-		siril_log_color_message(_("FITS header of image %d updated\n"), "salmon", i + 1);
+		siril_log_warning(_("FITS header of image %d updated\n"), i + 1);
 	}
 	return 0;
 }
@@ -1256,13 +1255,13 @@ static int keywords_finalize_hook(struct generic_seq_args *arg) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READWRITE mode, we close it to save everything
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_debug_print("error when closing again fitseq\n");
+			siril_log_debug("error when closing again fitseq\n");
 			g_free(filename);
 			retval = 1;
 			goto finish;
 		}
 		arg->seq->fitseq_file->fptr = NULL;
-		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
+		siril_log_warning(_("File %s updated\n"), filename);
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
@@ -1281,11 +1280,11 @@ gboolean end_keywords_sequence(gpointer p) {
 	if (check_seq_is_comseq(args->seq)) {
 		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
 			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
-				siril_debug_print("error when finally re-opening fitseq\n");
+				siril_log_debug("error when finally re-opening fitseq\n");
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		gui_function(refresh_keywords_dialog, NULL);
+		gui_iface.refresh_keywords_dialog();
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -1307,7 +1306,7 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 	seqargs->output_type = get_data_type(seq->bitpix);
 	seqargs->description = "keywords update";
 	if (seq->type == SEQ_SER) {
-		siril_log_color_message(_("This command won't work for SER sequence.\n"), "red");
+		siril_log_error(_("This command won't work for SER sequence.\n"));
 		free(seqargs);
 		return;
 	}
@@ -1333,7 +1332,7 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 			return 1;
 		*rx = (int)drx;
 		*ry = (int)dry;
-		siril_debug_print("IMAGEW: %d, IMAGEH: %d\n", *rx, *ry);
+		siril_log_debug("IMAGEW: %d, IMAGEH: %d\n", *rx, *ry);
 		return 0;
 	}
 	return 1;

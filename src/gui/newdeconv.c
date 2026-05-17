@@ -23,6 +23,7 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/command.h"
 #include "io/single_image.h"
@@ -64,6 +65,7 @@ static GtkLabel *bdeconv_starprofile_text = NULL, *bdeconv_starfwhm_text = NULL,
 static GtkToggleButton *bdeconv_psfblind = NULL, *bdeconv_psfstars = NULL, *bdeconv_psfmanual = NULL, *bdeconv_psfprevious = NULL, *bdeconv_psfselection = NULL;
 static GtkSpinButton *bdeconv_ks = NULL, *bdeconv_psfratio = NULL, *bdeconv_psfwhm = NULL, *bdeconv_psfangle = NULL, *bdeconv_psfbeta = NULL, *airy_pixelsize = NULL, *airy_wl = NULL, *airy_fl = NULL, *airy_diameter = NULL, *airy_obstruction = NULL, *bdeconv_gflambda = NULL, *bdeconv_gamma = NULL, *bdeconv_iters = NULL, *bdeconv_lambdaratio = NULL, *bdeconv_lambdamin = NULL, *bdeconv_scalefactor = NULL, *bdeconv_upsampleblur = NULL, *bdeconv_downsampleblur = NULL, *bdeconv_kthresh = NULL, *bdeconv_kl1 = NULL, *bdeconv_ncomp = NULL, *bdeconv_ntries = NULL, *bdeconv_nouter = NULL, *bdeconv_ninner = NULL, *bdeconv_finaliters = NULL, *bdeconv_alpha = NULL, *bdeconv_stopcriterion = NULL, *bdeconv_stepsize = NULL;
 static GtkToggleButton *bdeconv_multiscale = NULL, *bdeconv_betterkernel = NULL, *bdeconv_symkern = NULL, *bdeconv_stopping_toggle = NULL, *bdeconv_seqapply = NULL;
+static GtkWidget *bdeconv_control_window = NULL;
 
 void bdeconv_dialog_init_statics() {
 	if (bdeconv_close == NULL) {
@@ -150,6 +152,7 @@ void bdeconv_dialog_init_statics() {
 		bdeconv_symkern = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_symkern"));
 		bdeconv_stopping_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_stopping_toggle"));
 		bdeconv_seqapply = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_seqapply"));
+		bdeconv_control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	}
 }
 
@@ -269,6 +272,17 @@ gboolean reset_conv_controls(gpointer user_data) {
 	return FALSE;
 }
 
+void reset_conv_controls_and_args() {
+	estk_data *tmp_args = alloc_estk_data();
+	if (!tmp_args) return;
+
+	if (!processing_is_job_active())
+		reset_conv_args(tmp_args);
+	gui_function(reset_conv_controls, tmp_args);
+
+	tmp_args->destroy_fn(tmp_args);
+}
+
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean active = gtk_toggle_button_get_active(button);
 	if (active) {
@@ -338,7 +352,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, DECONVOLUTION_TIPS_URL);
 	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
-	GtkWidget* win = lookup_widget("control_window");
+	GtkWidget* win = bdeconv_control_window;
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
 			gtk_get_current_event_time(), NULL);
 #else
@@ -518,13 +532,13 @@ void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
 		if (!aperture_warning_given) {
 			aperture_warning_given = TRUE;
 			if (ap < 10.f) {
-				siril_log_color_message(_("Warning: telescope aperture obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: telescope aperture obtained from FITS header data may be incorrect.\n"));
 			}
 			if (fl < 10.f) {
-				siril_log_color_message(_("Warning: telescope focal length obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: telescope focal length obtained from FITS header data may be incorrect.\n"));
 			}
 			if (px <=1.f) {
-				siril_log_color_message(_("Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"));
 			}
 		}
 	}
@@ -564,15 +578,15 @@ void calculate_parameters() {
 				profiletype = stars_snap[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
-				siril_log_color_message(_("Error: all stars' FWHM must have the same units.\n"), "red");
+				siril_log_error(_("Error: all stars' FWHM must have the same units.\n"));
 				return;
 			}
 			else if (layer != stars_snap[i]->layer ) {
-				siril_log_color_message(_("Error: stars' properties must all be computed on the same layer"), "red");
+				siril_log_error(_("Error: stars' properties must all be computed on the same layer"));
 				return;
 			}
 			else if (profiletype != stars_snap[i]->profile) {
-				siril_log_color_message(_("Error: stars must all be modeled with the same profile type"), "red");
+				siril_log_error(_("Error: stars must all be modeled with the same profile type"));
 				return;
 			}
 			if (!stars_snap[i]->has_saturated) {
@@ -703,7 +717,7 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	filename = g_strdup_printf("%s.fit", temp6);
 #endif
 	if (strlen(filename) > pathmax) {
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 	} else {
 		estk_data *tmp_args = bdeconv_fill_estk_from_gui();
 		save_kernel(filename, tmp_args);
@@ -727,7 +741,7 @@ gboolean set_kernel_size_in_gui(gpointer user_data) {
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar* filename = siril_file_chooser_get_filename(filechooser);
 	if (filename == NULL) {
-		siril_log_color_message(_("No PSF file selected.\n"), "red");
+		siril_log_error(_("No PSF file selected.\n"));
 		gtk_file_chooser_unselect_all(filechooser);
 	} else {
 		reset_conv_kernel();
@@ -762,7 +776,7 @@ gboolean deconvolve_img_idle(gpointer arg) {
 	if (bdeconv_psfprevious) {
 		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
-	siril_debug_print("Deconvolve idle stopping processing thread\n");
+	siril_log_debug("Deconvolve idle stopping processing thread\n");
 
 	// Clean up the generic_img_args wrapper
 	free_generic_img_args(ga);
@@ -777,7 +791,7 @@ gboolean estimate_img_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	set_cursor_waiting(FALSE);
 
-	siril_debug_print("Estimate idle stopping processing thread\n");
+	siril_log_debug("Estimate idle stopping processing thread\n");
 	stop_processing_thread();
 	DrawPSF(NULL);
 

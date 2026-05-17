@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/proto.h"
 
 #include "io/sequence.h"

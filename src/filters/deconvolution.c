@@ -20,30 +20,31 @@
 #include <fftw3.h>
 #include <math.h>
 #include <assert.h>
-#include <locale.h>
-#include <gdk/gdk.h>
 #include "core/siril.h"
-#include "core/siril_date.h"
-#include "core/command.h"
-#include "algos/colors.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/message_dialog.h"
-#include "gui/PSF_list.h"
-#include "gui/registration_preview.h"
+#include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "gui/progress_and_log.h"
-#include "gui/newdeconv.h"
-#include "filters/deconvolution/deconvolution.h"
-#include "filters/synthstar.h"
+#include "core/gui_iface.h"
+/* gui_calls.h removed: lock/unlock_roi_mutex now route through gui_iface */
+#include "core/settings.h"
+#include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
+#include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "filters/deconvolution/deconvolution.h"
+#include "filters/synthstar.h"
+
+/* Forward declarations for GUI idle callbacks invoked via gui_function() */
+gboolean DrawPSF(gpointer user_data);
+gboolean set_kernel_size_in_gui(gpointer user_data);
+gboolean reset_conv_controls(gpointer user_data);
+
+/* Forward declaration for star-list GUI callback */
+void clear_stars_list(gboolean refresh_GUI);
 
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
@@ -88,7 +89,7 @@ orientation_t get_imageorientation(fits *fit) {
 }
 
 void reset_conv_args(estk_data* args) {
-	siril_debug_print("Resetting deconvolution args\n");
+	siril_log_debug("Resetting deconvolution args\n");
 
 	// Basic image and kernel parameters
 	args->savepsf_filename = NULL;
@@ -96,7 +97,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	args->fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
+	args->fit = gui_iface.roi_is_active() ? (fits*)gui_iface.get_roi_fit() : gfit;
 	imageorientation = get_imageorientation(args->fit);
 	args->fdata = NULL;
 	args->rx = 0;
@@ -165,17 +166,6 @@ void reset_conv_kernel() {
 	g_mutex_unlock(&com.mutex);
 }
 
-void reset_conv_controls_and_args() {
-	estk_data *tmp_args = alloc_estk_data();
-	if (!tmp_args) return;
-
-	if (!processing_is_job_active())
-		reset_conv_args(tmp_args);
-	gui_function(reset_conv_controls, tmp_args);
-
-	tmp_args->destroy_fn(tmp_args);
-}
-
 void check_orientation(estk_data *args) {
 	int npixels = com.kernelsize * com.kernelsize;
 	int ndata = npixels * com.kernelchannels;
@@ -214,9 +204,9 @@ int load_kernel(gchar* filename, estk_data *args) {
 	}
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
-		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		// no need to check com.script as it is built into the siril_message_dialog function
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		siril_log_error(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Wrong PSF size"),
+				_("PSF file does not contain a square PSF. Cannot load this file."));
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -225,8 +215,8 @@ int load_kernel(gchar* filename, estk_data *args) {
 	if (!(load_fit.rx % 2)) {
 		com.kernelsize = load_fit.rx - 1;
 		orig_size = load_fit.rx;
-		siril_log_color_message(_("Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by 1 pixel in each direction. "
-				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
+		siril_log_warning(_("Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by 1 pixel in each direction. "
+				"This may not produce optimum results.\n"), load_fit.rx, load_fit.rx);
 	} else {
 		com.kernelsize = load_fit.rx;
 		orig_size = com.kernelsize;
@@ -300,7 +290,7 @@ int save_kernel(gchar* filename, estk_data *args) {
 	//Check there is a PSF to save
 	if (com.kernel == NULL) {
 		retval = 1;
-		siril_log_color_message(_("Error: no PSF has been computed, nothing to save.\n"), "red");
+		siril_log_error(_("Error: no PSF has been computed, nothing to save.\n"));
 		return retval;
 	}
 	int npixels = com.kernelsize * com.kernelsize;
@@ -326,7 +316,7 @@ int save_kernel(gchar* filename, estk_data *args) {
 	}
 
 	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, com.kernelchannels, DATA_FLOAT, copy_kernel))) {
-		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
+		siril_log_error(_("Error preparing PSF for save.\n"));
 		return retval;
 	}
 
@@ -337,7 +327,7 @@ int save_kernel(gchar* filename, estk_data *args) {
 		retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
 #else
 		// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
-		siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
+		siril_log_warning(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"));
 		retval = savefits(filename, save_fit);
 #endif
 	}
@@ -382,7 +372,7 @@ int get_kernel(estk_data *args) {
 			g_rw_lock_reader_lock(&com.stars_lock);
 			if (!(com.stars && com.stars[0])) {
 				g_rw_lock_reader_unlock(&com.stars_lock);
-				siril_log_color_message(_("Error: no stars detected. Run findstar or select stars using Dynamic PSF dialog first.\n"), "red");
+				siril_log_error(_("Error: no stars detected. Run findstar or select stars using Dynamic PSF dialog first.\n"));
 				retval = 1;
 				goto END;
 			}
@@ -411,11 +401,11 @@ int get_kernel(estk_data *args) {
 					break;
 				case PROFILE_AIRY:
 					if (args->airy_fl == 1.f)
-						siril_log_message(_("Warning: focal length appears likely to be incorrect. Continuing anyway...\n"));
+						siril_log_warning(_("Warning: focal length appears likely to be incorrect. Continuing anyway...\n"));
 					if (args->airy_diameter == 1.f)
-						siril_log_message(_("Warning: diameter appears likely to be incorrect. Continuing anyway...\n"));
+						siril_log_warning(_("Warning: diameter appears likely to be incorrect. Continuing anyway...\n"));
 					if (args->airy_fl == 0.1f)
-						siril_log_message(_("Warning: sensor pixel size appears likely to be incorrect. Continuing anyway...\n"));
+						siril_log_warning(_("Warning: sensor pixel size appears likely to be incorrect. Continuing anyway...\n"));
 
 					makeairy(com.kernel, args->ks, 1.f, +0.5, -0.5, args->airy_wl, args->airy_diameter, args->airy_fl, args->airy_pixelsize, args->airy_obstruction);
 					break;
@@ -423,7 +413,7 @@ int get_kernel(estk_data *args) {
 			break;
 		case PSF_PREVIOUS:
 			if (com.kernel == NULL) {
-				siril_log_color_message(_("Error: no previous PSF found. A blind PSF estimator or calculation of PSF from stars or manual parameters must already have been done to use the Previous PSF option.\n"), "red");
+				siril_log_error(_("Error: no previous PSF found. A blind PSF estimator or calculation of PSF from stars or manual parameters must already have been done to use the Previous PSF option.\n"));
 				retval = 1;
 				goto END;
 			}
@@ -432,7 +422,7 @@ int get_kernel(estk_data *args) {
 	if (com.kernel == NULL) {
 		com.kernelsize = 0;
 		com.kernelchannels = 1;
-		siril_log_color_message(_("Error: no PSF defined. Select blind deconvolution or define a PSF from selection or psf parameters.\n"), "red");
+		siril_log_error(_("Error: no PSF defined. Select blind deconvolution or define a PSF from selection or psf parameters.\n"));
 		retval = 1;
 		goto END;
 	}
@@ -440,9 +430,9 @@ int get_kernel(estk_data *args) {
 // Ignoring the possibility of multichannel kernels here for readability: only the first channel will be shown
 	for (int i = 0; i < args->ks; i++) {
 		for (int j = 0; j < args->ks; j++) {
-			siril_debug_print("%0.2f\t", com.kernel[i * args->ks + j]);
+			siril_log_debug("%0.2f\t", com.kernel[i * args->ks + j]);
 		}
-		siril_debug_print("\n");
+		siril_log_debug("\n");
 	}
 #endif
 
@@ -526,7 +516,7 @@ gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 gpointer estimate_only(gpointer p) {
-	lock_roi_mutex();
+	gui_iface.lock_roi_mutex();
 	estk_data *args = (estk_data *) p;
 	int retval = 0;
 	if (!args) {
@@ -559,7 +549,7 @@ gpointer estimate_only(gpointer p) {
 		com.stars = detected;
 		g_rw_lock_writer_unlock(&com.stars_lock);
 		if (!detected || nb_stars == 0) {
-			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
+			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
 			retval = 1;
 			goto ENDEST;
 		} else {
@@ -604,7 +594,7 @@ gpointer estimate_only(gpointer p) {
 			int recc_ks = (int)(args->psf_fwhm * 4.f);
 				if (!(recc_ks%2))
 					recc_ks++;
-			siril_log_message(_("Warning: PSF generated from the stars detected in this image appears to be too big for the specified kernel size. Recommend increasing kernel size to %d.\n"), recc_ks);
+			siril_log_warning(_("Warning: PSF generated from the stars detected in this image appears to be too big for the specified kernel size. Recommend increasing kernel size to %d.\n"), recc_ks);
 		}
 	}
 
@@ -631,7 +621,7 @@ gpointer estimate_only(gpointer p) {
 		}
 	}
 
-	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, _("Starting PSF computation..."));
 	START_TIMER;
 	get_kernel(args);
 	END_TIMER;
@@ -639,10 +629,10 @@ gpointer estimate_only(gpointer p) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 		} else {
-			siril_log_message(_("Siril FFT wisdom update failed...\n"));
+			siril_log_warning(_("Siril FFT wisdom update failed...\n"));
 		}
 	}
-	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
+	siril_log_info(_("Deconvolution PSF generated.\n"));
 ENDEST:
 	if (args && args->stars_need_clearing) {
 		clear_stars_list(FALSE);
@@ -666,16 +656,16 @@ ENDEST:
 		args->fdata = NULL;
 	}
 
-	unlock_roi_mutex();
+	gui_iface.unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
 gpointer deconvolve(gpointer p) {
-	lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
+	gui_iface.lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
 	// done, in order not to have the_fit changed under us
 	estk_data *args = (estk_data *) p;
 	if (!args) {
-		unlock_roi_mutex();
+		gui_iface.unlock_roi_mutex();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -690,7 +680,7 @@ gpointer deconvolve(gpointer p) {
 	int retval = 0;
 	if (args->psftype == PSF_PREVIOUS && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the image using previous PSF if there is no previous PSF defined
-		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		siril_log_error(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"));
 		retval = 1;
 		goto ENDDECONV;
 	}
@@ -719,14 +709,14 @@ gpointer deconvolve(gpointer p) {
 		com.stars = detected;
 		g_rw_lock_writer_unlock(&com.stars_lock);
 		if (retval || nb_stars == 0) {
-			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
+			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
 			goto ENDDECONV;
 		} else
 			stars_need_clearing = TRUE;
 	}
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	set_wisdom_file();
 	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
@@ -738,7 +728,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (args->fit == gfit || args->fit == &gui.roi.fit)
+	if (args->fit == gfit || args->fit == (fits*)gui_iface.get_roi_fit())
 		if (!com.script && !com.headless && !args->previewing)
 			undo_save_state(gfit, _("Deconvolution"));
 	args->ndata = args->fit->rx * args->fit->ry * args->fit->naxes[2];
@@ -755,11 +745,11 @@ gpointer deconvolve(gpointer p) {
 	// Get the kernel
 	if (args->psftype != PSF_PREVIOUS) {
 		if (sequence_is_running == 0)
-			set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
+			gui_iface.set_progress(PROGRESS_PULSATE, _("Starting PSF estimation..."));
 		get_kernel(args);
 }
 	if (!com.kernel) {
-		siril_debug_print("Kernel missing!\n");
+		siril_log_debug("Kernel missing!\n");
 		retval = 1;
 		goto ENDDECONV;
 	}
@@ -786,7 +776,7 @@ gpointer deconvolve(gpointer p) {
 
 	if (processing_should_continue() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
-			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
+			gui_iface.set_progress(0, _("Starting non-blind deconvolution..."));
 		gettimeofday(&t_start, NULL);
 		// Non-blind deconvolution stage
 		switch (args->nonblindtype) {
@@ -853,7 +843,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
 		if (sequence_is_running == 0)
-			siril_log_message(_("Siril FFT wisdom update failed...\n"));
+			siril_log_warning(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
 		clear_stars_list(TRUE);
@@ -866,7 +856,7 @@ ENDDECONV:
 		args->fdata = NULL;
 	}
 
-	unlock_roi_mutex();
+	gui_iface.unlock_roi_mutex();
 
 	return GINT_TO_POINTER(retval);
 }
@@ -947,7 +937,7 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 		data->deconv_data->destroy_fn(data->deconv_data);
 
 	free(data);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 
 	sequence_is_running = 0;
 	return retval;
@@ -971,12 +961,12 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	estk_data *args = data->deconv_data;
 
-	set_progress_bar_data(_("Deconvolution. Processing sequence..."), 0.);
+	gui_iface.set_progress(0, _("Deconvolution. Processing sequence..."));
 	remove_prefixed_sequence_files(seqargs->seq, seqargs->new_seq_prefix);
 	remove_prefixed_star_files(seqargs->seq, seqargs->new_seq_prefix);
 	if (args->psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
-		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		siril_log_error(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"));
 		return 1;
 	}
 	int retval = 0;

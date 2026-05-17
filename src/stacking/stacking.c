@@ -25,19 +25,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
-#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
@@ -128,12 +122,16 @@ gpointer stack_function_handler(gpointer p) {
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		clearfits(gfit);
 		memcpy(gfit, &args->result, offsetof(fits, rwlock));
-		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
-		/* check in com.seq, because args->seq may have been replaced */
+		/* Set com.seq.current before icc_auto_assign so that any
+		 * notify_gfit_data_modified triggered from within it sees the
+		 * correct state and does not mistake the stacking result for
+		 * a sequence frame (avoids buffer overrun in
+		 * test_and_allocate_reference_image). */
 		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
+		if (!com.script)
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
@@ -516,47 +514,17 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	siril_log_debug("Ending stacking idle function, retval=%d\n", args->retval);
 	stop_processing_thread();
 
 	/* gfit was written, the result was saved, and notify_gfit_data_modified()
 	 * was called in stack_function_handler.  This idle only handles GTK-side
 	 * updates that must run on the main thread. */
 	if (args->retval == ST_OK) {
-		clear_stars_list(TRUE);
-
-		initialize_display_mode();
-
-		sliders_mode_set_state(gui.sliders);
-		/* set_cutoff_sliders_max_values reads gfit->type/orig_bitpix; reader
-		 * lock will be added in Phase 2/3. */
-		g_rw_lock_reader_lock(&gfit->rwlock);
-		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
-			display_filename();
-			gui_function(set_precision_switch, NULL); // set precision on screen
-		}
-		set_cutoff_sliders_max_values();
-		/* Replace set_sliders_value_to_gfit() (which would read stale GTK
-		 * slider values and write them back into gfit) with a direct assignment
-		 * from gui.hi/gui.lo, which were set by notify_gfit_data_modified() in
-		 * the worker via init_layers_hi_and_lo_values(). */
-		gfit->keywords.hi = gui.hi;
-		gfit->keywords.lo = gui.lo;
-		g_rw_lock_writer_unlock(&gfit->rwlock);
-		gfit_modified_update_gui();
-
-		set_display_mode();
-
-		/* update menus */
-		gui_function(update_MenuItem, NULL);
-
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		sequence_list_change_current();
-		update_stack_interface(TRUE);
+		gui_iface.on_stack_complete();
 		bgnoise_await();
 	} else {
-		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
+		siril_log_error(_("Stacking failed, please check the log to fix your issue.\n"));
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
@@ -565,7 +533,7 @@ static gboolean end_stacking(gpointer p) {
 	/* remove tmp files if exist (Upscale) */
 	remove_tmp_upscaled_files(args);
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
 	 * displays the time
@@ -726,6 +694,6 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 	output_size[1] = (int)ymax - (int)ymin + 1;
 	offset[0] = (int)xmin;
 	offset[1] = -(int)ymax; // the stack is done with origin at bottom left but the shifts are computed from top right
-	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
-	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+	siril_log_debug("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_log_debug("new origin: %d %d\n", offset[0], offset[1]);
 }

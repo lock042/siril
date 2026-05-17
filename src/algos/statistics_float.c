@@ -48,11 +48,10 @@
 #include "sorting.h"
 #include "statistics.h"
 #include "demosaicing.h"
-#include "gui/progress_and_log.h"
 
 // uncomment to debug statistics
-#undef siril_debug_print
-#define siril_debug_print(fmt, ...) { }
+#undef siril_log_debug
+#define siril_log_debug(fmt, ...) { }
 
 // copies the area of an image into the memory buffer data
 static void select_area_float(fits *fit, float *data, int layer, const rectangle *bounds) {
@@ -233,7 +232,7 @@ int IKSSlite(float *data, size_t n, const float median, float mad, double *locat
 	*location = histogram_median_float(data, kept, threads);
 	mad = siril_stats_float_mad(data, kept, *location, threads, NULL);
 	if (mad == 0.0f) {
-		siril_log_color_message(_("MAD is null. Statistics cannot be computed.\n"), "red");
+		siril_log_error(_("MAD is null. Statistics cannot be computed.\n"));
 		return 1;
 	}
 
@@ -319,7 +318,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				size_t newsz;
 				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
 				if (!data || newsz == 0) {
-					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					siril_log_error(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
 					free(data);
 					return NULL;
 				}
@@ -349,7 +348,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				size_t newsz;
 				data = extract_CFA_buffer_float(fit, -layer - 1, &newsz);
 				if (!data) {
-					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
+					siril_log_error(_("Failed to compute CFA statistics\n"));
 					return NULL;
 				}
 				nx = newsz;
@@ -385,7 +384,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
 		siril_stats_float_minmax(&min, &max, data, stat->total, threads);
 		stat->min = (double)min * stat->normValue;
 		stat->max = (double)max * stat->normValue;
@@ -399,14 +398,14 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
 		siril_fits_img_stats_float(data, nx, ny, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
 			if (free_data) free(data);
 			if (stat_is_local) free(stat);
-			siril_log_message("fits_img_stats_float failed\n");
+			siril_log_error("fits_img_stats_float failed\n");
 			return NULL;
 		}
 		stat->mean *= stat->normValue;
@@ -438,7 +437,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
 		stat->median = histogram_median_float(data, stat->ngoodpix, threads) * stat->normValue;
 	}
 
@@ -448,7 +447,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing absdev\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing absdev\n", stat, fit, layer);
 		stat->avgDev = gsl_stats_float_absdev_m(data, 1, stat->ngoodpix, stat->median / stat->normValue) * stat->normValue;
 	}
 
@@ -458,7 +457,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
 		stat->mad = siril_stats_float_mad(data, stat->ngoodpix, stat->median / stat->normValue, threads, NULL) * stat->normValue;
 	}
 
@@ -468,7 +467,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
 		double bwmv = siril_stats_float_bwmv(data, stat->ngoodpix, stat->mad / stat->normValue, stat->median / stat->normValue, threads);
 		stat->sqrtbwmv = sqrt(bwmv) * stat->normValue;
 	}
@@ -479,7 +478,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
-		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
+		siril_log_debug("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
 		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, threads)) {
 			if (stat_is_local) free(stat);
 			if (free_data) free(data);
@@ -510,7 +509,7 @@ int compute_means_from_flat_cfa_float(const fits *fit, double mean[36]) {
 	startx = width / 3;
 	starty = height / 3;
 
-	siril_debug_print("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
+	siril_log_debug("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
 			width - 1 - startx, height - 1 - starty);
 
 	/* compute mean of each element in 6x6 blocks */
@@ -656,7 +655,7 @@ float siril_stats_robust_mean(const float sorted_data[],
 			x[j++] = sorted_data[i];
 		}
 	}
-	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
+	siril_log_debug("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
 	/* not enough stars, try something anyway */
 	if (j < 5) {
 		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);

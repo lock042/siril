@@ -35,9 +35,7 @@
 #include "algos/star_finder.h"
 #include "algos/comparison_stars.h"
 #include "algos/photometric_cc.h"
-#include "gui/plot.h"
-#include "gui/image_display.h"
-#include "gui/siril_plot.h"
+#include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "io/local_catalogues.h"
@@ -79,7 +77,7 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 		retval->minval /= USHRT_MAX_DOUBLE;
 		retval->maxval /= USHRT_MAX_DOUBLE;
 	}
-	//siril_debug_print("phot_set min=%f, max=%f\n", retval->minval, retval->maxval);
+	//siril_log_debug("phot_set min=%f, max=%f\n", retval->minval, retval->maxval);
 	return retval;
 }
 
@@ -137,7 +135,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	int ndata = (y2 - y1) * (x2 - x1);
 	if (ndata <= 0) {
-		siril_log_color_message(_("An error occurred in your selection. Please make another selection.\n"), "red");
+		siril_log_error(_("An error occurred in your selection. Please make another selection.\n"));
 		if (error) *error = PSF_ERR_OUT_OF_WINDOW;
 		return NULL;
 	}
@@ -179,14 +177,14 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		}
 	}
 	if (area < 1.0) {
-		siril_debug_print("area is < 1: not enough pixels of star data, too small aperture?\n");
+		siril_log_debug("area is < 1: not enough pixels of star data, too small aperture?\n");
 		free(data);
 		if (error) *error = PSF_ERR_APERTURE_TOO_SMALL;
 		return NULL;
 	}
 	if (n_sky < MIN_SKY) {
 		if (verbose)
-			siril_log_message(_("Warning: There aren't enough pixels"
+			siril_log_warning(_("Warning: There aren't enough pixels"
 						" in the sky annulus. You need to make a larger selection.\n"));
 		if (error) *error = PSF_ERR_TOO_FEW_BG_PIX;
 		free(data);
@@ -300,7 +298,7 @@ static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const
 	gboolean retval = TRUE;
 	double *data = NULL;
 	if (g_list_length(spl_data->plots) > 1) {
-		siril_debug_print("Light curve should not hold more than one data series, aborting\n");
+		siril_log_debug("Light curve should not hold more than one data series, aborting\n");
 		return FALSE;
 	}
 
@@ -342,7 +340,7 @@ static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const
 
 	fileout = g_fopen(datfilename, "w");
 	if (fileout == NULL) {
-		siril_log_message(_("Could not create %s, aborting\n"));
+		siril_log_error(_("Could not create %s, aborting\n"));
 		retval = FALSE;
 		goto clean_and_exit;
 	}
@@ -375,7 +373,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	sequence *seq = lcargs->seq;
 
 	if (!seq->photometry[0]) {
-		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		siril_log_error(_("No photometry data found, error\n"));
 		free_siril_plot_data(spl_data);
 		return -1;
 	}
@@ -393,9 +391,9 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 				ref_valid_count[ref]++;
 		}
 	}
-	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	siril_log_debug("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
-		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
+		siril_log_error(_("There are not enough valid stars to make a photometric analysis.\n"));
 		free_siril_plot_data(spl_data);
 		return -1;
 	}
@@ -404,18 +402,18 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	// select reference stars that are only available at least 4/5 of the time
 	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
 		ref_valid[ref] = ref_valid_count[ref] >= round_to_int(nbImages * 4.0 / 5.0);
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
+		siril_log_debug("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
 		if (ref_valid[ref])
 			nb_ref_stars++;
 	}
 
 	if (nb_ref_stars == 0) {
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		siril_log_error(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"));
 		free_siril_plot_data(spl_data);
 		return -1;
 	}
 	if (nb_ref_stars == 1)
-		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+		siril_log_warning(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"));
 	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
 
 
@@ -500,12 +498,12 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
 		median_snr = quickmedian_double(snr_opt, nb_valid_images);
 
-		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
+		siril_log_status(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"),
 			nb_valid_images,
 			1000 * median_err,
 			1000 * largest_err,
 			1000 * smallest_err);
-		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
+		siril_log_status(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"),
 			nb_valid_images,
 			median_snr,
 			largest_snr,
@@ -576,11 +574,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 }
 
 static gboolean end_light_curve_worker(gpointer p) {
-	if (sequence_is_loaded()) {
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
-	}
+	if (sequence_is_loaded())
+		gui_iface.on_photometry_changed();
 	return end_generic(NULL);
 }
 
@@ -609,25 +604,24 @@ gpointer light_curve_worker(gpointer arg) {
 		g_mutex_unlock(&com.mutex);
 		if (seqpsf(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
-				siril_log_message(_("Failed to analyse the variable star photometry\n"));
+				siril_log_error(_("Failed to analyse the variable star photometry\n"));
 				retval = 1;
 				break;
 			}
-			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
+			else siril_log_error(_("Failed to analyse the photometry of reference star %d\n"),
 					star_index);
 		}
 
 		if (args->seq == &com.seq)
-			queue_redraw(REDRAW_OVERLAY);
+			gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
 	args->force_rad = com.pref.phot_set.force_radius;	// Retrieve the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
-	if (!retval && args->display_graph && args->spl_data) {
-		siril_add_pythonsafe_idle(create_new_siril_plot_window, args->spl_data);
-	}
+	if (!retval && args->display_graph && args->spl_data)
+		gui_iface.show_siril_plot(args->spl_data);
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
@@ -647,12 +641,12 @@ gpointer catmag_mono_worker(gpointer arg) {
 	pset->force_radius = FALSE;
 	pset->inner = max(7.0, 3.0 * fwhm);
 	pset->outer = pset->inner + 10;
-	siril_debug_print(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
+	siril_log_debug(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
 			pset->inner, pset->outer);
 
 	siril_catalogue *cat = siril_catalog_fill_from_fit(args->fit, args->catalogue, -1);
 	if (!cat) {
-		siril_log_message(_("Failed to initialize the catalogue query\n"));
+		siril_log_error(_("Failed to initialize the catalogue query\n"));
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
@@ -662,7 +656,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	// we add +1 just to be sure we have enough, as the limitmag calc is an approximation.
 	// Anyway, as it is based on local catalogues only, the query is fast.
 	cat->limitmag = compute_mag_limit_from_position_and_fov(cat->center_ra, cat->center_ra, cat->radius * 2.0 / 60., nb_stars_in_image) + 1.;
-	siril_debug_print("catalogue limit magnitude set to %.1f\n", cat->limitmag);
+	siril_log_debug("catalogue limit magnitude set to %.1f\n", cat->limitmag);
 	cat->phot = TRUE;
 
 	int retval;
@@ -672,17 +666,17 @@ gpointer catmag_mono_worker(gpointer arg) {
 		retval = siril_catalog_get_stars_from_online_catalogues(cat);
 	}
 	if (retval < 1) {
-		siril_log_message(_("Failed to get stars from catalog\n"));
+		siril_log_error(_("Failed to get stars from catalog\n"));
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
-	siril_debug_print("Found %d stars in the catalog\n", retval);
+	siril_log_debug("Found %d stars in the catalog\n", retval);
 	sort_cat_items_by_mag(cat);
 	retval = siril_catalog_project_with_WCS(cat, gfit, TRUE, FALSE);
 	if (retval || cat->nbitems < 1) {
-		siril_log_message(_("Failed to project stars from catalog\n"));
+		siril_log_error(_("Failed to project stars from catalog\n"));
 		free(pset); free(args);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
@@ -700,21 +694,21 @@ gpointer catmag_mono_worker(gpointer arg) {
 		return GINT_TO_POINTER(1);
 	}
 	int nbgood = 0;
-	//siril_debug_print("distance, mag offset\n");
+	//siril_log_debug("distance, mag offset\n");
 	for (int i = 0; i < cat->nbitems; i++) {
 		if (nbgood >= enough_stars) {
-			siril_debug_print("found enough stars after trying the brightest %d\n", i + 1);
+			siril_log_debug("found enough stars after trying the brightest %d\n", i + 1);
 			break;
 		}
 		if ((args->limit_temperature && fabs(cat->cat_items[i].teff - args->refT) > args->dT) ||
 				(args->limit_BV && fabs(cat->cat_items[i].BV - args->refBV) > args->dBV)) {
-			//siril_debug_print("star %d is outside the specified range (T: %.0f, BV: %.2f)\n", i, cat->cat_items[i].teff, cat->cat_items[i].BV);
+			//siril_log_debug("star %d is outside the specified range (T: %.0f, BV: %.2f)\n", i, cat->cat_items[i].teff, cat->cat_items[i].BV);
 			continue;
 		}
 		rectangle area = { 0 };
 		// stars are in FITS coordinates, which is what we want here
 		if (make_selection_around_a_star(cat->cat_items+i, &area, args->fit, pset)) {
-			//siril_debug_print("star %d is outside image or too close to border\n", i);
+			//siril_log_debug("star %d is outside image or too close to border\n", i);
 			continue;
 		}
 
@@ -727,7 +721,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 			if (error != PSF_ERR_INVALID_PIX_VALUE && error != PSF_ERR_APERTURE_TOO_SMALL) {
 				// stars are ordered by magnitude, lets first remove the
 				// saturated or too large ones that cannot be measured
-				siril_debug_print("star %d photometry analysis failed (%s)\n", i, psf_error_to_string(error));
+				siril_log_debug("star %d photometry analysis failed (%s)\n", i, psf_error_to_string(error));
 			}
 			if (star) free_psf(star);
 			continue;
@@ -745,7 +739,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 			double dy = cat->cat_items[i].y - fy;
 			double dist = sqrt(dx * dx + dy * dy);
 			float diff = cat->cat_items[i].mag - star->phot->mag;
-			//siril_debug_print("%.2f, %.3f\n", dist, diff);
+			//siril_log_debug("%.2f, %.3f\n", dist, diff);
 			distances[nbgood] = dist;
 			magnitudes[nbgood] = diff;
 			nbgood++;
@@ -761,7 +755,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 		int kept = 0;
 		for (unsigned int i = 0; i < nbgood; i++) {
 			if (distances[i] - mean > stdev) {
-				//siril_debug_print("star %d too far from predicted\n", i);
+				//siril_log_debug("star %d too far from predicted\n", i);
 				continue;
 			}
 			sum += magnitudes[i];

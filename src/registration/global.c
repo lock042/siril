@@ -31,8 +31,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
-#include "gui/PSF_list.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -116,13 +115,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	/* first we're looking for stars in reference image */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load reference image\n"), "red");
+		siril_log_error(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		return 1;
 	}
 
-	siril_log_color_message(_("Reference Image:\n"), "green");
+	siril_log_info(_("Reference Image:\n"));
 
 	// peaking or using cached list in lst(if no selection is made)
 	// For now selection is using com.selection
@@ -136,8 +135,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
 	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
-		siril_log_color_message(
-				_("There are not enough stars in reference image to perform alignment\n"), "red");
+		siril_log_error(
+				_("There are not enough stars in reference image to perform alignment\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -161,13 +160,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 				stars[i+1] = NULL;
 			}
 		}
-		update_star_list(stars, FALSE, FALSE);
+		gui_iface.update_star_list(stars, FALSE, FALSE);
 	}
 
 	// We prepare the distortion structure maps if required
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
-		siril_log_color_message(
-				_("Could not init distortion mapping\n"), "red");
+		siril_log_error(
+				_("Could not init distortion mapping\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -175,8 +174,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	
 	if (!regargs->no_output && regargs->driz && initialize_drizzle_params(args, regargs)) {
-		siril_log_color_message(
-				_("Could not init drizzle\n"), "red");
+		siril_log_error(
+				_("Could not init drizzle\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -192,8 +191,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	// Note: for global reg, disto source can only by DISTO_IMAGE or DISTO_FILE
 	// i.e regargs->disto is of size 1
 	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
-		siril_log_color_message(
-			_("Could not correct the stars position with SIP coeffients\n"), "red");
+		siril_log_error(
+			_("Could not correct the stars position with SIP coeffients\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -224,7 +223,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	if (nb_stars >= MAX_STARS_FITTED) {
 		sadata->fitted_stars = MAX_STARS_FITTED;
-		siril_log_color_message(_("Reference Image: Limiting to %d brightest stars\n"), "green", MAX_STARS_FITTED);
+		siril_log_info(_("Reference Image: Limiting to %d brightest stars\n"), MAX_STARS_FITTED);
 	} else {
 		sadata->fitted_stars = nb_stars;
 	}
@@ -262,34 +261,28 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 		attempt++;
 	}
 	if (failure) {
-		siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
-				"red", attempt, filenum);
+		siril_log_error(_("Cannot perform star matching: try #%d. Image %d skipped\n"), attempt, filenum);
 	}
 	else if (H->Inliers < regargs->min_pairs) {
-		siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-				"red", H->Inliers, filenum);
+		siril_log_error(_("Not enough star pairs (%d): Image %d skipped\n"), H->Inliers, filenum);
 		failure = 1;
 	}
 	else if (((double)H->Inliers / (double)H->pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
 		switch (regargs->type) {
 			case SHIFT_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
-						"red", MIN_RATIO_INLIERS, filenum);
+				siril_log_error(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"), MIN_RATIO_INLIERS, filenum);
 				failure = 1;
 				break;
 			case SIMILARITY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
-						"red", MIN_RATIO_INLIERS, filenum);
+				siril_log_error(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"), MIN_RATIO_INLIERS, filenum);
 				failure = 1;
 				break;
 			case AFFINE_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
-						"red", MIN_RATIO_INLIERS, filenum);
+				siril_log_error(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"), MIN_RATIO_INLIERS, filenum);
 				failure = 1;
 				break;
 			case HOMOGRAPHY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
-						"salmon", MIN_RATIO_INLIERS, filenum);
+				siril_log_warning(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"), MIN_RATIO_INLIERS, filenum);
 				break;
 			default:
 				printf("Should not happen\n");
@@ -309,7 +302,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	char *units;
 	Homography H = { 0 };
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
-	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
+	siril_log_debug("registration of image %d using %d threads\n", in_index, threads);
 
 	if (regargs->no_output) {  // used by livestacking but not by register which always outputs sequence
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -318,14 +311,14 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	if (in_index != regargs->reference_image) {
 		psf_star **stars = NULL;
 		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
-			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
+			siril_log_bold(_("Frame %d:\n"), filenum);
 		}
 
 		/* sometimes sequence are not consistent.... They shouldn't but ..... */
 		// This now normally checked in processing... but ok, livestacking may use this check
 		// Wouldn't it be safer to compare fit->naxes[2] to regargs->seq->nb_layers?
 		if (regargs->layer > RLAYER && !isrgb(fit)) {
-			siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "salmon");
+			siril_log_warning(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"));
 		}
 
 		// peaking or using cached list in lst(if no selection is made)
@@ -348,8 +341,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// if distortion correction is included, we correct the current starlist
 		// before performing the match
 		if (regargs->undistort && disto_correct_stars(stars, regargs->disto)) {
-			siril_log_color_message(
-				_("Could not correct the stars position with SIP coeffients\n"), "red");
+			siril_log_error(
+				_("Could not correct the stars position with SIP coeffients\n"));
 			if (stars)
 				free_fitted_stars(stars);
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -438,7 +431,7 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
 		if (regargs->new_total <= 1) {
-			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			siril_log_error(_("No image was registered to the reference\n"));
 			args->retval = 1;
 		}
 	}
@@ -486,8 +479,8 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Registration finished.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
-		siril_log_color_message(str, "green");
-		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+		siril_log_info(str);
+		siril_log_info(_("Total: %d failed, %d registered.\n"), failed, regargs->new_total);
 
 		g_free(str);
 		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
@@ -504,7 +497,7 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		free(sadata->success);
 	free(sadata);
 	args->user = NULL;
-	clear_stars_list(FALSE);
+	gui_iface.clear_star_list();
 	return regargs->new_total == 0;
 }
 
@@ -596,8 +589,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -608,7 +600,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -636,7 +628,7 @@ int register_star_alignment(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
 		if (status) {
 			free(args);
-			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
+			siril_log_error(_("Could not initialize distortion data, aborting\n"));
 			return -1;
 		}
 		if (!regargs->disto) {
@@ -698,7 +690,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	double inliers;
 
 	/* Matching information */
-	siril_log_color_message(_("Matching stars in image %d: done\n"), "green", filenum);
+	siril_log_info(_("Matching stars in image %d: done\n"), filenum);
 	siril_log_message(_("Initial pair matches: %d\n"), H.pair_matched);
 	siril_log_message(_("Pair matches after fitting: %d\n"), H.Inliers);
 	inliers = 1.0 - ((((double) H.pair_matched - (double) H.Inliers)) / (double) H.pair_matched);
@@ -801,7 +793,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 	y0 = (int)(cogy - (double)ry * 0.5);
 	Hshift.h02 = (double)x0;
 	Hshift.h12 = (double)y0;
-	siril_debug_print("cog at (%3.2f, %3.2f)\n", Hshift.h02, Hshift.h12);
+	siril_log_debug("cog at (%3.2f, %3.2f)\n", Hshift.h02, Hshift.h12);
 	cvMultH(Href, Hshift, &Htransf);
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!included[i]) continue;
@@ -859,7 +851,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
 		if (status) {
-			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
+			siril_log_error(_("Could not initialize distortion data, aborting\n"));
 		}
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;
@@ -891,7 +883,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	gettimeofday(&t_start, NULL);
 	if (apply_findstar_to_sequence(sfargs)) {
-		siril_debug_print("finding stars failed\n");	// aborted probably
+		siril_log_debug("finding stars failed\n");	// aborted probably
 		retval = 1;
 		goto free_all;
 	}
@@ -927,7 +919,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		}
 		// we apply distortion (if any) before matching
 		if (regargs->undistort && disto_correct_stars(sfargs->stars[i], regargs->disto)) {
-			siril_log_color_message(_("Could not correct the stars position with SIP coeffients\n"), "red");
+			siril_log_error(_("Could not correct the stars position with SIP coeffients\n"));
 			retval = 1;
 			goto free_all;
 		}
@@ -1044,7 +1036,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			}
 		}
 		if (maxreg <= 1) {
-			siril_log_color_message(_("Could not find an image that aligns more than itself, aborting\n"), "red");
+			siril_log_error(_("Could not find an image that aligns more than itself, aborting\n"));
 			retval = 1;
 			goto free_all;
 		}
@@ -1065,7 +1057,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	//if larger than cog, we recompute a score accoutning for the distance
 	if (dist[best_index] > allowable_dist) {
 		siril_log_message(_("After sequence alignment, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
-		siril_debug_print(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_indexes[trials]], allowable_dist);
+		siril_log_debug(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_indexes[trials]], allowable_dist);
 		float FWHMx;
 		int new_best_index = -1;
 		for (int i = 0; i < regargs->seq->number; i++) {
@@ -1096,8 +1088,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(regargs->seq, FALSE);
-	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->seq->selnum);
-	clear_stars_list(FALSE);
+	siril_log_info(_("Total: %d failed, %d registered.\n"), failed, regargs->seq->selnum);
+	gui_iface.clear_star_list();
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 

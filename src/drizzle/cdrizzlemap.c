@@ -331,7 +331,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx,
 			memcpy(p->xmap, disto->xmap, sz * sizeof(float));
 			memcpy(p->ymap, disto->ymap, sz * sizeof(float));
 		} else {
-			siril_debug_print("trying to pass an invalid disto type for drizzle, aborting\n");
+			siril_log_debug("trying to pass an invalid disto type for drizzle, aborting\n");
 			return 1;
 		}
 		for (int y = 0; y < source_ry; y++) {

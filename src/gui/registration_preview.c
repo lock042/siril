@@ -30,21 +30,37 @@
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 
+static GtkToggleButton *regprev_check_display_ref = NULL;
+static GtkWidget *regprev_label_regref = NULL;
+static GtkComboBox *regprev_layer_combo = NULL;
+static GtkToggleButton *regprev_toggle1 = NULL;
+static GtkToggleButton *regprev_toggle2 = NULL;
+static GtkSpinButton *regprev_spin_shiftx = NULL;
+static GtkSpinButton *regprev_spin_shifty = NULL;
+static GtkComboBoxText *regprev_seq_combo = NULL;
+
+static void registration_preview_init_statics(void) {
+	if (regprev_check_display_ref) return;
+	regprev_check_display_ref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
+	regprev_label_regref = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelRegRef"));
+	regprev_layer_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
+	regprev_toggle1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
+	regprev_toggle2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
+	regprev_spin_shiftx = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shiftx"));
+	regprev_spin_shifty = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shifty"));
+	regprev_seq_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
+}
+
 gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int current_preview, shiftx = 0, shifty = 0;
-	static GtkToggleButton *check_display_ref = NULL;
-	static GtkWidget *labelRegRef = NULL;
 	guint area_width = gtk_widget_get_allocated_width (widget);
 	guint area_height = gtk_widget_get_allocated_height (widget);
 	gboolean display_ref_image;
 
-	if (check_display_ref == NULL) {
-		check_display_ref = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_displayref"));
-		labelRegRef = lookup_widget("labelRegRef");
-	}
+	registration_preview_init_statics();
 	display_ref_image = gui.refimage_regbuffer && gui.refimage_surface
-			&& gtk_toggle_button_get_active(check_display_ref)
-							&& !gtk_widget_get_visible(labelRegRef);
+			&& gtk_toggle_button_get_active(regprev_check_display_ref)
+							&& !gtk_widget_get_visible(regprev_label_regref);
 
 	if (widget == gui.preview_area[0]) current_preview = 0;
 	else if (widget == gui.preview_area[1]) current_preview = 1;
@@ -110,11 +126,11 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
 		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-			siril_debug_print("Error: image #%d has a wrong shift x value\n", com.seq.current + 1);
+			siril_log_debug("Error: image #%d has a wrong shift x value\n", com.seq.current + 1);
 			shiftx += 1;
 		}
 		if (shifty == INT_MIN) { // mainly to avoid static checker warning
-			siril_debug_print("Error: image #%d has a wrong shift y value\n", com.seq.current + 1);
+			siril_log_debug("Error: image #%d has a wrong shift y value\n", com.seq.current + 1);
 			shifty += 1;
 		}
 	}
@@ -139,22 +155,23 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 /* vport can be -1 if the correct viewport should be tested */
 void test_and_allocate_reference_image(int vport) {
-	static GtkComboBox *cbbt_layers = NULL;
-	if (cbbt_layers == NULL) {
-		cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-	}
+	registration_preview_init_statics();
 	if (vport == -1)
-		vport = gtk_combo_box_get_active(cbbt_layers);
+		vport = gtk_combo_box_get_active(regprev_layer_combo);
 
 	if (sequence_is_loaded() && com.seq.current == com.seq.reference_image
-			&& gtk_combo_box_get_active(cbbt_layers) == vport && vport < gfit->naxes[2]) {
+			&& gtk_combo_box_get_active(regprev_layer_combo) == vport && vport < gfit->naxes[2]) {
 		/* this is the registration layer and the reference frame,
 		 * save the buffer for alignment preview */
 		struct image_view *view = &gui.view[vport];
+		/* Use actual surface dimensions — may be smaller than gfit when the
+		 * image exceeds Cairo's 32767-px limit (gui.surface_scale < 1.0). */
+		const int surf_h = view->full_surface_height;
+		const int surf_w = view->full_surface_stride / 4; /* stride = sw*4 for RGB24 */
 		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
 			guchar *oldbuf = gui.refimage_regbuffer;
 			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
-					view->full_surface_stride * gfit->ry * sizeof(guchar));
+					view->full_surface_stride * surf_h * sizeof(guchar));
 			if (gui.refimage_regbuffer == NULL) {
 				PRINT_ALLOC_ERR;
 				if (oldbuf)
@@ -165,8 +182,8 @@ void test_and_allocate_reference_image(int vport) {
 			if (gui.refimage_surface)
 				cairo_surface_destroy(gui.refimage_surface);
 			gui.refimage_surface = cairo_image_surface_create_for_data(
-					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, gfit->rx,
-					gfit->ry, view->full_surface_stride);
+					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, surf_w,
+					surf_h, view->full_surface_stride);
 			if (cairo_surface_status(gui.refimage_surface)
 					!= CAIRO_STATUS_SUCCESS) {
 				fprintf(stderr,
@@ -180,7 +197,7 @@ void test_and_allocate_reference_image(int vport) {
 			}
 		}
 		memcpy(gui.refimage_regbuffer, view->buf,
-				view->full_surface_stride * gfit->ry * sizeof(guchar));
+				view->full_surface_stride * surf_h * sizeof(guchar));
 		cairo_surface_flush(gui.refimage_surface);
 		cairo_surface_mark_dirty(gui.refimage_surface);
 	}
@@ -203,8 +220,9 @@ void clear_previews() {
 		}
 	}
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual1")), FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual2")), FALSE);
+	registration_preview_init_statics();
+	gtk_toggle_button_set_active(regprev_toggle1, FALSE);
+	gtk_toggle_button_set_active(regprev_toggle2, FALSE);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {
@@ -221,16 +239,18 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 	com.seq.previewH[preview_area] = area_height;
 
 	struct image_view *view = &gui.view[gui.cvport];
-	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx) !=
-			view->full_surface_stride ||
-			gfit->ry != view->full_surface_height ||
-			!gui.preview_surface[preview_area]) {
+	/* Surface dimensions may be smaller than gfit when gui.surface_scale < 1. */
+	const int surf_h = view->full_surface_height;
+	const int surf_w = view->full_surface_stride / 4;
+	if (!gui.preview_surface[preview_area] ||
+			cairo_image_surface_get_width(gui.preview_surface[preview_area]) != surf_w ||
+			cairo_image_surface_get_height(gui.preview_surface[preview_area]) != surf_h) {
 		if (gui.preview_surface[preview_area])
 			cairo_surface_destroy(gui.preview_surface[preview_area]);
 		gui.preview_surface[preview_area] =
 			cairo_image_surface_create_for_data(view->buf,
 					CAIRO_FORMAT_RGB24,
-					gfit->rx, gfit->ry,
+					surf_w, surf_h,
 					view->full_surface_stride);
 		if (cairo_surface_status(gui.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
 			fprintf(stderr, "Error creating the Cairo image surface for preview %d\n", preview_area);
@@ -249,12 +269,9 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 
 	if (sequence_is_loaded()) {
 
-		static GtkToggleButton *preview1 = NULL;
-
-		if (preview1 == NULL)
-			preview1 = GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual1"));
+		registration_preview_init_statics();
 		if (gtk_toggle_button_get_active(toggle)) {
-			if (toggle == preview1)
+			if (toggle == regprev_toggle1)
 				mouse_status = MOUSE_ACTION_SELECT_PREVIEW1;
 			else
 				mouse_status = MOUSE_ACTION_SELECT_PREVIEW2;
@@ -262,7 +279,7 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 			/* deactivate preview */
 			int preview_area;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-			if (toggle == preview1)
+			if (toggle == regprev_toggle1)
 				preview_area = 0;
 			else
 				preview_area = 1;
@@ -284,14 +301,13 @@ void on_checkbutton_displayref_toggled(GtkToggleButton *togglebutton, gpointer u
 
 /* display registration data (shift{x|y} for now) in the manual adjustments */
 void adjust_reginfo() {
-	GtkSpinButton *spin_shiftx, *spin_shifty;
-	GtkComboBoxText *seqcombo;
 	gboolean set_sensitive;
 	gint cvport;
 
-	spin_shiftx = GTK_SPIN_BUTTON(lookup_widget("spinbut_shiftx"));
-	spin_shifty = GTK_SPIN_BUTTON(lookup_widget("spinbut_shifty"));
-	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
+	registration_preview_init_statics();
+	GtkSpinButton *spin_shiftx = regprev_spin_shiftx;
+	GtkSpinButton *spin_shifty = regprev_spin_shifty;
+	GtkComboBoxText *seqcombo = regprev_seq_combo;
 
 	cvport = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
 	if (cvport < 0) return;
@@ -357,17 +373,12 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 
 /* enables or disables the "display reference" checkbox in registration preview */
 void enable_view_reference_checkbox(gboolean status) {
-	static GtkToggleButton *check_display_ref = NULL;
-	static GtkWidget *widget = NULL, *labelRegRef = NULL;
-	if (check_display_ref == NULL) {
-		check_display_ref = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_displayref"));
-		widget = GTK_WIDGET(check_display_ref);
-		labelRegRef = lookup_widget("labelRegRef");
-	}
+	registration_preview_init_statics();
+	GtkWidget *widget = GTK_WIDGET(regprev_check_display_ref);
 	if (status && gtk_widget_get_sensitive(widget))
 		return;	// may be already enabled but deactivated by user, don't force it again
 	gtk_widget_set_sensitive(widget, status);
-	gtk_widget_set_visible(labelRegRef, !status);
-	gtk_toggle_button_set_active(check_display_ref, status);
+	gtk_widget_set_visible(regprev_label_regref, !status);
+	gtk_toggle_button_set_active(regprev_check_display_ref, status);
 }
 

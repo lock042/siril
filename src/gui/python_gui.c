@@ -184,7 +184,7 @@ void add_code_view(GtkBuilder *builder) {
 	language_manager = gtk_source_language_manager_get_default();
 	language = gtk_source_language_manager_get_language(language_manager, "python3");
 	if (language == NULL) {
-		siril_debug_print("Could not find Python language definition\n");
+		siril_log_debug("Could not find Python language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
@@ -552,7 +552,7 @@ void python_scratchpad_init_statics() {
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
 		// Findbox
 		find_revealer = GTK_REVEALER(gtk_builder_get_object(gui.builder, "find_revealer"));
-		find_entry = GTK_ENTRY(lookup_widget("find_entry"));
+		find_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "find_entry"));
 		find_overlay = GTK_WIDGET(gtk_builder_get_object(gui.builder, "find_overlay"));
 		find_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "find_label"));
 		go_up_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_up_button"));
@@ -787,7 +787,7 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 			g_object_unref(current_file);
 		current_file = NULL;
 		GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
-				GTK_WINDOW(lookup_widget("control_window")),
+				GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),
 				GTK_FILE_CHOOSER_ACTION_OPEN,
 				_("_Cancel"), GTK_RESPONSE_CANCEL,
 				_("_Open"), GTK_RESPONSE_ACCEPT,
@@ -864,7 +864,7 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Script As"),
-			GTK_WINDOW(lookup_widget("control_window")),
+			GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
 			_("_Cancel"), GTK_RESPONSE_CANCEL,
 			_("_Save"), GTK_RESPONSE_ACCEPT,
@@ -1119,7 +1119,7 @@ void set_language() {
 		gtk_label_set_text(language_label, _("Siril Script File"));
 	}
 	if (language == NULL) {
-		siril_debug_print("Could not find language definition\n");
+		siril_log_debug("Could not find language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
@@ -1135,8 +1135,8 @@ void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
 }
 
 void setup_python_editor_window() {
-	GtkWindow *editor_window = GTK_WINDOW(lookup_widget("python_window"));
-	GtkWindow *main_window = GTK_WINDOW(lookup_widget("control_window"));
+	GtkWindow *editor_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "python_window"));
+	GtkWindow *main_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 
 	// Make the editor window hide instead of destroy when closed
 	g_signal_connect(editor_window, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
@@ -1161,17 +1161,17 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			gchar *temp_filename = NULL;
 			int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
 			if (fd == -1) {
-				siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
+				siril_log_error(_("Error creating temporary script file: %s\n"), error->message);
 				g_error_free(error);
 				g_free(text);
 				return;
 			}
 			// Write script content to the temporary file
 			if (write(fd, text, strlen(text)) == -1) {
-				siril_log_message(_("Error writing to temporary script file\n"));
+				siril_log_error(_("Error writing to temporary script file\n"));
 				close(fd);
 				if (g_unlink(temp_filename))
-					siril_debug_print("g_unlink() failed in on_action_file_execute()\n");
+					siril_log_debug("g_unlink() failed in on_action_file_execute()\n");
 				g_free(temp_filename);
 				g_free(text);
 				return;
@@ -1209,7 +1209,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			com.script_thread = g_thread_new("script", execute_script, input_stream);
 			break;
 		default:
-			siril_debug_print("Error: unknown script language\n");
+			siril_log_debug("Error: unknown script language\n");
 			g_free(text);
 			break;
 	}
@@ -1368,11 +1368,11 @@ void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
 
 void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data) {
     gboolean state = gtk_check_menu_item_get_active(item);
-	GtkCheckMenuItem *editorwidget = (GTK_CHECK_MENU_ITEM(lookup_widget("editor_toggledebug")));
-	// This is created programatically and added to the builder, but we know it has been
-	// done by now as the script menu must exist in order to be able to access either the script
-	// menu item or the script editor menu item.
-	GtkCheckMenuItem *scriptmenuwidget = (GTK_CHECK_MENU_ITEM(lookup_widget("pythondebugtoggle")));
+	static GtkCheckMenuItem *editorwidget = NULL, *scriptmenuwidget = NULL;
+	if (!editorwidget) {
+		editorwidget = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_toggledebug"));
+		scriptmenuwidget = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "pythondebugtoggle"));
+	}
 
 	// Synchronize the two checkbuttons
 	g_signal_handlers_block_by_func(editorwidget, on_pythondebug_toggled, NULL);

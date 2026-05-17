@@ -31,14 +31,32 @@
 #include "gui/progress_and_log.h"
 
 
+static GtkToggleButton *split_cfa_seq_btn = NULL;
+static GtkEntry *split_cfa_entry = NULL;
+static GtkComboBox *split_cfa_method_combo = NULL;
+static GtkComboBox *split_haoiii_scaling_combo = NULL;
+static GtkWidget *split_label10 = NULL;
+static GtkWidget *split_labelhaoiiiname = NULL;
+
+static void split_cfa_init_statics(void) {
+	if (split_cfa_seq_btn) return;
+	split_cfa_seq_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkSplitCFASeq"));
+	split_cfa_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entrySplitCFA"));
+	split_cfa_method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_split_cfa_method"));
+	split_haoiii_scaling_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_haoiii_scaling"));
+	split_label10 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label10"));
+	split_labelhaoiiiname = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelhaoiiiscaling"));
+}
+
 void on_split_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("split_cfa_dialog");
 }
 
 void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *seq = GTK_TOGGLE_BUTTON(lookup_widget("checkSplitCFASeq"));
-	GtkEntry *entrySplitCFA = GTK_ENTRY(lookup_widget("entrySplitCFA"));
-	gint method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_split_cfa_method")));
+	split_cfa_init_statics();
+	GtkToggleButton *seq = split_cfa_seq_btn;
+	GtkEntry *entrySplitCFA = split_cfa_entry;
+	gint method = gtk_combo_box_get_active(split_cfa_method_combo);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 
@@ -47,7 +65,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			set_cursor_waiting(TRUE);
 			args->seq = &com.seq;
 			args->user_data = calloc(1, sizeof(extraction_scaling));
-			*(extraction_scaling *)args->user_data = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+			*(extraction_scaling *)args->user_data = gtk_combo_box_get_active(split_haoiii_scaling_combo);
 			args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
 
 			switch (method) {
@@ -80,7 +98,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			struct simple_extract_data *args = calloc(1, sizeof(struct simple_extract_data));
 			set_cursor_waiting(TRUE);
 			args->seq = &com.seq;
-			args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+			args->scaling = gtk_combo_box_get_active(split_haoiii_scaling_combo);
 			args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
 
 			switch (method) {
@@ -99,14 +117,14 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 					apply_extractGreen_to_sequence(args);
 					break;
 				default:
-					siril_debug_print("unhandled case!\n");
+					siril_log_debug("unhandled case!\n");
 					free(args->seqEntry);
 					free(args);
 			}
 		}
 	} else {
-		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		siril_debug_print("Scaling %d\n", scaling);
+		int scaling = gtk_combo_box_get_active(split_haoiii_scaling_combo);
+		siril_log_debug("Scaling %d\n", scaling);
 
 		/* Compute base filename before starting the thread */
 		gchar *filename = NULL;
@@ -133,7 +151,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 1: /* extractHa */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -143,7 +161,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 2: /* extractHaOIII */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -154,7 +172,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 3: /* extractGreen */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -162,7 +180,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				cfa_args->channel[0] = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 				break;
 			default:
-				siril_debug_print("unhandled case!\n");
+				siril_log_debug("unhandled case!\n");
 				free_cfa_extract_args(cfa_args);
 				g_free(filename);
 				return;
@@ -186,10 +204,11 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_combo_split_cfa_method_changed(GtkComboBox *box, gpointer user_data) {
-	GtkWidget *w = lookup_widget("label10");
-	GtkWidget *cb = lookup_widget("combo_haoiii_scaling");
-	GtkWidget *cbl = lookup_widget("labelhaoiiiscaling");
-	GtkWidget *txt = lookup_widget("entrySplitCFA");
+	split_cfa_init_statics();
+	GtkWidget *w = split_label10;
+	GtkWidget *cb = GTK_WIDGET(split_haoiii_scaling_combo);
+	GtkWidget *cbl = split_labelhaoiiiname;
+	GtkWidget *txt = GTK_WIDGET(split_cfa_entry);
 	gint method = gtk_combo_box_get_active(box);
 
 	gtk_widget_set_sensitive(cb, method == 2);

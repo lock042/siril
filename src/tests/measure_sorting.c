@@ -28,7 +28,6 @@
 #define THREADING_TYPE MULTI_THREADED
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 
 double median_from_sorted_array(WORD *arr, int size)
