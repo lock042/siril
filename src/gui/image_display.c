@@ -2000,31 +2000,41 @@ static void draw_stars(const draw_data_t* dd) {
 static void draw_mpp_aps(const draw_data_t* dd) {
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
-	/* AP coordinates live in the sequence's mean-frame space. When the
-	 * user is viewing a single image rather than a sequence frame
-	 * (com.seq.current < 0 → RESULT_IMAGE after stack, or SCALED_IMAGE),
-	 * the overlay no longer corresponds to what's on screen, so suppress
-	 * it. APs reappear automatically when the user navigates back into
-	 * the sequence. */
-	if (com.seq.current < 0) return;
+	/* AP coordinates live in the run's mean-frame space. Show them
+	 * when gfit's dimensions match a known coordinate system in the
+	 * run — either the mean frame itself (the Analyse-painted ref
+	 * image, where ap.{x,y} maps directly), or a sequence frame at
+	 * the run's frame_cols/_rows (where per-frame shift compensates).
+	 * Hide otherwise (stacking result at non-mean-frame dims, an
+	 * unrelated single image the user has loaded, etc.). The check
+	 * is dim-based rather than com.seq.current-based so APs reappear
+	 * after re-Analyse even when com.seq.current is still RESULT_IMAGE
+	 * from a prior stack run. */
+	const gboolean showing_ref = (gfit
+	    && (int) gfit->rx == run->mean_frame_cols
+	    && (int) gfit->ry == run->mean_frame_rows);
+	const gboolean showing_seq_frame = (gfit
+	    && com.seq.current >= 0
+	    && com.seq.current < run->num_frames
+	    && (int) gfit->rx == run->frame_cols
+	    && (int) gfit->ry == run->frame_rows
+	    && run->global_shifts
+	    && sequence_is_loaded());
+	if (!showing_ref && !showing_seq_frame) return;
+
 	const int hb = run->cfg->alignment_points_half_box_width;
 	if (hb <= 0) return;
 	const int side = 2 * hb;
 
 	int dx = 0, dy = 0;
-	const gboolean showing_ref = (gfit
-	    && (int) gfit->rx == run->mean_frame_cols
-	    && (int) gfit->ry == run->mean_frame_rows);
-	if (!showing_ref && run->global_shifts && sequence_is_loaded()) {
+	if (showing_seq_frame) {
 		const int i = com.seq.current;
-		if (i >= 0 && i < run->num_frames) {
-			/* mean_frame row r maps to frame row
-			 *   r + intersection[0] - global_shifts[i]
-			 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
-			 * gives the AP's pdata-row position on frame i. */
-			dy = run->intersection[0] - run->global_shifts[2 * i + 0];
-			dx = run->intersection[2] - run->global_shifts[2 * i + 1];
-		}
+		/* mean_frame row r maps to frame row
+		 *   r + intersection[0] - global_shifts[i]
+		 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
+		 * gives the AP's pdata-row position on frame i. */
+		dy = run->intersection[0] - run->global_shifts[2 * i + 0];
+		dx = run->intersection[2] - run->global_shifts[2 * i + 1];
 	}
 
 	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata
