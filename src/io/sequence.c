@@ -75,6 +75,8 @@
 
 #include "sequence.h"
 
+#include "gui/siril_preview.h"
+
 
 /* com.seq is a static struct containing the sequence currently selected by the
  * user from the interface. It may change to be a pointer to any sequence
@@ -712,8 +714,11 @@ gboolean set_seq(gpointer user_data){
 // This function is OK to have GUI calls in it as it is only ever called from GUI functions
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
-	if (!single_image_is_loaded())
+	if (!single_image_is_loaded()) {
+		if (is_preview_active())
+			full_stats_invalidation_from_fit(&gfit);
 		save_stats_from_fit(&gfit, seq, seq->current);
+	}
 	on_clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
