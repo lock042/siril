@@ -62,6 +62,9 @@ typedef enum {
 	SF_AMPLITUDE_OUTSIDE_RANGE = 18
 } sf_errors;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void update_peaker_GUI();
 void confirm_peaker_GUI();
 psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
@@ -79,5 +82,8 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry);
 float measure_image_FWHM(fits *fit, int channel);
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
