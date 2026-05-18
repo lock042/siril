@@ -49,6 +49,7 @@
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
 #include "core/gui_iface.h"
+#include "registration/mpp_config.h"  /* enum mpp_avi_bayer */
 #include "conversion.h"
 
 #ifdef HAVE_LIBRAW
@@ -501,6 +502,9 @@ struct reader_data {
 	gboolean allow_32bits;
 
 	gboolean debayer;
+	/* AVI Bayer-pattern hint copied from convert args; consulted by
+	 * read_fit's film branch (see _convert_data.avi_bayer_pattern). */
+	int avi_bayer_pattern;
 };
 
 /* single image writing information */
@@ -843,6 +847,7 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader) {
 	seqread_status retval = GOT_READ_ERROR;
 	reader->debayer = conv->args->debayer;
+	reader->avi_bayer_pattern = conv->args->avi_bayer_pattern;
 
 	// first, check for already opened sequence files
 	if (conv->current_ser) {
@@ -990,7 +995,32 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		fit = calloc(1, sizeof(fits));
 		if (film_read_frame(reader->film, reader->index, fit) != FILM_SUCCESS)
 			*retval = READ_FAILED;
-		else *retval = READ_OK;
+		else {
+			*retval = READ_OK;
+			/* AVI Bayer-pattern hint: AVI containers have no Bayer
+			 * marker, so a raw mosaic captured from an OSC camera
+			 * loses its pattern at decode time. Stamp it onto the
+			 * fits keyword so SER ser_write_header_from_fit picks
+			 * up the right color_id and FITS savefits writes a
+			 * BAYERPAT card. Only applied when the resulting fit is
+			 * single-channel — for an AVI that autodetect already
+			 * decoded as RGB the hint would be wrong (a debayered
+			 * RGB stream isn't a mosaic). */
+			if (fit && fit->naxes[2] == 1) {
+				const char *pat = NULL;
+				switch (reader->avi_bayer_pattern) {
+				case MPP_AVI_BAYER_RGGB: pat = "RGGB"; break;
+				case MPP_AVI_BAYER_BGGR: pat = "BGGR"; break;
+				case MPP_AVI_BAYER_GBRG: pat = "GBRG"; break;
+				case MPP_AVI_BAYER_GRBG: pat = "GRBG"; break;
+				default: pat = NULL; break;   /* AUTO / NONE — leave keyword empty */
+				}
+				if (pat) {
+					g_strlcpy(fit->keywords.bayer_pattern, pat,
+					          sizeof(fit->keywords.bayer_pattern));
+				}
+			}
+		}
 		finish_read_seq(reader);
 	}
 #endif

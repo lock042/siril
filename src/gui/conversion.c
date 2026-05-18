@@ -35,6 +35,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
+#include "registration/mpp_config.h"   /* enum mpp_avi_bayer */
 
 static char *destroot = NULL;
 static GtkListStore *liststore_convert = NULL;
@@ -48,6 +49,8 @@ static GtkEntry *conv_start_entry = NULL;
 static GtkWidget *conv_go_button = NULL;
 static GtkLabel *conv_status_label = NULL;
 static GtkEntry *conv_root_entry = NULL;
+static GtkComboBox *conv_avi_bayer_combo = NULL;
+static GtkWidget *conv_avi_bayer_label = NULL;
 
 static void conversion_init_statics(void) {
 	if (conv_multiple_seq) return;
@@ -58,6 +61,8 @@ static void conversion_init_statics(void) {
 	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
 	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
 	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
+	conv_avi_bayer_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_convert_avi_bayer"));
+	conv_avi_bayer_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_convert_avi_bayer"));
 }
 
 static void check_for_conversion_form_completeness();
@@ -253,6 +258,13 @@ static void initialize_convert() {
 	args->make_link = symbolic_link;
 	args->output_type = output_type;
 	args->multiple_output = multiple;
+	{
+		const int ab = (there_is_a_film && conv_avi_bayer_combo)
+		             ? gtk_combo_box_get_active(conv_avi_bayer_combo)
+		             : MPP_AVI_BAYER_AUTO;
+		args->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
+		                       ? ab : MPP_AVI_BAYER_AUTO;
+	}
 	gettimeofday(&(args->t_start), NULL);
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
@@ -469,6 +481,35 @@ static void check_for_conversion_form_completeness() {
 	gtk_widget_set_sensitive(conv_go_button, destroot && destroot[0] != '\0' && valid);
 }
 
+/* Scan the input list for AVI / film entries so the AVI-Bayer combo can be
+ * shown only when relevant. We can't cheaply distinguish mono-encoded from
+ * RGB-encoded AVIs without opening each file (ffms2 builds an index on
+ * first open, which is multi-second), so the visibility heuristic is just
+ * "any AVI present"; the per-frame apply step in io/conversion.c skips
+ * the pattern when the autodetected fit happens to be 3-channel colour. */
+static gboolean input_list_has_any_film(void) {
+	GtkTreeIter iter;
+	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		gchar *file_data = NULL;
+		gtk_tree_model_get(model, &iter, COLUMN_FILENAME_FULL, &file_data, -1);
+		const char *src_ext = file_data ? get_filename_ext(file_data) : NULL;
+		const image_type type = src_ext ? get_type_for_extension(src_ext) : TYPEUNDEF;
+		g_free(file_data);
+		if (type == TYPEAVI) return TRUE;
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+	return FALSE;
+}
+
+static void update_avi_bayer_combo_visibility(void) {
+	conversion_init_statics();
+	if (!conv_avi_bayer_combo || !conv_avi_bayer_label) return;
+	const gboolean show = input_list_has_any_film();
+	gtk_widget_set_visible(GTK_WIDGET(conv_avi_bayer_combo), show);
+	gtk_widget_set_visible(conv_avi_bayer_label, show);
+}
+
 static void on_input_files_change() {
 	/* we override the sort function in order to provide natural sort order */
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model), COLUMN_FILENAME, (GtkTreeIterCompareFunc) name_sort_func, NULL, NULL);
@@ -476,6 +517,7 @@ static void on_input_files_change() {
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model), COLUMN_DATE_UNIX, (GtkTreeIterCompareFunc) date_sort_func, NULL, NULL);
 
 	update_statusbar_convert();
+	update_avi_bayer_combo_visibility();
 }
 
 /******************************* Callback functions ***********************************/
