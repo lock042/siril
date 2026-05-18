@@ -19,6 +19,7 @@ siril-1.5.0
 * Separation of GUI and processing code (!1025)
 * Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
 * Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
+* Adding TIFF support in Pixelmath (#1726)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit

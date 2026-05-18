@@ -37,6 +37,8 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/conversion.h"
+#include "algos/demosaicing.h"
 
 #include "tinyexpr.h"
 #include "pixel_math_runner.h"
@@ -519,10 +521,20 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 		return 1;
 	}
 
-	if (readfits(var, &var_fit[index], NULL, TRUE)) {
+	image_type imagetype;
+	char *realname = NULL;
+	if (stat_file(var, &imagetype, &realname)) {
+		siril_log_error(_("File not found or not supported: %s\n"), var);
 		*w = *h = *c = -1;
 		return 1;
 	}
+	int load_retval = any_to_fits(imagetype, realname, &var_fit[index], FALSE, TRUE);
+	free(realname);
+	if (load_retval) {
+		*w = *h = *c = -1;
+		return 1;
+	}
+	debayer_if_needed(imagetype, &var_fit[index], FALSE);
 	*w = var_fit[index].rx;
 	*h = var_fit[index].ry;
 	*c = var_fit[index].naxes[2];
