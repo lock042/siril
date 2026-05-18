@@ -65,7 +65,7 @@ static int rgradient_process_with_worker(void) {
 		return 1;
 
 	if (gfit->orig_bitpix == BYTE_IMG) {
-		siril_log_color_message(_("Error: this process cannot be applied to 8b images\n"), "red");
+		siril_log_error(_("Error: this process cannot be applied to 8b images\n"));
 		return 1;
 	}
 

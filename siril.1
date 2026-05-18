@@ -22,7 +22,7 @@ The application is divided into 2 binaries. The first one, siril, launches the p
 Prints the program name and version, then exits.
 
 .TP
-.B -i \fIconf_file\fR
+.B -i \fIconf_file\fR, --initfile=\fIconf_file\fR
 Starts \fBSiril\fP with the specified configuration file.
 
 .TP
@@ -42,7 +42,7 @@ Displays a brief usage summary.
 Starts siril in offline mode. No network functions will work in offline mode. After startup Siril may be put back into online mode using the built-in command \fBonline\fR.
 
 .TP
-.B -p
+.B -p, --pipe
 Starts \fBSiril\fP without the graphical user interface and uses named pipes to accept commands and print logs and status information. On POSIX systems, the named pipes are created in /tmp/siril_commands.in and /tmp/siril_commands.out.
 
 .TP
@@ -115,7 +115,7 @@ https://gitlab.com/free-astro/siril/-/issues
  Adrian Knagg-Baugh <aje dot baugh at gmail dot com>
 
 .SH COPYRIGHT
-Copyright \(co 2025 Free Software Foundation, Inc.
+Copyright \(co 2026 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br
 This is free software: you are free to change and redistribute it.

@@ -53,8 +53,7 @@ gpointer noise_worker(gpointer p) {
 	args->mean_noise = 0.0;
 
 	if (args->display_start_end) {
-		siril_log_color_message(_("Noise standard deviation: calculating...\n"),
-				"green");
+		siril_log_info(_("Noise standard deviation: calculating...\n"));
 		gettimeofday(&args->t_start, NULL);
 	}
 
@@ -88,7 +87,7 @@ gpointer noise_worker(gpointer p) {
 	}
 
 	if (retval) {
-		siril_log_message(_("Error: statistics computation failed.\n"));
+		siril_log_error(_("Error: statistics computation failed.\n"));
 		args->mean_noise = -1.0;
 	} else {
 		args->mean_noise = args->mean_noise / (double)args->fit->naxes[2];
@@ -128,7 +127,7 @@ void evaluate_noise_in_image() {
 // bgnoise_await() has to be called to free resources
 void bgnoise_async(fits *fit, gboolean display_values) {
 	if (thread) {
-		siril_debug_print("bgnoise request ignored, still running\n");
+		siril_log_debug("bgnoise request ignored, still running\n");
 		return;
 	}
 	struct noise_data *args = calloc(1, sizeof(struct noise_data));

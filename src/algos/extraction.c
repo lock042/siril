@@ -403,7 +403,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	imstats *statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
 	imstats *statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
 	if (!statg || !statb) {
-		siril_debug_print("Error calculating image statistics for Ha-OIII extraction.\n");
+		siril_log_debug("Error calculating image statistics for Ha-OIII extraction.\n");
 		if (statg) free_stats(statg);
 		if (statb) free_stats(statb);
 		clearfits(Ha);
@@ -618,7 +618,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	imstats *statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
 	imstats *statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
 	if (!statg || !statb) {
-		siril_debug_print("Error calculating image statistics for Ha-OIII extraction.\n");
+		siril_log_debug("Error calculating image statistics for Ha-OIII extraction.\n");
 		if (statg) free_stats(statg);
 		if (statb) free_stats(statb);
 		clearfits(Ha);
@@ -842,7 +842,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 #ifdef _OPENMP
 		omp_unset_lock(&args->lock);
 #endif
-		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
+		siril_log_debug("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return ret;
 }
@@ -1039,7 +1039,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 #ifdef _OPENMP
 		omp_unset_lock(&args->lock);
 #endif
-		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
+		siril_log_debug("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return ret;
 }
@@ -1071,7 +1071,7 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 	} else {
 		required = MB_per_input_image;
 		MB_per_output_image = MB_per_input_image;
-		siril_log_color_message("unknown extraction type\n", "red");
+		siril_log_error("unknown extraction type\n");
 	}
 
 	if (limit > 0) {
@@ -1091,8 +1091,7 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -1103,7 +1102,7 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 				limit = max_queue_size;
 		}
 #ifdef _OPENMP
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_input_image, limit, for_writer ? "images" : "threads");
 #else
 		/* we still want the check of limit = 0 above */

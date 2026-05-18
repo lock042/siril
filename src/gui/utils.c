@@ -272,7 +272,7 @@ static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
 	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
 	data->idle(data->user);
-	siril_debug_print("idle %p signaling end\n", data->idle);
+	siril_log_debug("idle %p signaling end\n", data->idle);
 	g_mutex_lock(&data->mutex);
 	data->idle_finished = TRUE;
 	g_cond_signal(&data->cond);
@@ -282,7 +282,7 @@ static gboolean wrapping_idle(gpointer arg) {
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	if (com.headless) {
-		siril_debug_print("execute_idle_and_wait_for_it called headless, this should not happen!\n");
+		siril_log_debug("execute_idle_and_wait_for_it called headless, this should not happen!\n");
 		return;
 	}
 
@@ -298,9 +298,9 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	g_mutex_init(&data->mutex);
 	g_cond_init(&data->cond);
 
-	siril_debug_print("queueing idle %p\n", idle);
+	siril_log_debug("queueing idle %p\n", idle);
 	gdk_threads_add_idle(wrapping_idle, data);
-	siril_debug_print("waiting for idle %p\n", idle);
+	siril_log_debug("waiting for idle %p\n", idle);
 
 	/* Wait for the idle to run.  Simple g_cond_wait() deadlocks when the
 	 * calling thread is the main thread but is not currently inside a main
@@ -330,7 +330,7 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	g_mutex_clear(&data->mutex);
 	g_cond_clear(&data->cond);
 	g_free(data);
-	siril_debug_print("idle %p wait is over\n", idle);
+	siril_log_debug("idle %p wait is over\n", idle);
 }
 
 int select_vport(int vport) {

@@ -140,8 +140,7 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -152,7 +151,7 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -247,7 +246,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			clearfits(fiximage);
 			return 1;
 		}
@@ -330,7 +329,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		double background = stat->median;

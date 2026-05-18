@@ -500,7 +500,7 @@ int fft_compute_core(struct fft_data *args, fits *fit) {
 		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) ||
 				(tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
 			retval = 1;
-			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+			siril_log_error(_("Images must have same dimensions.\n"));
 			goto end;
 		}
 		if (tmp->keywords.dft.ord[0] == 'C')
@@ -526,7 +526,7 @@ end:
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
-		siril_log_message(_("Siril FFT wisdom update failed...\n"));
+		siril_log_warning(_("Siril FFT wisdom update failed...\n"));
 	}
 
 	invalidate_stats_from_fit(fit);

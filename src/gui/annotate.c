@@ -133,7 +133,7 @@ static siril_cat_index get_cat_index_from_combo() {
 	else if (g_str_has_prefix(cat_char, "solsys")) {
 		cat = CAT_IMCCE;
 		if (!gfit->keywords.date_obs) {
-			siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
+			siril_log_error(_("This option only works on images that have observation date information\n"));
 			return CAT_AUTO;
 		}
 	} else {
@@ -291,7 +291,7 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	double ra, dec;
 	gchar *name = NULL;
 	if (collect_single_coords_and_name(&ra, &dec, &name) || !name) {
-		siril_log_color_message(_("Could not parse coordinates or name, aborting\n"), "red");
+		siril_log_error(_("Could not parse coordinates or name, aborting\n"));
 		return;
 	}
 	cat_item *item = calloc(1, sizeof(cat_item));

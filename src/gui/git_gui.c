@@ -365,7 +365,7 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 		g_free(contents);
 	} else {
 		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), tmpscriptpath);
-		siril_log_color_message(msg, "red");
+		siril_log_error(msg);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_free(msg);
 	}
@@ -500,7 +500,7 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 					} else {
 						gchar *msg = g_strdup_printf(_("Error loading script contents from %d revisions back: %s\n"),
 							revisions_back, scriptpath);
-						siril_log_color_message(msg, "red");
+						siril_log_error(msg);
 						siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 						g_free(msg);
 					}
