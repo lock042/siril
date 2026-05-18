@@ -55,5 +55,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
 	cfg->drizzle_pixfrac = 0.7;
 	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
+	cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
 	return MPP_OK;
 }

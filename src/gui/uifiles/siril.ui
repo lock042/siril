@@ -6930,6 +6930,38 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkLabel" id="label_mpp_avi_bayer">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">AVI Bayer pattern:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">7</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="combo_mpp_avi_bayer">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">AVI containers carry no Bayer marker. Auto leaves film_read_frame's existing mono-detection heuristic in charge. None forces mono interpretation. The four Bayer values mark the AVI as a raw mosaic — analysis debayers via OpenCV, and Stage C routes through the Bayer drizzle path (preserving CFA-position-aware sampling).</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">Auto</item>
+                                                            <item translatable="yes">None (mono)</item>
+                                                            <item translatable="yes">RGGB</item>
+                                                            <item translatable="yes">BGGR</item>
+                                                            <item translatable="yes">GBRG</item>
+                                                            <item translatable="yes">GRBG</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">7</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkCheckButton" id="check_mpp_dewarp">
                                                             <property name="label" translatable="yes">De-warp per-AP shifts</property>
                                                             <property name="visible">True</property>
@@ -6942,7 +6974,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">7</property>
+                                                            <property name="top-attach">8</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -6959,7 +6991,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">8</property>
+                                                            <property name="top-attach">9</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -6978,7 +7010,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">9</property>
+                                                            <property name="top-attach">10</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6994,7 +7026,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">9</property>
+                                                            <property name="top-attach">10</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7010,7 +7042,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">10</property>
+                                                            <property name="top-attach">11</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>

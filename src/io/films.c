@@ -368,6 +368,28 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 	fit->icc_profile = NULL;
 	color_manage(fit, FALSE);
 
+	/* Heuristic-detected mono in an RGB-encoded AVI: switch ffmpeg's
+	 * output format to gray8 for all subsequent reads. Without this the
+	 * decode pipeline keeps materialising an RGB24 buffer that we then
+	 * scan with a stride-3 picker to extract R only — 3× the memory
+	 * bandwidth for no information gain. SetOutputFormatV2 may
+	 * invalidate the current frame pointer, so do this last (we're
+	 * about to return; we won't dereference `frame` again). */
+	if (convert_rgb_to_gray && film->pixfmt != pixfmt_gray) {
+		int pixfmts[2];
+		pixfmts[0] = pixfmt_gray;
+		pixfmts[1] = -1;
+		if (!FFMS_SetOutputFormatV2(film->videosource, pixfmts,
+		                            film->width, film->height,
+		                            FFMS_RESIZER_BICUBIC, &film->errinfo)) {
+			film->pixfmt = pixfmt_gray;
+		} else {
+			fprintf(stderr, "FILM: SetOutputFormatV2(gray8) failed (%s); "
+			                "continuing with RGB-then-extract path.\n",
+			        film->errmsg);
+		}
+	}
+
 	return FILM_SUCCESS;
 }
 

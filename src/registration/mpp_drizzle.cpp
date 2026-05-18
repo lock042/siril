@@ -54,9 +54,13 @@ extern "C" {
 
 /* read_full_frame is in mpp.cpp's mpp:: namespace (moved out of the
  * inner anonymous namespace in slice 5b.2). Forward-declared here so we
- * can read frames without exposing it through a public header. */
+ * can read frames without exposing it through a public header. The
+ * trailing avi_pattern arg (default MPP_AVI_BAYER_AUTO) lets callers
+ * trigger an OpenCV debayer on AVI Bayer mosaics. avi_bayer_to_cfa is
+ * declared here too for the AVI Bayer-drizzle wrapper below. */
 namespace mpp {
-extern cv::Mat read_full_frame(sequence *seq, int idx);
+extern cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern);
+extern bool avi_bayer_to_cfa(int avi_pattern, int rows, unsigned char cfa[4]);
 }
 
 /* === Drizzle headers LAST (they redefine `private`) === */
@@ -730,8 +734,8 @@ extern "C" mpp_status_t mpp_stack_apply_stsci(sequence *seq,
 	std::vector<int> included(run->included, run->included + N);
 	std::vector<double> brightness(run->frame_brightness,
 	                                run->frame_brightness + N);
-	auto provider = [seq](int i) -> cv::Mat {
-		return mpp::read_full_frame(seq, i);
+	auto provider = [seq, cfg](int i) -> cv::Mat {
+		return mpp::read_full_frame(seq, i, cfg->avi_bayer_pattern);
 	};
 	return mpp::stack_apply_stsci_streamed(provider, N, included, brightness,
 	                                       run, cfg, out);
@@ -784,15 +788,26 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
                                               fits *out) {
 	if (!seq || !cfg || !run || !run->included || !run->frame_brightness)
 		return MPP_EINVAL;
-	if (seq->type != SEQ_SER || !seq->ser_file) {
-		siril_log_error(_("Bayer drizzle: requires a SER sequence "
-		                          "(other formats don't preserve raw Bayer pattern data).\n"));
-		return MPP_EINVAL;
-	}
+
 	unsigned char cfa[4];
-	if (!bayer_cfa_from_ser(seq, (unsigned int) seq->ry, cfa)) {
-		siril_log_error(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
-		                          "GBRG / BGGR — cannot derive CFA pattern.\n"));
+	if (seq->type == SEQ_SER && seq->ser_file) {
+		if (!bayer_cfa_from_ser(seq, (unsigned int) seq->ry, cfa)) {
+			siril_log_error(_("Bayer drizzle: SER ColorID is not RGGB / GRBG / "
+			                          "GBRG / BGGR — cannot derive CFA pattern.\n"));
+			return MPP_EINVAL;
+		}
+	} else if (seq->type == SEQ_AVI) {
+		/* AVI Bayer: pattern comes from the MPP-tab combo (no container-
+		 * level marker exists). film_read_frame's existing Y-flip means
+		 * the user's top-down pick must be adjusted to bottom-up here. */
+		if (!mpp::avi_bayer_to_cfa(cfg->avi_bayer_pattern,
+		                            (int) seq->ry, cfa)) {
+			siril_log_error(_("Bayer drizzle: AVI sequence has no Bayer pattern set "
+			                          "(MPP tab → \"AVI Bayer pattern\").\n"));
+			return MPP_EINVAL;
+		}
+	} else {
+		siril_log_error(_("Bayer drizzle: requires a SER or AVI sequence.\n"));
 		return MPP_EINVAL;
 	}
 
@@ -801,33 +816,49 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	std::vector<double> brightness(run->frame_brightness,
 	                                run->frame_brightness + N);
 
-	/* ser_read_frame's `open_debayer` parameter is a latent NOP for SERs
-	 * already opened with debayer-on-open: the actual debayer call inside
-	 * ser_read_frame dispatches on ser_file->debayer_type_ser (set at SER
-	 * open time from com.pref.debayer.open_debayer), not on the parameter.
-	 * To actually get raw mosaic bytes back we have to flip that field to
-	 * SER_MONO for the duration of the provider's reads and restore on
-	 * the way out. Stage A/B already ran upstream on debayered frames;
-	 * nothing else is reading from this SER concurrently because Stage C
-	 * is sequential by construction. */
-	const ser_color saved_debayer_type = seq->ser_file->debayer_type_ser;
-	seq->ser_file->debayer_type_ser = SER_MONO;
+	/* For SER, ser_read_frame's `open_debayer` parameter is a latent
+	 * NOP for SERs already opened with debayer-on-open: the actual
+	 * debayer call inside ser_read_frame dispatches on
+	 * ser_file->debayer_type_ser (set at SER open time from
+	 * com.pref.debayer.open_debayer), not on the parameter. To
+	 * actually get raw mosaic bytes back we have to flip that field
+	 * to SER_MONO for the duration of the provider's reads and
+	 * restore on the way out. Stage A/B already ran upstream on
+	 * debayered frames; nothing else is reading from this SER
+	 * concurrently because Stage C is sequential by construction.
+	 * AVI doesn't need this dance — film_read_frame already returns
+	 * a 1-layer mosaic, so we just call read_full_frame with no
+	 * pattern hint (avi_pattern=AUTO suppresses the cv::cvtColor
+	 * debayer step that the bicubic path uses). */
+	ser_color saved_debayer_type = SER_MONO;
+	const bool is_ser = (seq->type == SEQ_SER);
+	if (is_ser) {
+		saved_debayer_type = seq->ser_file->debayer_type_ser;
+		seq->ser_file->debayer_type_ser = SER_MONO;
+	}
 
-	auto provider = [seq](int i) -> cv::Mat {
-		fits f{};
-		if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
-		                   /*open_debayer=*/FALSE)) {
+	auto provider = [seq, is_ser](int i) -> cv::Mat {
+		if (is_ser) {
+			fits f{};
+			if (ser_read_frame(seq->ser_file, i, &f, /*force_float=*/FALSE,
+			                   /*open_debayer=*/FALSE)) {
+				clearfits(&f);
+				return cv::Mat();
+			}
+			cv::Mat m(f.ry, f.rx, CV_16U, f.data);
+			cv::Mat owned = m.clone();   /* own the data before clearfits frees f */
 			clearfits(&f);
-			return cv::Mat();
+			return owned;
 		}
-		cv::Mat m(f.ry, f.rx, CV_16U, f.data);
-		cv::Mat owned = m.clone();   /* own the data before clearfits frees f */
-		clearfits(&f);
-		return owned;
+		/* AVI: ask read_full_frame for the raw 1-layer mosaic (avi_pattern
+		 * AUTO → no cv::cvtColor debayer). */
+		return mpp::read_full_frame(seq, i, MPP_AVI_BAYER_AUTO);
 	};
 	const mpp_status_t rc = mpp::stack_apply_bayer_streamed(
 	    provider, N, included, brightness, run, cfg, cfa, /*cfadim=*/2, out);
 
-	seq->ser_file->debayer_type_ser = saved_debayer_type;
+	if (is_ser) {
+		seq->ser_file->debayer_type_ser = saved_debayer_type;
+	}
 	return rc;
 }

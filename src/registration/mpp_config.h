@@ -77,6 +77,19 @@ struct mpp_config {
 	int drizzle_mode;          /* enum mpp_drizzle_mode; default MPP_DRIZZLE_OFF */
 	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — drizzle-only */
 	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_TURBO */
+
+	/* AVI Bayer-pattern hint. AVI / film containers carry no Bayer
+	 * marker, so when an OSC capture is saved to AVI Siril has no way
+	 * to know the mosaic layout — the heuristic in film_read_frame
+	 * just sees R==G==B (the raw mosaic value broadcast to three
+	 * channels) and classifies the frame as mono, dropping all colour
+	 * information. The user must tell us. Default AUTO leaves the
+	 * existing film_read_frame heuristic in charge (current behaviour);
+	 * MONO is an explicit "yes it is mono, don't probe"; the four
+	 * Bayer values route analysis through cv::cvtColor BayerXX2BGR
+	 * and Stage C through the dobox Bayer path. Only consulted for
+	 * SEQ_AVI sequences; ignored for SER / FITS. */
+	int avi_bayer_pattern;     /* enum mpp_avi_bayer; default MPP_AVI_BAYER_AUTO */
 };
 
 enum mpp_drizzle_mode {
@@ -86,6 +99,18 @@ enum mpp_drizzle_mode {
 	 * upscale better. Numbering preserved so saved configs keep meaning. */
 	MPP_DRIZZLE_STSCI   = 2,  /* dobox with debayered / mono / RGB input */
 	MPP_DRIZZLE_BAYER   = 3,  /* dobox with raw Bayer input → 3-channel output */
+};
+
+/* AVI Bayer-pattern hint values. Ordering matches the GUI combo's item
+ * indices (see siril.ui's combo_mpp_avi_bayer); persisted to the sidecar
+ * via cfg->avi_bayer_pattern. */
+enum mpp_avi_bayer {
+	MPP_AVI_BAYER_AUTO = 0,    /* default — film_read_frame heuristic */
+	MPP_AVI_BAYER_NONE = 1,    /* explicit mono — skip any debayer */
+	MPP_AVI_BAYER_RGGB = 2,
+	MPP_AVI_BAYER_BGGR = 3,
+	MPP_AVI_BAYER_GBRG = 4,
+	MPP_AVI_BAYER_GRBG = 5,
 };
 
 enum mpp_drizzle_kernel {

@@ -35,6 +35,7 @@ extern "C" {
 #include "core/gui_iface.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "algos/demosaicing.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/ser.h"
@@ -70,19 +71,95 @@ struct FitsBuf {
 	~FitsBuf() { clearfits(&f); }
 };
 
+}  /* close inner anonymous namespace */
+
+/* AVI Bayer pattern → OpenCV cvtColor code, with Y-flip awareness so the
+ * pattern the user specifies (top-down, as it appears in the AVI raster)
+ * stays correct after film_read_frame's fits_flip_top_to_bottom. Returns
+ * -1 when no debayer should happen (AUTO/NONE/non-Bayer).
+ *
+ * OpenCV's COLOR_BayerXXXX2RGB constants use 4-letter pattern aliases
+ * (RGGB/BGGR/GBRG/GRBG); the order describes the 2×2 tile at the top-
+ * left of the input Mat. We feed in the Mat we got back from the
+ * pipeline (bottom-up after the Y-flip), so we ask Siril's helper to
+ * adjust the user's top-down pick. */
+int avi_bayer_to_cv_code(int avi_pattern, int rows) {
+	if (avi_pattern == MPP_AVI_BAYER_AUTO || avi_pattern == MPP_AVI_BAYER_NONE)
+		return -1;
+	sensor_pattern pat;
+	switch (avi_pattern) {
+		case MPP_AVI_BAYER_RGGB: pat = BAYER_FILTER_RGGB; break;
+		case MPP_AVI_BAYER_BGGR: pat = BAYER_FILTER_BGGR; break;
+		case MPP_AVI_BAYER_GBRG: pat = BAYER_FILTER_GBRG; break;
+		case MPP_AVI_BAYER_GRBG: pat = BAYER_FILTER_GRBG; break;
+		default: return -1;
+	}
+	adjust_Bayer_pattern_orientation(&pat, (unsigned int) rows, TRUE);
+	switch (pat) {
+		case BAYER_FILTER_RGGB: return cv::COLOR_BayerRGGB2RGB;
+		case BAYER_FILTER_BGGR: return cv::COLOR_BayerBGGR2RGB;
+		case BAYER_FILTER_GBRG: return cv::COLOR_BayerGBRG2RGB;
+		case BAYER_FILTER_GRBG: return cv::COLOR_BayerGRBG2RGB;
+		default: return -1;
+	}
+}
+
+/* Map an mpp_avi_bayer value to the Y-flip-aware cfa[4] used by the
+ * Bayer-drizzle dobox path. Output channels are R=0, G=1, B=2. Returns
+ * false when the pattern is AUTO / NONE / out-of-range. */
+bool avi_bayer_to_cfa(int avi_pattern, int rows, unsigned char cfa[4]) {
+	if (avi_pattern == MPP_AVI_BAYER_AUTO || avi_pattern == MPP_AVI_BAYER_NONE)
+		return false;
+	sensor_pattern pat;
+	switch (avi_pattern) {
+		case MPP_AVI_BAYER_RGGB: pat = BAYER_FILTER_RGGB; break;
+		case MPP_AVI_BAYER_BGGR: pat = BAYER_FILTER_BGGR; break;
+		case MPP_AVI_BAYER_GBRG: pat = BAYER_FILTER_GBRG; break;
+		case MPP_AVI_BAYER_GRBG: pat = BAYER_FILTER_GRBG; break;
+		default: return false;
+	}
+	adjust_Bayer_pattern_orientation(&pat, (unsigned int) rows, TRUE);
+	const int R = 0, G = 1, B = 2;
+	switch (pat) {
+		case BAYER_FILTER_RGGB: cfa[0]=R; cfa[1]=G; cfa[2]=G; cfa[3]=B; return true;
+		case BAYER_FILTER_GRBG: cfa[0]=G; cfa[1]=R; cfa[2]=B; cfa[3]=G; return true;
+		case BAYER_FILTER_GBRG: cfa[0]=G; cfa[1]=B; cfa[2]=R; cfa[3]=G; return true;
+		case BAYER_FILTER_BGGR: cfa[0]=B; cfa[1]=G; cfa[2]=G; cfa[3]=R; return true;
+		default: return false;
+	}
+}
+
+namespace {
+
 /* Helper: read a frame and return a mono analysis Mat (cloned, owns its
  * memory after the fits is cleared). For RGB input, mirrors PSS's
  * frames_mono default (`frames_mono_channel = 'panchromatic'` →
  * `color_index = 3` → `cv::cvtColor(RGB, GRAY)`). Mono input passes
- * through. */
-cv::Mat read_analysis_frame(sequence *seq, int idx) {
+ * through.
+ *
+ * For SEQ_AVI sequences with `avi_pattern` set to a Bayer value, the
+ * 1-layer mosaic is OpenCV-debayered before luminance extraction so
+ * Stage A sees a properly demosaiced image rather than a CFA-modulated
+ * brightness map. */
+cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
 		return cv::Mat();
 	const int n = fits_layer_count(&buf.f);
 	if (n == 1) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
-		return view.empty() ? cv::Mat() : view.clone();
+		if (view.empty()) return cv::Mat();
+		if (seq && seq->type == SEQ_AVI) {
+			const int code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
+			if (code >= 0) {
+				cv::Mat rgb;
+				cv::cvtColor(view, rgb, code);
+				cv::Mat gray;
+				cv::cvtColor(rgb, gray, cv::COLOR_RGB2GRAY);
+				return gray;
+			}
+		}
+		return view.clone();
 	}
 	/* RGB → luminance. Siril's pdata[0/1/2] are R/G/B. */
 	std::vector<cv::Mat> planes;
@@ -104,8 +181,12 @@ cv::Mat read_analysis_frame(sequence *seq, int idx) {
 
 /* Read the frame as a multi-channel cv::Mat preserving all layers (1 or 3).
  * Used by mpp_stack_apply and by mpp_stack_apply_stsci so colour frames
- * carry through to the stacked output. */
-cv::Mat read_full_frame(sequence *seq, int idx) {
+ * carry through to the stacked output.
+ *
+ * For SEQ_AVI with a Bayer pattern set, the mono mosaic is debayered to
+ * 3-channel RGB before return so the non-drizzle stack paths see proper
+ * colour input. The Bayer-drizzle path bypasses this helper. */
+cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
 		return cv::Mat();
@@ -113,6 +194,14 @@ cv::Mat read_full_frame(sequence *seq, int idx) {
 	if (n == 1) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
+		if (seq && seq->type == SEQ_AVI) {
+			const int code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
+			if (code >= 0) {
+				cv::Mat rgb;
+				cv::cvtColor(view, rgb, code);
+				return rgb;
+			}
+		}
 		return view.clone();
 	}
 	std::vector<cv::Mat> planes;
@@ -439,7 +528,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			g_atomic_int_set(&cancelled, 1);
 			continue;
 		}
-		const cv::Mat mono = mpp::read_analysis_frame(seq, i);
+		const cv::Mat mono = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern);
 		if (mono.empty()) {
 			g_atomic_int_set(&read_failed, 1);
 			continue;
@@ -462,11 +551,11 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * frame fresh from disk. Pass 2's provider also blurs because the
 	 * align path needs blurred input. */
 	auto blurred_provider = [seq, cfg](int i) -> cv::Mat {
-		const cv::Mat m = mpp::read_analysis_frame(seq, i);
+		const cv::Mat m = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern);
 		return m.empty() ? cv::Mat() : mpp::blur_mono_for_align(m, *cfg);
 	};
-	auto raw_provider = [seq](int i) -> cv::Mat {
-		return mpp::read_analysis_frame(seq, i);
+	auto raw_provider = [seq, cfg](int i) -> cv::Mat {
+		return mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern);
 	};
 
 	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
@@ -612,7 +701,7 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 
 	gui_iface.set_progress(PROGRESS_RESET, _("Register: correlating per-AP boxes"));
 	auto provider = [seq, cfg](int f) -> cv::Mat {
-		cv::Mat mono = mpp::read_analysis_frame(seq, f);
+		cv::Mat mono = mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern);
 		if (mono.empty()) return cv::Mat();
 		return mpp::blur_mono_for_align(mono, *cfg);
 	};
@@ -709,13 +798,23 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 * cfg->drizzle_mode is honoured if explicitly set (sidecar /
 	 * scripts); the default MPP_DRIZZLE_OFF triggers the kernel-driven
 	 * routing here. */
-	const double scale = cfg->drizzle_scale;
 	int mode = cfg->drizzle_mode;
+	/* AVI Bayer routing: an AVI marked as a raw mosaic (cfg->avi_bayer_pattern
+	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
+	 * classifier can't see this (sequence-only signature), so override
+	 * the dispatch here for the drizzle-kernel case. The Upscale-kernel
+	 * path still falls through to the cv::resize bicubic branch, where
+	 * read_full_frame's OpenCV debayer delivers 3-channel RGB. */
+	const bool avi_cfa = (seq->type == SEQ_AVI
+	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
 	if (mode == MPP_DRIZZLE_OFF) {
 		if (cfg->drizzle_kernel == MPP_KERNEL_UPSCALE) {
 			/* Stay on MPP_DRIZZLE_OFF — falls through to the cv::resize
 			 * bicubic path below. At scale=1 cv::resize is skipped
 			 * entirely (K=1) and frames are stacked at native res. */
+		} else if (avi_cfa) {
+			mode = MPP_DRIZZLE_BAYER;
 		} else {
 			const mpp_input_type t = mpp_classify_sequence_input(seq);
 			mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
@@ -726,9 +825,13 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 * in-flight frame at a time, plus the drizzle output canvases
 	 * (small relative to per-frame). */
 	{
+		/* AVI Bayer mosaics decode to 3-channel via cv::cvtColor in the
+		 * bicubic path; Bayer drizzle reads raw 1-channel mosaic; SER/FITS
+		 * pass through at their declared layer count. */
 		const int channels = (mode == MPP_DRIZZLE_BAYER)
 		                   ? 1
-		                   : (run->num_layers > 0 ? run->num_layers : 1);
+		                   : (avi_cfa ? 3
+		                              : (run->num_layers > 0 ? run->num_layers : 1));
 		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1};
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, run->frame_cols, run->frame_rows, channels,
@@ -779,10 +882,15 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	                             run->intersection[2], run->intersection[3]);
 
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack: drizzling frames"));
-	auto provider = [seq](int i) -> cv::Mat {
-		return mpp::read_full_frame(seq, i);
+	auto provider = [seq, cfg](int i) -> cv::Mat {
+		return mpp::read_full_frame(seq, i, cfg->avi_bayer_pattern);
 	};
-	const int num_layers = run->num_layers > 0 ? run->num_layers : 1;
+	/* read_full_frame's Bayer path returns 3-channel RGB for AVI mosaics,
+	 * even though run->num_layers (captured from seq->nb_layers at Stage A
+	 * time) is 1. The accumulator type depends on num_layers, so override
+	 * to 3 for the AVI Bayer case. */
+	int num_layers = run->num_layers > 0 ? run->num_layers : 1;
+	if (avi_cfa) num_layers = 3;
 	const auto loop = mpp::stack_apply_shifts_streamed(
 	    provider, run->num_frames, num_layers, *run->aps, apq,
 	    run->shifts, offsets, frame_brightness, sorted_idx,
@@ -913,7 +1021,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 				g_atomic_int_set(&cancelled, 1);
 				continue;
 			}
-			cv::Mat mono = mpp::read_analysis_frame(seq, i);
+			cv::Mat mono = mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern);
 			if (mono.empty()) {
 				g_atomic_int_set(&read_failed, 1);
 				continue;
@@ -938,7 +1046,9 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	                                      *run->cfg,
 	                                      stage_progress_cb, &rp)
 	    : mpp::ap_compute_frame_qualities_streamed(
-	          [seq](int i) { return mpp::read_analysis_frame(seq, i); },
+	          [seq, run](int i) {
+	              return mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern);
+	          },
 	          N, frame_brightness, *run->aps, offsets,
 	          run->frame_rows, run->frame_cols, *run->cfg,
 	          stage_progress_cb, &rp);

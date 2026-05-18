@@ -14659,6 +14659,19 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && !strcmp(arg, "-no-normalize")) {
 		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && g_str_has_prefix(arg, "-avi-bayer=")) {
+		/* AVI Bayer-pattern hint (see mpp_config.h enum mpp_avi_bayer).
+		 * Only consulted for SEQ_AVI sequences; ignored for SER/FITS. */
+		const char *v = arg + 11;
+		if      (!g_ascii_strcasecmp(v, "auto")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
+		else if (!g_ascii_strcasecmp(v, "none")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_NONE;
+		else if (!g_ascii_strcasecmp(v, "rggb")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_RGGB;
+		else if (!g_ascii_strcasecmp(v, "bggr")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_BGGR;
+		else if (!g_ascii_strcasecmp(v, "gbrg")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_GBRG;
+		else if (!g_ascii_strcasecmp(v, "grbg")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_GRBG;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
 
 	return MPP_FLAG_NOT_FOR_MODE;
 }

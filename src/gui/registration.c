@@ -136,6 +136,8 @@ static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_patch_scale = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
 static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL;
+static GtkComboBox *combo_mpp_avi_bayer = NULL;
+static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
@@ -269,6 +271,8 @@ static void registration_init_statics() {
 		spin_mpp_min_structure   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_structure"));
 		check_mpp_dewarp         = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
 		check_mpp_normalize      = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
+		combo_mpp_avi_bayer      = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
+		label_mpp_avi_bayer      = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -877,8 +881,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface, but we don't want to reset if user has expanded it
 	gtk_widget_set_sensitive(GTK_WIDGET(autoreg_expander), seqloaded);
 	gtk_expander_set_expanded(autoreg_expander, seqloaded);
-	if (!seqloaded) // no need to go further, hide all and return
-		return;
+	if (!seqloaded) {
+		/* Hide MPP-AVI picker so it doesn't linger from a previous sequence. */
+		if (combo_mpp_avi_bayer && label_mpp_avi_bayer) {
+			gtk_widget_set_visible(GTK_WIDGET(combo_mpp_avi_bayer), FALSE);
+			gtk_widget_set_visible(label_mpp_avi_bayer, FALSE);
+		}
+		return; // no need to go further, hide all and return
+	}
 
 	if (!dont_change_reg_radio) {
 		if (com.seq.selnum < com.seq.number) {
@@ -979,6 +989,16 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	} else if (regindex == REG_MPP) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_MPP);
+	}
+
+	/* AVI Bayer-pattern picker: only meaningful for SEQ_AVI sequences
+	 * (AVI containers carry no Bayer marker — see mpp_config.h). For
+	 * SER / FITS / FITSEQ the pattern is read from the file header
+	 * (SER ColorID / BAYERPAT card), so the combo would be confusing. */
+	if (combo_mpp_avi_bayer && label_mpp_avi_bayer) {
+		const gboolean is_avi = (com.seq.type == SEQ_AVI);
+		gtk_widget_set_visible(GTK_WIDGET(combo_mpp_avi_bayer), is_avi);
+		gtk_widget_set_visible(label_mpp_avi_bayer, is_avi);
 	}
 
 	// if not debayered, check that the bayer pattern is known
@@ -1174,6 +1194,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->alignment_points_structure_threshold  = gtk_spin_button_get_value(spin_mpp_min_structure);
 		cfg->alignment_points_de_warp              = gtk_toggle_button_get_active(check_mpp_dewarp);
 		cfg->frames_normalization                  = gtk_toggle_button_get_active(check_mpp_normalize);
+		{
+			const int ab = combo_mpp_avi_bayer ? gtk_combo_box_get_active(combo_mpp_avi_bayer) : 0;
+			cfg->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
+			                       ? ab : MPP_AVI_BAYER_AUTO;
+		}
 		regargs->mpp_cfg = cfg;
 	}
 	if (regindex == REG_COMET) {
