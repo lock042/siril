@@ -2,6 +2,7 @@ siril-1.5.0
 --/--/--
 
 **Improvements**
+* Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
 * Added splashscreen at startup (!975)
 * Added caching of online GAIA database (!985)
@@ -27,7 +28,7 @@ siril-1.4.4
 --/--/--
 
 **Fixes**
-* Fixed seq file corruption (#1204)
+* Fixed seq file corruption (#1204, #1934)
 
 siril-1.4.3
 05/07/26
