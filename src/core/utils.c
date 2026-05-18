@@ -491,6 +491,20 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
 		(magic[0] == 0xFF && magic[1] == 0x0A)))
 		return TYPEJXL;
+#ifdef HAVE_FFMS2
+	// Film containers — all routed to TYPEAVI since films.c handles every flavor via FFMS2.
+	// The image-bearing ISOBMFF variants (HEIF/AVIF) are matched above, so any remaining
+	// "ftyp" at offset 4 is a video MP4/MOV/M4V.
+	if (bytes_read >= 12 && memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "AVI ", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 8 && memcmp(magic + 4, "ftyp", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x1A && magic[1] == 0x45 && magic[2] == 0xDF && magic[3] == 0xA3)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x00 && magic[1] == 0x00 && magic[2] == 0x01 &&
+			(magic[3] == 0xBA || magic[3] == 0xB3))
+		return TYPEAVI;
+#endif
 	return TYPEUNDEF;
 }
 
@@ -532,12 +546,17 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
 		fclose(file);
 
-		*type = determine_image_type_from_magic(magic, bytes_read);
-		if (*type != TYPEUNDEF) {
-			if (realname) *realname = strdup(filename);
-			return 0;
-		}
-		return 1;
+		// Magic wins when it gives a definite answer (handles renamed files),
+		// but a TYPEUNDEF result must not clobber a valid extension-derived
+		// type — otherwise any container we don't sniff (e.g. an old MOV with
+		// no ftyp atom at the head) would be rejected despite a known extension.
+		image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+		if (magic_type != TYPEUNDEF)
+			*type = magic_type;
+		else if (*type == TYPEUNDEF)
+			return 1;
+		if (realname) *realname = strdup(filename);
+		return 0;
 	}
 
 	// Case 2: No extension - test candidates
