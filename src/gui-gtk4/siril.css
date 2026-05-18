@@ -18,12 +18,12 @@ box {
     border-style: none;
     border-radius: 0;
     margin: 0;
-    padding: 0;
+    padding: 1px;
 }
 
 grid {
-    margin: 2px;
-    padding: 0;
+    margin: 0;
+    padding: 1px;
     border-width: 0;
     border-style: none;
     border-radius: 0;
@@ -34,7 +34,7 @@ frame {
     border-color: #303030;
     border-radius: 0;
     border-style: solid;
-    padding: 4px;
+    padding: 1px;
 }
 
 .toolbar {
