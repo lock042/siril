@@ -301,16 +301,20 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 	if (convert_rgb_to_gray)
 		film->nb_layers = 1;
 
-	/* do something with frame */
-	WORD *ptr;
+	/* do something with frame.
+	 * Use clearfits() rather than memset() to free old buffers and reset the
+	 * struct: a plain memset(fit, 0, sizeof(fits)) would also wipe the GRWLock
+	 * embedded at the tail of fits, which must never be reinitialised by hand
+	 * (see ffit.rwlock comment in siril.h). When fit == gfit, that wipe leaves
+	 * the lock in an undefined state and deadlocks the next writer — observed
+	 * when advancing frames in the shift viewer after a film was registered. */
+	clearfits(fit);
 
-	if ((ptr = realloc(fit->data, nb_pixels * film->nb_layers * sizeof(WORD)))
-			== NULL) {
+	WORD *ptr = malloc(nb_pixels * film->nb_layers * sizeof(WORD));
+	if (!ptr) {
 		PRINT_ALLOC_ERR;
-		free(fit->data);
 		return -1;
 	}
-	memset(fit, 0, sizeof(fits));
 	fit->data = ptr;
 	fit->naxes[0] = fit->rx = film->width;
 	fit->naxes[1] = fit->ry = film->height;
