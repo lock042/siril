@@ -972,10 +972,20 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				 * (o_stack) is used to keep the weight order, stack being sorted, we can
 				 * check for min and max values to weight the kept pixels */
 				WORD pmin = 65535, pmax = 0;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					WORD pixel = ((WORD*)data->stack)[frame];
-					if (pmin > pixel) pmin = pixel;
-					if (pmax < pixel) pmax = pixel;
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					WORD *kstack = (WORD*)data->stack;
+#pragma omp simd reduction(min:pmin) reduction(max:pmax)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						WORD pixel = kstack[frame];
+						if (pmin > pixel) pmin = pixel;
+						if (pmax < pixel) pmax = pixel;
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						WORD pixel = ((WORD*)data->stack)[frame];
+						if (pmin > pixel) pmin = pixel;
+						if (pmax < pixel) pmax = pixel;
+					}
 				}
 
 				double sum = 0.0;
@@ -1010,8 +1020,16 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((WORD *)data->stack)[frame];
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					WORD *kstack = (WORD*)data->stack;
+#pragma omp simd reduction(+:sum)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += kstack[frame];
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += ((WORD *)data->stack)[frame];
+					}
 				}
 				mean = sum / (double)kept_pixels;
 			}
@@ -1024,6 +1042,10 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 			if (weighting || masking || args->drizzle) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = FLT_MAX, pmax = -FLT_MAX; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				/* Not vectorised: clang refuses to reorder float min/max without
+				 * -ffast-math (IEEE 754 NaN/signed-zero ordering), and the omp
+				 * simd reduction(min:)/reduction(max:) clauses don't relax that
+				 * for floats — only for integer types (see WORD twin above). */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
 					if (pmin > ((float*)data->stack)[frame]) pmin = ((float*)data->stack)[frame];
 					if (pmax < ((float*)data->stack)[frame]) pmax = ((float*)data->stack)[frame];
@@ -1059,8 +1081,16 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				} else mean = sum / norm;
 			} else {
 				double sum = 0.0;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((float*)data->stack)[frame];
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					float *kstack = (float*)data->stack;
+#pragma omp simd reduction(+:sum)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += (double)kstack[frame];
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += ((float*)data->stack)[frame];
+					}
 				}
 				mean = sum / (double)kept_pixels;
 			}

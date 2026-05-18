@@ -2,6 +2,7 @@ siril-1.5.0
 --/--/--
 
 **Improvements**
+* Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
 * Added splashscreen at startup (!975)
 * Added caching of online GAIA database (!985)
@@ -17,9 +18,16 @@ siril-1.5.0
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
 * Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
+* Adding TIFF support in Pixelmath (#1726)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+
+siril-1.4.4
+--/--/--
+
+**Fixes**
+* Fixed seq file corruption (#1204, #1934)
 
 siril-1.4.3
 05/07/26
