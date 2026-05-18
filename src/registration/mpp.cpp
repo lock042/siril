@@ -563,7 +563,14 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
 	/* Pass 2 — global align. CACHED uses cached blurred (no I/O, no blur).
 	 * HALF_CACHED blurs cached raw on demand (no I/O, ~N blurs).
-	 * STREAMING re-reads from disk and blurs (N reads + N blurs). */
+	 * STREAMING re-reads from disk and blurs (N reads + N blurs). The
+	 * align helper splits the backward + forward sweeps into two OpenMP
+	 * sections when the provider is reentrant — cached vectors and
+	 * SER / reentrant-FITS reads qualify; SEQ_AVI doesn't. */
+	const bool streaming_provider_safe =
+	    (seq->type == SEQ_SER
+	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
+	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
 	const auto align =
 	    cache_blurred
 	      ? mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
@@ -573,9 +580,11 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	            [&analysis_frames, cfg](int i) {
 	                return mpp::blur_mono_for_align(analysis_frames[i], *cfg);
 	            },
-	            N, q_rank, *cfg, stage_progress_cb, &gp_global)
+	            N, q_rank, *cfg, stage_progress_cb, &gp_global,
+	            /*provider_is_thread_safe=*/true)
 	      : mpp::align_global_from_provider(
-	            blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global);
+	            blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global,
+	            streaming_provider_safe);
 	/* Drop blurred_frames now so the remaining passes have an extra
 	 * N·rx·ry·2 bytes of headroom (CACHED mode only; the others held
 	 * no blur cache to begin with). */

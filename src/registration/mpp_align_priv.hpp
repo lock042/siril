@@ -109,13 +109,21 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames_mo
 /* Streamed overload — identical algorithm, but the provider supplies
  * one frame at a time so the caller controls how the blurred frames are
  * sourced (cached vector, lazy blur from raw cache, or fresh disk read).
- * The thin overload above is implemented in terms of this one. */
+ * The thin overload above is implemented in terms of this one.
+ *
+ * provider_is_thread_safe: when true, the backward and forward sweeps
+ * around the best frame run concurrently (two OpenMP sections). Up to
+ * ~2x speedup on this stage when `best` lands near the middle of the
+ * sequence. Set false (default) for sources whose providers aren't
+ * reentrant — notably SEQ_AVI's film_read_frame. Cached-vector providers
+ * are always safe. */
 AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              int num_frames,
                                              const std::vector<double> &quality,
                                              const mpp_config_t &cfg,
                                              progress_cb_fn progress = nullptr,
-                                             void *progress_user = nullptr);
+                                             void *progress_user = nullptr,
+                                             bool provider_is_thread_safe = false);
 
 /* PSS rank_frames.find_best_frames: pick the `number_frames` indices that
  * maximise the summed quality within a sliding window of size `region_size`. */

@@ -345,11 +345,12 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              const std::vector<double> &quality,
                                              const mpp_config_t &cfg,
                                              progress_cb_fn progress,
-                                             void *progress_user) {
+                                             void *progress_user,
+                                             bool provider_is_thread_safe) {
 	AlignGlobalResult out;
 	if (N <= 0 || (int) quality.size() != N)
 		return out;
-	int done = 0;
+	gint done = 0;
 	const int total = N;   /* every frame is visited once across the two passes */
 
 	/* Best frame is argmax of quality. */
@@ -376,64 +377,89 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 
 	out.shifts.assign(N, cv::Vec2i(0, 0));
 
-	/* Backward pass: max_idx, max_idx-1, ..., 0. */
-	{
+	/* Backward and forward sweeps are independent: they read disjoint
+	 * frame indices, share only const inputs (ref_window*, py/px_lo/hi,
+	 * cfg) and write to disjoint slices of out.shifts. They each carry
+	 * their own dy_cum/dx_cum chain. With a thread-safe provider we run
+	 * them as two OpenMP sections for ~2x speedup on this stage when
+	 * `best` lands mid-sequence. SEQ_AVI providers don't get the
+	 * upgrade (ffms2 isn't reentrant); the if-clause collapses the
+	 * parallel region to a single thread when provider_is_thread_safe
+	 * is false. Cancellation and progress go through atomics so neither
+	 * thread blocks the other or trips a memory race. */
+	gint cancelled = 0;
+	auto run_backward_sweep = [&] {
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
+			if (g_atomic_int_get(&cancelled)) break;
 			if (!processing_should_continue()) {
-				out.best_frame_idx = -1;   /* cancellation sentinel */
-				return out;
+				g_atomic_int_set(&cancelled, 1);
+				break;
 			}
-			if (idx == best) { out.shifts[idx] = {0, 0}; ++done; continue; }
+			if (idx == best) {
+				out.shifts[idx] = {0, 0};
+				const gint d = g_atomic_int_add(&done, 1) + 1;
+				if (progress) progress((double) d / (double) total, progress_user);
+				continue;
+			}
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
 			    py_lo - dy_cum, py_hi - dy_cum,
 			    px_lo - dx_cum, px_hi - dx_cum, cfg);
-			if (!r.success) {
-				/* PSS raises InternalError; tests will see a zero shift and
-				 * notice the divergence. */
-				out.shifts[idx] = {dy_cum, dx_cum};
-				++done;
-				if (progress) progress((double) done / (double) total, progress_user);
-				continue;
+			if (r.success) {
+				dy_cum += r.dy;
+				dx_cum += r.dx;
 			}
-			dy_cum += r.dy;
-			dx_cum += r.dx;
+			/* PSS raises InternalError on failure; we leave the chain
+			 * frozen at the last successful cum and store that. Tests
+			 * will see a zero shift and notice the divergence. */
 			out.shifts[idx] = {dy_cum, dx_cum};
-			++done;
-			if (progress) progress((double) done / (double) total, progress_user);
+			const gint d = g_atomic_int_add(&done, 1) + 1;
+			if (progress) progress((double) d / (double) total, progress_user);
 		}
-	}
-
-	/* Forward pass: max_idx+1, ..., N-1. PSS re-enters at max_idx but only to
-	 * reset dy_cum; we skip the redundant visit. */
-	{
+	};
+	auto run_forward_sweep = [&] {
 		int dy_cum = 0, dx_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
+			if (g_atomic_int_get(&cancelled)) break;
 			if (!processing_should_continue()) {
-				out.best_frame_idx = -1;
-				return out;
+				g_atomic_int_set(&cancelled, 1);
+				break;
 			}
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
 			    py_lo - dy_cum, py_hi - dy_cum,
 			    px_lo - dx_cum, px_hi - dx_cum, cfg);
-			if (!r.success) {
-				out.shifts[idx] = {dy_cum, dx_cum};
-				++done;
-				if (progress) progress((double) done / (double) total, progress_user);
-				continue;
+			if (r.success) {
+				dy_cum += r.dy;
+				dx_cum += r.dx;
 			}
-			dy_cum += r.dy;
-			dx_cum += r.dx;
 			out.shifts[idx] = {dy_cum, dx_cum};
-			++done;
-			if (progress) progress((double) done / (double) total, progress_user);
+			const gint d = g_atomic_int_add(&done, 1) + 1;
+			if (progress) progress((double) d / (double) total, progress_user);
 		}
-	}
+	};
 
+#ifdef _OPENMP
+#pragma omp parallel sections num_threads(2) if (provider_is_thread_safe)
+	{
+#pragma omp section
+		run_backward_sweep();
+#pragma omp section
+		run_forward_sweep();
+	}
+#else
+	(void) provider_is_thread_safe;
+	run_backward_sweep();
+	run_forward_sweep();
+#endif
+
+	if (g_atomic_int_get(&cancelled)) {
+		out.best_frame_idx = -1;   /* cancellation sentinel */
+		return out;
+	}
 	return out;
 }
 
@@ -442,9 +468,12 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
                                            const mpp_config_t &cfg,
                                            progress_cb_fn progress,
                                            void *progress_user) {
+	/* Reading from a const cached vector is trivially reentrant — enable
+	 * the two-section parallel sweep. */
 	return align_global_from_provider(
 	    [&frames](int i) -> cv::Mat { return frames[i]; },
-	    (int) frames.size(), quality, cfg, progress, progress_user);
+	    (int) frames.size(), quality, cfg, progress, progress_user,
+	    /*provider_is_thread_safe=*/true);
 }
 
 std::vector<int> align_find_best_frames(const std::vector<double> &quality,
