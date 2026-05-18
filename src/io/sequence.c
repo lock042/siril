@@ -563,12 +563,17 @@ gboolean set_seq(gpointer user_data){
 
 #ifdef HAVE_FFMS2
 	int convert = (int)((com.headless));
+	int avi_bayer_pattern = 0;   /* MPP_AVI_BAYER_AUTO */
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = gui_iface.confirm_dialog(_("Deprecated sequence"),
+			convert = gui_iface.confirm_dialog_with_avi_bayer(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
-							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
+							" SER file format is a simple image sequence format, similar to uncompressed films."
+							"\n\nIf this AVI is a raw Bayer mosaic (OSC planetary capture), pick the camera's"
+							" Bayer pattern below — it will be stamped into the SER ColorID so future runs"
+							" see the right mosaic layout. Leave Auto if you don't know or the AVI is true mono."),
+					_("Convert to SER"), &avi_bayer_pattern);
 		}
 	} else {
 		siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
@@ -578,7 +583,7 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (convert) {
 		close_sequence(FALSE);
-		convert_single_film_to_ser(seq);
+		convert_single_film_to_ser_with_bayer(seq, avi_bayer_pattern);
 		return FALSE;
 	}
 #endif

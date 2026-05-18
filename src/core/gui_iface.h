@@ -119,6 +119,12 @@ typedef struct {
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
 	                           const char *button_accept);
+	/* Same, but embeds a Bayer-pattern combo. On Accept, fills
+	 * *avi_bayer_pattern with the chosen `enum mpp_avi_bayer` value
+	 * (0..5; 0 = Auto). Headless stub auto-accepts with AUTO. */
+	gboolean (*confirm_dialog_with_avi_bayer)(const char *title, const char *msg,
+	                                          const char *button_accept,
+	                                          int *avi_bayer_pattern);
 	/* id is the GtkBuilder identifier of the dialog widget. */
 	void     (*open_dialog)(const char *id);
 	void     (*close_dialog)(const char *id);

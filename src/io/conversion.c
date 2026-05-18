@@ -410,6 +410,10 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq) {
+	return convert_single_film_to_ser_with_bayer(seq, MPP_AVI_BAYER_AUTO);
+}
+
+int convert_single_film_to_ser_with_bayer(sequence *seq, int avi_bayer_pattern) {
 	char **files_to_convert = malloc(1 * sizeof(char *));
 
 	if (!files_to_convert) {
@@ -431,6 +435,9 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->output_type = SEQ_SER;
 	args->multiple_output = FALSE;
 	args->make_link = FALSE;
+	args->avi_bayer_pattern = (avi_bayer_pattern >= MPP_AVI_BAYER_AUTO
+	                           && avi_bayer_pattern <= MPP_AVI_BAYER_GRBG)
+	                       ? avi_bayer_pattern : MPP_AVI_BAYER_AUTO;
 	gettimeofday(&(args->t_start), NULL);
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);

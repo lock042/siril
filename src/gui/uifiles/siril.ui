@@ -4418,6 +4418,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                     <child>
                                                       <object class="GtkLabel" id="label_convert_avi_bayer">
                                                         <property name="visible">False</property>
+                                                        <property name="no-show-all">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="halign">end</property>
                                                         <property name="label" translatable="yes">AVI Bayer pattern:</property>
@@ -4430,6 +4431,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                     <child>
                                                       <object class="GtkComboBoxText" id="combo_convert_avi_bayer">
                                                         <property name="visible">False</property>
+                                                        <property name="no-show-all">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="tooltip-text" translatable="yes">AVI containers carry no Bayer marker. For a raw mosaic captured into AVI (e.g. an OSC planetary stream), pick the camera's Bayer pattern and the converted SER / FITS / FITSEQ frames will carry it (SER ColorID, FITS BAYERPAT). Auto / None leave the converted output mono. Ignored for AVI frames that autodetect as 3-channel colour and for non-AVI inputs.</property>
                                                         <property name="active">0</property>

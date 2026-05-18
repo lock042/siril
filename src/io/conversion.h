@@ -59,6 +59,11 @@ gpointer convert_thread_worker(gpointer p);
 int any_to_fits(image_type imagetype, const char *source, fits *dest, gboolean interactive, gboolean force_float);
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq);
+/* Same, but with a caller-supplied AVI Bayer-pattern hint (enum
+ * mpp_avi_bayer; 0 = Auto = no override). The pattern is stamped onto
+ * each frame's fit->keywords.bayer_pattern before SER write so the
+ * resulting SER carries the right color_id. */
+int convert_single_film_to_ser_with_bayer(sequence *seq, int avi_bayer_pattern);
 #endif
 
 #endif

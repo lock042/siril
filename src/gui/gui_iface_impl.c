@@ -110,6 +110,12 @@ static gboolean impl_confirm_dialog(const char *title, const char *msg,
 	                            (gchar *)button_accept);
 }
 
+static gboolean impl_confirm_dialog_with_avi_bayer(const char *title,
+		const char *msg, const char *button_accept, int *avi_bayer_pattern) {
+	return siril_confirm_dialog_with_avi_bayer((gchar *)title, (gchar *)msg,
+			(gchar *)button_accept, avi_bayer_pattern);
+}
+
 static void impl_open_dialog(const char *id) {
 	siril_open_dialog((gchar *)id);
 }
@@ -1172,6 +1178,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.log_message           = impl_log_message;
 	gui_iface.message_dialog        = impl_message_dialog;
 	gui_iface.confirm_dialog        = impl_confirm_dialog;
+	gui_iface.confirm_dialog_with_avi_bayer = impl_confirm_dialog_with_avi_bayer;
 	gui_iface.open_dialog            = impl_open_dialog;
 	gui_iface.close_dialog           = impl_close_dialog;
 	gui_iface.is_dialog_open         = impl_is_dialog_open;

@@ -316,6 +316,63 @@ gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, FALSE, NULL);
 }
 
+gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
+		gchar *button_accept, int *avi_bayer_pattern) {
+	GtkWindow *parent;
+	GtkWidget *dialog;
+	gint res;
+	gboolean ok = FALSE;
+
+	parent = siril_get_active_window();
+	if (!GTK_IS_WINDOW(parent)) {
+		message_dialog_init_statics();
+		parent = msg_control_window;
+	}
+	strip_last_ret_char(title);
+	strip_last_ret_char(msg);
+
+	dialog = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL,
+			GTK_MESSAGE_QUESTION, GTK_BUTTONS_CANCEL, "%s", title);
+	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", msg);
+	gtk_dialog_add_button(GTK_DIALOG(dialog), button_accept, GTK_RESPONSE_ACCEPT);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+
+	/* Bayer-pattern row: label + combo. Items mirror enum mpp_avi_bayer
+	 * ordering so the active index is the persisted value. */
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget *label = gtk_label_new(_("AVI Bayer pattern:"));
+	GtkWidget *combo = gtk_combo_box_text_new();
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("Auto"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("None (mono)"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("RGGB"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("BGGR"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("GBRG"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _("GRBG"));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	gtk_widget_set_tooltip_text(combo,
+		_("AVI containers carry no Bayer marker. Pick the camera's "
+		  "Bayer pattern to stamp it onto the converted SER file "
+		  "(or leave Auto for no override)."));
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), combo, FALSE, FALSE, 0);
+	gtk_box_pack_end(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))),
+			hbox, FALSE, FALSE, 0);
+	gtk_widget_set_margin_start(hbox, 6);
+	gtk_widget_set_margin_bottom(hbox, 6);
+	gtk_widget_show_all(hbox);
+
+	res = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (res == GTK_RESPONSE_ACCEPT) {
+		ok = TRUE;
+		if (avi_bayer_pattern) {
+			const int v = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+			*avi_bayer_pattern = (v >= 0 && v <= 5) ? v : 0;
+		}
+	}
+	gtk_widget_destroy(dialog);
+	return ok;
+}
+
 struct confirm_dialog_data {
     gchar *title;
     gchar *msg;
