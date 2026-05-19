@@ -340,10 +340,17 @@ typedef enum {
 } mpp_mem_mode;
 
 typedef struct {
-	int mode;         /* mpp_mem_mode */
-	int threads;      /* 1..max_threads, clamped to fit the budget */
-	int cached_count; /* number of frames to cache: N for CACHED/HALF_CACHED,
-	                   * 1..N-1 for PARTIAL_CACHED, 0 for STREAMING */
+	int mode;          /* mpp_mem_mode */
+	int threads;       /* 1..max_threads, clamped to fit the budget */
+	int cached_count;  /* number of raw-frame slots to cache:
+	                    * N for CACHED/HALF_CACHED, 1..N-1 for
+	                    * PARTIAL_CACHED, 0 for STREAMING. */
+	int blurred_count; /* number of blurred-frame slots to pre-compute,
+	                    * 0..N. = N in CACHED; for HALF_CACHED, sized
+	                    * to the leftover budget so headroom past the
+	                    * raw cache pays into a partial blur cache too
+	                    * (every blurred hit saves a GaussianBlur in
+	                    * Pass 2). 0 for PARTIAL_CACHED and STREAMING. */
 } mpp_mem_pick;
 
 static const char *mpp_mem_mode_name(int m) {
@@ -421,6 +428,7 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 	int picked_mode = -1;
 	int picked_T = 0;
 	int picked_K = 0;
+	int picked_K_blur = 0;
 	uint64_t picked_bytes = 0;
 
 	if (cached_copies > 0) {
@@ -429,6 +437,7 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 			picked_mode = MPP_MEM_CACHED;
 			picked_T = T;
 			picked_K = N;
+			picked_K_blur = N;
 			picked_bytes = cached_persistent + (uint64_t) T * per_thread_bytes + output_bytes;
 		}
 	}
@@ -438,7 +447,29 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 			picked_mode = MPP_MEM_HALF_CACHED;
 			picked_T = T;
 			picked_K = N;
+			picked_K_blur = 0;
 			picked_bytes = half_persistent + (uint64_t) T * per_thread_bytes + output_bytes;
+			/* Blur top-up: HALF_CACHED's chosen persistent is N raw
+			 * frames. If the budget has headroom past that and past
+			 * the in-flight working set, spend it on a partial blur
+			 * cache (each cached blurred slot saves one GaussianBlur
+			 * in Pass 2). per_frame for the blurred slot matches the
+			 * raw slot (same dims, same depth). cached_copies must
+			 * be ≥ 2 for this to make sense — i.e., the CACHED tier
+			 * we just rejected was "raw + blurred", so the caller
+			 * supports a blur cache. */
+			if (cached_copies >= 2) {
+				const uint64_t fixed = half_persistent + (uint64_t) T * per_thread_bytes
+				                     + output_bytes;
+				if (budget > fixed) {
+					const uint64_t headroom = budget - fixed;
+					const uint64_t K_blur_fit = headroom / per_frame;
+					if (K_blur_fit >= 1) {
+						picked_K_blur = (int) std::min((uint64_t) N, K_blur_fit);
+						picked_bytes += (uint64_t) picked_K_blur * per_frame;
+					}
+				}
+			}
 		}
 	}
 	/* Partial cache: HALF_CACHED's layout but K < N frames. Sized to
@@ -459,6 +490,7 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 					picked_mode = MPP_MEM_PARTIAL_CACHED;
 					picked_T = max_threads;
 					picked_K = K;
+					picked_K_blur = 0;
 					picked_bytes = (uint64_t) half_cached_copies * (uint64_t) K * per_frame
 					             + (uint64_t) picked_T * per_thread_bytes + output_bytes;
 				}
@@ -471,6 +503,7 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 			picked_mode = MPP_MEM_STREAMING;
 			picked_T = T;
 			picked_K = 0;
+			picked_K_blur = 0;
 			picked_bytes = (uint64_t) T * per_thread_bytes + output_bytes;
 		}
 	}
@@ -492,9 +525,10 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 		return MPP_ENOMEM;
 	}
 
-	out->mode         = picked_mode;
-	out->threads      = picked_T;
-	out->cached_count = picked_K;
+	out->mode          = picked_mode;
+	out->threads       = picked_T;
+	out->cached_count  = picked_K;
+	out->blurred_count = picked_K_blur;
 
 	/* Log when we drop below CACHED (the fastest tier) or when threads
 	 * are clamped — both have user-visible perf implications. */
@@ -512,6 +546,12 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 				                    "%d thread(s) (cached would need %s, %s available, "
 				                    "using %s)\n"),
 				                  stage_name, picked_K, N, picked_T,
+				                  cached_str, avail_str, use_str);
+			} else if (picked_mode == MPP_MEM_HALF_CACHED && picked_K_blur > 0) {
+				siril_log_message(_("%s: half-cached mode + %d/%d blurred top-up, "
+				                    "%d thread(s) (cached would need %s, %s available, "
+				                    "using %s)\n"),
+				                  stage_name, picked_K_blur, N, picked_T,
 				                  cached_str, avail_str, use_str);
 			} else {
 				siril_log_message(_("%s: %s mode, %d thread(s) "
@@ -592,7 +632,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	const int max_threads = 1;
 #endif
 	const int analysis_bytes_per_sample = (cfg->bitdepth == 8) ? 1 : 2;
-	mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N};
+	mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N, 0};
 	{
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
@@ -605,31 +645,36 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		    "Analyze", &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
-	const bool cache_blurred = (mem_pick.mode == MPP_MEM_CACHED);
 	const int cached_count   = mem_pick.cached_count;  /* 0..N, see picker */
+	const int blurred_count  = mem_pick.blurred_count; /* 0..N, see picker */
 	const int pass1_threads  = mem_pick.threads;
 
 	/* Index-stable storage so parallel threads can write to per-frame slots
 	 * without contention. push_back would force serialisation.
-	 * analysis_frames is sized to N whenever any caching is on; slots
-	 * populated during Pass 1 hold top-K-by-quality frames (rolling
-	 * eviction below) and unpopulated slots stay empty (sentinel for
+	 *
+	 * analysis_frames (raw cache): sized to N whenever cached_count > 0.
+	 * Slots populated during Pass 1 hold top-K-by-quality frames (rolling
+	 * eviction below); unpopulated slots stay empty (sentinel for
 	 * "re-read from disk"). With K = N (full HALF/CACHED) every slot
 	 * is filled; with K < N (PARTIAL) the chosen slots are sparse.
+	 * Top-K-by-quality (over first-K-by-index) matters for the
+	 * persistent cache reused by Stage B / recompute: those passes
+	 * preferentially read top-quality frames, so a quality-aligned
+	 * cache pushes their hit rate toward 100% even at modest K/N.
 	 *
-	 * Top-K-by-quality (over first-K-by-index) matters most for the
-	 * persistent cache reused by Stage B / mpp_recompute_qualities:
-	 * those passes preferentially read top-quality frames, so a
-	 * quality-aligned cache pushes their hit rate toward 100% even at
-	 * modest K/N.
-	 *
-	 * blurred_frames is N-sized only in the full CACHED tier; partial
-	 * caching never holds a blur cache. */
+	 * blurred_frames (blurred cache): sized to N whenever blurred_count > 0.
+	 * Slots [0..blurred_count) are pre-computed during Pass 1; the rest
+	 * stay empty. CACHED tier has blurred_count = N (every blurred slot
+	 * filled); HALF_CACHED may have 0 < blurred_count < N when the
+	 * budget has headroom past the raw cache (each cached blurred slot
+	 * saves one GaussianBlur in Pass 2). Pass 2's provider checks the
+	 * blurred slot first, then the raw slot (re-blur), then disk. */
 	const bool any_cache = (cached_count > 0);
+	const bool any_blur  = (blurred_count > 0);
 	std::vector<cv::Mat> analysis_frames;
 	if (any_cache) analysis_frames.resize(N);
 	std::vector<cv::Mat> blurred_frames;
-	if (cache_blurred) blurred_frames.resize(N);
+	if (any_blur)  blurred_frames.resize(N);
 	std::vector<double> q_rank(N, 0.0);
 	std::vector<double> frame_brightness(N, 0.0);
 
@@ -691,7 +736,8 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			g_atomic_int_set(&read_failed, 1);
 			continue;
 		}
-		if (cache_blurred) blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
+		if (any_blur && i < blurred_count)
+			blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
 		const double q = mpp::rank_score_normalized(mono, *cfg);
 		q_rank[i]          = q;
 		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
@@ -716,7 +762,10 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			return analysis_frames[i];
 		return mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern, cfg->bitdepth);
 	};
-	auto blurred_provider = [&analysis_frames, seq, cfg](int i) -> cv::Mat {
+	auto blurred_provider = [&analysis_frames, &blurred_frames, seq, cfg](int i) -> cv::Mat {
+		if (i >= 0 && i < (int) blurred_frames.size()
+		 && !blurred_frames[i].empty())
+			return blurred_frames[i];
 		cv::Mat m;
 		if (i >= 0 && i < (int) analysis_frames.size()
 		 && !analysis_frames[i].empty())
@@ -729,27 +778,25 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
 	stage_progress_range gp_global{MPP_PROG_READ_END,
 	                               MPP_PROG_GLOBAL_END - MPP_PROG_READ_END};
-	/* Pass 2 — global align. CACHED uses the pre-built blurred vector
-	 * (no I/O, no blur). All other tiers use blurred_provider, which
-	 * blurs on demand from either the raw cache (HALF / PARTIAL hits)
-	 * or disk (PARTIAL misses, STREAMING). The forward+backward sweeps
-	 * parallelise when the provider is reentrant; PARTIAL on SER /
-	 * reentrant-FITS qualifies because both cache hits (pure memory)
-	 * and cache misses (the same threadsafe disk path Pass 1 used) are
-	 * threadsafe. */
+	/* Pass 2 — global align. The blurred provider's lookup order is:
+	 *   1. blurred_frames cache (pre-computed in Pass 1; covers
+	 *      [0..blurred_count). Best case — no blur, no I/O.
+	 *   2. analysis_frames raw cache → blur on demand. HALF_CACHED's
+	 *      common case past the blurred top-up; also PARTIAL's hit path.
+	 *   3. Disk read → blur on demand. STREAMING and the PARTIAL miss tail.
+	 * The forward+backward sweeps parallelise when the provider is
+	 * reentrant; cache hits are trivially reentrant, and disk-read
+	 * misses are reentrant for SER / reentrant-FITS. */
 	const bool streaming_provider_safe =
 	    (seq->type == SEQ_SER
 	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
 	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
-	const auto align = cache_blurred
-	    ? mpp::align_global_from_frames(blurred_frames, q_rank, *cfg,
-	                                    stage_progress_cb, &gp_global)
-	    : mpp::align_global_from_provider(
-	          blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global,
-	          streaming_provider_safe);
-	/* Drop blurred_frames now so the remaining passes have an extra
-	 * N·rx·ry·2 bytes of headroom (CACHED mode only; the others held
-	 * no blur cache to begin with). */
+	const auto align = mpp::align_global_from_provider(
+	    blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global,
+	    streaming_provider_safe);
+	/* Drop the blurred cache now — Passes 3/4 don't use it, and the
+	 * freed bytes give them more headroom (matters most when the blur
+	 * top-up was large). */
 	blurred_frames.clear();
 	blurred_frames.shrink_to_fit();
 	if (align.best_frame_idx < 0) return MPP_EINTR;   /* cancellation sentinel */
@@ -862,7 +909,7 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	 * max_threads=1 and per_thread_in_flight=1 — the picker just
 	 * verifies that a single frame fits. Disk traffic is identical to
 	 * the previous cached two-pass design (1 read per included frame). */
-	mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0};
+	mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
 	{
 		const int bps = (cfg->bitdepth == 8) ? 1 : 2;
 		const mpp_status_t mem = mpp_pick_memory_mode(
@@ -1034,7 +1081,7 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		                   ? 1
 		                   : (avi_cfa ? 3
 		                              : (run->num_layers > 0 ? run->num_layers : 1));
-		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0};
+		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
 		/* Stack uses read_full_frame (CV_16U) regardless of source depth
 		 * so the accumulator retains the full dynamic range. */
 		const mpp_status_t mem = mpp_pick_memory_mode(
@@ -1195,7 +1242,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	std::vector<cv::Mat> fresh_cache_vec;
 	int fresh_cache_count = 0;
 	if (!run->cache) {
-		mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N};
+		mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N, 0};
 		/* cached_copies=1 and half_cached_copies=1 are identical here
 		 * because there is no blur cache to drop — the distinction
 		 * exists only so the picker also considers PARTIAL_CACHED. */
