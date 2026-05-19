@@ -755,12 +755,9 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 
 	if (com.seq.reference_image == -1)
 		com.seq.reference_image = sequence_find_refimage(&com.seq);
-	if (com.seq.ext_ref) {
-		stackparam.ref_image = sequence_find_best_refimage(&com.seq);
-		siril_log_message(_("External reference alignment detected: using best quality frame #%d as normalization reference for stacking\n"), stackparam.ref_image + 1);
-	} else {
-		stackparam.ref_image = com.seq.reference_image;
-	}
+	stackparam.ref_image = com.seq.reference_image;
+	if (com.seq.ext_ref)
+		siril_log_message(_("External reference alignment detected: using frame #%d as normalization reference for stacking\n"), com.seq.reference_image + 1);
 
 	get_sequence_filtering_from_gui(
 			&stackparam.filtering_criterion, &stackparam.filtering_parameter);
