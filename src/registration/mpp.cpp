@@ -19,6 +19,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <numeric>
+#include <queue>
+#include <utility>
 #include <vector>
 
 #include <opencv2/core.hpp>
@@ -58,6 +60,22 @@ extern "C" {
 #include "registration/mpp_stack_priv.hpp"
 
 /* mpp_run_alloc / mpp_run_free live in mpp_run.c (no Siril runtime deps). */
+
+/* Analysis-frame cache shared across Stage A → Stage B → recompute.
+ * Backed by a vector<cv::Mat> sized to N; populated slots are top-K-by-
+ * quality cv::Mats (mono, CV_8U or CV_16U matching cfg.bitdepth);
+ * empty slots are cache misses. Empty top-level struct ABI by design —
+ * the C side never indexes into it, just stashes the pointer on
+ * mpp_run_t and calls mpp_cache_free when the run ends. */
+struct mpp_cache {
+	std::vector<cv::Mat> raw_frames;  /* size N; empty Mat = miss */
+	int bitdepth;                      /* CV_8U if 8, else CV_16U */
+	int populated_count;               /* sum of non-empty slots, for logs */
+};
+
+extern "C" void mpp_cache_free(mpp_cache_t *cache) {
+	delete cache;
+}
 
 namespace mpp {
 
@@ -594,10 +612,17 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	/* Index-stable storage so parallel threads can write to per-frame slots
 	 * without contention. push_back would force serialisation.
 	 * analysis_frames is sized to N whenever any caching is on; slots
-	 * [0, cached_count) get populated during Pass 1 and the rest stay
-	 * empty (sentinel for "re-read from disk"). PARTIAL_CACHED therefore
-	 * looks identical to HALF_CACHED for slots < cached_count and to
-	 * STREAMING for slots ≥ cached_count.
+	 * populated during Pass 1 hold top-K-by-quality frames (rolling
+	 * eviction below) and unpopulated slots stay empty (sentinel for
+	 * "re-read from disk"). With K = N (full HALF/CACHED) every slot
+	 * is filled; with K < N (PARTIAL) the chosen slots are sparse.
+	 *
+	 * Top-K-by-quality (over first-K-by-index) matters most for the
+	 * persistent cache reused by Stage B / mpp_recompute_qualities:
+	 * those passes preferentially read top-quality frames, so a
+	 * quality-aligned cache pushes their hit rate toward 100% even at
+	 * modest K/N.
+	 *
 	 * blurred_frames is N-sized only in the full CACHED tier; partial
 	 * caching never holds a blur cache. */
 	const bool any_cache = (cached_count > 0);
@@ -612,6 +637,37 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	int num_layers = 1, bitpix = 16;
 	int cur_nb = 0;
 	int read_failed = 0;
+
+	/* Rolling min-heap of (quality, frame_idx) for cached slots.
+	 * `cached_count` < N triggers eviction: when a newly-ranked frame
+	 * beats the worst cached one, evict the worst and insert the new.
+	 * Mutex-guarded for parallel Pass 1; AVI is serial so the lock is
+	 * uncontended there; SER under 16 threads sees ~µs contention
+	 * which is negligible vs the 5-15 ms of per-frame work (read +
+	 * blur + Laplace) outside the lock.
+	 *
+	 * When cached_count == N every frame fits — the heap fills and
+	 * never evicts, equivalent to the prior unconditional fill. */
+	GMutex cache_mtx;
+	g_mutex_init(&cache_mtx);
+	using QIdx = std::pair<double, int>;
+	std::priority_queue<QIdx, std::vector<QIdx>, std::greater<QIdx>> low_q;
+	auto offer_to_cache = [&](int idx, double q, const cv::Mat &mono) {
+		if (!any_cache) return;
+		g_mutex_lock(&cache_mtx);
+		if ((int) low_q.size() < cached_count) {
+			analysis_frames[idx] = mono;
+			low_q.push({q, idx});
+		} else if (q > low_q.top().first) {
+			const int evict = low_q.top().second;
+			low_q.pop();
+			analysis_frames[evict].release();
+			analysis_frames[idx] = mono;
+			low_q.push({q, idx});
+		}
+		g_mutex_unlock(&cache_mtx);
+	};
+
 	/* Parallel frame read: SER's fd_lock serialises only the actual fread
 	 * call inside ser_read_frame so the rest (decompress, debayer, cvtColor,
 	 * GaussianBlur, Laplace) runs concurrently. Pattern + guard mirror
@@ -635,13 +691,15 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 			g_atomic_int_set(&read_failed, 1);
 			continue;
 		}
-		if (any_cache && i < cached_count) analysis_frames[i] = mono;
-		if (cache_blurred)                 blurred_frames[i]  = mpp::blur_mono_for_align(mono, *cfg);
-		q_rank[i]          = mpp::rank_score_normalized(mono, *cfg);
+		if (cache_blurred) blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
+		const double q = mpp::rank_score_normalized(mono, *cfg);
+		q_rank[i]          = q;
 		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
+		offer_to_cache(i, q, mono);
 		g_atomic_int_inc(&cur_nb);
 		gui_iface.set_progress(MPP_PROG_READ_END * (double) cur_nb / (double) N, NULL);
 	}
+	g_mutex_clear(&cache_mtx);
 	if (cancelled) return MPP_EINTR;
 	if (read_failed) return MPP_EIO;
 
@@ -773,6 +831,22 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		for (int k = 0; k < run->stack_size; ++k)
 			run->best_frame_indices[a * run->stack_size + k] = apq.best_frame_indices[a][k];
 
+	/* Hand the analysis-frame cache off to the run so Stage B / recompute
+	 * can hit it. Zero-copy: cv::Mat headers move, pixel data refcounts
+	 * stay put. Skipped for STREAMING (analysis_frames is empty) and
+	 * harmless otherwise — the cache lives until mpp_run_free. */
+	if (any_cache) {
+		int populated = 0;
+		for (const auto &m : analysis_frames) if (!m.empty()) ++populated;
+		if (populated > 0) {
+			auto *cache = new mpp_cache;
+			cache->raw_frames     = std::move(analysis_frames);
+			cache->bitdepth       = cfg->bitdepth;
+			cache->populated_count = populated;
+			run->cache = cache;
+		}
+	}
+
 	*run_out = run;
 	return MPP_OK;
 }
@@ -809,9 +883,27 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	const cv::Mat mean_raw = mpp::mean_frame_from_run(run);
 
 	gui_iface.set_progress(PROGRESS_RESET, _("Register: correlating per-AP boxes"));
-	auto provider = [seq, cfg](int f) -> cv::Mat {
-		cv::Mat mono = mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
-		                                        cfg->bitdepth);
+	/* Provider hits the persistent analysis cache (populated by Stage A)
+	 * for top-K-by-quality frames and falls through to disk on miss.
+	 * For the typical planetary workflow where stack frame counts are
+	 * substantial fractions of N and the user runs Stage B immediately
+	 * after Stage A, this eliminates almost all disk reads here. */
+	const mpp_cache_t *cache = run->cache;
+	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
+	if (cache && cache->populated_count > 0) {
+		siril_log_message(_("Register: re-using Stage A analysis cache "
+		                    "(%d/%d frames in memory)\n"),
+		                  cache->populated_count, run->num_frames);
+	}
+	auto provider = [seq, cfg, cache, cache_N](int f) -> cv::Mat {
+		cv::Mat mono;
+		if (cache && f >= 0 && f < cache_N
+		 && !cache->raw_frames[f].empty()) {
+			mono = cache->raw_frames[f];
+		} else {
+			mono = mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
+			                                cfg->bitdepth);
+		}
 		if (mono.empty()) return cv::Mat();
 		return mpp::blur_mono_for_align(mono, *cfg);
 	};
@@ -1093,12 +1185,20 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	const int max_threads = 1;
 #endif
 	const int bps = (run->cfg->bitdepth == 8) ? 1 : 2;
-	mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N};
-	{
+
+	/* If Stage A left an analysis cache on the run, skip the pre-read
+	 * entirely and feed the streamed pass directly from it (hits for
+	 * cached slots, disk reads for the rest). Without a cache (sidecar-
+	 * loaded run, or Stage A picked STREAMING), do the pre-read of the
+	 * largest top-by-index slice that fits. */
+	mpp_cache_t *fresh_cache_owner = nullptr;
+	std::vector<cv::Mat> fresh_cache_vec;
+	int fresh_cache_count = 0;
+	if (!run->cache) {
+		mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N};
 		/* cached_copies=1 and half_cached_copies=1 are identical here
 		 * because there is no blur cache to drop — the distinction
-		 * exists only so the picker also considers PARTIAL_CACHED,
-		 * which gates on half_cached_copies > 0. */
+		 * exists only so the picker also considers PARTIAL_CACHED. */
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    N, (int) seq->rx, (int) seq->ry, /*channels=*/1,
 		    bps,
@@ -1109,49 +1209,56 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		    /*output_bytes=*/0,
 		    "Register (per-AP quality refresh)", &mem_pick);
 		if (mem != MPP_OK) return mem;
-	}
-	const int cached_count    = mem_pick.cached_count;
-	const int preread_threads = mem_pick.threads;
-	const bool any_cache      = (cached_count > 0);
+		fresh_cache_count = mem_pick.cached_count;
+		const int preread_threads = mem_pick.threads;
 
-	siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
-	                    "(re-reading %d frames)\n"), N);
-	gui_iface.set_progress(PROGRESS_RESET, _("Register: re-reading frames for edited APs"));
+		siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
+		                    "(re-reading %d frames)\n"), N);
+		gui_iface.set_progress(PROGRESS_RESET, _("Register: re-reading frames for edited APs"));
 
-	/* Pre-read first cached_count frames in parallel. ap_compute_frame_
-	 * qualities_streamed then walks all N — cache hits for [0..K), disk
-	 * reads for [K..N). With STREAMING (cached_count=0) the pre-read is
-	 * skipped entirely; with HALF_CACHED/CACHED (cached_count=N) the
-	 * streamed pass sees 100% hits. */
-	std::vector<cv::Mat> analysis_frames;
-	if (any_cache) {
-		analysis_frames.resize(N);
-		int cur_nb = 0;
-		int read_failed = 0;
-		int cancelled = 0;
+		if (fresh_cache_count > 0) {
+			fresh_cache_vec.resize(N);
+			int cur_nb = 0;
+			int read_failed = 0;
+			int cancelled = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(preread_threads) schedule(guided) \
     if (seq->type == SEQ_SER || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ \
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
-		for (int i = 0; i < cached_count; ++i) {
-			if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
-			if (!processing_should_continue()) {
-				g_atomic_int_set(&cancelled, 1);
-				continue;
+			for (int i = 0; i < fresh_cache_count; ++i) {
+				if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
+				if (!processing_should_continue()) {
+					g_atomic_int_set(&cancelled, 1);
+					continue;
+				}
+				cv::Mat mono = mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
+				                                        run->cfg->bitdepth);
+				if (mono.empty()) {
+					g_atomic_int_set(&read_failed, 1);
+					continue;
+				}
+				fresh_cache_vec[i] = mono;
+				g_atomic_int_inc(&cur_nb);
+				gui_iface.set_progress(0.5 * (double) cur_nb / (double) fresh_cache_count, NULL);
 			}
-			cv::Mat mono = mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
-			                                        run->cfg->bitdepth);
-			if (mono.empty()) {
-				g_atomic_int_set(&read_failed, 1);
-				continue;
-			}
-			analysis_frames[i] = mono;
-			g_atomic_int_inc(&cur_nb);
-			gui_iface.set_progress(0.5 * (double) cur_nb / (double) cached_count, NULL);
+			if (cancelled)  return MPP_EINTR;
+			if (read_failed) return MPP_EIO;
 		}
-		if (cancelled)  return MPP_EINTR;
-		if (read_failed) return MPP_EIO;
+		/* Promote the freshly populated cache onto the run so future
+		 * recomputes (and Stage B / Stage C) also hit it. */
+		if (fresh_cache_count > 0) {
+			fresh_cache_owner = new mpp_cache;
+			fresh_cache_owner->raw_frames     = std::move(fresh_cache_vec);
+			fresh_cache_owner->bitdepth       = run->cfg->bitdepth;
+			fresh_cache_owner->populated_count = fresh_cache_count;
+			run->cache = fresh_cache_owner;
+		}
+	} else {
+		siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
+		                    "(%d/%d frames already cached)\n"),
+		                  run->cache->populated_count, N);
+		gui_iface.set_progress(PROGRESS_RESET, _("Register: re-using cached analysis frames"));
 	}
 
 	gui_iface.set_progress(0.5, _("Register: computing per-AP qualities for edited grid"));
@@ -1159,10 +1266,12 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	                                           run->frame_brightness + N);
 	const auto offsets = mpp::offsets_from_run(run);
 	stage_progress_range rp{0.5, 0.5};
-	auto raw_provider = [&analysis_frames, seq, run](int i) -> cv::Mat {
-		if (i >= 0 && i < (int) analysis_frames.size()
-		 && !analysis_frames[i].empty())
-			return analysis_frames[i];
+	const mpp_cache_t *cache = run->cache;
+	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
+	auto raw_provider = [cache, cache_N, seq, run](int i) -> cv::Mat {
+		if (cache && i >= 0 && i < cache_N
+		 && !cache->raw_frames[i].empty())
+			return cache->raw_frames[i];
 		return mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
 		                                run->cfg->bitdepth);
 	};

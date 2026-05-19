@@ -33,6 +33,18 @@ typedef enum {
  * pointer; mpp_run_alloc allocates it and mpp_run_free releases it. */
 typedef struct mpp_config mpp_config_t;
 
+/* Opaque holder for the analysis-frame cache populated by Stage A
+ * (mono cv::Mat per frame, populated for the K top-by-quality frames
+ * the memory picker found room for). When non-NULL Stage B and the
+ * mpp_recompute_qualities helper hit it directly instead of re-reading
+ * from disk; cache misses fall through to read_analysis_frame. Stage C
+ * doesn't share layout with the analysis cache so it doesn't consult
+ * it. Not serialised to the sidecar — purely an in-memory perf
+ * accelerator owned by the current run. */
+typedef struct mpp_cache mpp_cache_t;
+
+void mpp_cache_free(mpp_cache_t *cache);
+
 /* mpp_run_t — in-memory state spanning the orchestrator stages.
  * Stage A populates everything up to and including `aps`/`stack_size`/
  * `best_frame_indices`. Stage B fills `shifts`. Stage C consumes the whole
@@ -77,6 +89,13 @@ typedef struct mpp_run {
 
 	/* Stage B — per-AP per-frame shifts. Null until Stage B runs. */
 	mpp_shifts_t *shifts;
+
+	/* Analysis-frame cache populated by Stage A and reused by Stage B
+	 * and mpp_recompute_qualities. Owned by the run; freed via
+	 * mpp_cache_free(). Null when caching was skipped (STREAMING) or
+	 * when the run was loaded from a sidecar (sidecar doesn't carry
+	 * the cache; subsequent stages re-read from disk). */
+	mpp_cache_t *cache;
 } mpp_run_t;
 
 /* Allocate / free / shape helpers. */
