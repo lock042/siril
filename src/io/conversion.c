@@ -1012,18 +1012,33 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 			 * BAYERPAT card. Only applied when the resulting fit is
 			 * single-channel — for an AVI that autodetect already
 			 * decoded as RGB the hint would be wrong (a debayered
-			 * RGB stream isn't a mosaic). */
+			 * RGB stream isn't a mosaic).
+			 *
+			 * The user picks the pattern as the camera sensor sees
+			 * it (top-down, matching the raw AVI byte order). But
+			 * film_read_frame has already flipped the pixel data
+			 * top-to-bottom to match Siril's in-memory bottom-up
+			 * convention (films.c:363), and the bayer_pattern
+			 * keyword must describe the in-memory data — that's the
+			 * contract assumed by ser_write_frame's row_order ==
+			 * "TOP-DOWN" Bayer-flip path, by SER-read which writes
+			 * a Y-flipped pattern (ser.c:962), and by the FITS
+			 * savefits BAYERPAT card. Apply the same Y-flip here so
+			 * the keyword matches the data; otherwise a user pick
+			 * of RGGB round-trips out as SER color_id GBRG. */
 			if (fit && fit->naxes[2] == 1) {
-				const char *pat = NULL;
+				sensor_pattern p = BAYER_FILTER_NONE;
 				switch (reader->avi_bayer_pattern) {
-				case MPP_AVI_BAYER_RGGB: pat = "RGGB"; break;
-				case MPP_AVI_BAYER_BGGR: pat = "BGGR"; break;
-				case MPP_AVI_BAYER_GBRG: pat = "GBRG"; break;
-				case MPP_AVI_BAYER_GRBG: pat = "GRBG"; break;
-				default: pat = NULL; break;   /* AUTO / NONE — leave keyword empty */
+				case MPP_AVI_BAYER_RGGB: p = BAYER_FILTER_RGGB; break;
+				case MPP_AVI_BAYER_BGGR: p = BAYER_FILTER_BGGR; break;
+				case MPP_AVI_BAYER_GBRG: p = BAYER_FILTER_GBRG; break;
+				case MPP_AVI_BAYER_GRBG: p = BAYER_FILTER_GRBG; break;
+				default: break;   /* AUTO / NONE — leave keyword empty */
 				}
-				if (pat) {
-					g_strlcpy(fit->keywords.bayer_pattern, pat,
+				if (p != BAYER_FILTER_NONE) {
+					adjust_Bayer_pattern_orientation(&p, fit->ry, TRUE);
+					g_strlcpy(fit->keywords.bayer_pattern,
+					          filter_pattern[p],
 					          sizeof(fit->keywords.bayer_pattern));
 				}
 			}
