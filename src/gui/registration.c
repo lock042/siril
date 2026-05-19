@@ -971,6 +971,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_widget_set_visible(GTK_WIDGET(proj_estimate), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_registration), !isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(grid_reg_framing), isapplyreg);
+	if (isapplyreg && com.seq.ext_ref) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(comboreg_framing), FRAMING_CURRENT);
+		gtk_widget_set_sensitive(GTK_WIDGET(comboreg_framing), FALSE);
+	} else {
+		gtk_widget_set_sensitive(GTK_WIDGET(comboreg_framing), TRUE);
+	}
 	if (must_have_drizzle) {
 		gtk_stack_set_visible_child(interp_drizzle_stack, GTK_WIDGET(grid_drizzle_controls));
 		has_drizzle = TRUE;

@@ -11361,6 +11361,11 @@ int process_seq_applyreg(int nb) {
 		}
 	}
 
+	if (seq->ext_ref && regargs->framing != FRAMING_CURRENT) {
+		siril_log_message(_("External reference alignment detected: forcing framing to 'current'\n"));
+		regargs->framing = FRAMING_CURRENT;
+	}
+
 	if (drizzle) {
 		regargs->driz = driz;
 		// we now check the distortion params are ok
