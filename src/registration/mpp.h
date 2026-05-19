@@ -102,6 +102,14 @@ typedef struct mpp_run {
 mpp_run_t *mpp_run_alloc(void);
 void mpp_run_free(mpp_run_t *run);
 
+/* Release the run's analysis cache and null the field. No-op when the
+ * run is NULL or already cache-less. Called before Stage C (which can't
+ * consume the mono single-channel cache layout — read_full_frame returns
+ * full-depth multi-channel) to free budget the streaming-only Stage C
+ * memory picker doesn't otherwise see; subsequent AP re-edits repopulate
+ * the cache via mpp_recompute_qualities. */
+void mpp_run_drop_cache(mpp_run_t *run);
+
 /* Stage A: read frames from `seq`, rank, globally align, build mean reference
  * frame, auto-place APs, compute per-AP frame qualities. Output `*run_out`
  * (caller frees via mpp_run_free). Honours seq->imgparam[i].incl if
@@ -118,9 +126,10 @@ mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cfg,
                                 mpp_run_t *run);
 
 /* Stage C: apply pre-computed Stage-B shifts and produce the final stacked
- * fits. Re-reads frames from `seq`. */
+ * fits. Re-reads frames from `seq`. `run` is non-const because Stage C
+ * drops the analysis cache at entry — see mpp_run_drop_cache. */
 mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
-                             const mpp_run_t *run, fits *out);
+                             mpp_run_t *run, fits *out);
 
 /* Top-level Siril `register -method=mpp` entry. Drives Stages A + B and
  * writes the sidecar next to the sequence. */

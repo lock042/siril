@@ -26,10 +26,16 @@ void mpp_run_free(mpp_run_t *run) {
 	free(run->best_frame_indices);
 	mpp_ap_free(run->aps);
 	mpp_shift_free(run->shifts);
-	/* mpp_cache_free lives in mpp.cpp (needs the C++ cv::Mat dtor).
-	 * Tests link with --unresolved-symbols=ignore-all and never
-	 * populate the cache, so the guard skips the call before the
-	 * unresolved symbol would matter. */
-	if (run->cache) mpp_cache_free(run->cache);
+	mpp_run_drop_cache(run);
 	free(run);
+}
+
+/* mpp_cache_free lives in mpp.cpp (needs the C++ cv::Mat dtor). Tests
+ * link with --unresolved-symbols=ignore-all and never populate the
+ * cache, so the guard skips the call before the unresolved symbol
+ * would matter. */
+void mpp_run_drop_cache(mpp_run_t *run) {
+	if (!run || !run->cache) return;
+	mpp_cache_free(run->cache);
+	run->cache = NULL;
 }

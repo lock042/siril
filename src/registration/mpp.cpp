@@ -406,6 +406,14 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 		return MPP_EINVAL;
 	const uint64_t per_frame = (uint64_t) rx * (uint64_t) ry
 	                         * (uint64_t) channels * (uint64_t) bytes_per_sample;
+	/* Blurred slot size: blur_mono_for_align upscales 8-bit input to
+	 * CV_16U before the GaussianBlur (mpp_rank.cpp:66), so the cached
+	 * blurred frame is always 2 bytes/sample regardless of source
+	 * bitdepth. For 16-bit input this equals per_frame; for 8-bit it
+	 * is 2× per_frame, which is why the blur top-up must size against
+	 * blurred_per_frame rather than per_frame. */
+	const uint64_t blurred_per_frame = (uint64_t) rx * (uint64_t) ry
+	                                 * (uint64_t) channels * 2;
 	const uint64_t budget    = (uint64_t) get_max_memory_in_MB()
 	                         * (uint64_t) BYTES_IN_A_MB;
 	const uint64_t per_thread_bytes = (uint64_t) per_thread_in_flight * per_frame;
@@ -422,8 +430,18 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 		return (int) std::min((uint64_t) max_threads, max_T_fit);
 	};
 
-	const uint64_t cached_persistent = (uint64_t) cached_copies * (uint64_t) N * per_frame;
-	const uint64_t half_persistent   = (uint64_t) half_cached_copies * (uint64_t) N * per_frame;
+	/* Cache layout (caller-defined via copies arg): one raw analysis
+	 * frame plus (copies − 1) blurred frames. Sizes the raw and blurred
+	 * components separately because the blurred frame is always CV_16U
+	 * (see blurred_per_frame above) while the raw frame depth follows
+	 * bytes_per_sample. */
+	auto persistent_for = [&](int copies) -> uint64_t {
+		if (copies <= 0) return 0;
+		return (uint64_t) N * per_frame
+		     + (uint64_t)(copies - 1) * (uint64_t) N * blurred_per_frame;
+	};
+	const uint64_t cached_persistent = persistent_for(cached_copies);
+	const uint64_t half_persistent   = persistent_for(half_cached_copies);
 
 	int picked_mode = -1;
 	int picked_T = 0;
@@ -453,20 +471,22 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 			 * frames. If the budget has headroom past that and past
 			 * the in-flight working set, spend it on a partial blur
 			 * cache (each cached blurred slot saves one GaussianBlur
-			 * in Pass 2). per_frame for the blurred slot matches the
-			 * raw slot (same dims, same depth). cached_copies must
-			 * be ≥ 2 for this to make sense — i.e., the CACHED tier
-			 * we just rejected was "raw + blurred", so the caller
-			 * supports a blur cache. */
+			 * in Pass 2). Sizes against blurred_per_frame, which for
+			 * 8-bit input is 2× per_frame because the blur upscales
+			 * to CV_16U — using per_frame here is what caused the
+			 * blur cache to double-overshoot the budget. cached_copies
+			 * must be ≥ 2 for this to make sense — i.e., the CACHED
+			 * tier we just rejected was "raw + blurred", so the
+			 * caller supports a blur cache. */
 			if (cached_copies >= 2) {
 				const uint64_t fixed = half_persistent + (uint64_t) T * per_thread_bytes
 				                     + output_bytes;
 				if (budget > fixed) {
 					const uint64_t headroom = budget - fixed;
-					const uint64_t K_blur_fit = headroom / per_frame;
+					const uint64_t K_blur_fit = headroom / blurred_per_frame;
 					if (K_blur_fit >= 1) {
 						picked_K_blur = (int) std::min((uint64_t) N, K_blur_fit);
-						picked_bytes += (uint64_t) picked_K_blur * per_frame;
+						picked_bytes += (uint64_t) picked_K_blur * blurred_per_frame;
 					}
 				}
 			}
@@ -1026,9 +1046,23 @@ extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
 }
 
 extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
-                                        const mpp_run_t *run, fits *out) {
+                                        mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
+
+	/* Stage C can't consume the analysis cache (single-channel mono at
+	 * analysis bitdepth vs. read_full_frame's multi-channel CV_16U), so
+	 * release it before the streaming-only memory picker fires.
+	 * Otherwise the cache sits resident through Stage C, silently eating
+	 * budget the picker doesn't account for and risking OOM. The GUI's
+	 * com.mpp_run typically holds a separate copy of the cache (sidecar
+	 * loads strip cache → `run` here is cache-less in that flow, but
+	 * com.mpp_run isn't); drop it too. AP re-edits after stacking
+	 * repopulate the cache via mpp_recompute_qualities at one extra
+	 * disk pass. */
+	mpp_run_drop_cache(run);
+	mpp_run_t *cached = mpp_get_cached_run();
+	if (cached && cached != run) mpp_run_drop_cache(cached);
 
 	/* Dispatch: the picked scaling method determines the backend.
 	 *   - MPP_KERNEL_UPSCALE: cv::resize bicubic path. At scale=1 this
