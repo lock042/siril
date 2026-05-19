@@ -266,6 +266,25 @@ GNU General Public License for more details.
                 <property name="width">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkCheckButton" id="check_mpp_ap_editor_show_patches">
+                <property name="label" translatable="yes">Show stacking patches</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Draw the larger stacking patches (dashed cyan) alongside the correlation boxes (solid yellow). Patches are 1.5× the box width and overlap each neighbour by ~25 %; that overlap is where Stage C's per-AP weighted shifts cross-fade. Persistent — outlines stay drawn whenever the AP overlay is visible, even after this dialog closes, until you uncheck.</property>
+                <property name="halign">start</property>
+                <property name="margin-top">8</property>
+                <property name="active">False</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_mpp_ap_editor_show_patches_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">7</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>

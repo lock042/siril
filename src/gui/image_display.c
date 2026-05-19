@@ -2060,6 +2060,29 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	 * right-side-up; overlays in pdata-row coords have to redo it. */
 	const int H = (int) gfit->ry;
 	const int hover = mpp_ap_editor_get_hover_idx();
+
+	/* Optional patch overlay — gated by the persistent "Show stacking
+	 * patches" toggle in the AP editor dialog. Drawn underneath the
+	 * boxes so the box outlines stay on top. Dashed cyan emphasises
+	 * that adjacent patches overlap (~25 % per neighbour), which is
+	 * where Stage C's per-AP weighted shifts cross-fade. */
+	if (mpp_ap_editor_show_patches()) {
+		cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+		cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.55);   /* cyan-ish */
+		const double dashes[2] = { 4.0 / dd->zoom, 3.0 / dd->zoom };
+		cairo_set_dash(dd->cr, dashes, 2, 0.0);
+		for (int i = 0; i < run->aps->count; ++i) {
+			const mpp_ap_record_t *ap = &run->aps->records[i];
+			const int pw = ap->patch_x_high - ap->patch_x_low;
+			const int ph = ap->patch_y_high - ap->patch_y_low;
+			if (pw <= 0 || ph <= 0) continue;
+			const int patch_y_top = (H - 1) - (ap->patch_y_low + dy) - (ph - 1);
+			cairo_rectangle(dd->cr, ap->patch_x_low + dx, patch_y_top, pw, ph);
+			cairo_stroke(dd->cr);
+		}
+		cairo_set_dash(dd->cr, NULL, 0, 0.0);   /* reset for subsequent strokes */
+	}
+
 	for (int i = 0; i < run->aps->count; ++i) {
 		const mpp_ap_record_t *ap = &run->aps->records[i];
 		if (i == hover) {

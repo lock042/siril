@@ -30,6 +30,11 @@ static GtkSpinButton *spin_half_box = NULL;
 static GtkSpinButton *spin_brightness = NULL;
 static GtkSpinButton *spin_contrast = NULL;
 static GtkSpinButton *spin_structure = NULL;
+/* "Show stacking patches" toggle. State is read by draw_mpp_aps as a
+ * persistent flag: outlines stay drawn whenever the AP overlay is
+ * visible (Registration tab, matching dims) even after the dialog
+ * closes, until the user reopens the editor and unchecks. */
+static GtkToggleButton *check_show_patches = NULL;
 
 /* AP currently being dragged by left-mouse-down; -1 when not dragging.
  * Set by main_action_click on a hit; read by motion_notify; cleared by
@@ -47,12 +52,35 @@ static mpp_aps_t *g_aps_snapshot = NULL;
 
 static void editor_init_statics(void) {
 	if (dialog) return;
-	dialog          = GTK_WIDGET     (gtk_builder_get_object(gui.builder, "mpp_ap_editor_dialog"));
-	count_label     = GTK_LABEL      (gtk_builder_get_object(gui.builder, "label_mpp_ap_editor_count"));
-	spin_half_box   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_half_box"));
-	spin_brightness = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_brightness"));
-	spin_contrast   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_contrast"));
-	spin_structure  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_structure"));
+	dialog             = GTK_WIDGET     (gtk_builder_get_object(gui.builder, "mpp_ap_editor_dialog"));
+	count_label        = GTK_LABEL      (gtk_builder_get_object(gui.builder, "label_mpp_ap_editor_count"));
+	spin_half_box      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_half_box"));
+	spin_brightness    = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_brightness"));
+	spin_contrast      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_contrast"));
+	spin_structure     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_structure"));
+	check_show_patches = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_ap_editor_show_patches"));
+}
+
+/* Persistent flag — true iff the user has ticked "Show stacking
+ * patches" in the AP editor (state survives dialog close). Read by
+ * draw_mpp_aps to decide whether to paint the larger dashed-cyan patch
+ * outlines alongside the boxes. Must lazily init the widget pointer
+ * because the overlay can repaint before the user has ever opened the
+ * editor (count_label etc. are filled by editor_init_statics on first
+ * dialog-open, which may not have happened yet). */
+gboolean mpp_ap_editor_show_patches(void) {
+	if (!check_show_patches) {
+		if (!gui.builder) return FALSE;
+		check_show_patches = GTK_TOGGLE_BUTTON(
+		    gtk_builder_get_object(gui.builder, "check_mpp_ap_editor_show_patches"));
+		if (!check_show_patches) return FALSE;
+	}
+	return gtk_toggle_button_get_active(check_show_patches);
+}
+
+void on_mpp_ap_editor_show_patches_toggled(GtkToggleButton *toggle, gpointer user_data) {
+	(void) toggle; (void) user_data;
+	redraw(REDRAW_OVERLAY);
 }
 
 /* Refresh the "Current APs: N" label from the cached run. */

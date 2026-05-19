@@ -24,4 +24,10 @@ void mpp_ap_editor_set_hover_idx(int idx);
  * before the dialog has ever been shown (no-op until widget cached). */
 void mpp_ap_editor_refresh_count_label(void);
 
+/* True iff the user has the "Show stacking patches" checkbox active.
+ * Persistent — survives dialog close. draw_mpp_aps reads this each
+ * paint to decide whether to overlay the dashed cyan patch outlines
+ * alongside the solid yellow correlation boxes. */
+gboolean mpp_ap_editor_show_patches(void);
+
 #endif /* SRC_GUI_MPP_AP_EDITOR_H_ */

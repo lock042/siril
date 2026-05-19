@@ -19,6 +19,7 @@
 
 /* === C++ std + Siril's C++-side headers FIRST === */
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -348,6 +349,114 @@ bool prepare_frame_filter(FrameFilterSetup &s, int f,
 	return any_ap || any_bg;
 }
 
+/* Per-frame drizzle iteration plan. dobox uses [xmin,xmax]×[ymin,ymax]
+ * inclusive bounds. */
+struct DrizRect {
+	int xmin, ymin, xmax, ymax;
+};
+
+/* Strategy picker for per-frame drizzle iteration. Two candidates:
+ *
+ *   • bbox: one dobox call covering the bounding box of active patches.
+ *     NaN entries in the pixmap (already set by mpp_pixmap_build_filtered)
+ *     skip inactive pixels inside the bbox. Constant per-frame overhead;
+ *     pixel visits = bbox area.
+ *
+ *   • per-AP: one dobox call per active AP, restricted to that AP's
+ *     patch rect. Between calls we NaN-out the pixmap inside the
+ *     processed rect (claim mask) so overlap with subsequent APs is
+ *     visited once. Pixel visits = union of active patches; per-AP
+ *     overhead scales with K (number of active APs).
+ *
+ * Heuristic: per-AP wins on pixel visits when Σ(patch_area) < bbox_area.
+ * When patches tile densely (typical of frames where most APs are
+ * active) the sum saturates near the bbox and bbox is at least as
+ * cheap — falling back guarantees worst-case ≤ bbox-only behaviour.
+ *
+ * Background contribution (include_bg_flag = 1) forces bbox = full
+ * frame because true-background pixels can fall anywhere outside the
+ * APs; per-AP iteration would skip them.
+ *
+ * out_rects/out_needs_claim are caller-owned to avoid per-frame vector
+ * allocation across 10⁴-10⁵ frames. */
+void compute_driz_plan(const mpp_run_t *run,
+                        const int *ap_active,
+                        int include_bg_flag,
+                        int frame_rx, int frame_ry,
+                        std::vector<DrizRect> &out_rects,
+                        bool &out_needs_claim) {
+	out_rects.clear();
+	out_needs_claim = false;
+
+	const DrizRect full = {0, 0, frame_rx - 1, frame_ry - 1};
+	if (include_bg_flag || !ap_active || !run->aps || run->aps->count <= 0) {
+		out_rects.push_back(full);
+		return;
+	}
+
+	const int M = run->aps->count;
+	int K = 0;
+	int bbox_xmin = INT_MAX, bbox_ymin = INT_MAX;
+	int bbox_xmax = INT_MIN, bbox_ymax = INT_MIN;
+	long long sum_patch_area = 0;
+	for (int a = 0; a < M; ++a) {
+		if (!ap_active[a]) continue;
+		const auto &ap = run->aps->records[a];
+		const int px_lo = std::max(0, ap.patch_x_low);
+		const int px_hi = std::min(frame_rx, ap.patch_x_high);
+		const int py_lo = std::max(0, ap.patch_y_low);
+		const int py_hi = std::min(frame_ry, ap.patch_y_high);
+		if (px_hi <= px_lo || py_hi <= py_lo) continue;
+		++K;
+		bbox_xmin = std::min(bbox_xmin, px_lo);
+		bbox_xmax = std::max(bbox_xmax, px_hi - 1);
+		bbox_ymin = std::min(bbox_ymin, py_lo);
+		bbox_ymax = std::max(bbox_ymax, py_hi - 1);
+		sum_patch_area += (long long)(px_hi - px_lo) * (long long)(py_hi - py_lo);
+	}
+	if (K == 0) {
+		/* Shouldn't reach here — prepare_frame_filter would have
+		 * returned false. Defensive fallback. */
+		out_rects.push_back(full);
+		return;
+	}
+
+	const long long bbox_area = (long long)(bbox_xmax - bbox_xmin + 1)
+	                          * (long long)(bbox_ymax - bbox_ymin + 1);
+	if (sum_patch_area < bbox_area) {
+		out_rects.reserve(K);
+		for (int a = 0; a < M; ++a) {
+			if (!ap_active[a]) continue;
+			const auto &ap = run->aps->records[a];
+			const int px_lo = std::max(0, ap.patch_x_low);
+			const int px_hi = std::min(frame_rx, ap.patch_x_high);
+			const int py_lo = std::max(0, ap.patch_y_low);
+			const int py_hi = std::min(frame_ry, ap.patch_y_high);
+			if (px_hi <= px_lo || py_hi <= py_lo) continue;
+			out_rects.push_back({px_lo, py_lo, px_hi - 1, py_hi - 1});
+		}
+		out_needs_claim = true;
+	} else {
+		out_rects.push_back({bbox_xmin, bbox_ymin, bbox_xmax, bbox_ymax});
+	}
+}
+
+/* Mark a rectangular region of the pixmap as already-drizzled by NaN-ing
+ * both xmap and ymap entries. Subsequent dobox calls' map_pixel checks
+ * (cdrizzlemap.c:381) will treat the pixel as out-of-bounds and skip
+ * it, so input pixels in patch overlap regions are accumulated exactly
+ * once with the pre-claim AP-weighted shift. */
+void pixmap_claim_rect(imgmap_t *pixmap, const DrizRect &r) {
+	const float skip = std::nanf("");
+	for (int j = r.ymin; j <= r.ymax; ++j) {
+		const size_t row = (size_t) j * (size_t) pixmap->rx;
+		for (int i = r.xmin; i <= r.xmax; ++i) {
+			pixmap->xmap[row + i] = skip;
+			pixmap->ymap[row + i] = skip;
+		}
+	}
+}
+
 }  // namespace
 
 /* Inner C++ entry point. Tests drive this directly with vector<cv::Mat>
@@ -410,6 +519,8 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 	const double median_brightness = bright_inc[bright_inc.size() / 2];
 
 	FrameFilterSetup filter = make_frame_filter(run, N, included);
+	std::vector<DrizRect> driz_rects;        /* re-used per frame */
+	bool driz_needs_claim = false;
 
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
@@ -471,6 +582,13 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 			return MPP_EINVAL;
 		}
 
+		/* Decide per-frame iteration strategy: per-active-AP rects with
+		 * claim-mask deduplication, or single bbox rect. See
+		 * compute_driz_plan for the heuristic. */
+		compute_driz_plan(run, ap_active_ptr, include_bg_flag,
+		                  frame_rx, frame_ry,
+		                  driz_rects, driz_needs_claim);
+
 		/* dobox's do_kernel_square hardcodes get_pixel(p->data, i, j, 0)
 		 * — it always reads channel 0 of the input fits, regardless of
 		 * the input's actual channel count. For multi-channel non-Bayer
@@ -480,69 +598,88 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 		 * is a single iteration with no extra overhead. */
 		const size_t in_plane  = (size_t) frame_rx * (size_t) frame_ry;
 		const size_t out_plane = (size_t) out_rx * (size_t) out_ry;
-		for (int c = 0; c < channels; ++c) {
-			/* Single-channel view fits pointing into the planar frame_fit. */
-			fits frame_view = frame_fit;
-			frame_view.fdata = frame_fit.fdata + (size_t) c * in_plane;
-			frame_view.fpdata[0] = frame_view.fdata;
-			frame_view.fpdata[1] = nullptr;
-			frame_view.fpdata[2] = nullptr;
-			frame_view.naxes[2]  = 1;
-			frame_view.naxis     = 2;
+		bool dobox_failed = false;
+		int failed_channel = 0;
+		for (size_t r = 0; r < driz_rects.size() && !dobox_failed; ++r) {
+			const DrizRect &rect = driz_rects[r];
+			for (int c = 0; c < channels; ++c) {
+				/* Single-channel view fits pointing into the planar
+				 * frame_fit. */
+				fits frame_view = frame_fit;
+				frame_view.fdata = frame_fit.fdata + (size_t) c * in_plane;
+				frame_view.fpdata[0] = frame_view.fdata;
+				frame_view.fpdata[1] = nullptr;
+				frame_view.fpdata[2] = nullptr;
+				frame_view.naxes[2]  = 1;
+				frame_view.naxis     = 2;
 
-			fits od_view = output_data;
-			od_view.fdata = output_data.fdata + (size_t) c * out_plane;
-			od_view.fpdata[0] = od_view.fdata;
-			od_view.fpdata[1] = nullptr;
-			od_view.fpdata[2] = nullptr;
-			od_view.naxes[2]  = 1;
-			od_view.naxis     = 2;
+				fits od_view = output_data;
+				od_view.fdata = output_data.fdata + (size_t) c * out_plane;
+				od_view.fpdata[0] = od_view.fdata;
+				od_view.fpdata[1] = nullptr;
+				od_view.fpdata[2] = nullptr;
+				od_view.naxes[2]  = 1;
+				od_view.naxis     = 2;
 
-			fits oc_view = output_counts;
-			oc_view.fdata = output_counts.fdata + (size_t) c * out_plane;
-			oc_view.fpdata[0] = oc_view.fdata;
-			oc_view.fpdata[1] = nullptr;
-			oc_view.fpdata[2] = nullptr;
-			oc_view.naxes[2]  = 1;
-			oc_view.naxis     = 2;
+				fits oc_view = output_counts;
+				oc_view.fdata = output_counts.fdata + (size_t) c * out_plane;
+				oc_view.fpdata[0] = oc_view.fdata;
+				oc_view.fpdata[1] = nullptr;
+				oc_view.fpdata[2] = nullptr;
+				oc_view.naxes[2]  = 1;
+				oc_view.naxis     = 2;
 
-			struct driz_param_t p;
-			std::memset(&p, 0, sizeof(p));
-			driz_param_init(&p);
-			p.driz           = &driz_args;
-			p.kernel         = driz_args.kernel;
-			/* p.scale = 1.0 (not driz_args.scale). dobox uses p.scale only
-			 * to compute a `scale²` flux-conservation multiplier on each
-			 * input pixel value — the 2x output canvas geometry is fully
-			 * carried by the pixmap's drizzle_scale multiplier, so we
-			 * want unit value scaling here. */
-			p.scale          = 1.0f;
-			p.pixel_fraction = driz_args.pixel_fraction;
-			p.weight_scale   = 1.0f;
-			p.in_units       = unit_counts;
-			p.out_units      = unit_counts;
-			p.exposure_time  = 1.0f;
-			p.data           = &frame_view;
-			p.weights        = nullptr;
-			p.pixmap         = &pixmap;
-			p.output_data    = &od_view;
-			p.output_counts  = &oc_view;
-			p.xmin           = 0;
-			p.ymin           = 0;
-			p.xmax           = frame_rx - 1;
-			p.ymax           = frame_ry - 1;
-			p.threads        = 1;
-			p.error          = &error;
+				struct driz_param_t p;
+				std::memset(&p, 0, sizeof(p));
+				driz_param_init(&p);
+				p.driz           = &driz_args;
+				p.kernel         = driz_args.kernel;
+				/* p.scale = 1.0 (not driz_args.scale). dobox uses
+				 * p.scale only to compute a `scale²` flux-conservation
+				 * multiplier on each input pixel value — the 2x output
+				 * canvas geometry is fully carried by the pixmap's
+				 * drizzle_scale multiplier, so we want unit value
+				 * scaling here. */
+				p.scale          = 1.0f;
+				p.pixel_fraction = driz_args.pixel_fraction;
+				p.weight_scale   = 1.0f;
+				p.in_units       = unit_counts;
+				p.out_units      = unit_counts;
+				p.exposure_time  = 1.0f;
+				p.data           = &frame_view;
+				p.weights        = nullptr;
+				p.pixmap         = &pixmap;
+				p.output_data    = &od_view;
+				p.output_counts  = &oc_view;
+				p.xmin           = rect.xmin;
+				p.ymin           = rect.ymin;
+				p.xmax           = rect.xmax;
+				p.ymax           = rect.ymax;
+				p.threads        = 1;
+				p.error          = &error;
 
-			if (dobox(&p)) {
-				siril_log_error(
-				    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"), f, c, error.last_message[0] ? error.last_message : "(no detail)");
-				clearfits(&frame_fit);
-				mpp_imgmap_free(&pixmap);
-				clearfits(&output_data);
-				clearfits(&output_counts);
-				return MPP_EIO;
+				if (dobox(&p)) {
+					dobox_failed = true;
+					failed_channel = c;
+					break;
+				}
 			}
+			/* In per-AP mode, NaN-out the just-processed patch so the
+			 * next AP's dobox call skips overlap pixels. Skip in
+			 * bbox-only mode (no overlap to dedupe). */
+			if (!dobox_failed && driz_needs_claim) {
+				pixmap_claim_rect(&pixmap, rect);
+			}
+		}
+		if (dobox_failed) {
+			siril_log_error(
+			    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"),
+			    f, failed_channel, error.last_message[0] ? error.last_message : "(no detail)");
+			clearfits(&frame_fit);
+			mpp_imgmap_free(&pixmap);
+			clearfits(&output_data);
+			clearfits(&output_counts);
+			return MPP_EIO;
 		}
 		clearfits(&frame_fit);
 
@@ -690,6 +827,8 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 	const double median_brightness = bright_inc[bright_inc.size() / 2];
 
 	FrameFilterSetup filter = make_frame_filter(run, N, included);
+	std::vector<DrizRect> driz_rects;        /* re-used per frame */
+	bool driz_needs_claim = false;
 
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
@@ -756,34 +895,50 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 			return MPP_EINVAL;
 		}
 
-		struct driz_param_t p;
-		std::memset(&p, 0, sizeof(p));
-		driz_param_init(&p);
-		p.driz           = &driz_args;
-		p.kernel         = driz_args.kernel;
-		p.scale          = 1.0f;            /* same as STScI path — see comment there */
-		p.pixel_fraction = driz_args.pixel_fraction;
-		p.weight_scale   = 1.0f;
-		p.in_units       = unit_counts;
-		p.out_units      = unit_counts;
-		p.exposure_time  = 1.0f;
-		p.data           = &frame_fit;
-		p.weights        = nullptr;
-		p.pixmap         = &pixmap;
-		p.output_data    = &output_data;
-		p.output_counts  = &output_counts;
-		std::memcpy(p.cfa, cfa, 4);
-		p.cfadim         = (size_t) cfadim;
-		p.xmin           = 0;
-		p.ymin           = 0;
-		p.xmax           = frame_rx - 1;
-		p.ymax           = frame_ry - 1;
-		p.threads        = 1;
-		p.error          = &error;
+		compute_driz_plan(run, ap_active_ptr, include_bg_flag,
+		                  frame_rx, frame_ry,
+		                  driz_rects, driz_needs_claim);
 
-		if (dobox(&p)) {
+		bool dobox_failed = false;
+		for (size_t r = 0; r < driz_rects.size() && !dobox_failed; ++r) {
+			const DrizRect &rect = driz_rects[r];
+			struct driz_param_t p;
+			std::memset(&p, 0, sizeof(p));
+			driz_param_init(&p);
+			p.driz           = &driz_args;
+			p.kernel         = driz_args.kernel;
+			p.scale          = 1.0f;            /* same as STScI path — see comment there */
+			p.pixel_fraction = driz_args.pixel_fraction;
+			p.weight_scale   = 1.0f;
+			p.in_units       = unit_counts;
+			p.out_units      = unit_counts;
+			p.exposure_time  = 1.0f;
+			p.data           = &frame_fit;
+			p.weights        = nullptr;
+			p.pixmap         = &pixmap;
+			p.output_data    = &output_data;
+			p.output_counts  = &output_counts;
+			std::memcpy(p.cfa, cfa, 4);
+			p.cfadim         = (size_t) cfadim;
+			p.xmin           = rect.xmin;
+			p.ymin           = rect.ymin;
+			p.xmax           = rect.xmax;
+			p.ymax           = rect.ymax;
+			p.threads        = 1;
+			p.error          = &error;
+
+			if (dobox(&p)) {
+				dobox_failed = true;
+				break;
+			}
+			if (driz_needs_claim) {
+				pixmap_claim_rect(&pixmap, rect);
+			}
+		}
+		if (dobox_failed) {
 			siril_log_error(
-			    _("Stack (Bayer): dobox failed on frame %d: %s\n"), f, error.last_message[0] ? error.last_message : "(no detail)");
+			    _("Stack (Bayer): dobox failed on frame %d: %s\n"),
+			    f, error.last_message[0] ? error.last_message : "(no detail)");
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
