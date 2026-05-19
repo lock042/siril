@@ -67,6 +67,19 @@ mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
                               double drizzle_scale,
                               imgmap_t *out);
 
+/* Filtered variant for per-AP top-K dropping. `ap_active` is a length-M
+ * array of 0/1 flags (NULL = all-on, equivalent to mpp_pixmap_build).
+ * `include_background` controls whether pixels outside every AP's patch
+ * receive the global-shift fallback (1 = yes, 0 = NaN-skip). Pixmap
+ * entries that should be skipped by dobox are written as NaN, which
+ * map_pixel (drizzle/cdrizzlemap.c:381) treats as out-of-bounds. */
+mpp_status_t mpp_pixmap_build_filtered(const mpp_run_t *run,
+                                       int frame_idx,
+                                       double drizzle_scale,
+                                       const int *ap_active,
+                                       int include_background,
+                                       imgmap_t *out);
+
 /* -------- STScI stack-path entry (Phase 5b slice 2) -------- */
 /*
  * Drizzles the run's selected frames into `out` via dobox(). One pass

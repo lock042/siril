@@ -256,6 +256,22 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 
 namespace {   /* reopen anonymous namespace for the remaining helpers */
 
+/* Per-AP target stack size from cfg (number override wins, else
+ * round-up % of N), clamped to [1, N]. Mirrors the formula in
+ * ap_compute_frame_qualities_streamed (mpp_stack.cpp:149-156) so
+ * Stage C entry can honour Stack-tab overrides against the value
+ * Stage A baked at Analyze time. */
+int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
+	if (N <= 0) return 0;
+	int s;
+	if (cfg.alignment_points_frame_number > 0)
+		s = cfg.alignment_points_frame_number;
+	else
+		s = std::max(1, (int) std::ceil(
+		        (double) N * cfg.alignment_points_frame_percent / 100.0));
+	return std::min(s, N);
+}
+
 /* Reconstruct APQualities from a populated mpp_run_t. Stage B and Stage C
  * both consume this. */
 APQualities apq_from_run(const mpp_run_t *run) {
@@ -1049,6 +1065,34 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
                                         mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
+
+	/* Honour Stack-tab per-AP top-K overrides. Stage A baked
+	 * run->stack_size from the Analyze-time cfg; the GUI Stack tab and
+	 * sidecar overrides land in cfg here without affecting run->stack_size
+	 * automatically. Re-derive the target from cfg and clamp:
+	 *   target ≤ baked: shrink in-place — best_frame_indices is sorted
+	 *     descending by per-AP quality, so taking the first `target`
+	 *     entries per AP is correct (used_alignment_points naturally
+	 *     follows when apq_from_run reads the new stack_size).
+	 *   target > baked: warn and keep baked. Analyze discarded the per-AP
+	 *     quality matrix past the top run->stack_size, so we can't grow
+	 *     without re-running Stage A. */
+	if (run->num_frames > 0) {
+		const int target = mpp::stack_size_from_cfg(*cfg, run->num_frames);
+		if (target > run->stack_size) {
+			siril_log_warning(
+			    _("Stack (mpp): requested %d top-quality frames per AP but "
+			      "Analyze baked %d — keeping %d. Re-run Analyze with a "
+			      "higher frame %%/count to raise the ceiling.\n"),
+			    target, run->stack_size, run->stack_size);
+		} else if (target < run->stack_size) {
+			siril_log_message(
+			    _("Stack (mpp): using %d/%d top-quality frames per AP "
+			      "(Analyze baked %d).\n"),
+			    target, run->num_frames, run->stack_size);
+			run->stack_size = target;
+		}
+	}
 
 	/* Stage C can't consume the analysis cache (single-channel mono at
 	 * analysis bitdepth vs. read_full_frame's multi-channel CV_16U), so

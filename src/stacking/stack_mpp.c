@@ -65,6 +65,45 @@ int stack_mpp_handler(struct stacking_args *args) {
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
 	}
 
+	/* Apply the generic Stack-tab filter (all / selected / criteria) on
+	 * top of run->included. The framework hands us image_indices listing
+	 * the frames that passed args->filtering_criterion; everything else
+	 * gets excluded. AND with whatever run->included already had (Stage A
+	 * fills it with 1s, sidecar can persist user exclusions). When the
+	 * generic filter narrows the set AND the MPP per-AP %/num control is
+	 * also narrower than all-frames, emit a one-line note so the user
+	 * sees how the two stack. */
+	int generic_filter_active = 0;
+	if (args->image_indices && args->nb_images_to_stack > 0
+	 && args->nb_images_to_stack < run->num_frames) {
+		int *new_inc = calloc((size_t) run->num_frames, sizeof(int));
+		if (new_inc) {
+			for (int i = 0; i < args->nb_images_to_stack; ++i) {
+				const int idx = args->image_indices[i];
+				if (idx >= 0 && idx < run->num_frames)
+					new_inc[idx] = 1;
+			}
+			for (int i = 0; i < run->num_frames; ++i)
+				run->included[i] = new_inc[i] && run->included[i];
+			free(new_inc);
+			generic_filter_active = 1;
+		}
+	}
+
+	const int mpp_filter_narrows =
+	    (run->cfg->alignment_points_frame_number > 0
+	     && run->cfg->alignment_points_frame_number < run->num_frames)
+	 || (run->cfg->alignment_points_frame_number <= 0
+	     && run->cfg->alignment_points_frame_percent < 100);
+	if (generic_filter_active && mpp_filter_narrows) {
+		siril_log_warning(_("Stack (mpp): both filters active — Siril's "
+		                    "selection narrows the eligible set to %d/%d "
+		                    "frames; the MPP per-AP control then picks the "
+		                    "top quality slice within that set. If you only "
+		                    "want one filter, set the other to all-frames.\n"),
+		                  args->nb_images_to_stack, run->num_frames);
+	}
+
 	siril_log_message(_("Stack (mpp): %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,

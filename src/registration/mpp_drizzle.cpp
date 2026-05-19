@@ -106,10 +106,12 @@ extern "C" void mpp_imgmap_free(imgmap_t *m) {
 	m->ry = 0;
 }
 
-extern "C" mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
-                                         int frame_idx,
-                                         double drizzle_scale,
-                                         imgmap_t *out) {
+extern "C" mpp_status_t mpp_pixmap_build_filtered(const mpp_run_t *run,
+                                                  int frame_idx,
+                                                  double drizzle_scale,
+                                                  const int *ap_active,
+                                                  int include_background,
+                                                  imgmap_t *out) {
 	if (!run || !out || !out->xmap || !out->ymap) return MPP_EINVAL;
 	if (!run->aps || !run->global_shifts || !run->shifts || !run->shifts->shifts)
 		return MPP_EINVAL;
@@ -143,6 +145,11 @@ extern "C" mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
 
 	const size_t frame_base = (size_t) frame_idx * (size_t) M;
 	const double *ap_shifts = &run->shifts->shifts[2 * frame_base];
+	/* NaN sentinel makes dobox's map_pixel (cdrizzlemap.c:381) return
+	 * "out of bounds" so the input pixel is skipped — this is how per-AP
+	 * top-K filtering selectively excludes a frame from regions whose
+	 * covering APs don't have it in their top-stack_size. */
+	const float skip = std::nanf("");
 
 #ifdef _OPENMP
 #pragma omp parallel for collapse(2) schedule(static)
@@ -150,10 +157,13 @@ extern "C" mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
 	for (int j = 0; j < ry; ++j) {
 		for (int i = 0; i < rx; ++i) {
 			double wsum = 0.0, wsy = 0.0, wsx = 0.0;
+			bool any_ap_covers = false;
 			for (int a = 0; a < M; ++a) {
 				const auto &ap = run->aps->records[a];
 				if (j < ap.patch_y_low || j >= ap.patch_y_high) continue;
 				if (i < ap.patch_x_low || i >= ap.patch_x_high) continue;
+				any_ap_covers = true;
+				if (ap_active && !ap_active[a]) continue;
 				const float wy_v = wy[a][j - ap.patch_y_low];
 				const float wx_v = wx[a][i - ap.patch_x_low];
 				const double w   = (double) std::min(wy_v, wx_v);
@@ -162,18 +172,40 @@ extern "C" mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
 				wsy  += w * ap_shifts[2 * a + 0];
 				wsx  += w * ap_shifts[2 * a + 1];
 			}
-			double sy = gdy;
-			double sx = gdx;
-			if (wsum > 0.0) {
-				sy += wsy / wsum;
-				sx += wsx / wsum;
-			}
 			const size_t idx = (size_t) j * (size_t) rx + (size_t) i;
-			out->xmap[idx] = (float) (drizzle_scale * ((double) i + sx - ix_lo));
-			out->ymap[idx] = (float) (drizzle_scale * ((double) j + sy - iy_lo));
+			if (wsum > 0.0) {
+				/* Pixel falls inside ≥1 AP that has this frame in its
+				 * top-K — accumulate with the (filtered) AP-weighted
+				 * shift. */
+				const double sy = gdy + wsy / wsum;
+				const double sx = gdx + wsx / wsum;
+				out->xmap[idx] = (float) (drizzle_scale * ((double) i + sx - ix_lo));
+				out->ymap[idx] = (float) (drizzle_scale * ((double) j + sy - iy_lo));
+			} else if (!any_ap_covers && include_background) {
+				/* True background region (no AP covers) and this frame
+				 * is allowed to contribute to background — use the
+				 * global shift only. */
+				out->xmap[idx] = (float) (drizzle_scale * ((double) i + gdx - ix_lo));
+				out->ymap[idx] = (float) (drizzle_scale * ((double) j + gdy - iy_lo));
+			} else {
+				/* Covered only by APs that don't have this frame in
+				 * their top-K, or background but frame is below the
+				 * overall top-stack_size threshold — skip. */
+				out->xmap[idx] = skip;
+				out->ymap[idx] = skip;
+			}
 		}
 	}
 	return MPP_OK;
+}
+
+extern "C" mpp_status_t mpp_pixmap_build(const mpp_run_t *run,
+                                         int frame_idx,
+                                         double drizzle_scale,
+                                         imgmap_t *out) {
+	return mpp_pixmap_build_filtered(run, frame_idx, drizzle_scale,
+	                                 /*ap_active=*/nullptr,
+	                                 /*include_background=*/1, out);
 }
 
 
@@ -245,6 +277,77 @@ bool cv_to_planar_fits(const cv::Mat &raw, double scale, fits *out) {
 	return true;
 }
 
+/* Per-AP top-K filter state. Built once per Stage C call, queried per
+ * frame to derive (ap_active mask, include_background flag) for
+ * mpp_pixmap_build_filtered. Mirrors the bicubic stack path's
+ * apq.used_alignment_points / top_for_bg construction (mpp_stack.cpp:
+ * stack_apply_shifts_streamed). Frames that contribute nowhere
+ * (no AP top-K AND not in background top-K) can be skipped entirely. */
+struct FrameFilterSetup {
+	bool apply;                              /* false → no filtering (pre-filter behaviour) */
+	int M;
+	std::vector<std::vector<int>> used_alignment_points;
+	std::vector<int> top_for_bg_flag;        /* length N, 0/1 */
+	std::vector<int> ap_active_buf;          /* length M, reused per frame */
+};
+
+FrameFilterSetup make_frame_filter(const mpp_run_t *run, int N,
+                                    const std::vector<int> &included) {
+	FrameFilterSetup s;
+	s.M     = run->aps ? run->aps->count : 0;
+	s.apply = (run->stack_size > 0
+	        && run->best_frame_indices != nullptr
+	        && run->quality != nullptr
+	        && s.M > 0);
+	if (!s.apply) return s;
+
+	s.used_alignment_points.assign(N, {});
+	for (int a = 0; a < s.M; ++a) {
+		for (int k = 0; k < run->stack_size; ++k) {
+			const int idx = run->best_frame_indices[a * run->stack_size + k];
+			if (idx >= 0 && idx < N)
+				s.used_alignment_points[idx].push_back(a);
+		}
+	}
+
+	/* Top-stack_size frames globally for the background. Restricted to
+	 * the included set so an excluded-but-high-quality frame doesn't
+	 * displace an included one. */
+	std::vector<int> sorted_idx;
+	sorted_idx.reserve(N);
+	for (int i = 0; i < N; ++i)
+		if (included[i]) sorted_idx.push_back(i);
+	std::sort(sorted_idx.begin(), sorted_idx.end(),
+	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
+	s.top_for_bg_flag.assign(N, 0);
+	const int K_bg = std::min((int) sorted_idx.size(), run->stack_size);
+	for (int i = 0; i < K_bg; ++i)
+		s.top_for_bg_flag[sorted_idx[i]] = 1;
+
+	s.ap_active_buf.assign(s.M, 0);
+	return s;
+}
+
+/* Populate ap_active_buf for frame f. Returns true if this frame should
+ * be drizzled (contributes to at least one AP or to the background);
+ * false to skip the disk read + dobox call entirely. */
+bool prepare_frame_filter(FrameFilterSetup &s, int f,
+                          const int **ap_active_ptr_out,
+                          int *include_bg_flag_out) {
+	if (!s.apply) {
+		*ap_active_ptr_out   = nullptr;
+		*include_bg_flag_out = 1;
+		return true;
+	}
+	std::fill(s.ap_active_buf.begin(), s.ap_active_buf.end(), 0);
+	for (int a : s.used_alignment_points[f]) s.ap_active_buf[a] = 1;
+	const bool any_ap = !s.used_alignment_points[f].empty();
+	const bool any_bg = s.top_for_bg_flag[f] != 0;
+	*ap_active_ptr_out   = s.ap_active_buf.data();
+	*include_bg_flag_out = any_bg ? 1 : 0;
+	return any_ap || any_bg;
+}
+
 }  // namespace
 
 /* Inner C++ entry point. Tests drive this directly with vector<cv::Mat>
@@ -306,6 +409,8 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 	                 bright_inc.end());
 	const double median_brightness = bright_inc[bright_inc.size() / 2];
 
+	FrameFilterSetup filter = make_frame_filter(run, N, included);
+
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
 	driz_args.kernel         = kernel_from_cfg(cfg->drizzle_kernel);
@@ -332,6 +437,17 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 			clearfits(&output_counts);
 			return MPP_EINTR;
 		}
+
+		/* Per-frame filter: derive the AP mask and bg flag; skip frame
+		 * outright if it contributes nowhere. */
+		const int *ap_active_ptr = nullptr;
+		int include_bg_flag = 1;
+		if (!prepare_frame_filter(filter, f, &ap_active_ptr, &include_bg_flag)) {
+			g_atomic_int_inc(&cur_nb);
+			gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
+			continue;
+		}
+
 		const cv::Mat frame_raw = provider(f);
 		if (frame_raw.empty()) continue;
 
@@ -346,7 +462,8 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 			return MPP_ENOMEM;
 		}
 
-		if (mpp_pixmap_build(run, f, scale, &pixmap) != MPP_OK) {
+		if (mpp_pixmap_build_filtered(run, f, scale, ap_active_ptr,
+		                              include_bg_flag, &pixmap) != MPP_OK) {
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
@@ -572,6 +689,8 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 	                 bright_inc.end());
 	const double median_brightness = bright_inc[bright_inc.size() / 2];
 
+	FrameFilterSetup filter = make_frame_filter(run, N, included);
+
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
 	driz_args.kernel         = kernel_from_cfg(cfg->drizzle_kernel);
@@ -599,6 +718,15 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 			clearfits(&output_counts);
 			return MPP_EINTR;
 		}
+
+		const int *ap_active_ptr = nullptr;
+		int include_bg_flag = 1;
+		if (!prepare_frame_filter(filter, f, &ap_active_ptr, &include_bg_flag)) {
+			g_atomic_int_inc(&cur_nb);
+			gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
+			continue;
+		}
+
 		const cv::Mat frame_raw = provider(f);
 		if (frame_raw.empty()) continue;
 		if (frame_raw.channels() != 1) {
@@ -619,7 +747,8 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 			return MPP_ENOMEM;
 		}
 
-		if (mpp_pixmap_build(run, f, scale, &pixmap) != MPP_OK) {
+		if (mpp_pixmap_build_filtered(run, f, scale, ap_active_ptr,
+		                              include_bg_flag, &pixmap) != MPP_OK) {
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
