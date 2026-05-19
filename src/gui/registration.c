@@ -135,6 +135,13 @@ static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = N
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_patch_scale = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
+/* Linked-adjustment companions for the Stack-tab spinners
+ * (spin_mpp_stack_percent / spin_mpp_stack_frames). Sharing GtkAdjustment
+ * keeps the values in sync across tabs without any signal plumbing —
+ * the user can set top-K at Analyze time so Stage A bakes a smaller
+ * per-AP best-frame list and Stage B does proportionally less correlation
+ * work. */
+static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_frames = NULL;
 static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL;
 static GtkComboBox *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
@@ -269,6 +276,8 @@ static void registration_init_statics() {
 		spin_mpp_min_brightness  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_brightness"));
 		spin_mpp_min_contrast    = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_contrast"));
 		spin_mpp_min_structure   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_structure"));
+		spin_mpp_reg_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_percent"));
+		spin_mpp_reg_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_frames"));
 		check_mpp_dewarp         = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
 		check_mpp_normalize      = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
 		combo_mpp_avi_bayer      = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
@@ -1192,6 +1201,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->alignment_points_brightness_threshold = gtk_spin_button_get_value_as_int(spin_mpp_min_brightness);
 		cfg->alignment_points_contrast_threshold   = gtk_spin_button_get_value_as_int(spin_mpp_min_contrast);
 		cfg->alignment_points_structure_threshold  = gtk_spin_button_get_value(spin_mpp_min_structure);
+		cfg->alignment_points_frame_percent        = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_percent);
+		cfg->alignment_points_frame_number         = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_frames);
 		cfg->alignment_points_de_warp              = gtk_toggle_button_get_active(check_mpp_dewarp);
 		cfg->frames_normalization                  = gtk_toggle_button_get_active(check_mpp_normalize);
 		{

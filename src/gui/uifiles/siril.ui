@@ -7031,6 +7031,58 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Stack percent:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">10</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_reg_stack_percent">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Per-AP top-N selection, applied at Analyze time. Shares its value with the Stack tab's Stack percent — setting it here lets Stage A bake a smaller best-frame list, which proportionally shrinks Stage B's per-AP correlation work and the sidecar size. Stack-time changes can still shrink the slice further but cannot grow it.</property>
+                                                            <property name="adjustment">adj_mpp_stack_percent</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">100</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">10</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Stack frames:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">11</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_mpp_reg_stack_frames">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Explicit per-AP top-N count, applied at Analyze time. Positive value overrides Stack percent; -1 disables. Shares its value with the Stack tab's Stack frames.</property>
+                                                            <property name="adjustment">adj_mpp_stack_frames</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">-1</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">11</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkButton" id="button_mpp_analyze">
                                                             <property name="label" translatable="yes">Analyze</property>
                                                             <property name="visible">True</property>
@@ -7045,7 +7097,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">10</property>
+                                                            <property name="top-attach">12</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7061,7 +7113,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">10</property>
+                                                            <property name="top-attach">12</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7077,7 +7129,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">11</property>
+                                                            <property name="top-attach">13</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>

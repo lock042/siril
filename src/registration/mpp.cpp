@@ -1086,11 +1086,17 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 			      "higher frame %%/count to raise the ceiling.\n"),
 			    target, run->stack_size, run->stack_size);
 		} else if (target < run->stack_size) {
-			siril_log_message(
-			    _("Stack (mpp): using %d/%d top-quality frames per AP "
-			      "(Analyze baked %d).\n"),
-			    target, run->num_frames, run->stack_size);
 			run->stack_size = target;
+		}
+		/* Always announce the effective per-AP stack size so the user
+		 * can verify Stack-tab/Register-tab settings are taking effect
+		 * (silence when stack_size == num_frames means no per-AP filter
+		 * is active and the message would be noise). */
+		if (run->stack_size < run->num_frames) {
+			siril_log_message(
+			    _("Stack (mpp): per-AP top-K filter active — %d/%d "
+			      "frames per AP.\n"),
+			    run->stack_size, run->num_frames);
 		}
 	}
 
