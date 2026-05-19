@@ -13,6 +13,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/utils.h"
 
@@ -23,18 +24,16 @@
  * preview handler so the browser can show FITS thumbnails. */
 extern guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
                                             int *width_out, int *height_out);
+/* From gui-gtk4/dialog_preview.c — first-frame thumbnail for SER files,
+ * with MTF stretch applied for higher bit depths.  Same return contract
+ * as the FITS extractor. */
+extern guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
+                                           int *width_out, int *height_out);
 
 typedef struct {
 	gchar *title;
 	GPtrArray *specs;   /* of GPatternSpec* */
 } BrowserFilter;
-
-typedef enum {
-	SORT_NAME_ASC = 0,
-	SORT_NAME_DESC,
-	SORT_TIME_NEWEST,
-	SORT_TIME_OLDEST,
-} SortMode;
 
 static void browser_filter_free(BrowserFilter *bf) {
 	if (!bf) return;
@@ -51,11 +50,11 @@ struct _SirilFileBrowser {
 	GtkWindow              *parent;
 	GtkWindow              *window;
 	GtkEntry               *path_entry;       /* editable; Enter navigates */
-	GtkListView            *listview;
+	GtkColumnView          *columnview;
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
-	GtkDropDown            *sort_combo;
+	GtkCheckButton         *debayer_check;     /* shown when show_debayer_toggle is TRUE */
 	GtkWidget              *open_button;
 	GtkWidget              *back_button;
 	GtkWidget              *forward_button;
@@ -69,12 +68,18 @@ struct _SirilFileBrowser {
 	GListStore             *recent_store;    /* +1 ref; GFileInfo items, full paths stashed via g_object_set_data */
 	GtkFilterListModel     *filter_model;    /* +1 ref */
 	GtkSortListModel       *sort_model;      /* +1 ref */
-	GtkCustomSorter        *sorter;          /* +1 ref */
+	GtkSorter              *combined_sorter; /* +1 ref; multi-sorter wrapping dirs-first + column-view's sorter */
 	GtkCustomFilter        *file_filter;     /* +1 ref */
 	GtkSelectionModel      *selection;       /* +1 ref; GtkSingleSelection or GtkMultiSelection */
-	SortMode                sort_mode;
 	gboolean                select_multiple;
 	gboolean                in_recent_mode;
+
+	/* Sibling demosaic toggle (Convert tab) — kept in sync with our local
+	 * `debayer_check` so the user sees consistent state in both places. */
+	GtkCheckButton         *external_demosaic_btn;
+	gulong                  external_demosaic_handler;
+	gulong                  debayer_check_handler;
+	gboolean                show_debayer_toggle;
 
 	GFile                  *current_folder;     /* owned */
 	GFile                  *initial_file;       /* owned, set before run */
@@ -128,47 +133,41 @@ static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 	return filter_accepts(bf, g_file_info_get_name(info));
 }
 
-/* ── sort comparator ───────────────────────────────────────────────── */
+/* ── sort comparators ─────────────────────────────────────────────── */
 
-static gint fileinfo_compare(gconstpointer a, gconstpointer b, gpointer ud) {
-	SirilFileBrowser *fb = ud;
+/* First-pass sorter that keeps directories pinned to the top irrespective
+ * of which column is the active sort key.  Returns 0 within the dir / file
+ * groups so the column-view's own sorter (multi-sorter fallthrough) takes
+ * over to order siblings. */
+static gint dirs_first_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	(void)ud;
 	GFileInfo *ia = (GFileInfo *) a;
 	GFileInfo *ib = (GFileInfo *) b;
-	/* Directories always pinned to the top, regardless of sort key. */
 	gboolean da = g_file_info_get_file_type(ia) == G_FILE_TYPE_DIRECTORY;
 	gboolean db = g_file_info_get_file_type(ib) == G_FILE_TYPE_DIRECTORY;
 	if (da != db) return da ? -1 : 1;
-
-	switch (fb->sort_mode) {
-	case SORT_NAME_ASC:
-	case SORT_NAME_DESC: {
-		const gchar *na = g_file_info_get_display_name(ia);
-		const gchar *nb = g_file_info_get_display_name(ib);
-		gint cmp = g_utf8_collate(na ? na : "", nb ? nb : "");
-		return fb->sort_mode == SORT_NAME_DESC ? -cmp : cmp;
-	}
-	case SORT_TIME_NEWEST:
-	case SORT_TIME_OLDEST: {
-		GDateTime *ta = g_file_info_get_modification_date_time(ia);
-		GDateTime *tb = g_file_info_get_modification_date_time(ib);
-		gint cmp;
-		if (!ta && !tb) cmp = 0;
-		else if (!ta)   cmp = -1;
-		else if (!tb)   cmp = 1;
-		else            cmp = g_date_time_compare(ta, tb);
-		if (ta) g_date_time_unref(ta);
-		if (tb) g_date_time_unref(tb);
-		return fb->sort_mode == SORT_TIME_NEWEST ? -cmp : cmp;
-	}
-	}
 	return 0;
 }
 
-static void on_sort_changed(GObject *obj, GParamSpec *pspec, gpointer ud) {
-	(void) pspec;
-	SirilFileBrowser *fb = ud;
-	fb->sort_mode = (SortMode) gtk_drop_down_get_selected(GTK_DROP_DOWN(obj));
-	gtk_sorter_changed(GTK_SORTER(fb->sorter), GTK_SORTER_CHANGE_DIFFERENT);
+static gint name_column_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	(void)ud;
+	const gchar *na = g_file_info_get_display_name((GFileInfo *)a);
+	const gchar *nb = g_file_info_get_display_name((GFileInfo *)b);
+	return g_utf8_collate(na ? na : "", nb ? nb : "");
+}
+
+static gint modified_column_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	(void)ud;
+	GDateTime *ta = g_file_info_get_modification_date_time((GFileInfo *)a);
+	GDateTime *tb = g_file_info_get_modification_date_time((GFileInfo *)b);
+	gint cmp;
+	if (!ta && !tb)      cmp = 0;
+	else if (!ta)        cmp = -1;
+	else if (!tb)        cmp = 1;
+	else                 cmp = g_date_time_compare(ta, tb);
+	if (ta) g_date_time_unref(ta);
+	if (tb) g_date_time_unref(tb);
+	return cmp;
 }
 
 /* ── navigation / history ──────────────────────────────────────────── */
@@ -272,7 +271,16 @@ static void update_nav_sensitivity(SirilFileBrowser *fb) {
 }
 
 /* Internal helper: navigate to `folder` without touching history.  All
- * external callers go through navigate_to(), which updates history. */
+ * external callers go through navigate_to(), which updates history.
+ *
+ * Live updates: GtkDirectoryList monitors `folder` itself once
+ * gtk_directory_list_set_monitored is TRUE (the default; we set it
+ * explicitly at construction).  When a file is added / modified /
+ * deleted inside the current folder, the model emits items-changed,
+ * the filter/sort/selection models pass that through to the view, and
+ * the listing updates in place — selection of unaffected items is
+ * preserved.  We rely on that built-in monitor rather than spinning
+ * up a parallel GFileMonitor that would force a full re-enumeration. */
 static void apply_current_folder(SirilFileBrowser *fb, GFile *folder) {
 	if (!folder) return;
 	exit_recent_mode(fb);  /* any folder navigation cancels Recent view */
@@ -367,9 +375,10 @@ static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 	g_free(expanded);
 }
 
-/* ── list factory ──────────────────────────────────────────────────── */
+/* ── column factories ─────────────────────────────────────────────── */
 
-static void on_setup_item(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+/* Name column: icon + label. */
+static void name_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
 	(void)f; (void)ud;
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	GtkWidget *icon = gtk_image_new();
@@ -382,7 +391,7 @@ static void on_setup_item(GtkSignalListItemFactory *f, GtkListItem *item, gpoint
 	gtk_list_item_set_child(item, box);
 }
 
-static void on_bind_item(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
 	(void)f; (void)ud;
 	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
 	GtkWidget *box = gtk_list_item_get_child(item);
@@ -394,6 +403,36 @@ static void on_bind_item(GtkSignalListItemFactory *f, GtkListItem *item, gpointe
 			? "folder-symbolic" : "text-x-generic-symbolic";
 	gtk_image_set_from_icon_name(GTK_IMAGE(icon), icon_name);
 	gtk_label_set_text(GTK_LABEL(label), g_file_info_get_display_name(info));
+}
+
+/* Modified column: a single right-aligned label with the mtime. */
+static void modified_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+	gtk_widget_add_css_class(label, "dim-label");
+	gtk_list_item_set_child(item, label);
+}
+
+static void modified_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
+		/* Folders: empty mtime column to keep the eye on the name. */
+		gtk_label_set_text(label, "");
+		return;
+	}
+	GDateTime *mt = g_file_info_get_modification_date_time(info);
+	if (!mt) {
+		gtk_label_set_text(label, "");
+		return;
+	}
+	gchar *s = g_date_time_format(mt, "%Y-%m-%d %H:%M");
+	gtk_label_set_text(label, s ? s : "");
+	g_free(s);
+	g_date_time_unref(mt);
 }
 
 /* ── selection / activation ────────────────────────────────────────── */
@@ -456,7 +495,10 @@ static gboolean any_selected(SirilFileBrowser *fb) {
 }
 
 static void update_preview_for_selection(SirilFileBrowser *fb) {
-	gchar *path = (current_is_directory(fb)) ? NULL : current_selected_path(fb);
+	/* The path is passed through for directories too — the default
+	 * preview handler renders a folder icon for them, and custom
+	 * callbacks can choose to do likewise (or short-circuit). */
+	gchar *path = current_selected_path(fb);
 	SirilFileBrowserPreview cb = fb->preview_cb ? fb->preview_cb
 	                                            : siril_file_browser_default_preview;
 	cb(path, fb->preview, fb->metadata_label,
@@ -471,8 +513,8 @@ static void on_selection_changed(GtkSelectionModel *m, guint pos, guint n, gpoin
 	gtk_widget_set_sensitive(fb->open_button, any_selected(fb));
 }
 
-static void on_row_activated(GtkListView *lv, guint position, gpointer ud) {
-	(void)lv; (void)position;
+static void on_row_activated(GtkColumnView *cv, guint position, gpointer ud) {
+	(void)cv; (void)position;
 	SirilFileBrowser *fb = ud;
 	GFileInfo *info = first_selected_info(fb);
 	if (!info) return;
@@ -514,7 +556,7 @@ static void on_open_clicked(GtkButton *b, gpointer ud) {
 	(void)b;
 	SirilFileBrowser *fb = ud;
 	if (current_is_directory(fb)) {
-		on_row_activated(fb->listview, 0, fb);
+		on_row_activated(fb->columnview, 0, fb);
 		return;
 	}
 	/* Stash result(s). */
@@ -740,6 +782,103 @@ static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
 
 /* ── default preview handler ───────────────────────────────────────── */
 
+/* Render a themed icon into the preview's GtkPicture at native size,
+ * centred (SCALE_DOWN), so it doesn't blow up to fill the 280x280 area
+ * the way a thumbnail-sized texture would.  Falls back silently if the
+ * icon lookup returns NULL (then the picture is just cleared). */
+static void picture_set_icon(GtkPicture *picture, const char *icon_name) {
+	if (!picture || !icon_name) return;
+	GdkDisplay *disp = gtk_widget_get_display(GTK_WIDGET(picture));
+	if (!disp) { gtk_picture_set_paintable(picture, NULL); return; }
+	GtkIconTheme *theme = gtk_icon_theme_get_for_display(disp);
+	GtkIconPaintable *icon = gtk_icon_theme_lookup_icon(theme, icon_name,
+		NULL, 128, 1, GTK_TEXT_DIR_NONE, 0);
+	if (!icon) { gtk_picture_set_paintable(picture, NULL); return; }
+	gtk_picture_set_paintable(picture, GDK_PAINTABLE(icon));
+	/* SCALE_DOWN keeps the icon at its intrinsic size when there's room
+	 * to spare; the 280x280 picture box would otherwise stretch it. */
+	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+	g_object_unref(icon);
+}
+
+/* Types that GdkTexture / gdk-pixbuf can never load.  Hitting
+ * gdk_texture_new_from_file on these is wasteful at best and
+ * pathologically slow at worst — pixbuf walks every registered loader
+ * probing magic bytes, and some loaders read large chunks before
+ * deciding the file isn't theirs.  For multi-GB SER / AVI files that
+ * means a multi-second stall on every selection change. */
+static gboolean type_known_non_raster(image_type t) {
+	switch (t) {
+	case TYPEAVI:
+	case TYPESER:
+	case TYPERAW:
+	case TYPEXISF:
+	case TYPEPIC:
+		return TRUE;
+	default:
+		return FALSE;
+	}
+}
+
+/* Pick a fallback icon name for files we couldn't generate a thumbnail
+ * for.  We split by image_type so AVI/SER get the video glyph, raster
+ * and FITS get the image glyph, and everything else falls back to a
+ * generic file icon. */
+static const char *fallback_icon_for_type(image_type t) {
+	switch (t) {
+	case TYPEAVI:
+	case TYPESER:
+		return "video-x-generic";
+	case TYPEFITS:
+	case TYPETIFF:
+	case TYPEBMP:
+	case TYPEPNG:
+	case TYPEJPG:
+	case TYPEHEIF:
+	case TYPEPNM:
+	case TYPEPIC:
+	case TYPERAW:
+	case TYPEXISF:
+	case TYPEJXL:
+	case TYPEAVIF:
+		return "image-x-generic";
+	default:
+		return "text-x-generic";
+	}
+}
+
+/* Map a Siril image_type to a short uppercase format label. */
+static const char *type_short_label(image_type t, const char *path) {
+	switch (t) {
+	case TYPEFITS: return "FITS";
+	case TYPETIFF: return "TIFF";
+	case TYPEBMP:  return "BMP";
+	case TYPEPNG:  return "PNG";
+	case TYPEJPG:  return "JPEG";
+	case TYPEHEIF: return "HEIF";
+	case TYPEPNM:  return "PNM";
+	case TYPEPIC:  return "PIC";
+	case TYPERAW:  return "RAW";
+	case TYPEXISF: return "XISF";
+	case TYPEJXL:  return "JXL";
+	case TYPEAVIF: return "AVIF";
+	case TYPEAVI:  return "AVI";
+	case TYPESER:  return "SER";
+	default: break;
+	}
+	/* TYPEUNDEF — fall back to the extension if any. */
+	if (path) {
+		const char *ext = strrchr(path, '.');
+		if (ext && *(ext + 1)) {
+			static char buf[16];
+			g_snprintf(buf, sizeof(buf), "%s", ext + 1);
+			for (char *c = buf; *c; c++) *c = g_ascii_toupper(*c);
+			return buf;
+		}
+	}
+	return _("Unknown");
+}
+
 void siril_file_browser_default_preview(const gchar *path,
                                         GtkPicture  *picture,
                                         GtkLabel    *metadata_label,
@@ -749,53 +888,199 @@ void siril_file_browser_default_preview(const gchar *path,
 	if (metadata_label) gtk_label_set_text(metadata_label, "");
 	if (!path) return;
 
-	/* FITS first — recognise common extensions and use Siril's loader. */
-	gchar *low = g_ascii_strdown(path, -1);
-	gboolean is_fits = g_str_has_suffix(low, ".fit") ||
-	                   g_str_has_suffix(low, ".fits") ||
-	                   g_str_has_suffix(low, ".fts") ||
-	                   g_str_has_suffix(low, ".fit.fz") ||
-	                   g_str_has_suffix(low, ".fits.fz") ||
-	                   g_str_has_suffix(low, ".fts.fz");
-	g_free(low);
+	/* Directory: show a folder glyph and the basename — no further info
+	 * lookup needed (and we don't want to do an expensive recursive size
+	 * count). */
+	if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		picture_set_icon(picture, "folder");
+		if (metadata_label) {
+			gchar *base = g_path_get_basename(path);
+			gchar *esc  = g_markup_escape_text(base ? base : "", -1);
+			gchar *m = g_strdup_printf("<b>%s</b>\n%s", _("Folder"), esc);
+			gtk_label_set_markup(metadata_label, m);
+			g_free(m);
+			g_free(esc);
+			g_free(base);
+		}
+		return;
+	}
 
-	if (is_fits) {
+	image_type itype = get_type_from_filename(path);
+	const char *type_label = type_short_label(itype, path);
+
+	/* On-disk size — always available via stat. */
+	gchar *size_str = NULL;
+	{
+		GFile *gf = g_file_new_for_path(path);
+		GFileInfo *fi = g_file_query_info(gf, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                                  G_FILE_QUERY_INFO_NONE, NULL, NULL);
+		if (fi) {
+			size_str = g_format_size(g_file_info_get_size(fi));
+			g_object_unref(fi);
+		}
+		g_object_unref(gf);
+	}
+
+	/* Try to fill in dimensions / extra info via a preview load. */
+	gchar *dims_str = NULL;        /* "1024 x 1024 pixels" */
+	gchar *extra_str = NULL;       /* e.g. "3 channels (16 bits)" */
+	gboolean got_texture = FALSE;
+
+	/* FITS / SER / AVI thumbnails go through Siril-side extractors.  All
+	 * three follow the same contract: return a malloc'd RGB888 buffer
+	 * plus dimensions plus a multi-line description.  The FITS extractor
+	 * recognises .fit / .fits / .fits.fz / etc; the SER one reads frame 0
+	 * with an MTF stretch for higher bit depths; the AVI one decodes the
+	 * first video frame via libavformat without a full FFMS2 index. */
+	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI) {
 		gchar *descr = NULL;
 		int w = 0, h = 0;
-		guchar *data = extract_thumbnail_from_fits(path, &descr, &w, &h);
+		guchar *data = NULL;
+		if (itype == TYPEFITS)
+			data = extract_thumbnail_from_fits(path, &descr, &w, &h);
+		else if (itype == TYPESER)
+			data = extract_thumbnail_from_ser(path, &descr, &w, &h);
+		else /* TYPEAVI */
+			data = extract_thumbnail_from_avi(path, &descr, &w, &h);
 		if (data) {
 			GdkTexture *tex = siril_texture_from_rgb_bytes(data,
 				(gsize)w * h * 3, w, h, w * 3, FALSE,
 				(GDestroyNotify)free, data);
 			if (tex) {
 				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
 				g_object_unref(tex);
+				got_texture = TRUE;
 			} else {
 				free(data);
 			}
 		}
-		if (metadata_label && descr)
-			gtk_label_set_text(metadata_label, descr);
+		if (descr && *descr) {
+			/* The descriptor's first line is "WxH pixels"; remaining
+			 * lines hold channel/bit/frame info — split so we can lay
+			 * it out predictably (type, dims, extra, size). */
+			gchar **lines = g_strsplit(descr, "\n", 2);
+			if (lines[0] && *lines[0]) dims_str  = g_strdup(lines[0]);
+			if (lines[0] && lines[1]) extra_str = g_strdup(lines[1]);
+			g_strfreev(lines);
+		}
 		g_free(descr);
-		return;
+	} else if (!type_known_non_raster(itype)) {
+		/* Try GdkTexture for raster formats (PNG/JPEG/TIFF/WebP/...).
+		 * For other types (AVI/SER/RAW/...) we don't even attempt this
+		 * — see type_known_non_raster's comment for why. */
+		GError *err = NULL;
+		GFile *gf = g_file_new_for_path(path);
+		GdkTexture *tex = gdk_texture_new_from_file(gf, &err);
+		g_object_unref(gf);
+		if (tex) {
+			gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+			gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
+			dims_str = g_strdup_printf("%d x %d %s",
+				gdk_texture_get_width(tex), gdk_texture_get_height(tex),
+				_("pixels"));
+			g_object_unref(tex);
+			got_texture = TRUE;
+		} else {
+			g_clear_error(&err);
+		}
 	}
 
-	/* Try GdkTexture for raster formats (PNG/JPEG/TIFF/WebP/...). */
-	GError *err = NULL;
-	GFile *gf = g_file_new_for_path(path);
-	GdkTexture *tex = gdk_texture_new_from_file(gf, &err);
-	g_object_unref(gf);
-	if (tex) {
-		gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-		if (metadata_label) {
-			gchar *meta = g_strdup_printf("%d x %d",
-				gdk_texture_get_width(tex), gdk_texture_get_height(tex));
-			gtk_label_set_text(metadata_label, meta);
-			g_free(meta);
+	/* No thumbnail available — show a type-appropriate icon so the
+	 * preview area isn't a blank rectangle. */
+	if (!got_texture)
+		picture_set_icon(picture, fallback_icon_for_type(itype));
+
+	if (metadata_label) {
+		GString *meta = g_string_new(NULL);
+		/* Type line — bold so it reads as a header. */
+		gchar *type_esc = g_markup_escape_text(type_label, -1);
+		g_string_append_printf(meta, "<b>%s</b>", type_esc);
+		g_free(type_esc);
+		if (dims_str && *dims_str) {
+			gchar *e = g_markup_escape_text(dims_str, -1);
+			g_string_append_printf(meta, "\n%s", e);
+			g_free(e);
 		}
-		g_object_unref(tex);
-	} else {
-		g_clear_error(&err);
+		if (extra_str && *extra_str) {
+			gchar *e = g_markup_escape_text(extra_str, -1);
+			g_string_append_printf(meta, "\n%s", e);
+			g_free(e);
+		}
+		if (size_str && *size_str) {
+			gchar *e = g_markup_escape_text(size_str, -1);
+			g_string_append_printf(meta, "\n%s", e);
+			g_free(e);
+		}
+		gtk_label_set_markup(metadata_label, meta->str);
+		g_string_free(meta, TRUE);
+	}
+
+	g_free(dims_str);
+	g_free(extra_str);
+	g_free(size_str);
+}
+
+/* ── debayer toggle (cross-tab sync) ──────────────────────────────── */
+
+/* When the user clicks the browser's Debayer check, write the pref so
+ * future opens honour it, and mirror the state onto the Convert tab's
+ * demosaicingButton.  Mirroring fires the latter's own "toggled" handler
+ * (on_demosaicing_toggled in conversion.c) but that handler just re-
+ * writes the same pref, so there's no real loop. */
+static void on_browser_debayer_toggled(GtkCheckButton *cb, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	gboolean active = gtk_check_button_get_active(cb);
+	com.pref.debayer.open_debayer = active;
+	if (fb->external_demosaic_btn &&
+	    gtk_check_button_get_active(fb->external_demosaic_btn) != active) {
+		gtk_check_button_set_active(fb->external_demosaic_btn, active);
+	}
+}
+
+/* Reverse direction: if the Convert-tab toggle changes while the browser
+ * is open (rare, but possible via scripting / hotkeys), mirror it back. */
+static void on_external_demosaic_toggled(GtkCheckButton *cb, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	gboolean active = gtk_check_button_get_active(cb);
+	if (fb->debayer_check &&
+	    gtk_check_button_get_active(fb->debayer_check) != active) {
+		/* Block our own handler while we mirror, so we don't write the
+		 * pref twice. */
+		if (fb->debayer_check_handler)
+			g_signal_handler_block(fb->debayer_check, fb->debayer_check_handler);
+		gtk_check_button_set_active(fb->debayer_check, active);
+		if (fb->debayer_check_handler)
+			g_signal_handler_unblock(fb->debayer_check, fb->debayer_check_handler);
+	}
+}
+
+void siril_file_browser_set_show_debayer_toggle(SirilFileBrowser *fb, gboolean show) {
+	if (!fb || !fb->debayer_check) return;
+	fb->show_debayer_toggle = show;
+	gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), show);
+	if (!show) return;
+
+	/* Initial state from the pref. */
+	gtk_check_button_set_active(fb->debayer_check, com.pref.debayer.open_debayer);
+
+	/* Connect our own toggle handler once. */
+	if (!fb->debayer_check_handler) {
+		fb->debayer_check_handler = g_signal_connect(fb->debayer_check,
+			"toggled", G_CALLBACK(on_browser_debayer_toggled), fb);
+	}
+
+	/* Bind to the Convert tab's demosaicingButton (if the main UI builder
+	 * is available — it is for any GUI session, but guard for unit tests
+	 * that construct a browser without a full UI tree). */
+	if (!fb->external_demosaic_btn && gui.builder) {
+		GObject *o = gtk_builder_get_object(gui.builder, "demosaicingButton");
+		if (o && GTK_IS_CHECK_BUTTON(o)) {
+			fb->external_demosaic_btn = GTK_CHECK_BUTTON(o);
+			fb->external_demosaic_handler = g_signal_connect(
+				fb->external_demosaic_btn, "toggled",
+				G_CALLBACK(on_external_demosaic_toggled), fb);
+		}
 	}
 }
 
@@ -842,24 +1127,34 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	                 G_CALLBACK(on_path_entry_activate), fb);
 	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_entry));
 
-	/* Models: DirectoryList → FilterListModel → SingleSelection.
+	/* Models: DirectoryList → FilterListModel → SortListModel →
+	 *         SingleSelection → ColumnView.
 	 *
 	 * Reference ownership: every chain step takes a transfer-full model
 	 * arg, and we want to keep our own ref too — so we g_object_ref each
 	 * field that we hand off, and we g_object_ref the selection again
-	 * when handing it to gtk_list_view_new (which also takes transfer-full).
+	 * when handing it to gtk_column_view_new (also transfer-full).
+	 *
+	 * Sort is driven by a GtkMultiSorter: first child pins directories to
+	 * the top, second child is the GtkColumnView's own sorter — which
+	 * updates automatically when the user clicks a column header.
 	 */
-	/* Request the modified-time attribute too — needed for date sort. */
-	fb->dir_list     = gtk_directory_list_new("standard::*,time::modified", NULL);
+	/* Request the modified-time attribute too — needed for the Modified
+	 * column and date sort. */
+	fb->dir_list = gtk_directory_list_new("standard::*,time::modified", NULL);
+	/* Live-update the listing when files are added/modified/removed in
+	 * the current folder.  Default is already TRUE on construction, but
+	 * we set it explicitly so the intent is visible. */
+	gtk_directory_list_set_monitored(fb->dir_list, TRUE);
 	fb->file_filter  = gtk_custom_filter_new(fileinfo_filter_func, fb, NULL);
 	fb->filter_model = gtk_filter_list_model_new(
 		G_LIST_MODEL(g_object_ref(fb->dir_list)),
 		GTK_FILTER(g_object_ref(fb->file_filter)));
-	/* Sort AFTER filter so we don't waste cycles ordering hidden items. */
-	fb->sorter       = gtk_custom_sorter_new(fileinfo_compare, fb, NULL);
+	/* Sort AFTER filter so we don't waste cycles ordering hidden items.
+	 * The actual sorter is installed below once the column view exists. */
 	fb->sort_model   = gtk_sort_list_model_new(
 		G_LIST_MODEL(g_object_ref(fb->filter_model)),
-		GTK_SORTER(g_object_ref(fb->sorter)));
+		NULL);
 	{
 		GtkSingleSelection *ss = gtk_single_selection_new(
 			G_LIST_MODEL(g_object_ref(fb->sort_model)));
@@ -868,21 +1163,76 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		fb->selection = GTK_SELECTION_MODEL(ss);
 	}
 
-	/* ListView. */
-	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-	g_signal_connect(factory, "setup", G_CALLBACK(on_setup_item), NULL);
-	g_signal_connect(factory, "bind",  G_CALLBACK(on_bind_item),  NULL);
-	fb->listview = GTK_LIST_VIEW(
-		gtk_list_view_new(GTK_SELECTION_MODEL(g_object_ref(fb->selection)),
-		                  factory));
-	gtk_list_view_set_single_click_activate(fb->listview, FALSE);
-	g_signal_connect(fb->listview, "activate", G_CALLBACK(on_row_activated), fb);
+	/* ColumnView with two sortable columns (Name, Modified). */
+	fb->columnview = GTK_COLUMN_VIEW(
+		gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(fb->selection))));
+	gtk_column_view_set_show_column_separators(fb->columnview, FALSE);
+	gtk_column_view_set_show_row_separators(fb->columnview, FALSE);
+	{
+		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
+			gtk_signal_list_item_factory_new());
+		g_signal_connect(fname, "setup", G_CALLBACK(name_setup_cb), NULL);
+		g_signal_connect(fname, "bind",  G_CALLBACK(name_bind_cb),  NULL);
+		GtkColumnViewColumn *cn = gtk_column_view_column_new(
+			_("Name"), GTK_LIST_ITEM_FACTORY(fname));
+		gtk_column_view_column_set_resizable(cn, TRUE);
+		gtk_column_view_column_set_expand(cn, TRUE);
+		gtk_column_view_column_set_sorter(cn,
+			GTK_SORTER(gtk_custom_sorter_new(name_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, cn);
+		g_object_unref(cn);
+	}
+	{
+		GtkSignalListItemFactory *fmod = GTK_SIGNAL_LIST_ITEM_FACTORY(
+			gtk_signal_list_item_factory_new());
+		g_signal_connect(fmod, "setup", G_CALLBACK(modified_setup_cb), NULL);
+		g_signal_connect(fmod, "bind",  G_CALLBACK(modified_bind_cb),  NULL);
+		GtkColumnViewColumn *cm = gtk_column_view_column_new(
+			_("Modified"), GTK_LIST_ITEM_FACTORY(fmod));
+		gtk_column_view_column_set_resizable(cm, TRUE);
+		gtk_column_view_column_set_sorter(cm,
+			GTK_SORTER(gtk_custom_sorter_new(modified_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, cm);
+		g_object_unref(cm);
+	}
+
+	/* Wire the column view's sorter into the sort list model, behind a
+	 * dirs-first primary sorter — so directories always group at the top,
+	 * regardless of which column the user picks to sort by. */
+	{
+		GtkMultiSorter *multi = gtk_multi_sorter_new();
+		gtk_multi_sorter_append(GTK_MULTI_SORTER(multi),
+			GTK_SORTER(gtk_custom_sorter_new(dirs_first_compare, NULL, NULL)));
+		GtkSorter *cv_sorter = gtk_column_view_get_sorter(fb->columnview);
+		if (cv_sorter)
+			gtk_multi_sorter_append(GTK_MULTI_SORTER(multi),
+				g_object_ref(cv_sorter));
+		fb->combined_sorter = GTK_SORTER(multi);
+		gtk_sort_list_model_set_sorter(fb->sort_model, fb->combined_sorter);
+	}
+
+	/* Default sort: ascending name.  Clicking the same header again
+	 * inverts the direction; clicking another header switches the key. */
+	{
+		GtkColumnViewColumn *name_col =
+			g_list_model_get_item(G_LIST_MODEL(
+				gtk_column_view_get_columns(fb->columnview)), 0);
+		if (name_col) {
+			gtk_column_view_sort_by_column(fb->columnview, name_col,
+				GTK_SORT_ASCENDING);
+			g_object_unref(name_col);
+		}
+	}
+
+	gtk_column_view_set_single_click_activate(fb->columnview, FALSE);
+	g_signal_connect(fb->columnview, "activate",
+	                 G_CALLBACK(on_row_activated), fb);
 	g_signal_connect(fb->selection, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), fb);
 
 	GtkWidget *list_scrolled = gtk_scrolled_window_new();
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(list_scrolled),
-	                              GTK_WIDGET(fb->listview));
+	                              GTK_WIDGET(fb->columnview));
 	gtk_widget_set_hexpand(list_scrolled, TRUE);
 	gtk_widget_set_vexpand(list_scrolled, TRUE);
 
@@ -890,6 +1240,17 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	GtkWidget *preview_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 	gtk_widget_set_margin_start(preview_box, 6);
 	gtk_widget_set_margin_end(preview_box, 6);
+	/* Section heading above the picture — keeps the preview area
+	 * recognisable even when nothing is selected. */
+	{
+		GtkWidget *heading = gtk_label_new(NULL);
+		const char *fmt = "<b>%s</b>";
+		gchar *m = g_markup_printf_escaped(fmt, _("Preview"));
+		gtk_label_set_markup(GTK_LABEL(heading), m);
+		g_free(m);
+		gtk_label_set_xalign(GTK_LABEL(heading), 0.0);
+		gtk_box_append(GTK_BOX(preview_box), heading);
+	}
 	fb->preview = GTK_PICTURE(gtk_picture_new());
 	gtk_widget_set_size_request(GTK_WIDGET(fb->preview), 280, 280);
 	gtk_picture_set_can_shrink(fb->preview, TRUE);
@@ -898,6 +1259,7 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_label_set_wrap(fb->metadata_label, TRUE);
 	gtk_label_set_xalign(fb->metadata_label, 0.0);
 	gtk_label_set_selectable(fb->metadata_label, TRUE);
+	gtk_label_set_use_markup(fb->metadata_label, TRUE);
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->preview));
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->metadata_label));
 
@@ -921,22 +1283,13 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	g_signal_connect(fb->filter_combo, "notify::selected",
 	                 G_CALLBACK(on_filter_changed), fb);
 
-	/* Sort dropdown — always visible.  Order matches the SortMode enum. */
-	const char *sort_options[] = {
-		N_("Name (A-Z)"),
-		N_("Name (Z-A)"),
-		N_("Date (newest first)"),
-		N_("Date (oldest first)"),
-		NULL
-	};
-	const char *sort_options_i18n[5] = {
-		_(sort_options[0]), _(sort_options[1]),
-		_(sort_options[2]), _(sort_options[3]), NULL
-	};
-	fb->sort_combo = GTK_DROP_DOWN(gtk_drop_down_new_from_strings(sort_options_i18n));
-	gtk_drop_down_set_selected(fb->sort_combo, (guint) fb->sort_mode);
-	g_signal_connect(fb->sort_combo, "notify::selected",
-	                 G_CALLBACK(on_sort_changed), fb);
+	/* Debayer toggle — hidden unless siril_file_browser_set_show_debayer_toggle
+	 * is called.  Initial state and sibling-button binding happen there. */
+	fb->debayer_check = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(_("Debayer")));
+	gtk_widget_set_tooltip_text(GTK_WIDGET(fb->debayer_check),
+		_("Debayer CFA images on open.  Linked to the same setting as the "
+		  "Conversion tab's Debayer toggle."));
+	gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
 
 	/* Action row. */
 	GtkWidget *action_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -944,7 +1297,7 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_widget_set_margin_end(action_row, 6);
 	gtk_widget_set_margin_bottom(action_row, 6);
 	gtk_widget_set_margin_top(action_row, 3);
-	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->sort_combo));
+	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->debayer_check));
 	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->filter_combo));
 	GtkWidget *spacer = gtk_label_new(NULL);
 	gtk_widget_set_hexpand(spacer, TRUE);
@@ -1055,7 +1408,7 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 	}
 	g_clear_object(&fb->selection);
 	fb->selection = fresh;  /* takes the +1 ref we got from _new */
-	gtk_list_view_set_model(fb->listview, fb->selection);
+	gtk_column_view_set_model(fb->columnview, fb->selection);
 	g_signal_connect(fb->selection, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), fb);
 }
@@ -1169,12 +1522,20 @@ void siril_image_button_init(GtkWidget               *button,
 
 void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	if (!fb) return;
+	/* Drop the external-button signal (the button itself is owned by the
+	 * main UI builder, not by us, so we must not unref it). */
+	if (fb->external_demosaic_btn && fb->external_demosaic_handler) {
+		g_signal_handler_disconnect(fb->external_demosaic_btn,
+		                            fb->external_demosaic_handler);
+		fb->external_demosaic_handler = 0;
+	}
+	fb->external_demosaic_btn = NULL;
 	/* Drop our refs on model objects FIRST, while the widget tree still
 	 * holds its own refs.  Then destroy the window — which finalizes the
 	 * widget tree, which drops the widget-owned refs. */
 	g_clear_object(&fb->selection);
 	g_clear_object(&fb->sort_model);
-	g_clear_object(&fb->sorter);
+	g_clear_object(&fb->combined_sorter);
 	g_clear_object(&fb->filter_model);
 	g_clear_object(&fb->file_filter);
 	g_clear_object(&fb->dir_list);

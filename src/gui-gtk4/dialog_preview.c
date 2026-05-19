@@ -87,9 +87,11 @@ static gchar *siril_get_file_info(const gchar *filename, int n_channel) {
 
 /* Returns a malloc'd RGB888 byte buffer plus the thumbnail's dimensions
  * and a g_strdup'd description string.  Caller owns the buffer (free()).
- * Returns NULL on error. */
-static guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
-                                           int *width_out, int *height_out) {
+ * Returns NULL on error.  Exposed (non-static) so the GTK4 file browser
+ * can reuse it for SER previews without copy-pasting the MTF / scaling
+ * logic. */
+guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
+                                    int *width_out, int *height_out) {
 	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;
 	int i, j, k, l, N, M;

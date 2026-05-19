@@ -466,7 +466,13 @@ static void get_list_store() {
 }
 
 /* Add an image to the list. If seq is NULL, the list is cleared. */
-static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
+/* Build a SirilSeqRow for `seq[index]` *without* inserting it into the
+ * GListStore.  The bulk-fill path batches every row into a single
+ * g_list_store_splice — populating a 44 k-frame sequence one append at
+ * a time emits 44 k items-changed signals, each of which the
+ * GtkColumnView reacts to, and the result is multi-second main-loop
+ * stalls.  One splice = one signal. */
+static SirilSeqRow *build_seq_row(sequence *seq, int index, int layer) {
 	char imname[256];
 	char *basename;
 	int shiftx = -1, shifty = -1;
@@ -565,8 +571,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	row->weight   = (index == seq->current) ? 800 : 400;
 	row->ref_bg   = g_strdup(index == seq->reference_image ? ref_bg_colour[color] : bg_colour[color]);
 	row->index    = index + 1;
-	g_list_store_append(seq_store, row);
-	g_object_unref(row);
+	return row;
 }
 
 /* Phase 11: change the included flag of the row whose 1-based index is
@@ -814,10 +819,22 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	if (seq_selection)
 		g_signal_handlers_block_by_func(seq_selection, on_seq_selection_changed_model, NULL);
 
+	/* Build every row up-front, then push them into the GListStore in a
+	 * single splice call.  For multi-thousand-frame SER / FITS sequences
+	 * this turns a multi-second stall (one items-changed signal per row,
+	 * each provoking work in the column view) into a single update. */
 	if (args->seq->number > 0) {
+		guint n = (guint) args->seq->number;
+		gpointer *items = g_new0(gpointer, n);
+		guint built = 0;
 		for (i = 0; i < args->seq->number; i++) {
-			add_image_to_sequence_list(args->seq, i, args->layer);
+			SirilSeqRow *r = build_seq_row(args->seq, i, args->layer);
+			if (r) items[built++] = r;
 		}
+		g_list_store_splice(seq_store, 0, 0, items, built);
+		for (guint k = 0; k < built; k++)
+			g_object_unref(items[k]);
+		g_free(items);
 	}
 
 	if (seq_selection)

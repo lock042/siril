@@ -47,6 +47,14 @@ void siril_file_browser_add_filter_pattern (SirilFileBrowser *fb,
  * siril_file_browser_get_paths() to retrieve every selected path. */
 void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi);
 
+/* Show a "Debayer" check button in the action row.  When toggled, the
+ * browser updates com.pref.debayer.open_debayer and mirrors the change
+ * onto the shared `demosaicingButton` (Convert tab), and vice-versa —
+ * the toggle reflects the pref's current state on first show.  Use this
+ * only on Open / Convert image pickers where the user might want to
+ * flip the debayer-on-open behaviour without leaving the dialog. */
+void siril_file_browser_set_show_debayer_toggle(SirilFileBrowser *fb, gboolean show);
+
 /* Provide a custom preview callback.  When unset (default), the browser
  * uses siril_file_browser_default_preview() which handles common image
  * formats via GdkTexture and FITS via Siril's reader. */

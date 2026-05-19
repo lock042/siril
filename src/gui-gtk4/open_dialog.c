@@ -282,6 +282,13 @@ static gchar *pick_image(int whichdial, GtkWindow *parent,
 	SirilFileBrowser *fb = siril_file_browser_new(parent, title);
 	if (whichdial == OD_CONVERT)
 		siril_file_browser_set_select_multiple(fb, TRUE);
+	/* Show the Debayer toggle on the cases where the user might actually
+	 * want to flip debayer-on-open: single open and Add Files (convert).
+	 * The toggle is linked to com.pref.debayer.open_debayer and the
+	 * Convert tab's demosaicingButton, so flipping it here changes the
+	 * setting consistently across the app. */
+	if (whichdial == OD_OPEN || whichdial == OD_CONVERT)
+		siril_file_browser_set_show_debayer_toggle(fb, TRUE);
 	gchar *initial = initial_folder_for(whichdial, entry);
 	if (initial && *initial)
 		siril_file_browser_set_initial_folder(fb, initial);
@@ -529,14 +536,19 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 		}
 		return;
 	}
-	gchar *image_dir = g_path_get_dirname(path);
+	/* The GVariant target is owned by the menu item and will outlive
+	 * this handler, but downstream code passes the pointer into idles
+	 * that may run after we return — copy onto the heap to be safe. */
+	gchar *path_copy = g_strdup(path);
+	gchar *image_dir = g_path_get_dirname(path_copy);
 	if (image_dir) {
 		siril_change_dir(image_dir, NULL);
 		g_free(image_dir);
 	}
 	if (!com.script)
 		gui_function(set_GUI_CWD, NULL);
-	open_single_image(path);
+	open_single_image(path_copy);
+	g_free(path_copy);
 }
 
 static int recent_info_cmp_visited_desc(gconstpointer a, gconstpointer b) {

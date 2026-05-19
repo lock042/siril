@@ -43,6 +43,8 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/conversion.h"
+#include "algos/demosaicing.h"
 #include "pixelMath/pixel_math_runner.h"
 
 /* ── Operator / function tables (GUI-side; used by tooltips and list views) */
@@ -795,10 +797,20 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < max_images) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
-		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) {
+		image_type imagetype;
+		char *realname = NULL;
+		if (stat_file(path, &imagetype, &realname)) {
+			siril_log_error(_("File not found or not supported: %s\n"), path);
 			retval = 1;
 			goto free_expressions;
 		}
+		int load_retval = any_to_fits(imagetype, realname, &var_fit[nb_rows], FALSE, TRUE);
+		free(realname);
+		if (load_retval) {
+			retval = 1;
+			goto free_expressions;
+		}
+		debayer_if_needed(imagetype, &var_fit[nb_rows], FALSE);
 
 		if (nb_rows > 0) {
 			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
@@ -997,9 +1009,31 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 		if (gf) g_object_unref(gf);
 		if (!filename) continue;
 
-		gchar filter[FLEN_VALUE] = { 0 };
+		gchar filter_kw[FLEN_VALUE] = { 0 };
 		fits f = { 0 };
-		if (read_fits_metadata_from_path(filename, &f)) {
+		gboolean have_meta = FALSE;
+		image_type imagetype;
+		char *realname = NULL;
+		if (!stat_file(filename, &imagetype, &realname)) {
+			if (imagetype == TYPEFITS) {
+				/* FITS: cheap header-only metadata read. */
+				if (!read_fits_metadata_from_path(filename, &f)) {
+					have_meta = TRUE;
+					if (f.keywords.filter[0] != '\0')
+						memcpy(filter_kw, f.keywords.filter, FLEN_VALUE);
+				}
+			} else {
+				/* Non-FITS (e.g. TIFF): full decode is needed just to
+				 * get dimensions, since these formats have no Siril
+				 * header.  Cleared after we read what we need. */
+				if (!any_to_fits(imagetype, realname, &f, FALSE, TRUE)) {
+					debayer_if_needed(imagetype, &f, FALSE);
+					have_meta = TRUE;
+				}
+			}
+			free(realname);
+		}
+		if (!have_meta) {
 			siril_log_error(_("Could not open file: %s\n"), filename);
 		} else if (check_files_dimensions(&width, &height, &channel)) {
 			if (width != 0 && (channel != f.naxes[2] ||
@@ -1011,8 +1045,6 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 				g_free(name);
 				g_free(str);
 			} else {
-				if (f.keywords.filter[0] != '\0')
-					memcpy(filter, f.keywords.filter, FLEN_VALUE);
 				int idx = search_for_free_index();
 				if (idx >= pm_get_max_images()) {
 					siril_log_error(_("Error: maximum variable index exceeded - too many variables!\n"));
@@ -1020,7 +1052,7 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 					clearfits(&f);
 					break;
 				}
-				add_image_to_variable_list(filename, pm_get_variable_name(idx), filter, f.naxes[2], f.naxes[0], f.naxes[1]);
+				add_image_to_variable_list(filename, pm_get_variable_name(idx), filter_kw, f.naxes[2], f.naxes[0], f.naxes[1]);
 				pos++;
 				if (pos == pm_get_max_images()) {
 					g_free(filename);
@@ -1043,17 +1075,28 @@ static void select_image(int nb) {
 	g_object_unref(initial_folder);
 
 	GtkFileFilter *fitsf = gtk_file_filter_new();
+#ifdef HAVE_LIBTIFF
+	gtk_file_filter_set_name(fitsf, _("Image Files (FITS, TIFF)"));
+#else
 	gtk_file_filter_set_name(fitsf, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"));
+#endif
 	{
 		gchar **patterns = g_strsplit(FITS_EXTENSIONS, ";", -1);
 		for (int i = 0; patterns[i]; ++i)
 			gtk_file_filter_add_pattern(fitsf, patterns[i]);
 		g_strfreev(patterns);
 	}
+#ifdef HAVE_LIBTIFF
+	/* TIFF: 4 case variants the legacy GTK3 filter accepted. */
+	gtk_file_filter_add_pattern(fitsf, "*.tif");
+	gtk_file_filter_add_pattern(fitsf, "*.TIF");
+	gtk_file_filter_add_pattern(fitsf, "*.tiff");
+	gtk_file_filter_add_pattern(fitsf, "*.TIFF");
+#endif
 	GListStore *fl = g_list_store_new(GTK_TYPE_FILE_FILTER);
 	g_list_store_append(fl, fitsf);
-	if (gui.file_ext_filter == TYPEFITS)
-		gtk_file_dialog_set_default_filter(fd, fitsf);
+	/* GTK3 commit defaults this filter on unconditionally now; mirror that. */
+	gtk_file_dialog_set_default_filter(fd, fitsf);
 	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(fl));
 	g_object_unref(fitsf);
 	g_object_unref(fl);

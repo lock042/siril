@@ -160,6 +160,8 @@ src_files = [
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
+  'io/avi_preview.c',
+  'io/avi_preview.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
   'io/avi_pipp/pipp_avi_write_dib.h',
   'io/avi_pipp/pipp_utf8.h',
