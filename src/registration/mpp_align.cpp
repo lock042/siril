@@ -340,38 +340,6 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
 	return out;
 }
 
-namespace {
-
-/* Weighted centroid of bright structure in a (mono, blurred) frame.
- * Background floor is set to a small fraction above the per-frame min so
- * dark sky pixels don't bias the moment; values below the floor are
- * clipped to zero. Returns (y, x) in absolute frame coordinates, or NaN
- * if the frame has effectively no above-floor signal (uniform / empty).
- *
- * This is the same trick AutoStakkert / Registax use as their first-pass
- * alignment: for planetary disks and lunar features the COG is sub-pixel
- * accurate and tracks the target rigidly through atmospheric drift, with
- * no cross-frame chain dependency — so the computation parallelises
- * trivially across frames. */
-cv::Vec2d align_compute_cog(const cv::Mat &mono_blurred) {
-	if (mono_blurred.empty()) return {std::nan(""), std::nan("")};
-	cv::Mat work;
-	mono_blurred.convertTo(work, CV_32F);
-	double minv = 0.0, maxv = 0.0;
-	cv::minMaxLoc(work, &minv, &maxv);
-	if (maxv - minv < 1e-6) return {std::nan(""), std::nan("")};
-	/* 5% above min suppresses noise / sky background; the bright target
-	 * (planet disc, lunar limb, etc.) sits far above this floor. */
-	const double bg = minv + (maxv - minv) * 0.05;
-	cv::subtract(work, bg, work);
-	cv::threshold(work, work, 0.0, 0.0, cv::THRESH_TOZERO);
-	const cv::Moments m = cv::moments(work);
-	if (m.m00 < 1e-6) return {std::nan(""), std::nan("")};
-	return {m.m01 / m.m00, m.m10 / m.m00};
-}
-
-}  // namespace
-
 AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              int N,
                                              const std::vector<double> &quality,
@@ -383,7 +351,7 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	if (N <= 0 || (int) quality.size() != N)
 		return out;
 	gint done = 0;
-	const int total = 2 * N;   /* COG pass + refinement pass, one visit each */
+	const int total = N;   /* every frame is visited once across the two passes */
 
 	/* Best frame is argmax of quality. */
 	int best = 0;
@@ -391,7 +359,9 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 		if (quality[i] > quality[best]) best = i;
 	out.best_frame_idx = best;
 
-	/* Patch on best frame's mono_blurred. */
+	/* Patch on best frame's mono_blurred. Hold the best frame for the
+	 * full duration of both sweeps — we need to re-derive ref_window
+	 * from it (a view, not a copy). */
 	const cv::Mat best_blurred = provider(best);
 	const cv::Vec4i patch = align_pick_patch(best_blurred, cfg);
 	out.patch_yxyx = patch;
@@ -404,106 +374,90 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	const cv::Mat ref_window = best_f32(cv::Range(py_lo, py_hi),
 	                                    cv::Range(px_lo, px_hi));
 	const cv::Mat ref_window_first = stride_subsample(ref_window, 2);
-	const cv::Vec2d ref_cog = align_compute_cog(best_blurred);
 
 	out.shifts.assign(N, cv::Vec2i(0, 0));
-	std::vector<cv::Vec2d> frame_cog(N, {std::nan(""), std::nan("")});
-	frame_cog[best] = ref_cog;
 
+	/* Backward and forward sweeps are independent: they read disjoint
+	 * frame indices, share only const inputs (ref_window*, py/px_lo/hi,
+	 * cfg) and write to disjoint slices of out.shifts. They each carry
+	 * their own dy_cum/dx_cum chain. With a thread-safe provider we run
+	 * them as two OpenMP sections for ~2x speedup on this stage when
+	 * `best` lands mid-sequence. SEQ_AVI providers don't get the
+	 * upgrade (ffms2 isn't reentrant); the if-clause collapses the
+	 * parallel region to a single thread when provider_is_thread_safe
+	 * is false. Cancellation and progress go through atomics so neither
+	 * thread blocks the other or trips a memory race. */
 	gint cancelled = 0;
-
-	/* Pass A — per-frame COG. Each frame is independent; provider call
-	 * + cv::moments are the only work. Parallel-for guarded by the
-	 * provider's reentrancy flag (cached vectors and SER reads are safe;
-	 * SEQ_AVI's ffms2 isn't). For a sequence whose target rigid-shifts
-	 * (planet, Moon section, single bright feature) this pass alone
-	 * recovers the per-frame translation to sub-pixel accuracy; the
-	 * refinement pass below catches edge cases. */
-#ifdef _OPENMP
-#pragma omp parallel for schedule(guided) if (provider_is_thread_safe)
-#endif
-	for (int idx = 0; idx < N; ++idx) {
-		if (g_atomic_int_get(&cancelled)) continue;
-		if (!processing_should_continue()) {
-			g_atomic_int_set(&cancelled, 1);
-			continue;
-		}
-		if (idx == best) {
+	auto run_backward_sweep = [&] {
+		int dy_cum = 0, dx_cum = 0;
+		for (int idx = best; idx >= 0; --idx) {
+			if (g_atomic_int_get(&cancelled)) break;
+			if (!processing_should_continue()) {
+				g_atomic_int_set(&cancelled, 1);
+				break;
+			}
+			if (idx == best) {
+				out.shifts[idx] = {0, 0};
+				const gint d = g_atomic_int_add(&done, 1) + 1;
+				if (progress) progress((double) d / (double) total, progress_user);
+				continue;
+			}
+			const cv::Mat frame = provider(idx);
+			const AlignShiftResult r = align_shift_one_frame(
+			    ref_window, ref_window_first, frame,
+			    py_lo - dy_cum, py_hi - dy_cum,
+			    px_lo - dx_cum, px_hi - dx_cum, cfg);
+			if (r.success) {
+				dy_cum += r.dy;
+				dx_cum += r.dx;
+			}
+			/* PSS raises InternalError on failure; we leave the chain
+			 * frozen at the last successful cum and store that. Tests
+			 * will see a zero shift and notice the divergence. */
+			out.shifts[idx] = {dy_cum, dx_cum};
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
-			continue;
 		}
-		const cv::Mat frame = provider(idx);
-		frame_cog[idx] = align_compute_cog(frame);
-		const gint d = g_atomic_int_add(&done, 1) + 1;
-		if (progress) progress((double) d / (double) total, progress_user);
-	}
-	if (g_atomic_int_get(&cancelled)) {
-		out.best_frame_idx = -1;
-		return out;
-	}
-
-	/* If the best frame's COG is degenerate (uniform frame, all-zero,
-	 * pathological exposure), fall back to no initial offset; the
-	 * refinement pass becomes a plain correlation against the patch
-	 * position. */
-	const bool ref_cog_valid = !std::isnan(ref_cog[0]) && !std::isnan(ref_cog[1]);
-
-	/* Pass B — per-frame correlation refinement, using COG-derived
-	 * shift as the initial search position. Now that the chain
-	 * dependency is gone (each frame's shift estimate comes from its
-	 * own COG, not from neighbours), this loop is also fully parallel.
-	 * align_shift_one_frame returns failure if the offset puts the
-	 * search window out of bounds — in that case we keep the COG
-	 * estimate as the final shift, which is still much better than
-	 * the chained algorithm would have produced (which would have
-	 * given up at the first frame far enough from `best` to exceed
-	 * search_width).
-	 *
-	 * Sign convention: shift[i] = (ref_cog - frame_cog[i]) is the
-	 * displacement to apply to frame i so its bright structure
-	 * registers with the best frame's. Patch-on-best at (py_lo..py_hi,
-	 * px_lo..px_hi) maps to (py_lo - dy_init .. py_hi - dy_init,
-	 * px_lo - dx_init .. px_hi - dx_init) on frame i. */
-#ifdef _OPENMP
-#pragma omp parallel for schedule(guided) if (provider_is_thread_safe)
-#endif
-	for (int idx = 0; idx < N; ++idx) {
-		if (g_atomic_int_get(&cancelled)) continue;
-		if (!processing_should_continue()) {
-			g_atomic_int_set(&cancelled, 1);
-			continue;
-		}
-		if (idx == best) {
-			out.shifts[idx] = {0, 0};
+	};
+	auto run_forward_sweep = [&] {
+		int dy_cum = 0, dx_cum = 0;
+		for (int idx = best + 1; idx < N; ++idx) {
+			if (g_atomic_int_get(&cancelled)) break;
+			if (!processing_should_continue()) {
+				g_atomic_int_set(&cancelled, 1);
+				break;
+			}
+			const cv::Mat frame = provider(idx);
+			const AlignShiftResult r = align_shift_one_frame(
+			    ref_window, ref_window_first, frame,
+			    py_lo - dy_cum, py_hi - dy_cum,
+			    px_lo - dx_cum, px_hi - dx_cum, cfg);
+			if (r.success) {
+				dy_cum += r.dy;
+				dx_cum += r.dx;
+			}
+			out.shifts[idx] = {dy_cum, dx_cum};
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
-			continue;
 		}
-		int dy_init = 0, dx_init = 0;
-		const cv::Vec2d &fcog = frame_cog[idx];
-		if (ref_cog_valid && !std::isnan(fcog[0]) && !std::isnan(fcog[1])) {
-			dy_init = (int) std::lround(ref_cog[0] - fcog[0]);
-			dx_init = (int) std::lround(ref_cog[1] - fcog[1]);
-		}
+	};
 
-		const cv::Mat frame = provider(idx);
-		const AlignShiftResult r = align_shift_one_frame(
-		    ref_window, ref_window_first, frame,
-		    py_lo - dy_init, py_hi - dy_init,
-		    px_lo - dx_init, px_hi - dx_init, cfg);
-		if (r.success) {
-			out.shifts[idx] = {dy_init + r.dy, dx_init + r.dx};
-		} else {
-			/* Correlation declined (out-of-bounds search, or peak at
-			 * boundary). Keep the COG estimate. */
-			out.shifts[idx] = {dy_init, dx_init};
-		}
-		const gint d = g_atomic_int_add(&done, 1) + 1;
-		if (progress) progress((double) d / (double) total, progress_user);
+#ifdef _OPENMP
+#pragma omp parallel sections num_threads(2) if (provider_is_thread_safe)
+	{
+#pragma omp section
+		run_backward_sweep();
+#pragma omp section
+		run_forward_sweep();
 	}
+#else
+	(void) provider_is_thread_safe;
+	run_backward_sweep();
+	run_forward_sweep();
+#endif
+
 	if (g_atomic_int_get(&cancelled)) {
-		out.best_frame_idx = -1;
+		out.best_frame_idx = -1;   /* cancellation sentinel */
 		return out;
 	}
 	return out;
