@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-09 10:17+0000\n"
+"PO-Revision-Date: 2026-05-18 07:16+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -1594,9 +1594,8 @@ msgstr ""
 "изображениях, таких как цветовое полошение."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
-#, fuzzy
 msgid "Randomize samples"
-msgstr "Масштабировать"
+msgstr "Рандомизировать образцы"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:454
 msgid ""
