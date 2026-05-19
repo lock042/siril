@@ -147,21 +147,105 @@ popover:not(#popover_catalogs) separator {
 /* Window header bar: normalise heights across GtkButton (Open, Home,
  * Livestacking, Undo, Redo, Save, Save-As) and GtkMenuButton (Recent,
  * Image Processing, Tools, Scripts, hamburger, Precision, Snapshot).
- * The global `button { padding: 0; margin: 1px; }` rule below strips
- * vertical padding from buttons, and GtkMenuButton wraps its child in
- * an extra inner button.toggle so the 1px margin applies twice — leaving
- * menu buttons visibly shorter than the neighbouring plain buttons.
- * Force a uniform min-height on every button-like header child so the
- * whole row lines up as a single toolbar. */
-headerbar button,
-headerbar menubutton,
-headerbar menubutton > button {
-   min-height: 28px;
-   padding-top: 2px;
-   padding-bottom: 2px;
-   padding-left: 4px;
-   padding-right: 4px;
+ * Target height is the small spinbutton in the header (e.g. `spinCPU`
+ * which renders with `.small-spinbutton`'s zero vertical padding): the
+ * row should be no taller than that.
+ *
+ * SPECIFICITY: Adwaita styles header-bar children via `.titlebar button`
+ * (0,1,1) which beats a bare `headerbar button` (0,0,2).  We use the
+ * widget's id selector `#siril-headerbar` (0,1,0,2) instead — ID outweighs
+ * any class, so our overrides land.  The CSS name is set on the
+ * GtkHeaderBar via `<property name="name">siril-headerbar</property>`
+ * in siril.ui (the `id="headerbar"` attribute on the .ui object is for
+ * GtkBuilder lookup only and is NOT visible to CSS — that mistake is
+ * what made the previous override attempts silently no-op).
+ * windowcontrols (the −/□/× cluster) also lives inside the header and
+ * contributes to the row height, so we shrink those buttons too. */
+#siril-headerbar,
+#siril-headerbar > windowhandle,
+#siril-headerbar > windowhandle > box {
+   min-height: 0;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+
+/* Defeat the global `box { padding: 1px }` for boxes inside the header.
+ * `padding-top/bottom: 0` is enough; leave horizontal padding alone so
+ * the icon clusters keep their normal inter-button breathing room. */
+#siril-headerbar box {
+   padding-top: 0;
+   padding-bottom: 0;
+   margin-top: 0;
+   margin-bottom: 0;
+}
+
+#siril-headerbar button,
+#siril-headerbar menubutton,
+#siril-headerbar menubutton > button,
+#siril-headerbar windowcontrols button {
+   min-height: 20px;
+   padding-top: 0;
+   padding-bottom: 0;
+   padding-left: 6px;
+   padding-right: 6px;
    margin: 0;
+}
+
+/* Inner contents of buttons (labels, images, the label+arrow boxes) —
+ * strip any inherited line-height / vertical margin so they don't push
+ * the parent button taller than its min-height. */
+#siril-headerbar button > *,
+#siril-headerbar menubutton > button > * {
+   min-height: 0;
+   margin-top: 0;
+   margin-bottom: 0;
+}
+#siril-headerbar button label,
+#siril-headerbar menubutton label {
+   margin-top: 0;
+   margin-bottom: 0;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+
+/* Icon-only buttons (Home, Livestacking, Undo, Redo, Save-As, hamburger,
+ * Recent dropdown, title-bar window controls) carry the `.image-button`
+ * class — applied explicitly in siril.ui so we don't depend on GTK4's
+ * auto-detection (which is unreliable for GtkMenuButton with a single
+ * image child).  Square them up: matching min-width and min-height with
+ * symmetric padding so the 16 px icon sits dead-centre in a square
+ * hit target.
+ *
+ * For GtkMenuButton, set the size on BOTH the menubutton itself and its
+ * inner toggle button — the menubutton sizes the slot, the inner button
+ * is what actually renders. */
+#siril-headerbar button.image-button,
+#siril-headerbar menubutton.image-button,
+#siril-headerbar menubutton.image-button > button,
+#siril-headerbar windowcontrols button {
+   min-height: 22px;
+   min-width: 22px;
+   padding: 3px;
+}
+
+/* Constrain header icons to a small fixed size so a theme that picks a
+ * larger default doesn't blow the button height back up. */
+#siril-headerbar button image,
+#siril-headerbar menubutton image,
+#siril-headerbar windowcontrols button image {
+   -gtk-icon-size: 16px;
+}
+
+/* Spinbutton in the header (spinCPU `.small-spinbutton`) renders ~1-2 px
+ * taller than the surrounding buttons by default because its inner
+ * `text` widget asks for its own min-height.  Pin every part of the
+ * spinbutton to the same 22 px we use everywhere else. */
+#siril-headerbar spinbutton,
+#siril-headerbar spinbutton > text,
+#siril-headerbar spinbutton > button {
+   min-height: 22px;
+   padding-top: 0;
+   padding-bottom: 0;
 }
 
 /* Restore icon sizes that the GTK3 build set explicitly on toolbars but that

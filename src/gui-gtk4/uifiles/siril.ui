@@ -2299,6 +2299,7 @@
     <signal name="close-request" handler="on_siril_window_delete" swapped="no" />
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
+        <property name="name">siril-headerbar</property>
         <child>
           <object class="GtkBox">
             <child>
@@ -2323,6 +2324,9 @@
                     <property name="icon-name">pan-down-symbolic</property>
                   </object>
                 </child>
+                <style>
+                  <class name="image-button" />
+                </style>
               </object>
             </child>
           </object>
@@ -2341,6 +2345,7 @@
             </child>
             <style>
               <class name="suggested-action" />
+              <class name="image-button" />
             </style>
           </object>
         </child>
@@ -2356,6 +2361,9 @@
                 <property name="icon-name">media-record</property>
               </object>
             </child>
+            <style>
+              <class name="image-button" />
+            </style>
           </object>
         </child>
         <child>
@@ -2375,6 +2383,9 @@
                     <property name="icon-name">edit-undo</property>
                   </object>
                 </child>
+                <style>
+                  <class name="image-button" />
+                </style>
               </object>
             </child>
             <child>
@@ -2389,6 +2400,9 @@
                     <property name="icon-name">edit-redo</property>
                   </object>
                 </child>
+                <style>
+                  <class name="image-button" />
+                </style>
               </object>
             </child>
           </object>
@@ -2486,6 +2500,9 @@
                 <property name="icon-name">open-menu</property>
               </object>
             </child>
+            <style>
+              <class name="image-button" />
+            </style>
           </object>
         </child>
         <child type="end">
@@ -2538,6 +2555,9 @@
                     <property name="icon-name">document-save-as</property>
                   </object>
                 </child>
+                <style>
+                  <class name="image-button" />
+                </style>
               </object>
             </child>
             <child>
