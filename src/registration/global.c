@@ -244,13 +244,11 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
-	if (!regargs->use_external_ref) {
-		sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
-		sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
-		sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
-		sadata->current_regdata[regargs->reference_image].background_lvl = B;
-		sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
-	}
+	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
+	sadata->current_regdata[regargs->reference_image].fwhm = FWHMx;
+	sadata->current_regdata[regargs->reference_image].weighted_fwhm = FWHMx;
+	sadata->current_regdata[regargs->reference_image].background_lvl = B;
+	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
 
 	return registration_prepare_results(args);
 }
