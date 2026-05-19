@@ -1517,6 +1517,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 	}
 	if (seq->seqname)	free(seq->seqname);
+	g_free(seq->ext_ref_path);
 	if (seq->imgparam)	free(seq->imgparam);
 	if (seq->fptr)		free(seq->fptr);
 

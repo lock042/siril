@@ -598,8 +598,9 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
-			case 'E': // External reference flag - version 7
-				sscanf(line + 2, "%d", (int *)&seq->ext_ref);
+			case 'E': // External reference: path to the external reference image
+				seq->ext_ref = TRUE;
+				seq->ext_ref_path = g_strchomp(g_strdup(line + 2));
 				break;
 			case 'O':
 				current_layer = line[1] - '0';
@@ -715,8 +716,8 @@ int writeseqfile(sequence *seq){
 		fprintf(seqfile, "T%c\n", type);
 	}
 
-	if (seq->ext_ref)
-		fprintf(seqfile, "E 1\n");
+	if (seq->ext_ref && seq->ext_ref_path)
+		fprintf(seqfile, "E %s\n", seq->ext_ref_path);
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
 	for(i = 0; i < seq->number; ++i){

@@ -956,11 +956,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 	}
 	/* external reference image: available for global and 2-pass star alignment */
-	if (reg_reference_checkbutton) {
-		gboolean use_ext_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
-		gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
-		gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_ext_ref);
+	if (!dont_change_reg_radio && com.seq.ext_ref && com.seq.ext_ref_path) {
+		gtk_toggle_button_set_active(reg_reference_checkbutton, TRUE);
+		gtk_entry_set_text(reg_reference_entry, com.seq.ext_ref_path);
+		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
 	}
+	gboolean use_ext_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_ext_ref);
 
 	/* show the appropriate outputregframe widgets */
 	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
@@ -1151,8 +1154,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	regargs->seq = &com.seq;
 	regargs->reference_image = sequence_find_refimage(&com.seq);
 	regargs->no_output = !has_output_images && regindex != REG_COMET; // comet produces a new sequence with symlinks to previous images
-	if (is_star_align && reg_reference_checkbutton &&
-			gtk_toggle_button_get_active(reg_reference_checkbutton)) {
+	if (is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton)) {
 		const gchar *path = gtk_entry_get_text(reg_reference_entry);
 		if (!path || path[0] == '\0') {
 			siril_log_error(_("External reference image path is empty\n"));

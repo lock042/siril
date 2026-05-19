@@ -1126,6 +1126,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 						current_regdata[i].H = H_final;
 					}
 					regargs->seq->ext_ref = TRUE;
+					g_free(regargs->seq->ext_ref_path);
+					regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
 					regargs->use_external_ref = TRUE;
 					siril_log_message(_("All registration transforms composed with external reference alignment\n"));
 				} else {

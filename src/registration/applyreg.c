@@ -736,11 +736,6 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 
 		g_free(str);
 		if (!(args->seq->type == SEQ_INTERNAL)) {
-			// Absolute H matrices have been consumed: clear ext_ref from source seq
-			if (regargs->seq->ext_ref) {
-				regargs->seq->ext_ref = FALSE;
-				writeseqfile(regargs->seq);
-			}
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_registration(regargs, new_ref_index);
 			// will be loaded in the idle function if (load_new_sequence)
