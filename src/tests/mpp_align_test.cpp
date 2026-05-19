@@ -143,12 +143,14 @@ Test(mpp_align, multilevel_correlation_recovers_known_shift) {
 			 * moved to truth means shifting moved by (-dy, -dx).  Wait — let's
 			 * verify experimentally: warpAffine with translation (dx,dy) means
 			 * the output pixel at (y,x) = input pixel at (y-dy, x-dx).  To
-			 * realign, we need shift = (-dy, -dx). */
-			cr_assert_eq(r.dy, -dy,
-			             "dy mismatch at injected (%d,%d): expected %d, got %d",
+			 * realign, we need shift = (-dy, -dx). Sub-pixel solver is on,
+			 * so a parabolic-fit residual ≤0.5 px is expected; tolerance
+			 * captures both that and any synth-floor noise. */
+			cr_assert_float_eq(r.dy, (double)(-dy), 0.5,
+			             "dy mismatch at injected (%d,%d): expected %d, got %g",
 			             dy, dx, -dy, r.dy);
-			cr_assert_eq(r.dx, -dx,
-			             "dx mismatch at injected (%d,%d): expected %d, got %d",
+			cr_assert_float_eq(r.dx, (double)(-dx), 0.5,
+			             "dx mismatch at injected (%d,%d): expected %d, got %g",
 			             dy, dx, -dx, r.dx);
 		}
 	}
@@ -171,10 +173,12 @@ Test(mpp_align, align_global_recovers_known_shifts_per_frame) {
 	const auto r = mpp::align_global_from_frames(frames, q, cfg);
 	cr_assert_eq(r.best_frame_idx, 0);
 	for (size_t i = 0; i < jit.size(); ++i) {
-		cr_assert_eq(r.shifts[i][0], -jit[i].first,
-		             "frame %zu dy: expected %d, got %d", i, -jit[i].first, r.shifts[i][0]);
-		cr_assert_eq(r.shifts[i][1], -jit[i].second,
-		             "frame %zu dx: expected %d, got %d", i, -jit[i].second, r.shifts[i][1]);
+		cr_assert_float_eq(r.shifts[i][0], (double)(-jit[i].first), 0.5,
+		             "frame %zu dy: expected %d, got %g", i,
+		             -jit[i].first, r.shifts[i][0]);
+		cr_assert_float_eq(r.shifts[i][1], (double)(-jit[i].second), 0.5,
+		             "frame %zu dx: expected %d, got %g", i,
+		             -jit[i].second, r.shifts[i][1]);
 	}
 }
 
@@ -207,8 +211,8 @@ Test(mpp_align, average_frame_basic) {
 	std::vector<cv::Mat> frames;
 	for (auto p : jit) frames.push_back(shifted(truth, p.first, p.second));
 	const std::vector<double> q = {1.0, 0.7, 0.5, 0.85, 0.6, 0.55};
-	std::vector<cv::Vec2i> shifts;
-	for (auto p : jit) shifts.push_back(cv::Vec2i(-p.first, -p.second));
+	std::vector<cv::Vec2d> shifts;
+	for (auto p : jit) shifts.push_back(cv::Vec2d(-p.first, -p.second));
 
 	auto cfg_no_fc = cfg;
 	cfg_no_fc.align_frames_fast_changing_object = false;

@@ -14725,23 +14725,24 @@ static sequence *load_sequence_force_debayer(const char *name) {
 	return seq;
 }
 
-/* Reject drizzle-mode / input-type mismatches in sidecars from
+/* Validate drizzle-mode / input-type mismatches in sidecars from
  * older runs that explicitly pinned a backend. New sidecars produced
  * by either the CLI (-scale=) or the GUI always leave drizzle_mode =
- * OFF and let the dispatcher auto-route; this defensive check only
- * fires for a stale pinned mode that doesn't match the loaded
- * sequence's input type. */
+ * OFF and let the dispatcher auto-route.
+ *
+ * STSCI on CFA used to be rejected (would amplify debayer artefacts);
+ * with the current routing STSCI on CFA is the *intended* default
+ * (auto-debayer is engaged by mpp_stack_apply's SerAnalysisDebayerGuard
+ * before the dobox call), so the check has been removed.
+ *
+ * Bayer drizzle on CFA is allowed but no longer the auto-routed
+ * default — mpp_stack_apply promotes BAYER to STSCI (see comment
+ * there). A non-CFA sidecar that pinned BAYER is still a hard
+ * mismatch since the path requires a raw mosaic input. */
 static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
                                    const char *cmd_name) {
 	const mpp_input_type type = mpp_classify_sequence_input(seq);
 	if (cfg->drizzle_mode == MPP_DRIZZLE_OFF) return CMD_OK;
-	if (cfg->drizzle_mode == MPP_DRIZZLE_STSCI && type == MPP_INPUT_CFA) {
-		siril_log_error(_("%s: sidecar pins STScI drizzle on a CFA sequence "
-		                  "(would amplify debayer artefacts). Re-run "
-		                  "Analyse to regenerate the sidecar, then stack "
-		                  "with -scale=N.\n"), cmd_name);
-		return CMD_ARG_ERROR;
-	}
 	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER && type != MPP_INPUT_CFA) {
 		siril_log_error(_("%s: sidecar pins Bayer drizzle but this is not a "
 		                  "CFA SER. Re-run Analyse to regenerate the "

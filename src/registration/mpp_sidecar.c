@@ -65,8 +65,12 @@
  * shifts the trailing drizzle_mode / pixfrac / kernel fields.
  * v3: appended `int avi_bayer_pattern` to mpp_config_t — only consulted
  * for SEQ_AVI sequences but written unconditionally. Like v2 → v1 the
- * cfg snapshot is raw-bytes, so v3 readers can't accept v2 files. */
-#define MPP_SIDECAR_VERSION 3u
+ * cfg snapshot is raw-bytes, so v3 readers can't accept v2 files.
+ * v4: global_shifts widened from int32 to double — feeds Bayer
+ * drizzle's cross-frame CFA-phase coverage (see mpp.h:global_shifts
+ * comment). Reader promotes v3 in-place: read int32 array, widen to
+ * double. Writer always emits v4 doubles. */
+#define MPP_SIDECAR_VERSION 4u
 
 static int write_all(FILE *f, const void *p, size_t n) {
 	return fwrite(p, 1, n, f) == n ? 0 : -1;
@@ -111,7 +115,7 @@ mpp_status_t mpp_sidecar_write(const char *path, const mpp_run_t *run) {
 	if (write_all(f, run->quality,          N * sizeof(double)) != 0) goto err;
 	if (write_all(f, run->frame_brightness, N * sizeof(double)) != 0) goto err;
 	if (write_all(f, run->included,         N * sizeof(int32_t)) != 0) goto err;
-	if (write_all(f, run->global_shifts,    2 * N * sizeof(int32_t)) != 0) goto err;
+	if (write_all(f, run->global_shifts,    2 * N * sizeof(double)) != 0) goto err;
 	if (write_all(f, run->mean_frame_data,
 	              (size_t) run->mean_frame_rows * run->mean_frame_cols
 	              * sizeof(int32_t)) != 0) goto err;
@@ -152,7 +156,10 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	uint32_t ver, flags;
 	if (read_all(f, &ver, 4) != 0) goto err;
 	if (read_all(f, &flags, 4) != 0) goto err;
-	if (ver != MPP_SIDECAR_VERSION) goto err;
+	/* v3 sidecars are readable by promoting their int32 global_shifts to
+	 * double on the fly (see below). Anything older is incompatible —
+	 * the mpp_config_t struct layout shifted across v1/v2/v3 boundaries. */
+	if (ver != MPP_SIDECAR_VERSION && ver != 3u) goto err;
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) goto err;
@@ -186,14 +193,28 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	run->quality          = (double *)  malloc(N * sizeof(double));
 	run->frame_brightness = (double *)  malloc(N * sizeof(double));
 	run->included         = (int *)     malloc(N * sizeof(int32_t));
-	run->global_shifts    = (int *)     malloc(2 * N * sizeof(int32_t));
+	run->global_shifts    = (double *)  malloc(2 * N * sizeof(double));
 	if (!run->quality || !run->frame_brightness
 	 || !run->included || !run->global_shifts) { mpp_run_free(run); goto err; }
 	if (read_all(f, run->quality,          N * sizeof(double)) != 0
 	 || read_all(f, run->frame_brightness, N * sizeof(double)) != 0
-	 || read_all(f, run->included,         N * sizeof(int32_t)) != 0
-	 || read_all(f, run->global_shifts,    2 * N * sizeof(int32_t)) != 0) {
+	 || read_all(f, run->included,         N * sizeof(int32_t)) != 0) {
 		mpp_run_free(run); goto err;
+	}
+	if (ver == 3u) {
+		/* Promote: read int32 pairs, widen to double. */
+		int32_t *tmp = (int32_t *) malloc(2 * N * sizeof(int32_t));
+		if (!tmp) { mpp_run_free(run); goto err; }
+		if (read_all(f, tmp, 2 * N * sizeof(int32_t)) != 0) {
+			free(tmp); mpp_run_free(run); goto err;
+		}
+		for (int i = 0; i < 2 * N; ++i)
+			run->global_shifts[i] = (double) tmp[i];
+		free(tmp);
+	} else {
+		if (read_all(f, run->global_shifts, 2 * N * sizeof(double)) != 0) {
+			mpp_run_free(run); goto err;
+		}
 	}
 
 	const size_t mean_count = (size_t) run->mean_frame_rows * run->mean_frame_cols;

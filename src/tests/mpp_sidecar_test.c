@@ -48,13 +48,15 @@ static mpp_run_t *make_test_run(int with_shifts) {
 	run->quality          = malloc(4 * sizeof(double));
 	run->frame_brightness = malloc(4 * sizeof(double));
 	run->included         = malloc(4 * sizeof(int32_t));
-	run->global_shifts    = malloc(8 * sizeof(int32_t));
+	run->global_shifts    = malloc(8 * sizeof(double));
 	for (int i = 0; i < 4; ++i) {
 		run->quality[i] = 0.5 + 0.1 * i;
 		run->frame_brightness[i] = 100.0 + i;
 		run->included[i] = 1;
-		run->global_shifts[2 * i + 0] = -i;
-		run->global_shifts[2 * i + 1] =  i;
+		/* Include fractional residuals so the sub-pixel round-trip
+		 * is exercised. */
+		run->global_shifts[2 * i + 0] = -(double) i + 0.25;
+		run->global_shifts[2 * i + 1] =  (double) i - 0.125;
 	}
 
 	mpp_aps_t *aps = calloc(1, sizeof(*aps));
@@ -122,8 +124,13 @@ Test(mpp_sidecar, roundtrip_without_shifts) {
 	cr_assert_eq(dst->stack_size, src->stack_size);
 	cr_assert_eq(dst->aps->count, src->aps->count);
 	cr_assert_null(dst->shifts);
-	for (int i = 0; i < src->num_frames; ++i)
+	for (int i = 0; i < src->num_frames; ++i) {
 		cr_assert_float_eq(dst->quality[i], src->quality[i], 1e-15);
+		cr_assert_float_eq(dst->global_shifts[2 * i + 0],
+		                   src->global_shifts[2 * i + 0], 1e-15);
+		cr_assert_float_eq(dst->global_shifts[2 * i + 1],
+		                   src->global_shifts[2 * i + 1], 1e-15);
+	}
 	for (int a = 0; a < src->aps->count; ++a) {
 		cr_assert_eq(dst->aps->records[a].y, src->aps->records[a].y);
 		cr_assert_float_eq(dst->aps->records[a].structure,

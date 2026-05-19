@@ -2045,9 +2045,12 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 		/* mean_frame row r maps to frame row
 		 *   r + intersection[0] - global_shifts[i]
 		 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
-		 * gives the AP's pdata-row position on frame i. */
-		dy = run->intersection[0] - run->global_shifts[2 * i + 0];
-		dx = run->intersection[2] - run->global_shifts[2 * i + 1];
+		 * gives the AP's pdata-row position on frame i. The
+		 * global_shifts are now sub-pixel (for Bayer drizzle's
+		 * CFA-phase coverage); the overlay only needs integer
+		 * placement so round to nearest pixel. */
+		dy = (int) lround((double) run->intersection[0] - run->global_shifts[2 * i + 0]);
+		dx = (int) lround((double) run->intersection[2] - run->global_shifts[2 * i + 1]);
 	}
 
 	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata

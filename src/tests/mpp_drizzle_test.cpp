@@ -67,8 +67,8 @@ mpp_run_t *make_fixture(int rx, int ry,
                         int ay, int ax,
                         int patch_y_low, int patch_y_high,
                         int patch_x_low, int patch_x_high,
-                        const int *global_dy_dx /* length 2*N or NULL */,
-                        const double *ap_dy_dx  /* length 2*N or NULL */) {
+                        const double *global_dy_dx /* length 2*N or NULL */,
+                        const double *ap_dy_dx     /* length 2*N or NULL */) {
 	mpp_run_t *run = mpp_run_alloc();
 	cr_assert_not_null(run);
 	run->num_frames = num_frames;
@@ -81,10 +81,10 @@ mpp_run_t *make_fixture(int rx, int ry,
 	run->intersection[2] = 0;
 	run->intersection[3] = rx;
 
-	run->global_shifts = (int *) std::calloc(2 * num_frames, sizeof(int));
+	run->global_shifts = (double *) std::calloc(2 * num_frames, sizeof(double));
 	if (global_dy_dx)
 		std::memcpy(run->global_shifts, global_dy_dx,
-		            2 * num_frames * sizeof(int));
+		            2 * num_frames * sizeof(double));
 
 	run->aps = (mpp_aps_t *) std::calloc(1, sizeof(mpp_aps_t));
 	run->aps->count = 1;
@@ -131,7 +131,7 @@ mpp_run_t *make_two_ap_fixture(int rx, int ry,
 	run->intersection[2] = 0;
 	run->intersection[3] = rx;
 
-	run->global_shifts = (int *) std::calloc(2, sizeof(int));   /* zero */
+	run->global_shifts = (double *) std::calloc(2, sizeof(double));   /* zero */
 
 	run->aps = (mpp_aps_t *) std::calloc(1, sizeof(mpp_aps_t));
 	run->aps->count = 2;
@@ -197,7 +197,7 @@ Test(mpp_pixmap, identity) {
 Test(mpp_pixmap, global_only) {
 	/* Non-zero integer global shift (dy=3, dx=-2). xmap = i + dx, ymap = j + dy. */
 	const int rx = 20, ry = 16;
-	const int g[2] = { 3, -2 };
+	const double g[2] = { 3.0, -2.0 };
 	mpp_run_t *run = make_fixture(rx, ry, 1, 8, 10, 0, ry, 0, rx,
 	                              g, nullptr);
 	imgmap_t pm{};
@@ -436,7 +436,7 @@ mpp_run_t *make_minimal_run(int rx, int ry, int num_layers, int bitdepth,
 	run->cfg = (mpp_config_t *) std::calloc(1, sizeof(mpp_config_t));
 	mpp_config_defaults(run->cfg);
 	run->cfg->bitdepth = bitdepth;
-	run->global_shifts = (int *) std::calloc(2, sizeof(int));
+	run->global_shifts = (double *) std::calloc(2, sizeof(double));
 	run->frame_brightness = (double *) std::calloc(1, sizeof(double));
 	run->frame_brightness[0] = brightness;
 	run->included = (int *) std::calloc(1, sizeof(int));
@@ -750,7 +750,7 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	run->bitdepth   = 8;
 	run->aps        = aps;
 	run->shifts     = shifts;
-	run->global_shifts    = (int *) std::calloc((size_t) 2 * N, sizeof(int));
+	run->global_shifts    = (double *) std::calloc((size_t) 2 * N, sizeof(double));
 	run->frame_brightness = (double *) std::calloc((size_t) N, sizeof(double));
 	run->included         = (int *) std::calloc((size_t) N, sizeof(int));
 	for (int i = 0; i < N; ++i) {
@@ -1107,7 +1107,7 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 	run->bitdepth   = 8;
 	run->aps        = aps;
 	run->shifts     = shifts;
-	run->global_shifts    = (int *) std::calloc((size_t) 2 * N, sizeof(int));
+	run->global_shifts    = (double *) std::calloc((size_t) 2 * N, sizeof(double));
 	run->frame_brightness = (double *) std::calloc((size_t) N, sizeof(double));
 	run->included         = (int *) std::calloc((size_t) N, sizeof(int));
 	for (int i = 0; i < N; ++i) {
@@ -1212,9 +1212,9 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 
 	/* Acceptance bars. The plan asks for ≥ 1.3× on R/B (G is over-sampled
 	 * in RGGB so a smaller gap is expected there). Observed on this
-	 * fixture: R 2.00×, G 1.53×, B 1.95×. We set the bars at:
+	 * fixture: R 2.00×, G 1.53×, B 1.90×. We set the bars at:
 	 *   R ≥ 1.50×   (plan: 1.3×, observed: 2.00× — comfortable headroom)
-	 *   B ≥ 1.50×   (plan: 1.3×, observed: 1.95×)
+	 *   B ≥ 1.50×   (plan: 1.3×, observed: 1.90×)
 	 *   G ≥ 1.30×   (no plan bar — defends against regressing toward parity)
 	 *
 	 * cv::cvtColor's bilinear demosaic is a smoothing pass BEFORE the

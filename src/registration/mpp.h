@@ -67,7 +67,15 @@ typedef struct mpp_run {
 	double *quality;
 	double *frame_brightness;
 	int *included;             /* 0 or 1; 1 by default. CLI -selected filters here. */
-	int *global_shifts;        /* (dy, dx) per frame, contiguous, length 2 * num_frames */
+	/* (dy, dx) per frame, contiguous, length 2 * num_frames. Sub-pixel
+	 * (parabolic-fit refinement on the global correlation peak): with
+	 * drizzle_scale > 1 the fractional component is the dominant source
+	 * of cross-frame CFA-phase coverage in Bayer drizzle, so integer-only
+	 * values would leave the same CFA phase visited by every frame and
+	 * produce vertical-stripe / partial-Bayer-grid artefacts at the
+	 * output. v3-and-earlier sidecars stored these as int32 — readers
+	 * keyed on version promote on the fly. */
+	double *global_shifts;
 	int best_frame_idx;
 
 	/* Stage A — alignment + intersection. */

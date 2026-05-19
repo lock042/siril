@@ -30,9 +30,12 @@ std::vector<APRefBoxes> shift_prepare_ref_boxes(const cv::Mat &mean_frame_raw,
 /* Per-frame offsets from PSS align_frames.dy / dx:
  *   dy = intersection_y_low - global_shifts[idx].dy
  * Used to translate AP box bounds (mean-frame coords) into each frame's
- * native coordinates. */
-struct FrameOffset { int dy; int dx; };
-std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2i> &global_shifts,
+ * native coordinates. Sub-pixel since the global align pass switched to
+ * parabolic refinement; consumers that need integer indices (Stage B
+ * box positioning) round explicitly, drizzle's pixmap math uses the
+ * doubles directly. */
+struct FrameOffset { double dy; double dx; };
+std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2d> &global_shifts,
                                              const cv::Vec4i &intersection);
 
 /* Compute per-AP per-frame shifts. Returns a heap-allocated mpp_shifts_t —

@@ -23,6 +23,7 @@
  *      alignment_points_local_search_subpixel.
  */
 
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -75,12 +76,12 @@ std::vector<APRefBoxes> shift_prepare_ref_boxes(const cv::Mat &mean_frame,
 	return out;
 }
 
-std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2i> &global_shifts,
+std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2d> &global_shifts,
                                              const cv::Vec4i &intersection) {
 	std::vector<FrameOffset> out(global_shifts.size());
 	for (size_t i = 0; i < global_shifts.size(); ++i) {
-		out[i].dy = intersection[0] - global_shifts[i][0];
-		out[i].dx = intersection[2] - global_shifts[i][1];
+		out[i].dy = (double) intersection[0] - global_shifts[i][0];
+		out[i].dx = (double) intersection[2] - global_shifts[i][1];
 	}
 	return out;
 }
@@ -112,8 +113,16 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_blurred,
 	const bool subpix = cfg.alignment_points_local_search_subpixel;
 
 	for (int f = 0; f < N; ++f) {
-		const int dy = offsets[f].dy;
-		const int dx = offsets[f].dx;
+		/* See the long sign-trace comment in
+		 * stack_compute_shifts_streamed (mpp_stack.cpp) — per-AP shift
+		 * stored = r.dy + sub_y so that drizzle's gdy + weighted_ap
+		 * equals the full sub-pixel alignment correction. */
+		const double dy_full = offsets[f].dy;
+		const double dx_full = offsets[f].dx;
+		const int dy = (int) std::lround(dy_full);
+		const int dx = (int) std::lround(dx_full);
+		const double sub_y = dy_full - (double) dy;
+		const double sub_x = dx_full - (double) dx;
 		for (int a = 0; a < M; ++a) {
 			const auto &ap = aps.records[a];
 			const MultilevelShiftResult r = multilevel_correlation(
@@ -123,8 +132,8 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_blurred,
 			    ap.box_x_low  + dx, ap.box_x_high + dx,
 			    gw, sw, subpix);
 			const size_t s_off = (size_t) (f * M + a) * 2;
-			out->shifts[s_off + 0] = r.dy;
-			out->shifts[s_off + 1] = r.dx;
+			out->shifts[s_off + 0] = r.dy + sub_y;
+			out->shifts[s_off + 1] = r.dx + sub_x;
 			out->success[f * M + a] = r.success ? 1 : 0;
 		}
 	}

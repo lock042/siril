@@ -6980,7 +6980,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkComboBoxText" id="combo_mpp_avi_bayer">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">AVI containers carry no Bayer marker. Auto leaves film_read_frame's existing mono-detection heuristic in charge. None forces mono interpretation. The four Bayer values mark the AVI as a raw mosaic — analysis debayers via OpenCV, and Stage C routes through the Bayer drizzle path (preserving CFA-position-aware sampling).</property>
+                                                            <property name="tooltip-text" translatable="yes">AVI containers carry no Bayer marker. Auto leaves film_read_frame's existing mono-detection heuristic in charge. None forces mono interpretation. The four Bayer values mark the AVI as a raw mosaic — analysis debayers via OpenCV, and Stage C drizzles on the debayered RGB (STScI dobox).</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Auto</item>
@@ -9410,7 +9410,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <object class="GtkComboBoxText" id="combo_mpp_drizzle">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Output scale factor. 1x produces a stack at the input resolution; 1.5x / 2x / 3x upscale during the stack. The scaling method combo below chooses how — a drizzle kernel (STScI / Bayer dobox, picked automatically by input type) or the plain Upscale fallback.</property>
+                                                            <property name="tooltip-text" translatable="yes">Output scale factor. 1x produces a stack at the input resolution; 1.5x / 2x / 3x upscale during the stack. The scaling method combo below chooses how — a drizzle kernel (STScI dobox; CFA input is auto-debayered first) or the plain Upscale fallback.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">1x</item>
@@ -9545,7 +9545,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <child>
                                                             <object class="GtkSpinButton" id="spin_mpp_pixfrac">
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Fraction of each input pixel area passed through dobox: 1.0 = no shrinkage; smaller values sharpen at the cost of coverage. Only applies to STScI / Bayer drizzle modes. Default 0.7.</property>
+                                                            <property name="tooltip-text" translatable="yes">Fraction of each input pixel area passed through dobox: 1.0 = no shrinkage; smaller values sharpen at the cost of coverage. Only applies to drizzle modes. Default 0.7.</property>
                                                             <property name="adjustment">adj_mpp_pixfrac</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -9572,7 +9572,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <object class="GtkComboBoxText" id="combo_mpp_driz_kernel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Scaling method. The (drizzle) entries route through dobox — STScI for mono / RGB input, Bayer for raw CFA SER (auto-picked) — and apply at every scale including 1x, where they avoid classical-debayer artefacts on CFA input. 'turbo' is the recommended default — same wall-clock cost as bicubic-2x with no measurable quality difference vs square on representative planetary fixtures. 'square' is the canonical pixel-area kernel; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further on high-frequency content but may ring on hard edges and is significantly slower. 'upscale' is NOT a drizzle method — it runs a plain cv::resize bicubic (with classical debayer for CFA input) and is a reliable fallback for the rare cases where true drizzle resonates on fine high-contrast structure such as Saturn's rings or a sharp planetary terminator.</property>
+                                                            <property name="tooltip-text" translatable="yes">Scaling method. The (drizzle) entries route through STScI dobox at every scale including 1x; CFA input is auto-debayered before the drizzle so all kernels work on full-RGB pixels. 'turbo' is the recommended default — same wall-clock cost as bicubic-2x with no measurable quality difference vs square on representative planetary fixtures. 'square' is the canonical pixel-area kernel; 'gaussian' produces smoother output; 'lanczos2/3' can sharpen further on high-frequency content but may ring on hard edges and is significantly slower. 'upscale' is NOT a drizzle method — it runs a plain cv::resize bicubic (with classical debayer for CFA input) and is a reliable fallback for the rare cases where true drizzle resonates on fine high-contrast structure such as Saturn's rings or a sharp planetary terminator.</property>
                                                             <property name="active">3</property>
                                                             <items>
                                                             <item translatable="yes">square (drizzle)</item>

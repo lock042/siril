@@ -328,14 +328,19 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
                                        int y_low, int y_high,
                                        int x_low, int x_high,
                                        const mpp_config_t &cfg) {
+	/* Sub-pixel ON unconditionally: the parabolic-fit residual is the
+	 * only thing that gives Bayer drizzle's cross-frame CFA-phase
+	 * coverage. Cheap (4 extra reads per frame on the phase-2 correlation
+	 * surface, gated on the same success path). The previous integer
+	 * rounding wasted that information. */
 	const MultilevelShiftResult r = multilevel_correlation(
 	    ref_window_f32, ref_window_first_phase_f32, frame_mono_blurred,
 	    y_low, y_high, x_low, x_high,
 	    cfg.frames_gauss_width, cfg.align_frames_search_width,
-	    /*subpixel_solve=*/false);
+	    /*subpixel_solve=*/true);
 	AlignShiftResult out;
-	out.dy = (int) std::lround(r.dy);
-	out.dx = (int) std::lround(r.dx);
+	out.dy = r.dy;
+	out.dx = r.dx;
 	out.success = r.success;
 	return out;
 }
@@ -375,7 +380,7 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	                                    cv::Range(px_lo, px_hi));
 	const cv::Mat ref_window_first = stride_subsample(ref_window, 2);
 
-	out.shifts.assign(N, cv::Vec2i(0, 0));
+	out.shifts.assign(N, cv::Vec2d(0.0, 0.0));
 
 	/* Backward and forward sweeps are independent: they read disjoint
 	 * frame indices, share only const inputs (ref_window*, py/px_lo/hi,
@@ -386,10 +391,17 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	 * upgrade (ffms2 isn't reentrant); the if-clause collapses the
 	 * parallel region to a single thread when provider_is_thread_safe
 	 * is false. Cancellation and progress go through atomics so neither
-	 * thread blocks the other or trips a memory race. */
+	 * thread blocks the other or trips a memory race.
+	 *
+	 * Cumulation is integer-only — the search window slice (py_lo -
+	 * dy_int_cum, …) needs integer indices, and accumulating the
+	 * parabolic-fit residual would drift over N frames (each step's
+	 * residual is independent noise, not signal). The fractional part
+	 * is added at store-time so each stored shift = (sum of integer
+	 * peaks up to here) + (this frame's local refinement). */
 	gint cancelled = 0;
 	auto run_backward_sweep = [&] {
-		int dy_cum = 0, dx_cum = 0;
+		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
 			if (g_atomic_int_get(&cancelled)) break;
 			if (!processing_should_continue()) {
@@ -397,7 +409,7 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 				break;
 			}
 			if (idx == best) {
-				out.shifts[idx] = {0, 0};
+				out.shifts[idx] = cv::Vec2d(0.0, 0.0);
 				const gint d = g_atomic_int_add(&done, 1) + 1;
 				if (progress) progress((double) d / (double) total, progress_user);
 				continue;
@@ -405,22 +417,27 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
-			    py_lo - dy_cum, py_hi - dy_cum,
-			    px_lo - dx_cum, px_hi - dx_cum, cfg);
+			    py_lo - dy_int_cum, py_hi - dy_int_cum,
+			    px_lo - dx_int_cum, px_hi - dx_int_cum, cfg);
+			double dy_store = (double) dy_int_cum;
+			double dx_store = (double) dx_int_cum;
 			if (r.success) {
-				dy_cum += r.dy;
-				dx_cum += r.dx;
+				const int dy_int = (int) std::lround(r.dy);
+				const int dx_int = (int) std::lround(r.dx);
+				dy_int_cum += dy_int;
+				dx_int_cum += dx_int;
+				dy_store = (double) dy_int_cum + (r.dy - (double) dy_int);
+				dx_store = (double) dx_int_cum + (r.dx - (double) dx_int);
 			}
 			/* PSS raises InternalError on failure; we leave the chain
-			 * frozen at the last successful cum and store that. Tests
-			 * will see a zero shift and notice the divergence. */
-			out.shifts[idx] = {dy_cum, dx_cum};
+			 * frozen at the last successful cum and store that. */
+			out.shifts[idx] = cv::Vec2d(dy_store, dx_store);
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
 	};
 	auto run_forward_sweep = [&] {
-		int dy_cum = 0, dx_cum = 0;
+		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
 			if (g_atomic_int_get(&cancelled)) break;
 			if (!processing_should_continue()) {
@@ -430,13 +447,19 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const cv::Mat frame = provider(idx);
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
-			    py_lo - dy_cum, py_hi - dy_cum,
-			    px_lo - dx_cum, px_hi - dx_cum, cfg);
+			    py_lo - dy_int_cum, py_hi - dy_int_cum,
+			    px_lo - dx_int_cum, px_hi - dx_int_cum, cfg);
+			double dy_store = (double) dy_int_cum;
+			double dx_store = (double) dx_int_cum;
 			if (r.success) {
-				dy_cum += r.dy;
-				dx_cum += r.dx;
+				const int dy_int = (int) std::lround(r.dy);
+				const int dx_int = (int) std::lround(r.dx);
+				dy_int_cum += dy_int;
+				dx_int_cum += dx_int;
+				dy_store = (double) dy_int_cum + (r.dy - (double) dy_int);
+				dx_store = (double) dx_int_cum + (r.dx - (double) dx_int);
 			}
-			out.shifts[idx] = {dy_cum, dx_cum};
+			out.shifts[idx] = cv::Vec2d(dy_store, dx_store);
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
@@ -503,7 +526,7 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 int N,
                                                 int H, int W,
                                                 const std::vector<double> &quality,
-                                                const std::vector<cv::Vec2i> &shifts,
+                                                const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
                                                 void *progress_user) {
@@ -511,12 +534,18 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
 		return out;
 
+	/* Intersection bounds are integer — they're used as cv::Range slice
+	 * indices everywhere downstream. Round sub-pixel shifts to nearest
+	 * integer for the min/max; the 0.5-pixel rounding doesn't affect
+	 * the outer bounds materially. */
 	int max_dy = INT_MIN, min_dy = INT_MAX, max_dx = INT_MIN, min_dx = INT_MAX;
 	for (const auto &s : shifts) {
-		max_dy = std::max(max_dy, s[0]);
-		min_dy = std::min(min_dy, s[0]);
-		max_dx = std::max(max_dx, s[1]);
-		min_dx = std::min(min_dx, s[1]);
+		const int sy = (int) std::lround(s[0]);
+		const int sx = (int) std::lround(s[1]);
+		max_dy = std::max(max_dy, sy);
+		min_dy = std::min(min_dy, sy);
+		max_dx = std::max(max_dx, sx);
+		min_dx = std::min(min_dx, sx);
 	}
 	out.intersection = cv::Vec4i(max_dy, min_dy + H, max_dx, min_dx + W);
 	const int int_y_lo = out.intersection[0], int_y_hi = out.intersection[1];
@@ -551,11 +580,13 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 			return out;
 		}
 		const auto &s = shifts[idx];
+		const int sy = (int) std::lround(s[0]);
+		const int sx = (int) std::lround(s[1]);
 		const cv::Mat frame = provider(idx);
 		if (frame.empty()) { ++done; continue; }
 		const cv::Mat patch = frame(
-		    cv::Range(int_y_lo - s[0], int_y_hi - s[0]),
-		    cv::Range(int_x_lo - s[1], int_x_hi - s[1]));
+		    cv::Range(int_y_lo - sy, int_y_hi - sy),
+		    cv::Range(int_x_lo - sx, int_x_hi - sx));
 		cv::Mat patch_f32;
 		patch.convertTo(patch_f32, CV_32F);
 		accum += patch_f32;
@@ -587,7 +618,7 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 
 AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
                                        const std::vector<double> &quality,
-                                       const std::vector<cv::Vec2i> &shifts,
+                                       const std::vector<cv::Vec2d> &shifts,
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress,
                                        void *progress_user) {

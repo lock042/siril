@@ -334,23 +334,44 @@ static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 }
 
 /* Show / hide the scaling-method widgets.
- *   - Scaling-method combo: always visible. Even at 1x the choice
- *     matters (drizzle vs Upscale fallback, where drizzle on CFA
- *     input bypasses classical-debayer artefacts at no upscale cost).
+ *   - Scaling-method combo / label: hidden when a CFA sequence is
+ *     loaded — Bayer drizzle has been retired and the surviving
+ *     STScI dobox path on auto-debayered RGB doesn't recover any
+ *     resolution Upscale doesn't already give (bilinear demosaic
+ *     locks the correlation peak to CFA phase, suppressing the
+ *     sub-pixel diversity the dobox needs). Forcing
+ *     MPP_KERNEL_UPSCALE in this case routes through the plain
+ *     cv::resize + classical-debayer path, which is the correct
+ *     default for CFA data. Shown for mono / RGB where the
+ *     STScI drizzle kernels are still meaningful.
  *   - Pixfrac spinner: only meaningful when the picked method is a
  *     drizzle kernel — the Upscale path ignores it entirely. */
 void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
 	(void) user_data;
 	(void) combo;
 	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
+	static GtkWidget *lbl_kn = NULL;
 	static GtkComboBox *combo_kn = NULL;
 	if (!lbl_pf) {
 		lbl_pf   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_pixfrac"));
 		spin_pf  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
+		lbl_kn   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_driz_kernel"));
 		combo_kn = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
 	}
+	/* Probe the loaded sequence's input type. sequence_is_loaded() is
+	 * false at app startup before any sequence is opened — fall back to
+	 * the visible/non-CFA branch then. */
+	const gboolean cfa_seq = sequence_is_loaded()
+	                      && mpp_classify_sequence_input(&com.seq) == MPP_INPUT_CFA;
+	if (cfa_seq && combo_kn
+	    && gtk_combo_box_get_active(combo_kn) != MPP_KERNEL_UPSCALE) {
+		gtk_combo_box_set_active(combo_kn, MPP_KERNEL_UPSCALE);
+	}
+	gtk_widget_set_visible(lbl_kn,           !cfa_seq);
+	gtk_widget_set_visible(GTK_WIDGET(combo_kn), !cfa_seq);
 	const int k_idx = combo_kn ? gtk_combo_box_get_active(combo_kn) : -1;
-	const gboolean drizzle_kernel = (k_idx >= 0 && k_idx != MPP_KERNEL_UPSCALE);
+	const gboolean drizzle_kernel = !cfa_seq
+	                             && (k_idx >= 0 && k_idx != MPP_KERNEL_UPSCALE);
 	gtk_widget_set_visible(lbl_pf,  drizzle_kernel);
 	gtk_widget_set_visible(spin_pf, drizzle_kernel);
 }

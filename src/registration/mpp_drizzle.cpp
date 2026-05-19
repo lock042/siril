@@ -125,8 +125,8 @@ extern "C" mpp_status_t mpp_pixmap_build_filtered(const mpp_run_t *run,
 	const int ry = out->ry;
 	const int M  = run->aps->count;
 
-	const double gdy = (double) run->global_shifts[2 * frame_idx + 0];
-	const double gdx = (double) run->global_shifts[2 * frame_idx + 1];
+	const double gdy = run->global_shifts[2 * frame_idx + 0];
+	const double gdx = run->global_shifts[2 * frame_idx + 1];
 
 	const double iy_lo = (double) run->intersection[0];
 	const double ix_lo = (double) run->intersection[2];
@@ -907,7 +907,32 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 			driz_param_init(&p);
 			p.driz           = &driz_args;
 			p.kernel         = driz_args.kernel;
-			p.scale          = 1.0f;            /* same as STScI path — see comment there */
+			/* Bayer-drizzle drop-size correction: dobox's turbo and
+			 * gaussian kernels compute drop half-width as pfo =
+			 * pixfrac · p.scale / 2 (cdrizzlebox.c around lines 829
+			 * and 504). The pre-existing code set p.scale = 1.0,
+			 * leaving the drop always 1 output pixel wide regardless
+			 * of drizzle_scale. At scale=2 the inter-input-pixel gap
+			 * in output coords is 2, and same-CFA-colour inputs (R,
+			 * B) are 2 input pixels apart = 4 output pixels — 1-wide
+			 * drops leave 3-pixel gaps where that colour is never
+			 * deposited from any frame without large sub-pixel
+			 * diversity, producing the 2-pixel-period vertical-stripe
+			 * artefact wavelets bring out. (Square's kernel sets
+			 * drop bounds via the pixmap transform of input corners,
+			 * so it is correct regardless; lanczos uses
+			 * input_pixel_size_in_output too — both kernels' tests
+			 * pass either way. Turbo is the GUI default.)
+			 *
+			 * Setting p.scale = drizzle_scale fixes pfo uniformly
+			 * across all affected kernels. As a side effect it
+			 * scales the per-input-pixel value by drizzle_scale²
+			 * (the flux-conservation factor `d *= scale2` inside
+			 * each kernel), inflating output brightness by the same
+			 * factor — undone post-stack by dividing the
+			 * accumulator by drizzle_scale². Brightness is then
+			 * indistinguishable from the previous p.scale=1 path. */
+			p.scale          = (float) scale;
 			p.pixel_fraction = driz_args.pixel_fraction;
 			p.weight_scale   = 1.0f;
 			p.in_units       = unit_counts;
@@ -974,7 +999,15 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 	out->pdata[1] = out->data + plane;
 	out->pdata[2] = out->data + 2 * plane;
 
-	const double cast_scale = (cfg->bitdepth == 8) ? 256.0 : 1.0;
+	/* Undo the drizzle_scale² flux-conservation multiplier that
+	 * p.scale = drizzle_scale introduced inside dobox (see comment
+	 * around p.scale in the per-frame loop). With p.scale=scale,
+	 * each input pixel's value got multiplied by scale²; the
+	 * weighted-mean accumulator preserves that, so output is
+	 * scale²× too bright. Dividing here restores input-comparable
+	 * brightness without affecting the spatial drop coverage that
+	 * scale² in d was paid to obtain. */
+	const double cast_scale = ((cfg->bitdepth == 8) ? 256.0 : 1.0) / (scale * scale);
 	for (size_t k = 0; k < plane * (size_t) channels; ++k) {
 		const double v = (double) output_data.fdata[k] * cast_scale;
 		out->data[k] = (WORD) (v < 0.0 ? 0

@@ -36,9 +36,13 @@ cv::Vec4i align_pick_patch(const cv::Mat &best_frame_mono_blurred,
                            const mpp_config_t &cfg);
 
 struct AlignShiftResult {
-	int dy = 0;          /* PSS sign convention: shift the frame by (dy,dx) to align with ref */
-	int dx = 0;
-	bool success = false;
+	/* PSS sign convention: shift the frame by (dy,dx) to align with ref.
+	 * Sub-pixel (multilevel_correlation's parabolic refinement is now
+	 * always enabled for the global pass — feeds Bayer drizzle's
+	 * cross-frame CFA-phase diversity, see mpp_pixmap_build_filtered). */
+	double dy = 0.0;
+	double dx = 0.0;
+	bool   success = false;
 };
 
 /* Sub-pixel variant; used by per-AP shift compute when subpixel_solve is on. */
@@ -78,7 +82,7 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &reference_window_f32,
                                        const mpp_config_t &cfg);
 
 struct AlignGlobalResult {
-	std::vector<cv::Vec2i> shifts;  /* (dy, dx) per frame, in PSS sign convention */
+	std::vector<cv::Vec2d> shifts;  /* (dy, dx) per frame, sub-pixel, PSS sign convention */
 	cv::Vec4i patch_yxyx;           /* (y_low, y_high, x_low, x_high) on best frame */
 	int best_frame_idx = -1;
 };
@@ -142,7 +146,7 @@ struct AlignAverageResult {
  * and averages within the inter-frame intersection. */
 AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_raw,
                                        const std::vector<double> &quality,
-                                       const std::vector<cv::Vec2i> &shifts,
+                                       const std::vector<cv::Vec2d> &shifts,
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress = nullptr,
                                        void *progress_user = nullptr);
@@ -156,7 +160,7 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 int num_frames,
                                                 int frame_rows, int frame_cols,
                                                 const std::vector<double> &quality,
-                                                const std::vector<cv::Vec2i> &shifts,
+                                                const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
                                                 void *progress_user = nullptr);

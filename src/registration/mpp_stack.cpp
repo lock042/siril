@@ -168,7 +168,11 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 			continue;
 		}
 		const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
-		const int dy = offsets[f].dy, dx = offsets[f].dx;
+		/* Round sub-pixel offsets — Stage A's box-slicing math wants
+		 * integer indices; the sub-pixel residual matters only at the
+		 * drizzle pixmap stage. */
+		const int dy = (int) std::lround(offsets[f].dy);
+		const int dx = (int) std::lround(offsets[f].dx);
 		if (progress) progress((double)(f + 1) / (double) N, progress_user);
 		for (int a = 0; a < M; ++a) {
 			const auto &ap = aps.records[a];
@@ -373,7 +377,33 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 			out->failure_counter = -1;   /* cancellation sentinel */
 			return out;
 		}
-		const int dy = offsets[f].dy, dx = offsets[f].dx;
+		/* Stage B correlation works at integer pixel grids — search-box
+		 * cropping needs integer indices. Round the sub-pixel global
+		 * offset; the rounded-away residual is the sub-pixel position
+		 * where the AP's content actually sits relative to the integer
+		 * search box. Sign trace for global_shifts = -0.3 (frame
+		 * content drifted DOWN by 0.3):
+		 *   offsets[f].dy = intersection[0] - (-0.3) = +0.3.
+		 *   dy_rounded     = 0.
+		 *   sub_y          = +0.3.
+		 *   Search box at frame_y = ap.box_y_low + 0.
+		 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
+		 *     at +0.3 from search centre → r.dy = -0.3 (PSS sign
+		 *     convention).
+		 *   We want stored per-AP shift = 0 so that drizzle's
+		 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
+		 *     alignment correction). That means r.dy + sub_y = 0. ✓
+		 * If we used r.dy − sub_y the sub-pixel global residual would
+		 * be DOUBLED in the drizzle path and you get the high-frequency
+		 * CFA-phase striping the user sees on real data. The bicubic
+		 * stack path rounds to integer × K and is unaffected by this
+		 * ≤0.5 px correction. */
+		const double dy_full = offsets[f].dy;
+		const double dx_full = offsets[f].dx;
+		const int dy = (int) std::lround(dy_full);
+		const int dx = (int) std::lround(dx_full);
+		const double sub_y = dy_full - (double) dy;
+		const double sub_x = dx_full - (double) dx;
 		const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
 		                                      * cached vector view in cached mode */
 		for (int a : apq.used_alignment_points[f]) {
@@ -386,8 +416,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 			    cfg.frames_gauss_width, cfg.alignment_points_search_width,
 			    use_subpixel, weight_matrix);
 			const size_t off = (size_t) (f * M + a) * 2;
-			out->shifts[off + 0] = r.dy;
-			out->shifts[off + 1] = r.dx;
+			out->shifts[off + 0] = r.dy + sub_y;
+			out->shifts[off + 1] = r.dx + sub_x;
 			out->success[f * M + a] = r.success ? 1 : 0;
 			if (!r.success) ++failures;
 		}
@@ -495,8 +525,10 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		else
 			frame_drizzled = frame_f32;
 
-		const int dy = offsets[f].dy;
-		const int dx = offsets[f].dx;
+		/* Bicubic upscale-and-stack path is integer-only (no drizzle
+		 * pixmap to carry sub-pixel). Round the global offset. */
+		const int dy = (int) std::lround(offsets[f].dy);
+		const int dx = (int) std::lround(offsets[f].dx);
 		const int dy_K = dy * K;
 		const int dx_K = dx * K;
 

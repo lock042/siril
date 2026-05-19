@@ -294,8 +294,8 @@ APQualities apq_from_run(const mpp_run_t *run) {
 std::vector<FrameOffset> offsets_from_run(const mpp_run_t *run) {
 	std::vector<FrameOffset> out(run->num_frames);
 	for (int i = 0; i < run->num_frames; ++i) {
-		out[i].dy = run->intersection[0] - run->global_shifts[2 * i + 0];
-		out[i].dx = run->intersection[2] - run->global_shifts[2 * i + 1];
+		out[i].dy = (double) run->intersection[0] - run->global_shifts[2 * i + 0];
+		out[i].dx = (double) run->intersection[2] - run->global_shifts[2 * i + 1];
 	}
 	return out;
 }
@@ -878,7 +878,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	run->quality          = (double *) std::malloc(N * sizeof(double));
 	run->frame_brightness = (double *) std::malloc(N * sizeof(double));
 	run->included         = (int *)    std::malloc(N * sizeof(int));
-	run->global_shifts    = (int *)    std::malloc(2 * N * sizeof(int));
+	run->global_shifts    = (double *) std::malloc(2 * N * sizeof(double));
 	if (!run->quality || !run->frame_brightness
 	 || !run->included || !run->global_shifts) {
 		mpp_run_free(run);
@@ -1120,13 +1120,26 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 *     input. At scale > 1 it's a plain bicubic upscale + average,
 	 *     the reliable fallback for cases where true drizzle resonates
 	 *     on fine high-contrast structure.
-	 *   - Any drizzle kernel: dobox path. Auto-routed by input type —
-	 *     CFA SER → stack_apply_bayer (direct CFA-position accumulation,
-	 *     no debayer interpolation artefacts even at scale=1); mono / RGB
-	 *     → stack_apply_stsci (sub-pixel-aware accumulation via pixmap).
-	 *     Drizzle at scale=1 is principled — every input pixel
-	 *     contributes its actual measurement, missing colours fill in
-	 *     from sub-pixel-shifted frames.
+	 *   - Any drizzle kernel: dobox STScI path. CFA inputs are fed in
+	 *     pre-debayered (SerAnalysisDebayerGuard below forces the SER
+	 *     reader to debayer regardless of the user's debayer-on-open
+	 *     pref) — STScI's pixmap accumulator gets full-RGB input pixels,
+	 *     no CFA-phase coupling.
+	 *
+	 * The MPP_DRIZZLE_BAYER backend (CFA-position-aware splat with
+	 * dobox) is preserved in-tree (mpp_stack_apply_bayer +
+	 * stack_apply_bayer_streamed in mpp_drizzle.cpp, tests in
+	 * mpp_drizzle_test.cpp) but is no longer reachable through normal
+	 * dispatch. It depends on sub-pixel diversity being faithfully
+	 * captured by the alignment chain; with the current bilinear-
+	 * demosaic-then-grayscale analysis pipeline, phase-1 stride-2
+	 * subsampling (= CFA period) and the debayer-induced bias in the
+	 * correlation surface together suppress that diversity for
+	 * low-jitter planetary captures, producing the wavelet-amplified
+	 * 2-pixel-period stripe artefacts users hit on real data. A future
+	 * CFA-aware correlation pass (operating directly on the raw
+	 * mosaic per CFA channel) could revive this path; until then,
+	 * STScI on debayered input is the correct default.
 	 *
 	 * cfg->drizzle_mode is honoured if explicitly set (sidecar /
 	 * scripts); the default MPP_DRIZZLE_OFF triggers the kernel-driven
@@ -1134,10 +1147,8 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	int mode = cfg->drizzle_mode;
 	/* AVI Bayer routing: an AVI marked as a raw mosaic (cfg->avi_bayer_pattern
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
-	 * classifier can't see this (sequence-only signature), so override
-	 * the dispatch here for the drizzle-kernel case. The Upscale-kernel
-	 * path still falls through to the cv::resize bicubic branch, where
-	 * read_full_frame's OpenCV debayer delivers 3-channel RGB. */
+	 * classifier can't see this (sequence-only signature) so it's
+	 * tracked here for the channel-count math below. */
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
@@ -1146,21 +1157,38 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 			/* Stay on MPP_DRIZZLE_OFF — falls through to the cv::resize
 			 * bicubic path below. At scale=1 cv::resize is skipped
 			 * entirely (K=1) and frames are stacked at native res. */
-		} else if (avi_cfa) {
-			mode = MPP_DRIZZLE_BAYER;
 		} else {
-			const mpp_input_type t = mpp_classify_sequence_input(seq);
-			mode = (t == MPP_INPUT_CFA) ? MPP_DRIZZLE_BAYER : MPP_DRIZZLE_STSCI;
+			/* Everything else → STScI dobox. CFA inputs are pre-debayered
+			 * by the guard below; non-CFA inputs (mono / native RGB SER /
+			 * FITS) flow straight through. */
+			mode = MPP_DRIZZLE_STSCI;
 		}
+	} else if (mode == MPP_DRIZZLE_BAYER) {
+		/* Sidecar pinned the retired Bayer backend (or a script set
+		 * drizzle_mode=BAYER explicitly). Promote to STScI rather
+		 * than reject — the user's intent ("drizzle this CFA
+		 * sequence") is honoured, just via the more robust path. */
+		siril_log_warning(_("Stack (mpp): Bayer drizzle backend retired "
+		                    "(see commit notes); routing to STScI on "
+		                    "auto-debayered input instead.\n"));
+		mode = MPP_DRIZZLE_STSCI;
 	}
+
+	/* Auto-debayer for any CFA SER opened raw — STScI, Bayer, and the
+	 * bicubic fallthrough all need RGB input now. The guard restores
+	 * the prior debayer_type_ser on destruction. */
+	SerAnalysisDebayerGuard ser_guard;
+	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
+
 	/* Pre-flight memory check. All Stack paths stream sequentially —
 	 * the dobox wrappers and the bicubic loop below both hold one
 	 * in-flight frame at a time, plus the drizzle output canvases
 	 * (small relative to per-frame). */
 	{
 		/* AVI Bayer mosaics decode to 3-channel via cv::cvtColor in the
-		 * bicubic path; Bayer drizzle reads raw 1-channel mosaic; SER/FITS
-		 * pass through at their declared layer count. */
+		 * bicubic path; the retired Bayer drizzle path is the only one
+		 * that would have read 1-channel; everything else carries
+		 * channels through. */
 		const int channels = (mode == MPP_DRIZZLE_BAYER)
 		                   ? 1
 		                   : (avi_cfa ? 3
@@ -1182,22 +1210,16 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	}
 	switch (mode) {
 		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
-		case MPP_DRIZZLE_BAYER: return mpp_stack_apply_bayer(seq, cfg, run, out);
+		case MPP_DRIZZLE_BAYER:
+			/* Unreachable in normal use — the OFF and explicit-BAYER
+			 * branches above both promote to STSCI. Kept as a switch
+			 * arm so the enum value stays callable for tests and any
+			 * future CFA-aware revival. */
+			return mpp_stack_apply_bayer(seq, cfg, run, out);
 		case MPP_DRIZZLE_OFF:
 		default:
 			break;   /* fall through to the cv::resize no-upscale path */
 	}
-
-	/* Auto-debayer for the bicubic path when a CFA SER was opened raw.
-	 * Without this, mpp::read_full_frame would return a 1-channel mosaic
-	 * and the bicubic stack would produce a single-channel "image" that
-	 * is really the CFA pattern smoothed by INTER_LINEAR — visually
-	 * grey-scale and structurally wrong as a colour stack. The bayer-*
-	 * path above doesn't need the guard because its wrapper reads the
-	 * raw mosaic directly and routes per-CFA-position to the matching
-	 * output channel. */
-	SerAnalysisDebayerGuard ser_guard;
-	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
@@ -1558,8 +1580,12 @@ extern "C" void mpp_display_to_ap_coord(const mpp_run_t *run,
 	                          gfit_ry == run->mean_frame_rows);
 	if (!showing_ref && run->global_shifts &&
 	    current_frame_idx >= 0 && current_frame_idx < run->num_frames) {
-		dy = run->intersection[0] - run->global_shifts[2 * current_frame_idx + 0];
-		dx = run->intersection[2] - run->global_shifts[2 * current_frame_idx + 1];
+		/* Click → integer pixel coord. The sub-pixel residual in
+		 * global_shifts is irrelevant for hit-testing AP boxes. */
+		dy = (int) std::lround((double) run->intersection[0]
+		                       - run->global_shifts[2 * current_frame_idx + 0]);
+		dx = (int) std::lround((double) run->intersection[2]
+		                       - run->global_shifts[2 * current_frame_idx + 1]);
 	}
 	/* Inverse of the draw-time mapping:
 	 *   display_x = ap.x + dx
@@ -1645,7 +1671,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		siril_log_warning(
 		    _("mpp: auto-debayering CFA SER for analysis "
 		      "(Preferences → Debayering → \"Debayer SER files at opening\" is OFF). "
-		      "The raw mosaic is still available to the bayer-* drizzle stack path.\n"));
+		      "Stage C will likewise read debayered RGB.\n"));
 	}
 
 	mpp_config_t cfg;

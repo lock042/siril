@@ -180,7 +180,7 @@ Test(mpp_rank, average_frame_upscales_8bit_input) {
 
 	std::vector<cv::Mat> frames = {truth, truth, truth, truth};
 	std::vector<double> q = {1.0, 0.9, 0.8, 0.7};
-	std::vector<cv::Vec2i> shifts(4, cv::Vec2i(0, 0));
+	std::vector<cv::Vec2d> shifts(4, cv::Vec2d(0.0, 0.0));
 
 	cfg.bitdepth = 8;
 	cfg.align_frames_fast_changing_object = false;
