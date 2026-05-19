@@ -1624,6 +1624,13 @@ void close_sequence(int loading_sequence_from_combo) {
 int sequence_find_refimage(sequence *seq) {
 	if (seq->reference_image != -1)
 		return seq->reference_image;
+	return sequence_find_best_refimage(seq);
+}
+
+/* Like sequence_find_refimage but always selects by quality/FWHM, ignoring
+ * seq->reference_image. Used when the stored reference should not constrain
+ * the stacking normalization reference (e.g. ext_ref sequences). */
+int sequence_find_best_refimage(sequence *seq) {
 	if (seq->type == SEQ_INTERNAL)
 		return 1; // green channel
 	int layer, image, best = -1;
