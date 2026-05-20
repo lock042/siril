@@ -472,9 +472,12 @@ int get_photometry_catalog_from_GUI() {
 int get_spcc_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxSPCCCatalog"));
 	if (gtk_combo_box_get_active(box) == 1) {
+		/* Local. The loader auto-detects xpsamp vs xpcts in the photometric dir,
+		 * so requesting CAT_LOCAL_GAIA_XPSAMP routes to either kind transparently. */
 		return CAT_LOCAL_GAIA_XPSAMP;
 	} else {
-		return CAT_REMOTE_GAIA_XPSAMP;
+		/* Remote. Prefer xp_continuous mirrors when configured. */
+		return siril_select_remote_gaia_xp_kind();
 	}
 }
 /*****
