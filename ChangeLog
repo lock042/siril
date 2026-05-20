@@ -18,6 +18,7 @@ siril-1.5.0
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
 * Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
+* Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
