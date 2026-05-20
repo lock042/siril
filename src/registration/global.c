@@ -1109,6 +1109,26 @@ int register_multi_step_global(struct registration_args *regargs) {
 			tmp_sf.im.fit = &ext_fit;
 			struct starfinder_data *sf_ext = findstar_image_worker(&tmp_sf, -1, -1, &ext_fit, NULL, com.max_thread);
 			if (sf_ext && sf_ext->stars && sf_ext->nb_stars && *sf_ext->stars && *sf_ext->nb_stars >= regargs->min_pairs) {
+				// Apply the external reference's own distortion correction to its stars.
+				// The sequence stars were already corrected with regargs->disto (sequence
+				// distortion model). The external ref may have a different distortion profile
+				// (e.g. a pre-processed stack), so we use its embedded WCS/SIP instead.
+				if (regargs->undistort != DISTO_UNDEF) {
+					if (ext_fit.keywords.wcslib && ext_fit.keywords.wcslib->lin.dispre) {
+						disto_data ext_disto = { 0 };
+						ext_disto.order = extract_SIP_order_and_matrices(
+								ext_fit.keywords.wcslib->lin.dispre,
+								ext_disto.A, ext_disto.B, ext_disto.AP, ext_disto.BP);
+						ext_disto.xref = ext_fit.keywords.wcslib->crpix[0] - 1.;
+						ext_disto.yref = ext_fit.keywords.wcslib->crpix[1] - 1.;
+						ext_disto.dtype = DISTO_D2S;
+						if (disto_correct_stars(*sf_ext->stars, &ext_disto))
+							siril_log_error(_("Could not apply distortion correction to external reference stars\n"));
+					} else {
+						siril_log_warning(_("External reference image has no distortion data; "
+								"distortion correction skipped for external reference matching\n"));
+					}
+				}
 				int ref_idx = regargs->seq->reference_image;
 				Homography H_ext = { 0 };
 				int not_matched = star_match_and_checks(

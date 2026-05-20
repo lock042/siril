@@ -847,6 +847,34 @@ static gboolean check_disto(disto_source index) {
 	}
 	return status;
 }
+
+static gboolean check_ext_ref_disto(disto_source disto_index) {
+	if (disto_index == DISTO_UNDEF)
+		return TRUE;
+	if (!gtk_toggle_button_get_active(reg_reference_checkbutton))
+		return TRUE;
+	const gchar *path = gtk_entry_get_text(reg_reference_entry);
+	if (!path || *path == '\0') {
+		gtk_label_set_text(labelregisterinfo, _("External reference: enter a file path"));
+		return FALSE;
+	}
+	fits fit = { 0 };
+	if (read_fits_metadata_from_path_first_HDU(path, &fit)) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: cannot read file"));
+		clearfits(&fit);
+		return FALSE;
+	}
+	gboolean ok = TRUE;
+	if (!has_wcs(&fit)) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: must be plate solved (WCS+SIP) when using distortion correction"));
+		ok = FALSE;
+	} else if (!fit.keywords.wcslib->lin.dispre) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: plate solve must include SIP distortion terms"));
+		ok = FALSE;
+	}
+	clearfits(&fit);
+	return ok;
+}
 // Helpers
 struct registration_method *get_selected_registration_method(int *index) {
 	*index = REG_UNDEF;
@@ -1031,7 +1059,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_applyreg(regindex) &&
 			check_comet(regindex) &&
 			check_3stars(regindex) &&
-			check_disto(disto_source_index);
+			check_disto(disto_source_index) &&
+			check_ext_ref_disto(disto_source_index);
 
 	if (!ready) { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
