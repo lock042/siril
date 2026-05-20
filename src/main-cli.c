@@ -164,6 +164,7 @@ static void siril_app_activate(GApplication *application) {
 	siril_initialize_rng();
 	global_initialization();
 	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet. */
 
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
