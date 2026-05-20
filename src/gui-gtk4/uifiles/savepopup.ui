@@ -28,6 +28,10 @@
     <signal name="show" handler="on_savepopup_show" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox" id="dialog-vbox11">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
@@ -38,7 +42,7 @@
                 <property name="has-tooltip">1</property>
                 <property name="tooltip-markup" translatable="1">root name of the converted images (the &amp;apos;dest&amp;apos; in dest1.fit)</property>
                 <property name="tooltip-text" translatable="1">root name of the converted images (the 'dest' in dest1.fit)</property>
-                <property name="margin-start">12</property>
+                <property name="margin-start">6</property>
                 <property name="margin-top">5</property>
                 <property name="invisible-char">•</property>
                 <property name="width-chars">26</property>
@@ -75,7 +79,7 @@
                               <object class="GtkFrame" id="frame5">
                                 <property name="child">
                                   <object class="GtkBox" id="box26">
-                                    <property name="margin-start">12</property>
+                                    <property name="margin-start">6</property>
                                     <property name="margin-top">5</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">10</property>
@@ -114,7 +118,7 @@
                               <object class="GtkFrame" id="frame6">
                                 <property name="child">
                                   <object class="GtkBox" id="box35">
-                                    <property name="margin-start">12</property>
+                                    <property name="margin-start">6</property>
                                     <property name="margin-top">5</property>
                                     <property name="orientation">vertical</property>
                                     <child>
@@ -146,7 +150,7 @@
                               <object class="GtkFrame" id="frame25">
                                 <property name="child">
                                   <object class="GtkBox">
-                                    <property name="margin-start">12</property>
+                                    <property name="margin-start">6</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">10</property>
                                     <child>
@@ -189,7 +193,7 @@
                                 <property name="child">
                                   <object class="GtkScrolledWindow" id="scrolledwindow3">
                                     <property name="focusable">1</property>
-                                    <property name="margin-start">12</property>
+                                    <property name="margin-start">6</property>
                                     <property name="margin-top">5</property>
                                     <property name="child">
                                       <object class="GtkTextView" id="Description_txt">
@@ -218,7 +222,7 @@
                                 <property name="child">
                                   <object class="GtkScrolledWindow" id="scrolledwindow4">
                                     <property name="focusable">1</property>
-                                    <property name="margin-start">12</property>
+                                    <property name="margin-start">6</property>
                                     <property name="margin-top">5</property>
                                     <property name="child">
                                       <object class="GtkTextView" id="Copyright_txt">
@@ -286,7 +290,7 @@
                           <object class="GtkFrame" id="frame7">
                             <property name="child">
                               <object class="GtkGrid" id="grid5">
-                                <property name="margin-start">12</property>
+                                <property name="margin-start">6</property>
                                 <property name="margin-top">5</property>
                                 <property name="row-spacing">10</property>
                                 <property name="column-spacing">6</property>
@@ -378,7 +382,7 @@
                           <object class="GtkFrame" id="frame42">
                             <property name="child">
                               <object class="GtkBox" id="box66">
-                                <property name="margin-start">12</property>
+                                <property name="margin-start">6</property>
                                 <property name="margin-top">5</property>
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">10</property>
@@ -429,7 +433,7 @@
                           <object class="GtkFrame" id="frame41">
                             <property name="child">
                               <object class="GtkBox">
-                                <property name="margin-start">12</property>
+                                <property name="margin-start">6</property>
                                 <property name="margin-top">5</property>
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">10</property>
@@ -599,6 +603,9 @@ NOTE: lossy compression gives bad results when saving linear data owing to the v
     </action-widgets>
     <child internal-child="action_area">
       <object class="GtkBox" id="dialog-action_area11">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

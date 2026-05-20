@@ -13,24 +13,16 @@
     background-color: transparent;
 }
 
-box {
-    border-width: 0;
-    border-style: none;
-    border-radius: 0;
-    margin: 0;
-    padding: 1px;
-}
-
-/* Opt-out for boxes that participate in a strict size-request /
- * GtkPaned chain.  The global `box { padding: 1px }` rule above adds
- * 2 px to every GtkBox's measured size_request — fine for most of the
- * app, but inside the file browser's preview pane it caused GtkPaned
- * to allocate 1 px short of the boxes' reported minimums during size
- * negotiation, producing a flood of
- *   "Trying to measure GtkBox … for width of N, but it needs at
- *    least N+1"
- * warnings.  Add this class to any box where the explicit size_request
- * needs to equal the reported measure() result. */
+/* The global `box { padding: 1px }` rule that used to live here was
+ * removed (Phase 1 of the clipped-text cleanup): it added 2 px to every
+ * GtkBox's measured size, contributed to text clipping inside button
+ * content boxes, and triggered repeated GtkPaned size-negotiation
+ * warnings in the file browser.  Adwaita's default (no padding on box)
+ * is what we want.
+ *
+ * The .siril-zero-pad opt-out class is kept temporarily — it's a no-op
+ * now (matches the default) but is still applied in file_browser.c.
+ * To be removed in Phase 4. */
 box.siril-zero-pad {
     padding: 0;
 }
@@ -493,14 +485,17 @@ scale slider {
     margin: 1px;
 }
 
-label {
-    margin: 0 1px;
-}
-
-button {
-    padding: 0;
-    margin: 1px;
-}
+/* The global `label { margin: 0 1px }` and `button { padding: 0;
+ * margin: 1px }` rules that used to be here were removed (Phase 1 of
+ * the clipped-text cleanup).  The button rule in particular was
+ * stripping Adwaita's default ~6 px top/bottom button padding from
+ * every GtkButton in the app — including notebook tab labels — and
+ * caused text clipping in places like the header-bar Open button and
+ * the colour-layer notebook tabs ("B&W", "RGB", "Red", …).
+ * Restoring Adwaita's defaults fixes the clipping.  The header-bar's
+ * compact look is preserved by the `#siril-headerbar`-scoped rules
+ * later in this file, which have higher specificity than Adwaita's
+ * own button styling. */
 
 #siril-preferences box.title,
 #siril-preferences label.title {

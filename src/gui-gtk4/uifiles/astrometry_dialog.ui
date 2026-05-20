@@ -61,6 +61,10 @@
     <signal name="close-request" handler="astrometry_hide_on_delete" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
@@ -925,6 +929,9 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
     </child>
     <child internal-child="action_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

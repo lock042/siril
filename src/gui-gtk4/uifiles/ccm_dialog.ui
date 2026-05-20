@@ -12,6 +12,10 @@
     <signal name="close-request" handler="ccm_hide_on_delete" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
@@ -22,8 +26,8 @@
               <object class="GtkFrame">
                 <property name="child">
                   <object class="GtkGrid">
-                    <property name="margin-start">12</property>
-                    <property name="margin-start">12</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-start">6</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
                     <property name="column-homogeneous">1</property>
@@ -162,8 +166,8 @@
               <object class="GtkFrame">
                 <property name="child">
                   <object class="GtkGrid">
-                    <property name="margin-start">12</property>
-                    <property name="margin-start">12</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-start">6</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
                     <property name="column-homogeneous">1</property>
@@ -276,6 +280,9 @@
     </child>
     <child internal-child="action_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

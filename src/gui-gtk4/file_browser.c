@@ -209,6 +209,27 @@ static void rebuild_breadcrumb(SirilFileBrowser *fb);
 static void return_to_breadcrumb_view(SirilFileBrowser *fb);
 static void update_breadcrumb_arrow_sensitivity(SirilFileBrowser *fb);
 
+/* The inner paned (list | preview) is kept for the visual separator it
+ * provides, but the divider position is locked to LIST_PREVIEW_POSITION.
+ * The notify::position handler snaps any user-drag attempt straight back
+ * to that value, so the preview pane's width is dictated entirely by the
+ * dialog's outer edges (via the outer paned + window size) rather than
+ * by an internal drag. */
+#define LIST_PREVIEW_POSITION 480
+
+static void on_inner_paned_position_locked(GObject *obj, GParamSpec *p,
+                                            gpointer ud) {
+	(void)p; (void)ud;
+	GtkPaned *paned = GTK_PANED(obj);
+	if (gtk_paned_get_position(paned) != LIST_PREVIEW_POSITION) {
+		g_signal_handlers_block_by_func(paned,
+			on_inner_paned_position_locked, NULL);
+		gtk_paned_set_position(paned, LIST_PREVIEW_POSITION);
+		g_signal_handlers_unblock_by_func(paned,
+			on_inner_paned_position_locked, NULL);
+	}
+}
+
 static void build_recent_store(SirilFileBrowser *fb) {
 	if (!fb->recent_store)
 		fb->recent_store = g_list_store_new(G_TYPE_FILE_INFO);
@@ -2336,27 +2357,26 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_label_set_use_markup(fb->metadata_label, TRUE);
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->metadata_label));
 
-	/* Inner paned: list | preview.  Both children allow shrinking — this
-	 * looks like it'd let the user crush the preview, but the picture has
-	 * `can_shrink: TRUE` plus `CONTENT_FIT_CONTAIN`, so when the preview
-	 * gets a small allocation the image scales down to fit rather than
-	 * being truncated.  Keeping `shrink_end_child: TRUE` (default) avoids
-	 * a GTK4 quirk where `FALSE` plus a size_request on the end child
-	 * makes the paned's size-negotiation queries call the box's measure()
-	 * with width = min - 1, producing a flood of
-	 *   "Trying to measure GtkBox … for width of N, but it needs at
-	 *    least N+1"
-	 * warnings during gtk_window_present's initial layout pass.  The
-	 * overall dialog minimum (set on the window above) is what actually
-	 * stops the preview from getting unusable. */
+	/* Inner row: list | preview.  We keep a GtkPaned for the visual
+	 * separator it provides, but we LOCK its divider so the user can't
+	 * drag it — the position handler below snaps any attempted drag back
+	 * to the fixed value.  resize-start-child=FALSE / resize-end-child=
+	 * TRUE means when the dialog window is resized wider, ALL the extra
+	 * space goes to the preview side (start side stays at the locked
+	 * position).  Net effect: the preview pane's width is controlled
+	 * only by the dialog's outer edges, never by an internal drag. */
 	GtkWidget *list_preview_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(list_preview_paned), list_scrolled);
 	gtk_paned_set_end_child(GTK_PANED(list_preview_paned), preview_box);
-	gtk_paned_set_position(GTK_PANED(list_preview_paned), 480);
+	gtk_paned_set_position(GTK_PANED(list_preview_paned),
+	                       LIST_PREVIEW_POSITION);
+	gtk_paned_set_resize_start_child(GTK_PANED(list_preview_paned), FALSE);
+	gtk_paned_set_resize_end_child(GTK_PANED(list_preview_paned), TRUE);
+	g_signal_connect(list_preview_paned, "notify::position",
+	                 G_CALLBACK(on_inner_paned_position_locked), NULL);
 
 	/* Outer paned: sidebar | (list | preview).  shrink_start_child=FALSE
-	 * for the same reason — sidebar respects its 180 px min and doesn't
-	 * collapse into the paned handle. */
+	 * keeps the sidebar from being shrunk below its 180 px size_request. */
 	GtkWidget *outer_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(outer_paned), build_sidebar(fb));
 	gtk_paned_set_end_child(GTK_PANED(outer_paned), list_preview_paned);

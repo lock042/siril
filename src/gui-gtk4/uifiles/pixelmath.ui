@@ -20,6 +20,10 @@
     <signal name="show" handler="on_pixel_math_dialog_show" swapped="no" />
     <child>
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">5</property>
         <child>

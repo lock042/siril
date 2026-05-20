@@ -33,6 +33,10 @@
     <signal name="show" handler="on_mask_from_color_dialog_show" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
@@ -263,6 +267,9 @@ automatically, independent of brightness.&lt;/i&gt;</property>
     </action-widgets>
     <child internal-child="action_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

@@ -21,6 +21,10 @@
     <signal name="show" handler="on_asinh_dialog_show" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox" id="dialog_box">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
@@ -142,6 +146,9 @@ Clip is fastest: set one of the other modes when you're happy with your stretch 
     </action-widgets>
     <child internal-child="action_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

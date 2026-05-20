@@ -25,6 +25,10 @@
     <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox" id="dialog-vbox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
@@ -350,6 +354,9 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
     </action-widgets>
     <child internal-child="action_area">
       <object class="GtkBox" id="dialog-action_area">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

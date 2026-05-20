@@ -72,6 +72,10 @@
     <signal name="show" handler="on_stars_list_window_show" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox" id="dialog-vbox13">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">5</property>
         <child>
@@ -483,6 +487,9 @@ Use only to display optical distortions or double stars, not for registration or
     </action-widgets>
     <child internal-child="action_area">
       <object class="GtkBox" id="dialog-action_area13">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>

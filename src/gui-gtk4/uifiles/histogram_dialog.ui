@@ -102,6 +102,10 @@
     <signal name="show" handler="on_histogram_window_show" swapped="no" />
     <child internal-child="content_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
@@ -558,7 +562,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                   <object class="GtkLabel">
                     <property name="valign">center</property>
                     <property name="halign">start</property>
-                    <property name="margin-top">12</property>
+                    <property name="margin-top">6</property>
                     <property name="label" translatable="1">Stretch Parameters</property>
                     <attributes>
                       <attribute name="weight" value="bold" />
@@ -852,6 +856,9 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
     </child>
     <child internal-child="action_area">
       <object class="GtkBox">
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
         <property name="spacing">6</property>
         <property name="halign">end</property>
         <property name="orientation">horizontal</property>
