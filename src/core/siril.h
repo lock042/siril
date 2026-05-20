@@ -909,7 +909,8 @@ struct cominf {
 	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
-	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
+	gchar *spcc_remote_catalogue;	// Current preferred mirror for the remote xp_sampled catalogue
+	gchar *spcc_remote_catalogue_xpcts;	// Current preferred mirror for the remote xp_continuous catalogue (NULL until configured)
 
 	/* Repository / script state (not display state; lives here, not in guiinfo) */
 	GSList   *repo_scripts;          // list of scripts from the remote repository

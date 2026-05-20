@@ -725,6 +725,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
+			siril_cat->cat_index != CAT_LOCAL_GAIA_XPCTS &&
 			siril_cat->cat_index != CAT_LOCAL_TRIX) {
 		siril_log_debug("Local cat query - Should not happen\n");
 		return 0;
@@ -735,7 +736,26 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
 	double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 
-	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
+	/* For the "give me sampled SPCC data" entry point, transparently route
+	 * to xpcts -> xpsampled conversion if the photometric directory holds
+	 * xp_continuous chunks. Callers requesting CAT_LOCAL_GAIA_XPCTS
+	 * explicitly skip the auto-detect. */
+	siril_cat_index xp_cat = siril_cat->cat_index;
+	if (xp_cat == CAT_LOCAL_GAIA_XPSAMP) {
+		local_gaia_photo_kind kind = detect_local_gaia_photo_kind(com.pref.catalogue_paths[5]);
+		if (kind == LOCAL_GAIA_PHOTO_XPCTS) {
+			xp_cat = CAT_LOCAL_GAIA_XPCTS;
+		} else if (kind == LOCAL_GAIA_PHOTO_MIXED) {
+			siril_log_warning(_("Local Gaia photo dir contains both xpsamp and xpcts chunks; using xpsamp.\n"));
+		} else if (kind == LOCAL_GAIA_PHOTO_BAD) {
+			siril_log_error(_("Local Gaia photo dir has unreadable headers.\n"));
+			return 0;
+		} else if (kind == LOCAL_GAIA_PHOTO_NONE) {
+			return 0;
+		}
+	}
+
+	if (xp_cat == CAT_LOCAL_GAIA_XPSAMP) {
 		SourceEntryXPsamp *stars = NULL;
 		if (get_raw_stars_from_local_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
 			return 0;
@@ -754,6 +774,32 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 				float d = half_to_float(stars[i].flux[j]);
 				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
 			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
+	if (xp_cat == CAT_LOCAL_GAIA_XPCTS) {
+		SourceEntryXPcts *stars = NULL;
+		if (get_raw_stars_from_local_gaia_xpcontinuous_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			/* Reconstruct the xp_sampled flux from the continuous coefficients
+			 * via the baked Gaia external-calibration design matrix. The runtime
+			 * already zeroes samples past 1018 nm where the response is undefined. */
+			xpcts_to_xpsampled(&stars[i], 0 /* full bases by default */, siril_cat->cat_items[i].xp_sampled);
 			siril_cat->cat_items[i].included = TRUE;
 		}
 		free(stars);

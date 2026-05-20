@@ -20,7 +20,7 @@ extern "C" {
 #include "core/siril_app_dirs.h"
 }
 
-std::map<uint32_t, std::weak_ptr<FluxCache>> FluxCache::instances;
+std::map<std::string, std::weak_ptr<FluxCache>> FluxCache::instances;
 std::mutex FluxCache::mtx;
 
 // public utility function to ensure we have our cache directory
@@ -54,7 +54,8 @@ void FluxCache::purge(int days) { }
 FluxCacheStats FluxCache::getDatabaseStats() { return {0, 0, 0}; }
 std::vector<int> FluxCache::getCachedHealpixelIds() { return {}; };
 
-std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t c_lvl, uint32_t h_lvl, uint32_t chunk_id) {
+std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t c_lvl, uint32_t h_lvl, uint32_t chunk_id, const char *type_tag) {
+    (void)c_lvl; (void)h_lvl; (void)chunk_id; (void)type_tag;
     // Return a dummy object so calling code doesn't crash on null
     return std::shared_ptr<FluxCache>(new FluxCache(""));
 }
@@ -139,15 +140,22 @@ FluxCache::~FluxCache() {
     }
 }
 
-// Get a cache instance for the given healpixel parameters
-std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t chunk_level, uint32_t healpix_level, uint32_t chunk_id) {
+// Get a cache instance for the given healpixel parameters.
+// type_tag distinguishes xpsamp ("xpsamp") and xpcts ("xpcts") shards so
+// the on-disk SQLite blobs (which carry no per-row type marker) are never
+// reinterpreted across record sizes.
+std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t chunk_level, uint32_t healpix_level,
+                                               uint32_t chunk_id, const char *type_tag) {
     std::lock_guard<std::mutex> lock(mtx);
 
+    const std::string tag = (type_tag && *type_tag) ? type_tag : "xpsamp";
+    const std::string key = tag + ":" + std::to_string(chunk_id);
+
     // Try to find the instance
-    auto it = instances.find(chunk_id);
+    auto it = instances.find(key);
     if (it != instances.end()) {
         if (auto shared_cache = it->second.lock()) {
-            return shared_cache; 
+            return shared_cache;
         }
         // If lock() fails, it means the object was destroyed,
         // so we fall through to create a new one.
@@ -156,15 +164,15 @@ std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t chunk_level, uint32_t he
     // Not found or expired: Create new instance
     std::filesystem::path cache_dir = get_or_create_cache_dir();
     std::string db_filename = "siril_cat" + std::to_string(chunk_level) + "_healpix" +
-                              std::to_string(healpix_level) + "_xpsamp_" +
+                              std::to_string(healpix_level) + "_" + tag + "_" +
                               std::to_string(chunk_id) + ".dat.cache";
     std::string full_path = (cache_dir / db_filename).string();
 
-    siril_log_message(_("FluxCache: Initializing database for chunk %u at %s\n"),
-                      chunk_id, full_path.c_str());
+    siril_log_message(_("FluxCache: Initializing database for %s chunk %u at %s\n"),
+                      tag.c_str(), chunk_id, full_path.c_str());
 
     auto cache = std::shared_ptr<FluxCache>(new FluxCache(full_path));
-    instances[chunk_id] = cache;
+    instances[key] = cache;
 
     return cache;
 }
