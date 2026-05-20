@@ -952,6 +952,7 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 				break;
 			case CAT_GAIADR3_DIRECT:
 			case CAT_REMOTE_GAIA_XPSAMP:
+			case CAT_REMOTE_GAIA_XPCTS:
 				mag = min(mag, 17.6);
 				break;
 			case CAT_APASS:
@@ -1004,12 +1005,36 @@ gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
 
 /* ── SPCC mirror management (moved from gui/photometric_cc.c) ─────────────── */
 
-/* Array of primary + fallback mirrors for the remote SPCC catalogue */
+/* Array of primary + fallback mirrors for the remote SPCC catalogue (xp_sampled). */
 gchar **spcc_mirrors = NULL;
+
+/* Mirror list for the xp_continuous catalogue. Populated as a NULL-terminated
+ * empty list until an online xp_continuous catalogue is published. When non-empty,
+ * siril_select_remote_gaia_xp_kind() will prefer it over xp_sampled. */
+gchar **spcc_mirrors_xpcts = NULL;
 
 void initialize_spcc_mirrors(void) {
 	g_strfreev(spcc_mirrors);
 	spcc_mirrors = g_new(gchar *, 2);
 	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
 	spcc_mirrors[1] = NULL;
+
+	g_strfreev(spcc_mirrors_xpcts);
+	spcc_mirrors_xpcts = g_new(gchar *, 1);
+	spcc_mirrors_xpcts[0] = NULL;	/* Add xpcts mirror URLs here when the catalogue is published. */
+
+	/* Keep com.spcc_remote_catalogue_xpcts in sync with the head mirror so the
+	 * loader can use it without further plumbing once mirrors[0] is populated. */
+	if (spcc_mirrors_xpcts[0] && !com.spcc_remote_catalogue_xpcts)
+		com.spcc_remote_catalogue_xpcts = g_strdup(spcc_mirrors_xpcts[0]);
+}
+
+/* Return the preferred remote SPCC catalogue kind based on whether any
+ * xp_continuous mirror URLs have been configured. SPCC entry points should
+ * call this rather than hardcoding CAT_REMOTE_GAIA_XPSAMP, so that the day a
+ * mirror is added the new format is preferred automatically. */
+siril_cat_index siril_select_remote_gaia_xp_kind(void) {
+	if (spcc_mirrors_xpcts && spcc_mirrors_xpcts[0])
+		return CAT_REMOTE_GAIA_XPCTS;
+	return CAT_REMOTE_GAIA_XPSAMP;
 }

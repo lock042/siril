@@ -98,6 +98,7 @@ int	process_gauss(int nb);
 int	process_getref(int nb);
 int	process_grey_flat(int nb);
 
+int	process_healpix(int nb);
 int	process_help(int nb);
 int	process_histo(int nb);
 

@@ -67,7 +67,9 @@ int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, str
 
 /* SPCC mirror management (defined in algos/photometric_cc.c) */
 extern gchar **spcc_mirrors;
+extern gchar **spcc_mirrors_xpcts;
 void initialize_spcc_mirrors(void);
+siril_cat_index siril_select_remote_gaia_xp_kind(void);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
 

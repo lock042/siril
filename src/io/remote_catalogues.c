@@ -719,6 +719,35 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		return siril_cat->nbitems;
 	}
 
+	if (siril_cat->cat_index == CAT_REMOTE_GAIA_XPCTS) {
+		uint32_t nb_stars;
+		double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+		double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
+		SourceEntryXPcts *stars = NULL;
+		if (get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			/* Reconstruct xp_sampled flux from continuous coefficients via the
+			 * baked external-calibration design matrix. Samples past 1018 nm
+			 * (where the response is undefined) are baked as 0.0. */
+			xpcts_to_xpsampled(&stars[i], 0 /* full bases */, siril_cat->cat_items[i].xp_sampled);
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
 	gchar *catfile = download_catalog(siril_cat);
 	if (!catfile)
 		return 0;

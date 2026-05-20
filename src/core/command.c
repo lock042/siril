@@ -121,6 +121,7 @@
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
+#include "io/healpix/healpix_image.h"
 
 #include "command.h"
 #include "command_list.h"
@@ -7053,6 +7054,16 @@ static gpointer histo_cmd_worker(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+int process_healpix(int nb) {
+	if (!has_wcs(gfit)) {
+		siril_log_error(_("This command only works on plate solved images\n"));
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	if (log_image_healpixels(gfit) != 0)
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
+}
+
 int process_histo(int nb) {
 	gchar *end;
 	int nlayer = g_ascii_strtoull(word[1], &end, 10);
@@ -12902,13 +12913,12 @@ static int do_pcc(int nb, gboolean spectro) {
 			} else {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
-					cat = CAT_REMOTE_GAIA_XPSAMP;
+					cat = siril_select_remote_gaia_xp_kind();
 				else if (!g_strcmp0(arg, "localgaia")) {
-					cat = CAT_LOCAL_GAIA_XPSAMP;
+					cat = CAT_LOCAL_GAIA_XPSAMP; /* loader auto-detects xpsamp vs xpcts */
 					if (!local_gaia_xpsamp_available()) {
 						siril_log_warning(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"));
-						cat = CAT_REMOTE_GAIA_XPSAMP;
-				
+						cat = siril_select_remote_gaia_xp_kind();
 					}
 				} else {
 					siril_log_error(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
@@ -13022,7 +13032,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	if (!spectro && cat == CAT_AUTO) {
 		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
-		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_REMOTE_GAIA_XPSAMP;
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : siril_select_remote_gaia_xp_kind();
 	}
 	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_warning(_("Using remote %s instead of local NOMAD catalogue\n"), catalog_to_str(cat));
