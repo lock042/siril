@@ -307,7 +307,8 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
                                                   const std::string& base_url,
                                                   const std::string& filename,
                                                   std::vector<HealPixelRange>& healpixel_ranges,
-                                                  const HealpixCatHeader& header) {
+                                                  const HealpixCatHeader& header,
+                                                  const char *type_tag) {
     constexpr size_t HEADER_SIZE = 128;
     std::vector<EntryType> results;
     uint32_t nside = 1 << header.healpix_level;
@@ -449,7 +450,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 	}
 
 	// Get our data cache regardless. We always want to write a cache entry even if there's no data
-	auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, header.chunk_healpix);
+	auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, header.chunk_healpix, type_tag);
         std::vector<FluxCache::CacheSegment> segments;
 
 	// Unfortunately, the binary data does not contain the healpix id so we need process it
@@ -566,13 +567,14 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
                                     const std::string& filename,
                                     const std::vector<HealPixelRange>& healpixel_ranges,
                                     const HealpixCatHeader& header,
-                                    gchar **mirrors, gchar **current_mirror_ptr) {
+                                    gchar **mirrors, gchar **current_mirror_ptr,
+                                    const char *type_tag) {
     if (!mirrors || !mirrors[0]) return {};
 
     std::vector<HealPixelRange> ranges_copy = healpixel_ranges;
     std::string base_url(*current_mirror_ptr);
     auto response = query_catalog_http_with_curl<EntryType>(curl, base_url, filename,
-                                                      ranges_copy, header);
+                                                      ranges_copy, header, type_tag);
     if (response.has_value()) return response.value();
 
     siril_log_warning(_("Query failed on mirror %s, trying alternatives...\n"), *current_mirror_ptr);
@@ -584,7 +586,7 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
         std::string test_base_url(mirrors[i]);
         ranges_copy = healpixel_ranges;
         auto resp = query_catalog_http_with_curl<EntryType>(curl, test_base_url, filename,
-                                                            ranges_copy, header);
+                                                            ranges_copy, header, type_tag);
         if (resp.has_value()) {
             g_free(*current_mirror_ptr);
             *current_mirror_ptr = g_strdup(mirrors[i]);
@@ -1098,7 +1100,7 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
         const int chunk_id = chunk_indices[i];
         const std::vector<int>& chunk_pixels = chunked_pixel_indices[i];
 
-        auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, chunk_id);
+        auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, chunk_id, type_tag);
         std::vector<int> remaining_pixels;
         std::vector<EntryType> results_for_this_chunk;
 
@@ -1167,7 +1169,7 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
 
         std::vector<EntryType> remote_results = query_catalog_http_with_fallback<EntryType>(
             thread_curl, chunk_filename, healpixel_ranges, this_header,
-            mirrors, current_mirror_ptr);
+            mirrors, current_mirror_ptr, type_tag);
 
         results_for_this_chunk.insert(results_for_this_chunk.end(),
                                       remote_results.begin(), remote_results.end());
