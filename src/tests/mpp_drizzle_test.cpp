@@ -902,7 +902,7 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
  *      dobox's CFA-aware accumulator, producing a 3-channel output
  *      with no debayer interpolation.
  *
- *   B. cv::cvtColor(COLOR_BayerRGGB2RGB) + Phase 5a bicubic stack 2×
+ *   B. cv::cvtColor(COLOR_BayerBG2RGB) + Phase 5a bicubic stack 2×
  *      — debayer each frame first (bilinear demosaic), then stack
  *      the 3-channel frames via the Phase 5a path.
  *
@@ -1065,7 +1065,7 @@ Test(mpp_bayer_drizzle, slanted_edge_resolution) {
 		cv::Mat bayer = mosaic_rggb(gt_hr, off[i].first, off[i].second, LR);
 		frames_bayer.push_back(bayer);
 		cv::Mat rgb;
-		cv::cvtColor(bayer, rgb, cv::COLOR_BayerRGGB2RGB);  /* bilinear demosaic */
+		cv::cvtColor(bayer, rgb, cv::COLOR_BayerBG2RGB);  /* bilinear demosaic; 2-letter alias for RGGB */
 		/* Analyze pipeline operates on the green analysis layer or mono — for
 		 * a uniform-grey target the analysis frame is just any channel. Use
 		 * the green plane for ranking / alignment. */

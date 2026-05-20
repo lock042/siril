@@ -96,11 +96,12 @@ struct FitsBuf {
  * stays correct after film_read_frame's fits_flip_top_to_bottom. Returns
  * -1 when no debayer should happen (AUTO/NONE/non-Bayer).
  *
- * OpenCV's COLOR_BayerXXXX2RGB constants use 4-letter pattern aliases
- * (RGGB/BGGR/GBRG/GRBG); the order describes the 2×2 tile at the top-
- * left of the input Mat. We feed in the Mat we got back from the
- * pipeline (bottom-up after the Y-flip), so we ask Siril's helper to
- * adjust the user's top-down pick. */
+ * OpenCV's 2-letter COLOR_BayerXX2RGB constants describe the 2×2 tile
+ * by its second-row first-two pixels (the 4-letter RGGB/BGGR/GBRG/GRBG
+ * aliases only exist on OpenCV ≥ 4.x and break the oldstable AppImage
+ * build). We feed in the Mat we got back from the pipeline (bottom-up
+ * after the Y-flip), so we ask Siril's helper to adjust the user's
+ * top-down pick. */
 int avi_bayer_to_cv_code(int avi_pattern, int rows) {
 	if (avi_pattern == MPP_AVI_BAYER_AUTO || avi_pattern == MPP_AVI_BAYER_NONE)
 		return -1;
@@ -114,10 +115,10 @@ int avi_bayer_to_cv_code(int avi_pattern, int rows) {
 	}
 	adjust_Bayer_pattern_orientation(&pat, (unsigned int) rows, TRUE);
 	switch (pat) {
-		case BAYER_FILTER_RGGB: return cv::COLOR_BayerRGGB2RGB;
-		case BAYER_FILTER_BGGR: return cv::COLOR_BayerBGGR2RGB;
-		case BAYER_FILTER_GBRG: return cv::COLOR_BayerGBRG2RGB;
-		case BAYER_FILTER_GRBG: return cv::COLOR_BayerGRBG2RGB;
+		case BAYER_FILTER_RGGB: return cv::COLOR_BayerBG2RGB;
+		case BAYER_FILTER_BGGR: return cv::COLOR_BayerRG2RGB;
+		case BAYER_FILTER_GBRG: return cv::COLOR_BayerGR2RGB;
+		case BAYER_FILTER_GRBG: return cv::COLOR_BayerGB2RGB;
 		default: return -1;
 	}
 }
