@@ -175,6 +175,7 @@ src_files = [
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
   'io/healpix/healpix.cpp',
+  'io/healpix/healpix_image.cpp',
   'io/healpix/fluxcache.cpp',
   'io/healpix/xp_continuous.cpp',
   'io/healpix/gaia_xp_design.c',

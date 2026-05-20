@@ -116,6 +116,7 @@
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
+#include "io/healpix/healpix_image.h"
 
 #include "command.h"
 #include "command_list.h"
@@ -7046,6 +7047,16 @@ static gpointer histo_cmd_worker(gpointer p) {
 	free(args);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
+}
+
+int process_healpix(int nb) {
+	if (!has_wcs(gfit)) {
+		siril_log_error(_("This command only works on plate solved images\n"));
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	if (log_image_healpixels(gfit) != 0)
+		return CMD_GENERIC_ERROR;
+	return CMD_OK;
 }
 
 int process_histo(int nb) {
