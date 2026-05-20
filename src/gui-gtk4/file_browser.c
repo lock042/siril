@@ -50,6 +50,13 @@ struct _SirilFileBrowser {
 	GtkWindow              *parent;
 	GtkWindow              *window;
 	GtkEntry               *path_entry;       /* editable; Enter navigates */
+	GtkStack               *path_stack;       /* "breadcrumb" / "entry" pages */
+	GtkWidget              *breadcrumb_box;   /* horizontal box of segment buttons */
+	GtkWidget              *breadcrumb_scroller; /* GtkScrolledWindow wrapping breadcrumb_box */
+	GtkWidget              *breadcrumb_left_btn;  /* scroll-left chevron */
+	GtkWidget              *breadcrumb_right_btn; /* scroll-right chevron */
+	GtkWidget              *edit_path_btn;     /* toggle between breadcrumb / entry */
+	guint                   pending_breadcrumb_idle; /* g_idle_add id, 0 = none */
 	GtkColumnView          *columnview;
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
@@ -191,6 +198,8 @@ static gint modified_column_compare(gconstpointer a, gconstpointer b, gpointer u
 
 static int sidebar_recent_cmp_visited_desc(gconstpointer a, gconstpointer b);
 static void update_nav_sensitivity(SirilFileBrowser *fb);
+static void rebuild_breadcrumb(SirilFileBrowser *fb);
+static void return_to_breadcrumb_view(SirilFileBrowser *fb);
 
 static void build_recent_store(SirilFileBrowser *fb) {
 	if (!fb->recent_store)
@@ -240,6 +249,10 @@ static void build_recent_store(SirilFileBrowser *fb) {
 static void exit_recent_mode(SirilFileBrowser *fb) {
 	if (!fb->in_recent_mode) return;
 	fb->in_recent_mode = FALSE;
+	/* Same stale-focus precaution as apply_current_folder — the filter
+	 * model swap fires items-changed which causes the column view to
+	 * dispose its current rows. */
+	if (fb->window) gtk_window_set_focus(fb->window, NULL);
 	gtk_filter_list_model_set_model(fb->filter_model,
 		G_LIST_MODEL(fb->dir_list));
 }
@@ -254,9 +267,11 @@ static void enter_recent_mode(SirilFileBrowser *fb) {
 	g_ptr_array_set_size(fb->forward_history, 0);
 	build_recent_store(fb);
 	fb->in_recent_mode = TRUE;
+	if (fb->window) gtk_window_set_focus(fb->window, NULL);
 	gtk_filter_list_model_set_model(fb->filter_model,
 		G_LIST_MODEL(fb->recent_store));
 	gtk_editable_set_text(GTK_EDITABLE(fb->path_entry), _("Recent files"));
+	rebuild_breadcrumb(fb);
 	update_nav_sensitivity(fb);
 }
 
@@ -273,6 +288,10 @@ static void update_path_label(SirilFileBrowser *fb) {
 	if (display)
 		gtk_editable_set_position(GTK_EDITABLE(fb->path_entry), -1);
 	g_free(display);
+
+	/* Mirror the same destination into the breadcrumb so both views stay
+	 * in sync — clicking a sidebar entry or back/forward updates both. */
+	rebuild_breadcrumb(fb);
 }
 
 static void update_nav_sensitivity(SirilFileBrowser *fb) {
@@ -307,6 +326,17 @@ static void apply_current_folder(SirilFileBrowser *fb, GFile *folder) {
 	exit_recent_mode(fb);  /* any folder navigation cancels Recent view */
 	if (fb->current_folder) g_object_unref(fb->current_folder);
 	fb->current_folder = g_object_ref(folder);
+	/* Clear window focus BEFORE swapping the directory list's file.
+	 * gtk_directory_list_set_file synchronously fires items-changed to
+	 * remove every current item, and the column view recycles / disposes
+	 * its row widgets in response.  If a row still holds focus when its
+	 * widget is disposed, GTK4's recursive focus / state propagation
+	 * walker hits a stale widget pointer and trips
+	 *   `gtk_widget_is_ancestor: assertion 'GTK_IS_WIDGET (widget)' failed`.
+	 * Parking focus on the window itself before the model swap means no
+	 * row widget is in the focus chain when it gets disposed. */
+	if (fb->window)
+		gtk_window_set_focus(fb->window, NULL);
 	gtk_directory_list_set_file(fb->dir_list, folder);
 	update_path_label(fb);
 	update_nav_sensitivity(fb);
@@ -370,6 +400,7 @@ static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 		GFile *gf = g_file_new_for_uri(text);
 		navigate_to(fb, gf);
 		g_object_unref(gf);
+		return_to_breadcrumb_view(fb);
 		return;
 	}
 
@@ -406,6 +437,284 @@ static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 	}
 	g_object_unref(gf);
 	g_free(expanded);
+	return_to_breadcrumb_view(fb);
+}
+
+/* ── breadcrumb path bar ──────────────────────────────────────────── */
+
+static void on_breadcrumb_clicked(GtkButton *btn, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	GFile *gf = g_object_get_data(G_OBJECT(btn), "siril-gfile");
+	if (!gf) return;
+	if (fb->current_folder && g_file_equal(gf, fb->current_folder))
+		return;
+	navigate_to(fb, gf);
+}
+
+/* Build one segment button.  `label`, `icon_name`, or both may be NULL/empty
+ * — at least one should be non-NULL.  The button holds an owned ref to `gf`
+ * so it can be reused after the GFile chain is freed. */
+static GtkWidget *make_breadcrumb_button(SirilFileBrowser *fb,
+                                         const char *label,
+                                         const char *icon_name,
+                                         GFile *gf) {
+	GtkWidget *btn = gtk_button_new();
+	gtk_widget_add_css_class(btn, "flat");
+	gtk_widget_add_css_class(btn, "siril-breadcrumb-segment");
+	/* Keep these out of the focus chain.  If a focusable segment is
+	 * removed during rebuild_breadcrumb (which fires whenever the user
+	 * navigates), GTK4 walks the now-disposed widget's ancestor chain
+	 * to update focus and trips a `gtk_widget_is_ancestor` assertion.
+	 * Breadcrumbs are mouse-driven anyway — keyboard users have the
+	 * entry mode via the edit-path toggle. */
+	gtk_widget_set_focusable(btn, FALSE);
+	gtk_widget_set_can_focus(btn, FALSE);
+	if (icon_name && label && *label) {
+		GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+		gtk_box_append(GTK_BOX(box), gtk_image_new_from_icon_name(icon_name));
+		gtk_box_append(GTK_BOX(box), gtk_label_new(label));
+		gtk_button_set_child(GTK_BUTTON(btn), box);
+	} else if (icon_name) {
+		gtk_button_set_icon_name(GTK_BUTTON(btn), icon_name);
+	} else {
+		gtk_button_set_label(GTK_BUTTON(btn), label ? label : "");
+	}
+	g_object_set_data_full(G_OBJECT(btn), "siril-gfile",
+	                       g_object_ref(gf), g_object_unref);
+	g_signal_connect(btn, "clicked",
+	                 G_CALLBACK(on_breadcrumb_clicked), fb);
+	return btn;
+}
+
+/* Enable / disable the left & right scroll-arrow buttons based on whether
+ * the horizontal adjustment of the breadcrumb scroller has anywhere to
+ * scroll.  Called after rebuild + on every adjustment value/upper change. */
+static void update_breadcrumb_arrow_sensitivity(SirilFileBrowser *fb) {
+	if (!fb->breadcrumb_scroller) return;
+	GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
+		GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
+	if (!hadj) return;
+	double value = gtk_adjustment_get_value(hadj);
+	double upper = gtk_adjustment_get_upper(hadj);
+	double page  = gtk_adjustment_get_page_size(hadj);
+	gboolean can_left  = value > 0.5;
+	gboolean can_right = value + page < upper - 0.5;
+	if (fb->breadcrumb_left_btn)
+		gtk_widget_set_sensitive(fb->breadcrumb_left_btn, can_left);
+	if (fb->breadcrumb_right_btn)
+		gtk_widget_set_sensitive(fb->breadcrumb_right_btn, can_right);
+}
+
+static void on_breadcrumb_hadj_notify(GObject *o, GParamSpec *p, gpointer ud) {
+	(void)o; (void)p;
+	update_breadcrumb_arrow_sensitivity(ud);
+}
+
+static void scroll_breadcrumb_by(SirilFileBrowser *fb, double delta) {
+	if (!fb->breadcrumb_scroller) return;
+	GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
+		GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
+	if (!hadj) return;
+	double page = gtk_adjustment_get_page_size(hadj);
+	double step = page * 0.5;
+	if (step < 80) step = 80;
+	gtk_adjustment_set_value(hadj,
+		gtk_adjustment_get_value(hadj) + (delta < 0 ? -step : step));
+}
+
+static void on_breadcrumb_scroll_left(GtkButton *b, gpointer ud) {
+	(void)b;
+	scroll_breadcrumb_by(ud, -1);
+}
+
+static void on_breadcrumb_scroll_right(GtkButton *b, gpointer ud) {
+	(void)b;
+	scroll_breadcrumb_by(ud, +1);
+}
+
+/* Populate `box` with segment buttons for the given folder.  No chevron
+ * separators — segments butt up against one another and rely on
+ * background contrast / hover effects for visual separation.  The
+ * topmost segment (current folder) gets the `.suggested-action` class
+ * so it reads as the "selected" / active cell in the bar.  Used by
+ * rebuild_breadcrumb, which builds a fresh box rather than mutating
+ * the existing one. */
+static void populate_breadcrumb_into(SirilFileBrowser *fb, GtkWidget *box) {
+	/* Recent mode: single dimmed label, no clickable segments. */
+	if (fb->in_recent_mode) {
+		GtkWidget *lbl = gtk_label_new(_("Recent files"));
+		gtk_widget_add_css_class(lbl, "dim-label");
+		gtk_widget_set_margin_start(lbl, 8);
+		gtk_box_append(GTK_BOX(box), lbl);
+		return;
+	}
+
+	if (!fb->current_folder) return;
+
+	/* Non-native location (trash://, network://, sftp://…): we can't walk
+	 * a parent chain meaningfully, so render a single segment named after
+	 * the URI scheme.  Trash gets the system trash icon for recognisability. */
+	if (!g_file_is_native(fb->current_folder)) {
+		gchar *uri = g_file_get_uri(fb->current_folder);
+		const char *scheme = uri ? g_uri_peek_scheme(uri) : NULL;
+		const char *label  = scheme ? scheme : (uri ? uri : "?");
+		const char *icon   = "folder-symbolic";
+		const char *display = label;
+		if (scheme && g_str_equal(scheme, "trash")) {
+			icon = "user-trash-symbolic";
+			display = _("Trash");
+		}
+		GtkWidget *seg = make_breadcrumb_button(fb, display, icon,
+		                                        fb->current_folder);
+		gtk_box_append(GTK_BOX(box), seg);
+		g_free(uri);
+		return;
+	}
+
+	/* Native filesystem: walk parents from current up to root (or up to
+	 * $HOME, whichever comes first).  Stopping at $HOME means a deep
+	 * working folder doesn't drag a "/ > home > <username> > …" prefix
+	 * that nobody clicks through. */
+	const gchar *home = g_get_home_dir();
+	GFile *home_gfile = home ? g_file_new_for_path(home) : NULL;
+	GPtrArray *chain = g_ptr_array_new_with_free_func(g_object_unref);
+	g_ptr_array_add(chain, g_object_ref(fb->current_folder));
+	gboolean stopped_at_home = home_gfile &&
+	                           g_file_equal(fb->current_folder, home_gfile);
+	if (!stopped_at_home) {
+		GFile *cur = fb->current_folder;
+		GFile *p;
+		while ((p = g_file_get_parent(cur))) {
+			g_ptr_array_add(chain, p);    /* owns */
+			if (home_gfile && g_file_equal(p, home_gfile)) {
+				stopped_at_home = TRUE;
+				break;
+			}
+			cur = p;
+		}
+	}
+
+	/* chain[0] = current folder, chain[len-1] = top (root or $HOME). */
+	for (gint i = chain->len - 1; i >= 0; i--) {
+		GFile *seg = g_ptr_array_index(chain, i);
+		gboolean is_top = (i == (gint)chain->len - 1);
+		gboolean is_current = (i == 0);
+		const char *segname = NULL;
+		const char *segicon = NULL;
+		gchar *base = NULL;
+		if (is_top && stopped_at_home) {
+			/* Home: house icon + username label (e.g. "🏠 alice"). */
+			segicon = "user-home-symbolic";
+			segname = g_get_user_name();
+		} else if (is_top) {
+			segname = "/";
+			segicon = "drive-harddisk-symbolic";
+		} else {
+			base = g_file_get_basename(seg);
+			segname = base ? base : "?";
+		}
+		GtkWidget *btn = make_breadcrumb_button(fb, segname, segicon, seg);
+		/* Highlight the rightmost (current) segment so the active folder
+		 * pops visually — matches the conventional Files-style breadcrumb
+		 * where the current location is the "selected" cell. */
+		if (is_current)
+			gtk_widget_add_css_class(btn, "suggested-action");
+		gtk_box_append(GTK_BOX(box), btn);
+		g_free(base);
+	}
+	g_ptr_array_unref(chain);
+	g_clear_object(&home_gfile);
+}
+
+/* Build a brand-new GtkBox and swap it into the scrolled window
+ * atomically rather than incrementally removing children from the
+ * existing box.  Incremental removal made GTK4 walk a partially-
+ * disposed focus chain during each gtk_box_remove and trip a
+ *   `gtk_widget_is_ancestor: assertion 'GTK_IS_WIDGET (widget)' failed`
+ * critical. */
+static void rebuild_breadcrumb_now(SirilFileBrowser *fb) {
+	if (!fb->breadcrumb_scroller) return;
+
+	GtkWidget *new_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(new_box, "siril-breadcrumb");
+	populate_breadcrumb_into(fb, new_box);
+
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller),
+	                              new_box);
+	fb->breadcrumb_box = new_box;
+
+	/* Sensitivity of the scroll-arrow buttons follows the hadjustment's
+	 * notify signals once layout has settled.  The notify::upper handler
+	 * we wired at construction time fires after the new box is allocated,
+	 * so the arrows update themselves without us having to chase the
+	 * upper bound from here. */
+}
+
+static gboolean rebuild_breadcrumb_idle(gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	fb->pending_breadcrumb_idle = 0;
+	rebuild_breadcrumb_now(fb);
+	return G_SOURCE_REMOVE;
+}
+
+/* Rebuild the breadcrumb from fb->current_folder.  Called whenever the
+ * folder changes (via update_path_label) and on Recent-mode entry.
+ *
+ * Deferred to an idle so the rebuild doesn't run inside the column-view's
+ * "activate" signal dispatch — incremental focus / accessibility updates
+ * during that dispatch were triggering `gtk_widget_is_ancestor: assertion
+ * 'GTK_IS_WIDGET (widget)' failed` even with the atomic box swap.
+ * Running on idle lets GTK drain its existing dispatch chain first, so
+ * the rebuild operates on a settled widget tree.
+ *
+ * Coalesces multiple rapid calls: if an idle is already pending, the
+ * existing one will pick up the latest fb->current_folder when it fires.
+ * The pending source id is cancelled in siril_file_browser_destroy so a
+ * dialog closed mid-navigation doesn't fire the idle on freed memory. */
+static void rebuild_breadcrumb(SirilFileBrowser *fb) {
+	if (!fb) return;
+	if (fb->pending_breadcrumb_idle) return;
+	fb->pending_breadcrumb_idle = g_idle_add(rebuild_breadcrumb_idle, fb);
+}
+
+static void on_edit_path_clicked(GtkButton *b, gpointer ud) {
+	(void)b;
+	SirilFileBrowser *fb = ud;
+	if (!fb->path_stack) return;
+	/* Proper toggle: clicking the button when already in entry mode
+	 * collapses back to breadcrumb mode (and discards any unsubmitted
+	 * typing in the entry, matching Escape behaviour).  Previously
+	 * clicking again was a no-op so the user had to press Enter on
+	 * something valid or hit Escape to get back. */
+	const char *cur = gtk_stack_get_visible_child_name(fb->path_stack);
+	if (g_strcmp0(cur, "entry") == 0) {
+		return_to_breadcrumb_view(fb);
+	} else {
+		gtk_stack_set_visible_child_name(fb->path_stack, "entry");
+		gtk_widget_grab_focus(GTK_WIDGET(fb->path_entry));
+		gtk_editable_select_region(GTK_EDITABLE(fb->path_entry), 0, -1);
+	}
+}
+
+static void return_to_breadcrumb_view(SirilFileBrowser *fb) {
+	if (!fb->path_stack) return;
+	/* Clear the error indicator so a stale red border doesn't carry into
+	 * the next edit session. */
+	gtk_widget_remove_css_class(GTK_WIDGET(fb->path_entry), "error");
+	gtk_stack_set_visible_child_name(fb->path_stack, "breadcrumb");
+}
+
+static gboolean on_path_entry_key_pressed(GtkEventControllerKey *c,
+                                          guint keyval, guint keycode,
+                                          GdkModifierType state,
+                                          gpointer ud) {
+	(void)c; (void)keycode; (void)state;
+	SirilFileBrowser *fb = ud;
+	if (keyval == GDK_KEY_Escape) {
+		return_to_breadcrumb_view(fb);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /* ── column factories ─────────────────────────────────────────────── */
@@ -1618,13 +1927,98 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_box_append(GTK_BOX(toolbar), fb->back_button);
 	gtk_box_append(GTK_BOX(toolbar), fb->forward_button);
 	gtk_box_append(GTK_BOX(toolbar), fb->up_button);
+	/* Path display: a two-page GtkStack.
+	 *
+	 * "breadcrumb" page is a single styled bar (`.siril-breadcrumb-bar`)
+	 * laid out as:
+	 *     [ ← ][ scroll-clipped segment buttons ][ → ]
+	 * The arrow buttons drive the inner scrolled window's hadjustment
+	 * when the breadcrumb overflows; the scrolled window itself uses
+	 * GTK_POLICY_EXTERNAL so no native scrollbar appears.  Segments
+	 * have no chevron separators — they butt up against each other and
+	 * rely on the bar background / hover contrast for separation.  The
+	 * rightmost (current) segment carries `.suggested-action` for the
+	 * blue active-cell highlight.
+	 *
+	 * "entry" page is the editable GtkEntry — surfaced via the edit
+	 * toggle to the right or by pressing Escape (toggles back).  Enter
+	 * in entry mode navigates and flips back to breadcrumb. */
+	fb->breadcrumb_scroller = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller),
+	                               GTK_POLICY_EXTERNAL, GTK_POLICY_NEVER);
+	gtk_widget_set_hexpand(fb->breadcrumb_scroller, TRUE);
+	fb->breadcrumb_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(fb->breadcrumb_box, "siril-breadcrumb");
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller),
+	                              fb->breadcrumb_box);
+
+	/* Scroll-arrow buttons — left + right ends of the bar. */
+	fb->breadcrumb_left_btn = gtk_button_new_from_icon_name("go-previous-symbolic");
+	gtk_widget_add_css_class(fb->breadcrumb_left_btn, "flat");
+	gtk_widget_set_focusable(fb->breadcrumb_left_btn, FALSE);
+	gtk_widget_set_can_focus(fb->breadcrumb_left_btn, FALSE);
+	gtk_widget_set_tooltip_text(fb->breadcrumb_left_btn, _("Scroll breadcrumb left"));
+	g_signal_connect(fb->breadcrumb_left_btn, "clicked",
+	                 G_CALLBACK(on_breadcrumb_scroll_left), fb);
+
+	fb->breadcrumb_right_btn = gtk_button_new_from_icon_name("go-next-symbolic");
+	gtk_widget_add_css_class(fb->breadcrumb_right_btn, "flat");
+	gtk_widget_set_focusable(fb->breadcrumb_right_btn, FALSE);
+	gtk_widget_set_can_focus(fb->breadcrumb_right_btn, FALSE);
+	gtk_widget_set_tooltip_text(fb->breadcrumb_right_btn, _("Scroll breadcrumb right"));
+	g_signal_connect(fb->breadcrumb_right_btn, "clicked",
+	                 G_CALLBACK(on_breadcrumb_scroll_right), fb);
+
+	/* Track adjustment changes so the arrows enable/disable in sync with
+	 * whether there's actually anywhere to scroll. */
+	{
+		GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
+			GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
+		if (hadj) {
+			g_signal_connect(hadj, "notify::value",
+			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
+			g_signal_connect(hadj, "notify::upper",
+			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
+			g_signal_connect(hadj, "notify::page-size",
+			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
+		}
+	}
+
+	GtkWidget *breadcrumb_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(breadcrumb_bar, "siril-breadcrumb-bar");
+	gtk_box_append(GTK_BOX(breadcrumb_bar), fb->breadcrumb_left_btn);
+	gtk_box_append(GTK_BOX(breadcrumb_bar), fb->breadcrumb_scroller);
+	gtk_box_append(GTK_BOX(breadcrumb_bar), fb->breadcrumb_right_btn);
+
 	fb->path_entry = GTK_ENTRY(gtk_entry_new());
-	gtk_entry_set_placeholder_text(fb->path_entry, _("Type a path and press Enter to navigate"));
-	gtk_widget_set_hexpand(GTK_WIDGET(fb->path_entry), TRUE);
-	gtk_widget_set_margin_start(GTK_WIDGET(fb->path_entry), 6);
+	gtk_entry_set_placeholder_text(fb->path_entry,
+		_("Type a path and press Enter to navigate"));
 	g_signal_connect(fb->path_entry, "activate",
 	                 G_CALLBACK(on_path_entry_activate), fb);
-	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_entry));
+	{
+		GtkEventController *kc = gtk_event_controller_key_new();
+		g_signal_connect(kc, "key-pressed",
+		                 G_CALLBACK(on_path_entry_key_pressed), fb);
+		gtk_widget_add_controller(GTK_WIDGET(fb->path_entry), kc);
+	}
+
+	fb->path_stack = GTK_STACK(gtk_stack_new());
+	gtk_stack_set_transition_type(fb->path_stack, GTK_STACK_TRANSITION_TYPE_NONE);
+	gtk_widget_set_hexpand(GTK_WIDGET(fb->path_stack), TRUE);
+	gtk_widget_set_margin_start(GTK_WIDGET(fb->path_stack), 6);
+	gtk_stack_add_named(fb->path_stack, breadcrumb_bar, "breadcrumb");
+	gtk_stack_add_named(fb->path_stack, GTK_WIDGET(fb->path_entry), "entry");
+	gtk_stack_set_visible_child_name(fb->path_stack, "breadcrumb");
+	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_stack));
+
+	/* Edit-path toggle: clicking swaps breadcrumb ↔ entry mode. */
+	fb->edit_path_btn = gtk_button_new_from_icon_name("document-edit-symbolic");
+	gtk_widget_set_tooltip_text(fb->edit_path_btn, _("Edit path as text"));
+	gtk_widget_add_css_class(fb->edit_path_btn, "flat");
+	gtk_widget_set_margin_start(fb->edit_path_btn, 6);
+	g_signal_connect(fb->edit_path_btn, "clicked",
+	                 G_CALLBACK(on_edit_path_clicked), fb);
+	gtk_box_append(GTK_BOX(toolbar), fb->edit_path_btn);
 
 	/* Search toggle — sits to the left of Open in the top toolbar.  Bound
 	 * bidirectionally to the search bar's `search-mode-enabled` so clicking
@@ -2103,6 +2497,13 @@ void siril_image_button_init(GtkWidget               *button,
 
 void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	if (!fb) return;
+	/* Cancel any pending breadcrumb-rebuild idle so it can't fire on freed
+	 * memory after we're done.  The rebuild trampoline reads fb fields
+	 * directly so a stale idle would be a use-after-free. */
+	if (fb->pending_breadcrumb_idle) {
+		g_source_remove(fb->pending_breadcrumb_idle);
+		fb->pending_breadcrumb_idle = 0;
+	}
 	/* Drop the external-button signal (the button itself is owned by the
 	 * main UI builder, not by us, so we must not unref it). */
 	if (fb->external_demosaic_btn && fb->external_demosaic_handler) {

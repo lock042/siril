@@ -174,6 +174,55 @@ columnview.siril-dense-rows listview > row > cell {
    padding-bottom: 0;
 }
 
+/* SirilFileBrowser breadcrumb path bar — the framed cell-list to the
+ * right of the back/forward/up navigation in the file dialog.  Render
+ * the whole bar as a single recessed "trough" so the segment buttons
+ * look like cells of one widget rather than a row of independent
+ * buttons.  Layout: [ ← arrow ][ scrolling segment list ][ → arrow ]. */
+.siril-breadcrumb-bar {
+   background-color: alpha(@theme_fg_color, 0.06);
+   border: 1px solid alpha(@theme_fg_color, 0.18);
+   border-radius: 6px;
+   padding: 1px;
+   min-height: 28px;
+}
+
+/* Inner scrolled window — neutralise its default background/border so it
+ * inherits the trough look from .siril-breadcrumb-bar.  Same for the
+ * implicit viewport that wraps non-scrollable children. */
+.siril-breadcrumb-bar scrolledwindow,
+.siril-breadcrumb-bar scrolledwindow > viewport {
+   background: transparent;
+   border: none;
+}
+
+/* The segments box itself — kill any inherited horizontal padding so
+ * the leftmost / rightmost segment kisses the bar edge. */
+.siril-breadcrumb {
+   padding: 0;
+}
+
+/* Individual segment button.  Tight padding so segments don't waste
+ * horizontal real-estate; small radius for the active-segment pill. */
+.siril-breadcrumb-segment {
+   border-radius: 4px;
+   border: none;
+   padding: 2px 8px;
+   margin: 0;
+   min-height: 22px;
+   min-width: 0;
+}
+
+/* The scroll-arrow buttons at the ends of the bar.  Match segment
+ * heights and lose the default button chrome so they read as part of
+ * the bar rather than extra controls. */
+.siril-breadcrumb-bar > button {
+   border-radius: 4px;
+   padding: 2px 4px;
+   min-height: 22px;
+   min-width: 22px;
+}
+
 /* Window header bar: normalise heights across GtkButton (Open, Home,
  * Livestacking, Undo, Redo, Save, Save-As) and GtkMenuButton (Recent,
  * Image Processing, Tools, Scripts, hamburger, Precision, Snapshot).
@@ -228,21 +277,21 @@ columnview.siril-dense-rows listview > row > cell {
 }
 
 /* Pin EVERY header-bar button to the same min-height so label-bearing
- * buttons (Open, Save, Image Processing, …) don't end up 4-6 px taller
- * than icon-only buttons (Recent, hamburger, Undo, Redo, Save-As, …).
- * Without this pin, label buttons grow to fit their text intrinsic
- * height while icon buttons stay at their separate `min-height` below,
- * which is what was making Recent / hamburger look chipped down.
+ * buttons (Open, Save, Image Processing, …) don't end up taller than
+ * icon-only buttons (Recent, hamburger, Undo, Redo, Save-As, …).
  *
- * 28 px is the empirical label intrinsic height on Adwaita + the system
- * font — chosen so the floor (min-height) is at or above the natural
- * size of every header child, which means every widget renders at the
- * same height regardless of content. */
+ * 24 px is chosen to sit just BELOW the label widget's natural height
+ * on Adwaita + the system font.  With `line-height: 1` clamping the
+ * label to font-size only (see the rule below), the label fits inside
+ * the 24 px floor, so the button doesn't grow past it.  Menubuttons
+ * wrap an inner button with the same constraints and render at the
+ * same 24 px — so a standalone GtkButton and a GtkMenuButton inner
+ * `button` come out matching height. */
 #siril-headerbar button,
 #siril-headerbar menubutton,
 #siril-headerbar menubutton > button,
 #siril-headerbar windowcontrols button {
-   min-height: 28px;
+   min-height: 24px;
    padding-top: 0;
    padding-bottom: 0;
    padding-left: 6px;
@@ -258,12 +307,22 @@ columnview.siril-dense-rows listview > row > cell {
    margin-top: 0;
    margin-bottom: 0;
 }
+
+/* Labels: the critical one.  Without `line-height: 1` the label widget
+ * reports its preferred height as font-size × the theme's line-height
+ * multiplier (~1.4 on Adwaita), which on a typical system font lands
+ * around 26-28 px — slightly larger than the menubutton inner button
+ * natural rendering, which is why standalone GtkButton was rendering
+ * a few px taller than GtkMenuButton.  `line-height: 1` clamps the
+ * label to its font-size, the natural height drops below our 24 px
+ * floor, and every button settles at exactly 24 px. */
 #siril-headerbar button label,
 #siril-headerbar menubutton label {
    margin-top: 0;
    margin-bottom: 0;
    padding-top: 0;
    padding-bottom: 0;
+   line-height: 1;
 }
 
 /* Icon-only buttons (Home, Livestacking, Undo, Redo, Save-As, hamburger,
@@ -281,8 +340,8 @@ columnview.siril-dense-rows listview > row > cell {
 #siril-headerbar menubutton.image-button,
 #siril-headerbar menubutton.image-button > button,
 #siril-headerbar windowcontrols button {
-   min-height: 28px;
-   min-width: 28px;
+   min-height: 24px;
+   min-width: 24px;
    /* Match the horizontal padding of label-bearing buttons (6 px each
     * side) so the visual gap between any two consecutive toolbar widgets
     * is identical regardless of whether the neighbours are icon-only or
@@ -305,11 +364,11 @@ columnview.siril-dense-rows listview > row > cell {
 /* Spinbutton in the header (spinCPU `.small-spinbutton`) renders ~1-2 px
  * taller than the surrounding buttons by default because its inner
  * `text` widget asks for its own min-height.  Pin every part of the
- * spinbutton to the same 28 px we use everywhere else. */
+ * spinbutton to the same 24 px we use everywhere else. */
 #siril-headerbar spinbutton,
 #siril-headerbar spinbutton > text,
 #siril-headerbar spinbutton > button {
-   min-height: 28px;
+   min-height: 24px;
    padding-top: 0;
    padding-bottom: 0;
 }
