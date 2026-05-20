@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-09 10:17+0000\n"
+"PO-Revision-Date: 2026-05-18 07:16+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -835,7 +835,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
-msgstr "アストロメトリー"
+msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:128 src/gui/uifiles/s_pcc_dialog.ui:156
 #: src/gui/uifiles/s_pcc_dialog.ui:175
@@ -4983,7 +4983,7 @@ msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:371
 msgid "Variable"
-msgstr ""
+msgstr "変数"
 
 #: src/gui/uifiles/pixelmath.ui:391
 msgid "Chan."
@@ -7972,7 +7972,7 @@ msgstr "スクリプト"
 
 #: src/gui/uifiles/settings_window.ui:5390
 msgid "Type"
-msgstr "タイプ"
+msgstr "型"
 
 #: src/gui/uifiles/settings_window.ui:5424
 #, fuzzy
@@ -8531,7 +8531,7 @@ msgstr "選択領域をROIに設定"
 
 #: src/gui/uifiles/siril.ui:1132
 msgid "Clear ROI"
-msgstr "ROIをクリア"
+msgstr "ROIを解除"
 
 #: src/gui/uifiles/siril.ui:1149
 #, fuzzy
@@ -8646,9 +8646,8 @@ msgid "Negative Transformation"
 msgstr "カラー反転"
 
 #: src/gui/uifiles/siril.ui:1452
-#, fuzzy
 msgid "Filters"
-msgstr "メディアンフィルター..."
+msgstr "フィルター"
 
 #: src/gui/uifiles/siril.ui:1477 src/gui/uifiles/siril.ui:1925
 #, fuzzy
@@ -9495,7 +9494,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4900
 msgid "Sequence export"
-msgstr "画像シーケンスをエクスポート"
+msgstr "シーケンスのエクスポート"
 
 #: src/gui/uifiles/siril.ui:4926
 #, fuzzy
@@ -12352,9 +12351,8 @@ msgid "Attempting a near solve with a radius of %3.1f degrees\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1039
-#, fuzzy
 msgid "Plate Solve"
-msgstr "アストロメトリー"
+msgstr ""
 
 #: src/algos/astrometry_solver.c:1064 src/gui/callbacks.c:2301
 #, c-format
@@ -23488,7 +23486,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:1360
 msgid "Precision loss"
-msgstr ""
+msgstr "精度の低下"
 
 #: src/gui/callbacks.c:1361
 msgid ""
@@ -23496,10 +23494,13 @@ msgid ""
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
 "Are you sure you want to convert your data?"
 msgstr ""
+"画像を32ビットから16ビットに変換すると、数値の精度が低下する可能性があります"
+"。32ビットに戻しても、この精度の低下は回復しません。\n"
+"本当にデータを変換しますか？"
 
 #: src/gui/callbacks.c:1363
 msgid "Convert to 16 bits"
-msgstr ""
+msgstr "16ビットに変換"
 
 #: src/gui/callbacks.c:1619
 msgid "B&W"
@@ -30330,9 +30331,8 @@ msgid "Configuration key not found"
 msgstr "No rejection"
 
 #: src/io/siril_pythoncommands.c:2360 src/io/siril_pythoncommands.c:2404
-#, fuzzy
 msgid "Siril image is not plate solved"
-msgstr "アストロメトリー"
+msgstr ""
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:2449
