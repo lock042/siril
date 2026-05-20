@@ -2603,8 +2603,8 @@ static void draw_regframe(const draw_data_t* dd) {
 		if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION)
 			return;
 		Href = com.seq.regparam[activelayer][com.seq.reference_image].H;
-		ref_rx = com.seq.imgparam[com.seq.reference_image].rx;
-		ref_ry = com.seq.imgparam[com.seq.reference_image].ry;
+		ref_rx = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].rx : com.seq.rx;
+		ref_ry = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].ry : com.seq.ry;
 	}
 
 	regframe framing = { 0 };
