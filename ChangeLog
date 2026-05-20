@@ -18,6 +18,8 @@ siril-1.5.0
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
 * Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
+* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
+* Adding TIFF support in Pixelmath (#1726)
 * Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
 
 **Fixes**
