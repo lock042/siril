@@ -1120,7 +1120,14 @@ int register_multi_step_global(struct registration_args *regargs) {
 					for (int i = 0; i < regargs->seq->number; i++) {
 						if (!included[i]) continue;
 						Homography H_final = { 0 };
-						cvMultH(H_ext, current_regdata[i].H, &H_final);
+						if (regargs->type == SHIFT_TRANSFORMATION) {
+							// Keep pure shift
+							cvGetEye(&H_final);
+							H_final.h02 = H_ext.h02 + current_regdata[i].H.h02;
+							H_final.h12 = H_ext.h12 + current_regdata[i].H.h12;
+						} else {
+							cvMultH(H_ext, current_regdata[i].H, &H_final);
+						}
 						current_regdata[i].H = H_final;
 					}
 					regargs->seq->ext_ref = TRUE;
