@@ -93,6 +93,13 @@ struct _SirilFileBrowser {
 
 	GFile                  *current_folder;     /* owned */
 	GFile                  *initial_file;       /* owned, set before run */
+	GFile                  *breadcrumb_deepest; /* owned; deepest native path
+	                                             * visited along the current
+	                                             * trail.  Lets the bar keep
+	                                             * showing /a/b/c/d after the
+	                                             * user goes up to /a/b/c so
+	                                             * they can click back into d
+	                                             * (or use the right arrow). */
 
 	/* History stacks for back / forward.  Hold owned GFile* refs. */
 	GPtrArray              *back_history;
@@ -200,6 +207,7 @@ static int sidebar_recent_cmp_visited_desc(gconstpointer a, gconstpointer b);
 static void update_nav_sensitivity(SirilFileBrowser *fb);
 static void rebuild_breadcrumb(SirilFileBrowser *fb);
 static void return_to_breadcrumb_view(SirilFileBrowser *fb);
+static void update_breadcrumb_arrow_sensitivity(SirilFileBrowser *fb);
 
 static void build_recent_store(SirilFileBrowser *fb) {
 	if (!fb->recent_store)
@@ -292,6 +300,9 @@ static void update_path_label(SirilFileBrowser *fb) {
 	/* Mirror the same destination into the breadcrumb so both views stay
 	 * in sync — clicking a sidebar entry or back/forward updates both. */
 	rebuild_breadcrumb(fb);
+	/* Refresh the trail-navigation arrow sensitivity now that
+	 * current_folder is up-to-date. */
+	update_breadcrumb_arrow_sensitivity(fb);
 }
 
 static void update_nav_sensitivity(SirilFileBrowser *fb) {
@@ -321,11 +332,68 @@ static void update_nav_sensitivity(SirilFileBrowser *fb) {
  * the listing updates in place — selection of unaffected items is
  * preserved.  We rely on that built-in monitor rather than spinning
  * up a parallel GFileMonitor that would force a full re-enumeration. */
+/* Maintain `fb->breadcrumb_deepest` so the breadcrumb shows a persistent
+ * trail of the deepest folder visited along the current chain.  Going UP
+ * or clicking an ancestor segment keeps the deeper levels visible (the
+ * user can click forward into them); only navigating into a SIBLING or
+ * UNRELATED branch truncates the trail to the new location.
+ *
+ *   ancestor:    keep existing deepest, just update which segment is current
+ *   descendant:  extend deepest to the new (deeper) location
+ *   same:        keep deepest as-is
+ *   unrelated:   reset deepest to the new location
+ *
+ * Non-native paths (trash:///, network:///) can't participate in a chain
+ * comparison, so we treat them as a reset to NULL — the breadcrumb will
+ * render the URI scheme as a single segment instead. */
+static void set_breadcrumb_deepest(SirilFileBrowser *fb, GFile *newpath) {
+	if (!newpath || !g_file_is_native(newpath)) {
+		g_clear_object(&fb->breadcrumb_deepest);
+		return;
+	}
+	/* If newpath is *above* $HOME (e.g. user went up past /home/user to
+	 * /home or /), reset the trail to newpath.  The chain walk in
+	 * populate_breadcrumb_into stops at $HOME for display, so a stale
+	 * trail below $HOME wouldn't contain newpath and the "current"
+	 * highlight would land on no segment. */
+	const gchar *home = g_get_home_dir();
+	if (home) {
+		GFile *home_gf = g_file_new_for_path(home);
+		gboolean above_home = !g_file_equal(newpath, home_gf) &&
+		                      g_file_has_prefix(home_gf, newpath);
+		g_object_unref(home_gf);
+		if (above_home) {
+			g_clear_object(&fb->breadcrumb_deepest);
+			fb->breadcrumb_deepest = g_object_ref(newpath);
+			return;
+		}
+	}
+	if (!fb->breadcrumb_deepest) {
+		fb->breadcrumb_deepest = g_object_ref(newpath);
+		return;
+	}
+	if (g_file_equal(newpath, fb->breadcrumb_deepest) ||
+	    g_file_has_prefix(fb->breadcrumb_deepest, newpath)) {
+		/* newpath is ancestor-of (or equal-to) deepest → keep deepest. */
+		return;
+	}
+	if (g_file_has_prefix(newpath, fb->breadcrumb_deepest)) {
+		/* newpath is strictly deeper than deepest → extend to newpath. */
+		g_object_unref(fb->breadcrumb_deepest);
+		fb->breadcrumb_deepest = g_object_ref(newpath);
+		return;
+	}
+	/* Unrelated branch — start a fresh trail at newpath. */
+	g_object_unref(fb->breadcrumb_deepest);
+	fb->breadcrumb_deepest = g_object_ref(newpath);
+}
+
 static void apply_current_folder(SirilFileBrowser *fb, GFile *folder) {
 	if (!folder) return;
 	exit_recent_mode(fb);  /* any folder navigation cancels Recent view */
 	if (fb->current_folder) g_object_unref(fb->current_folder);
 	fb->current_folder = g_object_ref(folder);
+	set_breadcrumb_deepest(fb, folder);
 	/* Clear window focus BEFORE swapping the directory list's file.
 	 * gtk_directory_list_set_file synchronously fires items-changed to
 	 * remove every current item, and the column view recycles / disposes
@@ -353,38 +421,12 @@ static void navigate_to(SirilFileBrowser *fb, GFile *folder) {
 	apply_current_folder(fb, folder);
 }
 
-static void on_up_clicked(GtkButton *b, gpointer ud) {
-	(void)b;
-	SirilFileBrowser *fb = ud;
-	if (!fb->current_folder) return;
-	GFile *parent = g_file_get_parent(fb->current_folder);
-	if (parent) {
-		navigate_to(fb, parent);
-		g_object_unref(parent);
-	}
-}
-
-static void on_back_clicked(GtkButton *b, gpointer ud) {
-	(void)b;
-	SirilFileBrowser *fb = ud;
-	if (fb->back_history->len == 0) return;
-	GFile *prev = g_ptr_array_steal_index(fb->back_history, fb->back_history->len - 1);
-	if (fb->current_folder)
-		g_ptr_array_add(fb->forward_history, g_object_ref(fb->current_folder));
-	apply_current_folder(fb, prev);
-	g_object_unref(prev);
-}
-
-static void on_forward_clicked(GtkButton *b, gpointer ud) {
-	(void)b;
-	SirilFileBrowser *fb = ud;
-	if (fb->forward_history->len == 0) return;
-	GFile *next = g_ptr_array_steal_index(fb->forward_history, fb->forward_history->len - 1);
-	if (fb->current_folder)
-		g_ptr_array_add(fb->back_history, g_object_ref(fb->current_folder));
-	apply_current_folder(fb, next);
-	g_object_unref(next);
-}
+/* Up / Back / Forward button handlers retired — the breadcrumb's
+ * left/right arrows cover step-up and step-down-along-trail, and the
+ * trail itself replaces history.  The fb->back_history /
+ * forward_history arrays are still populated by navigate_to() for now
+ * (cheap insurance in case we want Alt+Left / Alt+Right shortcuts
+ * later) but they no longer drive any UI. */
 
 static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 	SirilFileBrowser *fb = ud;
@@ -459,7 +501,10 @@ static GtkWidget *make_breadcrumb_button(SirilFileBrowser *fb,
                                          const char *icon_name,
                                          GFile *gf) {
 	GtkWidget *btn = gtk_button_new();
-	gtk_widget_add_css_class(btn, "flat");
+	/* No `.flat` — keep the default button chrome so segments read as
+	 * clickable buttons rather than mere labels.  The fine-grained look
+	 * (subtle background, hover, current-segment bold) is in siril.css
+	 * under .siril-breadcrumb-segment. */
 	gtk_widget_add_css_class(btn, "siril-breadcrumb-segment");
 	/* Keep these out of the focus chain.  If a focusable segment is
 	 * removed during rebuild_breadcrumb (which fires whenever the user
@@ -486,50 +531,75 @@ static GtkWidget *make_breadcrumb_button(SirilFileBrowser *fb,
 	return btn;
 }
 
-/* Enable / disable the left & right scroll-arrow buttons based on whether
- * the horizontal adjustment of the breadcrumb scroller has anywhere to
- * scroll.  Called after rebuild + on every adjustment value/upper change. */
+/* Walk the trail from `breadcrumb_deepest` up until we find the GFile
+ * whose direct parent is `current_folder`.  That's the "next deeper" step
+ * along the trail — clicking the right arrow navigates to it.  Returns
+ * a transfer-full GFile, or NULL if the trail doesn't extend below
+ * current. */
+static GFile *trail_next_below_current(SirilFileBrowser *fb) {
+	if (!fb->breadcrumb_deepest || !fb->current_folder) return NULL;
+	if (g_file_equal(fb->current_folder, fb->breadcrumb_deepest)) return NULL;
+	if (!g_file_has_prefix(fb->breadcrumb_deepest, fb->current_folder))
+		return NULL;
+	GFile *p = g_object_ref(fb->breadcrumb_deepest);
+	while (p) {
+		GFile *parent = g_file_get_parent(p);
+		if (!parent) {
+			g_object_unref(p);
+			return NULL;
+		}
+		if (g_file_equal(parent, fb->current_folder)) {
+			g_object_unref(parent);
+			return p;
+		}
+		g_object_unref(p);
+		p = parent;
+	}
+	return NULL;
+}
+
+/* Sensitivity of the trail-navigation arrows:
+ *   left  (step-up):   enabled if current_folder has a parent
+ *   right (step-down): enabled if the trail extends below current_folder */
 static void update_breadcrumb_arrow_sensitivity(SirilFileBrowser *fb) {
-	if (!fb->breadcrumb_scroller) return;
-	GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
-		GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
-	if (!hadj) return;
-	double value = gtk_adjustment_get_value(hadj);
-	double upper = gtk_adjustment_get_upper(hadj);
-	double page  = gtk_adjustment_get_page_size(hadj);
-	gboolean can_left  = value > 0.5;
-	gboolean can_right = value + page < upper - 0.5;
+	gboolean can_left = FALSE, can_right = FALSE;
+	if (fb->current_folder) {
+		GFile *p = g_file_get_parent(fb->current_folder);
+		if (p) {
+			can_left = TRUE;
+			g_object_unref(p);
+		}
+	}
+	if (fb->breadcrumb_deepest && fb->current_folder &&
+	    !g_file_equal(fb->current_folder, fb->breadcrumb_deepest) &&
+	    g_file_has_prefix(fb->breadcrumb_deepest, fb->current_folder)) {
+		can_right = TRUE;
+	}
 	if (fb->breadcrumb_left_btn)
 		gtk_widget_set_sensitive(fb->breadcrumb_left_btn, can_left);
 	if (fb->breadcrumb_right_btn)
 		gtk_widget_set_sensitive(fb->breadcrumb_right_btn, can_right);
 }
 
-static void on_breadcrumb_hadj_notify(GObject *o, GParamSpec *p, gpointer ud) {
-	(void)o; (void)p;
-	update_breadcrumb_arrow_sensitivity(ud);
-}
-
-static void scroll_breadcrumb_by(SirilFileBrowser *fb, double delta) {
-	if (!fb->breadcrumb_scroller) return;
-	GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
-		GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
-	if (!hadj) return;
-	double page = gtk_adjustment_get_page_size(hadj);
-	double step = page * 0.5;
-	if (step < 80) step = 80;
-	gtk_adjustment_set_value(hadj,
-		gtk_adjustment_get_value(hadj) + (delta < 0 ? -step : step));
-}
-
-static void on_breadcrumb_scroll_left(GtkButton *b, gpointer ud) {
+static void on_breadcrumb_step_up(GtkButton *b, gpointer ud) {
 	(void)b;
-	scroll_breadcrumb_by(ud, -1);
+	SirilFileBrowser *fb = ud;
+	if (!fb->current_folder) return;
+	GFile *parent = g_file_get_parent(fb->current_folder);
+	if (parent) {
+		navigate_to(fb, parent);
+		g_object_unref(parent);
+	}
 }
 
-static void on_breadcrumb_scroll_right(GtkButton *b, gpointer ud) {
+static void on_breadcrumb_step_down(GtkButton *b, gpointer ud) {
 	(void)b;
-	scroll_breadcrumb_by(ud, +1);
+	SirilFileBrowser *fb = ud;
+	GFile *next = trail_next_below_current(fb);
+	if (next) {
+		navigate_to(fb, next);
+		g_object_unref(next);
+	}
 }
 
 /* Populate `box` with segment buttons for the given folder.  No chevron
@@ -571,18 +641,22 @@ static void populate_breadcrumb_into(SirilFileBrowser *fb, GtkWidget *box) {
 		return;
 	}
 
-	/* Native filesystem: walk parents from current up to root (or up to
-	 * $HOME, whichever comes first).  Stopping at $HOME means a deep
-	 * working folder doesn't drag a "/ > home > <username> > …" prefix
-	 * that nobody clicks through. */
+	/* Native filesystem: walk parents up to root (or up to $HOME) from
+	 * the *deepest* path we've visited along this trail, not from
+	 * fb->current_folder — so going up a level keeps the deeper segments
+	 * visible / clickable.  fb->breadcrumb_deepest holds the deepest
+	 * point; if it's NULL (first navigation, or just reset) the trail
+	 * starts at the current folder. */
+	GFile *trail_tip = fb->breadcrumb_deepest ? fb->breadcrumb_deepest
+	                                          : fb->current_folder;
 	const gchar *home = g_get_home_dir();
 	GFile *home_gfile = home ? g_file_new_for_path(home) : NULL;
 	GPtrArray *chain = g_ptr_array_new_with_free_func(g_object_unref);
-	g_ptr_array_add(chain, g_object_ref(fb->current_folder));
+	g_ptr_array_add(chain, g_object_ref(trail_tip));
 	gboolean stopped_at_home = home_gfile &&
-	                           g_file_equal(fb->current_folder, home_gfile);
+	                           g_file_equal(trail_tip, home_gfile);
 	if (!stopped_at_home) {
-		GFile *cur = fb->current_folder;
+		GFile *cur = trail_tip;
 		GFile *p;
 		while ((p = g_file_get_parent(cur))) {
 			g_ptr_array_add(chain, p);    /* owns */
@@ -594,11 +668,13 @@ static void populate_breadcrumb_into(SirilFileBrowser *fb, GtkWidget *box) {
 		}
 	}
 
-	/* chain[0] = current folder, chain[len-1] = top (root or $HOME). */
+	/* chain[0] = trail tip (deepest), chain[len-1] = top (root or $HOME).
+	 * The "current" segment is whichever GFile in the chain equals
+	 * fb->current_folder — that's the one we render bold. */
 	for (gint i = chain->len - 1; i >= 0; i--) {
 		GFile *seg = g_ptr_array_index(chain, i);
 		gboolean is_top = (i == (gint)chain->len - 1);
-		gboolean is_current = (i == 0);
+		gboolean is_current = g_file_equal(seg, fb->current_folder);
 		const char *segname = NULL;
 		const char *segicon = NULL;
 		gchar *base = NULL;
@@ -614,11 +690,10 @@ static void populate_breadcrumb_into(SirilFileBrowser *fb, GtkWidget *box) {
 			segname = base ? base : "?";
 		}
 		GtkWidget *btn = make_breadcrumb_button(fb, segname, segicon, seg);
-		/* Highlight the rightmost (current) segment so the active folder
-		 * pops visually — matches the conventional Files-style breadcrumb
-		 * where the current location is the "selected" cell. */
+		/* Highlight the segment that matches the current folder (which
+		 * may be anywhere along the trail, not just the rightmost). */
 		if (is_current)
-			gtk_widget_add_css_class(btn, "suggested-action");
+			gtk_widget_add_css_class(btn, "siril-current");
 		gtk_box_append(GTK_BOX(box), btn);
 		g_free(base);
 	}
@@ -1511,12 +1586,24 @@ static int sidebar_populate_all_devices(GtkListBox *box) {
 	return n;
 }
 
+/* Build a heading label styled like the preview pane's "Preview" header.
+ * Used only for the preview pane now — Places is back inside the listbox
+ * as a section header alongside Bookmarks / Devices. */
+static GtkWidget *make_pane_heading(const char *text) {
+	GtkWidget *heading = gtk_label_new(NULL);
+	gchar *m = g_markup_printf_escaped("<b>%s</b>", text);
+	gtk_label_set_markup(GTK_LABEL(heading), m);
+	g_free(m);
+	gtk_label_set_xalign(GTK_LABEL(heading), 0.0);
+	return heading;
+}
+
 static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
 	GtkWidget *list = gtk_list_box_new();
 	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
 	gtk_widget_add_css_class(list, "navigation-sidebar");
 
-	/* Section: Places.  Order mirrors the GTK3 GtkFileChooser sidebar that
+	/* Sidebar entries.  Order mirrors the GTK3 GtkFileChooser sidebar that
 	 * Siril shipped previously, plus the Working Directory shortcut that
 	 * jumps to com.wd (the folder Siril is operating on).  Templates /
 	 * Public / Computer are intentionally omitted — see the brief. */
@@ -1899,6 +1986,14 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_window_set_modal(fb->window, TRUE);
 	if (parent) gtk_window_set_transient_for(fb->window, parent);
 	gtk_window_set_default_size(fb->window, 1000, 620);
+	/* Hard minimum on the dialog: sidebar (180) + file list (320) +
+	 * preview (300) + paned handles ≈ 820 px wide.  Round up to 880 to
+	 * leave breathing room for the toolbar's cancel/back/path/open
+	 * cluster; 520 tall keeps the preview area, sidebar and column rows
+	 * all usable.  Setting the request on the window itself prevents
+	 * the user from dragging the resize handle to a size that would
+	 * truncate the preview picture. */
+	gtk_widget_set_size_request(GTK_WIDGET(fb->window), 880, 520);
 
 	/* Toolbar (top row).  Layout: Cancel | Back · Forward · Up · Path | Open.
 	 * Per the brief, Cancel anchors top-left and Open top-right so the
@@ -1915,18 +2010,12 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_widget_set_margin_end(cancel, 8);
 	gtk_box_append(GTK_BOX(toolbar), cancel);
 
-	fb->back_button = gtk_button_new_from_icon_name("go-previous-symbolic");
-	gtk_widget_set_tooltip_text(fb->back_button, _("Back"));
-	g_signal_connect(fb->back_button, "clicked", G_CALLBACK(on_back_clicked), fb);
-	fb->forward_button = gtk_button_new_from_icon_name("go-next-symbolic");
-	gtk_widget_set_tooltip_text(fb->forward_button, _("Forward"));
-	g_signal_connect(fb->forward_button, "clicked", G_CALLBACK(on_forward_clicked), fb);
-	fb->up_button = gtk_button_new_from_icon_name("go-up-symbolic");
-	gtk_widget_set_tooltip_text(fb->up_button, _("Up a level"));
-	g_signal_connect(fb->up_button, "clicked", G_CALLBACK(on_up_clicked), fb);
-	gtk_box_append(GTK_BOX(toolbar), fb->back_button);
-	gtk_box_append(GTK_BOX(toolbar), fb->forward_button);
-	gtk_box_append(GTK_BOX(toolbar), fb->up_button);
+	/* Back / Forward / Up buttons removed — the breadcrumb's own
+	 * left/right arrows (created below as fb->breadcrumb_left_btn /
+	 * _right_btn) cover the same navigation actions, and the trail
+	 * itself visualises history far better than a stack-of-frames
+	 * back button could.  The fb->back_button / forward_button /
+	 * up_button fields stay NULL; update_nav_sensitivity is NULL-safe. */
 	/* Path display: a two-page GtkStack.
 	 *
 	 * "breadcrumb" page is a single styled bar (`.siril-breadcrumb-bar`)
@@ -1952,37 +2041,30 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller),
 	                              fb->breadcrumb_box);
 
-	/* Scroll-arrow buttons — left + right ends of the bar. */
+	/* Trail-navigation arrows — left + right ends of the bar.
+	 *   left  = step up one level (navigate to current_folder's parent)
+	 *   right = step down one level along the persistent trail (the
+	 *           next deeper folder we previously visited but have since
+	 *           backed away from).
+	 * These replace the old back/forward/up buttons that used to live in
+	 * the toolbar — the breadcrumb trail already shows the navigation
+	 * context, so dedicated history buttons are redundant. */
 	fb->breadcrumb_left_btn = gtk_button_new_from_icon_name("go-previous-symbolic");
 	gtk_widget_add_css_class(fb->breadcrumb_left_btn, "flat");
 	gtk_widget_set_focusable(fb->breadcrumb_left_btn, FALSE);
 	gtk_widget_set_can_focus(fb->breadcrumb_left_btn, FALSE);
-	gtk_widget_set_tooltip_text(fb->breadcrumb_left_btn, _("Scroll breadcrumb left"));
+	gtk_widget_set_tooltip_text(fb->breadcrumb_left_btn, _("Up a level"));
 	g_signal_connect(fb->breadcrumb_left_btn, "clicked",
-	                 G_CALLBACK(on_breadcrumb_scroll_left), fb);
+	                 G_CALLBACK(on_breadcrumb_step_up), fb);
 
 	fb->breadcrumb_right_btn = gtk_button_new_from_icon_name("go-next-symbolic");
 	gtk_widget_add_css_class(fb->breadcrumb_right_btn, "flat");
 	gtk_widget_set_focusable(fb->breadcrumb_right_btn, FALSE);
 	gtk_widget_set_can_focus(fb->breadcrumb_right_btn, FALSE);
-	gtk_widget_set_tooltip_text(fb->breadcrumb_right_btn, _("Scroll breadcrumb right"));
+	gtk_widget_set_tooltip_text(fb->breadcrumb_right_btn,
+		_("Forward along the trail"));
 	g_signal_connect(fb->breadcrumb_right_btn, "clicked",
-	                 G_CALLBACK(on_breadcrumb_scroll_right), fb);
-
-	/* Track adjustment changes so the arrows enable/disable in sync with
-	 * whether there's actually anywhere to scroll. */
-	{
-		GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(
-			GTK_SCROLLED_WINDOW(fb->breadcrumb_scroller));
-		if (hadj) {
-			g_signal_connect(hadj, "notify::value",
-			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
-			g_signal_connect(hadj, "notify::upper",
-			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
-			g_signal_connect(hadj, "notify::page-size",
-			                 G_CALLBACK(on_breadcrumb_hadj_notify), fb);
-		}
-	}
+	                 G_CALLBACK(on_breadcrumb_step_down), fb);
 
 	GtkWidget *breadcrumb_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_widget_add_css_class(breadcrumb_bar, "siril-breadcrumb-bar");
@@ -2107,6 +2189,7 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_column_view_set_show_column_separators(fb->columnview, FALSE);
 	gtk_column_view_set_show_row_separators(fb->columnview, FALSE);
 	gtk_widget_add_css_class(GTK_WIDGET(fb->columnview), "siril-dense-rows");
+	/* Column order: Name | Size | Type | Modified. */
 	{
 		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
@@ -2122,17 +2205,17 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		g_object_unref(cn);
 	}
 	{
-		GtkSignalListItemFactory *fmod = GTK_SIGNAL_LIST_ITEM_FACTORY(
+		GtkSignalListItemFactory *fsize = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
-		g_signal_connect(fmod, "setup", G_CALLBACK(modified_setup_cb), NULL);
-		g_signal_connect(fmod, "bind",  G_CALLBACK(modified_bind_cb),  NULL);
-		GtkColumnViewColumn *cm = gtk_column_view_column_new(
-			_("Modified"), GTK_LIST_ITEM_FACTORY(fmod));
-		gtk_column_view_column_set_resizable(cm, TRUE);
-		gtk_column_view_column_set_sorter(cm,
-			GTK_SORTER(gtk_custom_sorter_new(modified_column_compare, NULL, NULL)));
-		gtk_column_view_append_column(fb->columnview, cm);
-		g_object_unref(cm);
+		g_signal_connect(fsize, "setup", G_CALLBACK(size_setup_cb), NULL);
+		g_signal_connect(fsize, "bind",  G_CALLBACK(size_bind_cb),  NULL);
+		GtkColumnViewColumn *cs = gtk_column_view_column_new(
+			_("Size"), GTK_LIST_ITEM_FACTORY(fsize));
+		gtk_column_view_column_set_resizable(cs, TRUE);
+		gtk_column_view_column_set_sorter(cs,
+			GTK_SORTER(gtk_custom_sorter_new(size_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, cs);
+		g_object_unref(cs);
 	}
 	{
 		GtkSignalListItemFactory *ftype = GTK_SIGNAL_LIST_ITEM_FACTORY(
@@ -2148,17 +2231,17 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		g_object_unref(ct);
 	}
 	{
-		GtkSignalListItemFactory *fsize = GTK_SIGNAL_LIST_ITEM_FACTORY(
+		GtkSignalListItemFactory *fmod = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
-		g_signal_connect(fsize, "setup", G_CALLBACK(size_setup_cb), NULL);
-		g_signal_connect(fsize, "bind",  G_CALLBACK(size_bind_cb),  NULL);
-		GtkColumnViewColumn *cs = gtk_column_view_column_new(
-			_("Size"), GTK_LIST_ITEM_FACTORY(fsize));
-		gtk_column_view_column_set_resizable(cs, TRUE);
-		gtk_column_view_column_set_sorter(cs,
-			GTK_SORTER(gtk_custom_sorter_new(size_column_compare, NULL, NULL)));
-		gtk_column_view_append_column(fb->columnview, cs);
-		g_object_unref(cs);
+		g_signal_connect(fmod, "setup", G_CALLBACK(modified_setup_cb), NULL);
+		g_signal_connect(fmod, "bind",  G_CALLBACK(modified_bind_cb),  NULL);
+		GtkColumnViewColumn *cm = gtk_column_view_column_new(
+			_("Modified"), GTK_LIST_ITEM_FACTORY(fmod));
+		gtk_column_view_column_set_resizable(cm, TRUE);
+		gtk_column_view_column_set_sorter(cm,
+			GTK_SORTER(gtk_custom_sorter_new(modified_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, cm);
+		g_object_unref(cm);
 	}
 
 	/* Wire the column view's sorter into the sort list model, behind a
@@ -2200,51 +2283,86 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	                              GTK_WIDGET(fb->columnview));
 	gtk_widget_set_hexpand(list_scrolled, TRUE);
 	gtk_widget_set_vexpand(list_scrolled, TRUE);
+	/* File list keeps a usable minimum width so the columns don't get
+	 * crushed when the dialog narrows; once we hit this floor, further
+	 * shrinkage propagates outward (and eventually hits the window's own
+	 * min size set below). */
+	gtk_widget_set_size_request(list_scrolled, 320, -1);
 
-	/* Preview pane. */
+	/* Preview pane.  The .siril-zero-pad class clears the global
+	 * `box { padding: 1px }` for these specific boxes — that padding
+	 * adds 2 px to the box's reported size_request, and GtkPaned was
+	 * intermittently allocating the resulting outer min 1 px short of
+	 * what the children needed (producing the `Trying to measure GtkBox
+	 * for width N, but it needs at least N+1` warning flood during
+	 * `gtk_window_present`'s size negotiation).  Zeroing the padding
+	 * makes box.measure() return exactly size_request so the paned's
+	 * allocation matches the children's needs. */
 	GtkWidget *preview_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-	gtk_widget_set_margin_start(preview_box, 6);
-	gtk_widget_set_margin_end(preview_box, 6);
-	/* Section heading above the picture — keeps the preview area
-	 * recognisable even when nothing is selected. */
+	gtk_widget_add_css_class(preview_box, "siril-zero-pad");
+
 	{
-		GtkWidget *heading = gtk_label_new(NULL);
-		const char *fmt = "<b>%s</b>";
-		gchar *m = g_markup_printf_escaped(fmt, _("Preview"));
-		gtk_label_set_markup(GTK_LABEL(heading), m);
-		g_free(m);
-		gtk_label_set_xalign(GTK_LABEL(heading), 0.0);
+		GtkWidget *heading = make_pane_heading(_("Preview"));
+		gtk_widget_set_margin_start(heading, 6);
+		gtk_widget_set_margin_end(heading, 6);
 		gtk_box_append(GTK_BOX(preview_box), heading);
 	}
 	fb->preview = GTK_PICTURE(gtk_picture_new());
 	gtk_widget_set_size_request(GTK_WIDGET(fb->preview), 280, 280);
 	gtk_picture_set_can_shrink(fb->preview, TRUE);
 	gtk_picture_set_content_fit(fb->preview, GTK_CONTENT_FIT_CONTAIN);
+	/* Wrap the picture in a horizontal box with `halign: CENTER` —
+	 * GtkPicture ignores `halign` set on itself when it's the direct
+	 * child of a vertical GtkBox (the picture sticks to the start of
+	 * its allocation), so we centre via the wrapper instead.  The
+	 * wrapper takes the picture's natural width (280 px) and is itself
+	 * centred in the wider preview pane.  No `size_request` on the
+	 * wrapper — the 280 px floor comes from the picture's own
+	 * size_request, which the paned can honour cleanly. */
+	GtkWidget *picture_wrap = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(picture_wrap, "siril-zero-pad");
+	gtk_widget_set_halign(picture_wrap, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(picture_wrap), GTK_WIDGET(fb->preview));
+	gtk_box_append(GTK_BOX(preview_box), picture_wrap);
+
 	fb->metadata_label = GTK_LABEL(gtk_label_new(""));
 	gtk_label_set_wrap(fb->metadata_label, TRUE);
-	/* Center the metadata block under the preview — both horizontal alignment
-	 * of the label inside its parent, and multi-line justification so wrapped
-	 * text sits symmetrically. */
 	gtk_label_set_xalign(fb->metadata_label, 0.5);
 	gtk_label_set_justify(fb->metadata_label, GTK_JUSTIFY_CENTER);
 	gtk_widget_set_halign(GTK_WIDGET(fb->metadata_label), GTK_ALIGN_CENTER);
+	gtk_widget_set_margin_start(GTK_WIDGET(fb->metadata_label), 6);
+	gtk_widget_set_margin_end(GTK_WIDGET(fb->metadata_label), 6);
 	gtk_label_set_selectable(fb->metadata_label, TRUE);
 	gtk_label_set_use_markup(fb->metadata_label, TRUE);
-	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->preview));
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->metadata_label));
 
-	/* Inner paned: list | preview. */
+	/* Inner paned: list | preview.  Both children allow shrinking — this
+	 * looks like it'd let the user crush the preview, but the picture has
+	 * `can_shrink: TRUE` plus `CONTENT_FIT_CONTAIN`, so when the preview
+	 * gets a small allocation the image scales down to fit rather than
+	 * being truncated.  Keeping `shrink_end_child: TRUE` (default) avoids
+	 * a GTK4 quirk where `FALSE` plus a size_request on the end child
+	 * makes the paned's size-negotiation queries call the box's measure()
+	 * with width = min - 1, producing a flood of
+	 *   "Trying to measure GtkBox … for width of N, but it needs at
+	 *    least N+1"
+	 * warnings during gtk_window_present's initial layout pass.  The
+	 * overall dialog minimum (set on the window above) is what actually
+	 * stops the preview from getting unusable. */
 	GtkWidget *list_preview_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(list_preview_paned), list_scrolled);
 	gtk_paned_set_end_child(GTK_PANED(list_preview_paned), preview_box);
 	gtk_paned_set_position(GTK_PANED(list_preview_paned), 480);
 
-	/* Outer paned: sidebar | (list | preview). */
+	/* Outer paned: sidebar | (list | preview).  shrink_start_child=FALSE
+	 * for the same reason — sidebar respects its 180 px min and doesn't
+	 * collapse into the paned handle. */
 	GtkWidget *outer_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(outer_paned), build_sidebar(fb));
 	gtk_paned_set_end_child(GTK_PANED(outer_paned), list_preview_paned);
 	gtk_paned_set_position(GTK_PANED(outer_paned), 180);
 	gtk_paned_set_resize_start_child(GTK_PANED(outer_paned), FALSE);
+	gtk_paned_set_shrink_start_child(GTK_PANED(outer_paned), FALSE);
 	gtk_widget_set_vexpand(outer_paned, TRUE);
 
 	/* Filter dropdown (initially empty; populated as filters are added). */
@@ -2528,6 +2646,7 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	}
 	g_clear_object(&fb->current_folder);
 	g_clear_object(&fb->initial_file);
+	g_clear_object(&fb->breadcrumb_deepest);
 	if (fb->back_history)    g_ptr_array_unref(fb->back_history);
 	if (fb->forward_history) g_ptr_array_unref(fb->forward_history);
 	if (fb->filters)         g_ptr_array_unref(fb->filters);

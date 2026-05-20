@@ -21,6 +21,20 @@ box {
     padding: 1px;
 }
 
+/* Opt-out for boxes that participate in a strict size-request /
+ * GtkPaned chain.  The global `box { padding: 1px }` rule above adds
+ * 2 px to every GtkBox's measured size_request — fine for most of the
+ * app, but inside the file browser's preview pane it caused GtkPaned
+ * to allocate 1 px short of the boxes' reported minimums during size
+ * negotiation, producing a flood of
+ *   "Trying to measure GtkBox … for width of N, but it needs at
+ *    least N+1"
+ * warnings.  Add this class to any box where the explicit size_request
+ * needs to equal the reported measure() result. */
+box.siril-zero-pad {
+    padding: 0;
+}
+
 grid {
     margin: 0;
     padding: 1px;
@@ -202,25 +216,55 @@ columnview.siril-dense-rows listview > row > cell {
    padding: 0;
 }
 
-/* Individual segment button.  Tight padding so segments don't waste
- * horizontal real-estate; small radius for the active-segment pill. */
+/* Individual segment button.  Render with a subtle always-on background
+ * (not flat) so each segment looks clickable at rest — the bar should
+ * invite clicks to navigate, not read as a row of labels.  Hover adds
+ * contrast.  The current-folder segment is marked with .siril-current
+ * (set from C) and renders bold + a slightly stronger background, in
+ * neutral foreground colour rather than the suggested-action blue. */
 .siril-breadcrumb-segment {
-   border-radius: 4px;
+   background-color: alpha(@theme_fg_color, 0.08);
+   background-image: none;
    border: none;
+   border-radius: 4px;
    padding: 2px 8px;
-   margin: 0;
+   margin: 0 1px;
    min-height: 22px;
    min-width: 0;
+   box-shadow: none;
+   color: @theme_fg_color;
+}
+.siril-breadcrumb-segment:hover {
+   background-color: alpha(@theme_fg_color, 0.18);
+}
+.siril-breadcrumb-segment:active {
+   background-color: alpha(@theme_fg_color, 0.25);
+}
+.siril-breadcrumb-segment.siril-current,
+.siril-breadcrumb-segment.siril-current:hover {
+   font-weight: bold;
+   background-color: alpha(@theme_fg_color, 0.20);
+   color: @theme_fg_color;
 }
 
 /* The scroll-arrow buttons at the ends of the bar.  Match segment
- * heights and lose the default button chrome so they read as part of
+ * heights, lose the default button chrome so they read as part of
  * the bar rather than extra controls. */
 .siril-breadcrumb-bar > button {
+   background: transparent;
+   background-image: none;
+   border: none;
+   box-shadow: none;
    border-radius: 4px;
    padding: 2px 4px;
    min-height: 22px;
    min-width: 22px;
+}
+.siril-breadcrumb-bar > button:hover {
+   background-color: alpha(@theme_fg_color, 0.12);
+}
+.siril-breadcrumb-bar > button:disabled {
+   opacity: 0.35;
 }
 
 /* Window header bar: normalise heights across GtkButton (Open, Home,
