@@ -162,6 +162,22 @@ static void clipboard_text_ready_cb(GObject *source, GAsyncResult *result, gpoin
 
 void handle_owner_change(GdkClipboard *clipboard, gpointer data) {
 	(void)data;
+	/* Only fire the async text read when the clipboard actually has
+	 * text on offer.  Without this guard, e.g. KDE Spectacle's
+	 * "Copy" — which puts an image/png on the clipboard — triggers
+	 * GTK4's text-read code path on data that can't be coerced to
+	 * a string, and that path has crashed reliably for us (the
+	 * fault surfaces inside libgtk / libgio's async dispatch with
+	 * no Siril frames on the stack).  Checking formats up-front
+	 * is also cheaper than firing a doomed async read. */
+	GdkContentFormats *formats = gdk_clipboard_get_formats(clipboard);
+	if (!formats) return;
+	if (!gdk_content_formats_contain_gtype(formats, G_TYPE_STRING)) {
+		/* Clipboard now holds something non-textual (image, files,
+		 * custom blob).  The label-colour cue isn't applicable — just
+		 * skip this update. */
+		return;
+	}
 	gdk_clipboard_read_text_async(clipboard, NULL, clipboard_text_ready_cb, NULL);
 }
 
@@ -170,8 +186,17 @@ gboolean launch_clipboard_survey(gpointer user_data) {
 	if (com.script)
 		return FALSE;
 
+	/* launch_clipboard_survey is wired to several entry points (startup,
+	 * open action, click-on-seq-label, gui_iface impl) — without this
+	 * guard each one stacks an additional handler on the clipboard,
+	 * leaking and firing the read N times per owner change. */
+	static gboolean connected = FALSE;
+	if (connected) return FALSE;
+
 	GdkClipboard *clipboard = gdk_display_get_clipboard(gdk_display_get_default());
+	if (!clipboard) return FALSE;
 	g_signal_connect(clipboard, "changed", G_CALLBACK(handle_owner_change), NULL);
+	connected = TRUE;
 	return FALSE;
 }
 
