@@ -144,6 +144,36 @@ popover:not(#popover_catalogs) separator {
    padding: 6px;
 }
 
+/* SirilFileBrowser sidebar: unmounted-volume rows render dimmer than the
+ * fully-available entries so the user can tell at a glance which devices
+ * are ready to navigate into vs. which require a mount click first.  The
+ * "Not mounted" subtitle inside the row carries the same hint textually
+ * for theming-agnostic feedback. */
+.siril-unmounted {
+   opacity: 0.6;
+}
+.siril-unmounted:hover {
+   opacity: 0.9;
+}
+
+/* SirilFileBrowser column view: dense rows so the picker shows many files
+ * at a glance rather than acres of whitespace.  GTK4 Adwaita uses ~32 px
+ * rows by default; we squeeze that down by removing the vertical padding
+ * on the inner listview's rows and on each cell, and pinning a low
+ * min-height.  Marked via .siril-dense-rows on the columnview only so
+ * other GtkColumnViews in the app keep the default spacing. */
+columnview.siril-dense-rows row,
+columnview.siril-dense-rows listview > row {
+   min-height: 22px;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+columnview.siril-dense-rows row > cell,
+columnview.siril-dense-rows listview > row > cell {
+   padding-top: 0;
+   padding-bottom: 0;
+}
+
 /* Window header bar: normalise heights across GtkButton (Open, Home,
  * Livestacking, Undo, Redo, Save, Save-As) and GtkMenuButton (Recent,
  * Image Processing, Tools, Scripts, hamburger, Precision, Snapshot).
@@ -169,26 +199,54 @@ popover:not(#popover_catalogs) separator {
    padding-bottom: 0;
 }
 
-/* Defeat the global `box { padding: 1px }` for boxes inside the header.
- * `padding-top/bottom: 0` is enough; leave horizontal padding alone so
- * the icon clusters keep their normal inter-button breathing room. */
+/* One uniform inter-widget gap across the ENTIRE headerbar.
+ *
+ * Background: GTK4 GtkHeaderBar lays its children out in an internal
+ * structure roughly headerbar > windowhandle > box > {.start, .title,
+ * .end} where .start and .end are themselves boxes holding the top-level
+ * children.  Setting `border-spacing` on those internal zones via CSS
+ * proved unreliable across themes — Adwaita's default leaks through on
+ * some selectors and not others, leaving top-level gaps wider than
+ * nested-sub-box gaps no matter how aggressively we matched their
+ * CSS node names.
+ *
+ * Robust approach: zero out container-side spacing and produce the gap
+ * with horizontal margins on the WIDGETS themselves.  Margins on
+ * adjacent GTK siblings simply add up (no collapsing in GTK4 box
+ * layout), so 3 px on each side of every header child yields exactly
+ * 6 px between any two — whether they're top-level children of the
+ * start/end zone or buried inside one of our (Open+Recent /
+ * Undo+Redo / Save+SaveAs+Snapshot) sub-boxes.
+ *
+ * `padding: 0` defeats the global `box { padding: 1px }` earlier in
+ * this file: without it, every nesting level adds a stray horizontal
+ * pixel and the gaps drift apart again. */
 #siril-headerbar box {
-   padding-top: 0;
-   padding-bottom: 0;
-   margin-top: 0;
-   margin-bottom: 0;
+   border-spacing: 0;
+   padding: 0;
+   margin: 0;
 }
 
+/* Pin EVERY header-bar button to the same min-height so label-bearing
+ * buttons (Open, Save, Image Processing, …) don't end up 4-6 px taller
+ * than icon-only buttons (Recent, hamburger, Undo, Redo, Save-As, …).
+ * Without this pin, label buttons grow to fit their text intrinsic
+ * height while icon buttons stay at their separate `min-height` below,
+ * which is what was making Recent / hamburger look chipped down.
+ *
+ * 28 px is the empirical label intrinsic height on Adwaita + the system
+ * font — chosen so the floor (min-height) is at or above the natural
+ * size of every header child, which means every widget renders at the
+ * same height regardless of content. */
 #siril-headerbar button,
 #siril-headerbar menubutton,
 #siril-headerbar menubutton > button,
 #siril-headerbar windowcontrols button {
-   min-height: 20px;
+   min-height: 28px;
    padding-top: 0;
    padding-bottom: 0;
    padding-left: 6px;
    padding-right: 6px;
-   margin: 0;
 }
 
 /* Inner contents of buttons (labels, images, the label+arrow boxes) —
@@ -223,9 +281,17 @@ popover:not(#popover_catalogs) separator {
 #siril-headerbar menubutton.image-button,
 #siril-headerbar menubutton.image-button > button,
 #siril-headerbar windowcontrols button {
-   min-height: 22px;
-   min-width: 22px;
-   padding: 3px;
+   min-height: 28px;
+   min-width: 28px;
+   /* Match the horizontal padding of label-bearing buttons (6 px each
+    * side) so the visual gap between any two consecutive toolbar widgets
+    * is identical regardless of whether the neighbours are icon-only or
+    * carry text.  Vertical padding stays at zero — min-height already
+    * sets the floor, the icon centres in whatever space is left. */
+   padding-top: 0;
+   padding-bottom: 0;
+   padding-left: 6px;
+   padding-right: 6px;
 }
 
 /* Constrain header icons to a small fixed size so a theme that picks a
@@ -239,13 +305,31 @@ popover:not(#popover_catalogs) separator {
 /* Spinbutton in the header (spinCPU `.small-spinbutton`) renders ~1-2 px
  * taller than the surrounding buttons by default because its inner
  * `text` widget asks for its own min-height.  Pin every part of the
- * spinbutton to the same 22 px we use everywhere else. */
+ * spinbutton to the same 28 px we use everywhere else. */
 #siril-headerbar spinbutton,
 #siril-headerbar spinbutton > text,
 #siril-headerbar spinbutton > button {
-   min-height: 22px;
+   min-height: 28px;
    padding-top: 0;
    padding-bottom: 0;
+}
+
+/* Uniform 3 px horizontal margin on every direct child of every box in
+ * the headerbar.  Adjacent siblings sum to a 6 px visual gap regardless
+ * of which box they live in (the headerbar's own start / end zones, or
+ * one of our Open+Recent / Undo+Redo / Save+SaveAs+Snapshot sub-boxes).
+ *
+ * Placed AFTER the per-button rules above so it wins on later-rule
+ * precedence at the same specificity — earlier rules deliberately don't
+ * set `margin` so this one is the only voice on horizontal margins. */
+#siril-headerbar box > button,
+#siril-headerbar box > menubutton,
+#siril-headerbar box > spinbutton,
+#siril-headerbar box > entry,
+#siril-headerbar box > box,
+#siril-headerbar box > label {
+   margin-left: 3px;
+   margin-right: 3px;
 }
 
 /* Restore icon sizes that the GTK3 build set explicitly on toolbars but that

@@ -2301,34 +2301,30 @@
       <object class="GtkHeaderBar" id="headerbar">
         <property name="name">siril-headerbar</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtkButton" id="header_open_button">
+            <property name="label" translatable="1">Open</property>
+            <property name="name">open-button</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Open an image or a SER/AVI sequence</property>
+            <property name="action-name">app.open</property>
+            <property name="use-underline">1</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuButton" id="recent_menu_button">
+            <property name="name">recent-button</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Open recent images (only FITS and SER files)</property>
             <child>
-              <object class="GtkButton" id="header_open_button">
-                <property name="label" translatable="1">Open</property>
-                <property name="name">open-button</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Open an image or a SER/AVI sequence</property>
-                <property name="action-name">app.open</property>
-                <property name="use-underline">1</property>
+              <object class="GtkImage">
+                <property name="icon-name">pan-down-symbolic</property>
               </object>
             </child>
-            <child>
-              <object class="GtkMenuButton" id="recent_menu_button">
-                <property name="name">recent-button</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Open recent images (only FITS and SER files)</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">pan-down-symbolic</property>
-                  </object>
-                </child>
-                <style>
-                  <class name="image-button" />
-                </style>
-              </object>
-            </child>
+            <style>
+              <class name="image-button" />
+            </style>
           </object>
         </child>
         <child>
@@ -2367,44 +2363,36 @@
           </object>
         </child>
         <child>
-          <object class="GtkBox">
-            <property name="spacing">6</property>
-            <property name="halign">end</property>
-            <property name="orientation">horizontal</property>
-            <property name="visible">True</property>
+          <object class="GtkButton" id="header_undo_button">
+            <property name="name">undo-button</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="action-name">win.undo</property>
             <child>
-              <object class="GtkButton" id="header_undo_button">
-                <property name="name">undo-button</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="action-name">win.undo</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">edit-undo</property>
-                  </object>
-                </child>
-                <style>
-                  <class name="image-button" />
-                </style>
+              <object class="GtkImage">
+                <property name="icon-name">edit-undo</property>
               </object>
             </child>
+            <style>
+              <class name="image-button" />
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="header_redo_button">
+            <property name="name">redo-button</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="action-name">win.redo</property>
+            <property name="use-underline">1</property>
             <child>
-              <object class="GtkButton" id="header_redo_button">
-                <property name="name">redo-button</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="action-name">win.redo</property>
-                <property name="use-underline">1</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">edit-redo</property>
-                  </object>
-                </child>
-                <style>
-                  <class name="image-button" />
-                </style>
+              <object class="GtkImage">
+                <property name="icon-name">edit-redo</property>
               </object>
             </child>
+            <style>
+              <class name="image-button" />
+            </style>
           </object>
         </child>
         <child>
@@ -2530,59 +2518,61 @@
             </child>
           </object>
         </child>
+        <!-- The original Save / Save-As / Snapshot trio used to live inside a
+             single GtkBox.  Flattening that box means the three buttons
+             become individual `<child type="end">` items, which the header
+             bar renders right-to-left in declaration order — so to keep
+             the visual L→R order Save | Save-As | Snapshot we declare
+             them in REVERSE: Snapshot first, then Save-As, then Save. -->
         <child type="end">
-          <object class="GtkBox">
+          <object class="GtkMenuButton" id="header_snapshot_button">
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Take a snapshot of your displayed image.</property>
+            <property name="popover">snapshot_menu</property>
             <child>
-              <object class="GtkButton" id="header_save_button">
-                <property name="label" translatable="1">Save</property>
-                <property name="name">save-button</property>
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Save the current FITS image</property>
-                <property name="action-name">app.save</property>
-                <property name="use-underline">1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="header_save_as_button">
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Save the current image in a different name</property>
-                <property name="action-name">app.save-as</property>
-                <property name="use-underline">1</property>
+              <object class="GtkBox" id="snapshot_button_box">
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">document-save-as</property>
+                    <property name="icon-name">camera-photo</property>
                   </object>
                 </child>
-                <style>
-                  <class name="image-button" />
-                </style>
-              </object>
-            </child>
-            <child>
-              <object class="GtkMenuButton" id="header_snapshot_button">
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Take a snapshot of your displayed image.</property>
-                <property name="popover">snapshot_menu</property>
                 <child>
-                  <object class="GtkBox" id="snapshot_button_box">
-                    <child>
-                      <object class="GtkImage">
-                        <property name="icon-name">camera-photo</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImage" id="snapshot_button_arrow">
-                        <property name="valign">baseline-fill</property>
-                        <property name="icon-name">pan-down-symbolic</property>
-                      </object>
-                    </child>
+                  <object class="GtkImage" id="snapshot_button_arrow">
+                    <property name="valign">baseline-fill</property>
+                    <property name="icon-name">pan-down-symbolic</property>
                   </object>
                 </child>
               </object>
             </child>
+          </object>
+        </child>
+        <child type="end">
+          <object class="GtkButton" id="header_save_as_button">
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Save the current image in a different name</property>
+            <property name="action-name">app.save-as</property>
+            <property name="use-underline">1</property>
+            <child>
+              <object class="GtkImage">
+                <property name="icon-name">document-save-as</property>
+              </object>
+            </child>
+            <style>
+              <class name="image-button" />
+            </style>
+          </object>
+        </child>
+        <child type="end">
+          <object class="GtkButton" id="header_save_button">
+            <property name="label" translatable="1">Save</property>
+            <property name="name">save-button</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Save the current FITS image</property>
+            <property name="action-name">app.save</property>
+            <property name="use-underline">1</property>
           </object>
         </child>
         <child type="end">
@@ -7379,7 +7369,6 @@ WARNING: This option should not be checked for master stacking.</property>
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="processes_button_cancel">
-                                        <property name="label" translatable="1">Stop</property>
                                         <property name="focusable">1</property>
                                         <property name="receives-default">1</property>
                                         <property name="tooltip-text" translatable="1">Stop running processes</property>
@@ -7390,8 +7379,20 @@ WARNING: This option should not be checked for master stacking.</property>
                                           <class name="destructive-action" />
                                         </style>
                                         <child>
-                                          <object class="GtkImage" id="imagestop">
-                                            <property name="icon-name">gtk-cancel</property>
+                                          <object class="GtkBox">
+                                            <property name="spacing">6</property>
+                                            <property name="valign">center</property>
+                                            <child>
+                                              <object class="GtkImage" id="imagestop">
+                                                <property name="icon-name">gtk-cancel</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="label" translatable="1">Stop</property>
+                                                <property name="use-underline">1</property>
+                                              </object>
+                                            </child>
                                           </object>
                                         </child>
                                       </object>
@@ -7639,17 +7640,19 @@ WARNING: This option should not be checked for master stacking.</property>
 &lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only convenient way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
                         <child>
                           <object class="GtkBox" id="display_box">
+                            <property name="valign">center</property>
+                            <property name="spacing">4</property>
                             <child>
                               <object class="GtkLabel" id="display_button_name">
                                 <property name="halign">center</property>
-                                <property name="valign">baseline-fill</property>
+                                <property name="valign">center</property>
                                 <property name="label" translatable="1">Linear</property>
                                 <property name="use-underline">1</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkImage" id="display_button_arrow">
-                                <property name="valign">baseline-fill</property>
+                                <property name="valign">center</property>
                                 <property name="icon-name">pan-down-symbolic</property>
                               </object>
                             </child>

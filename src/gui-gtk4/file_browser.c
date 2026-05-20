@@ -59,6 +59,9 @@ struct _SirilFileBrowser {
 	GtkWidget              *back_button;
 	GtkWidget              *forward_button;
 	GtkWidget              *up_button;
+	GtkSearchBar           *search_bar;
+	GtkSearchEntry         *search_entry;
+	gchar                  *search_text;       /* lower-cased substring, NULL/"" disables */
 
 	/* Owned model objects.  Kept in fields so callbacks (filter, set_file,
 	 * selection-changed) can reach them; references are taken via
@@ -121,12 +124,26 @@ static gboolean filter_accepts(const BrowserFilter *bf, const gchar *name) {
 static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 	GFileInfo *info = G_FILE_INFO(item);
 	SirilFileBrowser *fb = user_data;
-	/* Always show directories (so user can navigate into them). */
-	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY)
-		return TRUE;
-	/* Hide hidden files. */
-	if (g_file_info_get_is_hidden(info))
+	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
+	/* Hide hidden files (but always allow hidden directories through —
+	 * still rare, and tidy if the user navigates to ~/.config etc.). */
+	if (!is_dir && g_file_info_get_is_hidden(info))
 		return FALSE;
+	/* Search substring (case-insensitive).  Applies to both dirs and files
+	 * when active — when the user is searching, an unmatched dir would be
+	 * just noise, so we filter it too.  When search is inactive we keep the
+	 * historical "dirs always visible" behaviour. */
+	if (fb->search_text && *fb->search_text) {
+		const char *display = g_file_info_get_display_name(info);
+		if (!display) return FALSE;
+		gchar *lower = g_utf8_strdown(display, -1);
+		gboolean match = lower && strstr(lower, fb->search_text) != NULL;
+		g_free(lower);
+		if (!match) return FALSE;
+	} else if (is_dir) {
+		return TRUE;
+	}
+	if (is_dir) return TRUE;
 	if (fb->active_filter_idx < 0 || fb->active_filter_idx >= (gint)fb->filters->len)
 		return TRUE;
 	BrowserFilter *bf = g_ptr_array_index(fb->filters, fb->active_filter_idx);
@@ -245,13 +262,17 @@ static void enter_recent_mode(SirilFileBrowser *fb) {
 
 static void update_path_label(SirilFileBrowser *fb) {
 	if (!fb->current_folder) return;
-	gchar *path = g_file_get_path(fb->current_folder);
-	gtk_editable_set_text(GTK_EDITABLE(fb->path_entry), path ? path : "");
+	/* Non-native locations (trash:/// and friends) have no filesystem path;
+	 * fall back to the URI so the bar shows *something* meaningful and the
+	 * user knows where they are. */
+	gchar *display = g_file_get_path(fb->current_folder);
+	if (!display) display = g_file_get_uri(fb->current_folder);
+	gtk_editable_set_text(GTK_EDITABLE(fb->path_entry), display ? display : "");
 	/* Park the cursor at the end so the deepest part is visible (the
 	 * GtkEntry scrolls to keep the cursor in view). */
-	if (path)
+	if (display)
 		gtk_editable_set_position(GTK_EDITABLE(fb->path_entry), -1);
-	g_free(path);
+	g_free(display);
 }
 
 static void update_nav_sensitivity(SirilFileBrowser *fb) {
@@ -340,6 +361,18 @@ static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 	const gchar *text = gtk_editable_get_text(GTK_EDITABLE(entry));
 	if (!text || !*text) return;
 
+	/* URI form (e.g. trash:///, file:///, sftp://host/path) — navigate
+	 * straight through GIO without touching the filesystem.  This lets the
+	 * user re-trigger navigation to non-native locations from the address
+	 * bar after we routed them there via the sidebar. */
+	if (strstr(text, "://")) {
+		gtk_widget_remove_css_class(GTK_WIDGET(entry), "error");
+		GFile *gf = g_file_new_for_uri(text);
+		navigate_to(fb, gf);
+		g_object_unref(gf);
+		return;
+	}
+
 	/* Accept ~ for $HOME — convenient when typing by hand. */
 	gchar *expanded = NULL;
 	if (text[0] == '~' && (text[1] == '\0' || text[1] == G_DIR_SEPARATOR)) {
@@ -377,10 +410,24 @@ static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
 
 /* ── column factories ─────────────────────────────────────────────── */
 
+/* Forward decl — defined further down (after the picture / preview helpers)
+ * but needed by the Type column factory. */
+static const char *type_short_label(image_type t, const char *path);
+
+/* Helper: zero vertical margins on a cell child so its row hugs the text
+ * baseline.  Row density is enforced by the `siril-dense-rows` CSS class
+ * on the columnview; this just ensures the factory widget doesn't itself
+ * contribute extra padding. */
+static void tighten_cell_widget(GtkWidget *w) {
+	gtk_widget_set_margin_top(w, 0);
+	gtk_widget_set_margin_bottom(w, 0);
+}
+
 /* Name column: icon + label. */
 static void name_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
 	(void)f; (void)ud;
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	tighten_cell_widget(box);
 	GtkWidget *icon = gtk_image_new();
 	GtkWidget *label = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
@@ -409,6 +456,7 @@ static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointe
 static void modified_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
 	(void)f; (void)ud;
 	GtkWidget *label = gtk_label_new(NULL);
+	tighten_cell_widget(label);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
 	gtk_widget_add_css_class(label, "dim-label");
@@ -433,6 +481,92 @@ static void modified_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpo
 	gtk_label_set_text(label, s ? s : "");
 	g_free(s);
 	g_date_time_unref(mt);
+}
+
+/* Size column: right-aligned human-readable byte count. */
+static void size_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GtkWidget *label = gtk_label_new(NULL);
+	tighten_cell_widget(label);
+	gtk_label_set_xalign(GTK_LABEL(label), 1.0);
+	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+	gtk_widget_add_css_class(label, "dim-label");
+	gtk_list_item_set_child(item, label);
+}
+
+static void size_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
+		/* Don't recurse to total folder contents — too expensive in a
+		 * file picker.  An em-dash makes the empty column self-evidently
+		 * intentional rather than missing data. */
+		gtk_label_set_text(label, "—");
+		return;
+	}
+	goffset bytes = g_file_info_get_size(info);
+	gchar *s = g_format_size(bytes);
+	gtk_label_set_text(label, s ? s : "");
+	g_free(s);
+}
+
+/* Type column: short uppercase format label (FITS, JPEG, ...) or "Folder". */
+static void type_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GtkWidget *label = gtk_label_new(NULL);
+	tighten_cell_widget(label);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+	gtk_widget_add_css_class(label, "dim-label");
+	gtk_list_item_set_child(item, label);
+}
+
+static void type_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
+	(void)f; (void)ud;
+	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
+		gtk_label_set_text(label, _("Folder"));
+		return;
+	}
+	/* get_type_from_filename only inspects the extension, so passing
+	 * just the basename is enough — no need to resolve a full path. */
+	const char *name = g_file_info_get_name(info);
+	image_type t = name ? get_type_from_filename(name) : TYPEUNDEF;
+	gtk_label_set_text(label, type_short_label(t, name));
+}
+
+/* ── column sort comparators ───────────────────────────────────────── */
+
+static gint size_column_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	(void)ud;
+	GFileInfo *ia = (GFileInfo *)a;
+	GFileInfo *ib = (GFileInfo *)b;
+	gboolean da = g_file_info_get_file_type(ia) == G_FILE_TYPE_DIRECTORY;
+	gboolean db = g_file_info_get_file_type(ib) == G_FILE_TYPE_DIRECTORY;
+	/* Folders carry no meaningful size; the dirs-first primary sorter
+	 * already groups them, but compare equal among themselves so the
+	 * column-view's secondary key (name) can break ties cleanly. */
+	if (da && db) return 0;
+	goffset sa = g_file_info_get_size(ia);
+	goffset sb = g_file_info_get_size(ib);
+	return (sa > sb) - (sa < sb);
+}
+
+static gint type_column_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	(void)ud;
+	GFileInfo *ia = (GFileInfo *)a;
+	GFileInfo *ib = (GFileInfo *)b;
+	const char *na = g_file_info_get_name(ia);
+	const char *nb = g_file_info_get_name(ib);
+	image_type ta = (g_file_info_get_file_type(ia) == G_FILE_TYPE_DIRECTORY)
+	                ? TYPEUNDEF : (na ? get_type_from_filename(na) : TYPEUNDEF);
+	image_type tb = (g_file_info_get_file_type(ib) == G_FILE_TYPE_DIRECTORY)
+	                ? TYPEUNDEF : (nb ? get_type_from_filename(nb) : TYPEUNDEF);
+	const char *la = type_short_label(ta, na);
+	const char *lb = type_short_label(tb, nb);
+	return g_ascii_strcasecmp(la ? la : "", lb ? lb : "");
 }
 
 /* ── selection / activation ────────────────────────────────────────── */
@@ -465,6 +599,22 @@ static gchar *path_from_info(SirilFileBrowser *fb, GFileInfo *info) {
 	const char *abs = g_object_get_data(G_OBJECT(info), "siril-full-path");
 	if (abs) return g_strdup(abs);
 	if (!fb->current_folder) return NULL;
+
+	/* For items inside non-native locations (notably trash://), the
+	 * GIO backend stashes the real on-disk location in
+	 * standard::target-uri.  The trashed file actually lives in
+	 * $XDG_DATA_HOME/Trash/files/<name> (or the per-mount trash dir),
+	 * and that path *is* native and openable.  Prefer the target-uri
+	 * when present so Open / preview work just like on a normal file. */
+	const char *target_uri = g_file_info_get_attribute_string(info,
+		G_FILE_ATTRIBUTE_STANDARD_TARGET_URI);
+	if (target_uri && *target_uri) {
+		GFile *t = g_file_new_for_uri(target_uri);
+		gchar *p = g_file_get_path(t);
+		g_object_unref(t);
+		if (p) return p;
+	}
+
 	const char *name = g_file_info_get_name(info);
 	if (!name) return NULL;
 	GFile *gf = g_file_get_child(fb->current_folder, name);
@@ -531,6 +681,35 @@ static void on_row_activated(GtkColumnView *cv, guint position, gpointer ud) {
 		fb->result_path = p;
 		fb->response = GTK_RESPONSE_ACCEPT;
 		if (fb->loop) g_main_loop_quit(fb->loop);
+	}
+}
+
+/* ── search bar ───────────────────────────────────────────────────── */
+
+static void on_search_changed(GtkSearchEntry *entry, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	const char *text = gtk_editable_get_text(GTK_EDITABLE(entry));
+	g_clear_pointer(&fb->search_text, g_free);
+	if (text && *text) {
+		/* Stash lower-cased so the filter func can do a single
+		 * strstr() per item instead of an allocation per item. */
+		fb->search_text = g_utf8_strdown(text, -1);
+	}
+	gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+}
+
+/* Track the search bar's mode so closing it (Escape, or untoggling the
+ * button) wipes the substring — otherwise reopening the search shows a
+ * stale entry value but no longer filters, which is confusing. */
+static void on_search_mode_changed(GObject *obj, GParamSpec *p, gpointer ud) {
+	(void)p;
+	SirilFileBrowser *fb = ud;
+	if (gtk_search_bar_get_search_mode(GTK_SEARCH_BAR(obj))) {
+		gtk_widget_grab_focus(GTK_WIDGET(fb->search_entry));
+	} else {
+		gtk_editable_set_text(GTK_EDITABLE(fb->search_entry), "");
+		/* `set_text("")` already triggers on_search_changed → filter
+		 * refresh, so no manual refresh needed here. */
 	}
 }
 
@@ -605,20 +784,38 @@ static gboolean on_close_request(GtkWindow *w, gpointer ud) {
 
 /* ── sidebar (standard locations + recent files + mounted volumes) ─── */
 
+/* Forward decl — used by the row-activated handler before its definition. */
+static void sidebar_mount_volume_async(SirilFileBrowser *fb, GVolume *vol,
+                                       GtkListBoxRow *row);
+
+/* Sidebar row data keys, all attached via g_object_set_data{,_full}:
+ *   "siril-is-recent"  GINT_TO_POINTER(1)     — Recent virtual entry
+ *   "siril-path"       char* (owned)          — filesystem path
+ *   "siril-gfile"      GFile* (owned)         — URI-backed entry (trash://, ...)
+ *   "siril-volume"     GVolume* (owned)       — unmounted volume; activate mounts
+ * Activation precedence: recent > volume > gfile > path. */
 static void on_sidebar_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer ud) {
 	(void)box;
 	SirilFileBrowser *fb = ud;
-	/* The single "Recent" entry: swap the main list to recent-files mode. */
 	if (g_object_get_data(G_OBJECT(row), "siril-is-recent")) {
 		enter_recent_mode(fb);
 		return;
 	}
-	/* Folder row: navigate into it. */
+	GVolume *vol = g_object_get_data(G_OBJECT(row), "siril-volume");
+	if (vol) {
+		sidebar_mount_volume_async(fb, vol, row);
+		return;
+	}
+	GFile *gf = g_object_get_data(G_OBJECT(row), "siril-gfile");
+	if (gf) {
+		navigate_to(fb, gf);
+		return;
+	}
 	const char *path = g_object_get_data(G_OBJECT(row), "siril-path");
 	if (!path) return;
-	GFile *gf = g_file_new_for_path(path);
-	navigate_to(fb, gf);
-	g_object_unref(gf);
+	GFile *gpf = g_file_new_for_path(path);
+	navigate_to(fb, gpf);
+	g_object_unref(gpf);
 }
 
 static GtkWidget *sidebar_make_row(const char *icon_name, const char *label,
@@ -728,46 +925,326 @@ static int sidebar_populate_volumes(GtkListBox *box) {
 	return count;
 }
 
+/* Attach a row that navigates to an arbitrary GFile (URI or path).  Used
+ * for entries like trash:/// where g_file_test()-based filtering is
+ * impossible and the activation handler must keep the GFile alive. */
+static void sidebar_add_gfile(GtkListBox *box, const char *icon_name,
+                              const char *label, GFile *gf) {
+	if (!gf) return;
+	GtkWidget *row = sidebar_make_row(icon_name, label, NULL);
+	g_object_set_data_full(G_OBJECT(row), "siril-gfile",
+	                       g_object_ref(gf), g_object_unref);
+	gtk_list_box_append(box, row);
+}
+
+/* Pick the first themed icon name from a GIcon, or `fallback` if none. */
+static const char *first_themed_icon_name(GIcon *gicon, const char *fallback) {
+	if (G_IS_THEMED_ICON(gicon)) {
+		const gchar * const *names = g_themed_icon_get_names(G_THEMED_ICON(gicon));
+		if (names && names[0]) return names[0];
+	}
+	return fallback;
+}
+
+/* Add a row for an unmounted GVolume.  Activation triggers an async mount
+ * (handled by sidebar_mount_volume_async) and on success navigates to the
+ * resulting mount root.  Carries a `siril-unmounted` CSS class so the row
+ * can be visually distinguished from already-mounted entries. */
+static void sidebar_add_volume_unmounted(GtkListBox *box, GVolume *vol) {
+	gchar *name = g_volume_get_name(vol);
+	GIcon *gicon = g_volume_get_symbolic_icon(vol);
+	if (!gicon) gicon = g_volume_get_icon(vol);
+	const char *icon_name = first_themed_icon_name(gicon, "drive-removable-media-symbolic");
+	GtkWidget *row = sidebar_make_row(icon_name, name ? name : _("Volume"),
+	                                  _("Not mounted"));
+	gtk_widget_add_css_class(row, "siril-unmounted");
+	gtk_widget_set_tooltip_text(row, _("Click to mount this device"));
+	g_object_set_data_full(G_OBJECT(row), "siril-volume",
+	                       g_object_ref(vol), g_object_unref);
+	gtk_list_box_append(box, row);
+	if (gicon) g_object_unref(gicon);
+	g_free(name);
+}
+
+/* Walk g_volume_monitor_get_volumes() and append a row for each volume
+ * that is mountable but not currently mounted (mounted ones are already
+ * shown by sidebar_populate_volumes via get_mounts).  Returns the number
+ * of rows added.  Drives with no media are filtered out — a "Mount X"
+ * row that can never succeed is just noise. */
+static int sidebar_populate_unmounted_volumes(GtkListBox *box) {
+	GVolumeMonitor *monitor = g_volume_monitor_get();
+	if (!monitor) return 0;
+	int count = 0;
+	GList *vols = g_volume_monitor_get_volumes(monitor);
+	for (GList *l = vols; l; l = l->next) {
+		GVolume *vol = G_VOLUME(l->data);
+		GMount *mount = g_volume_get_mount(vol);
+		if (mount) {
+			/* Already mounted — sidebar_populate_volumes covered it. */
+			g_object_unref(mount);
+			continue;
+		}
+		if (!g_volume_can_mount(vol)) continue;
+		sidebar_add_volume_unmounted(box, vol);
+		count++;
+	}
+	g_list_free_full(vols, g_object_unref);
+	g_object_unref(monitor);
+	return count;
+}
+
+typedef struct {
+	SirilFileBrowser *fb;
+	GVolume          *volume;  /* owned ref */
+	GtkListBoxRow    *row;     /* not owned (weak ref via GWeakRef pattern below) */
+	GWeakRef          row_ref;
+} MountClosure;
+
+/* In-place conversion of a "Not mounted" sidebar row into a normal
+ * filesystem-path row.  Called after a successful mount (whether ours or
+ * one that happened externally — e.g. another file manager auto-mounted
+ * the same device while our dialog is still open).
+ *
+ * Mutations:
+ *   - Drop the ".siril-unmounted" CSS class (kills the dimming).
+ *   - Clear the "Click to mount" tooltip.
+ *   - Remove the "Not mounted" subtitle.  sidebar_make_row builds the row
+ *     as listrow → hbox → [icon, labels(vbox)], with the subtitle as the
+ *     second child of `labels`; walk to it and detach.
+ *   - Swap "siril-volume" for "siril-path" so subsequent clicks navigate
+ *     instead of trying to mount the volume again. */
+static void sidebar_row_demote_to_path(GtkListBoxRow *row, const char *path) {
+	if (!row) return;
+	gtk_widget_remove_css_class(GTK_WIDGET(row), "siril-unmounted");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(row), NULL);
+	GtkWidget *hbox = gtk_list_box_row_get_child(row);
+	if (hbox) {
+		/* Find the labels vbox.  In sidebar_make_row that's the second
+		 * child of the hbox (after the icon image). */
+		GtkWidget *icon = gtk_widget_get_first_child(hbox);
+		GtkWidget *labels = icon ? gtk_widget_get_next_sibling(icon) : NULL;
+		if (labels && GTK_IS_BOX(labels)) {
+			GtkWidget *main_lbl = gtk_widget_get_first_child(labels);
+			GtkWidget *sub_lbl = main_lbl ? gtk_widget_get_next_sibling(main_lbl) : NULL;
+			if (sub_lbl) gtk_box_remove(GTK_BOX(labels), sub_lbl);
+		}
+	}
+	/* g_object_set_data(NULL) invokes the previous destroy notifier, so
+	 * the held GVolume is unref'd. */
+	g_object_set_data(G_OBJECT(row), "siril-volume", NULL);
+	if (path && *path)
+		g_object_set_data_full(G_OBJECT(row), "siril-path",
+		                       g_strdup(path), g_free);
+}
+
+static void on_volume_mount_done(GObject *src, GAsyncResult *res, gpointer ud) {
+	MountClosure *mc = ud;
+	GError *err = NULL;
+	gboolean ok = g_volume_mount_finish(G_VOLUME(src), res, &err);
+
+	/* Some "errors" really mean success-by-side-channel: the volume might
+	 * already be mounted (because something outside our dialog mounted it
+	 * a moment earlier, or because the same row was clicked twice while
+	 * the first mount was still running).  If the volume now has a mount,
+	 * treat the operation as successful regardless of `ok` — and reuse
+	 * the existing mount's root.  This silences the spurious "Device is
+	 * already mounted" warning users were seeing on a second click. */
+	GMount *mount = g_volume_get_mount(G_VOLUME(src));
+	if (mount) {
+		GFile *root = g_mount_get_root(mount);
+		if (root) {
+			navigate_to(mc->fb, root);
+			gchar *path = g_file_get_path(root);
+			GtkListBoxRow *row = g_weak_ref_get(&mc->row_ref);
+			if (row) {
+				sidebar_row_demote_to_path(row, path);
+				g_object_unref(row);
+			}
+			g_free(path);
+			g_object_unref(root);
+		}
+		g_object_unref(mount);
+		g_clear_error(&err);
+	} else if (!ok) {
+		/* G_IO_ERROR_FAILED_HANDLED is the user dismissing the auth
+		 * dialog — don't spam the log for that. */
+		if (!err || !g_error_matches(err, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED)) {
+			gchar *name = g_volume_get_name(G_VOLUME(src));
+			siril_log_warning(_("Could not mount %s: %s\n"),
+				name ? name : "?", err ? err->message : "unknown");
+			g_free(name);
+		}
+		g_clear_error(&err);
+	}
+	g_weak_ref_clear(&mc->row_ref);
+	g_object_unref(mc->volume);
+	g_free(mc);
+}
+
+/* Kick off an async mount on `vol`, with a GtkMountOperation so any
+ * password / authentication is parented to the file-browser window.  When
+ * the mount completes (success), on_volume_mount_done navigates to the
+ * mount's root and demotes the sidebar row.  `row` may be NULL when
+ * called from a context other than the sidebar — in which case the row
+ * mutation is simply skipped. */
+static void sidebar_mount_volume_async(SirilFileBrowser *fb, GVolume *vol,
+                                       GtkListBoxRow *row) {
+	if (!fb || !vol) return;
+	GMountOperation *op = gtk_mount_operation_new(GTK_WINDOW(fb->window));
+	MountClosure *mc = g_new0(MountClosure, 1);
+	mc->fb = fb;
+	mc->volume = g_object_ref(vol);
+	/* Weak ref so that if the file browser is torn down before the mount
+	 * finishes (race on quick Cancel), the row pointer comes back NULL
+	 * instead of dangling. */
+	g_weak_ref_init(&mc->row_ref, row);
+	g_volume_mount(vol, G_MOUNT_MOUNT_NONE, op, NULL,
+	               on_volume_mount_done, mc);
+	g_object_unref(op);
+}
+
+/* Read GTK bookmarks.  Format: one bookmark per line, "<uri> [label]".
+ * Tries gtk-4.0 first, falls back to gtk-3.0 then ~/.gtk-bookmarks.
+ * Returns the number of rows added. */
+static int sidebar_populate_bookmarks(GtkListBox *box) {
+	const gchar *config_home = g_get_user_config_dir();
+	gchar *candidates[] = {
+		g_build_filename(config_home, "gtk-4.0", "bookmarks", NULL),
+		g_build_filename(config_home, "gtk-3.0", "bookmarks", NULL),
+		g_build_filename(g_get_home_dir(), ".gtk-bookmarks", NULL),
+		NULL,
+	};
+	gchar *contents = NULL;
+	gsize len = 0;
+	gchar *picked = NULL;
+	for (int i = 0; candidates[i]; i++) {
+		if (g_file_get_contents(candidates[i], &contents, &len, NULL)) {
+			picked = candidates[i];
+			break;
+		}
+	}
+	int count = 0;
+	if (contents) {
+		gchar **lines = g_strsplit(contents, "\n", -1);
+		for (int i = 0; lines[i]; i++) {
+			gchar *line = g_strstrip(lines[i]);
+			if (!*line) continue;
+			/* Split on the first space: "<uri> [label...]". */
+			gchar *space = strchr(line, ' ');
+			gchar *uri, *label;
+			if (space) {
+				*space = '\0';
+				uri = line;
+				label = g_strstrip(space + 1);
+			} else {
+				uri = line;
+				label = NULL;
+			}
+			GFile *gf = g_file_new_for_uri(uri);
+			gchar *display = NULL;
+			if (label && *label) {
+				display = g_strdup(label);
+			} else {
+				/* No label: use the basename (or a friendly tail of
+				 * the URI).  For local paths g_file_get_basename
+				 * gives "foo" for /a/b/foo. */
+				display = g_file_get_basename(gf);
+				if (!display) display = g_file_get_uri(gf);
+			}
+			/* Skip bookmarks pointing at filesystems we can't see —
+			 * deleted local paths produce noise. */
+			gboolean ok = TRUE;
+			if (g_file_is_native(gf)) {
+				gchar *p = g_file_get_path(gf);
+				if (!p || !g_file_test(p, G_FILE_TEST_IS_DIR)) ok = FALSE;
+				g_free(p);
+			}
+			if (ok) {
+				sidebar_add_gfile(box, "user-bookmarks-symbolic",
+				                  display, gf);
+				count++;
+			}
+			g_free(display);
+			g_object_unref(gf);
+		}
+		g_strfreev(lines);
+		g_free(contents);
+	}
+	for (int i = 0; candidates[i]; i++)
+		if (candidates[i] != picked) g_free(candidates[i]);
+	g_free(picked);
+	return count;
+}
+
+/* Helper: append a section header and a populator's rows; if the populator
+ * adds nothing, drop the header so the sidebar doesn't show an empty
+ * heading.  Mirrors the GtkPlacesSidebar behaviour: sections appear only
+ * when they have content. */
+static void sidebar_section(GtkListBox *list, const char *title,
+                            int (*populate)(GtkListBox *)) {
+	gint header_pos = 0;
+	GtkWidget *r;
+	while ((r = GTK_WIDGET(gtk_list_box_get_row_at_index(list, header_pos))))
+		header_pos++;
+	sidebar_add_section_header(list, title);
+	if (populate(list) == 0) {
+		GtkListBoxRow *hdr = gtk_list_box_get_row_at_index(list, header_pos);
+		if (hdr) gtk_list_box_remove(list, GTK_WIDGET(hdr));
+	}
+}
+
+/* Mounted + unmounted volumes share the "Devices" section.  Mounted ones
+ * render as plain navigation rows; unmounted ones get a "Not mounted"
+ * subtitle and the .siril-unmounted class for a dimmed look. */
+static int sidebar_populate_all_devices(GtkListBox *box) {
+	int n = sidebar_populate_volumes(box);
+	n += sidebar_populate_unmounted_volumes(box);
+	return n;
+}
+
 static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
 	GtkWidget *list = gtk_list_box_new();
 	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
 	gtk_widget_add_css_class(list, "navigation-sidebar");
 
-	/* Section: Standard places.  "Recent" is the first entry — clicking it
-	 * swaps the main list to show recent files (instead of navigating to
-	 * a directory). */
+	/* Section: Places.  Order mirrors the GTK3 GtkFileChooser sidebar that
+	 * Siril shipped previously, plus the Working Directory shortcut that
+	 * jumps to com.wd (the folder Siril is operating on).  Templates /
+	 * Public / Computer are intentionally omitted — see the brief. */
 	sidebar_add_section_header(GTK_LIST_BOX(list), _("Places"));
 	sidebar_add_recent_entry(GTK_LIST_BOX(list));
 	sidebar_add_location(GTK_LIST_BOX(list), "user-home-symbolic",
 	                     _("Home"), g_get_home_dir());
-	sidebar_add_location(GTK_LIST_BOX(list), "user-desktop-symbolic",
-	                     _("Desktop"),
-	                     g_get_user_special_dir(G_USER_DIRECTORY_DESKTOP));
 	sidebar_add_location(GTK_LIST_BOX(list), "folder-documents-symbolic",
 	                     _("Documents"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-download-symbolic",
-	                     _("Downloads"),
-	                     g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
 	sidebar_add_location(GTK_LIST_BOX(list), "folder-pictures-symbolic",
 	                     _("Pictures"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_PICTURES));
+	sidebar_add_location(GTK_LIST_BOX(list), "folder-music-symbolic",
+	                     _("Music"),
+	                     g_get_user_special_dir(G_USER_DIRECTORY_MUSIC));
+	sidebar_add_location(GTK_LIST_BOX(list), "folder-download-symbolic",
+	                     _("Downloads"),
+	                     g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
+	sidebar_add_location(GTK_LIST_BOX(list), "folder-videos-symbolic",
+	                     _("Videos"),
+	                     g_get_user_special_dir(G_USER_DIRECTORY_VIDEOS));
+	{
+		GFile *trash = g_file_new_for_uri("trash:///");
+		sidebar_add_gfile(GTK_LIST_BOX(list), "user-trash-symbolic",
+		                  _("Trash"), trash);
+		g_object_unref(trash);
+	}
 	if (com.wd && *com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR))
 		sidebar_add_location(GTK_LIST_BOX(list), "folder-symbolic",
 		                     _("Working Directory"), com.wd);
 
-	/* Section: Mounted volumes (only if any are present). */
-	{
-		gint header_pos = 0;
-		GtkWidget *r;
-		while ((r = GTK_WIDGET(gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), header_pos))))
-			header_pos++;
-		sidebar_add_section_header(GTK_LIST_BOX(list), _("Devices"));
-		if (sidebar_populate_volumes(GTK_LIST_BOX(list)) == 0) {
-			GtkListBoxRow *hdr = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list), header_pos);
-			if (hdr) gtk_list_box_remove(GTK_LIST_BOX(list), GTK_WIDGET(hdr));
-		}
-	}
+	/* Section: Bookmarks (only if the user has any). */
+	sidebar_section(GTK_LIST_BOX(list), _("Bookmarks"), sidebar_populate_bookmarks);
+
+	/* Section: Devices (mounted first, then unmounted with a Mount badge). */
+	sidebar_section(GTK_LIST_BOX(list), _("Devices"), sidebar_populate_all_devices);
 
 	g_signal_connect(list, "row-activated",
 	                 G_CALLBACK(on_sidebar_row_activated), fb);
@@ -791,13 +1268,16 @@ static void picture_set_icon(GtkPicture *picture, const char *icon_name) {
 	GdkDisplay *disp = gtk_widget_get_display(GTK_WIDGET(picture));
 	if (!disp) { gtk_picture_set_paintable(picture, NULL); return; }
 	GtkIconTheme *theme = gtk_icon_theme_get_for_display(disp);
+	/* Request a large icon so themed SVGs render crisply when scaled to
+	 * fit the preview area; raster fallbacks stay close to native size. */
 	GtkIconPaintable *icon = gtk_icon_theme_lookup_icon(theme, icon_name,
-		NULL, 128, 1, GTK_TEXT_DIR_NONE, 0);
+		NULL, 256, 1, GTK_TEXT_DIR_NONE, 0);
 	if (!icon) { gtk_picture_set_paintable(picture, NULL); return; }
 	gtk_picture_set_paintable(picture, GDK_PAINTABLE(icon));
-	/* SCALE_DOWN keeps the icon at its intrinsic size when there's room
-	 * to spare; the 280x280 picture box would otherwise stretch it. */
-	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+	/* CONTAIN scales the icon up to fill the preview area while keeping
+	 * its aspect ratio — the user wants the folder / generic glyph to
+	 * read as the dominant element of the pane, not a tiny chip. */
+	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
 	g_object_unref(icon);
 }
 
@@ -896,7 +1376,8 @@ void siril_file_browser_default_preview(const gchar *path,
 		if (metadata_label) {
 			gchar *base = g_path_get_basename(path);
 			gchar *esc  = g_markup_escape_text(base ? base : "", -1);
-			gchar *m = g_strdup_printf("<b>%s</b>\n%s", _("Folder"), esc);
+			/* Name above type: bold filename on top, plain "Folder" beneath. */
+			gchar *m = g_strdup_printf("<b>%s</b>\n%s", esc, _("Folder"));
 			gtk_label_set_markup(metadata_label, m);
 			g_free(m);
 			g_free(esc);
@@ -993,9 +1474,18 @@ void siril_file_browser_default_preview(const gchar *path,
 
 	if (metadata_label) {
 		GString *meta = g_string_new(NULL);
-		/* Type line — bold so it reads as a header. */
+		/* Name line — bold so it reads as the dominant identifier.  Name
+		 * goes above type (per UX brief) so the user's eye lands on the
+		 * file they've selected before reading format / dimensions. */
+		gchar *base = g_path_get_basename(path);
+		if (base && *base) {
+			gchar *e = g_markup_escape_text(base, -1);
+			g_string_append_printf(meta, "<b>%s</b>", e);
+			g_free(e);
+		}
+		g_free(base);
 		gchar *type_esc = g_markup_escape_text(type_label, -1);
-		g_string_append_printf(meta, "<b>%s</b>", type_esc);
+		g_string_append_printf(meta, "%s%s", meta->len ? "\n" : "", type_esc);
 		g_free(type_esc);
 		if (dims_str && *dims_str) {
 			gchar *e = g_markup_escape_text(dims_str, -1);
@@ -1101,12 +1591,21 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	if (parent) gtk_window_set_transient_for(fb->window, parent);
 	gtk_window_set_default_size(fb->window, 1000, 620);
 
-	/* Toolbar: Back / Forward / Up + path label. */
+	/* Toolbar (top row).  Layout: Cancel | Back · Forward · Up · Path | Open.
+	 * Per the brief, Cancel anchors top-left and Open top-right so the
+	 * commit actions live at the corners of the window and don't compete
+	 * with the navigation cluster in the middle. */
 	GtkWidget *toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_set_margin_start(toolbar, 6);
 	gtk_widget_set_margin_end(toolbar, 6);
 	gtk_widget_set_margin_top(toolbar, 6);
 	gtk_widget_set_margin_bottom(toolbar, 3);
+
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_cancel_clicked), fb);
+	gtk_widget_set_margin_end(cancel, 8);
+	gtk_box_append(GTK_BOX(toolbar), cancel);
+
 	fb->back_button = gtk_button_new_from_icon_name("go-previous-symbolic");
 	gtk_widget_set_tooltip_text(fb->back_button, _("Back"));
 	g_signal_connect(fb->back_button, "clicked", G_CALLBACK(on_back_clicked), fb);
@@ -1126,6 +1625,49 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	g_signal_connect(fb->path_entry, "activate",
 	                 G_CALLBACK(on_path_entry_activate), fb);
 	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_entry));
+
+	/* Search toggle — sits to the left of Open in the top toolbar.  Bound
+	 * bidirectionally to the search bar's `search-mode-enabled` so clicking
+	 * the button reveals/hides the bar, and Escape (handled by the bar
+	 * itself) flips the button back off. */
+	GtkWidget *search_button = gtk_toggle_button_new();
+	gtk_button_set_icon_name(GTK_BUTTON(search_button), "system-search-symbolic");
+	gtk_widget_set_tooltip_text(search_button, _("Filter the list by filename"));
+	gtk_widget_set_margin_start(search_button, 6);
+	gtk_box_append(GTK_BOX(toolbar), search_button);
+
+	fb->open_button = gtk_button_new_with_label(_("Open"));
+	gtk_widget_add_css_class(fb->open_button, "suggested-action");
+	gtk_widget_set_sensitive(fb->open_button, FALSE);
+	gtk_widget_set_margin_start(fb->open_button, 8);
+	g_signal_connect(fb->open_button, "clicked", G_CALLBACK(on_open_clicked), fb);
+	gtk_box_append(GTK_BOX(toolbar), fb->open_button);
+
+	/* Search bar (initially collapsed).  Lives between the toolbar and the
+	 * paned area so revealing it slides the file list down without
+	 * affecting the sidebar.  The bar handles Escape-to-close natively. */
+	fb->search_entry = GTK_SEARCH_ENTRY(gtk_search_entry_new());
+	gtk_widget_set_hexpand(GTK_WIDGET(fb->search_entry), TRUE);
+	/* GtkSearchEntry is NOT a GtkEntry in GTK4 — it implements GtkEditable
+	 * directly without inheriting from GtkEntry — so the entry placeholder
+	 * setter trips a GTK_IS_ENTRY assertion.  Use the search-entry-specific
+	 * placeholder setter instead. */
+	gtk_search_entry_set_placeholder_text(fb->search_entry,
+	                                      _("Filter by name…"));
+	g_signal_connect(fb->search_entry, "search-changed",
+	                 G_CALLBACK(on_search_changed), fb);
+
+	fb->search_bar = GTK_SEARCH_BAR(gtk_search_bar_new());
+	gtk_search_bar_set_child(fb->search_bar, GTK_WIDGET(fb->search_entry));
+	gtk_search_bar_connect_entry(fb->search_bar,
+	                             GTK_EDITABLE(fb->search_entry));
+	/* show_close_button=FALSE: the toolbar toggle is our open/close. */
+	gtk_search_bar_set_show_close_button(fb->search_bar, FALSE);
+	g_signal_connect(fb->search_bar, "notify::search-mode-enabled",
+	                 G_CALLBACK(on_search_mode_changed), fb);
+	g_object_bind_property(search_button, "active",
+	                       fb->search_bar, "search-mode-enabled",
+	                       G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
 	/* Models: DirectoryList → FilterListModel → SortListModel →
 	 *         SingleSelection → ColumnView.
@@ -1163,11 +1705,14 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		fb->selection = GTK_SELECTION_MODEL(ss);
 	}
 
-	/* ColumnView with two sortable columns (Name, Modified). */
+	/* ColumnView with four sortable columns: Name | Modified | Type | Size.
+	 * The dense-rows CSS class trims default Adwaita row padding so the
+	 * picker can show ~50% more files in the same window height. */
 	fb->columnview = GTK_COLUMN_VIEW(
 		gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(fb->selection))));
 	gtk_column_view_set_show_column_separators(fb->columnview, FALSE);
 	gtk_column_view_set_show_row_separators(fb->columnview, FALSE);
+	gtk_widget_add_css_class(GTK_WIDGET(fb->columnview), "siril-dense-rows");
 	{
 		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
@@ -1194,6 +1739,32 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 			GTK_SORTER(gtk_custom_sorter_new(modified_column_compare, NULL, NULL)));
 		gtk_column_view_append_column(fb->columnview, cm);
 		g_object_unref(cm);
+	}
+	{
+		GtkSignalListItemFactory *ftype = GTK_SIGNAL_LIST_ITEM_FACTORY(
+			gtk_signal_list_item_factory_new());
+		g_signal_connect(ftype, "setup", G_CALLBACK(type_setup_cb), NULL);
+		g_signal_connect(ftype, "bind",  G_CALLBACK(type_bind_cb),  NULL);
+		GtkColumnViewColumn *ct = gtk_column_view_column_new(
+			_("Type"), GTK_LIST_ITEM_FACTORY(ftype));
+		gtk_column_view_column_set_resizable(ct, TRUE);
+		gtk_column_view_column_set_sorter(ct,
+			GTK_SORTER(gtk_custom_sorter_new(type_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, ct);
+		g_object_unref(ct);
+	}
+	{
+		GtkSignalListItemFactory *fsize = GTK_SIGNAL_LIST_ITEM_FACTORY(
+			gtk_signal_list_item_factory_new());
+		g_signal_connect(fsize, "setup", G_CALLBACK(size_setup_cb), NULL);
+		g_signal_connect(fsize, "bind",  G_CALLBACK(size_bind_cb),  NULL);
+		GtkColumnViewColumn *cs = gtk_column_view_column_new(
+			_("Size"), GTK_LIST_ITEM_FACTORY(fsize));
+		gtk_column_view_column_set_resizable(cs, TRUE);
+		gtk_column_view_column_set_sorter(cs,
+			GTK_SORTER(gtk_custom_sorter_new(size_column_compare, NULL, NULL)));
+		gtk_column_view_append_column(fb->columnview, cs);
+		g_object_unref(cs);
 	}
 
 	/* Wire the column view's sorter into the sort list model, behind a
@@ -1257,7 +1828,12 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_picture_set_content_fit(fb->preview, GTK_CONTENT_FIT_CONTAIN);
 	fb->metadata_label = GTK_LABEL(gtk_label_new(""));
 	gtk_label_set_wrap(fb->metadata_label, TRUE);
-	gtk_label_set_xalign(fb->metadata_label, 0.0);
+	/* Center the metadata block under the preview — both horizontal alignment
+	 * of the label inside its parent, and multi-line justification so wrapped
+	 * text sits symmetrically. */
+	gtk_label_set_xalign(fb->metadata_label, 0.5);
+	gtk_label_set_justify(fb->metadata_label, GTK_JUSTIFY_CENTER);
+	gtk_widget_set_halign(GTK_WIDGET(fb->metadata_label), GTK_ALIGN_CENTER);
 	gtk_label_set_selectable(fb->metadata_label, TRUE);
 	gtk_label_set_use_markup(fb->metadata_label, TRUE);
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->preview));
@@ -1291,29 +1867,26 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		  "Conversion tab's Debayer toggle."));
 	gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
 
-	/* Action row. */
+	/* Action row (bottom).  Cancel / Open have moved to the top toolbar, so
+	 * the bottom strip now carries only the secondary controls: the
+	 * Debayer toggle (when shown) sits at the left and the filter dropdown
+	 * anchors at the right. */
 	GtkWidget *action_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	gtk_widget_set_margin_start(action_row, 6);
 	gtk_widget_set_margin_end(action_row, 6);
 	gtk_widget_set_margin_bottom(action_row, 6);
 	gtk_widget_set_margin_top(action_row, 3);
 	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->debayer_check));
-	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->filter_combo));
 	GtkWidget *spacer = gtk_label_new(NULL);
 	gtk_widget_set_hexpand(spacer, TRUE);
 	gtk_box_append(GTK_BOX(action_row), spacer);
-	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
-	g_signal_connect(cancel, "clicked", G_CALLBACK(on_cancel_clicked), fb);
-	gtk_box_append(GTK_BOX(action_row), cancel);
-	fb->open_button = gtk_button_new_with_label(_("Open"));
-	gtk_widget_add_css_class(fb->open_button, "suggested-action");
-	gtk_widget_set_sensitive(fb->open_button, FALSE);
-	g_signal_connect(fb->open_button, "clicked", G_CALLBACK(on_open_clicked), fb);
-	gtk_box_append(GTK_BOX(action_row), fb->open_button);
+	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->filter_combo));
 
-	/* Assemble. */
+	/* Assemble.  Search bar sits between toolbar and the paned content so
+	 * its slide-down animation pushes the file list, not the sidebar. */
 	GtkWidget *root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_append(GTK_BOX(root), toolbar);
+	gtk_box_append(GTK_BOX(root), GTK_WIDGET(fb->search_bar));
 	gtk_box_append(GTK_BOX(root), outer_paned);
 	gtk_box_append(GTK_BOX(root), action_row);
 	gtk_window_set_child(fb->window, root);
@@ -1416,8 +1989,16 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 gint siril_file_browser_run(SirilFileBrowser *fb) {
 	if (!fb) return GTK_RESPONSE_NONE;
 	if (!fb->current_folder) {
-		const gchar *home = g_get_home_dir();
-		if (home) siril_file_browser_set_initial_folder(fb, home);
+		/* Default to Siril's working directory — that's where the user's
+		 * current project lives, so opening a new file is almost always
+		 * relative to it.  Fall back to $HOME only when wd is unset (e.g.
+		 * the first dialog before any "cd" command has been issued). */
+		if (com.wd && *com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
+			siril_file_browser_set_initial_folder(fb, com.wd);
+		} else {
+			const gchar *home = g_get_home_dir();
+			if (home) siril_file_browser_set_initial_folder(fb, home);
+		}
 	}
 	fb->response = GTK_RESPONSE_NONE;
 	g_clear_pointer(&fb->result_path, g_free);
@@ -1551,5 +2132,6 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	if (fb->filters)         g_ptr_array_unref(fb->filters);
 	g_slist_free_full(fb->result_paths, g_free);
 	g_free(fb->result_path);
+	g_free(fb->search_text);
 	g_free(fb);
 }
