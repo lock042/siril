@@ -52,6 +52,7 @@ static GtkComboBoxText *seqlist_dialog_combo = NULL;
 static GtkHeaderBar *seqlist_headerbar = NULL;
 static GtkWidget *seqlist_buttonbar = NULL;
 static GtkWidget *seqlist_refframe2 = NULL;
+static GtkWidget *seqlist_ext_ref_label = NULL;
 static GtkEntry *seqlist_search_entry = NULL;
 static GtkTreeView *seqlist_treeview1 = NULL;
 static GtkWidget *seqlist_drawframe_check = NULL;
@@ -64,6 +65,7 @@ static void sequence_list_init_statics(void) {
 	seqlist_headerbar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "seqlistbar"));
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
+	seqlist_ext_ref_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ext_ref"));
 	seqlist_search_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "seqlistsearch"));
 	seqlist_treeview1 = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview1"));
 	seqlist_drawframe_check = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check"));
@@ -189,6 +191,7 @@ static void initialize_title() {
 	gtk_widget_set_sensitive(seqlist_buttonbar, sequence_is_loaded());
 	gtk_widget_set_sensitive(GTK_WIDGET(seqlist_dialog_combo), sequence_is_loaded());
 	gtk_widget_set_sensitive(seqlist_refframe2, sequence_is_loaded());
+	gtk_widget_set_visible(seqlist_ext_ref_label, sequence_is_loaded() && com.seq.ext_ref);
 
 	g_free(seq_basename);
 }
@@ -311,7 +314,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			COLUMN_CURRENT, index == seq->current ? 800 : 400,
 			// weight value is 400 by default "normal":
 			// http://developer.gnome.org/gtk3/stable/GtkCellRendererText.html#GtkCellRendererText--weight
-			COLUMN_REFERENCE, (!seq->ext_ref && index == seq->reference_image) ?
+			COLUMN_REFERENCE, (index == seq->reference_image) ?
 			ref_bg_colour[color] : bg_colour[color],
 			COLUMN_INDEX, (index + 1),
 			-1);
@@ -747,28 +750,32 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 
 	GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)references->data);
 	if (path) {
+		if (com.seq.ext_ref) {
+			gboolean confirmed = siril_confirm_dialog(
+					_("Clear external reference?"),
+					_("Changing the reference image will discard the external reference alignment. The H matrices will need to be re-normalized. Continue?"),
+					_("Change Reference Image"));
+			if (!confirmed) {
+				g_list_free(references);
+				gtk_tree_path_free(path);
+				/* restore toggle to its previous state — ext_ref is still active */
+				g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(seqlist_refframe2), com.seq.reference_image == com.seq.current);
+				g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
+				return;
+			}
+			com.seq.ext_ref = FALSE;
+			g_free(com.seq.ext_ref_path);
+			com.seq.ext_ref_path = NULL;
+			com.seq.needs_saving = TRUE;
+			gtk_widget_set_visible(seqlist_ext_ref_label, FALSE);
+		}
 		if (!gtk_toggle_button_get_active(togglebutton)) {
-			if (!com.seq.ext_ref && com.seq.reference_image == com.seq.current) {
+			if (com.seq.reference_image == com.seq.current) {
 				com.seq.reference_image = -1;
 				com.seq.reference_image = sequence_find_refimage(&com.seq);
 			}
 		} else {
-			if (com.seq.ext_ref) {
-				gboolean confirmed = siril_confirm_dialog(
-						_("Clear external reference?"),
-						_("Setting a sequence image as reference will discard the external reference alignment. The H matrices will need to be re-normalized. Continue?"),
-						_("Set Reference Image"));
-				if (!confirmed) {
-					g_list_free(references);
-					gtk_tree_path_free(path);
-					/* restore toggle to OFF — ext_ref is still active */
-					g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
-					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(seqlist_refframe2), FALSE);
-					g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
-					return;
-				}
-				com.seq.ext_ref = FALSE;
-			}
 			com.seq.reference_image = com.seq.current;
 			test_and_allocate_reference_image(-1);
 			// a reference image should not be excluded to avoid confusion
@@ -842,7 +849,7 @@ void sequence_list_change_reference() {
 		g_value_unset(&value);
 		gtk_list_store_set(list_store, &iter,
 						COLUMN_REFERENCE,
-						(!com.seq.ext_ref && index == com.seq.reference_image) ?
+						(index == com.seq.reference_image) ?
 						ref_bg_colour[color] : bg_colour[color], -1);
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
 	}
@@ -859,7 +866,7 @@ void clear_sequence_list() {
 void adjust_refimage(int n) {
 	sequence_list_init_statics();
 	g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(seqlist_refframe2), !com.seq.ext_ref && com.seq.reference_image == n);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(seqlist_refframe2), com.seq.reference_image == n);
 	g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
 }
 
