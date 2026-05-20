@@ -316,6 +316,7 @@ static void global_initialization() {
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
 	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet; remains NULL until initialize_spcc_mirrors() supplies one. */
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));

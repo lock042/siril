@@ -317,10 +317,16 @@ siril_core_sources = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
-	io/healpix/healpix.cpp \
-	io/healpix/healpix_cat.h \
 	io/healpix/fluxcache.cpp \
 	io/healpix/fluxcache.h \
+	io/healpix/gaia_xp_design.c \
+	io/healpix/gaia_xp_design.h \
+	io/healpix/healpix.cpp \
+	io/healpix/healpix_cat.h \
+	io/healpix/healpix_image.cpp \
+	io/healpix/healpix_image.h \
+	io/healpix/xp_continuous.cpp \
+	io/healpix/xp_continuous.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
