@@ -1316,18 +1316,16 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		unreserve_thread();
 		return;
 	}
-	if (!regargs->external_ref_path) {
-		fits fit_ref = { 0 };
-		int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
-		if (ret) {
-			siril_log_error(_("Error: unable to read reference frame metadata\n"));
-			free(regargs);
-			unreserve_thread();
-			return;
-		}
-		regargs->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
-		clearfits(&fit_ref);
+	fits fit_ref = { 0 };
+	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
+	if (ret) {
+		siril_log_error(_("Error: unable to read reference frame metadata\n"));
+		free(regargs);
+		unreserve_thread();
+		return;
 	}
+	regargs->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
+	clearfits(&fit_ref);
 
 	regmethod_index regindex = REG_UNDEF;
 	struct registration_method *method = get_selected_registration_method(&regindex);
