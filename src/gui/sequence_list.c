@@ -750,26 +750,6 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 
 	GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)references->data);
 	if (path) {
-		if (com.seq.ext_ref) {
-			gboolean confirmed = siril_confirm_dialog(
-					_("Clear external reference?"),
-					_("Changing the reference image will discard the external reference alignment. The H matrices will need to be re-normalized. Continue?"),
-					_("Change Reference Image"));
-			if (!confirmed) {
-				g_list_free(references);
-				gtk_tree_path_free(path);
-				/* restore toggle to its previous state — ext_ref is still active */
-				g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(seqlist_refframe2), com.seq.reference_image == com.seq.current);
-				g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, seqlist_treeview1);
-				return;
-			}
-			com.seq.ext_ref = FALSE;
-			g_free(com.seq.ext_ref_path);
-			com.seq.ext_ref_path = NULL;
-			com.seq.needs_saving = TRUE;
-			gtk_widget_set_visible(seqlist_ext_ref_label, FALSE);
-		}
 		if (!gtk_toggle_button_get_active(togglebutton)) {
 			if (com.seq.reference_image == com.seq.current) {
 				com.seq.reference_image = -1;

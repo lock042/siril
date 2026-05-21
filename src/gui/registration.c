@@ -465,7 +465,13 @@ void on_reg_reference_checkbutton_toggled(GtkToggleButton *togglebutton, gpointe
 	registration_init_statics();
 	gboolean active = gtk_toggle_button_get_active(togglebutton);
 	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), active);
+	if (sequence_is_loaded() && com.seq.ext_ref_path) {
+		com.seq.ext_ref = active;
+		com.seq.needs_saving = TRUE;
+		update_seqlist(com.seq.current);
+	}
 	update_reg_interface(TRUE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_reg_reference_button_clicked(GtkButton *button, gpointer user_data) {
@@ -986,10 +992,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 	}
 	/* external reference image: available for global and 2-pass star alignment */
-	if (!dont_change_reg_radio && com.seq.ext_ref && com.seq.ext_ref_path) {
-		gtk_toggle_button_set_active(reg_reference_checkbutton, TRUE);
+	if (!dont_change_reg_radio && com.seq.ext_ref_path) {
+		g_signal_handlers_block_by_func(reg_reference_checkbutton, on_reg_reference_checkbutton_toggled, NULL);
+		gtk_toggle_button_set_active(reg_reference_checkbutton, com.seq.ext_ref);
 		gtk_entry_set_text(reg_reference_entry, com.seq.ext_ref_path);
 		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
+		g_signal_handlers_unblock_by_func(reg_reference_checkbutton, on_reg_reference_checkbutton_toggled, NULL);
 	}
 	gboolean use_ext_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
 	gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
