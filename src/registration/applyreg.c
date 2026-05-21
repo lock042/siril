@@ -410,7 +410,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			disto = &regargs->disto[in_index];
 		}
 	}
-	if (has_wcs(fit)) {
+	if (has_wcs(fit) || (regargs->seq->ext_ref && regargs->wcsref)) {
 		free_wcs(fit); // we remove the current solution in all cases
 		if (regargs->wcsref) { // we will update it only if ref image has a solution
 			fit->keywords.wcslib = wcs_deepcopy(regargs->wcsref, NULL); // we copy the reference astrometry
@@ -1200,6 +1200,15 @@ int register_apply_reg(struct registration_args *regargs) {
 	} else if (regargs->seq->ext_ref) {
 		// H matrices are absolute (relative to external ref): use identity so they are applied as-is
 		cvGetEye(&regargs->framingd.Htransf);
+		// Load WCS from the external reference so output images carry its coordinate system
+		if (regargs->seq->ext_ref_path) {
+			fits ext_fit = { 0 };
+			if (!read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit)) {
+				if (has_wcs(&ext_fit))
+					regargs->wcsref = wcs_deepcopy(ext_fit.keywords.wcslib, NULL);
+				clearfits(&ext_fit);
+			}
+		}
 	} else {
 		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	}

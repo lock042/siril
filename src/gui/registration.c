@@ -465,6 +465,7 @@ void on_reg_reference_checkbutton_toggled(GtkToggleButton *togglebutton, gpointe
 	registration_init_statics();
 	gboolean active = gtk_toggle_button_get_active(togglebutton);
 	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), active);
+	update_reg_interface(TRUE);
 }
 
 void on_reg_reference_button_clicked(GtkButton *button, gpointer user_data) {
@@ -487,6 +488,7 @@ void on_reg_reference_button_clicked(GtkButton *button, gpointer user_data) {
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
+	update_reg_interface(TRUE);
 }
 
 gboolean on_switcher_stack_clicked(GtkWidget *widget,
