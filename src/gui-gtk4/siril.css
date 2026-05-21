@@ -13,20 +13,6 @@
     background-color: transparent;
 }
 
-/* The global `box { padding: 1px }` rule that used to live here was
- * removed (Phase 1 of the clipped-text cleanup): it added 2 px to every
- * GtkBox's measured size, contributed to text clipping inside button
- * content boxes, and triggered repeated GtkPaned size-negotiation
- * warnings in the file browser.  Adwaita's default (no padding on box)
- * is what we want.
- *
- * The .siril-zero-pad opt-out class is kept temporarily — it's a no-op
- * now (matches the default) but is still applied in file_browser.c.
- * To be removed in Phase 4. */
-box.siril-zero-pad {
-    padding: 0;
-}
-
 grid {
     margin: 0;
     padding: 1px;
@@ -109,7 +95,7 @@ popover:not(#popover_catalogs) separator {
  * default Adwaita scale + entry have larger min-heights, which combined
  * with the stacked max/min scales doubles the toolbar height.  Constrain
  * the toolbar's scales/entries to a compact height so the natural size
- * stays close to the GTK3 layout. */
+ * stays close to the GTK3 layout.*/
 #toolbarbox {
    margin: 0;
    padding: 0;
@@ -334,33 +320,6 @@ columnview.siril-dense-rows listview > row > cell {
    padding-right: 6px;
 }
 
-/* Inner contents of buttons (labels, images, the label+arrow boxes) —
- * strip any inherited line-height / vertical margin so they don't push
- * the parent button taller than its min-height. */
-#siril-headerbar button > *,
-#siril-headerbar menubutton > button > * {
-   min-height: 0;
-   margin-top: 0;
-   margin-bottom: 0;
-}
-
-/* Labels: the critical one.  Without `line-height: 1` the label widget
- * reports its preferred height as font-size × the theme's line-height
- * multiplier (~1.4 on Adwaita), which on a typical system font lands
- * around 26-28 px — slightly larger than the menubutton inner button
- * natural rendering, which is why standalone GtkButton was rendering
- * a few px taller than GtkMenuButton.  `line-height: 1` clamps the
- * label to its font-size, the natural height drops below our 24 px
- * floor, and every button settles at exactly 24 px. */
-#siril-headerbar button label,
-#siril-headerbar menubutton label {
-   margin-top: 0;
-   margin-bottom: 0;
-   padding-top: 0;
-   padding-bottom: 0;
-   line-height: 1;
-}
-
 /* Icon-only buttons (Home, Livestacking, Undo, Redo, Save-As, hamburger,
  * Recent dropdown, title-bar window controls) carry the `.image-button`
  * class — applied explicitly in siril.ui so we don't depend on GTK4's
@@ -385,28 +344,8 @@ columnview.siril-dense-rows listview > row > cell {
     * sets the floor, the icon centres in whatever space is left. */
    padding-top: 0;
    padding-bottom: 0;
-   padding-left: 6px;
-   padding-right: 6px;
-}
-
-/* Constrain header icons to a small fixed size so a theme that picks a
- * larger default doesn't blow the button height back up. */
-#siril-headerbar button image,
-#siril-headerbar menubutton image,
-#siril-headerbar windowcontrols button image {
-   -gtk-icon-size: 16px;
-}
-
-/* Spinbutton in the header (spinCPU `.small-spinbutton`) renders ~1-2 px
- * taller than the surrounding buttons by default because its inner
- * `text` widget asks for its own min-height.  Pin every part of the
- * spinbutton to the same 24 px we use everywhere else. */
-#siril-headerbar spinbutton,
-#siril-headerbar spinbutton > text,
-#siril-headerbar spinbutton > button {
-   min-height: 24px;
-   padding-top: 0;
-   padding-bottom: 0;
+   padding-left: 3px;
+   padding-right: 3px;
 }
 
 /* Uniform 3 px horizontal margin on every direct child of every box in
@@ -434,7 +373,7 @@ columnview.siril-dense-rows listview > row > cell {
  *   #toolbar_log + #image_log            GTK3: icon_size=2 (small toolbar, 18 px)
  * GTK4 has no icon-size property on its toolbar replacement, so every icon
  * falls back to the GtkImage default of 16 px. Force the historical sizes via
- * -gtk-icon-size on those nodes. */
+ * -gtk-icon-size on those nodes.*/
 #toolbarbox image,
 #GtkToolMainBar image {
    -gtk-icon-size: 24px;
