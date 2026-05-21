@@ -96,6 +96,7 @@ typedef struct {
 	Homography Hshift;
 	framing_roi roi_out;
 	double total_Mpix; //total Mpix of the registered sequence
+	int override_rx, override_ry; // non-zero: use as output frame dimensions instead of seq rx/ry (ext_ref)
 } framing_data;
 
 /* arguments passed to registration functions */

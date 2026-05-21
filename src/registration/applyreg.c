@@ -109,8 +109,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	// cvGetEye(&Href);
 	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
-	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int rx = regargs->framingd.override_rx ? regargs->framingd.override_rx :
+		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx);
+	int ry = regargs->framingd.override_ry ? regargs->framingd.override_ry :
+		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry);
 	int x0, y0, rx_0 = rx, ry_0 = ry;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
 	double total_Mpix = 0;
@@ -1200,12 +1202,14 @@ int register_apply_reg(struct registration_args *regargs) {
 	} else if (regargs->seq->ext_ref) {
 		// H matrices are absolute (relative to external ref): use identity so they are applied as-is
 		cvGetEye(&regargs->framingd.Htransf);
-		// Load WCS from the external reference so output images carry its coordinate system
+		// Load external reference metadata: WCS for output images, dimensions for framing
 		if (regargs->seq->ext_ref_path) {
 			fits ext_fit = { 0 };
 			if (!read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit)) {
 				if (has_wcs(&ext_fit))
 					regargs->wcsref = wcs_deepcopy(ext_fit.keywords.wcslib, NULL);
+				regargs->framingd.override_rx = ext_fit.rx;
+				regargs->framingd.override_ry = ext_fit.ry;
 				clearfits(&ext_fit);
 			}
 		}
@@ -1370,8 +1374,10 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size
-	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int rx0 = regargs->framingd.override_rx ? regargs->framingd.override_rx :
+		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx);
+	int ry0 = regargs->framingd.override_ry ? regargs->framingd.override_ry :
+		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry);
 	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
 		siril_log_error(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"));
 		siril_log_error(_("You should change framing method, aborting\n"));

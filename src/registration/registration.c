@@ -137,8 +137,8 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.current = -1;
 	seq.is_variable = check_seq_is_variable(&seq);
 	if (!seq.is_variable) {
-		seq.rx = seq.imgparam[0].rx;
-		seq.ry = seq.imgparam[0].ry;
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
 	}
 	seq.is_drizzle = args->driz != NULL;
 	seq.fz = com.pref.comp.fits_enabled;
