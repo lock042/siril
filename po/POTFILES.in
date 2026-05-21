@@ -253,6 +253,8 @@ src/registration/astrometric.c
 src/registration/comet.c
 src/registration/distorsion.c
 src/registration/global.c
+src/registration/mpp.cpp
+src/registration/mpp/mpp_drizzle.cpp
 src/registration/registration.c
 src/registration/shift_methods.c
 src/stacking/blending.c

@@ -20,9 +20,9 @@
 #include "io/image_format_fits.h"
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"        /* mpp_aps_t — full type for aps->count */
-#include "registration/mpp_config.h"
-#include "registration/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"        /* mpp_aps_t — full type for aps->count */
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_sidecar.h"
 
 #include "stacking/stacking.h"
 

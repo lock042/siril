@@ -9,9 +9,9 @@
 #include <vector>
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_shift.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
 
 namespace mpp {
 

@@ -31,9 +31,9 @@
 #include <opencv2/imgproc.hpp>
 
 #include "registration/mpp.h"
-#include "registration/mpp_align_priv.hpp"
-#include "registration/mpp_shift.h"
-#include "registration/mpp_shift_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_shift_priv.hpp"
 
 namespace mpp {
 

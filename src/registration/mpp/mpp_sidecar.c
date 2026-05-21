@@ -53,10 +53,10 @@
 #include <string.h>
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_shift.h"
-#include "registration/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_sidecar.h"
 
 #define MPP_SIDECAR_MAGIC   "SIRILMPP"
 /* v2: mpp_config_t.drizzle_factor (int) replaced with drizzle_scale

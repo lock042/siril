@@ -15,10 +15,10 @@
 #include <unistd.h>
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_shift.h"
-#include "registration/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_sidecar.h"
 
 static mpp_run_t *make_test_run(int with_shifts) {
 	mpp_run_t *run = mpp_run_alloc();

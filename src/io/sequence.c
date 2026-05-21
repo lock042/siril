@@ -57,8 +57,8 @@
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
-#include "registration/mpp_sidecar.h"
-#include "registration/mpp_ap.h"
+#include "registration/mpp/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"
 #include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 

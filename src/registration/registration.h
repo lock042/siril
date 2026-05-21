@@ -151,7 +151,7 @@ struct registration_args {
 	 * after the registration completes. Forward-declared as void* to avoid
 	 * pulling mpp_config.h (and its mpp.h) into every translation unit that
 	 * touches registration_args. The actual type is struct mpp_config (see
-	 * src/registration/mpp_config.h). */
+	 * src/registration/mpp/mpp_config.h). */
 	void *mpp_cfg;
 	/* REG_MPP only: if TRUE, register_mpp runs Stage A only (rank + global
 	 * align + AP placement) and surfaces per-frame quality via regdata. It

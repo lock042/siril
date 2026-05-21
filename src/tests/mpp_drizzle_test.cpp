@@ -27,22 +27,22 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "registration/mpp_align_priv.hpp"
-#include "registration/mpp_ap_priv.hpp"
-#include "registration/mpp_drizzle_priv.hpp"
-#include "registration/mpp_rank_priv.hpp"
-#include "registration/mpp_shift_priv.hpp"
-#include "registration/mpp_stack_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_ap_priv.hpp"
+#include "registration/mpp/mpp_drizzle_priv.hpp"
+#include "registration/mpp/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_shift_priv.hpp"
+#include "registration/mpp/mpp_stack_priv.hpp"
 
 extern "C" {
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_drizzle.h"
-#include "registration/mpp_shift.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_drizzle.h"
+#include "registration/mpp/mpp_shift.h"
 }
 
 /* Slice 5b.2 pulls Stage-C orchestration into mpp_drizzle.cpp, which

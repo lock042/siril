@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "registration/mpp.h"
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_config.h"
 
 namespace mpp {
 

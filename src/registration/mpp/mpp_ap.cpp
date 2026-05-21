@@ -34,8 +34,8 @@
 #include <opencv2/imgproc.hpp>
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_ap_priv.hpp"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_ap_priv.hpp"
 
 namespace mpp {
 

@@ -39,7 +39,7 @@
 #include "gui/histo_display.h"
 #include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
+#include "registration/mpp/mpp_ap.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL

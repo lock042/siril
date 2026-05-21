@@ -30,7 +30,7 @@
 #include "io/sequence.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_config.h"
 #include "stacking/sum.h"
 #include "stacking/stacking.h"
 

@@ -43,21 +43,21 @@ extern "C" {
 #include "io/ser.h"
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_drizzle.h"
-#include "registration/mpp_frames.h"
-#include "registration/mpp_shift.h"
-#include "registration/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_drizzle.h"
+#include "registration/mpp/mpp_frames.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_sidecar.h"
 #include "registration/registration.h"
 }
 
-#include "registration/mpp_align_priv.hpp"
-#include "registration/mpp_ap_priv.hpp"
-#include "registration/mpp_image_priv.hpp"
-#include "registration/mpp_rank_priv.hpp"
-#include "registration/mpp_shift_priv.hpp"
-#include "registration/mpp_stack_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_ap_priv.hpp"
+#include "registration/mpp/mpp_image_priv.hpp"
+#include "registration/mpp/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_shift_priv.hpp"
+#include "registration/mpp/mpp_stack_priv.hpp"
 
 /* mpp_run_alloc / mpp_run_free live in mpp_run.c (no Siril runtime deps). */
 
@@ -372,10 +372,10 @@ typedef struct {
 
 static const char *mpp_mem_mode_name(int m) {
 	switch (m) {
-		case MPP_MEM_CACHED:         return "cached";
-		case MPP_MEM_HALF_CACHED:    return "half-cached";
-		case MPP_MEM_PARTIAL_CACHED: return "partial-cached";
-		case MPP_MEM_STREAMING:      return "streaming";
+		case MPP_MEM_CACHED:         return _("cached");
+		case MPP_MEM_HALF_CACHED:    return _("half-cached");
+		case MPP_MEM_PARTIAL_CACHED: return _("partial-cached");
+		case MPP_MEM_STREAMING:      return _("streaming");
 		default:                     return "?";
 	}
 }
@@ -679,7 +679,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		    max_threads,
 		    /*per_thread_in_flight=*/2,
 		    /*output_bytes=*/0,
-		    "Analyze", &mem_pick);
+		    _("Analyze"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
 	const int cached_count   = mem_pick.cached_count;  /* 0..N, see picker */
@@ -957,7 +957,7 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 		    /*max_threads=*/1,
 		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Register", &mem_pick);
+		    _("Register"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
 	(void) mem_pick;
@@ -1205,7 +1205,7 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		    /*max_threads=*/1,
 		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Stack (mpp)", &mem_pick);
+		    _("Stack (mpp)"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 		(void) mem_pick;
 	}
@@ -1361,7 +1361,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		    max_threads,
 		    /*per_thread_in_flight=*/1,
 		    /*output_bytes=*/0,
-		    "Register (per-AP quality refresh)", &mem_pick);
+		    _("Register (per-AP quality refresh)"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 		fresh_cache_count = mem_pick.cached_count;
 		const int preread_threads = mem_pick.threads;
@@ -1670,9 +1670,7 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	SerAnalysisDebayerGuard ser_guard;
 	if (maybe_engage_ser_debayer_for_analysis(ser_guard, regargs->seq)) {
 		siril_log_warning(
-		    _("mpp: auto-debayering CFA SER for analysis "
-		      "(Preferences → Debayering → \"Debayer SER files at opening\" is OFF). "
-		      "Stage C will likewise read debayered RGB.\n"));
+		    _("mpp: auto-debayering CFA SER for analysis.\n"));
 	}
 
 	mpp_config_t cfg;
@@ -1817,6 +1815,12 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	siril_log_message(_("mpp: sidecar written to %s\n"), sidecar_path);
 	gui_iface.set_progress(PROGRESS_DONE, _("Register: done"));
 
-	if (run_owned) mpp_run_free(run);
+	/* Install the run in the GUI cache so end_register_idle's
+	 * View APs / View Shifts sensitivity refresh — and any subsequent
+	 * AP-editor or shift-viewer click — can find it. Same rationale as
+	 * the stage_a_only branch above. When run_owned is false the cache
+	 * already holds run from a prior Analyze and Stage B updated it in
+	 * place, so there's nothing to install. */
+	if (run_owned) mpp_set_cached_run(run);
 	return MPP_OK;
 }

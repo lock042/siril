@@ -19,8 +19,8 @@
 #include "gui/mpp_shift_viewer.h"
 #include "io/sequence.h"
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_shift.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_shift.h"
 
 static GtkWidget       *dialog       = NULL;
 static GtkSpinButton   *spin_frame   = NULL;

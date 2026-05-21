@@ -16,13 +16,13 @@
 #include <string>
 #include <vector>
 
-#include "registration/mpp_align_priv.hpp"
-#include "registration/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_rank_priv.hpp"
 
 extern "C" {
 #include "registration/mpp.h"
-#include "registration/mpp_align.h"
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_align.h"
+#include "registration/mpp/mpp_config.h"
 }
 
 cominfo com;

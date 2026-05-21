@@ -48,7 +48,7 @@
 #include "registration/mpp.h"
 #include "gui/mpp_shift_viewer.h"
 #include "registration/3stars.h"
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_config.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 

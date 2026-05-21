@@ -17,16 +17,16 @@
 #include <string>
 #include <vector>
 
-#include "registration/mpp_align_priv.hpp"
-#include "registration/mpp_ap_priv.hpp"
-#include "registration/mpp_rank_priv.hpp"
-#include "registration/mpp_shift_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_ap_priv.hpp"
+#include "registration/mpp/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_shift_priv.hpp"
 
 extern "C" {
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_shift.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
 }
 
 cominfo com;

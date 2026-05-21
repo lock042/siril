@@ -1,4 +1,4 @@
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_config.h"
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	if (!cfg)

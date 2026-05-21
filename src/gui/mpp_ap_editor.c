@@ -21,8 +21,8 @@
 #include "gui/image_interactions.h"
 #include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
 
 static GtkWidget *dialog = NULL;
 static GtkLabel  *count_label = NULL;

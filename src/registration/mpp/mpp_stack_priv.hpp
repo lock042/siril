@@ -13,11 +13,11 @@
 #include <vector>
 
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_shift.h"
-#include "registration/mpp_shift_priv.hpp"   /* for FrameOffset */
-#include "registration/mpp_align_priv.hpp"   /* for progress_cb_fn */
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_shift_priv.hpp"   /* for FrameOffset */
+#include "registration/mpp/mpp_align_priv.hpp"   /* for progress_cb_fn */
 
 namespace mpp {
 

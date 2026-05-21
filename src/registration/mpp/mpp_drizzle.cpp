@@ -36,10 +36,10 @@
 
 extern "C" {
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
-#include "registration/mpp_config.h"
-#include "registration/mpp_drizzle.h"
-#include "registration/mpp_shift.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_drizzle.h"
+#include "registration/mpp/mpp_shift.h"
 
 #include "core/proto.h"
 #include "core/gui_iface.h"
@@ -50,8 +50,8 @@ extern "C" {
 #include "io/ser.h"
 }
 
-#include "registration/mpp_drizzle_priv.hpp"  /* mpp::stack_apply_stsci */
-#include "registration/mpp_stack_priv.hpp"    /* mpp::stack_one_dim_weight */
+#include "registration/mpp/mpp_drizzle_priv.hpp"  /* mpp::stack_apply_stsci */
+#include "registration/mpp/mpp_stack_priv.hpp"    /* mpp::stack_one_dim_weight */
 
 /* read_full_frame is in mpp.cpp's mpp:: namespace (moved out of the
  * inner anonymous namespace in slice 5b.2). Forward-declared here so we
@@ -673,8 +673,8 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 		}
 		if (dobox_failed) {
 			siril_log_error(
-			    _("Stack (STScI): dobox failed on frame %d channel %d: %s\n"),
-			    f, failed_channel, error.last_message[0] ? error.last_message : "(no detail)");
+			    _("Stack (Drizzle): dobox failed on frame %d channel %d: %s\n"),
+			    f, failed_channel, error.last_message[0] ? error.last_message : _("(no detail)"));
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);
@@ -962,8 +962,8 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 		}
 		if (dobox_failed) {
 			siril_log_error(
-			    _("Stack (Bayer): dobox failed on frame %d: %s\n"),
-			    f, error.last_message[0] ? error.last_message : "(no detail)");
+			    _("Stack (Bayer Drizzle): dobox failed on frame %d: %s\n"),
+			    f, error.last_message[0] ? error.last_message : _("(no detail)"));
 			clearfits(&frame_fit);
 			mpp_imgmap_free(&pixmap);
 			clearfits(&output_data);

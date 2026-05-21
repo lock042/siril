@@ -35,7 +35,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
-#include "registration/mpp_config.h"   /* enum mpp_avi_bayer */
+#include "registration/mpp/mpp_config.h"   /* enum mpp_avi_bayer */
 
 static char *destroot = NULL;
 static GtkListStore *liststore_convert = NULL;

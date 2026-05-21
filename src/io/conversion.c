@@ -49,7 +49,7 @@
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
 #include "core/gui_iface.h"
-#include "registration/mpp_config.h"  /* enum mpp_avi_bayer */
+#include "registration/mpp/mpp_config.h"  /* enum mpp_avi_bayer */
 #include "conversion.h"
 
 #ifdef HAVE_LIBRAW

@@ -17,8 +17,8 @@
  */
 
 #include "registration/mpp.h"
-#include "registration/mpp_rank.h"
-#include "registration/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_rank.h"
+#include "registration/mpp/mpp_rank_priv.hpp"
 
 #include <cstring>
 #include <opencv2/imgproc.hpp>

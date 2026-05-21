@@ -33,8 +33,8 @@
 
 #include "core/processing.h"
 #include "registration/mpp.h"
-#include "registration/mpp_align.h"
-#include "registration/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_align.h"
+#include "registration/mpp/mpp_align_priv.hpp"
 
 namespace mpp {
 

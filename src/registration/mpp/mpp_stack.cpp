@@ -28,11 +28,11 @@
 #include <opencv2/imgproc.hpp>
 
 #include "registration/mpp.h"
-#include "registration/mpp_align_priv.hpp"     /* multilevel_correlation */
-#include "registration/mpp_rank_priv.hpp"
-#include "registration/mpp_shift_priv.hpp"     /* shift_prepare_ref_boxes */
-#include "registration/mpp_stack.h"
-#include "registration/mpp_stack_priv.hpp"
+#include "registration/mpp/mpp_align_priv.hpp"     /* multilevel_correlation */
+#include "registration/mpp/mpp_rank_priv.hpp"
+#include "registration/mpp/mpp_shift_priv.hpp"     /* shift_prepare_ref_boxes */
+#include "registration/mpp/mpp_stack.h"
+#include "registration/mpp/mpp_stack_priv.hpp"
 
 #include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
 #include "core/processing.h"                   /* processing_should_continue */

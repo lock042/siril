@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 #include "registration/mpp.h"
-#include "registration/mpp_frames.h"
+#include "registration/mpp/mpp_frames.h"
 }
 
 extern "C" int mpp_seq_read_frame(sequence *seq, int idx, fits *dest,

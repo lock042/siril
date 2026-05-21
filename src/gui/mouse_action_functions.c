@@ -41,7 +41,7 @@
 #include "gui/mouse_action_functions.h"
 #include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
-#include "registration/mpp_ap.h"
+#include "registration/mpp/mpp_ap.h"
 #include "gui/masks_gui.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
