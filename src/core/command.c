@@ -60,6 +60,7 @@
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -15524,5 +15525,281 @@ int process_mask_from_color(int nb) {
 	args->max_threads = com.max_thread;
 
 	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+/* ===========================================================================
+ * FLIS introspection commands (stage 1.6)
+ * ===========================================================================
+ *
+ * Five read-only commands that expose FLIS state to scripts and to the
+ * command console.  Together they form the headless test harness for
+ * stage 1: a .ssf script can open a FLIS, dump its structure to CSV, run
+ * an operation, and diff the post-state CSV against a golden file.  The
+ * commands run from the command thread, take no locks beyond reading
+ * com.uniq, and never mutate state.
+ *
+ *   flis_info               Canvas dimensions, layer/group count, ICC presence.
+ *   flis_layer_list         Tabular dump of every layer.  -format=text|csv.
+ *   flis_group_list         Tabular dump of every group.  -format=text|csv.
+ *   flis_layer_info <id|"name">   Verbose dump of one layer.
+ *   flis_group_info <gid|"name">  Verbose dump of one group.
+ *
+ * The REQ_CMD_FLIS_IMAGE prerequisite is set on all five; the parser
+ * refuses each with a uniform "command requires a FLIS layered image"
+ * message when no FLIS is loaded.
+ */
+
+/* Map a flis_blend_mode_t to its spec-compliant name (Section 5). */
+static const char *flis_blend_mode_name(flis_blend_mode_t m) {
+	switch (m) {
+		case FLIS_BLEND_NORMAL:       return "NORMAL";
+		case FLIS_BLEND_MULTIPLY:     return "MULTIPLY";
+		case FLIS_BLEND_SCREEN:       return "SCREEN";
+		case FLIS_BLEND_OVERLAY:      return "OVERLAY";
+		case FLIS_BLEND_SOFT_LIGHT:   return "SOFT_LIGHT";
+		case FLIS_BLEND_HARD_LIGHT:   return "HARD_LIGHT";
+		case FLIS_BLEND_COLOR_DODGE:  return "COLOR_DODGE";
+		case FLIS_BLEND_COLOR_BURN:   return "COLOR_BURN";
+		case FLIS_BLEND_DARKEN:       return "DARKEN";
+		case FLIS_BLEND_LIGHTEN:      return "LIGHTEN";
+		case FLIS_BLEND_DIFFERENCE:   return "DIFFERENCE";
+		case FLIS_BLEND_EXCLUSION:    return "EXCLUSION";
+		case FLIS_BLEND_HUE:          return "HUE";
+		case FLIS_BLEND_SATURATION:   return "SATURATION";
+		case FLIS_BLEND_COLOR:        return "COLOR";
+		case FLIS_BLEND_LUMINOSITY:   return "LUMINOSITY";
+		case FLIS_BLEND_CHROMA:       return "LRGB_COLOR";
+		case FLIS_BLEND_PASS_THROUGH: return "PASS_THROUGH";
+	}
+	return "?";
+}
+
+/* Resolve an argument that is either a positive integer (item_id) or a
+ * layer name in double quotes, e.g. `flis_layer_info 3` or
+ * `flis_layer_info "Ha Narrowband"`.  Returns the layer or NULL with an
+ * error logged. */
+static flis_layer_t *resolve_layer_arg(const char *arg) {
+	if (!arg || !*arg) {
+		siril_log_error(_("flis: layer identifier required\n"));
+		return NULL;
+	}
+	/* Integer form: digits only */
+	gboolean all_digits = TRUE;
+	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
+	if (all_digits) {
+		gint id = atoi(arg);
+		flis_layer_t *l = flis_layer_get_by_id(id);
+		if (!l) siril_log_error(_("flis: no layer with id %d\n"), id);
+		return l;
+	}
+	/* Name form: strip surrounding quotes if present (the command parser
+	 * may or may not have done this for us depending on path). */
+	gchar *trimmed = g_strdup(arg);
+	size_t len = strlen(trimmed);
+	if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
+		trimmed[len-1] = '\0';
+		memmove(trimmed, trimmed + 1, len - 1);
+	}
+	flis_layer_t *l = flis_layer_get_by_name(trimmed);
+	if (!l) siril_log_error(_("flis: no layer named \"%s\"\n"), trimmed);
+	g_free(trimmed);
+	return l;
+}
+
+static flis_group_t *resolve_group_arg(const char *arg) {
+	if (!arg || !*arg) {
+		siril_log_error(_("flis: group identifier required\n"));
+		return NULL;
+	}
+	gboolean all_digits = TRUE;
+	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
+	if (all_digits) {
+		gint id = atoi(arg);
+		flis_group_t *g = flis_group_get_by_id(id);
+		if (!g) siril_log_error(_("flis: no group with id %d\n"), id);
+		return g;
+	}
+	gchar *trimmed = g_strdup(arg);
+	size_t len = strlen(trimmed);
+	if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
+		trimmed[len-1] = '\0';
+		memmove(trimmed, trimmed + 1, len - 1);
+	}
+	flis_group_t *g = NULL;
+	for (GSList *l = com.uniq->groups; l; l = l->next) {
+		flis_group_t *cand = (flis_group_t *)l->data;
+		if (cand && cand->name && !strcmp(cand->name, trimmed)) { g = cand; break; }
+	}
+	if (!g) siril_log_error(_("flis: no group named \"%s\"\n"), trimmed);
+	g_free(trimmed);
+	return g;
+}
+
+/* Parse -format=text|csv option from word[1..nb-1]; default text. */
+static int parse_format_arg(int nb) {
+	for (int i = 1; i < nb; i++) {
+		if (!word[i]) continue;
+		if (!g_str_has_prefix(word[i], "-format=")) continue;
+		const char *v = word[i] + 8;
+		if (!g_ascii_strcasecmp(v, "csv"))  return 1;
+		if (!g_ascii_strcasecmp(v, "text")) return 0;
+		siril_log_error(_("flis_layer_list: -format= must be text or csv\n"));
+		return -1;
+	}
+	return 0;
+}
+
+int process_flis_info(int nb) {
+	(void)nb;
+	guint nl = flis_layer_count();
+	guint ng = flis_group_count();
+	guint cw = flis_canvas_rx();
+	guint ch = flis_canvas_ry();
+	flis_layer_t *base = NULL;
+	gboolean icc = FALSE;
+	if (com.uniq->layers) {
+		base = (flis_layer_t *)com.uniq->layers->data;
+		if (base && base->fit && base->fit->icc_profile) icc = TRUE;
+	}
+	siril_log_info(_("FLIS image: canvas %ux%u, layers=%u, groups=%u, ICC=%s\n"),
+	               cw, ch, nl, ng, icc ? "yes" : "no");
+	if (com.uniq->filename)
+		siril_log_info(_("  source: %s\n"), com.uniq->filename);
+	return CMD_OK;
+}
+
+int process_flis_layer_list(int nb) {
+	int fmt = parse_format_arg(nb);
+	if (fmt < 0) return CMD_ARG_ERROR;
+	gboolean csv = (fmt == 1);
+
+	if (csv) {
+		siril_log_message("id,order,name,model,blend,opacity,visible,locked,has_tint,tint_r,tint_g,tint_b,has_lmask,lmask_active,group_id,pos_x,pos_y\n");
+	} else {
+		siril_log_info(_("%4s %5s %-24s %4s %-12s %5s %3s %3s %4s %4s %3s\n"),
+		               "id", "order", "name", "mdl", "blend", "opac", "vis", "lck",
+		               "tint", "lmsk", "grp");
+	}
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay) continue;
+		const char *mdl = (lay->fit && lay->fit->naxes[2] == 3) ? "RGB" : "MONO";
+		const char *blend = flis_blend_mode_name(lay->blend_mode);
+		if (csv) {
+			siril_log_message("%d,%d,\"%s\",%s,%s,%.4f,%d,%d,%d,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n",
+			                  lay->item_id, lay->layer_order,
+			                  lay->layer_name ? lay->layer_name : "",
+			                  mdl, blend, (double)lay->opacity,
+			                  lay->visible ? 1 : 0, lay->locked ? 1 : 0,
+			                  lay->has_tint ? 1 : 0,
+			                  lay->layer_tint.r, lay->layer_tint.g, lay->layer_tint.b,
+			                  lay->lmask ? 1 : 0, lay->lmask_active ? 1 : 0,
+			                  lay->group_id, lay->position_x, lay->position_y);
+		} else {
+			siril_log_info(_("%4d %5d %-24.24s %4s %-12s %5.2f %3s %3s %4s %4s %3d\n"),
+			               lay->item_id, lay->layer_order,
+			               lay->layer_name ? lay->layer_name : "",
+			               mdl, blend, (double)lay->opacity,
+			               lay->visible ? "yes" : "no",
+			               lay->locked ? "yes" : "no",
+			               lay->has_tint ? "yes" : "no",
+			               lay->lmask ? (lay->lmask_active ? "on" : "off") : "no",
+			               lay->group_id);
+		}
+	}
+	return CMD_OK;
+}
+
+int process_flis_group_list(int nb) {
+	int fmt = parse_format_arg(nb);
+	if (fmt < 0) return CMD_ARG_ERROR;
+	gboolean csv = (fmt == 1);
+
+	if (csv) {
+		siril_log_message("id,name,visible,opacity,blend,members,collapsed\n");
+	} else {
+		siril_log_info(_("%4s %-24s %3s %5s %-12s %7s %3s\n"),
+		               "id", "name", "vis", "opac", "blend", "members", "col");
+	}
+	for (GSList *l = com.uniq->groups; l; l = l->next) {
+		flis_group_t *grp = (flis_group_t *)l->data;
+		if (!grp) continue;
+		guint members = 0;
+		for (GSList *m = com.uniq->layers; m; m = m->next) {
+			flis_layer_t *lay = (flis_layer_t *)m->data;
+			if (lay && lay->group_id == grp->item_id) members++;
+		}
+		const char *blend = flis_blend_mode_name(grp->blend_mode);
+		if (csv) {
+			siril_log_message("%d,\"%s\",%d,%.4f,%s,%u,%d\n",
+			                  grp->item_id, grp->name ? grp->name : "",
+			                  grp->visible ? 1 : 0, (double)grp->opacity, blend,
+			                  members, grp->collapsed ? 1 : 0);
+		} else {
+			siril_log_info(_("%4d %-24.24s %3s %5.2f %-12s %7u %3s\n"),
+			               grp->item_id, grp->name ? grp->name : "",
+			               grp->visible ? "yes" : "no", (double)grp->opacity, blend,
+			               members, grp->collapsed ? "yes" : "no");
+		}
+	}
+	return CMD_OK;
+}
+
+int process_flis_layer_info(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_layer_info <id|\"name\">\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *lay = resolve_layer_arg(word[1]);
+	if (!lay) return CMD_ARG_ERROR;
+
+	siril_log_info(_("Layer id %d: \"%s\"\n"),
+	               lay->item_id, lay->layer_name ? lay->layer_name : "");
+	siril_log_info(_("  order       : %d\n"), lay->layer_order);
+	siril_log_info(_("  model       : %s\n"),
+	               (lay->fit && lay->fit->naxes[2] == 3) ? "RGB" : "MONO");
+	if (lay->fit)
+		siril_log_info(_("  size        : %lu x %lu\n"),
+		               (unsigned long)lay->fit->rx, (unsigned long)lay->fit->ry);
+	siril_log_info(_("  position    : (%d, %d)\n"), lay->position_x, lay->position_y);
+	siril_log_info(_("  blend mode  : %s\n"), flis_blend_mode_name(lay->blend_mode));
+	siril_log_info(_("  opacity     : %.4f\n"), (double)lay->opacity);
+	siril_log_info(_("  visible     : %s\n"), lay->visible ? "yes" : "no");
+	siril_log_info(_("  locked      : %s\n"), lay->locked  ? "yes" : "no");
+	siril_log_info(_("  tint        : %s"), lay->has_tint ? "" : "neutral\n");
+	if (lay->has_tint)
+		siril_log_info("(%.3f, %.3f, %.3f)\n",
+		               lay->layer_tint.r, lay->layer_tint.g, lay->layer_tint.b);
+	siril_log_info(_("  layer mask  : %s\n"),
+	               lay->lmask ? (lay->lmask_active ? "active" : "inactive") : "none");
+	siril_log_info(_("  proc mask   : %s\n"),
+	               (lay->fit && lay->fit->mask && lay->fit->mask->data) ? "present" : "none");
+	siril_log_info(_("  group_id    : %d\n"), lay->group_id);
+	return CMD_OK;
+}
+
+int process_flis_group_info(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_group_t *grp = resolve_group_arg(word[1]);
+	if (!grp) return CMD_ARG_ERROR;
+
+	siril_log_info(_("Group id %d: \"%s\"\n"),
+	               grp->item_id, grp->name ? grp->name : "");
+	siril_log_info(_("  visible    : %s\n"), grp->visible ? "yes" : "no");
+	siril_log_info(_("  opacity    : %.4f\n"), (double)grp->opacity);
+	siril_log_info(_("  blend mode : %s\n"), flis_blend_mode_name(grp->blend_mode));
+	siril_log_info(_("  collapsed  : %s\n"), grp->collapsed ? "yes" : "no");
+
+	siril_log_info(_("  members    :\n"));
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (lay && lay->group_id == grp->item_id)
+			siril_log_info(_("    [%d] \"%s\"\n"),
+			               lay->item_id, lay->layer_name ? lay->layer_name : "");
+	}
 	return CMD_OK;
 }

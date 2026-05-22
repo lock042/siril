@@ -70,6 +70,11 @@ static command commands[] = {
 	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"fix_xtrans", 0, "fix_xtrans", process_fix_xtrans, STR_FIXXTRANS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_FOR_MONO},
 	{"fixbanding", 2, "fixbanding amount sigma [-vertical]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"flis_group_info", 1, "flis_group_info <gid|\"name\">", process_flis_group_info, STR_FLIS_GROUP_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_group_list", 0, "flis_group_list [-format=text|csv]", process_flis_group_list, STR_FLIS_GROUP_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_layer_info", 1, "flis_layer_info <id|\"name\">", process_flis_layer_info, STR_FLIS_LAYER_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_layer_list", 0, "flis_layer_list [-format=text|csv]", process_flis_layer_list, STR_FLIS_LAYER_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"fmedian", 2, "fmedian ksize modulation [-mask]", process_fmedian, STR_FMEDIAN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmul", 1, "fmul scalar [-mask]", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 

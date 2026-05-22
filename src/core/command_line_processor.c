@@ -34,6 +34,7 @@
 #include "core/command_list.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/image_format_flis.h"
 #include "io/ser.h"
 #include "livestacking/livestacking.h"
 
@@ -71,6 +72,8 @@ const char *cmd_err_to_str(cmd_errors err) {
 			return _("load an image or sequence first");
 		case CMD_ONLY_SINGLE_IMAGE:
 			return _("command is only for a loaded single image");
+		case CMD_ONLY_FLIS_IMAGE:
+			return _("command requires a FLIS layered image to be loaded");
 		case CMD_NOT_FOR_SINGLE:
 			return _("command is only for a sequence");
 		case CMD_NOT_FOR_MONO:
@@ -169,6 +172,17 @@ int execute_command(int wordnb) {
 	} else if ((commands[i].prerequires & REQ_CMD_SEQUENCE) == REQ_CMD_SEQUENCE) {
 		if (!sequence_is_loaded()) {
 			return CMD_NOT_FOR_SINGLE;
+		}
+	}
+
+	/* REQ_CMD_FLIS_IMAGE: the command needs a FLIS file loaded.  Implies
+	 * REQ_CMD_SINGLE_IMAGE — we additionally require that single is FLIS. */
+	if ((commands[i].prerequires & REQ_CMD_FLIS_IMAGE) == REQ_CMD_FLIS_IMAGE) {
+		if (!single_image_is_loaded()) {
+			return CMD_ONLY_SINGLE_IMAGE;
+		}
+		if (!is_current_image_flis()) {
+			return CMD_ONLY_FLIS_IMAGE;
 		}
 	}
 
