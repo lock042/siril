@@ -286,4 +286,7 @@ int process_flis_group_info(int nb);
 /* FLIS file operations (stage 2.3) */
 int process_flis_promote(int nb);
 
+/* FLIS active-layer get/set (stage 3.2 follow-up) */
+int process_flis_active_layer(int nb);
+
 #endif

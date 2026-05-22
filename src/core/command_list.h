@@ -70,6 +70,7 @@ static command commands[] = {
 	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"fix_xtrans", 0, "fix_xtrans", process_fix_xtrans, STR_FIXXTRANS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_FOR_MONO},
 	{"fixbanding", 2, "fixbanding amount sigma [-vertical]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"flis_active_layer", 0, "flis_active_layer [<id|\"name\">]", process_flis_active_layer, STR_FLIS_ACTIVE_LAYER, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_info", 1, "flis_group_info <gid|\"name\">", process_flis_group_info, STR_FLIS_GROUP_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_group_list", 0, "flis_group_list [-format=text|csv]", process_flis_group_list, STR_FLIS_GROUP_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},

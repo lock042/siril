@@ -447,6 +447,16 @@ void gfit_modified_update_gui() {
  * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
+	/* FLIS: the modification just happened on gfit (= the active layer's
+	 * pixels).  Both the §3.1 CPU composite cache and the §3.2 per-layer
+	 * GPU texture cache hold the previous version of that layer — drop
+	 * them so the next redraw sees the new pixels.  Coarse: this also
+	 * invalidates the other layers' GPU textures, which haven't changed,
+	 * but the rebuild cost is bounded and avoids needing per-layer
+	 * pixel-version tracking.  (Per-layer-only invalidation is §3.4
+	 * territory once the granular flis_display_invalidate API arrives.) */
+	if (is_current_image_flis())
+		gui_iface.flis_invalidate_composite();
 	// The following are only required in GUI mode
 	if (!com.headless) {
 		/* Hold histogram_mutex across the invalidate+recompute pair so the

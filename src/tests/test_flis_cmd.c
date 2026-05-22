@@ -159,3 +159,46 @@ Test(flis_cmd, group_info_by_unknown_fails) {
 	word[2] = NULL;
 	cr_assert_eq(process_flis_group_info(2), CMD_ARG_ERROR);
 }
+
+/* ---- flis_active_layer (stage 3.2 follow-up) -------------------------- */
+
+Test(flis_cmd, active_layer_no_arg_reports_current) {
+	load_two_layer_fixture();
+	/* fixture leaves the second layer active by virtue of being last
+	 * added; verify the command prints something and returns OK. */
+	word[0] = "flis_active_layer";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_active_layer(1), CMD_OK);
+}
+
+Test(flis_cmd, active_layer_set_by_name_switches_active) {
+	load_two_layer_fixture();
+	cr_assert_eq(flis_active_layer()->item_id, 2,
+	             "fixture should have layer 2 active");
+	word[0] = "flis_active_layer";
+	word[1] = "base";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_active_layer(2), CMD_OK);
+	cr_assert_str_eq(flis_active_layer()->layer_name, "base",
+	                 "active layer should now be 'base'");
+}
+
+Test(flis_cmd, active_layer_set_by_id_switches_active) {
+	load_two_layer_fixture();
+	word[0] = "flis_active_layer";
+	word[1] = "1";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_active_layer(2), CMD_OK);
+	cr_assert_eq(flis_active_layer()->item_id, 1);
+}
+
+Test(flis_cmd, active_layer_set_by_unknown_name_fails) {
+	load_two_layer_fixture();
+	gint orig_id = flis_active_layer()->item_id;
+	word[0] = "flis_active_layer";
+	word[1] = "ghost";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_active_layer(2), CMD_ARG_ERROR);
+	cr_assert_eq(flis_active_layer()->item_id, orig_id,
+	             "active layer must not change on lookup failure");
+}

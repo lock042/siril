@@ -15820,6 +15820,66 @@ int process_flis_promote(int nb) {
 	return CMD_OK;
 }
 
+int process_flis_active_layer(int nb) {
+	/* No argument: report the currently active layer's id and name.
+	 * One argument: set the active layer to that id or name. */
+	if (nb < 2) {
+		flis_layer_t *active = flis_active_layer();
+		if (!active) {
+			siril_log_error(_("flis_active_layer: no FLIS loaded\n"));
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("Active layer: id=%d  name=\"%s\"\n"),
+		                  active->item_id,
+		                  active->layer_name ? active->layer_name : "");
+		return CMD_OK;
+	}
+
+	/* Resolve <id|"name"> using the same dispatch the introspection
+	 * commands use (positive integer → item_id, anything else → name). */
+	const char *arg = word[1];
+	flis_layer_t *target = NULL;
+	gboolean all_digits = (arg && *arg);
+	for (const char *p = arg; *p; p++) if (!g_ascii_isdigit(*p)) { all_digits = FALSE; break; }
+	if (all_digits) {
+		target = flis_layer_get_by_id(atoi(arg));
+		if (!target) {
+			siril_log_error(_("flis_active_layer: no layer with id %s\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+	} else {
+		gchar *trimmed = g_strdup(arg);
+		size_t len = strlen(trimmed);
+		if (len >= 2 && trimmed[0] == '"' && trimmed[len-1] == '"') {
+			trimmed[len-1] = '\0';
+			memmove(trimmed, trimmed + 1, len - 1);
+		}
+		target = flis_layer_get_by_name(trimmed);
+		if (!target) {
+			siril_log_error(_("flis_active_layer: no layer named \"%s\"\n"), trimmed);
+			g_free(trimmed);
+			return CMD_ARG_ERROR;
+		}
+		g_free(trimmed);
+	}
+
+	gint idx = flis_layer_get_index(target);
+	if (idx < 0) {
+		siril_log_error(_("flis_active_layer: target layer not in stack\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	uniq_set_active_layer(com.uniq, idx);
+	siril_log_message(_("Active layer: id=%d  name=\"%s\"\n"),
+	                  target->item_id,
+	                  target->layer_name ? target->layer_name : "");
+	/* Switching the active layer changes which fits gfit points at, so
+	 * any downstream display refresh needs to be triggered.  The mask
+	 * tab visibility and right-tab activation are GUI-side concerns
+	 * but the script command is normally invoked from headless paths
+	 * where neither matters; no extra plumbing needed here. */
+	return CMD_OK;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));
