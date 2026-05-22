@@ -933,6 +933,14 @@ void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
+		/* Ensure the savepopup statics are populated before either we
+		 * dereference `savepopup` below or save_dialog() touches
+		 * sd_savetxt_entry on its first run.  prepare_savepopup() does
+		 * call save_dialog_init_statics(), but it runs AFTER the use
+		 * sites above — so on the first Save As of a session those
+		 * widgets are NULL and GTK_CRITICAL warnings fire.  Init here
+		 * is idempotent (the helper guards on sd_notebook_format). */
+		save_dialog_init_statics();
 		GtkWidget *savepopup = sd_savepopup;
 
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
