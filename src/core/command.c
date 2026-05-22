@@ -393,48 +393,34 @@ int process_save(int nb){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		gui_iface.set_busy(TRUE);
-		/* FLIS dispatch: if the user-provided filename ends in .flis OR the
-		 * loaded image is already a FLIS, write through save_flis.  Plain
-		 * FITS + .flis target auto-promotes via flis_promote_from_gfit so
-		 * scripts can convert with a single command. */
-		gboolean ends_flis = g_str_has_suffix(savename, ".flis") ||
-		                     g_str_has_suffix(savename, ".FLIS");
-		gboolean want_flis = ends_flis || is_current_image_flis();
-		if (want_flis) {
-			if (!is_current_image_flis()) {
-				if (flis_promote_from_gfit(NULL)) {
-					siril_log_error(_("save: FLIS promotion failed\n"));
-					retval = CMD_GENERIC_ERROR;
-					goto save_cleanup;
-				}
-				siril_log_message(_("save: promoted plain FITS to single-layer FLIS\n"));
-			}
-			/* Ensure the on-disk extension is .flis even when the user
-			 * omitted it but the image is already FLIS. */
-			gchar *flis_savename = ends_flis
-			    ? g_strdup(savename)
-			    : g_strdup_printf("%s.flis", savename);
-			retval = save_flis(flis_savename) ? CMD_GENERIC_ERROR : CMD_OK;
+		/* Data-driven save dispatch (matches the GUI save / save-as paths):
+		 * format follows the loaded image's state, not the filename
+		 * extension.  Headless / scripted runs cannot show the multi-layer
+		 * flatten-vs-preserve dialog, so the safe default is always to
+		 * preserve layers — a script that wants to flatten should invoke
+		 * `flis_flatten` first. */
+		if (is_current_image_flis()) {
+			retval = save_flis(savename) ? CMD_GENERIC_ERROR : CMD_OK;
 			if (retval == CMD_OK && com.uniq) {
 				free(com.uniq->filename);
-				com.uniq->filename = strdup(flis_savename);
+				com.uniq->filename = strdup(savename);
 				com.uniq->fileexist = TRUE;
 			}
-			g_free(flis_savename);
 		} else {
 			retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 			if (com.uniq && retval == CMD_OK) {
 				if (!g_str_has_suffix(savename, com.pref.ext)) {
 					gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+					free(com.uniq->filename);
 					com.uniq->filename = strdup(tempfilename);
 					g_free(tempfilename);
 				} else {
+					free(com.uniq->filename);
 					com.uniq->filename = strdup(savename);
 				}
 				com.uniq->fileexist = TRUE;
 			}
 		}
-save_cleanup:
 		gui_iface.set_busy(FALSE);
 	}
 	if (com.uniq && !com.headless) {

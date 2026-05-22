@@ -153,6 +153,34 @@ Test(flis_open, promote_rejects_unknown_argument) {
 	cr_assert_eq(process_flis_promote(2), CMD_ARG_ERROR);
 }
 
+/* Data-driven save: a multi-layer FLIS saved to a plain .fit name still
+ * comes back as multi-layer.  Format follows the data state (which is
+ * FLIS, with >1 layer), not the chosen extension. */
+Test(flis_open, save_flis_preserves_layers_with_fit_extension) {
+	/* Two-layer FLIS in memory */
+	flis_test_add_layer(flis_test_make_rgb_fits(4, 4, 0.1f, 0.1f, 0.1f), "base");
+	flis_test_add_layer(flis_test_make_mono_fits(4, 4, 0.7f), "top");
+	cr_assert_eq(flis_layer_count(), 2);
+
+	/* Write to a non-.flis extension — save_flis is still the right
+	 * writer because the data state is FLIS.  The file is a valid FITS
+	 * container by spec, so the .fit extension is correct. */
+	gchar *fit_path = g_build_filename(tmpdir, "test.fit", NULL);
+	cr_assert_eq(save_flis(fit_path), 0);
+
+	/* Round-trip through readfits — the FLIS=T header is the signal,
+	 * not the extension.  Both layers should come back. */
+	flis_free_layers(com.uniq);
+	free(com.uniq); com.uniq = NULL;
+	gfit = calloc(1, sizeof(fits));
+	cr_assert_eq(readfits(fit_path, gfit, NULL, FALSE), 0);
+	cr_assert_eq(flis_layer_count(), 2,
+	             ".fit-extensioned FLIS must round-trip with all layers");
+
+	g_unlink(fit_path);
+	g_free(fit_path);
+}
+
 /* Full integration: promote, save (through save_flis), close, reopen via
  * readfits dispatch.  Mirrors what the e2e siril-cli script does. */
 Test(flis_open, promote_then_save_then_readfits_roundtrip) {
