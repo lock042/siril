@@ -1522,12 +1522,34 @@ gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail) {
 
 /* Hook for color space conversion (may transform pixels).
  * Sets the processing intent from args->intent then calls
- * siril_colorspace_transform which handles pixel conversion. */
+ * siril_colorspace_transform which handles pixel conversion.
+ *
+ * For FLIS, a conversion that targets the base (profiled) fit must also
+ * transform every *other* layer's pixels — otherwise mono+tinted upper
+ * layers retain their old-colourspace data and the composite ends up
+ * mixing two colour spaces.  flis_convert_layers_icc handles RGB-in-
+ * place + mono broadcast/transform/collapse + tint vector conversion. */
 int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = args->intent;
-	siril_colorspace_transform(fit, args->profile);
+
+	if (is_current_image_flis() && fit == flis_get_profiled_fit()
+	    && fit->color_managed && fit->icc_profile) {
+		/* Run the per-layer conversion first (uses the old profile, which
+		 * is still on the base at this point), then swap the base's
+		 * profile to the target via siril_colorspace_transform — the
+		 * data buffer of the base has already been transformed, so the
+		 * channel-mismatch safety net inside that function will simply
+		 * re-tag with the new RGB profile. */
+		cmsHPROFILE old = copyICCProfile(fit->icc_profile);
+		flis_convert_layers_icc(old, args->profile);
+		cmsCloseProfile(old);
+		siril_colorspace_transform(fit, args->profile);
+	} else {
+		siril_colorspace_transform(fit, args->profile);
+	}
+
 	com.pref.icc.processing_intent = temp_intent;
 	if (!fit->icc_profile) {
 		siril_log_error(_("Error converting ICC color space.\n"));
