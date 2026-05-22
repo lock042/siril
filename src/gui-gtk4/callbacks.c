@@ -1655,7 +1655,17 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
+	/* FLIS: a mono base layer (gfit->naxes[2] == 1) does NOT mean the
+	 * displayed image is mono — the composite is chromatic if any layer
+	 * is RGB or any mono layer carries a non-greyscale LAYER_COLOR tint
+	 * (e.g. a 1-mono-base + 3-tinted-mono SHO stack).  Consult the layer
+	 * stack instead of the active layer for FLIS images.  Plain FITS
+	 * keep the original gfit-based check. */
+	gboolean is_mono = is_current_image_flis()
+	    ? !flis_composite_is_chromatic()
+	    : (com.seq.nb_layers == 1 || gfit->naxes[2] == 1);
+
+	if (is_mono) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_set_visible(page, FALSE);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
