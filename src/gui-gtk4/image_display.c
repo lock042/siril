@@ -41,6 +41,7 @@
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/flis_compose.h"
+#include "gui-gtk4/flis_gpu_compose.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/registration_preview.h"
@@ -158,16 +159,26 @@ static int flis_composite_ensure_built(void) {
  * Wired to gui_iface.flis_invalidate_composite from gui_iface_impl.c.
  * Atomic write — no mutex needed: a concurrent ensure_built reading
  * dirty either picks up TRUE (rebuilds) or FALSE (skips); both are
- * acceptable in a brief race. */
+ * acceptable in a brief race.
+ *
+ * Also drops the §3.2 per-layer GPU texture cache.  Coarse — every
+ * layer's texture is invalidated even if only one changed — but the
+ * granular API (§3.4) is more complex than is justified at this
+ * stage.  In practice the gui_iface callers (image_format_flis.c
+ * mutators) want all-or-nothing invalidation anyway. */
 static void flis_composite_invalidate(void) {
 	flis_composite_dirty = TRUE;
+	flis_gpu_compose_invalidate_all();
 }
 
 /* Release the cached composite entirely.  Called when an image is
  * closed or a non-FLIS file replaces a FLIS file.  Wired to
  * gui_iface.flis_composite_free.  Takes gui.cairo_mutex because a
  * concurrent remap_all on the worker thread may be holding a pointer
- * to flis_display_composite — we must not free under it. */
+ * to flis_display_composite — we must not free under it.
+ *
+ * Also releases all GPU compose textures — these are GPU memory and
+ * should be reclaimed promptly when an image closes. */
 static void flis_composite_release(void) {
 	g_mutex_lock(&gui.cairo_mutex);
 	if (flis_display_composite) {
@@ -176,6 +187,7 @@ static void flis_composite_release(void) {
 		flis_display_composite = NULL;
 	}
 	flis_composite_dirty = TRUE;
+	flis_gpu_compose_free_all();
 	g_mutex_unlock(&gui.cairo_mutex);
 }
 
@@ -2201,24 +2213,54 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			? GSK_SCALING_FILTER_TRILINEAR
 			: GSK_SCALING_FILTER_NEAREST;
 
-		for (int ty = 0; ty < tile_rows; ty++) {
-			for (int tx = 0; tx < tile_cols; tx++) {
-				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
-				if (!tile) continue;
-				/* Rect is in WIDGET-SPACE (post-translate): image-space
-				 * coords multiplied by the per-axis zoom.  This makes
-				 * rect_size != texture_size at any zoom ≠ 1, so GSK's
-				 * TextureScaleNode rasteriser is what scales the texture
-				 * — and `filter` actually applies. */
-				int x0, y0, tw_unused, th_unused, tex_w_img, tex_h_img;
-				tile_dims_padded(view, tx, ty, &x0, &y0, &tw_unused,
-					&th_unused, &tex_w_img, &tex_h_img);
-				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
-					&GRAPHENE_RECT_INIT(
-						(float)(x0 * xx),
-						(float)(y0 * yy),
-						(float)(tex_w_img * xx),
-						(float)(tex_h_img * yy)));
+		/* FLIS GPU compose dispatch (stage 3.2): if every layer in the
+		 * stack is GPU-compatible (no CHROMA, no groups, no sparse
+		 * layers — see flis_gpu_compose_compatible), composite via
+		 * GSK push_blend per layer.  Each layer becomes a single
+		 * canvas-sized GdkTexture, cached across redraws.  Property-
+		 * only changes (opacity / blend mode / visibility toggle)
+		 * cost zero texture work; only the snapshot tree differs.
+		 *
+		 * Falls back to the per-tile path below for plain FITS, for
+		 * FLIS with any unsupported layer, or when only one layer is
+		 * present (tile path is already efficient for single-image
+		 * display).  The §3.1 CPU composite continues to fill the
+		 * tile buffers as a safety net for the fallback case. */
+		gboolean used_gpu_compose = FALSE;
+		if (is_current_image_flis()
+		    && flis_layer_count() >= 2
+		    && flis_gpu_compose_compatible(com.uniq->layers)) {
+			guint canvas_w = flis_canvas_rx();
+			guint canvas_h = flis_canvas_ry();
+			graphene_rect_t dst = GRAPHENE_RECT_INIT(
+				0.0f, 0.0f,
+				(float)(canvas_w * xx),
+				(float)(canvas_h * yy));
+			flis_gpu_compose_render(snapshot, com.uniq->layers,
+				canvas_w, canvas_h, &dst, filter);
+			used_gpu_compose = TRUE;
+		}
+
+		if (!used_gpu_compose) {
+			for (int ty = 0; ty < tile_rows; ty++) {
+				for (int tx = 0; tx < tile_cols; tx++) {
+					GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
+					if (!tile) continue;
+					/* Rect is in WIDGET-SPACE (post-translate): image-space
+					 * coords multiplied by the per-axis zoom.  This makes
+					 * rect_size != texture_size at any zoom ≠ 1, so GSK's
+					 * TextureScaleNode rasteriser is what scales the texture
+					 * — and `filter` actually applies. */
+					int x0, y0, tw_unused, th_unused, tex_w_img, tex_h_img;
+					tile_dims_padded(view, tx, ty, &x0, &y0, &tw_unused,
+						&th_unused, &tex_w_img, &tex_h_img);
+					gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
+						&GRAPHENE_RECT_INIT(
+							(float)(x0 * xx),
+							(float)(y0 * yy),
+							(float)(tex_w_img * xx),
+							(float)(tex_h_img * yy)));
+				}
 			}
 		}
 

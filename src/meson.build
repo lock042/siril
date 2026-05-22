@@ -346,6 +346,7 @@ gui_filenames_shared = [
 # Files that exist only in src/gui-gtk4/ (no GTK3 counterpart).
 gui_filenames_gtk4_only = [
   'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
+  'flis_gpu_compose.c',  # per-layer GdkTexture cache + GSK push_blend (stage 3.2)
 ]
 
 # Files that exist only in src/gui/ (no GTK4 counterpart).  Currently none.
