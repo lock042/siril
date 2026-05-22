@@ -36,6 +36,7 @@
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/single_image.h"
 #include "core/undo.h"
 #include "core/processing.h"
@@ -73,6 +74,15 @@ void free_image_data() {
 	gui_iface.invalidate_histogram();
 
 	if (com.uniq) {
+		/* FLIS cleanup (stage 3.1): release the display-side composite
+		 * cache and the in-memory layer stack before freeing the single
+		 * struct.  Order matters — gui_iface.flis_composite_free()
+		 * dereferences flis_display_composite, not com.uniq->layers,
+		 * so it's safe either side of flis_free_layers; we just do the
+		 * GUI release first to free GPU/texture state promptly. */
+		gui_iface.flis_composite_free();
+		if (com.uniq->layers) flis_free_layers(com.uniq);
+		if (com.uniq->groups) flis_free_groups(com.uniq);
 		free(com.uniq->filename);
 		com.uniq->fileexist = FALSE;
 		free(com.uniq->comment);

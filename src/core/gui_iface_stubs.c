@@ -117,6 +117,7 @@ static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
 static void stub_redraw_mask_idle(void) {}
 static void stub_flis_invalidate_composite(void) {}
+static void stub_flis_composite_free(void) {}
 static void stub_flis_gui_update(void) {}
 
 /* G additions */
@@ -360,6 +361,7 @@ SirilGuiInterface gui_iface = {
 	.update_histogram            = stub_update_histogram,
 	.redraw_mask_idle            = stub_redraw_mask_idle,
 	.flis_invalidate_composite   = stub_flis_invalidate_composite,
+	.flis_composite_free         = stub_flis_composite_free,
 	.flis_gui_update             = stub_flis_gui_update,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
