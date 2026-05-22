@@ -95,6 +95,71 @@ if criterion_dep.found()
 
      test('siril_spawn_test', siril_spawn_test_exec)
 
+     # ----- FLIS tests (stage 1.7) -----
+     test_flis_lifecycle_exec = executable('test_flis_lifecycle',
+                                'test_flis_lifecycle.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_lifecycle', test_flis_lifecycle_exec, suite: 'flis')
+
+     test_flis_roundtrip_exec = executable('test_flis_roundtrip',
+                                'test_flis_roundtrip.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_roundtrip', test_flis_roundtrip_exec, suite: 'flis')
+
+     test_flis_geometry_exec = executable('test_flis_geometry',
+                                'test_flis_geometry.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_geometry', test_flis_geometry_exec, suite: 'flis')
+
+     test_flis_compose_exec = executable('test_flis_compose',
+                                'test_flis_compose.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_compose', test_flis_compose_exec, suite: 'flis')
+
+     test_flis_flatten_exec = executable('test_flis_flatten',
+                                'test_flis_flatten.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_flatten', test_flis_flatten_exec, suite: 'flis')
+
+     test_flis_undo_exec = executable('test_flis_undo',
+                                'test_flis_undo.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_undo', test_flis_undo_exec, suite: 'flis')
+
+     test_flis_worker_exec = executable('test_flis_worker',
+                                'test_flis_worker.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_worker', test_flis_worker_exec, suite: 'flis')
+
+     test_flis_cmd_exec = executable('test_flis_cmd',
+                                'test_flis_cmd.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_cmd', test_flis_cmd_exec, suite: 'flis')
+
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',
                                    'measure_sorting.c',
