@@ -721,46 +721,28 @@ static gpointer mini_save_dialog(gpointer p) {
 				gfit->keywords.lo = 0;
 			}
 			gfit->checksum = args->checksum;
-			/* Format follows data state, not extension (a FLIS file is a
-			 * valid FITS container — either extension is acceptable).
-			 *   - Multi-layer FLIS: pop up the flatten-vs-preserve dialog
-			 *     so the user can opt in to data loss explicitly.
-			 *   - Single-layer FLIS: always preserve format.
-			 *   - Plain FITS: savefits as today. */
+			/* Format follows data state (plus, for multi-layer FLIS, the
+			 * user's pre-resolved choice from prompt_flis_save_choice_main):
+			 *   - Multi-layer FLIS: act on args->flis_save_choice, which
+			 *     was set on the main thread before this worker started.
+			 *   - Single-layer FLIS: always preserve via save_flis.
+			 *   - Plain FITS: savefits as today.
+			 * GTK calls must never happen here — this runs on a worker
+			 * thread.  Any user prompt has to be in the GUI-thread caller. */
 			gboolean wrote_flis = FALSE;
 			if (is_current_image_flis() && flis_layer_count() > 1) {
-				gchar *msg = g_strdup_printf(
-					_("This image has %d layers.\n\n"
-					  "Saving as FLIS preserves every layer, mask, blend mode, "
-					  "and metadata key — recommended for in-work editing.\n\n"
-					  "Saving as plain FITS flattens the visible layers into a "
-					  "single image and discards all layer-specific data — "
-					  "useful for sharing with tools that don't read FLIS.\n\n"
-					  "FLIS files remain valid FITS files: any FITS reader will "
-					  "see the composite thumbnail as a fallback."),
-					flis_layer_count());
-				int choice = siril_three_button_dialog(
-					_("Save with layers?"), msg,
-					_("Flatten and save as plain FITS"),
-					_("Save as FLIS (preserve layers)"));
-				g_free(msg);
-				if (choice == 0) {
-					/* Cancelled — bail out without saving and without
-					 * marking this as an error. */
-					args->retval = 0;
-					break;
-				}
-				if (choice == 2) {
-					args->retval = save_flis(args->filename);
-					wrote_flis = TRUE;
-				} else {
-					/* Flatten visible layers, then savefits on the result. */
+				if (args->flis_save_choice == FLIS_SAVE_FLATTEN) {
 					if (flis_flatten_all()) {
 						siril_log_error(_("Save: flatten failed.\n"));
 						args->retval = 1;
 						break;
 					}
 					args->retval = savefits(args->filename, gfit);
+				} else {
+					/* FLIS_SAVE_AS_FLIS or AUTOMATIC fallback for safety
+					 * (preserves data — never silently flatten). */
+					args->retval = save_flis(args->filename);
+					wrote_flis = TRUE;
 				}
 			} else if (is_current_image_flis()) {
 				/* 1-layer FLIS — preserve format silently. */
@@ -858,11 +840,53 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 	}
 }
 
+/* Ask the user — on the main thread — whether to flatten a multi-layer
+ * FLIS or preserve it.  Sets args->flis_save_choice and returns TRUE if
+ * the worker should proceed; FALSE if the user cancelled.  No-ops (and
+ * returns TRUE with FLIS_SAVE_AUTOMATIC) when the image isn't a
+ * multi-layer FLIS.  Must be called on the GTK main thread — never from
+ * the worker thread, since it creates and runs a GtkAlertDialog. */
+static gboolean prompt_flis_save_choice_main(struct savedial_data *args) {
+	args->flis_save_choice = FLIS_SAVE_AUTOMATIC;
+	if (!is_current_image_flis() || flis_layer_count() <= 1)
+		return TRUE;
+
+	gchar *msg = g_strdup_printf(
+		_("This image has %d layers.\n\n"
+		  "Saving as FLIS preserves every layer, mask, blend mode, and "
+		  "metadata key — recommended for in-work editing.\n\n"
+		  "Saving as plain FITS flattens the visible layers into a single "
+		  "image and discards all layer-specific data — useful for sharing "
+		  "with tools that don't read FLIS.\n\n"
+		  "FLIS files remain valid FITS files: any FITS reader will see "
+		  "the composite thumbnail as a fallback."),
+		flis_layer_count());
+	int choice = siril_three_button_dialog(
+		_("Save with layers?"), msg,
+		_("Flatten and save as plain FITS"),
+		_("Save as FLIS (preserve layers)"));
+	g_free(msg);
+
+	if (choice == 0) return FALSE;  /* cancelled */
+	args->flis_save_choice = (choice == 2) ? FLIS_SAVE_AS_FLIS : FLIS_SAVE_FLATTEN;
+	return TRUE;
+}
+
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
+	/* Ask the multi-layer flatten-vs-FLIS question on this (main) thread
+	 * before the worker fires — GTK cannot be called from the worker.
+	 * If the user cancels, free args and bail. */
+	if (!prompt_flis_save_choice_main(args)) {
+		set_cursor_waiting(FALSE);
+		g_free(args->copyright);
+		g_free(args->description);
+		free(args);
+		return;
+	}
 	if (test_for_viewer_mode()) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
@@ -882,6 +906,13 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
+	if (!prompt_flis_save_choice_main(args)) {
+		set_cursor_waiting(FALSE);
+		g_free(args->copyright);
+		g_free(args->description);
+		free(args);
+		return;
+	}
 	if (test_for_viewer_mode()) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
