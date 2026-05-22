@@ -68,10 +68,6 @@
 #include "image_format_flis.h"
 #include "flis_compose.h"
 
-/* Forward declaration for the §1.4 undo entry point.  Removed once the
- * authoritative declaration lands in core/undo.h. */
-void flis_undo_purge_layer(gint item_id);
-
 /* -----------------------------------------------------------------------
  * FLIS_META binary table column definitions.
  *
@@ -3206,20 +3202,3 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
     return 0;
 }
 
-/* =========================================================================
- * TEMPORARY STUB — replaced in stage 1.4 (undo plumbing)
- * =========================================================================
- *
- * flis_undo_purge_layer's real implementation lives in src/core/undo.c
- * but undo.c isn't FLIS-aware yet.  A no-op stub keeps merge-down,
- * flatten, and group-delete-with-layers working safely until §1.4
- * lands and the real symbol becomes available.  The stub is removed
- * in the §1.4 commit.
- */
-
-void flis_undo_purge_layer(gint item_id) {
-    (void) item_id;
-    /* no-op until stage 1.4 lands; undo purging is irrelevant in headless
-     * runs anyway (no undo state to purge), and stage 1.4 will install
-     * the real implementation. */
-}

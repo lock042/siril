@@ -824,8 +824,17 @@ typedef struct {
 } historic_layer_entry_t;
 
 struct historic_struct {
-	int fd;             /* open fd for the swap file; -1 if none */
-	int mask_fd;        /* open fd for the mask swap file; -1 if none */
+	/* Pixel/mask swap files — two storage modes coexist on the same struct:
+	 *   fd-mode      (legacy):  fd >= 0,  filename == NULL
+	 *   filename-mode (FLIS):   fd == -1, filename != NULL
+	 * fd-mode uses delete-on-close for orphan-safety on crash; filename-mode
+	 * is required by multi-layer FLIS undo because keeping N file descriptors
+	 * open per undo entry blows the OS fd limit at modest layer counts.
+	 * undo_free_item handles both cases uniformly. */
+	int fd;             /* open fd for the swap file; -1 if filename used or none */
+	int mask_fd;        /* open fd for the mask swap file; -1 if filename used or none */
+	char *filename;     /* path to swap file; non-NULL only in filename-mode */
+	char *mask_filename;/* path to mask swap file; non-NULL only in filename-mode */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
