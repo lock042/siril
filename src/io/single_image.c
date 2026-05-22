@@ -76,13 +76,37 @@ void free_image_data() {
 	if (com.uniq) {
 		/* FLIS cleanup (stage 3.1): release the display-side composite
 		 * cache and the in-memory layer stack before freeing the single
-		 * struct.  Order matters — gui_iface.flis_composite_free()
-		 * dereferences flis_display_composite, not com.uniq->layers,
-		 * so it's safe either side of flis_free_layers; we just do the
-		 * GUI release first to free GPU/texture state promptly. */
+		 * struct.  Order matters — see below for the gfit detach dance. */
 		gui_iface.flis_composite_free();
-		if (com.uniq->layers) flis_free_layers(com.uniq);
-		if (com.uniq->groups) flis_free_groups(com.uniq);
+		if (com.uniq->layers) {
+			/* gfit points at the active layer's fits (set by
+			 * uniq_set_active_layer at load time).  flis_free_layers
+			 * would free that fits along with all the others, leaving
+			 * gfit dangling — the subsequent clearfits(gfit) at the
+			 * bottom of this function then crashes inside wcsfree on
+			 * the freed memory.
+			 *
+			 * The safe sequence:
+			 *   1. Capture the active layer's fits pointer.
+			 *   2. NULL out layer->fit so flis_layer_free skips it.
+			 *   3. flis_free_layers cleans up every other layer.
+			 *   4. Free the captured active-layer fits ourselves
+			 *      (clearfits + free, same as flis_layer_free does).
+			 *   5. Allocate a fresh empty fits for gfit so the
+			 *      trailing clearfits(gfit) and the next
+			 *      read_single_image both have a valid struct. */
+			flis_layer_t *active = flis_active_layer();
+			fits *active_fit = (active && active->fit == gfit) ? active->fit : NULL;
+			if (active_fit) active->fit = NULL;
+			flis_free_layers(com.uniq);
+			if (com.uniq->groups) flis_free_groups(com.uniq);
+			if (active_fit) {
+				clearfits(active_fit);
+				free(active_fit);
+			}
+			gfit = calloc(1, sizeof(fits));
+			if (!gfit) PRINT_ALLOC_ERR;
+		}
 		free(com.uniq->filename);
 		com.uniq->fileexist = FALSE;
 		free(com.uniq->comment);
