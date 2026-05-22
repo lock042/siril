@@ -3702,10 +3702,21 @@ double get_zoom_val() {
 	/* else if zoom is < 0, it means fit to window */
 	window_width = gtk_widget_get_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_height(gui.view[RED_VPORT].drawarea);
-	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
+	/* FLIS: zoom-to-fit must use the canvas dimensions (the visible
+	 * composite), not gfit's dimensions.  gfit is the *active layer*,
+	 * which can be sparse / smaller than the canvas — switching to a
+	 * sparse layer via flis_active_layer would otherwise cause the
+	 * displayed image to zoom in dramatically.  The canvas size is
+	 * fixed for a given FLIS regardless of which layer is active. */
+	guint img_rx = gfit->rx, img_ry = gfit->ry;
+	if (is_current_image_flis()) {
+		img_rx = flis_canvas_rx();
+		img_ry = flis_canvas_ry();
+	}
+	if (img_rx == 0 || img_ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
-	double wtmp = (double) window_width / (double) gfit->rx;
-	double htmp = (double) window_height / (double) gfit->ry;
+	double wtmp = (double) window_width / (double) img_rx;
+	double htmp = (double) window_height / (double) img_ry;
 	return min(wtmp, htmp);
 }
 
