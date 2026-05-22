@@ -30,6 +30,7 @@
 #include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/siril_plot.h"
 #include "core/siril_log.h"
 
@@ -49,7 +50,15 @@ static gboolean profile_check_verbose = TRUE;
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	if (fit == gfit && !com.script)
+	/* Update the toolbar icon when operating on gfit, *or* on the FLIS
+	 * profiled (base) layer.  In FLIS mode gfit usually points at a non-
+	 * base active layer; the GUI status reflects the canonical FLIS
+	 * profile that lives on the base, so updating only-on-gfit would
+	 * miss legitimate state changes. */
+	gboolean update_toolbar = (fit == gfit);
+	if (!update_toolbar && is_current_image_flis())
+		update_toolbar = (fit == flis_get_profiled_fit());
+	if (update_toolbar && !com.script)
 		gui_iface.update_icc_status_icon(fit, active);
 }
 
@@ -195,21 +204,29 @@ void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mu
 
 cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(com.gui_icc.monitor);
-	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
+	/* For FLIS the profile lives on the base (profiled) layer; gfit may be
+	 * any active layer and typically has icc_profile == NULL.  Use the
+	 * profiled fit for the source profile + linearity check, and pick the
+	 * input format from flis_composite_naxes2() (always 3) since the
+	 * proofing transform processes the RGB composite, not the base data. */
+	fits *profiled = flis_get_profiled_fit();
+	if (profiled->icc_profile == NULL || profiled->color_managed == FALSE)
 		return NULL;
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
-	if (fit_icc_is_linear(gfit))
+	if (fit_icc_is_linear(profiled))
 		flags |= cmsFLAGS_NOOPTIMIZE;
 	gboolean gamutcheck = gui_iface.get_gamut_check_active();
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	cmsUInt32Number type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
+	guint src_naxes2 = (is_current_image_flis())
+	                   ? flis_composite_naxes2() : (guint)profiled->naxes[2];
+	cmsUInt32Number type = (src_naxes2 == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
 						com.icc.context_single,
-						gfit->icc_profile,
+						profiled->icc_profile,
 						type,
 						com.gui_icc.monitor,
 						TYPE_RGB_8_PLANAR,
@@ -554,10 +571,17 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	return transform;
 }
 
-/* Refreshes the display and proofing transforms after a profile is changed. */
+/* Refreshes the display and proofing transforms after a profile is changed.
+ *
+ * For FLIS, the authoritative ICC profile lives on the base layer rather
+ * than on gfit (which may currently point at any active layer).  Source
+ * the same_primaries comparison from flis_get_profiled_fit() so the
+ * proofing transform is set up from the canonical FLIS profile and not
+ * from a layer that may have icc_profile == NULL. */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+		fits *profiled = flis_get_profiled_fit();
+		com.gui_icc.same_primaries = same_primaries(profiled->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
 		if (com.gui_icc.proofing_transform)
 			cmsDeleteTransform(com.gui_icc.proofing_transform);
@@ -999,7 +1023,10 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 
 	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
 	if (!fit->color_managed || !fit->icc_profile) {
-		fit_colorspace_channels = fit->naxes[2];
+		/* For a FLIS base layer the profile applies to the RGB composite, so
+		 * use the composite channel count rather than the (possibly mono) layer. */
+		fit_colorspace_channels = (is_current_image_flis() && fit == flis_get_profiled_fit())
+		                          ? flis_composite_naxes2() : fit->naxes[2];
 		if (fit_colorspace_channels == target_colorspace_channels) {
 			if (fit->icc_profile)
 				cmsCloseProfile(fit->icc_profile);
@@ -1020,6 +1047,22 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	// fit is color managed, so we really have to do the transform
 	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
 	fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
+
+	/* Safety: if the existing profile's channel count disagrees with the
+	 * actual pixel data (e.g. a FLIS base layer that was tagged with an RGB
+	 * composite profile while the underlying data is mono), we cannot run a
+	 * colour transform — the data buffer is the wrong size.  Fall back to a
+	 * pure re-tag so we at least update the label without crashing. */
+	if (fit_colorspace_channels != (cmsUInt32Number)fit->naxes[2]) {
+		siril_log_debug("siril_colorspace_transform(): profile/data channel mismatch "
+		                "(%u vs %ld) — re-tagging only\n",
+		                fit_colorspace_channels, (long)fit->naxes[2]);
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(profile);
+		color_manage(fit, TRUE);
+		return;
+	}
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
@@ -1067,6 +1110,24 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (com.script)
 		return;
 
+	/* For FLIS, always operate on the base (profiled) layer rather than the
+	 * active non-base layer that gfit may currently point to.  The FLIS
+	 * invariant is that only the base carries an ICC profile, and that
+	 * profile describes the RGB composite — not the (possibly mono) base
+	 * data — so per-channel-count decisions use flis_composite_naxes2()
+	 * below. */
+	gboolean called_with_gfit = (fit == gfit);
+	if (called_with_gfit && is_current_image_flis())
+		fit = flis_get_profiled_fit();
+
+	/* Effective channel count for ICC purposes: composite (3) for any FLIS
+	 * profiled fit, raw fit->naxes[2] otherwise.  Picking mono_standard for
+	 * a mono FLIS base would later trip the channel-mismatch error inside
+	 * siril_colorspace_transform (the composite is RGB) so the profile
+	 * would never get assigned. */
+	guint eff_naxes2 = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	                   ? flis_composite_naxes2() : (guint)fit->naxes[2];
+
 	gboolean proceed = FALSE;
 
 	// Handle images that have been extracted as channels from a 3-color image
@@ -1091,10 +1152,10 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 				// if the fit has previously been stretched, we assign the sRGB TRC:
 				// this will then be converted to the working color space rather than
 				// just assigned which would cause a color shift
-				fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+				fit->icc_profile = eff_naxes2 == 1 ? gray_srgbtrc() : srgb_trc();
 				// color_manage() is called later from siril_colorspace_transform()
 			} else if (com.pref.icc.pedantic_linear && !(occasion & ICC_ASSIGN_ON_STRETCH)) {
-				fit->icc_profile = siril_color_profile_linear_from_color_profile (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+				fit->icc_profile = siril_color_profile_linear_from_color_profile (eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard);
 				// Unless we're about to stack, leave the image with a linear profile and return
 				gchar *desc = siril_color_profile_get_description(fit->icc_profile);
 				fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
@@ -1113,7 +1174,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			return;
 
 		// If the image is already in the working color space, we have nothing to do
-		if (fit->color_managed && profiles_identical(fit->icc_profile, fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard))
+		if (fit->color_managed && profiles_identical(fit->icc_profile, eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard))
 			return;
 
 		// If the preference is that we always convert, trigger the conversion
@@ -1133,8 +1194,8 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (proceed) {
 		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
-		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
-		if (fit == gfit && !com.headless) {
+		siril_colorspace_transform(fit, (eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		if (called_with_gfit && !com.headless) {
 			gui_iface.set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
@@ -1154,12 +1215,20 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
  */
 
 void icc_auto_assign(fits *fit, icc_assign_type occasion) {
+	/* For FLIS, always operate on the base (profiled) layer.  See the
+	 * companion comment in icc_auto_assign_or_convert. */
+	gboolean called_with_gfit = (fit == gfit);
+	if (called_with_gfit && is_current_image_flis())
+		fit = flis_get_profiled_fit();
+	guint eff_naxes2 = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	                   ? flis_composite_naxes2() : (guint)fit->naxes[2];
+
 	// Check if the occasion matches the preference
 	if (com.pref.icc.autoassignment & occasion) {
 		siril_log_debug("Auto assigning working profile\n");
 		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
-		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		fit->icc_profile = copyICCProfile((eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		color_manage(fit, TRUE);
 	} else {
 		if (fit->icc_profile)
@@ -1167,7 +1236,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 		fit->icc_profile = NULL;
 		color_manage(fit, FALSE);
 	}
-	if (fit == gfit) {
+	if (called_with_gfit) {
 		gui_iface.set_source_information();
 		refresh_icc_transforms();
 		notify_gfit_data_modified();

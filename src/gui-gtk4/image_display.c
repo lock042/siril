@@ -1016,9 +1016,13 @@ static gboolean prefetch_idle_cb(gpointer data) {
 }
 
 void check_gfit_profile_identical_to_monitor() {
-	if (!com.headless && gfit->icc_profile && gfit->color_managed)
-		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
-	siril_log_debug("gfit profile identical to monitor profile: %d\n", identical);
+	/* For FLIS the canonical profile lives on the base layer, not gfit
+	 * (which may currently be an unprofiled active layer).  Compare the
+	 * profiled fit's profile against the monitor instead. */
+	fits *profiled = flis_get_profiled_fit();
+	if (!com.headless && profiled->icc_profile && profiled->color_managed)
+		identical = profiles_identical(profiled->icc_profile, com.gui_icc.monitor);
+	siril_log_debug("profiled fit's profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
