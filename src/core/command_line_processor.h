@@ -27,7 +27,8 @@ typedef enum {
 	CMD_NEED_INIT_FIRST = 1 << 19,
 	CMD_ALLOC_ERROR = 1 << 20,
 	CMD_THREAD_RUNNING = 1 << 21,
-	CMD_DIR_NOT_FOUND = 1 << 22
+	CMD_DIR_NOT_FOUND = 1 << 22,
+	CMD_ONLY_FLIS_IMAGE = 1 << 24,  /* command requires a FLIS file to be loaded */
 } cmd_errors;
 
 /* WARNING: Do not use 1<<23 as an error retval from any threaded function:
