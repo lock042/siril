@@ -39,6 +39,8 @@
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
+#include "io/flis_compose.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/registration_preview.h"
@@ -105,6 +107,88 @@ static void image_display_init_statics(void) {
 }
 
 static void invalidate_image_render_cache(int vport);
+
+/* =========================================================================
+ * FLIS display composite cache (stage 3.1 — correctness baseline)
+ * =========================================================================
+ *
+ * The display pipeline works on a single fits* (gfit) and remaps its
+ * pixel data into per-viewport BGRA8 buffers.  For a FLIS file gfit is
+ * still the active layer, but the user expects to see the full
+ * composite of all visible layers.  We build that composite into a
+ * private fits* and swap gfit to point at it for the duration of
+ * remap_all() (see the swap at the top of that function).
+ *
+ * This stage-3.1 implementation rebuilds the entire composite on every
+ * invalidation.  Stages 3.2 and 3.3 layer a per-layer GdkTexture cache
+ * and per-tile materialisation on top, eliminating the full-canvas
+ * rebuild for property-only changes.  flis_display_composite remains
+ * useful as the CPU fallback and correctness oracle in those later
+ * stages.
+ *
+ * Threading: built and accessed under gui.cairo_mutex inside remap_all.
+ * The mutex covers both the composite build and the gfit swap, so
+ * concurrent worker-thread redraws serialise rather than race.
+ * ========================================================================= */
+static fits     *flis_display_composite = NULL;
+static gboolean  flis_composite_dirty   = TRUE;
+
+/* Ensure flis_display_composite reflects the current com.uniq->layers
+ * state.  Returns 0 if the composite is ready, non-zero on failure
+ * (caller should fall through to displaying gfit directly).  Must be
+ * called with gui.cairo_mutex held when concurrent remap callers are
+ * possible; remap_all takes the mutex around it. */
+static int flis_composite_ensure_built(void) {
+	if (!is_current_image_flis() || !com.uniq || !com.uniq->layers)
+		return 1;
+	if (!flis_composite_dirty && flis_display_composite)
+		return 0;
+	fits *fresh = flis_render_layers(com.uniq->layers);
+	if (!fresh) return 1;
+	if (flis_display_composite) {
+		clearfits(flis_display_composite);
+		free(flis_display_composite);
+	}
+	flis_display_composite = fresh;
+	flis_composite_dirty   = FALSE;
+	return 0;
+}
+
+/* Mark the cached composite stale so the next remap rebuilds it.
+ * Wired to gui_iface.flis_invalidate_composite from gui_iface_impl.c.
+ * Atomic write — no mutex needed: a concurrent ensure_built reading
+ * dirty either picks up TRUE (rebuilds) or FALSE (skips); both are
+ * acceptable in a brief race. */
+static void flis_composite_invalidate(void) {
+	flis_composite_dirty = TRUE;
+}
+
+/* Release the cached composite entirely.  Called when an image is
+ * closed or a non-FLIS file replaces a FLIS file.  Wired to
+ * gui_iface.flis_composite_free.  Takes gui.cairo_mutex because a
+ * concurrent remap_all on the worker thread may be holding a pointer
+ * to flis_display_composite — we must not free under it. */
+static void flis_composite_release(void) {
+	g_mutex_lock(&gui.cairo_mutex);
+	if (flis_display_composite) {
+		clearfits(flis_display_composite);
+		free(flis_display_composite);
+		flis_display_composite = NULL;
+	}
+	flis_composite_dirty = TRUE;
+	g_mutex_unlock(&gui.cairo_mutex);
+}
+
+/* External wrappers — referenced by gui_iface_impl.c.  The impl can't
+ * see the static helpers above, so we expose thin trampolines with
+ * stable extern symbols.  Naming convention matches the gui_iface
+ * vtable entries. */
+void flis_display_invalidate_composite(void) {
+	flis_composite_invalidate();
+}
+void flis_display_composite_free(void) {
+	flis_composite_release();
+}
 
 /* Tile side length.  Each viewport's buf is exposed to GSK as a grid of
  * GdkTextures of up to SIRIL_TILE_DIM × SIRIL_TILE_DIM pixels; right- and
@@ -3677,6 +3761,26 @@ void copy_roi_into_gfit() {
 }
 
 void remap_all() {
+	/* FLIS swap (stage 3.1): for the duration of the remap loop, gfit
+	 * points at the FLIS composite — built lazily from com.uniq->layers
+	 * — so all downstream pixel reads see the composited multi-layer
+	 * image rather than just the active layer.  Restored unconditionally
+	 * at the end (even on early-return paths inside remap()) because the
+	 * composite is a private allocation, not a permanent replacement.
+	 *
+	 * Future stages 3.2/3.3 replace this with a per-layer GdkTexture
+	 * cache and per-tile materialisation; the composite cache here
+	 * remains the CPU fallback and the correctness oracle. */
+	fits *flis_saved_gfit = NULL;
+	if (is_current_image_flis()) {
+		g_mutex_lock(&gui.cairo_mutex);
+		if (flis_composite_ensure_built() == 0 && flis_display_composite) {
+			flis_saved_gfit = gfit;
+			gfit = flis_display_composite;
+		}
+		g_mutex_unlock(&gui.cairo_mutex);
+	}
+
 	stf_computed = FALSE;
 	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
 		for (int i = 0; i < gfit->naxes[2]; i++) {
@@ -3687,6 +3791,10 @@ void remap_all() {
 	}
 	if (gfit->naxis == 3)
 		remaprgb();
+
+	if (flis_saved_gfit) {
+		gfit = flis_saved_gfit;
+	}
 }
 
 void redraw(remap_type doremap) {

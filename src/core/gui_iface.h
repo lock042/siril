@@ -202,6 +202,11 @@ typedef struct {
 	 * narrow-flag variants and the texture-cache drop logic in
 	 * stage 3.4. */
 	void     (*flis_invalidate_composite)(void);
+	/* Release the cached FLIS display composite.  Called when an image
+	 * is closed (free_image_data) so the per-image composite memory is
+	 * released promptly rather than waiting for the next FLIS open.
+	 * No-op when no composite is cached. */
+	void     (*flis_composite_free)(void);
 	/* Refresh the FLIS layers panel (rebuild the list, sync property
 	 * widgets to current state).  No-op when the panel hasn't been
 	 * created yet — the real implementation lands in stage 4. */
