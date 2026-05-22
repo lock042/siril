@@ -66,12 +66,10 @@
 #include "core/gui_iface.h"
 #include "image_format_fits.h"
 #include "image_format_flis.h"
+#include "flis_compose.h"
 
-/* Forward declarations for symbols whose authoritative declarations land
- * in later stage 1 sub-stages.  These will be removed once the owning
- * headers (flis_compose.h at §1.3, the new entry added to undo.h at §1.4)
- * are introduced and included above. */
-fits *flis_render_layers(GSList *layers);
+/* Forward declaration for the §1.4 undo entry point.  Removed once the
+ * authoritative declaration lands in core/undo.h. */
 void flis_undo_purge_layer(gint item_id);
 
 /* -----------------------------------------------------------------------
@@ -3209,35 +3207,19 @@ int flis_background_neutralise_layers(GSList *layer_subset) {
 }
 
 /* =========================================================================
- * TEMPORARY STUBS — replaced in later sub-stages of stage 1
+ * TEMPORARY STUB — replaced in stage 1.4 (undo plumbing)
  * =========================================================================
  *
- * The following two functions are external symbols that image_format_flis.c
- * calls but whose real implementations live in other files that haven't
- * been ported yet.  Stubs are provided here so the file links cleanly at
- * the end of stage 1.2.  Each stub is removed when its owning sub-stage
- * lands and the real symbol becomes available:
- *
- *   - flis_render_layers      → defined in src/io/flis_compose.c at §1.3
- *   - flis_undo_purge_layer   → defined in src/core/undo.c        at §1.4
- *
- * Callers that hit a stub in the meantime get a degraded behaviour
- * (NULL render result / no-op undo purge) and an info-level log line.
- * Functions that depend on the kernel (flis_merge_down_layer,
- * flis_flatten_all) therefore fail safely until §1.3 lands; functions
- * that purge undo state silently no-op until §1.4 lands.  No data loss
- * is possible because the stubs never execute destructive operations.
+ * flis_undo_purge_layer's real implementation lives in src/core/undo.c
+ * but undo.c isn't FLIS-aware yet.  A no-op stub keeps merge-down,
+ * flatten, and group-delete-with-layers working safely until §1.4
+ * lands and the real symbol becomes available.  The stub is removed
+ * in the §1.4 commit.
  */
-
-fits *flis_render_layers(GSList *layers) {
-    (void) layers;
-    siril_log_info(_("FLIS: compositing kernel not yet implemented "
-                     "(stage 1.3 pending) — operation skipped\n"));
-    return NULL;
-}
 
 void flis_undo_purge_layer(gint item_id) {
     (void) item_id;
     /* no-op until stage 1.4 lands; undo purging is irrelevant in headless
-     * runs anyway, and stage 1.4 will install the real implementation. */
+     * runs anyway (no undo state to purge), and stage 1.4 will install
+     * the real implementation. */
 }

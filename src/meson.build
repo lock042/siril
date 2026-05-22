@@ -183,6 +183,7 @@ src_files = [
   'io/healpix/gaia_xp_design.c',
   'io/image_format_fits.c',
   'io/image_format_flis.c',
+  'io/flis_compose.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
   'io/local_catalogues.c',
