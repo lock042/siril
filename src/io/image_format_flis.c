@@ -2375,6 +2375,11 @@ int flis_merge_down_layer(flis_layer_t *top) {
         return 1;
     }
 
+    /* Capture names for the closing log line BEFORE flis_layer_free(top)
+     * dangling-pointers top->layer_name (use-after-free otherwise). */
+    gchar *top_name_copy = g_strdup(top->layer_name ? top->layer_name : "?");
+    const char *bottom_name = bottom->layer_name ? bottom->layer_name : "?";
+
     /* Destructive operation: purge undo history for both layers */
     flis_undo_purge_layer(top->item_id);
     flis_undo_purge_layer(bottom->item_id);
@@ -2399,8 +2404,8 @@ int flis_merge_down_layer(flis_layer_t *top) {
     gui_iface.flis_invalidate_composite();
 
     siril_log_message(_("FLIS: merged '%s' down into '%s'\n"),
-                      top->layer_name    ? top->layer_name    : "?",
-                      bottom->layer_name ? bottom->layer_name : "?");
+                      top_name_copy, bottom_name);
+    g_free(top_name_copy);
     return 0;
 }
 
