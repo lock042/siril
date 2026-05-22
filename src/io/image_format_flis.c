@@ -1569,6 +1569,31 @@ guint flis_composite_naxes2(void) {
     return gfit->naxes[2];
 }
 
+gboolean flis_composite_is_chromatic(void) {
+    /* "Chromatic" = the displayed composite is not equivalent to a mono
+     * image broadcast to three channels.  An all-mono, no-tint (or only
+     * greyscale-tint) FLIS produces R=G=B everywhere and so should still
+     * present mono-style GUI controls (single-channel histogram, mono
+     * vport tab) even though the composite buffer happens to be 3-channel.
+     *
+     * Any RGB layer brings chromaticity unconditionally.  A mono layer
+     * with LAYER_COLOR tint contributes chroma only when the tint vector
+     * is not greyscale (i.e. R != G or G != B) — a (0.5, 0.5, 0.5) tint
+     * is just a brightness scalar. */
+    if (!is_current_image_flis() || !com.uniq) return FALSE;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (lay->fit->naxes[2] >= 3)
+            return TRUE;
+        if (lay->has_tint &&
+            (lay->layer_tint.r != lay->layer_tint.g ||
+             lay->layer_tint.g != lay->layer_tint.b))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /* Luminance-weighted collapse of three planar channels into one.
  * Uses Rec. 709 coefficients (0.2126 R + 0.7152 G + 0.0722 B). */
 static void collapse_rgb_to_mono_float(float *r, float *g, float *b,

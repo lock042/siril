@@ -325,6 +325,24 @@ fits *flis_get_profiled_fit(void);
 guint flis_composite_naxes2(void);
 
 /**
+ * flis_composite_is_chromatic:
+ *
+ * Returns TRUE if the FLIS composite has chromatic content — i.e. it is
+ * not equivalent to a mono image with three identical channels.  TRUE
+ * when ANY layer is RGB (naxes[2] >= 3) OR any mono layer carries a
+ * non-greyscale LAYER_COLOR tint (R != G or G != B).  Returns FALSE
+ * when no FLIS is loaded.
+ *
+ * Use this where the GUI needs to decide between mono-style controls
+ * (single channel histogram, RED_VPORT tab) and RGB-style controls
+ * (per-channel histograms, RGB_VPORT tab) for a FLIS image.  Reading
+ * gfit->naxes[2] alone gives the wrong answer for a mono-base FLIS
+ * with a tinted mono top layer — the displayed composite is chromatic
+ * even though the active layer (gfit) is mono.
+ */
+gboolean flis_composite_is_chromatic(void);
+
+/**
  * flis_convert_layers_icc:
  * @old_profile: the ICC profile currently assigned to the FLIS image
  * @new_profile:  the target ICC profile

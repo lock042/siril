@@ -51,6 +51,7 @@ void update_export_crop_label();
 #include "io/annotation_catalogues.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_git.h"
@@ -1685,7 +1686,15 @@ void activate_tab(int vport) {
 }
 
 gboolean init_right_tab(gpointer user_data) {
-	activate_tab(isrgb(gfit) ? RGB_VPORT : RED_VPORT);
+	/* FLIS: gfit is the active layer, which may be mono even when the
+	 * composite is chromatic (e.g. a mono-base FLIS with a tinted mono
+	 * narrowband layer on top).  Read the composite's chromaticity from
+	 * the layer stack so the user gets RGB viewports for anything that
+	 * displays in colour. */
+	gboolean rgb = is_current_image_flis()
+	    ? flis_composite_is_chromatic()
+	    : isrgb(gfit);
+	activate_tab(rgb ? RGB_VPORT : RED_VPORT);
 	return FALSE;
 }
 
