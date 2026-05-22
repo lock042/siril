@@ -82,7 +82,12 @@ static void save_dialog_init_statics(void) {
 
 static void set_filters_save_dialog(SirilFileChooser *fc) {
 	GString *all_filter = NULL;
-	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
+	/* FLIS is a FITS container variant per spec §10.5 — the same single
+	 * filter accepts every FITS-family extension including .flis.  The
+	 * save dispatch (mini_save_dialog and on_header_save_button_clicked)
+	 * decides the actual writer based on the loaded image's data state,
+	 * not the chosen extension. */
+	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz;*.flis;*.FLIS";
 	const gchar *bmp_filter = "*.bmp;*.BMP";
 	const gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 
@@ -92,16 +97,9 @@ static void set_filters_save_dialog(SirilFileChooser *fc) {
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, bmp_filter);
 
-	siril_fc_add_filter_pattern(fc, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
-	/* FLIS filter — only meaningful when the loaded image is itself FLIS,
-	 * but the dialog isn't sensitive enough to gate filters by image state,
-	 * so we always offer it.  On a plain FITS, selecting this filter
-	 * promotes to a single-layer FLIS via flis_promote_from_gfit at save
-	 * time. */
-	const gchar *flis_filter_str = "*.flis;*.FLIS";
-	siril_fc_add_filter_pattern(fc, _("FLIS Layered Image (*.flis)"), flis_filter_str, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, flis_filter_str);
+	siril_fc_add_filter_pattern(fc,
+		_("FITS / FLIS Files (*.fit, *.fits, *.fts, *.flis)"),
+		fits_filter, FALSE);
 	siril_fc_add_filter_pattern(fc, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
 #ifdef HAVE_LIBJPEG
 	const gchar *jpg_filter = "*.jpg;*.JPG;*.jpeg;*.JPEG";
@@ -149,9 +147,6 @@ static image_type get_filetype(const gchar *filter) {
 	while (string[i]) {
 		if (!g_strcmp0(string[i], "fit")) {
 			type = TYPEFITS;
-			break;
-		} else if (!g_strcmp0(string[i], "flis")) {
-			type = TYPEFLIS;
 			break;
 		} else if (!g_strcmp0(string[i], "bmp")) {
 			type = TYPEBMP;
@@ -286,15 +281,18 @@ static void prepare_savepopup() {
 		set_icc_description_in_TIFF();
 		tab = PAGE_TIFF;
 		break;
-	case TYPEFLIS:
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS"));
-		/* FLIS reuses the FITS page — bitpix/checksum options apply to the
-		 * layer HDUs the same way they apply to plain FITS image data. */
-		tab = PAGE_FITS;
-		break;
 	default:
 	case TYPEFITS:
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
+		/* Same notebook page handles plain FITS and FLIS: bitpix and
+		 * checksum apply equally to FLIS layer HDUs.  The title varies
+		 * with the loaded data state so the user knows which writer
+		 * will run. */
+		if (is_current_image_flis() && flis_layer_count() > 1)
+			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS (multi-layer)"));
+		else if (is_current_image_flis())
+			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS"));
+		else
+			gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
 	}
 
@@ -333,7 +331,7 @@ static gchar *get_filename_and_replace_ext() {
 	}
 
 	gboolean is_format_valid = get_type_from_filename(basename)
-			& (TYPEFITS | TYPEFLIS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
+			& (TYPEFITS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
 	if (!is_format_valid) {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
@@ -362,9 +360,6 @@ static gchar *reconcile_filename_with_filter(const gchar *filename, GtkFileFilte
 	default:
 	case TYPEFITS:
 		new_filename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
-		break;
-	case TYPEFLIS:
-		new_filename = g_strdup_printf("%s.flis", file_no_ext);
 		break;
 	case TYPEBMP:
 		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
@@ -698,26 +693,6 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savepng(args->filename, gfit, bytes_per_sample, gfit->naxes[2] == 3);
 			break;
 #endif
-		case TYPEFLIS:
-			/* If the loaded image is plain FITS (not yet a FLIS), auto-promote
-			 * it to a single-layer FLIS so we have something to save.  Spec
-			 * §10.1 + plan §2.2: the user picks the .flis filter and the
-			 * conversion happens transparently with a status-bar notice. */
-			if (!is_current_image_flis()) {
-				if (flis_promote_from_gfit(NULL)) {
-					siril_log_error(_("Save as FLIS: promotion to single-layer FLIS failed.\n"));
-					args->retval = 1;
-					break;
-				}
-				siril_log_message(_("Save as FLIS: promoted plain FITS to single-layer FLIS.\n"));
-			}
-			args->retval = save_flis(args->filename);
-			if (!args->retval && single_image_is_loaded()) {
-				free(com.uniq->filename);
-				com.uniq->filename = strdup(args->filename);
-				com.uniq->fileexist = TRUE;
-			}
-			break;
 		default:
 			type_of_image = TYPEFITS;
 			/* no break */
@@ -746,11 +721,59 @@ static gpointer mini_save_dialog(gpointer p) {
 				gfit->keywords.lo = 0;
 			}
 			gfit->checksum = args->checksum;
-			args->retval = savefits(args->filename, gfit);
+			/* Format follows data state, not extension (a FLIS file is a
+			 * valid FITS container — either extension is acceptable).
+			 *   - Multi-layer FLIS: pop up the flatten-vs-preserve dialog
+			 *     so the user can opt in to data loss explicitly.
+			 *   - Single-layer FLIS: always preserve format.
+			 *   - Plain FITS: savefits as today. */
+			gboolean wrote_flis = FALSE;
+			if (is_current_image_flis() && flis_layer_count() > 1) {
+				gchar *msg = g_strdup_printf(
+					_("This image has %d layers.\n\n"
+					  "Saving as FLIS preserves every layer, mask, blend mode, "
+					  "and metadata key — recommended for in-work editing.\n\n"
+					  "Saving as plain FITS flattens the visible layers into a "
+					  "single image and discards all layer-specific data — "
+					  "useful for sharing with tools that don't read FLIS.\n\n"
+					  "FLIS files remain valid FITS files: any FITS reader will "
+					  "see the composite thumbnail as a fallback."),
+					flis_layer_count());
+				int choice = siril_three_button_dialog(
+					_("Save with layers?"), msg,
+					_("Flatten and save as plain FITS"),
+					_("Save as FLIS (preserve layers)"));
+				g_free(msg);
+				if (choice == 0) {
+					/* Cancelled — bail out without saving and without
+					 * marking this as an error. */
+					args->retval = 0;
+					break;
+				}
+				if (choice == 2) {
+					args->retval = save_flis(args->filename);
+					wrote_flis = TRUE;
+				} else {
+					/* Flatten visible layers, then savefits on the result. */
+					if (flis_flatten_all()) {
+						siril_log_error(_("Save: flatten failed.\n"));
+						args->retval = 1;
+						break;
+					}
+					args->retval = savefits(args->filename, gfit);
+				}
+			} else if (is_current_image_flis()) {
+				/* 1-layer FLIS — preserve format silently. */
+				args->retval = save_flis(args->filename);
+				wrote_flis = TRUE;
+			} else {
+				/* Plain FITS path (unchanged). */
+				args->retval = savefits(args->filename, gfit);
+			}
 			if (!args->retval && single_image_is_loaded()) {
-				/* Use the same extension logic as savefits() so the tracked
-				 * filename always matches the file actually written on disk. */
-				gchar *actual = set_right_extension(args->filename);
+				gchar *actual = wrote_flis
+				    ? g_strdup(args->filename)
+				    : set_right_extension(args->filename);
 				free(com.uniq->filename);
 				com.uniq->filename = strdup(actual);
 				g_free(actual);
@@ -1035,7 +1058,42 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 #undef NEW_SIZE
 
 void on_header_save_button_clicked() {
-	if (single_image_is_loaded() && com.uniq->fileexist) {
+	if (!single_image_is_loaded() || !com.uniq->fileexist)
+		return;
+
+	/* Data-driven dispatch matching the Save As path: format follows the
+	 * loaded image's state, not the filename extension.  Multi-layer FLIS
+	 * goes through the flatten-vs-preserve confirmation; single-layer FLIS
+	 * silently uses save_flis; plain FITS continues to use savefits. */
+	if (is_current_image_flis() && flis_layer_count() > 1) {
+		gchar *msg = g_strdup_printf(
+			_("This image has %d layers.\n\n"
+			  "Saving as FLIS preserves every layer, mask, blend mode, "
+			  "and metadata key — recommended for in-work editing.\n\n"
+			  "Saving as plain FITS flattens the visible layers into a "
+			  "single image and discards all layer-specific data — "
+			  "useful for sharing with tools that don't read FLIS.\n\n"
+			  "FLIS files remain valid FITS files: any FITS reader will "
+			  "see the composite thumbnail as a fallback."),
+			flis_layer_count());
+		int choice = siril_three_button_dialog(
+			_("Save with layers?"), msg,
+			_("Flatten and save as plain FITS"),
+			_("Save as FLIS (preserve layers)"));
+		g_free(msg);
+		if (choice == 0) return;
+		if (choice == 2) {
+			save_flis(com.uniq->filename);
+		} else {
+			if (flis_flatten_all()) {
+				siril_log_error(_("Save: flatten failed.\n"));
+				return;
+			}
+			savefits(com.uniq->filename, gfit);
+		}
+	} else if (is_current_image_flis()) {
+		save_flis(com.uniq->filename);
+	} else {
 		savefits(com.uniq->filename, gfit);
 	}
 }

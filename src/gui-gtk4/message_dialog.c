@@ -399,6 +399,38 @@ gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, FALSE, NULL);
 }
 
+/* Three-button alert: "Cancel", choice A, choice B.  Returns 0 (cancel /
+ * dialog dismissed), 1 (choice A picked), or 2 (choice B picked).
+ * Default focus is choice B (the data-preserving option, by convention);
+ * Cancel is wired to the close button. */
+int siril_three_button_dialog(gchar *title, gchar *msg,
+                              gchar *button_a, gchar *button_b) {
+	GtkWindow *parent = siril_get_active_window();
+	if (!GTK_IS_WINDOW(parent)) {
+		message_dialog_init_statics();
+		parent = msg_control_window;
+	}
+	strip_last_ret_char(title);
+	strip_last_ret_char(msg);
+
+	GtkAlertDialog *ad = gtk_alert_dialog_new("%s", title ? title : "");
+	if (msg) gtk_alert_dialog_set_detail(ad, msg);
+	const char *btns[] = {
+		_("_Cancel"),
+		button_a ? button_a : _("Option A"),
+		button_b ? button_b : _("Option B"),
+		NULL
+	};
+	gtk_alert_dialog_set_buttons(ad, btns);
+	gtk_alert_dialog_set_default_button(ad, 2);   /* B is the preserve-data default */
+	gtk_alert_dialog_set_cancel_button(ad, 0);
+
+	int r = alert_choose_sync(ad, parent);
+	g_object_unref(ad);
+	if (r < 0 || r > 2) r = 0;  /* dismissed / error → treat as Cancel */
+	return r;
+}
+
 struct confirm_dialog_data {
     gchar *title;
     gchar *msg;
