@@ -163,6 +163,19 @@ gboolean end_open_single_image(gpointer arg) {
 
 /* filename will be freed when the unique file is closed */
 int create_uniq_from_gfit(char *filename, gboolean exists) {
+	/* If com.uniq is already populated as a FLIS (load_flis ran during
+	 * read_single_image via the readfits FLIS dispatch), preserve the
+	 * layer/group state and only fill in filename + fileexist.  Without
+	 * this guard the calloc-fresh-single below would silently drop the
+	 * just-loaded layer stack and is_current_image_flis() would return
+	 * FALSE on a freshly-opened FLIS file. */
+	if (com.uniq && com.uniq->layers) {
+		g_free(com.uniq->filename);
+		com.uniq->filename = filename;
+		com.uniq->fileexist = exists;
+		/* chans / fit already set by uniq_set_active_layer in load_flis */
+		return 0;
+	}
 	com.uniq = calloc(1, sizeof(single));
 	if (!com.uniq) {
 		PRINT_ALLOC_ERR;

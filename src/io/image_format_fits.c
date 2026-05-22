@@ -50,6 +50,7 @@
 #include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
 #include "image_format_fits.h"
+#include "image_format_flis.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
@@ -1201,6 +1202,30 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		report_fits_error(status);
 		free(name);
 		return status;
+	}
+
+	/* FLIS dispatch: if the primary HDU carries the FLIS=T marker and the
+	 * caller is loading into gfit, delegate to load_flis which builds the
+	 * full layer stack into com.uniq.  load_flis re-opens the file, so we
+	 * close our handle and free `name` first.
+	 *
+	 * For non-gfit destinations (e.g. preview / sequence-frame loads into
+	 * a private fits) we deliberately fall through to the normal FITS
+	 * reader, which reads the HDU-0 thumbnail and returns a flat 8-bit RGB
+	 * — exactly the legacy-viewer fallback the spec promises (§10.5). */
+	if (fit == gfit) {
+		int flis_flag = 0, flis_status = 0;
+		fits_read_key(fit->fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+		if (flis_status == 0 && flis_flag) {
+			fits_close_file(fit->fptr, &flis_status);
+			fit->fptr = NULL;
+			if (realname) strcpy(realname, name);
+			siril_log_message(_("Detected FLIS file, loading layer stack: %s\n"),
+			                  filename);
+			int rv = load_flis(name);
+			free(name);
+			return rv;
+		}
 	}
 	free(name);
 

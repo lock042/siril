@@ -174,6 +174,13 @@ typedef enum {
 	TYPEXISF = (1 << 11),
 	TYPEJXL = (1 << 12),
 	TYPEAVIF = (1 << 13),
+	/* FLIS = FITS Layered Image Specification — a constrained FITS file
+	 * carrying a multi-layer image stack.  On *open*, a .flis file is
+	 * recognised as TYPEFITS (it satisfies the FITS spec) and readfits
+	 * delegates to load_flis based on the FLIS=T header keyword.  On
+	 * *save*, the save dialog uses TYPEFLIS to select save_flis instead
+	 * of savefits. */
+	TYPEFLIS = (1 << 14),
 	TYPEAVI = (1 << 20),
 	TYPESER = (1 << 21)
 } image_type;

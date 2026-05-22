@@ -75,6 +75,7 @@ static command commands[] = {
 	{"flis_info", 0, "flis_info", process_flis_info, STR_FLIS_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layer_info", 1, "flis_layer_info <id|\"name\">", process_flis_layer_info, STR_FLIS_LAYER_INFO, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layer_list", 0, "flis_layer_list [-format=text|csv]", process_flis_layer_list, STR_FLIS_LAYER_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_promote", 0, "flis_promote [-name=\"X\"]", process_flis_promote, STR_FLIS_PROMOTE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"fmedian", 2, "fmedian ksize modulation [-mask]", process_fmedian, STR_FMEDIAN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmul", 1, "fmul scalar [-mask]", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 

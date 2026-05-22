@@ -162,6 +162,7 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".fit.fz";
 	supported_extensions[count_ext++] = ".fits.fz";
 	supported_extensions[count_ext++] = ".fts.fz";
+	supported_extensions[count_ext++] = ".flis";
 	supported_extensions[count_ext++] = ".bmp";
 	supported_extensions[count_ext++] = ".ppm";
 	supported_extensions[count_ext++] = ".pgm";
@@ -317,6 +318,11 @@ image_type get_type_for_extension(const char *extension) {
 		return TYPEFITS;
 	} else if (!g_ascii_strcasecmp(extension, "fit.fz") || !g_ascii_strcasecmp(extension, "fits.fz") ||
 			!g_ascii_strcasecmp(extension, "fts.fz")) {
+		return TYPEFITS;
+	} else if (!g_ascii_strcasecmp(extension, "flis")) {
+		/* FLIS files are FITS at the container level — readfits will
+		 * detect the FLIS=T header and delegate to load_flis.  Returning
+		 * TYPEFITS here keeps the existing stat_file fast-path active. */
 		return TYPEFITS;
 	} else if (!g_ascii_strcasecmp(extension, "xisf")) {
 		return TYPEXISF;
