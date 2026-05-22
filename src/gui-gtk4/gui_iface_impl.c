@@ -682,6 +682,13 @@ static void impl_redraw_mask_idle(void) {
 	redraw_mask_idle(NULL);
 }
 
+/* FLIS composite invalidation — stage 1.2 no-op stub.  Replaced in
+ * stage 3.4 with a real implementation that drops per-layer GdkTexture
+ * tile caches and queues a snapshot redraw via flis_display_invalidate(). */
+static void impl_flis_invalidate_composite(void) {
+	/* intentionally no-op until stage 3 wires the per-layer cache */
+}
+
 /* ── Group G additions: Channel / precision display state ────────────────── */
 
 static void impl_on_channel_count_changed(void) {
@@ -1242,6 +1249,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.invalidate_histogram        = impl_invalidate_histogram;
 	gui_iface.update_histogram            = impl_update_histogram;
 	gui_iface.redraw_mask_idle            = impl_redraw_mask_idle;
+	gui_iface.flis_invalidate_composite   = impl_flis_invalidate_composite;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;

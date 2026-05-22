@@ -116,6 +116,7 @@ static GPid stub_select_child_process(GSList *children) { (void)children; return
 static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
 static void stub_redraw_mask_idle(void) {}
+static void stub_flis_invalidate_composite(void) {}
 
 /* G additions */
 static void stub_on_channel_count_changed(void) {}
@@ -357,6 +358,7 @@ SirilGuiInterface gui_iface = {
 	.invalidate_histogram        = stub_invalidate_histogram,
 	.update_histogram            = stub_update_histogram,
 	.redraw_mask_idle            = stub_redraw_mask_idle,
+	.flis_invalidate_composite   = stub_flis_invalidate_composite,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
 	.roi_is_active               = stub_roi_is_active,
