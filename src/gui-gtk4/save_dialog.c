@@ -41,6 +41,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 
 #include "save_dialog.h"
 
@@ -92,6 +93,15 @@ static void set_filters_save_dialog(SirilFileChooser *fc) {
 	all_filter = g_string_append(all_filter, bmp_filter);
 
 	siril_fc_add_filter_pattern(fc, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
+	/* FLIS filter — only meaningful when the loaded image is itself FLIS,
+	 * but the dialog isn't sensitive enough to gate filters by image state,
+	 * so we always offer it.  On a plain FITS, selecting this filter
+	 * promotes to a single-layer FLIS via flis_promote_from_gfit at save
+	 * time. */
+	const gchar *flis_filter_str = "*.flis;*.FLIS";
+	siril_fc_add_filter_pattern(fc, _("FLIS Layered Image (*.flis)"), flis_filter_str, FALSE);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, flis_filter_str);
 	siril_fc_add_filter_pattern(fc, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
 #ifdef HAVE_LIBJPEG
 	const gchar *jpg_filter = "*.jpg;*.JPG;*.jpeg;*.JPEG";
@@ -139,6 +149,9 @@ static image_type get_filetype(const gchar *filter) {
 	while (string[i]) {
 		if (!g_strcmp0(string[i], "fit")) {
 			type = TYPEFITS;
+			break;
+		} else if (!g_strcmp0(string[i], "flis")) {
+			type = TYPEFLIS;
 			break;
 		} else if (!g_strcmp0(string[i], "bmp")) {
 			type = TYPEBMP;
@@ -273,6 +286,12 @@ static void prepare_savepopup() {
 		set_icc_description_in_TIFF();
 		tab = PAGE_TIFF;
 		break;
+	case TYPEFLIS:
+		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FLIS"));
+		/* FLIS reuses the FITS page — bitpix/checksum options apply to the
+		 * layer HDUs the same way they apply to plain FITS image data. */
+		tab = PAGE_FITS;
+		break;
 	default:
 	case TYPEFITS:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
@@ -314,7 +333,7 @@ static gchar *get_filename_and_replace_ext() {
 	}
 
 	gboolean is_format_valid = get_type_from_filename(basename)
-			& (TYPEFITS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
+			& (TYPEFITS | TYPEFLIS | TYPEBMP | TYPETIFF | TYPEPNG | TYPEJPG | TYPEPNM);
 	if (!is_format_valid) {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
@@ -343,6 +362,9 @@ static gchar *reconcile_filename_with_filter(const gchar *filename, GtkFileFilte
 	default:
 	case TYPEFITS:
 		new_filename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		break;
+	case TYPEFLIS:
+		new_filename = g_strdup_printf("%s.flis", file_no_ext);
 		break;
 	case TYPEBMP:
 		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
@@ -676,6 +698,26 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savepng(args->filename, gfit, bytes_per_sample, gfit->naxes[2] == 3);
 			break;
 #endif
+		case TYPEFLIS:
+			/* If the loaded image is plain FITS (not yet a FLIS), auto-promote
+			 * it to a single-layer FLIS so we have something to save.  Spec
+			 * §10.1 + plan §2.2: the user picks the .flis filter and the
+			 * conversion happens transparently with a status-bar notice. */
+			if (!is_current_image_flis()) {
+				if (flis_promote_from_gfit(NULL)) {
+					siril_log_error(_("Save as FLIS: promotion to single-layer FLIS failed.\n"));
+					args->retval = 1;
+					break;
+				}
+				siril_log_message(_("Save as FLIS: promoted plain FITS to single-layer FLIS.\n"));
+			}
+			args->retval = save_flis(args->filename);
+			if (!args->retval && single_image_is_loaded()) {
+				free(com.uniq->filename);
+				com.uniq->filename = strdup(args->filename);
+				com.uniq->fileexist = TRUE;
+			}
+			break;
 		default:
 			type_of_image = TYPEFITS;
 			/* no break */

@@ -393,22 +393,53 @@ int process_save(int nb){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		gui_iface.set_busy(TRUE);
-		retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
+		/* FLIS dispatch: if the user-provided filename ends in .flis OR the
+		 * loaded image is already a FLIS, write through save_flis.  Plain
+		 * FITS + .flis target auto-promotes via flis_promote_from_gfit so
+		 * scripts can convert with a single command. */
+		gboolean ends_flis = g_str_has_suffix(savename, ".flis") ||
+		                     g_str_has_suffix(savename, ".FLIS");
+		gboolean want_flis = ends_flis || is_current_image_flis();
+		if (want_flis) {
+			if (!is_current_image_flis()) {
+				if (flis_promote_from_gfit(NULL)) {
+					siril_log_error(_("save: FLIS promotion failed\n"));
+					retval = CMD_GENERIC_ERROR;
+					goto save_cleanup;
+				}
+				siril_log_message(_("save: promoted plain FITS to single-layer FLIS\n"));
+			}
+			/* Ensure the on-disk extension is .flis even when the user
+			 * omitted it but the image is already FLIS. */
+			gchar *flis_savename = ends_flis
+			    ? g_strdup(savename)
+			    : g_strdup_printf("%s.flis", savename);
+			retval = save_flis(flis_savename) ? CMD_GENERIC_ERROR : CMD_OK;
+			if (retval == CMD_OK && com.uniq) {
+				free(com.uniq->filename);
+				com.uniq->filename = strdup(flis_savename);
+				com.uniq->fileexist = TRUE;
+			}
+			g_free(flis_savename);
+		} else {
+			retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
+			if (com.uniq && retval == CMD_OK) {
+				if (!g_str_has_suffix(savename, com.pref.ext)) {
+					gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+					com.uniq->filename = strdup(tempfilename);
+					g_free(tempfilename);
+				} else {
+					com.uniq->filename = strdup(savename);
+				}
+				com.uniq->fileexist = TRUE;
+			}
+		}
+save_cleanup:
 		gui_iface.set_busy(FALSE);
 	}
-	if (com.uniq) {
-		if (!g_str_has_suffix(savename, com.pref.ext)) {
-			gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
-			com.uniq->filename = strdup(tempfilename);
-			g_free(tempfilename);
-		} else {
-			com.uniq->filename = strdup(savename);
-		}
-		com.uniq->fileexist = TRUE;
-		if (!com.headless) {
-			gui_iface.display_filename();
-			gui_iface.adjust_sellabel();
-		}
+	if (com.uniq && !com.headless) {
+		gui_iface.display_filename();
+		gui_iface.adjust_sellabel();
 	}
 	gui_iface.on_precision_changed();
 
@@ -15776,6 +15807,30 @@ int process_flis_layer_info(int nb) {
 	siril_log_info(_("  proc mask   : %s\n"),
 	               (lay->fit && lay->fit->mask && lay->fit->mask->data) ? "present" : "none");
 	siril_log_info(_("  group_id    : %d\n"), lay->group_id);
+	return CMD_OK;
+}
+
+int process_flis_promote(int nb) {
+	const char *name = NULL;
+	for (int i = 1; i < nb; i++) {
+		if (!word[i]) continue;
+		if (g_str_has_prefix(word[i], "-name=")) {
+			name = word[i] + 6;
+		} else {
+			siril_log_error(_("flis_promote: unknown argument '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (is_current_image_flis()) {
+		siril_log_warning(_("flis_promote: image is already a FLIS — nothing to do\n"));
+		return CMD_OK;
+	}
+	if (flis_promote_from_gfit(name)) {
+		siril_log_error(_("flis_promote: failed to promote image to single-layer FLIS\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("flis_promote: image is now a single-layer FLIS (base: \"%s\")\n"),
+	                  name ? name : "Background");
 	return CMD_OK;
 }
 
