@@ -202,6 +202,10 @@ typedef struct {
 	 * narrow-flag variants and the texture-cache drop logic in
 	 * stage 3.4. */
 	void     (*flis_invalidate_composite)(void);
+	/* Refresh the FLIS layers panel (rebuild the list, sync property
+	 * widgets to current state).  No-op when the panel hasn't been
+	 * created yet — the real implementation lands in stage 4. */
+	void     (*flis_gui_update)(void);
 
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */

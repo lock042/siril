@@ -689,6 +689,12 @@ static void impl_flis_invalidate_composite(void) {
 	/* intentionally no-op until stage 3 wires the per-layer cache */
 }
 
+static void impl_flis_gui_update(void) {
+	/* intentionally no-op until stage 4 wires the layers panel.  Once the
+	 * panel exists, this becomes flis_gui_update_from_idle() so it can
+	 * be called safely from worker threads. */
+}
+
 /* ── Group G additions: Channel / precision display state ────────────────── */
 
 static void impl_on_channel_count_changed(void) {
@@ -1250,6 +1256,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_histogram            = impl_update_histogram;
 	gui_iface.redraw_mask_idle            = impl_redraw_mask_idle;
 	gui_iface.flis_invalidate_composite   = impl_flis_invalidate_composite;
+	gui_iface.flis_gui_update             = impl_flis_gui_update;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;

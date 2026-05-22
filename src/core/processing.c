@@ -40,6 +40,7 @@
 #include "core/undo.h"
 #include "core/gui_iface.h"
 #include "io/single_image.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -1799,6 +1800,112 @@ the_end:
 		siril_add_idle(args->idle_function, args);
 	} else {
 		siril_add_idle(end_generic_mask, args);
+	}
+
+	return GINT_TO_POINTER(retval);
+}
+
+/* ===========================================================================
+ * generic_layer_worker (stage 1.5) — standardised wrapper for FLIS layer ops
+ * ===========================================================================
+ *
+ * Mirrors generic_image_worker / generic_mask_worker for layer-scoped work.
+ * The worker handles thread coordination, progress reporting, error logging,
+ * and the end-of-op idle that refreshes the GUI.  The undo gate per §C.1a
+ * lives inside the public undo_save_flis_* functions (each short-circuits
+ * when com.script is set); hooks call those directly and get the correct
+ * headless behaviour for free.
+ */
+
+void free_generic_layer_args(struct generic_layer_args *args) {
+	if (!args) return;
+	if (args->user)
+		destroy_any_args(args->user);
+	g_free(args->description);
+	free(args);
+}
+
+/* Default end-idle for layer operations: invalidates the FLIS composite,
+ * refreshes the layers panel, optionally refreshes the mask tab if the
+ * lmask changed, and requests a redraw. */
+static gboolean end_generic_layer(gpointer p) {
+	struct generic_layer_args *args = (struct generic_layer_args *)p;
+	stop_processing_thread();
+
+	if (!args->retval && is_current_image_flis()) {
+		gui_iface.flis_invalidate_composite();
+		if (args->updates_lmask)
+			gui_iface.show_or_hide_mask_tab();
+		gui_iface.flis_gui_update();
+
+		if (args->updates_lmask) {
+			/* Layer mask changed: refresh mask viewport.  redraw_mask_idle
+			 * also drives a full image redraw when mask tints are enabled,
+			 * so guard the explicit REMAP_ALL on that pref to avoid a
+			 * double-redraw. */
+			gui_iface.redraw_mask_idle();
+			if (!com.pref.gui.mask_tints_vports)
+				gui_iface.redraw_image(REMAP_ALL);
+		} else {
+			gui_iface.redraw_image(REMAP_ALL);
+		}
+	}
+
+	free_generic_layer_args(args);
+	return FALSE;
+}
+
+gpointer generic_layer_worker(gpointer p) {
+	struct generic_layer_args *args = (struct generic_layer_args *)p;
+	assert(args && args->layer_hook);
+
+	struct timeval t_start, t_end;
+	gboolean verbose = args->verbose;
+	const gchar *desc = args->description ? args->description : "layer operation";
+
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	if (verbose && args->description) {
+		siril_log_info(_("%s: processing layer...\n"), desc);
+	}
+
+	gui_iface.set_progress(0.1, _("Processing layer..."));
+
+	if (args->layer_hook(args)) {
+		siril_log_error(_("%s layer processing failed.\n"), desc);
+		args->retval = 1;
+	} else if (verbose && args->description) {
+		siril_log_info(_("%s succeeded.\n"), desc);
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+	}
+
+	int retval = args->retval;
+
+	if (retval) {
+		gui_iface.set_progress(PROGRESS_RESET, _("Layer processing failed. Check the log."));
+	} else {
+		gui_iface.set_progress(PROGRESS_DONE, _("Layer processing succeeded."));
+	}
+
+	/* Idle dispatch mirrors generic_image_worker:
+	 *   command + headless     → run completion inline, no idle
+	 *   command + interactive  → execute_idle_sync (script blocks until idle runs)
+	 *   non-command            → siril_add_idle (custom or default)
+	 */
+	if (args->command) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_layer_args(args);
+		} else {
+			gui_iface.execute_idle_sync(end_generic_layer, args);
+		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_layer, args);
 	}
 
 	return GINT_TO_POINTER(retval);

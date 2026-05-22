@@ -222,6 +222,60 @@ struct generic_mask_args {
 void free_generic_img_args(struct generic_img_args *args);
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
+
+/* generic_layer_worker — the standardised wrapper for mutating FLIS layer
+ * operations.  Mirrors generic_image_worker but for layer-scoped work:
+ * the hook receives a flis_layer_t* and runs on the processing thread,
+ * with progress, logging, error reporting, and the end-of-op idle posted
+ * by the worker so the GUI refreshes automatically.
+ *
+ * Headless undo gate: the worker itself does NOT save undo — that
+ * remains the hook's responsibility.  But the public undo_save_flis_*
+ * family already short-circuits when com.script is set (per §C.1a),
+ * so hooks that call them get the right behaviour in both modes
+ * without any extra plumbing here.
+ *
+ * Calling convention:
+ *
+ *   struct generic_layer_args *args = calloc(1, sizeof(*args));
+ *   args->layer        = target_layer;
+ *   args->layer_hook   = my_op_hook;       // called on worker thread
+ *   args->log_hook     = my_op_log;        // DETAILED + SUMMARY strings
+ *   args->user         = op_specific_data; // optional; first field MUST
+ *                                          // be a destructor pointer.
+ *   args->description  = g_strdup("My op");
+ *   args->updates_lmask = FALSE;           // TRUE if hook writes lmask
+ *   start_in_new_thread(generic_layer_worker, args);
+ */
+struct generic_layer_args {
+	destructor    destroy_fn;       /* first field: NULL or destructor for this struct
+	                                 * if it is itself passed as args->user elsewhere */
+	flis_layer_t *layer;            /* primary target layer (may be NULL
+	                                 * for multi-layer operations where
+	                                 * args->user carries the list) */
+	int         (*layer_hook)(struct generic_layer_args *args);
+	gchar      *(*log_hook)(gpointer user, int type); /* log_hook_detail */
+	gpointer      user;             /* op-specific data; freed via
+	                                 * destroy_any_args(user) by
+	                                 * free_generic_layer_args */
+	gchar        *description;      /* human-readable label */
+	gboolean      verbose;
+	gboolean      command;          /* TRUE: called from script — use the
+	                                 * synchronous idle execution path so
+	                                 * the script blocks until done */
+	gboolean      updates_lmask;    /* TRUE: lmask changed → refresh mask
+	                                 * tab and tint overlay */
+	gboolean    (*idle_function)(gpointer p);  /* override end idle; NULL
+	                                            * uses the default
+	                                            * end_generic_layer */
+	float         mem_ratio;        /* reserved; set 0 to skip memory check */
+	int           max_threads;      /* reserved */
+	int           retval;           /* set by the hook; 0 = success */
+};
+
+gpointer generic_layer_worker(gpointer p);
+void     free_generic_layer_args(struct generic_layer_args *args);
+
 /* default functions for some hooks */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 int seq_prepare_hook(struct generic_seq_args *args);
