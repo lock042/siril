@@ -603,9 +603,27 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
     out->rx          = W;
     out->ry          = H;
 
+    /* The composite is always 3-channel RGB float, even when every input
+     * layer is mono.  Copying a *Gray* ICC profile (which any mono base
+     * layer naturally has) onto an RGB buffer is wrong: the display
+     * pipeline would then color-transform the 3-plane composite as if it
+     * were a single-channel gray source, collapsing R/G/B to luminance
+     * and erasing any per-channel content contributed by tinted or RGB
+     * layers above the base.  Match the profile's channel count to the
+     * composite's, falling back to the working RGB standard when the
+     * base supplies a gray profile. */
     if (base->fit->icc_profile && base->fit->color_managed) {
-        out->icc_profile = copyICCProfile(base->fit->icc_profile);
-        color_manage(out, TRUE);
+        gboolean base_is_gray = (base->fit->naxes[2] == 1);
+        if (!base_is_gray) {
+            out->icc_profile = copyICCProfile(base->fit->icc_profile);
+            color_manage(out, TRUE);
+        } else if (com.icc.working_standard) {
+            out->icc_profile = copyICCProfile(com.icc.working_standard);
+            color_manage(out, TRUE);
+        }
+        /* If no working RGB profile is available, leave the composite
+         * unmanaged — display path treats it as raw pixels, which is
+         * correct for a freshly assembled RGB float buffer. */
     }
 
     float *out_r = out->fpdata[RLAYER];
