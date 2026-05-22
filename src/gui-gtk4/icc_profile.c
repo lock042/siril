@@ -37,6 +37,7 @@
 #include "gui-gtk4/utils.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "core/siril_log.h"
 
@@ -271,11 +272,15 @@ void on_pref_icc_assign_never_toggled(GtkCheckButton *button, gpointer user_data
 	}
 }
 /* Idle function for generic_image_worker path of on_icc_assign_clicked
- * and on_icc_remove_clicked */
+ * and on_icc_remove_clicked.  For FLIS the colour-managed state lives on
+ * the base (profiled) layer; gfit is typically the active non-base
+ * layer with color_managed=FALSE, so we'd otherwise leave the convert
+ * /remove buttons disabled despite the FLIS being managed. */
 static gboolean icc_assign_idle(gpointer p) {
 	stop_processing_thread();
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	fits *profiled = flis_get_profiled_fit();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), profiled->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), profiled->color_managed);
 	set_source_information();
 	gfit_modified_update_gui();
 	free_generic_img_args((struct generic_img_args *)p);
@@ -286,7 +291,8 @@ static gboolean icc_assign_idle(gpointer p) {
 /* Idle function for generic_image_worker path of on_icc_convertto_clicked */
 static gboolean icc_convert_to_idle(gpointer p) {
 	stop_processing_thread();
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	fits *profiled = flis_get_profiled_fit();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), profiled->color_managed);
 	set_source_information();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
@@ -328,23 +334,32 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 	}
 	on_clear_roi();
 
+	/* For FLIS the profile lives on the base (profiled) layer and
+	 * describes the always-RGB composite, not the (possibly mono) base
+	 * data.  Pre-flight checks must therefore compare against the
+	 * composite channel count, and the worker must operate on the
+	 * profiled fit so the assignment lands where it's read from. */
+	fits *target_fit = flis_get_profiled_fit();
+	guint eff_naxes2 = is_current_image_flis()
+	                   ? flis_composite_naxes2() : (guint)target_fit->naxes[2];
+
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 
 	// Handle initial assignment of an ICC profile
-	if (!gfit->color_managed || !gfit->icc_profile) {
-		if (gfit->icc_profile) {
-			cmsCloseProfile(gfit->icc_profile);
-			gfit->icc_profile = NULL;
+	if (!target_fit->color_managed || !target_fit->icc_profile) {
+		if (target_fit->icc_profile) {
+			cmsCloseProfile(target_fit->icc_profile);
+			target_fit->icc_profile = NULL;
 		}
-		if (target_colorspace_channels > gfit->naxes[2]) {
+		if (target_colorspace_channels > eff_naxes2) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space has incorrect channels"), _("Mismatch in number of channels between the current image and the ICC profile. You cannot assign a RGB ICC profile to a mono image."));
 			return;
 		}
 		goto FINISH;
 	}
 
-	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit->icc_profile);
+	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(target_fit->icc_profile);
 	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
@@ -355,9 +370,9 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
-	if (gfit->icc_profile) {
-		cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = NULL;
+	if (target_fit->icc_profile) {
+		cmsCloseProfile(target_fit->icc_profile);
+		target_fit->icc_profile = NULL;
 	}
 FINISH:;
 	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
@@ -365,7 +380,7 @@ FINISH:;
 	icc_args->profile = copyICCProfile(target);
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = gfit;
+	args->fit = target_fit;
 	args->image_hook = icc_assign_hook;
 	args->log_hook = icc_assign_log_hook;
 	args->idle_function = icc_assign_idle;
@@ -379,7 +394,9 @@ FINISH:;
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	on_clear_roi();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = gfit;
+	/* FLIS: remove the profile from the base (profiled) layer, not the
+	 * active layer (which has no profile by invariant). */
+	args->fit = flis_get_profiled_fit();
 	args->image_hook = icc_remove_hook;
 	args->log_hook = icc_remove_log_hook;
 	args->idle_function = icc_assign_idle;
@@ -395,7 +412,11 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	on_clear_roi();
-	if (!gfit->color_managed || !gfit->icc_profile) {
+	/* FLIS: the "current image" profile lives on the profiled (base)
+	 * layer.  All channel-count and color-managed checks must reference
+	 * that fit, and the conversion worker must operate on it. */
+	fits *target_fit = flis_get_profiled_fit();
+	if (!target_fit->color_managed || !target_fit->icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
 	}
@@ -413,7 +434,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	icc_args->intent = com.pref.icc.export_intent;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	args->fit = gfit;
+	args->fit = target_fit;
 	args->image_hook = icc_convert_to_hook;
 	args->log_hook = icc_convert_to_log_hook;
 	args->idle_function = icc_convert_to_idle;
