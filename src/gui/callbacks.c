@@ -1292,7 +1292,7 @@ void display_filename() {
 	if (single_image_is_loaded() && com.uniq->filename && com.uniq->filename[0] != '\0') {	// unique image
 		filename = com.uniq->filename;
 		orig_filename = g_file_read_link(filename, &error);
-		nb_layers = com.uniq->nb_layers;
+		nb_layers = com.uniq->chans;
 	} else if (sequence_is_loaded()) {	// sequence
 		filename = malloc(256);
 		strcpy(filename, " ");

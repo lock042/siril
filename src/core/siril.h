@@ -232,6 +232,14 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+/* FLIS forward declarations — full definitions live in io/image_format_flis.h.
+ * Declaring them here lets non-GUI code reference the types from `single` and
+ * `historic_struct` without pulling in the FLIS header. */
+typedef struct _flis_layer_t       flis_layer_t;
+typedef struct _flis_group_t       flis_group_t;
+typedef struct flis_layer_props_t  flis_layer_props_t;
+typedef struct _layermask_t        layermask_t;
+
 typedef struct _mask_t {
 	uint8_t bitpix;
 	void *data;
@@ -506,10 +514,31 @@ struct sequ {
 /* this struct is used to manage data associated with a single image loaded, outside a sequence */
 typedef struct {
 	char *filename;		// the name of the file
-	gboolean fileexist;// flag of existing file
+	gboolean fileexist;	// flag of existing file
 	char *comment;		// comment on how the file got there (user load, result...)
-	int nb_layers;		// number of layers embedded in each image file
-	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
+
+	/* ---- FLIS layer list (NULL for plain FITS, non-NULL for FLIS) ----- */
+	GSList *layers;		// ordered list of flis_layer_t*, ascending by
+				// layer_order; lowest order is the base layer
+				// (which defines the canvas dimensions).
+	GSList *groups;		// list of flis_group_t*, unsorted. Each group
+				// is a named container for a subset of layers.
+	gint active_layer;	// index into `layers` of the layer currently
+				// bound to `fit` / gfit.  0 when no FLIS loaded.
+	gint next_item_id;	// next ITEM_ID to assign to a new layer/group.
+				// Initialised to 1; never reused.
+
+	/* ---- Channel count of the active layer --------------------------- */
+	int chans;		// channels in the active layer: 1 for mono,
+				// 3 for RGB.  Formerly nb_layers — renamed for
+				// clarity now that the field describes the
+				// active layer's channels rather than a layer
+				// count.  Equals fit->naxes[2]; kept in sync
+				// when active_layer changes.
+
+	fits *fit;		// the fits is still gfit, but a reference doesn't
+				// hurt.  In FLIS mode, equals the active layer's
+				// fit.  Kept in sync when active_layer changes.
 } single;
 
 typedef struct {
@@ -765,6 +794,35 @@ typedef struct _child_info {
 	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;
 
+/* Per-layer snapshot within a compound (multi-layer) undo entry.
+ * Used by undo_save_flis_multi_layer() for operations such as registration
+ * or layer matching that atomically change multiple layers at once.
+ * Defined here rather than in image_format_flis.h because historic_struct
+ * (below) carries an array of these. */
+typedef struct {
+	gint            flis_layer_id;   /* item_id of the layer */
+	char           *filename;        /* pixel swap file path, or NULL */
+	char           *mask_filename;   /* processing mask swap file, or NULL */
+	uint8_t         mask_bitpix;
+	int             rx, ry, nchans;
+	data_type       type;
+	wcs_info        wcsdata;
+	struct wcsprm  *wcslib;
+	double          focal_length;
+	cmsHPROFILE     icc_profile;
+	gint            position_x;
+	gint            position_y;
+	flis_layer_props_t *layer_props; /* full props snapshot, always set */
+	/* If TRUE, only layer_props is restored on undo; pixel, mask, and
+	 * lmask data are not touched.  Used by undo_save_flis_multi_layer_props(). */
+	gboolean        props_only;
+	/* Layer mask snapshot for compound undo (NULL = no lmask at save time) */
+	gchar          *lmask_filename;
+	size_t          lmask_w;
+	size_t          lmask_h;
+	guint8          lmask_bitpix;
+} historic_layer_entry_t;
+
 struct historic_struct {
 	int fd;             /* open fd for the swap file; -1 if none */
 	int mask_fd;        /* open fd for the mask swap file; -1 if none */
@@ -777,6 +835,41 @@ struct historic_struct {
 	double focal_length;
 	cmsHPROFILE icc_profile;
 	gboolean spcc_applied;
+
+	/* ---- FLIS-aware single-layer undo fields ------------------------- */
+	/* For undo entries that target a specific FLIS layer (property change,
+	 * pixel change, geometry change).  Zero / NULL when the entry was
+	 * saved from plain-FITS state. */
+	gint                flis_layer_id;     /* item_id of the layer */
+	flis_layer_props_t *layer_props;       /* full property snapshot */
+	gint                flis_position_x;   /* layer offset at time of save */
+	gint                flis_position_y;
+
+	/* ---- Layer-mask (LMASK) undo --------------------------------------- */
+	/* For undo entries that capture a layer mask (add / remove / move).
+	 * lmask_layer_id == FLIS_UNDO_LAYER_NONE when unused. */
+	gchar  *lmask_filename;     /* swap file path; NULL for "no mask" state */
+	gint    lmask_layer_id;     /* item_id; FLIS_UNDO_LAYER_NONE if unused */
+	size_t  lmask_w;
+	size_t  lmask_h;
+	guint8  lmask_bitpix;
+	gint    lmask_dest_layer_id;  /* target for lmask-move undo */
+
+	/* ---- Reorder undo (move-up / move-down swap of layer_order) ------- */
+	gint    reorder_layer_a_id;
+	gint    reorder_layer_a_order;
+	gint    reorder_layer_b_id;
+	gint    reorder_layer_b_order;
+
+	/* ---- Undo entry flavour flags ------------------------------------- */
+	gboolean pmask_only;   /* processing-mask-only state (no pixel data) */
+	gboolean full_layer;   /* full layer state: pixels + pmask + lmask + props */
+
+	/* ---- Compound (multi-layer) undo ---------------------------------- */
+	/* Non-NULL only when this entry was saved via undo_save_flis_multi_layer().
+	 * When set, the single-layer fields above are unused. */
+	historic_layer_entry_t *multi_entries;
+	guint                   n_multi_entries;
 };
 
 /* struct layer, struct image_view, draw_data_t, and struct guiinf have been

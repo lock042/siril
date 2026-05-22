@@ -549,7 +549,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 				free(com.uniq->filename);
 
 			memcpy(com.uniq->fit, &fit, sizeof(fits));
-			com.uniq->nb_layers = fit.naxes[2];
+			com.uniq->chans = fit.naxes[2];
 			com.uniq->filename = strdup(dest_filename);
 			// this way of opening it will not create gfit->header
 		}

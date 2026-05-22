@@ -170,7 +170,7 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	}
 	com.uniq->filename = filename;
 	com.uniq->fileexist = exists;
-	com.uniq->nb_layers = gfit->naxes[2];
+	com.uniq->chans = gfit->naxes[2];
 	com.uniq->fit = gfit;
 	return 0;
 }
@@ -336,7 +336,7 @@ void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 }
 
 int single_image_is_loaded() {
-	return (com.uniq != NULL && com.uniq->nb_layers > 0);
+	return (com.uniq != NULL && com.uniq->chans > 0);
 }
 
 /**************** updating the single image *******************/
