@@ -515,10 +515,18 @@ void notify_gfit_data_modified() {
 		g_mutex_unlock(&com.histogram_mutex);
 		/* Update hi/lo display range BEFORE remapping so the first rendered frame
 		 * of a new image uses the correct stretch (not stale values from the
-		 * previously displayed image).  In USER slider mode this is a no-op, so
-		 * manually-set slider values are preserved. */
+		 * previously displayed image).  In USER slider mode this is normally
+		 * a no-op (manual settings preserved) — but for FLIS the composite
+		 * fundamentally changes whenever a layer's visibility / opacity /
+		 * blend / membership changes, so any prior hi/lo is meaningless
+		 * against the new composite.  Force a MINMAX recompute in that case
+		 * so the display auto-adapts to the new composite range and the
+		 * user doesn't see a "much darker than expected" image just
+		 * because the LUT was tuned for a previous composite state. */
 		g_mutex_lock(&com.mutex);
-		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
+		sliders_mode sm = (sliders_mode)gui_iface.get_sliders_mode();
+		if (flis_saved && sm == USER) sm = MINMAX;
+		init_layers_hi_and_lo_values(sm);
 		g_mutex_unlock(&com.mutex);
 		gui_iface.flis_swap_out_composite(flis_saved);
 		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit

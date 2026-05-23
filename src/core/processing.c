@@ -1859,13 +1859,19 @@ static gboolean end_generic_layer(gpointer p) {
 			 * so guard the explicit REMAP_ALL on that pref to avoid a
 			 * double-redraw. */
 			gui_iface.redraw_mask_idle();
-			if (!com.pref.gui.mask_tints_vports)
-				gui_iface.redraw_image(REMAP_ALL);
 			/* Lmask data sits next to layer pixels for compositing
 			 * purposes — recompute the composite too. */
 			notify_gfit_data_modified();
+			/* notify_gfit_data_modified rebuilds the tile buffers but
+			 * doesn't queue a paint — the cvport widget needs an
+			 * explicit invalidation for GTK to repaint with the new
+			 * tiles.  Without this the image only refreshes on the
+			 * next mouseover (which incidentally invalidates the
+			 * widget). */
+			gui_iface.redraw_image(REMAP_ALL);
 		} else {
 			notify_gfit_data_modified();
+			gui_iface.redraw_image(REMAP_ALL);
 		}
 	}
 
