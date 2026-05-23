@@ -60,25 +60,6 @@ gboolean current_image_color_managed(void) {
 	return (com.uniq) ? com.uniq->color_managed : FALSE;
 }
 
-/* During the migration we mirror the canonical com.uniq state onto
- * the legacy locations (gfit; FLIS base layer's fit) so that the ~430
- * existing call sites that still read fit->icc_profile / fit->color_managed
- * continue to see the right value.  These two helpers find the legacy
- * mirror target without pulling in the full FLIS header. */
-static fits *_legacy_icc_mirror_target(void) {
-	if (com.uniq && com.uniq->layers) {
-		/* FLIS: the base layer was the legacy profile carrier. */
-		void *base_node = com.uniq->layers->data;
-		if (base_node) {
-			/* flis_layer_t layout begins with the fit pointer's
-			 * accessor; resolve via the GSList head. */
-			extern fits *flis_get_profiled_fit(void);
-			return flis_get_profiled_fit();
-		}
-	}
-	return gfit;
-}
-
 void current_image_set_icc_profile(cmsHPROFILE p) {
 	if (!com.uniq) {
 		if (p) cmsCloseProfile(p);
@@ -87,14 +68,6 @@ void current_image_set_icc_profile(cmsHPROFILE p) {
 	if (com.uniq->icc_profile && com.uniq->icc_profile != p)
 		cmsCloseProfile(com.uniq->icc_profile);
 	com.uniq->icc_profile = p;
-	/* Mirror onto legacy location (gfit / FLIS base) for back-compat
-	 * during migration.  Remove once all reads route via the accessors. */
-	fits *mirror = _legacy_icc_mirror_target();
-	if (mirror) {
-		if (mirror->icc_profile && mirror->icc_profile != p)
-			cmsCloseProfile(mirror->icc_profile);
-		mirror->icc_profile = p ? copyICCProfile(p) : NULL;
-	}
 }
 
 void current_image_clear_icc_profile(void) {
@@ -104,14 +77,6 @@ void current_image_clear_icc_profile(void) {
 		com.uniq->icc_profile = NULL;
 	}
 	com.uniq->color_managed = FALSE;
-	fits *mirror = _legacy_icc_mirror_target();
-	if (mirror) {
-		if (mirror->icc_profile) {
-			cmsCloseProfile(mirror->icc_profile);
-			mirror->icc_profile = NULL;
-		}
-		mirror->color_managed = FALSE;
-	}
 	if (!com.script)
 		gui_iface.update_icc_status_icon(NULL, FALSE);
 }
@@ -119,8 +84,6 @@ void current_image_clear_icc_profile(void) {
 void current_image_color_manage(gboolean active) {
 	if (!com.uniq) return;
 	com.uniq->color_managed = active;
-	fits *mirror = _legacy_icc_mirror_target();
-	if (mirror) mirror->color_managed = active;
 	if (!com.script)
 		gui_iface.update_icc_status_icon(NULL, active);
 }
@@ -144,28 +107,25 @@ gboolean fit_get_color_managed(const fits *fit) {
 	return fit_is_current_image(fit) ? current_image_color_managed() : FALSE;
 }
 
-/* Profile setter that respects current-image-vs-intermediate split.
- * Takes ownership of @p (must not be closed by caller). */
+/* Profile setter.  Only the current image has profile state; intermediate
+ * buffers and sequence frames are not colour-managed since the fits struct
+ * no longer carries icc_profile.  Takes ownership of @p; if @fit is not
+ * the current image, @p is closed and discarded. */
 static void set_fit_icc_profile(fits *fit, cmsHPROFILE p) {
 	if (fit_is_current_image(fit)) {
 		current_image_set_icc_profile(p);
 		return;
 	}
-	if (fit->icc_profile && fit->icc_profile != p)
-		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = p;
+	if (p) cmsCloseProfile(p);
 }
 
 void color_manage(fits *fit, gboolean active) {
 	if (fit_is_current_image(fit)) {
-		/* Update authoritative state on com.uniq; the accessor mirrors
-		 * back to fit->color_managed and refreshes the toolbar icon. */
 		current_image_color_manage(active);
 		return;
 	}
-	/* Intermediate buffer (channel extraction, remixer, compositing,
-	 * sequence frames being processed, etc.).  Per-fits state only. */
-	fit->color_managed = active;
+	/* Intermediate buffers and sequence frames are not colour-managed —
+	 * the fits struct no longer carries the flag. */
 }
 
 static gchar *siril_color_profile_get_info (cmsHPROFILE profile, cmsInfoType info) {
@@ -316,14 +276,8 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	if (src_profile == NULL || !current_image_color_managed())
 		return NULL;
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
-	{
-		/* fit_icc_is_linear needs a fits — synthesise one against the
-		 * stored profile.  Once fit_icc_is_linear takes a profile
-		 * directly we can drop the stack-fits dance. */
-		fits stub = { .icc_profile = src_profile, .color_managed = TRUE };
-		if (fit_icc_is_linear(&stub))
-			flags |= cmsFLAGS_NOOPTIMIZE;
-	}
+	if (icc_profile_is_linear(src_profile))
+		flags |= cmsFLAGS_NOOPTIMIZE;
 	gboolean gamutcheck = gui_iface.get_gamut_check_active();
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
@@ -653,32 +607,36 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(com.gui_icc.monitor);
 	cmsHTRANSFORM transform = NULL;
-	if (gfit->icc_profile == NULL || !gfit->color_managed) {
+	cmsHPROFILE src = current_icc_profile();
+	if (src == NULL || !current_image_color_managed()) {
 		siril_log_debug("NULL display transform\n");
 		return NULL;
 	}
-	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit->icc_profile);
+	cmsUInt32Number gfit_signature = cmsGetColorSpace(src);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit->type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
 	// The display transform is always single threaded as OpenMP is used within the remap function
-	transform = cmsCreateTransformTHR(com.icc.context_single, gfit->icc_profile, srctype, com.gui_icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	transform = cmsCreateTransformTHR(com.icc.context_single, src, srctype, com.gui_icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_error("Error: failed to create display_transform!\n");
 	else
-		siril_log_debug("Display transform created (gfit->icc_profile to com.gui_icc.monitor)\n");
+		siril_log_debug("Display transform created (current image profile to com.gui_icc.monitor)\n");
 	return transform;
 }
 
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	g_assert(com.icc.working_standard);
 	cmsHTRANSFORM transform = NULL;
-	if (fit->icc_profile == NULL || !fit->color_managed)
+	/* Only the current image has a profile; without one we can't build
+	 * the transform.  Sequence-export paths don't go through here. */
+	cmsHPROFILE src = (fit == gfit) ? current_icc_profile() : NULL;
+	if (src == NULL || (fit == gfit && !current_image_color_managed()))
 		return NULL;
-	cmsUInt32Number fit_signature = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number fit_signature = cmsGetColorSpace(src);
 	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, fit->type, TRUE);
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
-	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), src, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	if (transform == NULL)
 		siril_log_error("Error: failed to create export colorspace transform!\n");
 	return transform;
@@ -749,36 +707,36 @@ static gboolean fit_appears_stretched(fits* fit) {
 }
 
 /* Adapted from GIMP code */
-cmsBool fit_icc_is_linear(fits *fit) {
-	if (!(fit->color_managed) || fit->icc_profile == NULL)
+cmsBool icc_profile_is_linear(cmsHPROFILE profile) {
+	if (profile == NULL)
 		return FALSE;
 	cmsToneCurve *curve;
-	if (! cmsIsMatrixShaper (fit->icc_profile))
+	if (! cmsIsMatrixShaper (profile))
 		return FALSE;
 
-	if (cmsIsCLUT (fit->icc_profile, INTENT_PERCEPTUAL, LCMS_USED_AS_INPUT))
+	if (cmsIsCLUT (profile, INTENT_PERCEPTUAL, LCMS_USED_AS_INPUT))
 		return FALSE;
 
-	if (cmsIsCLUT (fit->icc_profile, INTENT_PERCEPTUAL, LCMS_USED_AS_OUTPUT))
+	if (cmsIsCLUT (profile, INTENT_PERCEPTUAL, LCMS_USED_AS_OUTPUT))
 		return FALSE;
 
-	if (siril_color_profile_is_rgb (fit->icc_profile))
+	if (siril_color_profile_is_rgb (profile))
 		{
-		curve = cmsReadTag(fit->icc_profile, cmsSigRedTRCTag);
+		curve = cmsReadTag(profile, cmsSigRedTRCTag);
 		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
 			return FALSE;
 
-		curve = cmsReadTag (fit->icc_profile, cmsSigGreenTRCTag);
+		curve = cmsReadTag (profile, cmsSigGreenTRCTag);
 		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
 			return FALSE;
 
-		curve = cmsReadTag (fit->icc_profile, cmsSigBlueTRCTag);
+		curve = cmsReadTag (profile, cmsSigBlueTRCTag);
 		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
 			return FALSE;
 		}
-	else if (siril_color_profile_is_gray (fit->icc_profile))
+	else if (siril_color_profile_is_gray (profile))
 		{
-		curve = cmsReadTag(fit->icc_profile, cmsSigGrayTRCTag);
+		curve = cmsReadTag(profile, cmsSigGrayTRCTag);
 		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
 			return FALSE;
 		}
@@ -788,6 +746,17 @@ cmsBool fit_icc_is_linear(fits *fit) {
 		}
 
 	return TRUE;
+}
+
+/* Thin shim — fit_icc_is_linear is deprecated; callers should switch to
+ * icc_profile_is_linear(profile) once they've sourced the right profile
+ * (from com.uniq for the current image, or per-buffer for intermediates).
+ * Kept temporarily for the few remaining call sites that still pass a fits. */
+cmsBool fit_icc_is_linear(fits *fit) {
+	if (fit_is_current_image(fit))
+		return icc_profile_is_linear(current_icc_profile())
+		    && current_image_color_managed();
+	return FALSE;
 }
 
 static gboolean siril_color_profile_get_rgb_matrix_colorants_d50 (cmsHPROFILE profile, cmsCIEXYZTRIPLE *XYZtriple, cmsCIEXYZ *whitepoint) {
@@ -965,38 +934,39 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
  */
 
 void check_profile_correct(fits* fit) {
-	if (!fit->icc_profile) {
+	/* Profile state lives on com.uniq for the current image; intermediate
+	 * fits buffers (and sequence frames) carry no profile.  This helper
+	 * is meaningful only for the gfit load path. */
+	if (fit != gfit) return;
+
+	cmsHPROFILE prof = current_icc_profile();
+	if (!prof) {
 		if (com.icc.srgb_hint) {
 			if (profile_check_verbose)
 				siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
-			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
-			// Clear the hint
+			current_image_set_icc_profile(fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc());
 			com.icc.srgb_hint = FALSE;
 		} else if (fit_appears_stretched(fit)) {
 			if (profile_check_verbose)
 				siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile.\n"));
-			// sRGB because this is the implicit assumption made in older versions
-			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
-			color_manage(fit, TRUE);
+			current_image_set_icc_profile(fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc());
+			current_image_color_manage(TRUE);
 		} else {
 			siril_log_debug("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
-			fit->icc_profile = NULL;
-			color_manage(fit, FALSE);
+			current_image_clear_icc_profile();
 		}
 	} else {
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsColorSpaceSignature sig = cmsGetColorSpace(prof);
 		cmsUInt32Number chans = cmsChannelsOf(sig);
 		if (chans != fit->naxes[2]) {
-			cmsCloseProfile(fit->icc_profile);
-			fit->icc_profile = NULL;
-			color_manage(fit, FALSE);
+			current_image_clear_icc_profile();
 			siril_log_warning(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"));
 		}
 	}
-	if (fit->color_managed && !fit->icc_profile) {
-		color_manage(fit, FALSE);
-		siril_log_debug("fit->color_managed inconsistent with missing profile");
+	if (current_image_color_managed() && !current_icc_profile()) {
+		current_image_color_manage(FALSE);
+		siril_log_debug("color_managed inconsistent with missing profile");
 	}
 }
 
@@ -1040,15 +1010,17 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
  * assumption.
  */
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen) {
+	/* Only the current image carries a profile.  Intermediate buffers
+	 * (and sequence-frame loads) have no profile state. */
+	if (fit != gfit) return;
+
 	if (EmbedBuffer) {
-		// If there is an embedded profile we will use it
-		fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
+		current_image_set_icc_profile(cmsOpenProfileFromMem(EmbedBuffer, EmbedLen));
 		check_profile_correct(fit);
 	} else {
-		// If there is no embedded profile we assume the usual sRGB TRC
-		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile);
+		current_image_set_icc_profile(copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile));
 	}
-	color_manage(fit, TRUE);
+	current_image_color_manage(current_icc_profile() != NULL);
 }
 
 cmsUInt8Number *siril_icc_profile_to_buffer(cmsHPROFILE profile, cmsUInt32Number *length) {
@@ -1116,10 +1088,14 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	 * current image; from fit->* for intermediate buffers.  After the
 	 * function completes, profile updates also flow through set_fit_icc
 	 * / color_manage so com.uniq stays in sync. */
+	/* Only the current image has colour profile state; intermediate
+	 * buffers / sequence frames are not colour-managed.  The transform
+	 * is a no-op for them apart from re-assigning the target profile
+	 * if the caller asks. */
 	gboolean    src_managed = fit_is_current_image(fit)
-	                         ? current_image_color_managed() : fit->color_managed;
+	                         ? current_image_color_managed() : FALSE;
 	cmsHPROFILE src_profile = fit_is_current_image(fit)
-	                         ? current_icc_profile() : fit->icc_profile;
+	                         ? current_icc_profile() : NULL;
 
 	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
 	// case but the behaviour is consistent.
@@ -1623,19 +1599,15 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		gargs->custom_undo = TRUE;
 	}
 	/* Force the assign-only path: clear any current profile so
-	 * siril_colorspace_transform sees !color_managed. */
+	 * siril_colorspace_transform sees !color_managed.  Only the current
+	 * image has profile state. */
 	if (fit_is_current_image(fit))
 		current_image_clear_icc_profile();
-	else if (fit->icc_profile) {
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = NULL;
-	}
 	siril_colorspace_transform(fit, args->profile);
-	/* Check that the assign landed.  For the current-image case the
-	 * profile is on com.uniq; for an intermediate fits it's on fit. */
-	cmsHPROFILE landed = fit_is_current_image(fit)
-	                     ? current_icc_profile() : fit->icc_profile;
-	if (!landed) {
+	/* Check that the assign landed.  Only meaningful for the current
+	 * image — intermediate fits never had a profile slot. */
+	cmsHPROFILE landed = fit_is_current_image(fit) ? current_icc_profile() : NULL;
+	if (fit_is_current_image(fit) && !landed) {
 		siril_log_error(_("Error assigning ICC profile.\n"));
 		color_manage(fit, FALSE);
 		return 1;
@@ -1694,9 +1666,8 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	}
 
 	com.pref.icc.processing_intent = temp_intent;
-	cmsHPROFILE landed = fit_is_current_image(fit)
-	                     ? current_icc_profile() : fit->icc_profile;
-	if (!landed) {
+	cmsHPROFILE landed = fit_is_current_image(fit) ? current_icc_profile() : NULL;
+	if (fit_is_current_image(fit) && !landed) {
 		siril_log_error(_("Error converting ICC color space.\n"));
 		return 1;
 	}

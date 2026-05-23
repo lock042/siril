@@ -1356,28 +1356,10 @@ int load_flis(const gchar *filename) {
      * layer_order).  For any non-base layer whose HDU happened to carry
      * an embedded ICC profile, warn and discard it — ICC profiles are
      * an image-level concept in FLIS, not a per-layer one. */
-    /* Discard any per-layer ICC profiles read from disk — ICC state is
-     * image-level (com.uniq) and is set further down from file_icc.
-     * Any HDU that carried an embedded profile gets a warning. */
-    if (layers) {
-        gboolean first = TRUE;
-        for (GSList *l = layers; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay || !lay->fit) continue;
-            if (lay->fit->icc_profile) {
-                if (!first) {
-                    siril_log_warning(
-                        _("FLIS: non-base layer '%s' contained an ICC profile — "
-                          "ignored (ICC profiles are managed at image level)\n"),
-                        lay->layer_name);
-                }
-                cmsCloseProfile(lay->fit->icc_profile);
-                lay->fit->icc_profile = NULL;
-            }
-            lay->fit->color_managed = FALSE;
-            first = FALSE;
-        }
-    }
+    /* Per-fits ICC fields removed.  Any embedded profile that the
+     * per-HDU loader picked up was already discarded by the load helper
+     * (it only honours profiles when fit == gfit).  ICC state for the
+     * FLIS lives on com.uniq and is set further down from file_icc. */
 
     /* Pass 2: LMASK and MASK rows */
     for (long r = 0; r < nrows; r++) {
@@ -2253,32 +2235,12 @@ flis_layer_t *flis_layer_add(fits *fit, const gchar *name) {
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, layer,
                                               (GCompareFunc)layer_order_cmp);
 
-    /* ICC profile: image-level state lives on com.uniq.  A new non-base
-     * layer with its own per-fits profile (e.g. loaded from a FITS file
-     * on disk) needs its pixels converted to the FLIS's colour space —
-     * otherwise the composite would mix two colour spaces.  After the
-     * conversion, drop the per-layer profile per the FLIS invariant. */
-    if (fit->icc_profile && com.uniq->icc_profile
-        && com.uniq->color_managed
-        && !profiles_identical(fit->icc_profile, com.uniq->icc_profile)) {
-        gchar *src_desc = siril_color_profile_get_description(fit->icc_profile);
-        gchar *dst_desc = siril_color_profile_get_description(com.uniq->icc_profile);
-        siril_log_message(
-            _("FLIS: converting new layer '%s' from '%s' to FLIS profile '%s'\n"),
-            layer->layer_name, src_desc, dst_desc);
-        g_free(src_desc);
-        g_free(dst_desc);
-        /* fit is an intermediate (not the current image) — siril_colorspace_
-         * transform reads fit->color_managed / fit->icc_profile directly
-         * via the per-fits branch of fit_is_current_image. */
-        fit->color_managed = TRUE;
-        siril_colorspace_transform(fit, com.uniq->icc_profile);
-    }
-    if (fit->icc_profile) {
-        cmsCloseProfile(fit->icc_profile);
-        fit->icc_profile = NULL;
-    }
-    fit->color_managed = FALSE;
+    /* Per-fits ICC fields removed.  A new non-base layer's pixels are
+     * assumed to already be in the FLIS's colour space (the on-disk
+     * profile, if any, was discarded by the load helper since fit !=
+     * gfit).  Colour-space conversion at flis_layer_add time is no
+     * longer supported — convert before calling, or use Convert from
+     * the Image → Color Management dialog after adding. */
 
     /* Activate the newly added layer */
     gint idx = flis_layer_get_index(layer);
@@ -2359,30 +2321,10 @@ static void flis_layer_install_render(flis_layer_t *lay, fits *rendered) {
      * a plain FITS, so we keep the profile on com.uniq (it's still the
      * current image's profile) and just mirror onto f via the legacy
      * path until the post-flatten sequencing clears the layer stack. */
-    if (f != gfit) {
-        /* intermediate fits — own a copy */
-        if (f->icc_profile) { cmsCloseProfile(f->icc_profile); f->icc_profile = NULL; }
-        if (rendered->icc_profile) {
-            f->icc_profile = rendered->icc_profile;
-            rendered->icc_profile = NULL;
-            f->color_managed = TRUE;
-        } else {
-            f->color_managed = FALSE;
-        }
-    } else {
-        /* current image — com.uniq already owns the canonical profile;
-         * close the rendered copy. */
-        if (rendered->icc_profile) {
-            cmsCloseProfile(rendered->icc_profile);
-            rendered->icc_profile = NULL;
-        }
-        /* mirror onto gfit so legacy readers see the right value */
-        if (f->icc_profile != current_icc_profile()) {
-            if (f->icc_profile) cmsCloseProfile(f->icc_profile);
-            f->icc_profile = current_icc_profile() ? copyICCProfile(current_icc_profile()) : NULL;
-        }
-        f->color_managed = current_image_color_managed();
-    }
+    /* Per-fits ICC fields removed.  The composite rendered by
+     * flis_render_layers also no longer carries an icc_profile.  The
+     * post-flatten image's ICC state continues to live on com.uniq
+     * unchanged. */
 
     invalidate_stats_from_fit(f);
 
@@ -2599,21 +2541,14 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
     return dup;
 }
 
-/* Transfer the ICC profile and color_managed flag from old_base to new_base
- * after a reorder changes which layer sits at the bottom of the stack.
- * Ownership of the cmsHPROFILE handle is transferred (no copy made). */
+/* No-op: profile state lives on com.uniq and is invariant under reorders
+ * that change which layer is the base.  Kept as a stub so call sites
+ * documented by the previous architecture still compile and have a place
+ * to be removed in a follow-up sweep. */
 static void flis_transfer_icc_to_new_base(flis_layer_t *old_base,
                                            flis_layer_t *new_base) {
-    /* Transfer ownership of the ICC profile handle — no copy needed.
-     * We set the fields directly rather than calling color_manage() because
-     * the image remains colour-managed throughout; we do not want to fire
-     * the GUI toolbar update that color_manage() would trigger if either
-     * fit happens to equal gfit. */
-    new_base->fit->icc_profile   = old_base->fit->icc_profile;
-    new_base->fit->color_managed = old_base->fit->color_managed;
-    old_base->fit->icc_profile   = NULL;
-    old_base->fit->color_managed = FALSE;
-    siril_debug_print("FLIS: ICC profile transferred from old base to new base\n");
+    (void)old_base;
+    (void)new_base;
 }
 
 int flis_layer_move_up(flis_layer_t *layer) {

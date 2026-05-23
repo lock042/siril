@@ -304,7 +304,7 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
-	dest->icc_profile = NULL;
+	/* per-fits ICC removed */
 	color_manage(dest, FALSE);
 
 	return 0;
@@ -351,7 +351,7 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 		dest->orig_ry = fitseq->naxes[1];
 		dest->x_offset = area->x;
 		dest->y_offset = dest->orig_ry - area->y - area->h;
-		dest->icc_profile = NULL;
+		/* per-fits ICC removed */
 		color_manage(dest, FALSE);
 	}
 	return status;

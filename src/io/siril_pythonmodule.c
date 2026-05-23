@@ -1419,11 +1419,9 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
-	// convert the bytes into a cmsPROFILE
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
-	color_manage(gfit, TRUE);
+	// install the bytes as the current image's ICC profile via the accessor
+	current_image_set_icc_profile(cmsOpenProfileFromMem(shm_ptr, info->size));
+	current_image_color_manage(current_icc_profile() != NULL);
 
 	// Cleanup shared memory
 	#ifdef _WIN32

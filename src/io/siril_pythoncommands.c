@@ -195,7 +195,7 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_BE64((uint64_t) fit->top_down, uint64_t);
 	COPY_BE64((uint64_t) fit->focalkey, uint64_t);
 	COPY_BE64((uint64_t) fit->pixelkey, uint64_t);
-	COPY_BE64((uint64_t) fit->color_managed, uint64_t);
+	COPY_BE64((uint64_t) fit_get_color_managed(fit), uint64_t);
 	return 0;
 }
 
@@ -1887,11 +1887,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			ptr += sizeof(shared_memory_info_t);
 
-			// Always handle ICC profile data (if available)
+			// Always handle ICC profile data (if available — only the current image has one)
 			shared_memory_info_t *icc_info = NULL;
-			if (fit->icc_profile) {
+			cmsHPROFILE _icc = fit_get_icc_profile(fit);
+			if (_icc) {
 				guint32 profile_size;
-				unsigned char* profile_data = get_icc_profile_data(fit->icc_profile, &profile_size);
+				unsigned char* profile_data = get_icc_profile_data(_icc, &profile_size);
 				if (profile_data && profile_size > 0) {
 					icc_info = handle_rawdata_request(conn, profile_data, profile_size);
 				}
@@ -2169,7 +2170,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			g_rw_lock_reader_lock(&gfit->rwlock);
-			if (gfit->icc_profile == NULL) {
+			cmsHPROFILE _gprof = current_icc_profile();
+			if (_gprof == NULL) {
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no ICC profile");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2177,7 +2179,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Prepare data
 			guint32 profile_size;
-			unsigned char* profile_data = get_icc_profile_data(gfit->icc_profile, &profile_size);
+			unsigned char* profile_data = get_icc_profile_data(_gprof, &profile_size);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
@@ -2951,10 +2953,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			free(headerinfo);
 			ptr += sizeof(shared_memory_info_t);
 
-			// Add icc profile here as another shm (if there is an ICC profile)
-			if (fit->icc_profile) {
+			// Add icc profile here as another shm (only meaningful for the current image)
+			cmsHPROFILE _f_icc = fit_get_icc_profile(fit);
+			if (_f_icc) {
 				guint32 profile_size;
-				unsigned char* profile_data = get_icc_profile_data(fit->icc_profile, &profile_size);
+				unsigned char* profile_data = get_icc_profile_data(_f_icc, &profile_size);
 				shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 				if (!info) {
 					const char* error_message = _("Shared memory allocation error");

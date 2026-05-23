@@ -63,10 +63,6 @@ void close_single_image() {
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
 	siril_log_debug("free_image_data() called, clearing loaded image\n");
-	/* WARNING: single_image.fit references the actual fits image,
-	 * shouldn't it be used here instead of gfit? */
-	cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = NULL;
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(gfit, &com.seq, com.seq.current);
@@ -74,12 +70,8 @@ void free_image_data() {
 	gui_iface.invalidate_histogram();
 
 	if (com.uniq) {
-		/* Release the authoritative ICC profile.  fit->icc_profile may
-		 * be the same pointer (mirrored during the migration), so NULL
-		 * out either side once we close to avoid double-free. */
+		/* Release the authoritative ICC profile. */
 		if (com.uniq->icc_profile) {
-			if (gfit->icc_profile == com.uniq->icc_profile)
-				gfit->icc_profile = NULL;
 			cmsCloseProfile(com.uniq->icc_profile);
 			com.uniq->icc_profile = NULL;
 		}
@@ -229,13 +221,9 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->fileexist = exists;
 	com.uniq->chans = gfit->naxes[2];
 	com.uniq->fit = gfit;
-	/* Take ownership of any ICC profile the loader put on gfit and hoist
-	 * it to com.uniq, the new authoritative store.  We don't copy — we
-	 * move ownership and leave gfit holding the same pointer (the
-	 * accessor mirroring continues to mirror writes back to gfit during
-	 * the migration). */
-	com.uniq->icc_profile  = gfit->icc_profile;
-	com.uniq->color_managed = gfit->color_managed;
+	/* ICC profile state lives on com.uniq and is populated directly by
+	 * the load path (readfits / load_flis / format-specific loaders)
+	 * when the load target is gfit.  No hoisting needed any more. */
 	return 0;
 }
 

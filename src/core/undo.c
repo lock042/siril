@@ -351,7 +351,10 @@ static int build_layer_entry(flis_layer_t *lay, historic_layer_entry_t *e) {
 	int s = -1;
 	e->wcslib = wcs_deepcopy(fit->keywords.wcslib, &s);
 	e->focal_length = fit->keywords.focal_length;
-	e->icc_profile  = copyICCProfile(fit->icc_profile);
+	/* ICC profile is image-level (com.uniq); the per-layer entry no longer
+	 * needs to snapshot it.  Captured by the lightweight icc-only undo
+	 * flavour for ICC-altering operations. */
+	e->icc_profile  = NULL;
 	e->position_x   = lay->position_x;
 	e->position_y   = lay->position_y;
 
@@ -415,10 +418,9 @@ static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *
 		return 0;
 	}
 
-	/* ICC + depth */
-	if (fit->icc_profile) cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(e->icc_profile);
-	color_manage(fit, (fit->icc_profile != NULL));
+	/* ICC profile no longer lives on the fits struct.  For the current
+	 * image, profile restoration happens via the lightweight icc-only
+	 * undo flavour.  Non-current fits never had a profile to restore. */
 	fits_change_depth(fit, e->nchans);
 
 	/* Adjust precision if needed */
@@ -614,7 +616,9 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 	if (status)
 		siril_log_debug("could not copy wcslib struct\n");
 	h->focal_length = fit->keywords.focal_length;
-	h->icc_profile = copyICCProfile(fit->icc_profile);
+	/* Plain undo entries capture pixel state of the current image.  ICC
+	 * state is restored separately via the icc-only undo flavour. */
+	h->icc_profile = (fit == gfit) ? copyICCProfile(current_icc_profile()) : NULL;
 	snprintf(h->history, FLEN_VALUE, "%s", label ? label : "");
 
 	*stack = g_list_prepend(*stack, h);
@@ -801,10 +805,14 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
  * that backs undo_save_state.  Split out of undo_restore so the dispatcher
  * (added below) can call it for plain-FITS entries. */
 static int undo_restore_plain(fits *fit, historic *hist) {
-	if (fit->icc_profile)
-		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(hist->icc_profile);
-	color_manage(fit, (fit->icc_profile != NULL));
+	/* Restore the image-level ICC profile if the entry captured one and
+	 * we're restoring to the current image. */
+	if (fit == gfit && hist->icc_profile) {
+		current_image_set_icc_profile(copyICCProfile(hist->icc_profile));
+		current_image_color_manage(TRUE);
+	} else if (fit == gfit) {
+		current_image_clear_icc_profile();
+	}
 	fits_change_depth(fit, hist->nchans);
 
 	int retval = 0;
@@ -1517,7 +1525,10 @@ int undo_save_flis_layer_full(fits *fit_snapshot,
 	int s = -1;
 	h->wcslib = wcs_deepcopy(fit_snapshot->keywords.wcslib, &s);
 	h->focal_length = fit_snapshot->keywords.focal_length;
-	h->icc_profile  = copyICCProfile(fit_snapshot->icc_profile);
+	/* fit_snapshot is a layer snapshot — never carries a profile.  ICC
+	 * state for the FLIS lives on com.uniq and is preserved unchanged
+	 * across geometry operations that this entry type backs. */
+	h->icc_profile  = NULL;
 	h->mask_bitpix  = (fit_snapshot->mask && fit_snapshot->mask->data)
 	                  ? fit_snapshot->mask->bitpix : 0;
 

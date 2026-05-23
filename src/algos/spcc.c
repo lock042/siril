@@ -346,11 +346,9 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	g_free(description_text);
 	if (args->do_plot && profile && !com.headless)
 		siril_plot_colorspace(profile, TRUE);
-	if (fit_get_icc_profile(args->fit)) {
-		cmsCloseProfile(fit_get_icc_profile(args->fit));
-		args->fit->icc_profile = NULL;
-	}
-	// As the existing profile is NULL, we are just assigning here.
+	/* Clear any existing profile first so siril_colorspace_transform
+	 * takes the assign-only path. */
+	if (args->fit == gfit) current_image_clear_icc_profile();
 	siril_colorspace_transform(args->fit, profile);
 	return 0;
 }

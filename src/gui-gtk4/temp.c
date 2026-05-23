@@ -168,8 +168,10 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 		}
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
-		args->fit->icc_profile = copyICCProfile(profile);
-		color_manage(args->fit, (fit_get_icc_profile(args->fit) != NULL));
+		if (args->fit == gfit) {
+			current_image_set_icc_profile(copyICCProfile(profile));
+			current_image_color_manage(profile != NULL);
+		}
 	}
 
 	// Create transform from source profile to image-based profile, clean up the profiles

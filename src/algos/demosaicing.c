@@ -495,9 +495,8 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	 * efficient to ignore color managemet until the final stacked image is
 	 * available, and the user can then assign a profile as they choose.
 	 */
-	if (fit_get_icc_profile(fit))
-		cmsCloseProfile(fit_get_icc_profile(fit));
-	fit->icc_profile = NULL;
+	/* Debayered image is considered raw; no profile. */
+	if (fit == gfit) current_image_clear_icc_profile();
 	color_manage(fit, FALSE);
 	return 0;
 }
@@ -533,9 +532,8 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	 * efficient to ignore color managemet until the final stacked image is
 	 * available, and the user can then assign a profile as they choose.
 	 */
-	if (fit_get_icc_profile(fit))
-		cmsCloseProfile(fit_get_icc_profile(fit));
-	fit->icc_profile = NULL;
+	/* Debayered image is considered raw; no profile. */
+	if (fit == gfit) current_image_clear_icc_profile();
 	color_manage(fit, FALSE);
 
 	return 0;
