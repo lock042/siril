@@ -442,3 +442,127 @@ Test(flis_cmd, clearmask_command_rejects_zero_args) {
 	word[1] = NULL;
 	cr_assert_eq(process_flis_clearmask(1), CMD_WRONG_N_ARG);
 }
+
+/* -----------------------------------------------------------------
+ * flis_addgroup / flis_setgroup (§4.3 slice 3)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, addgroup_hook_creates_group_with_autoname) {
+	load_two_layer_fixture();
+	cr_assert_eq(flis_group_count(), 0);
+
+	struct flis_addgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addgroup_args_free;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addgroup_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addgroup auto");
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(flis_group_count(), 1);
+	/* Auto name should be "Group 1". */
+	flis_group_t *grp = (flis_group_t *)com.uniq->groups->data;
+	cr_assert_str_eq(grp->name, "Group 1");
+}
+
+Test(flis_cmd, addgroup_hook_creates_group_with_explicit_name) {
+	load_two_layer_fixture();
+	struct flis_addgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addgroup_args_free;
+	payload->name = g_strdup("Narrowband");
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addgroup_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addgroup named");
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	flis_group_t *grp = (flis_group_t *)com.uniq->groups->data;
+	cr_assert_str_eq(grp->name, "Narrowband");
+}
+
+Test(flis_cmd, addgroup_hook_auto_name_picks_next_free) {
+	load_two_layer_fixture();
+	flis_group_add("Group 1");        /* taken */
+	flis_group_add("Group 3");        /* taken non-contiguous */
+	cr_assert_eq(flis_group_count(), 2);
+
+	struct flis_addgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addgroup_args_free;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addgroup_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addgroup gap");
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(flis_group_count(), 3);
+	/* Newest group should be "Group 2" (smallest free N). */
+	GSList *last = g_slist_last(com.uniq->groups);
+	flis_group_t *grp = (flis_group_t *)last->data;
+	cr_assert_str_eq(grp->name, "Group 2");
+}
+
+Test(flis_cmd, setgroup_hook_assigns_layer_to_group) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("Targets");
+	flis_layer_t *target = (flis_layer_t *)com.uniq->layers->next->data;  /* "Ha" */
+	cr_assert_eq(target->group_id, 0, "starts ungrouped");
+
+	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setgroup_args_free;
+	payload->group_id = grp->item_id;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setgroup_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setgroup test");
+	args->invalidate_item_id = target->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(target->group_id, grp->item_id);
+}
+
+Test(flis_cmd, setgroup_hook_clear_removes_layer_from_group) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("Targets");
+	flis_layer_t *target = (flis_layer_t *)com.uniq->layers->next->data;
+	flis_layer_set_group(target, grp->item_id);
+	cr_assert_eq(target->group_id, grp->item_id);
+
+	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setgroup_args_free;
+	payload->group_id = 0;            /* explicit clear */
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setgroup_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setgroup clear");
+	args->invalidate_item_id = target->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(target->group_id, 0);
+}
+
+Test(flis_cmd, setgroup_hook_unknown_group_fails) {
+	load_two_layer_fixture();
+	flis_layer_t *target = flis_active_layer();
+	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setgroup_args_free;
+	payload->group_id = 99999;        /* doesn't exist */
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setgroup_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setgroup bad");
+	args->invalidate_item_id = target->item_id;
+	cr_assert_neq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+}
+
+Test(flis_cmd, setgroup_command_rejects_short_args) {
+	load_two_layer_fixture();
+	word[0] = "flis_setgroup";
+	word[1] = "Ha";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_setgroup(2), CMD_WRONG_N_ARG);
+}

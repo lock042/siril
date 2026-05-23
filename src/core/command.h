@@ -293,5 +293,7 @@ int process_flis_active_layer(int nb);
 int process_flis_addlayer(int nb);
 int process_flis_setmask(int nb);
 int process_flis_clearmask(int nb);
+int process_flis_addgroup(int nb);
+int process_flis_setgroup(int nb);
 
 #endif

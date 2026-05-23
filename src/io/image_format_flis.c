@@ -2435,6 +2435,74 @@ int flis_setmask_hook(struct generic_layer_args *args) {
     return 0;
 }
 
+/* -----------------------------------------------------------------------
+ * flis_addgroup_hook / flis_setgroup_hook (§4.3 slice 3).  Shared by the
+ * panel's Create Group / Move-to-group entries and the matching
+ * flis_addgroup / flis_setgroup commands.  Both produce identical state
+ * changes via the existing flis_group_add / flis_layer_set_group
+ * primitives.
+ * ----------------------------------------------------------------------- */
+
+void flis_addgroup_args_free(gpointer p) {
+    struct flis_addgroup_args *a = p;
+    if (!a) return;
+    g_free(a->name);
+    g_free(a);
+}
+
+int flis_addgroup_hook(struct generic_layer_args *args) {
+    struct flis_addgroup_args *a = (struct flis_addgroup_args *)args->user;
+    /* If no name was supplied, pick "Group N" for the smallest N not
+     * currently in use.  Cheap O(N²) on group count which is tiny. */
+    gchar *auto_name = NULL;
+    const char *name = (a && a->name && *a->name) ? a->name : NULL;
+    if (!name) {
+        for (int n = 1; ; n++) {
+            auto_name = g_strdup_printf(_("Group %d"), n);
+            gboolean taken = FALSE;
+            for (GSList *g = com.uniq ? com.uniq->groups : NULL; g; g = g->next) {
+                flis_group_t *gg = (flis_group_t *)g->data;
+                if (gg && gg->name && !g_strcmp0(gg->name, auto_name)) {
+                    taken = TRUE; break;
+                }
+            }
+            if (!taken) break;
+            g_free(auto_name);
+        }
+        name = auto_name;
+    }
+    flis_group_t *grp = flis_group_add(name);
+    g_free(auto_name);
+    if (!grp) return 1;
+    args->invalidate_item_id = grp->item_id;   /* for downstream selection */
+    return 0;
+}
+
+void flis_setgroup_args_free(gpointer p) {
+    struct flis_setgroup_args *a = p;
+    if (!a) return;
+    g_free(a);
+}
+
+int flis_setgroup_hook(struct generic_layer_args *args) {
+    struct flis_setgroup_args *a = (struct flis_setgroup_args *)args->user;
+    if (!a) return 1;
+    flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
+    if (!lay) {
+        siril_log_error(_("flis_setgroup: no layer with id %d\n"),
+                        args->invalidate_item_id);
+        return 1;
+    }
+    if (a->group_id != 0) {
+        flis_group_t *grp = flis_group_get_by_id(a->group_id);
+        if (!grp) {
+            siril_log_error(_("flis_setgroup: no group with id %d\n"), a->group_id);
+            return 1;
+        }
+    }
+    return flis_layer_set_group(lay, a->group_id);
+}
+
 int flis_clearmask_hook(struct generic_layer_args *args) {
     flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
     if (!lay) {
