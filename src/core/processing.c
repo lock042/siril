@@ -1832,7 +1832,7 @@ static gboolean end_generic_layer(gpointer p) {
 	struct generic_layer_args *args = (struct generic_layer_args *)p;
 	stop_processing_thread();
 
-	if (!args->retval && is_current_image_flis()) {
+	if (!args->retval && is_current_image_flis() && !args->read_only) {
 		int inv = args->invalidate_flags ? args->invalidate_flags : FLIS_INV_ALL;
 		gui_iface.flis_display_invalidate(inv, args->invalidate_item_id);
 		if (args->updates_lmask)

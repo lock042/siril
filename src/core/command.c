@@ -16112,6 +16112,36 @@ int process_flis_setposition(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* flis_exportlayer <id|"name"> <file> — write the named layer to file. */
+int process_flis_exportlayer(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_exportlayer <id|\"name\"> <file>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+
+	struct flis_exportlayer_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_exportlayer_args_free;
+	payload->filename   = g_strdup(word[2]);
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_exportlayer_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_exportlayer_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_exportlayer");
+	args->command            = TRUE;
+	args->read_only          = TRUE;
+	args->invalidate_item_id = target->item_id;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));

@@ -759,6 +759,17 @@ struct flis_setposition_args {
 void flis_setposition_args_free(gpointer p);
 int  flis_setposition_hook(struct generic_layer_args *args);
 
+/* Slice 7 — export a layer's pixel data to a standalone FITS file.
+ * Read-only on the FLIS itself; writes only to disk.  Target layer
+ * id is in args->invalidate_item_id (used to find the layer; no
+ * cache invalidation is actually needed). */
+struct flis_exportlayer_args {
+	destructor destroy_fn;
+	gchar     *filename;
+};
+void flis_exportlayer_args_free(gpointer p);
+int  flis_exportlayer_hook(struct generic_layer_args *args);
+
 /**
  * flis_layer_remove:
  * @layer: layer to remove and free.

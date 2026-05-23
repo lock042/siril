@@ -2620,6 +2620,39 @@ int flis_setposition_hook(struct generic_layer_args *args) {
     return 0;
 }
 
+/* -----------------------------------------------------------------------
+ * flis_exportlayer_hook (§4.3 slice 7) — write a layer's fits* to a
+ * standalone FITS file via savefits.  No mutation of the FLIS state.
+ * ----------------------------------------------------------------------- */
+
+void flis_exportlayer_args_free(gpointer p) {
+    struct flis_exportlayer_args *a = p;
+    if (!a) return;
+    g_free(a->filename);
+    g_free(a);
+}
+
+int flis_exportlayer_hook(struct generic_layer_args *args) {
+    struct flis_exportlayer_args *a = (struct flis_exportlayer_args *)args->user;
+    if (!a || !a->filename || !*a->filename) {
+        siril_log_error(_("flis_exportlayer: no filename\n"));
+        return 1;
+    }
+    flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
+    if (!lay || !lay->fit) {
+        siril_log_error(_("flis_exportlayer: no layer with id %d\n"),
+                        args->invalidate_item_id);
+        return 1;
+    }
+    if (savefits(a->filename, lay->fit)) {
+        siril_log_error(_("flis_exportlayer: could not write '%s'\n"), a->filename);
+        return 1;
+    }
+    siril_log_message(_("flis_exportlayer: layer '%s' written to '%s'\n"),
+                      lay->layer_name ? lay->layer_name : "?", a->filename);
+    return 0;
+}
+
 int flis_clearmask_hook(struct generic_layer_args *args) {
     flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
     if (!lay) {

@@ -277,6 +277,10 @@ struct generic_layer_args {
 	 * using LAYER_PIXELS / LAYER_PROPS, set invalidate_item_id. */
 	int           invalidate_flags;
 	int           invalidate_item_id;
+	/* TRUE → hook is read-only (no FLIS state mutation, no pixel change).
+	 * end_generic_layer skips the display-invalidation / notify-gfit
+	 * cascade for these.  Used by ops that only inspect or export. */
+	gboolean      read_only;
 };
 
 gpointer generic_layer_worker(gpointer p);
