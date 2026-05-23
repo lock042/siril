@@ -137,6 +137,16 @@ void        current_image_clear_icc_profile(void);
  * old color_manage() function). */
 void        current_image_color_manage(gboolean active);
 
+/* During the (brief) window between close_single_image() and
+ * create_uniq_from_gfit() in the open-file path, com.uniq is NULL.
+ * Load helpers that try to install a profile via the accessors
+ * during this window would otherwise just close-and-discard.  The
+ * staging area below lets the loader hand off a profile that the
+ * subsequent install_staged_icc_profile() call (from
+ * create_uniq_from_gfit) will promote to com.uniq once it exists. */
+void        stage_icc_profile_for_pending_image(cmsHPROFILE p, gboolean managed);
+void        install_staged_icc_profile(void);
+
 /* Per-fits accessor: returns the ICC profile that applies to @fit.
  * For the current-image fits (gfit, or the FLIS profiled fit) this
  * is com.uniq's profile; for any intermediate / sequence-frame fits

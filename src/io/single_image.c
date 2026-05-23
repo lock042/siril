@@ -221,9 +221,11 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->fileexist = exists;
 	com.uniq->chans = gfit->naxes[2];
 	com.uniq->fit = gfit;
-	/* ICC profile state lives on com.uniq and is populated directly by
-	 * the load path (readfits / load_flis / format-specific loaders)
-	 * when the load target is gfit.  No hoisting needed any more. */
+	/* Promote any ICC profile that the loader read from the file.  The
+	 * loader stages profiles via current_image_set_icc_profile, which
+	 * routes to the staging area when com.uniq is NULL (i.e. during
+	 * load, before this function runs). */
+	install_staged_icc_profile();
 	return 0;
 }
 

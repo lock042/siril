@@ -60,9 +60,42 @@ gboolean current_image_color_managed(void) {
 	return (com.uniq) ? com.uniq->color_managed : FALSE;
 }
 
+/* Staging area for profiles read during load before com.uniq exists. */
+static cmsHPROFILE _staged_icc_profile = NULL;
+static gboolean    _staged_icc_managed = FALSE;
+
+void stage_icc_profile_for_pending_image(cmsHPROFILE p, gboolean managed) {
+	if (_staged_icc_profile && _staged_icc_profile != p)
+		cmsCloseProfile(_staged_icc_profile);
+	_staged_icc_profile = p;
+	_staged_icc_managed = managed;
+}
+
+void install_staged_icc_profile(void) {
+	if (!com.uniq) {
+		/* Nothing to install onto — drop the staging. */
+		if (_staged_icc_profile) cmsCloseProfile(_staged_icc_profile);
+		_staged_icc_profile = NULL;
+		_staged_icc_managed = FALSE;
+		return;
+	}
+	if (_staged_icc_profile) {
+		if (com.uniq->icc_profile)
+			cmsCloseProfile(com.uniq->icc_profile);
+		com.uniq->icc_profile = _staged_icc_profile;
+		com.uniq->color_managed = _staged_icc_managed;
+		_staged_icc_profile = NULL;
+		_staged_icc_managed = FALSE;
+		if (!com.script)
+			gui_iface.update_icc_status_icon(NULL, com.uniq->color_managed);
+	}
+}
+
 void current_image_set_icc_profile(cmsHPROFILE p) {
 	if (!com.uniq) {
-		if (p) cmsCloseProfile(p);
+		/* Pre-com.uniq load: stage so install_staged_icc_profile picks
+		 * it up once create_uniq_from_gfit allocates com.uniq. */
+		stage_icc_profile_for_pending_image(p, p != NULL);
 		return;
 	}
 	if (com.uniq->icc_profile && com.uniq->icc_profile != p)
@@ -82,7 +115,11 @@ void current_image_clear_icc_profile(void) {
 }
 
 void current_image_color_manage(gboolean active) {
-	if (!com.uniq) return;
+	if (!com.uniq) {
+		/* Stage the managed flag too (see stage_icc_profile_for_pending_image). */
+		_staged_icc_managed = active;
+		return;
+	}
 	com.uniq->color_managed = active;
 	if (!com.script)
 		gui_iface.update_icc_status_icon(NULL, active);
