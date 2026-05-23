@@ -43,6 +43,7 @@
 #include <glib.h>
 
 #include "core/siril.h"
+#include "core/proto.h"         /* roundf_to_WORD, USHRT_MAX_SINGLE */
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "io/image_format_flis.h"
@@ -53,6 +54,154 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
 
 fits *flis_render_layers(GSList *layers) {
     return flis_render_layers_internal(layers, FALSE);
+}
+
+/* =====================================================================
+ * Per-tile BGRA8 bake helpers.
+ *
+ * These are the byte-level pixel pumps the GPU-compose path
+ * (src/gui-gtk4/flis_gpu_compose.c) uses to fill GdkTexture-backed
+ * tiles.  They live here (rather than in the GTK-only compose file)
+ * so that they're available to the headless test binaries, which
+ * link against libsiril.a only.
+ *
+ * No GTK / GdkTexture types involved — caller supplies the output
+ * buffer.  Y-flip from FITS bottom-up to display top-down happens
+ * inside the loops.
+ * ===================================================================== */
+
+gboolean flis_compose_bake_tile_bgra8(const flis_layer_t *lay,
+                                       int tile_dim,
+                                       int tx, int ty,
+                                       int tile_w, int tile_h,
+                                       int mip,
+                                       int guard,
+                                       const BYTE *lut,
+                                       uint8_t *out_bgra) {
+    if (!lay || !lay->fit || !lut || !out_bgra) return FALSE;
+    if (tile_dim <= 0 || tx < 0 || ty < 0) return FALSE;
+    if (tile_w <= 0 || tile_h <= 0) return FALSE;
+    if (mip <= 0 || (mip & (mip - 1)) != 0) return FALSE;       /* power of 2 */
+    if ((tile_w % mip) != 0 || (tile_h % mip) != 0) return FALSE;
+    if (guard < 0) return FALSE;
+
+    const fits *fit = lay->fit;
+    const int   layer_w = (int)fit->rx;
+    const int   layer_h = (int)fit->ry;
+    const int   tile_x0 = tx * tile_dim;
+    const int   tile_y0 = ty * tile_dim;       /* layer-local display row 0 of tile */
+    if (tile_x0 + tile_w > layer_w || tile_y0 + tile_h > layer_h)
+        return FALSE;
+
+    const gboolean is_rgb = (fit->naxes[2] >= 3);
+    const float tr = lay->has_tint ? (float)lay->layer_tint.r : 1.f;
+    const float tg = lay->has_tint ? (float)lay->layer_tint.g : 1.f;
+    const float tb = lay->has_tint ? (float)lay->layer_tint.b : 1.f;
+    const int   inner_w = tile_w / mip;
+    const int   inner_h = tile_h / mip;
+    const int   out_w   = inner_w + 2 * guard;
+    const int   out_h   = inner_h + 2 * guard;
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+    for (int out_y = 0; out_y < out_h; out_y++) {
+        /* local_y is the tile-local source row this output row represents.
+         * Without guards, out_y -> out_y*mip.  With guards, out_y in
+         * [0, guard) is a top border (negative source rows), out_y in
+         * [guard, guard+inner_h) is the canonical region, and
+         * [guard+inner_h, out_h) is a bottom border.  Outside [0, layer_h)
+         * we edge-clamp the layer-local display row. */
+        const int local_y       = (out_y - guard) * mip;
+        int       layer_disp_y  = tile_y0 + local_y;
+        if (layer_disp_y < 0)        layer_disp_y = 0;
+        if (layer_disp_y >= layer_h) layer_disp_y = layer_h - 1;
+        const int layer_fits_y  = layer_h - 1 - layer_disp_y;
+        const size_t src_row_base = (size_t)layer_fits_y * layer_w;
+        const size_t dst_row    = (size_t)out_y * out_w * 4;
+        for (int out_x = 0; out_x < out_w; out_x++) {
+            const int local_x   = (out_x - guard) * mip;
+            int layer_x = tile_x0 + local_x;
+            if (layer_x < 0)        layer_x = 0;
+            if (layer_x >= layer_w) layer_x = layer_w - 1;
+            const size_t src_i  = src_row_base + (size_t)layer_x;
+            const size_t dst_i  = dst_row + (size_t)out_x * 4;
+            BYTE r_b, g_b, b_b;
+            if (is_rgb) {
+                if (fit->type == DATA_USHORT) {
+                    r_b = lut[fit->pdata[0][src_i]];
+                    g_b = lut[fit->pdata[1][src_i]];
+                    b_b = lut[fit->pdata[2][src_i]];
+                } else {
+                    WORD r = roundf_to_WORD(fit->fpdata[0][src_i] * USHRT_MAX_SINGLE);
+                    WORD g = roundf_to_WORD(fit->fpdata[1][src_i] * USHRT_MAX_SINGLE);
+                    WORD b = roundf_to_WORD(fit->fpdata[2][src_i] * USHRT_MAX_SINGLE);
+                    r_b = lut[r];
+                    g_b = lut[g];
+                    b_b = lut[b];
+                }
+            } else {
+                BYTE v_b;
+                if (fit->type == DATA_USHORT) {
+                    v_b = lut[fit->pdata[0][src_i]];
+                } else {
+                    WORD v = roundf_to_WORD(fit->fpdata[0][src_i] * USHRT_MAX_SINGLE);
+                    v_b = lut[v];
+                }
+                if (lay->has_tint) {
+                    float vf = (float)v_b;
+                    r_b = (BYTE)fminf(255.f, vf * tr);
+                    g_b = (BYTE)fminf(255.f, vf * tg);
+                    b_b = (BYTE)fminf(255.f, vf * tb);
+                } else {
+                    r_b = g_b = b_b = v_b;
+                }
+            }
+            out_bgra[dst_i + 0] = b_b;
+            out_bgra[dst_i + 1] = g_b;
+            out_bgra[dst_i + 2] = r_b;
+            out_bgra[dst_i + 3] = 255;
+        }
+    }
+    return TRUE;
+}
+
+gboolean flis_compose_bake_lmask_bgra8(const flis_layer_t *lay,
+                                        uint8_t *out_bgra) {
+    if (!lay || !lay->lmask || !lay->lmask->data || !out_bgra) return FALSE;
+
+    const guint w = lay->lmask->w;
+    const guint h = lay->lmask->h;
+    const guint8 bp = lay->lmask->bitpix;
+    const void *src = lay->lmask->data;
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+    for (guint y = 0; y < h; y++) {
+        const size_t src_row = (size_t)(h - 1 - y) * w;
+        const size_t dst_row = (size_t)y * w * 4;
+        for (guint x = 0; x < w; x++) {
+            const size_t src_i = src_row + x;
+            const size_t dst_i = dst_row + (size_t)x * 4;
+            BYTE v;
+            switch (bp) {
+                case 8:  v = ((const uint8_t  *)src)[src_i]; break;
+                case 16: v = (BYTE)(((const uint16_t *)src)[src_i] >> 8); break;
+                case 32: {
+                    float f = ((const float *)src)[src_i];
+                    v = (BYTE)fminf(255.f, fmaxf(0.f, f * 255.f));
+                    break;
+                }
+                default: v = 0; break;
+            }
+            out_bgra[dst_i + 0] = v;
+            out_bgra[dst_i + 1] = v;
+            out_bgra[dst_i + 2] = v;
+            out_bgra[dst_i + 3] = 255;
+        }
+    }
+    return TRUE;
 }
 
 /* =========================================================================

@@ -58,6 +58,7 @@
 #include "core/proto.h"           /* roundf_to_WORD */
 #include "core/siril_log.h"
 #include "io/image_format_flis.h"
+#include "io/flis_compose.h"       /* flis_compose_bake_tile_bgra8 / _lmask_bgra8 */
 #include "gui-gtk4/gui_state.h"   /* gui.lo / gui.hi / gui.remap_index */
 
 /* Tile side length, layer-local.  Sized to fit comfortably inside every
@@ -69,6 +70,34 @@
 /* Capacity sized comfortably above typical FLIS layer counts (spec
  * recommendation: 2–8 layers).  Slots are O(N) scanned. */
 #define FLIS_CACHE_MAX 64
+
+/* Guard band, in output pixels, included around each baked tile so
+ * GSK's bilinear / trilinear sampler has correct neighbour data at
+ * tile boundaries (rather than CLAMP_TO_EDGE artefacts that produce
+ * visible seams when mipmaps are generated).  1 output pixel is
+ * enough for bilinear; 2 keeps trilinear seam-free.  Set to 0 to
+ * disable guard bands entirely.  Each tile gains 2*guard pixels per
+ * side; at FLIS_TILE_DIM=2048 a guard of 1 adds ~0.1% to texture
+ * memory, which is negligible. */
+#define FLIS_TILE_GUARD 1
+
+/* Tile-bytes budget across the whole cache.  When materialising a new
+ * tile would push g_cache_bytes above this, we evict the oldest
+ * non-NULL tile (any layer, any position) until we're back under.
+ * Sourced from com.pref.gui.flis_tile_budget_mb (default 256 MiB,
+ * clamped 128–4096 MiB by settings.c).  The fallback constants here
+ * cover the case where preferences haven't been initialised yet
+ * (early startup / headless test binaries that don't load settings). */
+#define FLIS_CACHE_BUDGET_DEFAULT_MB  256
+#define FLIS_CACHE_BUDGET_MIN_MB      128
+#define FLIS_CACHE_BUDGET_MAX_MB     4096
+
+static inline gsize flis_cache_budget_bytes(void) {
+	int mb = com.pref.gui.flis_tile_budget_mb;
+	if (mb < FLIS_CACHE_BUDGET_MIN_MB || mb > FLIS_CACHE_BUDGET_MAX_MB)
+		mb = FLIS_CACHE_BUDGET_DEFAULT_MB;
+	return (gsize)mb * 1024 * 1024;
+}
 
 struct cache_slot {
 	gint        item_id;     /* 0 = empty slot */
@@ -83,11 +112,13 @@ struct cache_slot {
 	int         tile_rows;
 	GdkTexture **tiles;      /* tile_cols * tile_rows; NULL slots OK */
 	guint64    *last_used;   /* parallel array; tile last access epoch */
+	gsize      *tile_bytes;  /* parallel array; per-tile byte size */
 	guint       layer_w;     /* layer extent the grid was sized for */
 	guint       layer_h;
 
 	/* Layer mask — single texture, layer-sized (not tiled). */
 	GdkTexture *lmask_tex;
+	gsize       lmask_bytes;
 	guint       lmask_w;
 	guint       lmask_h;
 
@@ -97,10 +128,29 @@ struct cache_slot {
 	WORD        stretch_hi;
 	gboolean    has_tint;
 	double      tint_r, tint_g, tint_b;
+	/* Mip stride the tile grid was baked at (1, 2, 4 …).  Higher mip
+	 * = smaller, downsampled textures (used at low zoom).  When the
+	 * render path's required mip is finer (smaller integer) than the
+	 * cached mip, the grid is dropped and rebuilt — coarser is OK to
+	 * reuse because GSK downsamples on the GPU anyway. */
+	int         mip_stride;
 };
 
 static struct cache_slot g_cache[FLIS_CACHE_MAX];
-static guint64           g_epoch;  /* monotonic counter for tile last_used */
+static guint64           g_epoch;       /* monotonic counter for tile last_used */
+static gsize             g_cache_bytes; /* total tile + lmask bytes resident */
+
+/* Background-prefetch state.  After each render we record what we just
+ * drew; an idle handler then materialises tiles in a one-ring around
+ * the visible rect so smooth panning doesn't bake on the critical
+ * path.  Single source ID = at most one idle queued at a time. */
+static guint  g_prefetch_idle_id;
+static struct {
+	gboolean valid;
+	guint    canvas_w, canvas_h;
+	graphene_rect_t visible;
+	int      desired_mip;
+} g_prefetch;
 
 static struct cache_slot *find_slot(gint item_id) {
 	if (item_id <= 0) return NULL;
@@ -123,27 +173,78 @@ static struct cache_slot *find_or_alloc_slot(gint item_id) {
 	return NULL;
 }
 
+/* Drop a single tile in-place: unref the texture, deduct its bytes from
+ * the global counter, and zero the slot entry.  Safe on NULL tiles. */
+static void tile_release(struct cache_slot *s, int idx) {
+	if (!s->tiles || !s->tiles[idx]) return;
+	g_object_unref(s->tiles[idx]);
+	s->tiles[idx] = NULL;
+	if (s->tile_bytes) {
+		g_cache_bytes -= s->tile_bytes[idx];
+		s->tile_bytes[idx] = 0;
+	}
+	if (s->last_used) s->last_used[idx] = 0;
+}
+
 static void slot_drop_tiles(struct cache_slot *s) {
 	if (s->tiles) {
 		const int n = s->tile_cols * s->tile_rows;
-		for (int i = 0; i < n; i++) {
-			if (s->tiles[i]) g_object_unref(s->tiles[i]);
-		}
+		for (int i = 0; i < n; i++) tile_release(s, i);
 		g_free(s->tiles);
 		s->tiles = NULL;
 	}
-	if (s->last_used) {
-		g_free(s->last_used);
-		s->last_used = NULL;
-	}
+	g_free(s->last_used);  s->last_used  = NULL;
+	g_free(s->tile_bytes); s->tile_bytes = NULL;
 	s->tile_cols = s->tile_rows = 0;
 	s->layer_w = s->layer_h = 0;
 }
 
 static void slot_drop_textures(struct cache_slot *s) {
 	slot_drop_tiles(s);
-	if (s->lmask_tex) { g_object_unref(s->lmask_tex); s->lmask_tex = NULL; }
+	if (s->lmask_tex) {
+		g_object_unref(s->lmask_tex);
+		s->lmask_tex = NULL;
+		g_cache_bytes -= s->lmask_bytes;
+		s->lmask_bytes = 0;
+	}
 	s->lmask_w = s->lmask_h = 0;
+}
+
+/* LRU eviction: find the oldest non-NULL tile across all slots and
+ * release it.  Returns the bytes freed, or 0 if nothing was evictable
+ * (which happens when the cache is empty — meaning we're already
+ * under budget and the caller's about-to-bake tile just can't fit
+ * alone, an unrecoverable condition the caller treats as a soft fail). */
+static gsize cache_evict_one(void) {
+	struct cache_slot *victim_slot = NULL;
+	int                victim_idx  = -1;
+	guint64            oldest      = G_MAXUINT64;
+	for (int s = 0; s < FLIS_CACHE_MAX; s++) {
+		struct cache_slot *cs = &g_cache[s];
+		if (!cs->tiles) continue;
+		const int n = cs->tile_cols * cs->tile_rows;
+		for (int i = 0; i < n; i++) {
+			if (!cs->tiles[i]) continue;
+			if (cs->last_used[i] < oldest) {
+				oldest = cs->last_used[i];
+				victim_slot = cs;
+				victim_idx  = i;
+			}
+		}
+	}
+	if (!victim_slot || victim_idx < 0) return 0;
+	const gsize bytes = victim_slot->tile_bytes[victim_idx];
+	tile_release(victim_slot, victim_idx);
+	return bytes;
+}
+
+/* Evict the oldest tiles until the global byte counter would
+ * accommodate @incoming_bytes within the configured cache budget. */
+static void cache_make_room_for(gsize incoming_bytes) {
+	const gsize budget = flis_cache_budget_bytes();
+	while (g_cache_bytes + incoming_bytes > budget) {
+		if (cache_evict_one() == 0) break;  /* nothing left to evict */
+	}
 }
 
 static void slot_clear(struct cache_slot *s) {
@@ -159,135 +260,54 @@ static void slot_clear(struct cache_slot *s) {
  * Texture builders
  * ===================================================================== */
 
-/* Materialise one tile of a layer at (tx, ty) into a GdkTexture.  The
- * tile occupies layer-local DISPLAY rows [ty*FLIS_TILE_DIM, +tile_h)
- * and cols [tx*FLIS_TILE_DIM, +tile_w) (edge tiles may be smaller).
- * Reads the layer's source fits (FITS bottom-up) for that region, applies
- * the linked stretch via gui.remap_index[0], bakes in tint for mono
- * layers with has_tint set, encodes BGRA8.  Returns NULL on failure. */
+/* Materialise one tile of a layer at (tx, ty) into a GdkTexture, baked
+ * at the supplied @mip stride (1 = full res, 2 = half-res, …).  The
+ * source tile region is layer-local DISPLAY rows
+ * [ty*FLIS_TILE_DIM, +tile_h) × cols [tx*FLIS_TILE_DIM, +tile_w);
+ * output texture is (tile_w / mip) × (tile_h / mip) BGRA8 pixels.
+ * Delegates byte bake to flis_compose_bake_tile_bgra8 (testable from
+ * the headless harness). */
 static GdkTexture *materialise_layer_tile(flis_layer_t *lay,
                                             int tx, int ty,
-                                            int tile_w, int tile_h) {
-	fits *fit = lay->fit;
-	if (!fit) return NULL;
-
-	const guint layer_w = (guint)fit->rx;
-	const guint layer_h = (guint)fit->ry;
-	const int   tile_x0 = tx * FLIS_TILE_DIM;
-	const int   tile_y0 = ty * FLIS_TILE_DIM;  /* in layer-local display coords */
-	const BYTE *lut = gui.remap_index[0];   /* linked stretch */
-	const gboolean is_rgb = (fit->naxes[2] >= 3);
-
-	const size_t n = (size_t)tile_w * tile_h;
+                                            int tile_w, int tile_h,
+                                            int mip) {
+	if (!lay || !lay->fit) return NULL;
+	const int inner_w = tile_w / mip;
+	const int inner_h = tile_h / mip;
+	if (inner_w <= 0 || inner_h <= 0) return NULL;
+	const int out_w = inner_w + 2 * FLIS_TILE_GUARD;
+	const int out_h = inner_h + 2 * FLIS_TILE_GUARD;
+	const size_t n = (size_t)out_w * out_h;
 	uint8_t *bgra = malloc(n * 4);
 	if (!bgra) return NULL;
-
-	const float tr = lay->has_tint ? (float)lay->layer_tint.r : 1.f;
-	const float tg = lay->has_tint ? (float)lay->layer_tint.g : 1.f;
-	const float tb = lay->has_tint ? (float)lay->layer_tint.b : 1.f;
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-	for (int local_y = 0; local_y < tile_h; local_y++) {
-		/* Display y within the layer: tile_y0 .. tile_y0+tile_h-1.
-		 * FITS y within the layer (bottom-up): layer_h - 1 - disp_y. */
-		const int layer_disp_y = tile_y0 + local_y;
-		const int layer_fits_y = (int)layer_h - 1 - layer_disp_y;
-		const size_t src_row = (size_t)layer_fits_y * layer_w + (size_t)tile_x0;
-		const size_t dst_row = (size_t)local_y * tile_w * 4;
-		for (int local_x = 0; local_x < tile_w; local_x++) {
-			const size_t src_i = src_row + (size_t)local_x;
-			const size_t dst_i = dst_row + (size_t)local_x * 4;
-			BYTE r_b, g_b, b_b;
-			if (is_rgb) {
-				if (fit->type == DATA_USHORT) {
-					r_b = lut[fit->pdata[0][src_i]];
-					g_b = lut[fit->pdata[1][src_i]];
-					b_b = lut[fit->pdata[2][src_i]];
-				} else {
-					WORD r = roundf_to_WORD(fit->fpdata[0][src_i] * USHRT_MAX_SINGLE);
-					WORD g = roundf_to_WORD(fit->fpdata[1][src_i] * USHRT_MAX_SINGLE);
-					WORD b = roundf_to_WORD(fit->fpdata[2][src_i] * USHRT_MAX_SINGLE);
-					r_b = lut[r];
-					g_b = lut[g];
-					b_b = lut[b];
-				}
-			} else {
-				BYTE v_b;
-				if (fit->type == DATA_USHORT) {
-					v_b = lut[fit->pdata[0][src_i]];
-				} else {
-					WORD v = roundf_to_WORD(fit->fpdata[0][src_i] * USHRT_MAX_SINGLE);
-					v_b = lut[v];
-				}
-				if (lay->has_tint) {
-					float vf = (float)v_b;
-					r_b = (BYTE)fminf(255.f, vf * tr);
-					g_b = (BYTE)fminf(255.f, vf * tg);
-					b_b = (BYTE)fminf(255.f, vf * tb);
-				} else {
-					r_b = g_b = b_b = v_b;
-				}
-			}
-			bgra[dst_i + 0] = b_b;
-			bgra[dst_i + 1] = g_b;
-			bgra[dst_i + 2] = r_b;
-			bgra[dst_i + 3] = 255;
-		}
+	if (!flis_compose_bake_tile_bgra8(lay, FLIS_TILE_DIM, tx, ty,
+	                                   tile_w, tile_h, mip, FLIS_TILE_GUARD,
+	                                   gui.remap_index[0], bgra)) {
+		free(bgra);
+		return NULL;
 	}
-
 	GBytes *bytes = g_bytes_new_take(bgra, n * 4);
-	GdkTexture *tex = gdk_memory_texture_new(tile_w, tile_h,
+	GdkTexture *tex = gdk_memory_texture_new(out_w, out_h,
 	                                          GDK_MEMORY_B8G8R8A8,
-	                                          bytes, (gsize)tile_w * 4);
+	                                          bytes, (gsize)out_w * 4);
 	g_bytes_unref(bytes);
 	return tex;
 }
 
-/* Build a BGRA8 texture from a layer mask at the lmask's own dimensions,
- * encoded as grayscale (R=G=B=value, alpha=255).  Used as the mask
- * source for GSK_MASK_MODE_LUMINANCE.  Returns NULL if the layer has no
- * mask data or on failure.  The lmask matches the layer's extent (not
- * the canvas) for both full-canvas and sparse layers. */
+/* Build a BGRA8 texture from a layer's lmask at the lmask's own
+ * dimensions.  Delegates the byte bake to flis_compose_bake_lmask_bgra8
+ * in flis_compose.c and wraps in a GdkTexture. */
 static GdkTexture *build_lmask_texture(flis_layer_t *lay) {
-	if (!lay->lmask || !lay->lmask->data) return NULL;
-
+	if (!lay || !lay->lmask || !lay->lmask->data) return NULL;
 	const guint w = lay->lmask->w;
 	const guint h = lay->lmask->h;
 	const size_t n = (size_t)w * h;
 	uint8_t *bgra = malloc(n * 4);
 	if (!bgra) return NULL;
-	const guint8 bp = lay->lmask->bitpix;
-	const void *src = lay->lmask->data;
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-	for (guint y = 0; y < h; y++) {
-		const size_t src_row = (size_t)(h - 1 - y) * w;
-		const size_t dst_row = (size_t)y * w * 4;
-		for (guint x = 0; x < w; x++) {
-			const size_t src_i = src_row + x;
-			const size_t dst_i = dst_row + (size_t)x * 4;
-			BYTE v;
-			switch (bp) {
-				case 8:  v = ((const uint8_t *)src)[src_i]; break;
-				case 16: v = (BYTE)(((const uint16_t *)src)[src_i] >> 8); break;
-				case 32: {
-					float f = ((const float *)src)[src_i];
-					v = (BYTE)fminf(255.f, fmaxf(0.f, f * 255.f));
-					break;
-				}
-				default: v = 0; break;
-			}
-			bgra[dst_i + 0] = v;
-			bgra[dst_i + 1] = v;
-			bgra[dst_i + 2] = v;
-			bgra[dst_i + 3] = 255;
-		}
+	if (!flis_compose_bake_lmask_bgra8(lay, bgra)) {
+		free(bgra);
+		return NULL;
 	}
-
 	GBytes *bytes = g_bytes_new_take(bgra, n * 4);
 	GdkTexture *tex = gdk_memory_texture_new(w, h,
 	                                          GDK_MEMORY_B8G8R8A8,
@@ -296,23 +316,41 @@ static GdkTexture *build_lmask_texture(flis_layer_t *lay) {
 	return tex;
 }
 
-/* Compute tile dimensions for tile (tx, ty) within a layer of (lw, lh).
- * Edge tiles on the right/bottom may be smaller than FLIS_TILE_DIM. */
+/* Compute tile dimensions for tile (tx, ty) within a layer of (lw, lh),
+ * rounded down to a multiple of @mip so the bake function's
+ * "tile_w % mip == 0" precondition holds.  Edge tiles on the right/
+ * bottom may be smaller than FLIS_TILE_DIM and may also drop a few
+ * pixels at the edge to satisfy mip alignment — those edge pixels
+ * are not displayed when mipped, an acceptable trade for low-zoom
+ * previews. */
 static inline void tile_dim_for(guint lw, guint lh, int tx, int ty,
-                                 int *out_w, int *out_h) {
+                                 int mip, int *out_w, int *out_h) {
 	const int x0 = tx * FLIS_TILE_DIM;
 	const int y0 = ty * FLIS_TILE_DIM;
-	*out_w = MIN((int)lw - x0, FLIS_TILE_DIM);
-	*out_h = MIN((int)lh - y0, FLIS_TILE_DIM);
+	int tw = MIN((int)lw - x0, FLIS_TILE_DIM);
+	int th = MIN((int)lh - y0, FLIS_TILE_DIM);
+	if (mip > 1) {
+		tw -= tw % mip;
+		th -= th % mip;
+	}
+	*out_w = tw;
+	*out_h = th;
 }
 
 /* Look up the slot for @lay and (re)allocate its tile grid + bake
- * parameters if any of stretch/tint/extent has changed.  Returns the
+ * parameters if any of stretch/tint/extent/mip has changed.  Returns the
  * slot on success or NULL on alloc failure.  Does NOT materialise any
  * tile pixels — that's deferred to ensure_tile() below, called by the
- * render path for each visible tile. */
+ * render path for each visible tile.
+ *
+ * @desired_mip is the smallest (finest) mip the render path currently
+ * needs.  If the cached grid is at a coarser mip (mip_stride > desired)
+ * we drop and rebuild so subsequent ensure_tile gets pixel-perfect
+ * textures.  If cached is finer (mip_stride < desired) we keep it —
+ * GSK downsamples on the GPU without extra CPU cost. */
 static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
-                                                    WORD lo, WORD hi) {
+                                                    WORD lo, WORD hi,
+                                                    int desired_mip) {
 	struct cache_slot *s = find_or_alloc_slot(lay->item_id);
 	if (!s) return NULL;
 	if (!lay->fit) return NULL;
@@ -327,8 +365,10 @@ static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
 	                            s->tint_g != lay->layer_tint.g ||
 	                            s->tint_b != lay->layer_tint.b));
 	gboolean extent_changed = (s->layer_w != cur_w || s->layer_h != cur_h);
+	gboolean mip_too_coarse = (s->tiles && s->mip_stride > desired_mip);
 
-	if (!s->tiles || stretch_changed || tint_changed || extent_changed) {
+	if (!s->tiles || stretch_changed || tint_changed || extent_changed
+	    || mip_too_coarse) {
 		slot_drop_tiles(s);
 		s->layer_w = cur_w;
 		s->layer_h = cur_h;
@@ -339,14 +379,16 @@ static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
 			return NULL;
 		}
 		const int n = s->tile_cols * s->tile_rows;
-		s->tiles     = g_new0(GdkTexture *, n);
-		s->last_used = g_new0(guint64, n);
+		s->tiles      = g_new0(GdkTexture *, n);
+		s->last_used  = g_new0(guint64, n);
+		s->tile_bytes = g_new0(gsize, n);
 		s->stretch_lo = lo;
 		s->stretch_hi = hi;
 		s->has_tint = lay->has_tint;
 		s->tint_r = lay->layer_tint.r;
 		s->tint_g = lay->layer_tint.g;
 		s->tint_b = lay->layer_tint.b;
+		s->mip_stride = desired_mip;
 	}
 
 	/* Lmask texture — single layer-sized BGRA, rebuilt only when the
@@ -357,16 +399,27 @@ static struct cache_slot *ensure_layer_cache_ready(flis_layer_t *lay,
 		const guint mh = lay->lmask->h;
 		gboolean lm_extent_changed = (s->lmask_w != mw || s->lmask_h != mh);
 		if (!s->lmask_tex || lm_extent_changed) {
-			if (s->lmask_tex) { g_object_unref(s->lmask_tex); s->lmask_tex = NULL; }
+			if (s->lmask_tex) {
+				g_object_unref(s->lmask_tex);
+				g_cache_bytes -= s->lmask_bytes;
+				s->lmask_tex = NULL;
+				s->lmask_bytes = 0;
+			}
+			const gsize lm_bytes = (gsize)mw * mh * 4;
+			cache_make_room_for(lm_bytes);
 			s->lmask_tex = build_lmask_texture(lay);
 			if (s->lmask_tex) {
 				s->lmask_w = mw;
 				s->lmask_h = mh;
+				s->lmask_bytes = lm_bytes;
+				g_cache_bytes += lm_bytes;
 			}
 		}
 	} else if (s->lmask_tex) {
 		g_object_unref(s->lmask_tex);
+		g_cache_bytes -= s->lmask_bytes;
 		s->lmask_tex = NULL;
+		s->lmask_bytes = 0;
 		s->lmask_w = s->lmask_h = 0;
 	}
 
@@ -383,9 +436,19 @@ static GdkTexture *ensure_tile(struct cache_slot *s, flis_layer_t *lay,
 	const int idx = ty * s->tile_cols + tx;
 	if (!s->tiles[idx]) {
 		int tw, th;
-		tile_dim_for(s->layer_w, s->layer_h, tx, ty, &tw, &th);
+		tile_dim_for(s->layer_w, s->layer_h, tx, ty, s->mip_stride, &tw, &th);
 		if (tw <= 0 || th <= 0) return NULL;
-		s->tiles[idx] = materialise_layer_tile(lay, tx, ty, tw, th);
+		const int inner_w = tw / s->mip_stride;
+		const int inner_h = th / s->mip_stride;
+		const int out_w   = inner_w + 2 * FLIS_TILE_GUARD;
+		const int out_h   = inner_h + 2 * FLIS_TILE_GUARD;
+		const gsize bytes = (gsize)out_w * out_h * 4;
+		cache_make_room_for(bytes);
+		s->tiles[idx] = materialise_layer_tile(lay, tx, ty, tw, th, s->mip_stride);
+		if (s->tiles[idx]) {
+			s->tile_bytes[idx] = bytes;
+			g_cache_bytes += bytes;
+		}
 	}
 	if (s->tiles[idx])
 		s->last_used[idx] = ++g_epoch;
@@ -522,7 +585,8 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 	for (int ty = 0; ty < slot->tile_rows; ty++) {
 		for (int tx = 0; tx < slot->tile_cols; tx++) {
 			int tw, th;
-			tile_dim_for(slot->layer_w, slot->layer_h, tx, ty, &tw, &th);
+			tile_dim_for(slot->layer_w, slot->layer_h, tx, ty,
+			             slot->mip_stride, &tw, &th);
 			if (tw <= 0 || th <= 0) continue;
 
 			/* Tile in canvas image-space (display top-down). */
@@ -546,12 +610,33 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 			GdkTexture *tex = ensure_tile(slot, lay, tx, ty);
 			if (!tex) continue;
 
+			/* Canonical tile rect — the visible area we want to show. */
 			const graphene_rect_t r = GRAPHENE_RECT_INIT(
 				canvas_dst->origin.x + cx * xx,
 				canvas_dst->origin.y + cy * yy,
 				cw * xx,
 				ch * yy);
-			gtk_snapshot_append_scaled_texture(snap, tex, filter, &r);
+
+			if (FLIS_TILE_GUARD > 0) {
+				/* Guard band path: the texture is larger by guard pixels
+				 * on each side (in source-pixel units, that's
+				 * guard*mip pixels).  Draw at the expanded rect so the
+				 * guard pixels physically map outside the canonical rect;
+				 * push_clip ensures only the canonical area is visible
+				 * while GSK's sampler still sees correct neighbour
+				 * pixels at the boundary. */
+				const float gpx = (float)FLIS_TILE_GUARD * (float)slot->mip_stride;
+				const graphene_rect_t expanded = GRAPHENE_RECT_INIT(
+					r.origin.x - gpx * xx,
+					r.origin.y - gpx * yy,
+					r.size.width  + 2.f * gpx * xx,
+					r.size.height + 2.f * gpx * yy);
+				gtk_snapshot_push_clip(snap, &r);
+				gtk_snapshot_append_scaled_texture(snap, tex, filter, &expanded);
+				gtk_snapshot_pop(snap);
+			} else {
+				gtk_snapshot_append_scaled_texture(snap, tex, filter, &r);
+			}
 		}
 	}
 }
@@ -648,6 +733,109 @@ static void emit_group_subtree(GtkSnapshot *snap, const struct render_item *it,
 }
 
 /* =====================================================================
+ * Background prefetch
+ *
+ * After each render we know what was visible.  The prefetch idle then
+ * walks the same layer stack and materialises tiles in a one-tile-wide
+ * ring around the visible rect, so panning into adjacent area doesn't
+ * stall the render thread on a cold bake.  Runs at G_PRIORITY_LOW so
+ * it never preempts user input or animation, and bails immediately if
+ * the cache is at budget (eviction churn would defeat the purpose).
+ * ===================================================================== */
+
+static gboolean prefetch_idle_cb(gpointer user_data);
+
+static void schedule_prefetch_idle(guint canvas_w, guint canvas_h,
+                                    const graphene_rect_t *visible,
+                                    int desired_mip) {
+	if (!visible) return;
+	g_prefetch.valid       = TRUE;
+	g_prefetch.canvas_w    = canvas_w;
+	g_prefetch.canvas_h    = canvas_h;
+	g_prefetch.visible     = *visible;
+	g_prefetch.desired_mip = desired_mip;
+	if (g_prefetch_idle_id == 0) {
+		g_prefetch_idle_id = g_idle_add_full(G_PRIORITY_LOW,
+		                                      prefetch_idle_cb, NULL, NULL);
+	}
+}
+
+static gboolean prefetch_idle_cb(gpointer user_data) {
+	(void)user_data;
+	g_prefetch_idle_id = 0;
+	if (!g_prefetch.valid) return G_SOURCE_REMOVE;
+	g_prefetch.valid = FALSE;
+
+	/* Don't prefetch when we're already near the byte budget — every
+	 * new tile would evict a currently-visible one. */
+	if (g_cache_bytes >= flis_cache_budget_bytes() * 3 / 4)
+		return G_SOURCE_REMOVE;
+
+	/* Read live layer list — the snapshot taken at render time isn't
+	 * pointer-safe across the idle gap (a layer may have been freed). */
+	if (!com.uniq || !com.uniq->layers) return G_SOURCE_REMOVE;
+
+	/* Extend the visible rect by one tile-side worth of canvas-pixels
+	 * (FLIS_TILE_DIM at mip=1).  This produces a one-tile ring around
+	 * what's currently on screen. */
+	const float ring = (float)FLIS_TILE_DIM;
+	const graphene_rect_t extended = GRAPHENE_RECT_INIT(
+		g_prefetch.visible.origin.x - ring,
+		g_prefetch.visible.origin.y - ring,
+		g_prefetch.visible.size.width  + 2.f * ring,
+		g_prefetch.visible.size.height + 2.f * ring);
+
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay || !lay->fit || !lay->visible) continue;
+
+		struct cache_slot *s = find_slot(lay->item_id);
+		if (!s || !s->tiles) continue;       /* not yet rendered */
+
+		const int layer_disp_x0 = lay->position_x;
+		const int layer_disp_y0 = lay->position_y;
+		for (int ty = 0; ty < s->tile_rows; ty++) {
+			for (int tx = 0; tx < s->tile_cols; tx++) {
+				const int idx = ty * s->tile_cols + tx;
+				if (s->tiles[idx]) continue;  /* already cached */
+
+				int tw, th;
+				tile_dim_for(s->layer_w, s->layer_h, tx, ty,
+				             s->mip_stride, &tw, &th);
+				if (tw <= 0 || th <= 0) continue;
+
+				/* Tile rect in canvas image-space. */
+				const float cx = (float)(layer_disp_x0 + tx * FLIS_TILE_DIM);
+				const float cy = (float)(layer_disp_y0 + ty * FLIS_TILE_DIM);
+				const float cw = (float)tw;
+				const float ch = (float)th;
+
+				/* Skip if outside extended rect (we only want the ring). */
+				if (cx + cw < extended.origin.x) continue;
+				if (cy + ch < extended.origin.y) continue;
+				if (cx > extended.origin.x + extended.size.width) continue;
+				if (cy > extended.origin.y + extended.size.height) continue;
+				/* Skip if inside the strictly-visible rect — already
+				 * baked by the render call. */
+				if (cx >= g_prefetch.visible.origin.x &&
+				    cy >= g_prefetch.visible.origin.y &&
+				    cx + cw <= g_prefetch.visible.origin.x + g_prefetch.visible.size.width &&
+				    cy + ch <= g_prefetch.visible.origin.y + g_prefetch.visible.size.height)
+					continue;
+
+				ensure_tile(s, lay, tx, ty);
+
+				/* Bail if a single ring tile pushed us up to budget;
+				 * the next render will reschedule us. */
+				if (g_cache_bytes >= flis_cache_budget_bytes() * 3 / 4)
+					return G_SOURCE_REMOVE;
+			}
+		}
+	}
+	return G_SOURCE_REMOVE;
+}
+
+/* =====================================================================
  * Main render entry
  * ===================================================================== */
 
@@ -661,6 +849,22 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 
 	const WORD lo = gui.lo;
 	const WORD hi = gui.hi;
+
+	/* Pick the smallest mip the GPU sampler still benefits from at the
+	 * current zoom.  zoom = widget pixels per canvas pixel; below 0.5
+	 * we're sampling fewer than half the source pixels per output, so
+	 * baking at half-res is lossless from the screen's POV.  Capped at
+	 * 8× so we don't degrade quality beyond mip3 even at extreme
+	 * fit-to-window.  Powers-of-two only — the bake function asserts. */
+	int desired_mip = 1;
+	if (dst_rect && canvas_w > 0 && canvas_h > 0) {
+		const float zoom_x = dst_rect->size.width  / (float)canvas_w;
+		const float zoom_y = dst_rect->size.height / (float)canvas_h;
+		const float zoom = MIN(zoom_x, zoom_y);
+		if      (zoom < 0.125f) desired_mip = 8;
+		else if (zoom < 0.25f)  desired_mip = 4;
+		else if (zoom < 0.5f)   desired_mip = 2;
+	}
 
 	/* ---- Phase 1: assemble render items in z-order. ---- */
 	GArray *items = g_array_new(FALSE, TRUE, sizeof(struct render_item));
@@ -685,7 +889,7 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 			for (GSList *m = members; m; m = m->next) {
 				flis_layer_t *mlay = (flis_layer_t *)m->data;
 				if (!mlay || !mlay->fit || !mlay->visible) continue;
-				struct cache_slot *mslot = ensure_layer_cache_ready(mlay, lo, hi);
+				struct cache_slot *mslot = ensure_layer_cache_ready(mlay, lo, hi, desired_mip);
 				if (!mslot) { ok = FALSE; break; }
 				g_array_append_val(mem_layers, mlay);
 				g_array_append_val(mem_slots,  mslot);
@@ -708,7 +912,7 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 			g_hash_table_insert(consumed_groups,
 				GINT_TO_POINTER(grp->item_id), GINT_TO_POINTER(1));
 		} else {
-			struct cache_slot *slot = ensure_layer_cache_ready(lay, lo, hi);
+			struct cache_slot *slot = ensure_layer_cache_ready(lay, lo, hi, desired_mip);
 			if (!slot) goto bail;
 			struct render_item it = { 0 };
 			it.kind        = RENDER_ITEM_SINGLE;
@@ -760,6 +964,13 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 		render_item_free(&g_array_index(items, struct render_item, i));
 	g_array_free(items, TRUE);
 	g_hash_table_destroy(consumed_groups);
+
+	/* Queue a background prefetch of the surrounding tile ring so the
+	 * next pan doesn't stall on a cold bake.  Skipped if the caller
+	 * passed no visibility hint (visible_canvas == NULL means "draw
+	 * everything", so there's nothing to prefetch). */
+	if (visible_canvas)
+		schedule_prefetch_idle(canvas_w, canvas_h, visible_canvas, desired_mip);
 	return;
 
 bail:
@@ -778,12 +989,28 @@ void flis_gpu_compose_invalidate_layer(gint item_id) {
 	if (s) slot_drop_textures(s);
 }
 
+void flis_gpu_compose_invalidate_lmask(gint item_id) {
+	struct cache_slot *s = find_slot(item_id);
+	if (s && s->lmask_tex) {
+		g_object_unref(s->lmask_tex);
+		g_cache_bytes -= s->lmask_bytes;
+		s->lmask_tex = NULL;
+		s->lmask_bytes = 0;
+		s->lmask_w = s->lmask_h = 0;
+	}
+}
+
 void flis_gpu_compose_invalidate_all(void) {
 	for (int i = 0; i < FLIS_CACHE_MAX; i++)
 		slot_drop_textures(&g_cache[i]);
 }
 
 void flis_gpu_compose_free_all(void) {
+	if (g_prefetch_idle_id != 0) {
+		g_source_remove(g_prefetch_idle_id);
+		g_prefetch_idle_id = 0;
+	}
+	g_prefetch.valid = FALSE;
 	for (int i = 0; i < FLIS_CACHE_MAX; i++)
 		slot_clear(&g_cache[i]);
 }

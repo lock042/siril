@@ -75,6 +75,11 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
  * layer was never cached. */
 void flis_gpu_compose_invalidate_layer(gint item_id);
 
+/* Drop just the lmask texture for one layer.  Cheaper than
+ * invalidate_layer when only the layer mask data changed.  No-op
+ * if the layer was never cached or had no lmask. */
+void flis_gpu_compose_invalidate_lmask(gint item_id);
+
 /* Invalidate every cached texture.  Call when the stretch state
  * (gui.lo / gui.hi) changes, the layer stack order changes, or the
  * display mode (HISTEQ / STF / LINEAR) changes.  Cheaper than

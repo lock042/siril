@@ -202,6 +202,45 @@ void flis_display_composite_free(void) {
 	flis_composite_release();
 }
 
+/* Stage 3.4 — narrow-flag invalidation chokepoint.  Dispatched by
+ * gui_iface.flis_display_invalidate().  Translates declarative
+ * "what changed" flags into the minimal cache-drop pattern.
+ *
+ * Both cache layers (CPU float composite + per-layer GPU tile grid)
+ * are managed here:
+ *   • CPU composite is one flat buffer per FLIS — any layer change
+ *     (pixels, props, stack) invalidates it.
+ *   • GPU per-layer cache is keyed on item_id; only pixel/tint/lmask
+ *     changes invalidate one slot's textures.  Property changes
+ *     (opacity/blend/visible) don't touch tile contents — the
+ *     snapshot tree is rebuilt each frame and reads current
+ *     properties from the layer struct.
+ *
+ * Redraw is NOT triggered here — callers (typically end_generic_layer)
+ * dispatch redraw separately.  This keeps the cache state and the
+ * redraw lifecycle on independent timelines. */
+void flis_display_invalidate(int flags, int item_id) {
+	if (flags & FLIS_INV_ALL) {
+		flis_composite_invalidate();
+		return;
+	}
+	gboolean composite_dirty = FALSE;
+	if (flags & FLIS_INV_LAYER_PIXELS) {
+		composite_dirty = TRUE;
+		flis_gpu_compose_invalidate_layer(item_id);
+	}
+	if (flags & (FLIS_INV_LAYER_PROPS | FLIS_INV_STACK)) {
+		composite_dirty = TRUE;
+		/* No GPU work — props/order changes don't affect tile pixels. */
+	}
+	if (composite_dirty) {
+		/* Mark the CPU composite dirty without dropping GPU tiles.
+		 * Mirror flis_composite_invalidate's atomic write — see the
+		 * comment block above flis_composite_dirty. */
+		flis_composite_dirty = TRUE;
+	}
+}
+
 /* Tile side length.  Each viewport's buf is exposed to GSK as a grid of
  * GdkTextures of up to SIRIL_TILE_DIM × SIRIL_TILE_DIM pixels; right- and
  * bottom-edge tiles may be smaller.  The chosen size sits comfortably
