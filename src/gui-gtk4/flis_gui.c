@@ -1331,12 +1331,18 @@ static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	if (g_panel && g_panel->refreshing) return;
 	if (g_panel && g_panel->opacity_dragging) {
 		/* While dragging, update layer state live but don't push undo
-		 * per tick — the drag-end handler does that once. */
+		 * per tick — the drag-end handler does that once.  We need a
+		 * full notify_gfit_data_modified, not just a paint queue:
+		 * the CPU composite cache + histogram + per-vport tile
+		 * buffers all hold stale pixels until the composite is
+		 * rebuilt.  This is per-tick during drag and could be heavy
+		 * on huge FLIS images; if that becomes a problem we can
+		 * throttle to every N ms — for now correctness wins. */
 		flis_layer_t *lay = current_selected_layer();
 		if (lay) lay->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
 		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS,
 		                                   lay ? lay->item_id : 0);
-		gui_iface.redraw_image(REMAP_ALL);
+		notify_gfit_data_modified();
 		return;
 	}
 	flis_layer_t *lay = current_selected_layer();
