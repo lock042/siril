@@ -297,5 +297,11 @@ int process_flis_addgroup(int nb);
 int process_flis_setgroup(int nb);
 int process_flis_setposition(int nb);
 int process_flis_exportlayer(int nb);
+int process_flis_setname(int nb);
+int process_flis_setblend(int nb);
+int process_flis_setopacity(int nb);
+int process_flis_setvisible(int nb);
+int process_flis_setlocked(int nb);
+int process_flis_settint(int nb);
 
 #endif

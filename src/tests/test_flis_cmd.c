@@ -775,6 +775,94 @@ Test(flis_cmd, exportlayer_command_rejects_missing_file_arg) {
 	cr_assert_eq(process_flis_exportlayer(2), CMD_WRONG_N_ARG);
 }
 
+/* -----------------------------------------------------------------
+ * Layer property commands (§4.3 slice 8)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, setname_renames_layer) {
+	load_two_layer_fixture();
+	word[0] = "flis_setname"; word[1] = "Ha"; word[2] = "Hydrogen"; word[3] = NULL;
+	cr_assert_eq(process_flis_setname(3), CMD_OK);
+	cr_assert_str_eq(flis_layer_get_by_name("Hydrogen")->layer_name, "Hydrogen");
+}
+
+Test(flis_cmd, setblend_sets_mode) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	cr_assert_eq(ha->blend_mode, FLIS_BLEND_SCREEN);  /* set by fixture */
+	word[0] = "flis_setblend"; word[1] = "Ha"; word[2] = "multiply"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_OK);
+	cr_assert_eq(ha->blend_mode, FLIS_BLEND_MULTIPLY);
+}
+
+Test(flis_cmd, setblend_rejects_unknown_mode) {
+	load_two_layer_fixture();
+	word[0] = "flis_setblend"; word[1] = "Ha"; word[2] = "BLOWUP"; word[3] = NULL;
+	cr_assert_eq(process_flis_setblend(3), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, setopacity_sets_value) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	word[0] = "flis_setopacity"; word[1] = "Ha"; word[2] = "0.25"; word[3] = NULL;
+	cr_assert_eq(process_flis_setopacity(3), CMD_OK);
+	cr_assert_float_eq(ha->opacity, 0.25f, 1e-5f);
+}
+
+Test(flis_cmd, setopacity_rejects_out_of_range) {
+	load_two_layer_fixture();
+	word[0] = "flis_setopacity"; word[1] = "Ha"; word[2] = "1.5"; word[3] = NULL;
+	cr_assert_eq(process_flis_setopacity(3), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, setvisible_toggles) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	cr_assert(ha->visible);
+	word[0] = "flis_setvisible"; word[1] = "Ha"; word[2] = "off"; word[3] = NULL;
+	cr_assert_eq(process_flis_setvisible(3), CMD_OK);
+	cr_assert(!ha->visible);
+	word[2] = "true";
+	cr_assert_eq(process_flis_setvisible(3), CMD_OK);
+	cr_assert(ha->visible);
+}
+
+Test(flis_cmd, setlocked_toggles) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	cr_assert(!ha->locked);
+	word[0] = "flis_setlocked"; word[1] = "Ha"; word[2] = "1"; word[3] = NULL;
+	cr_assert_eq(process_flis_setlocked(3), CMD_OK);
+	cr_assert(ha->locked);
+}
+
+Test(flis_cmd, settint_sets_components) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	word[0] = "flis_settint"; word[1] = "Ha";
+	word[2] = "0.9"; word[3] = "0.1"; word[4] = "0.2"; word[5] = NULL;
+	cr_assert_eq(process_flis_settint(5), CMD_OK);
+	cr_assert(ha->has_tint);
+	cr_assert_float_eq(ha->layer_tint.r, 0.9, 1e-5);
+	cr_assert_float_eq(ha->layer_tint.g, 0.1, 1e-5);
+	cr_assert_float_eq(ha->layer_tint.b, 0.2, 1e-5);
+}
+
+Test(flis_cmd, settint_clear_disables_tint) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = flis_layer_get_by_name("Ha");
+	cr_assert(ha->has_tint);  /* fixture sets it */
+	word[0] = "flis_settint"; word[1] = "Ha"; word[2] = "-clear"; word[3] = NULL;
+	cr_assert_eq(process_flis_settint(3), CMD_OK);
+	cr_assert(!ha->has_tint);
+}
+
+Test(flis_cmd, settint_rejects_partial_rgb) {
+	load_two_layer_fixture();
+	word[0] = "flis_settint"; word[1] = "Ha"; word[2] = "0.5"; word[3] = "0.5"; word[4] = NULL;
+	cr_assert_eq(process_flis_settint(4), CMD_WRONG_N_ARG);
+}
+
 Test(flis_cmd, reorder_hook_self_target_noop) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
