@@ -2503,6 +2503,75 @@ int flis_setgroup_hook(struct generic_layer_args *args) {
     return flis_layer_set_group(lay, a->group_id);
 }
 
+/* -----------------------------------------------------------------------
+ * flis_reorder_hook (§4.3 slice 4) — drag-to-reorder.  Moves the source
+ * layer to sit immediately above (or below) the target layer in the
+ * stack.  Avoids layer_order collisions by sweeping the target slot
+ * and bumping any layer already there one step up.  Re-sorts.
+ * ----------------------------------------------------------------------- */
+
+void flis_reorder_args_free(gpointer p) {
+    struct flis_reorder_args *a = p;
+    if (!a) return;
+    g_free(a);
+}
+
+int flis_reorder_hook(struct generic_layer_args *args) {
+    struct flis_reorder_args *a = (struct flis_reorder_args *)args->user;
+    if (!a) return 1;
+    flis_layer_t *src = flis_layer_get_by_id(args->invalidate_item_id);
+    flis_layer_t *tgt = flis_layer_get_by_id(a->target_id);
+    if (!src || !tgt) return 1;
+    if (src == tgt) return 0;            /* no-op */
+    if (flis_check_locked(src, "reorder layer")) return 1;
+
+    /* Compute the new layer_order: just above or just below target.
+     * To make room, bump any layer already sitting at that order
+     * (and any chain of consecutive layers from there) by 1 in the
+     * direction of growth. */
+    const gint new_order = a->place_above ? tgt->layer_order + 1
+                                          : tgt->layer_order - 1;
+    /* Detach src first so the bump pass doesn't include it. */
+    com.uniq->layers = g_slist_remove(com.uniq->layers, src);
+
+    /* Bump any layer whose layer_order collides.  Simple sweep: walk
+     * the sorted list and shift contiguous-order layers along. */
+    if (a->place_above) {
+        gint sweep = new_order;
+        for (GSList *l = com.uniq->layers; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            if (lay->layer_order < sweep) continue;
+            if (lay->layer_order > sweep) break;
+            lay->layer_order += 1;
+            sweep += 1;
+        }
+    } else {
+        gint sweep = new_order;
+        /* Walk in descending order: g_slist_sort + reverse, or just
+         * iterate twice.  Cheaper: traverse in forward order
+         * skipping anything above new_order, then handle the
+         * contiguous-descending chain backwards. */
+        GSList *rev = g_slist_copy(com.uniq->layers);
+        rev = g_slist_reverse(rev);
+        for (GSList *l = rev; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            if (lay->layer_order > sweep) continue;
+            if (lay->layer_order < sweep) break;
+            lay->layer_order -= 1;
+            sweep -= 1;
+        }
+        g_slist_free(rev);
+    }
+
+    src->layer_order = new_order;
+    com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, src,
+                                              (GCompareFunc)layer_order_cmp);
+    flis_layer_touch_modified(src);
+    return 0;
+}
+
 int flis_clearmask_hook(struct generic_layer_args *args) {
     flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
     if (!lay) {

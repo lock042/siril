@@ -566,3 +566,76 @@ Test(flis_cmd, setgroup_command_rejects_short_args) {
 	word[2] = NULL;
 	cr_assert_eq(process_flis_setgroup(2), CMD_WRONG_N_ARG);
 }
+
+/* -----------------------------------------------------------------
+ * flis_reorder (§4.3 slice 4)
+ *
+ * No command; panel-only DnD path.  Tests exercise the hook directly.
+ * load_two_layer_fixture gives layer_order: base=10, Ha=20.
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, reorder_hook_above_moves_layer_up) {
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	flis_layer_t *ha   = (flis_layer_t *)com.uniq->layers->next->data;
+	cr_assert_eq(base->layer_order, 10);
+	cr_assert_eq(ha->layer_order, 20);
+
+	/* Move base ABOVE Ha → base.order > Ha.order */
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = ha->item_id;
+	payload->place_above = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("reorder above");
+	args->invalidate_item_id = base->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert(base->layer_order > ha->layer_order,
+		"base should now be above Ha (base=%d, ha=%d)",
+		base->layer_order, ha->layer_order);
+	/* List should still be sorted ascending. */
+	cr_assert_eq((flis_layer_t *)com.uniq->layers->data, ha,
+		"after reorder, lowest-order layer should be Ha");
+}
+
+Test(flis_cmd, reorder_hook_below_moves_layer_down) {
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	flis_layer_t *ha   = (flis_layer_t *)com.uniq->layers->next->data;
+
+	/* Move Ha BELOW base → Ha.order < base.order */
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = base->item_id;
+	payload->place_above = FALSE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("reorder below");
+	args->invalidate_item_id = ha->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert(ha->layer_order < base->layer_order);
+}
+
+Test(flis_cmd, reorder_hook_self_target_noop) {
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	const gint base_order = base->layer_order;
+
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = base->item_id;
+	payload->place_above = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("reorder self");
+	args->invalidate_item_id = base->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(base->layer_order, base_order, "self-target reorder is a no-op");
+}

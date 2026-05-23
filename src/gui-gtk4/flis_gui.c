@@ -320,7 +320,62 @@ typedef struct {
 	GtkWidget *kind_badge;        /* "group" badge for group rows */
 	gulong     vis_handler_id;
 	gulong     lock_handler_id;
+	/* Drag-to-reorder state — cached so bind can update item_id without
+	 * tearing down the controllers each time. */
+	GtkDragSource *drag_source;
+	GtkDropTarget *drop_target;
+	gint           current_item_id;
+	int            current_kind;
 } row_widgets_t;
+
+/* Drag-source prepare callback: builds a content provider carrying the
+ * source row's item_id as a G_TYPE_INT. */
+static GdkContentProvider *row_drag_prepare(GtkDragSource *src,
+                                             double x, double y, gpointer ud) {
+	(void)src; (void)x; (void)y;
+	row_widgets_t *rw = ud;
+	if (!rw || rw->current_kind != FLIS_ROW_KIND_LAYER || rw->current_item_id == 0)
+		return NULL;     /* groups don't drag-reorder yet */
+	GValue v = G_VALUE_INIT;
+	g_value_init(&v, G_TYPE_INT);
+	g_value_set_int(&v, rw->current_item_id);
+	GdkContentProvider *p = gdk_content_provider_new_for_value(&v);
+	g_value_unset(&v);
+	return p;
+}
+
+/* Drop target callback: invoked when a layer is dropped on this row.
+ * Source item_id arrives in @value (G_TYPE_INT); target is rw's. */
+static gboolean row_drop_received(GtkDropTarget *tgt, const GValue *value,
+                                   double x, double y, gpointer ud) {
+	(void)tgt; (void)x;
+	row_widgets_t *rw = ud;
+	if (!rw || rw->current_kind != FLIS_ROW_KIND_LAYER || rw->current_item_id == 0)
+		return FALSE;     /* can't drop on group rows */
+	if (!G_VALUE_HOLDS_INT(value)) return FALSE;
+	const gint src_id = g_value_get_int(value);
+	if (src_id == rw->current_item_id) return FALSE;  /* dropped on self */
+
+	/* Drop-zone heuristic: top half of the row → place ABOVE target
+	 * (higher z); bottom half → place BELOW.  Matches Photoshop's
+	 * intuitive feel where the dropped layer ends up where the cursor
+	 * landed in the list. */
+	const int h = gtk_widget_get_height(rw->row_box);
+	const gboolean place_above = (h > 0) ? (y < (double)h * 0.5) : TRUE;
+
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = rw->current_item_id;
+	payload->place_above = place_above;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Reorder layer"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = src_id;
+	start_in_new_thread(generic_layer_worker, args);
+	return TRUE;
+}
 
 static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	(void)f; (void)u;
@@ -357,6 +412,21 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_box_append(GTK_BOX(rw->row_box), rw->thumb);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->name_label);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->kind_badge);
+
+	/* Drag source + drop target for drag-to-reorder (§4.3 slice 4).
+	 * Attached once per row widget; bind updates rw->current_item_id
+	 * so the callbacks see the right layer.  No teardown needed —
+	 * controllers are owned by the row_box widget. */
+	rw->drag_source = gtk_drag_source_new();
+	gtk_drag_source_set_actions(rw->drag_source, GDK_ACTION_MOVE);
+	g_signal_connect(rw->drag_source, "prepare",
+	                 G_CALLBACK(row_drag_prepare), rw);
+	gtk_widget_add_controller(rw->row_box, GTK_EVENT_CONTROLLER(rw->drag_source));
+
+	rw->drop_target = gtk_drop_target_new(G_TYPE_INT, GDK_ACTION_MOVE);
+	g_signal_connect(rw->drop_target, "drop",
+	                 G_CALLBACK(row_drop_received), rw);
+	gtk_widget_add_controller(rw->row_box, GTK_EVENT_CONTROLLER(rw->drop_target));
 
 	g_object_set_data_full(G_OBJECT(item), "row-widgets", rw, g_free);
 	gtk_list_item_set_child(item, rw->row_box);
@@ -431,6 +501,11 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	/* Reset row CSS classes (rebind may receive a row that previously
 	 * displayed a group header or a different indent level). */
 	gtk_widget_remove_css_class(rw->row_box, "flis-group-header");
+
+	/* Drag-reorder identity: callbacks read these to know which layer
+	 * the row currently represents. */
+	rw->current_item_id = ri->item_id;
+	rw->current_kind    = ri->kind;
 
 	/* Left padding gives the visual indent for grouped layers.  Group
 	 * headers themselves sit flush left at indent_level=0. */
