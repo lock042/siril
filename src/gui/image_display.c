@@ -57,7 +57,7 @@
 
 #include "image_display.h"
 
-/* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
+/* is current_icc_profile() identical to the monitor profile, if so we can avoid the
  * transform */
 static cmsBool identical = FALSE;
 
@@ -173,8 +173,8 @@ static int allocate_full_surface(struct image_view *view) {
 }
 
 void check_gfit_profile_identical_to_monitor() {
-	if (!com.headless && gfit->icc_profile && gfit->color_managed)
-		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
+	if (!com.headless && current_icc_profile() && current_image_color_managed())
+		identical = profiles_identical(current_icc_profile(), com.gui_icc.monitor);
 	siril_log_debug("gfit profile identical to monitor profile: %d\n", identical);
 }
 
@@ -715,18 +715,18 @@ static void remap_all_vports() {
 	}
 
 	lock_display_transform();
-	if (gfit->color_managed) {
+	if (current_image_color_managed()) {
 		// Set the transform in case it is missing
 		if (!com.gui_icc.proofing_transform) {
 			com.gui_icc.proofing_transform = initialize_proofing_transform();
 			com.gui_icc.profile_changed = TRUE;
 		}
 		if (com.gui_icc.profile_changed) {
-			com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+			com.gui_icc.same_primaries = same_primaries(current_icc_profile(), com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 //			com.gui_icc.same_primaries = FALSE;
 			check_gfit_profile_identical_to_monitor();
 			// Calling color_manage() like this updates the color management button tooltip
-			color_manage(gfit, gfit->color_managed);
+			color_manage(gfit, current_image_color_managed());
 			if (is_preview_active())
 				copy_gfit_icc_to_backup();
 		}
@@ -734,7 +734,7 @@ static void remap_all_vports() {
 
 	make_index_for_current_display(0);
 	index[0] = gui.remap_index[0];
-	if (gfit->color_managed) {
+	if (current_image_color_managed()) {
 		for (int i = 1 ; i < 3 ; i++) {
 			make_index_for_current_display(i);
 			index[i] = gui.remap_index[i];
@@ -871,7 +871,7 @@ static void remap_all_vports() {
 				}
 			}
 			for (int c = 0 ; c < 3 ; c++) {
-				const int cc = gfit->color_managed ? c : 0;
+				const int cc = current_image_color_managed() ? c : 0;
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
 					if (gui.cut_over && val > remap_hi) {	// cut
@@ -1132,7 +1132,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit->color_managed && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
+	if (current_image_color_managed() && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;
@@ -1338,7 +1338,7 @@ static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
 		lb_rgb = malloc((size_t)visible_w * 3);
 		if (!lb_rgb) return FALSE;
 		lock_display_transform();
-		if (gfit->color_managed && com.gui_icc.proofing_transform && !identical &&
+		if (current_image_color_managed() && com.gui_icc.proofing_transform && !identical &&
 				!com.gui_icc.same_primaries) {
 			do_transform = TRUE;
 			transform = com.gui_icc.proofing_transform;
@@ -1394,7 +1394,7 @@ static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
 				const size_t si = (size_t)iy * img_w + ix;
 				BYTE *channels[3] = { lb_r, lb_g, lb_b };
 				for (int c = 0; c < 3; c++) {
-					const int cc = gfit->color_managed ? c : 0;
+					const int cc = current_image_color_managed() ? c : 0;
 					WORD w;
 					if (gfit->type == DATA_FLOAT)
 						w = roundf_to_WORD(gfit->fpdata[c][si] * USHRT_MAX_SINGLE);

@@ -293,10 +293,9 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (current_icc_profile())
-			cmsCloseProfile(current_icc_profile());
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, current_icc_profile() != NULL);
+		current_image_set_icc_profile(original_icc
+			? copyICCProfile(original_icc) : NULL);
+		current_image_color_manage(original_icc != NULL);
 	}
 
 	clear_backup();

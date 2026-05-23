@@ -963,7 +963,7 @@ ERROR_MESSAGE_AND_RETURN:
 }
 
 int write_icc_profile_to_fits(fits *fit) {
-	int retval = write_icc_profile_to_fptr(fit->fptr, fit->icc_profile);
+	int retval = write_icc_profile_to_fptr(fit->fptr, fit_get_icc_profile(fit));
 	return retval;
 }
 
@@ -1059,8 +1059,8 @@ int read_icc_profile_from_fits(fits *fit) {
 	int ihdu, nhdus, hdutype, orig_hdu = 1;
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
 	// siril_log_debug("Original HDU before looking for ICC profile: %d\n", orig_hdu);
-	if (fit->icc_profile)
-		cmsCloseProfile(fit->icc_profile);
+	if (fit_get_icc_profile(fit))
+		cmsCloseProfile(fit_get_icc_profile(fit));
 	fit->icc_profile = NULL;
 	fits_get_num_hdus(fit->fptr, &nhdus, &status);
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
@@ -1129,7 +1129,7 @@ int read_icc_profile_from_fits(fits *fit) {
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
-	if (fit->icc_profile) {
+	if (fit_get_icc_profile(fit)) {
 		siril_log_debug("Embedded ICC profile read from FITS\n");
 		color_manage(fit, TRUE);
 	} else {
@@ -1348,8 +1348,8 @@ void clearfits_header(fits *fit) {
 		fit->stats = NULL;
 	}
 	color_manage(fit, FALSE);
-	if (fit->icc_profile)
-		cmsCloseProfile(fit->icc_profile);
+	if (fit_get_icc_profile(fit))
+		cmsCloseProfile(fit_get_icc_profile(fit));
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
@@ -2492,8 +2492,8 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	if (fit->icc_profile) {
-		cmsCloseProfile(fit->icc_profile);
+	if (fit_get_icc_profile(fit)) {
+		cmsCloseProfile(fit_get_icc_profile(fit));
 		fit->icc_profile = NULL;
 	}
 	color_manage(fit, FALSE);
@@ -2508,8 +2508,8 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	if (fit->icc_profile) {
-		cmsCloseProfile(fit->icc_profile);
+	if (fit_get_icc_profile(fit)) {
+		cmsCloseProfile(fit_get_icc_profile(fit));
 		fit->icc_profile = NULL;
 	}
 	color_manage(fit, FALSE);

@@ -61,7 +61,7 @@
 
 #include "image_display.h"
 
-/* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
+/* is current_icc_profile() identical to the monitor profile, if so we can avoid the
  * transform */
 static cmsBool identical = FALSE;
 

@@ -79,9 +79,8 @@ void copy_gfit_icc_to_backup() {
 }
 
 static void copy_backup_icc_to_gfit() {
-	if (current_icc_profile())
-		cmsCloseProfile(current_icc_profile());
-	gfit->icc_profile = copyICCProfile(preview_icc_backup);
+	current_image_set_icc_profile(preview_icc_backup
+		? copyICCProfile(preview_icc_backup) : NULL);
 }
 
 static void clear_backup_icc() {

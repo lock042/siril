@@ -226,10 +226,10 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (gfit->icc_profile)
-			cmsCloseProfile(gfit->icc_profile);
+		if (current_icc_profile())
+			cmsCloseProfile(current_icc_profile());
 		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, gfit->icc_profile != NULL);
+		color_manage(gfit, current_icc_profile() != NULL);
 	}
 
 	clear_backup();
@@ -721,7 +721,7 @@ void toggle_curves_window_visibility() {
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
-				original_icc = copyICCProfile(gfit->icc_profile);
+				original_icc = copyICCProfile(current_icc_profile());
 			}
 			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
 		} else {

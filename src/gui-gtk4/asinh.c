@@ -157,10 +157,9 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (current_icc_profile())
-			cmsCloseProfile(current_icc_profile());
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, current_icc_profile() != NULL);
+		current_image_set_icc_profile(original_icc
+			? copyICCProfile(original_icc) : NULL);
+		current_image_color_manage(original_icc != NULL);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);

@@ -112,14 +112,14 @@ void set_source_information() {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
 	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
 	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
-	if (!gfit->color_managed) {
+	if (!current_image_color_managed()) {
 		siril_log_debug("Target image is not color managed\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
 		gtk_label_set_text(copyright_label, "");
 		return;
 	}
-	if (!gfit->icc_profile) {
+	if (!current_icc_profile()) {
 		siril_log_debug("Target profile is NULL\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
@@ -127,19 +127,19 @@ void set_source_information() {
 		return;
 	}
 	// Set description
-	gchar *buffer = siril_color_profile_get_description(gfit->icc_profile);
+	gchar *buffer = siril_color_profile_get_description(current_icc_profile());
 	if (buffer)
 		gtk_label_set_text(label, buffer);
 	free(buffer);
 
 	// Set manufacturer
-	buffer = siril_color_profile_get_manufacturer(gfit->icc_profile);
+	buffer = siril_color_profile_get_manufacturer(current_icc_profile());
 	if (buffer)
 		gtk_label_set_text(mfr_label, buffer);
 	free(buffer);
 
 	// Set copyright
-	buffer = siril_color_profile_get_copyright(gfit->icc_profile);
+	buffer = siril_color_profile_get_copyright(current_icc_profile());
 	if (buffer)
 		gtk_label_set_text(copyright_label, buffer);
 	free(buffer);
@@ -149,12 +149,12 @@ void set_icc_description_in_TIFF() {
 	// Set description
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_save_label");
 	gchar *buffer = NULL;
-	if (gfit->icc_profile) {
+	if (current_icc_profile()) {
 		gtk_widget_set_tooltip_text((GtkWidget*) label, "");
-		int length = cmsGetProfileInfoASCII(gfit->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+		int length = cmsGetProfileInfoASCII(current_icc_profile(), cmsInfoDescription, "en", "US", NULL, 0);
 		if (length) {
 			buffer = (char*) g_malloc(length * sizeof(char));
-			cmsGetProfileInfoASCII(gfit->icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+			cmsGetProfileInfoASCII(current_icc_profile(), cmsInfoDescription, "en", "US", buffer, length);
 		}
 	} else {
 			gtk_widget_set_tooltip_text((GtkWidget*) label, _("To write an ICC profile, assign a profile to the image using the Color Management dialog."));
@@ -274,8 +274,8 @@ void on_pref_icc_assign_never_toggled(GtkToggleButton *button, gpointer user_dat
  * and on_icc_remove_clicked */
 static gboolean icc_assign_idle(gpointer p) {
 	stop_processing_thread();
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), current_image_color_managed());
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), current_image_color_managed());
 	set_source_information();
 	gfit_modified_update_gui();
 	free_generic_img_args((struct generic_img_args *)p);
@@ -286,7 +286,7 @@ static gboolean icc_assign_idle(gpointer p) {
 /* Idle function for generic_image_worker path of on_icc_convertto_clicked */
 static gboolean icc_convert_to_idle(gpointer p) {
 	stop_processing_thread();
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), current_image_color_managed());
 	set_source_information();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
@@ -333,9 +333,9 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 
 	// Handle initial assignment of an ICC profile
-	if (!gfit->color_managed || !gfit->icc_profile) {
-		if (gfit->icc_profile) {
-			cmsCloseProfile(gfit->icc_profile);
+	if (!current_image_color_managed() || !current_icc_profile()) {
+		if (current_icc_profile()) {
+			cmsCloseProfile(current_icc_profile());
 			gfit->icc_profile = NULL;
 		}
 		if (target_colorspace_channels > gfit->naxes[2]) {
@@ -345,7 +345,7 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		goto FINISH;
 	}
 
-	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit->icc_profile);
+	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(current_icc_profile());
 	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
@@ -356,8 +356,8 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
-	if (gfit->icc_profile) {
-		cmsCloseProfile(gfit->icc_profile);
+	if (current_icc_profile()) {
+		cmsCloseProfile(current_icc_profile());
 		gfit->icc_profile = NULL;
 	}
 FINISH:;
@@ -396,7 +396,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	on_clear_roi();
-	if (!gfit->color_managed || !gfit->icc_profile) {
+	if (!current_image_color_managed() || !current_icc_profile()) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
 	}
@@ -529,13 +529,13 @@ void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_target_information();
 	GtkFileChooser* fc = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
 	gtk_file_chooser_set_current_folder(fc, default_system_icc_path());
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), current_image_color_managed());
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), current_image_color_managed());
 }
 
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	if (!gfit->icc_profile) {
+	if (!current_icc_profile()) {
 		siril_log_error(_("Error: no ICC profile associated with the current image. Cannot export.\n"));
 		return;
 	}
@@ -548,7 +548,7 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	free(filename);
 	filename = strdup(temp);
 	g_free(temp);
-	if (cmsSaveProfileToFile(gfit->icc_profile, filename))
+	if (cmsSaveProfileToFile(current_icc_profile(), filename))
 		siril_log_info(_("Exported ICC profile to %s\n"), filename);
 	else
 		siril_log_error(_("Failed to export ICC profile to %s\n"), filename);
@@ -560,8 +560,8 @@ void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_icc_plot_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit->icc_profile && siril_color_profile_is_rgb (gfit->icc_profile)) {
-		siril_plot_colorspace(gfit->icc_profile, TRUE);
+	if (current_icc_profile() && siril_color_profile_is_rgb (current_icc_profile())) {
+		siril_plot_colorspace(current_icc_profile(), TRUE);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Chromaticity plot only works with RGB color profiles"));
 	}

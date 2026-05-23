@@ -551,13 +551,13 @@ void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_target_information();
 	GtkWidget* fc = lookup_widget("icc_target_filechooser");
 	siril_file_chooser_set_current_folder_path(fc, default_system_icc_path());
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), current_image_color_managed());
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), current_image_color_managed());
 }
 
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	if (!gfit->icc_profile) {
+	if (!current_icc_profile()) {
 		siril_log_error(_("Error: no ICC profile associated with the current image. Cannot export.\n"));
 		return;
 	}
@@ -570,7 +570,7 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	free(filename);
 	filename = strdup(temp);
 	g_free(temp);
-	if (cmsSaveProfileToFile(gfit->icc_profile, filename))
+	if (cmsSaveProfileToFile(current_icc_profile(), filename))
 		siril_log_info(_("Exported ICC profile to %s\n"), filename);
 	else
 		siril_log_error(_("Failed to export ICC profile to %s\n"), filename);
@@ -582,8 +582,8 @@ void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_icc_plot_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit->icc_profile && siril_color_profile_is_rgb (gfit->icc_profile)) {
-		siril_plot_colorspace(gfit->icc_profile, TRUE);
+	if (current_icc_profile() && siril_color_profile_is_rgb (current_icc_profile())) {
+		siril_plot_colorspace(current_icc_profile(), TRUE);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Chromaticity plot only works with RGB color profiles"));
 	}

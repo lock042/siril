@@ -1111,7 +1111,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		refresh_icc_transforms();
 		if (single_image_is_loaded() || sequence_is_loaded()) {
-			color_manage(gfit, gfit->color_managed);
+			color_manage(gfit, current_image_color_managed());
 			gfit_modified_update_gui();
 		}
 		siril_close_dialog("settings_window");

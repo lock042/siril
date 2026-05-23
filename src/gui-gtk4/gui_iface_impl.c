@@ -828,8 +828,8 @@ static gboolean cm_worker(gpointer user_data) {
 		active ? "color_management.svg" : "color_management_off.svg", NULL);
 	gchar *tooltip = NULL;
 	if (active) {
-		if (fit->icc_profile) {
-			buffer = siril_color_profile_get_description(fit->icc_profile);
+		if (fit_get_icc_profile(fit)) {
+			buffer = siril_color_profile_get_description(fit_get_icc_profile(fit));
 			monitor = siril_color_profile_get_description(com.gui_icc.monitor);
 		}
 		if (com.gui_icc.soft_proof)
@@ -1415,11 +1415,11 @@ static void impl_apply_display_icc_compensation(gpointer p) {
 			memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
 		}
 	}
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-	cmsCloseProfile(fit->icc_profile);
+	cmsHPROFILE temp = copyICCProfile(fit_get_icc_profile(fit));
+	cmsCloseProfile(fit_get_icc_profile(fit));
 	fit->icc_profile = copyICCProfile(com.gui_icc.monitor);
 	siril_colorspace_transform(fit, temp);
-	cmsCloseProfile(fit->icc_profile);
+	cmsCloseProfile(fit_get_icc_profile(fit));
 	fit->icc_profile = copyICCProfile(temp);
 	cmsCloseProfile(temp);
 	if (depth == 1) {

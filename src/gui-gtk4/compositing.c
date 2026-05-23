@@ -1702,8 +1702,8 @@ void on_colordialog_ok_clicked(GtkButton *button, gpointer user_data) {
 		};
 		float img[3];
 		cmsHPROFILE image_profile = NULL;
-		if (gfit->icc_profile)
-			image_profile = copyICCProfile(gfit->icc_profile);
+		if (current_icc_profile())
+			image_profile = copyICCProfile(current_icc_profile());
 		else if ((com.pref.icc.autoassignment & ICC_ASSIGN_ON_COMPOSITION) && com.icc.working_standard)
 			image_profile = copyICCProfile(com.icc.working_standard);
 		if (image_profile) {
