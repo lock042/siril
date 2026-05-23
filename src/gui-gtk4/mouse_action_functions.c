@@ -696,6 +696,32 @@ mouse_function_metadata main_action = { main_action_click, NAME_MAIN_ACTION,
 	TRUE, MOUSE_REF_MAIN_ACTION};
 
 gboolean main_action_click(mouse_data *data) {
+	/* FLIS canvas-drag mode must work anywhere the cursor lands on
+	 * the cvport, not just inside the gfit area.  For FLIS, gfit is
+	 * the *active layer* — so clamp2image's "inside" is computed
+	 * against the layer's own bounds.  After dragging a layer far
+	 * from canvas origin its visible position may sit outside the
+	 * gfit bounds, and the user clicking on it would otherwise be
+	 * gated off by data->inside.  Handle before the inside gate. */
+	if (*data->mouse_status == MOUSE_ACTION_FLIS_DRAG_LAYER) {
+		if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+			flis_layer_t *act = flis_active_layer();
+			flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+			if (act && act != base) {
+				gui.flis_drag_layer_id    = act->item_id;
+				gui.flis_drag_start_image = data->evpos;
+				gui.flis_drag_start_layer.x = act->position_x;
+				gui.flis_drag_start_layer.y = act->position_y;
+				gui.flis_layer_dragging   = TRUE;
+				register_release_callback(flis_drag_layer_release, data->button);
+			} else if (act == base) {
+				siril_log_message(_("FLIS: cannot drag the base layer "
+				                    "(it defines canvas origin)\n"));
+			}
+		}
+		return TRUE;
+	}
+
 	if (data->inside) {
 		point pt;
 		int radius, s;
@@ -880,35 +906,6 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
 				register_release_callback(sample_mask_color_release, data->button);
-				break;
-			}
-			case MOUSE_ACTION_FLIS_DRAG_LAYER: {
-				/* Start a canvas-drag of the active FLIS layer.  Record
-				 * the cursor start (image coords) and the layer's
-				 * starting position so the motion handler can compute
-				 * deltas, and the release handler can commit the final
-				 * position via the worker for undo recording. */
-				if (is_current_image_flis() && com.uniq && com.uniq->layers) {
-					flis_layer_t *act = flis_active_layer();
-					/* Refuse to drag the base layer — it defines the canvas
-					 * origin and stays at (0,0).  Match the
-					 * flis_setposition_hook policy. */
-					flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-					if (act && act != base) {
-						gui.flis_drag_layer_id    = act->item_id;
-						/* Use unclamped image-space cursor position so
-						 * the user can drag the layer off-canvas (FLIS
-						 * allows negative / overflow position_x/y). */
-						gui.flis_drag_start_image = data->evpos;
-						gui.flis_drag_start_layer.x = act->position_x;
-						gui.flis_drag_start_layer.y = act->position_y;
-						gui.flis_layer_dragging   = TRUE;
-						register_release_callback(flis_drag_layer_release, data->button);
-					} else if (act == base) {
-						siril_log_message(_("FLIS: cannot drag the base layer "
-						                    "(it defines canvas origin)\n"));
-					}
-				}
 				break;
 			}
 			default: {
