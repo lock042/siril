@@ -400,9 +400,16 @@ static void append_layer_full(GtkSnapshot *snap, struct cache_slot *s,
 /* Compute the widget-space rect a layer's texture should be painted
  * into, given the canvas dst_rect.  For full-canvas layers this is
  * just dst_rect; for sparse layers it's translated to the layer's
- * FITS position (with y flipped from FITS bottom-up to display top-
- * down) and sized to the layer's extent.  All in widget-space units
- * (i.e. image-space coords scaled by xx/yy from the canvas dst_rect). */
+ * position.
+ *
+ * Coordinate-system note: the FLIS spec describes position_y as FITS
+ * (bottom-up) but the CPU compose kernel (flis_compose.c) writes the
+ * layer's pixels at FITS canvas rows [H-position_y-lH, H-position_y),
+ * which through the standard fpdata→display y-flip ends up displaying
+ * the layer at top-down rows [position_y, position_y+lH).  In other
+ * words, position_y behaves as a top-down display offset of the layer's
+ * top edge from the canvas top.  Match that convention so the GPU
+ * path puts the layer in the same place the CPU oracle does. */
 static void layer_dst_rect(const flis_layer_t *lay,
                             guint canvas_w, guint canvas_h,
                             const graphene_rect_t *canvas_dst,
@@ -411,13 +418,8 @@ static void layer_dst_rect(const flis_layer_t *lay,
 	const float yy = canvas_dst->size.height / (float)canvas_h;
 	const guint lw = (guint)lay->fit->rx;
 	const guint lh = (guint)lay->fit->ry;
-	const gint  px = lay->position_x;
-	const gint  py = lay->position_y;
-	/* Display y of the layer's top row = canvas_h - py - lh (FITS-y of
-	 * layer's top row is py + lh - 1; display flips to canvas_h - 1 - that
-	 * = canvas_h - py - lh).  Display x = px (no flip). */
-	const float dx = (float)px * xx;
-	const float dy = (float)((gint)canvas_h - py - (gint)lh) * yy;
+	const float dx = (float)lay->position_x * xx;
+	const float dy = (float)lay->position_y * yy;
 	*out = (graphene_rect_t)GRAPHENE_RECT_INIT(
 		canvas_dst->origin.x + dx,
 		canvas_dst->origin.y + dy,
