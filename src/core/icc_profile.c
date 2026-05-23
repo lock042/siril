@@ -125,18 +125,39 @@ void current_image_color_manage(gboolean active) {
 		gui_iface.update_icc_status_icon(NULL, active);
 }
 
+/* Returns TRUE iff @fit is the fits that holds the current-image state
+ * (gfit for plain FITS, FLIS base for FLIS — though for FLIS the base
+ * is now just a mirror, the canonical state lives on com.uniq). */
+static gboolean fit_is_current_image(const fits *fit) {
+	if (!fit) return FALSE;
+	if (fit == gfit) return TRUE;
+	if (is_current_image_flis() && fit == flis_get_profiled_fit())
+		return TRUE;
+	return FALSE;
+}
+
+/* Profile setter that respects current-image-vs-intermediate split.
+ * Takes ownership of @p (must not be closed by caller). */
+static void set_fit_icc_profile(fits *fit, cmsHPROFILE p) {
+	if (fit_is_current_image(fit)) {
+		current_image_set_icc_profile(p);
+		return;
+	}
+	if (fit->icc_profile && fit->icc_profile != p)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = p;
+}
+
 void color_manage(fits *fit, gboolean active) {
+	if (fit_is_current_image(fit)) {
+		/* Update authoritative state on com.uniq; the accessor mirrors
+		 * back to fit->color_managed and refreshes the toolbar icon. */
+		current_image_color_manage(active);
+		return;
+	}
+	/* Intermediate buffer (channel extraction, remixer, compositing,
+	 * sequence frames being processed, etc.).  Per-fits state only. */
 	fit->color_managed = active;
-	/* Update the toolbar icon when operating on gfit, *or* on the FLIS
-	 * profiled (base) layer.  In FLIS mode gfit usually points at a non-
-	 * base active layer; the GUI status reflects the canonical FLIS
-	 * profile that lives on the base, so updating only-on-gfit would
-	 * miss legitimate state changes. */
-	gboolean update_toolbar = (fit == gfit);
-	if (!update_toolbar && is_current_image_flis())
-		update_toolbar = (fit == flis_get_profiled_fit());
-	if (update_toolbar && !com.script)
-		gui_iface.update_icc_status_icon(fit, active);
 }
 
 static gchar *siril_color_profile_get_info (cmsHPROFILE profile, cmsInfoType info) {
@@ -1083,15 +1104,22 @@ ERROR_OR_FINISH:
 }
 
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
+	/* Source profile / color_managed flag come from com.uniq for the
+	 * current image; from fit->* for intermediate buffers.  After the
+	 * function completes, profile updates also flow through set_fit_icc
+	 * / color_manage so com.uniq stays in sync. */
+	gboolean    src_managed = fit_is_current_image(fit)
+	                         ? current_image_color_managed() : fit->color_managed;
+	cmsHPROFILE src_profile = fit_is_current_image(fit)
+	                         ? current_icc_profile() : fit->icc_profile;
 
 	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
 	// case but the behaviour is consistent.
 	if (!profile) {
-		if (fit->icc_profile) {
-			cmsCloseProfile(fit->icc_profile);
+		if (src_profile) {
 			fit->history = g_slist_append(fit->history, g_strdup(_("ICC profile removed")));
 		}
-		fit->icc_profile = NULL;
+		set_fit_icc_profile(fit, NULL);
 		color_manage(fit, FALSE);
 		return;
 	}
@@ -1100,22 +1128,20 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 	cmsUInt32Number fit_colorspace_channels;
 
-	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
-	if (!fit->color_managed || !fit->icc_profile) {
-		/* For a FLIS base layer the profile applies to the RGB composite, so
-		 * use the composite channel count rather than the (possibly mono) layer. */
-		fit_colorspace_channels = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	// If fit is not color managed, we assign the profile rather than convert to it
+	if (!src_managed || !src_profile) {
+		/* For a FLIS the profile applies to the RGB composite, so use the
+		 * composite channel count rather than the (possibly mono) base. */
+		fit_colorspace_channels = (is_current_image_flis() && fit_is_current_image(fit))
 		                          ? flis_composite_naxes2() : fit->naxes[2];
 		if (fit_colorspace_channels == target_colorspace_channels) {
-			if (fit->icc_profile)
-				cmsCloseProfile(fit->icc_profile);
-			fit->icc_profile = copyICCProfile(profile);
+			set_fit_icc_profile(fit, copyICCProfile(profile));
 			siril_log_debug("siril_colorspace_transform() assigned a profile\n");
 			gchar *desc = siril_color_profile_get_description(profile);
 			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
 			g_free(desc);
-			refresh_icc_transforms();
 			color_manage(fit, TRUE);
+			refresh_icc_transforms();
 			return;
 		} else {
 			gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
@@ -1124,7 +1150,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	}
 
 	// fit is color managed, so we really have to do the transform
-	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number fit_colorspace = cmsGetColorSpace(src_profile);
 	fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
 
 	/* Safety: if the existing profile's channel count disagrees with the
@@ -1136,9 +1162,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		siril_log_debug("siril_colorspace_transform(): profile/data channel mismatch "
 		                "(%u vs %ld) — re-tagging only\n",
 		                fit_colorspace_channels, (long)fit->naxes[2]);
-		if (fit->icc_profile)
-			cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(profile);
+		set_fit_icc_profile(fit, copyICCProfile(profile));
 		color_manage(fit, TRUE);
 		return;
 	}
@@ -1154,7 +1178,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	gboolean threaded = !processing_in_worker_thread();
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.export_intent, com.icc.rendering_flags);
+	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), src_profile, srctype, profile, desttype, com.pref.icc.export_intent, com.icc.rendering_flags);
 	if (transform) {
 		if (fit_colorspace_channels < target_colorspace_channels)
 			fits_change_depth(fit, target_colorspace_channels);
@@ -1164,15 +1188,14 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		cmsUInt32Number bytesperplane = npixels * datasize;
 		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
-		cmsCloseProfile(fit->icc_profile);
 		if (fit_colorspace_channels > target_colorspace_channels)
 			fits_change_depth(fit, target_colorspace_channels);
-		fit->icc_profile = copyICCProfile(profile);
-		refresh_icc_transforms();
-			gchar *desc = siril_color_profile_get_description(profile);
-			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
-			g_free(desc);
+		set_fit_icc_profile(fit, copyICCProfile(profile));
+		gchar *desc = siril_color_profile_get_description(profile);
+		fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
+		g_free(desc);
 		color_manage(fit, TRUE);
+		refresh_icc_transforms();
 		siril_log_debug("siril_colorspace_transform() converted a profile\n");
 	} else {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Failed to create colorspace transform."));
