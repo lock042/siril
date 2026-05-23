@@ -11,29 +11,27 @@
  */
 
 /*
- * flis_gpu_compose.h — per-layer GdkTexture cache + GSK push_blend
- * composition path (stage 3.2).
+ * flis_gpu_compose.h — per-layer per-tile GdkTexture cache + GSK
+ * push_blend composition path (stages 3.2 + 3.3).
  *
- * For FLIS files whose layer stack consists entirely of "simple" cases
- * (no sparse positioning, no groups, no FLIS_BLEND_CHROMA), each visible
- * layer is uploaded once as a canvas-sized BGRA8 texture with stretch
- * and mono tint baked in.  The display snapshot then composites them
- * via nested gtk_snapshot_push_blend / push_opacity / push_mask nodes
- * — the GPU does the per-pixel blend arithmetic rather than the CPU.
+ * For FLIS files whose layer stack can be expressed in GSK
+ * primitives (translatable blend modes, base-layer covers canvas),
+ * each visible layer is uploaded as a grid of per-tile BGRA8
+ * textures with stretch and mono tint baked in.  Tiles materialise
+ * lazily based on the visible-canvas rect passed to the render call,
+ * so off-screen tiles on multi-100-Mpix mosaics never hit GPU memory.
  *
  * Property-only changes (opacity, visibility, blend mode swap on an
  * existing layer) require no texture rebuild — they just change the
- * snapshot tree on the next frame.  Pixel changes invalidate one
- * layer's texture; stretch changes invalidate all (the stretch is
- * baked in).
+ * snapshot tree on the next frame.  Pixel/tint/extent changes
+ * invalidate one layer's tile grid; stretch changes invalidate all
+ * (the stretch is baked into each tile).
  *
- * Layers with active lmask are supported via a second per-layer
- * texture used as a luminance mask.
- *
- * Stage 3.3 will replace the canvas-sized texture with per-tile
- * textures that materialise lazily, mirroring the existing
- * plain-FITS tile pipeline.  The public API here stays stable across
- * that refactor.
+ * Layers with active lmask are supported via a single per-layer
+ * lmask texture used as a luminance mask source.  Sparse layers are
+ * placed at their FITS position_x/y via per-tile snapshot rects;
+ * groups composite into sub-trees wrapped in
+ * push_opacity(group_opacity) + push_blend(group_blend_mode).
  */
 
 #ifndef FLIS_GPU_COMPOSE_H
@@ -46,8 +44,8 @@
  * GPU compose path.  When this returns FALSE the caller must fall
  * back to the §3.1 CPU composite.  Reasons to fall back:
  *   • Any layer uses FLIS_BLEND_CHROMA (LRGB — no GSK equivalent)
- *   • Any layer is sparse (position_x/y != 0 OR layer extent != canvas)
- *   • Any layer belongs to a group (groups are §3.3 territory)
+ *   • The base layer is sparse, or in a non-PASS_THROUGH group
+ *   • A group's blend mode has no GSK equivalent
  *   • Empty layer list */
 gboolean flis_gpu_compose_compatible(GSList *layers);
 
@@ -55,6 +53,11 @@ gboolean flis_gpu_compose_compatible(GSList *layers);
  * widget-space pixels).  The canvas-to-widget transform must already
  * be on @snapshot's stack (caller does gtk_snapshot_save /
  * push_transform around this call).
+ *
+ * @visible_canvas is an optional culling hint in canvas image-space
+ * (display top-down): tiles whose canvas rect does not intersect
+ * this rect are skipped (no texture materialised, no GdkTexture
+ * appended).  Pass NULL to draw all tiles unconditionally.
  *
  * Requires flis_gpu_compose_compatible(layers) == TRUE; callers
  * must check before invoking.  Builds and caches textures lazily.
@@ -64,6 +67,7 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
                               GSList *layers,
                               guint canvas_w, guint canvas_h,
                               const graphene_rect_t *dst_rect,
+                              const graphene_rect_t *visible_canvas,
                               GskScalingFilter filter);
 
 /* Invalidate the cached textures belonging to one layer.  Call after

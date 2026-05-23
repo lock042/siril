@@ -2241,8 +2241,15 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				0.0f, 0.0f,
 				(float)(canvas_w * xx),
 				(float)(canvas_h * yy));
+			/* Pass the canvas-space visible rect so the GPU compose
+			 * path can cull per-layer tiles that fall outside the
+			 * viewport (§3.3 slice 3). */
+			graphene_rect_t vis_canvas = GRAPHENE_RECT_INIT(
+				(float)vis_xmin, (float)vis_ymin,
+				(float)(vis_xmax - vis_xmin),
+				(float)(vis_ymax - vis_ymin));
 			flis_gpu_compose_render(snapshot, com.uniq->layers,
-				canvas_w, canvas_h, &dst, filter);
+				canvas_w, canvas_h, &dst, &vis_canvas, filter);
 			used_gpu_compose = TRUE;
 		}
 
