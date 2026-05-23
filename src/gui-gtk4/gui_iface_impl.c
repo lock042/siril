@@ -821,15 +821,19 @@ struct cm_struct {
 
 static gboolean cm_worker(gpointer user_data) {
 	struct cm_struct *data = (struct cm_struct *) user_data;
-	fits *fit = data->fit;
+	(void)data->fit;
 	gboolean active = data->active;
 	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
 	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps",
 		active ? "color_management.svg" : "color_management_off.svg", NULL);
 	gchar *tooltip = NULL;
 	if (active) {
-		if (fit_get_icc_profile(fit)) {
-			buffer = siril_color_profile_get_description(fit_get_icc_profile(fit));
+		/* Read the current image's profile from com.uniq (the fit
+		 * pointer the caller passed is no longer used — the accessors
+		 * own the profile state). */
+		cmsHPROFILE current = current_icc_profile();
+		if (current) {
+			buffer = siril_color_profile_get_description(current);
 			monitor = siril_color_profile_get_description(com.gui_icc.monitor);
 		}
 		if (com.gui_icc.soft_proof)

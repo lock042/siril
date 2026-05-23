@@ -150,13 +150,21 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				stretch_value, black_value);
 		if (original_icc) {
-			/* Snapshot the pre-stretch ICC profile so undo restores it. */
-			cmsHPROFILE save = current_icc_profile();
+			/* Snapshot the pre-stretch ICC profile (original_icc) so
+			 * undo restores it.  We need to temporarily install
+			 * original_icc on com.uniq so undo_save_icc_state captures
+			 * it, then put the current profile back.  Copy the current
+			 * profile out FIRST — set_icc_profile would close the
+			 * existing pointer before storing the new one, leaving us
+			 * with a dangling reference. */
+			cmsHPROFILE cur_copy = current_icc_profile()
+				? copyICCProfile(current_icc_profile()) : NULL;
+			gboolean    cur_managed = current_image_color_managed();
 			current_image_set_icc_profile(copyICCProfile(original_icc));
 			current_image_color_manage(TRUE);
 			undo_save_icc_state("ICC profile (pre-asinh)");
-			current_image_set_icc_profile(save ? copyICCProfile(save) : NULL);
-			current_image_color_manage(save != NULL);
+			current_image_set_icc_profile(cur_copy);  /* takes ownership */
+			current_image_color_manage(cur_managed);
 		}
 	}
 

@@ -1367,7 +1367,16 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			if (log_string) {
 				undo_save_state(backup, log_string);
-				if (original_icc) undo_save_icc_state("ICC profile (pre-stretch)");
+				if (original_icc) {
+					cmsHPROFILE cur_copy = current_icc_profile()
+						? copyICCProfile(current_icc_profile()) : NULL;
+					gboolean    cur_managed = current_image_color_managed();
+					current_image_set_icc_profile(copyICCProfile(original_icc));
+					current_image_color_manage(TRUE);
+					undo_save_icc_state("ICC profile (pre-stretch)");
+					current_image_set_icc_profile(cur_copy);
+					current_image_color_manage(cur_managed);
+				}
 				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}
@@ -1442,7 +1451,16 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		if (log_string) {
 			undo_save_state(backup, log_string);
-			if (original_icc) undo_save_icc_state("ICC profile (pre-stretch)");
+			if (original_icc) {
+				cmsHPROFILE cur_copy = current_icc_profile()
+					? copyICCProfile(current_icc_profile()) : NULL;
+				gboolean    cur_managed = current_image_color_managed();
+				current_image_set_icc_profile(copyICCProfile(original_icc));
+				current_image_color_manage(TRUE);
+				undo_save_icc_state("ICC profile (pre-stretch)");
+				current_image_set_icc_profile(cur_copy);
+				current_image_color_manage(cur_managed);
+			}
 			siril_log_info("%s\n", log_string);
 			g_free(log_string);
 		}

@@ -703,7 +703,20 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			};
 			gchar *summary = curves_log_hook(&undo_params, SUMMARY);
 			undo_save_state(get_preview_gfit_backup(), "%s", summary);
-			if (original_icc) undo_save_icc_state("ICC profile (pre-curves)");
+			if (original_icc) {
+				/* Snapshot original_icc as the undo target.  Copy
+				 * current profile BEFORE the destructive set
+				 * (set_icc_profile closes the existing pointer).
+				 * See companion comment in gui-gtk4/asinh.c. */
+				cmsHPROFILE cur_copy = current_icc_profile()
+					? copyICCProfile(current_icc_profile()) : NULL;
+				gboolean    cur_managed = current_image_color_managed();
+				current_image_set_icc_profile(copyICCProfile(original_icc));
+				current_image_color_manage(TRUE);
+				undo_save_icc_state("ICC profile (pre-curves)");
+				current_image_set_icc_profile(cur_copy);
+				current_image_color_manage(cur_managed);
+			}
 			g_free(summary);
 
 			populate_roi();
