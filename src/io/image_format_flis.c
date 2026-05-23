@@ -2566,6 +2566,13 @@ int flis_reorder_hook(struct generic_layer_args *args) {
     }
 
     src->layer_order = new_order;
+    /* Inherit the target's group membership.  Without this, dropping a
+     * layer into the middle of a group's row range leaves the source
+     * outside the group, producing a confusing interleaved visual
+     * (group rows + a non-group row mixed together).  Dropping a layer
+     * onto a row with group_id == 0 also clears the source's group_id,
+     * which is the expected "drag out of the group" semantics. */
+    src->group_id = tgt->group_id;
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, src,
                                               (GCompareFunc)layer_order_cmp);
     flis_layer_touch_modified(src);
