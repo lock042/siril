@@ -896,7 +896,10 @@ gboolean main_action_click(mouse_data *data) {
 					flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
 					if (act && act != base) {
 						gui.flis_drag_layer_id    = act->item_id;
-						gui.flis_drag_start_image = data->zoomed;
+						/* Use unclamped image-space cursor position so
+						 * the user can drag the layer off-canvas (FLIS
+						 * allows negative / overflow position_x/y). */
+						gui.flis_drag_start_image = data->evpos;
 						gui.flis_drag_start_layer.x = act->position_x;
 						gui.flis_drag_start_layer.y = act->position_y;
 						gui.flis_layer_dragging   = TRUE;
