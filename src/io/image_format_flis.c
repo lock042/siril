@@ -1022,12 +1022,12 @@ int save_flis(const gchar *filename) {
     long canvas_w = base->fit ? base->fit->rx : 0;
     long canvas_h = base->fit ? base->fit->ry : 0;
 
-    /* Determine whether an ICC profile should be written.
-     * Use the base layer's ICC profile for the whole file. */
-    gboolean icc_present = (base->fit &&
-                            base->fit->icc_profile != NULL &&
-                            base->fit->color_managed &&
-                            com.pref.fits_save_icc);
+    /* Determine whether an ICC profile should be written.  The profile
+     * is image-level state on com.uniq, not per-layer. */
+    cmsHPROFILE save_profile = (com.uniq) ? com.uniq->icc_profile : NULL;
+    gboolean    save_managed = (com.uniq) ? com.uniq->color_managed : FALSE;
+    gboolean icc_present = (save_profile != NULL && save_managed
+                            && com.pref.fits_save_icc);
 
     /* ----------------------------------------------------------------
      * HDU 1 (index 0): primary thumbnail HDU
@@ -1044,7 +1044,7 @@ int save_flis(const gchar *filename) {
      * HDU 2 (optional): ICC profile
      * ---------------------------------------------------------------- */
     if (icc_present) {
-        if (write_icc_profile_to_fptr(fptr, base->fit->icc_profile)) {
+        if (write_icc_profile_to_fptr(fptr, save_profile)) {
             siril_log_warning(_("FLIS: warning — ICC profile write failed, continuing\n"));
             icc_present = FALSE;
         }
@@ -1449,6 +1449,21 @@ int load_flis(const gchar *filename) {
     com.uniq->layers    = layers;
     com.uniq->groups    = groups;
     com.uniq->next_item_id = 1; /* will be set properly below */
+
+    /* ICC profile (image-level — see flis_get_profiled_fit comment) lives
+     * on com.uniq.  The base layer fit will continue to mirror it for the
+     * duration of the migration via current_image_set_icc_profile so that
+     * legacy fit->icc_profile readers still work. */
+    if (com.uniq->icc_profile) {
+        cmsCloseProfile(com.uniq->icc_profile);
+        com.uniq->icc_profile = NULL;
+    }
+    if (file_icc) {
+        com.uniq->icc_profile  = copyICCProfile(file_icc);
+        com.uniq->color_managed = TRUE;
+    } else {
+        com.uniq->color_managed = FALSE;
+    }
 
     /* Find the highest item_id to seed next_item_id */
     gint max_id = 0;
