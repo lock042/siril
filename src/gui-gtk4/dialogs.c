@@ -77,7 +77,15 @@ static const SirilDialogEntry entries[] =
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
-	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	/* icc_dialog is treated as INFORMATION_DIALOG so it doesn't trigger
+	 * the close-other-dialogs auto-cancel when opened: stretch dialogs
+	 * auto-assign a colour profile on open, and the auto-cancel was
+	 * reverting that side-effect — leaving the image with no profile
+	 * just as the user opens the dialog to manage it.  icc_dialog's
+	 * Assign/Convert/Remove work goes through the generic_image_worker
+	 * queue like every other operation, so allowing it to coexist with
+	 * a stretch dialog is safe. */
+	{"icc_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
