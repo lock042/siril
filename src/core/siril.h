@@ -889,6 +889,12 @@ struct historic_struct {
 	/* ---- Undo entry flavour flags ------------------------------------- */
 	gboolean pmask_only;   /* processing-mask-only state (no pixel data) */
 	gboolean full_layer;   /* full layer state: pixels + pmask + lmask + props */
+	gboolean icc_only;     /* com.uniq->icc_profile + color_managed snapshot
+	                          only — no swap files; restore is a single
+	                          current_image_set_icc_profile + color_manage
+	                          call.  icc_profile (above) holds the snapshot. */
+	gboolean icc_was_managed;  /* snapshot of color_managed at save time
+	                              (icc_only entries only) */
 
 	/* ---- Compound (multi-layer) undo ---------------------------------- */
 	/* Non-NULL only when this entry was saved via undo_save_flis_multi_layer().

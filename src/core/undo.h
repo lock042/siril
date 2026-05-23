@@ -126,6 +126,16 @@ int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...);
 int undo_save_processing_mask(fits *fit, const char *message, ...);
 
 /**
+ * undo_save_icc_state:
+ * Save com.uniq->icc_profile + com.uniq->color_managed only — no
+ * pixel/mask swap files.  Used by the ICC dialog (Assign, Convert,
+ * Remove) and by icc_auto_assign_or_convert.  Restore re-installs the
+ * snapshot via the current_image_* accessors so the gfit/FLIS-base
+ * mirrors are kept consistent.
+ */
+int undo_save_icc_state(const char *message, ...);
+
+/**
  * undo_save_flis_layer_full:
  * Save a complete single-layer state: pixels (from @fit_snapshot), processing
  * mask, layer mask (@lmask_snapshot, or NULL if @lay had none), and the
