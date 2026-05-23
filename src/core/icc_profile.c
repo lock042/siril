@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
+#include "core/undo.h"
 #include "icc_default_profiles.h"
 #include "core/gui_iface.h"
 #include "io/single_image.h"
@@ -1536,6 +1537,21 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 
 	if (is_current_image_flis() && fit == flis_get_profiled_fit()
 	    && fit->color_managed && fit->icc_profile) {
+		/* Capture every layer's pre-conversion state — pixels, tints,
+		 * base profile — before flis_convert_layers_icc rewrites them.
+		 * The generic_image_worker's built-in undo only snapshots
+		 * args->fit (the base) and only when args->fit==gfit; both
+		 * conditions miss the per-layer pixel transforms and the tint-
+		 * vector rewrites that the FLIS convert does to every other
+		 * layer.  Marking custom_undo on the args stops the worker
+		 * from also saving a redundant base-only state on top. */
+		gchar *prof_desc = siril_color_profile_get_description(args->profile);
+		undo_save_flis_multi_layer(com.uniq->layers,
+			_("Converted to ICC profile: %s"),
+			prof_desc ? prof_desc : "?");
+		g_free(prof_desc);
+		gargs->custom_undo = TRUE;
+
 		/* Run the per-layer conversion first (uses the old profile, which
 		 * is still on the base at this point), then swap the base's
 		 * profile to the target via siril_colorspace_transform — the
