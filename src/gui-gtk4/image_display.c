@@ -836,7 +836,7 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 			idx[c] = hd_mode ? gui.hd_remap_index[slot]
 			                 : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (gfit->color_managed
+		const gboolean do_icc = (current_image_color_managed()
 			&& com.gui_icc.proofing_transform && !identical
 			&& !com.gui_icc.same_primaries);
 		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, do_icc);
@@ -1016,13 +1016,12 @@ static gboolean prefetch_idle_cb(gpointer data) {
 }
 
 void check_gfit_profile_identical_to_monitor() {
-	/* For FLIS the canonical profile lives on the base layer, not gfit
-	 * (which may currently be an unprofiled active layer).  Compare the
-	 * profiled fit's profile against the monitor instead. */
-	fits *profiled = flis_get_profiled_fit();
-	if (!com.headless && profiled->icc_profile && profiled->color_managed)
-		identical = profiles_identical(profiled->icc_profile, com.gui_icc.monitor);
-	siril_log_debug("profiled fit's profile identical to monitor profile: %d\n", identical);
+	/* Profile is stored authoritatively on com.uniq for both plain FITS
+	 * and FLIS images. */
+	cmsHPROFILE prof = current_icc_profile();
+	if (!com.headless && prof && current_image_color_managed())
+		identical = profiles_identical(prof, com.gui_icc.monitor);
+	siril_log_debug("current image profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
@@ -1499,19 +1498,21 @@ static void remap_all_vports() {
 		return;
 	}
 
+	gboolean managed = current_image_color_managed();
 	lock_display_transform();
-	if (gfit->color_managed) {
+	if (managed) {
 		// Set the transform in case it is missing
 		if (!com.gui_icc.proofing_transform) {
 			com.gui_icc.proofing_transform = initialize_proofing_transform();
 			com.gui_icc.profile_changed = TRUE;
 		}
 		if (com.gui_icc.profile_changed) {
-			com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+			com.gui_icc.same_primaries = same_primaries(current_icc_profile(), com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 //			com.gui_icc.same_primaries = FALSE;
 			check_gfit_profile_identical_to_monitor();
-			// Calling color_manage() like this updates the color management button tooltip
-			color_manage(gfit, gfit->color_managed);
+			// Re-set the color-managed flag through the accessor so the
+			// toolbar tooltip updates.
+			current_image_color_manage(managed);
 			if (is_preview_active())
 				copy_gfit_icc_to_backup();
 		}
@@ -1519,7 +1520,7 @@ static void remap_all_vports() {
 
 	make_index_for_current_display(0);
 	index[0] = gui.remap_index[0];
-	if (gfit->color_managed) {
+	if (managed) {
 		for (int i = 1 ; i < 3 ; i++) {
 			make_index_for_current_display(i);
 			index[i] = gui.remap_index[i];
@@ -1670,7 +1671,7 @@ static void remap_all_vports() {
 				}
 			}
 			for (int c = 0 ; c < 3 ; c++) {
-				const int cc = gfit->color_managed ? c : 0;
+				const int cc = managed ? c : 0;
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
 					if (gui.cut_over && val > remap_hi) {	// cut
@@ -1923,7 +1924,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit->color_managed && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
+	if (current_image_color_managed() && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;

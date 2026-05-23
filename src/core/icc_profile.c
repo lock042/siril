@@ -281,29 +281,36 @@ void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mu
 
 cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(com.gui_icc.monitor);
-	/* For FLIS the profile lives on the base (profiled) layer; gfit may be
-	 * any active layer and typically has icc_profile == NULL.  Use the
-	 * profiled fit for the source profile + linearity check, and pick the
-	 * input format from flis_composite_naxes2() (always 3) since the
-	 * proofing transform processes the RGB composite, not the base data. */
-	fits *profiled = flis_get_profiled_fit();
-	if (profiled->icc_profile == NULL || profiled->color_managed == FALSE)
+	/* The current image's profile is stored authoritatively on com.uniq.
+	 * For non-current fits there is nothing to proof. */
+	cmsHPROFILE src_profile = current_icc_profile();
+	if (src_profile == NULL || !current_image_color_managed())
 		return NULL;
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
-	if (fit_icc_is_linear(profiled))
-		flags |= cmsFLAGS_NOOPTIMIZE;
+	{
+		/* fit_icc_is_linear needs a fits — synthesise one against the
+		 * stored profile.  Once fit_icc_is_linear takes a profile
+		 * directly we can drop the stack-fits dance. */
+		fits stub = { .icc_profile = src_profile, .color_managed = TRUE };
+		if (fit_icc_is_linear(&stub))
+			flags |= cmsFLAGS_NOOPTIMIZE;
+	}
 	gboolean gamutcheck = gui_iface.get_gamut_check_active();
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	guint src_naxes2 = (is_current_image_flis())
-	                   ? flis_composite_naxes2() : (guint)profiled->naxes[2];
+	/* For FLIS the displayed composite is always RGB regardless of
+	 * whether the underlying base data is mono.  For plain FITS we use
+	 * gfit's channel count. */
+	guint src_naxes2 = is_current_image_flis()
+	                   ? flis_composite_naxes2()
+	                   : (guint)(gfit ? gfit->naxes[2] : 1);
 	cmsUInt32Number type = (src_naxes2 == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
 						com.icc.context_single,
-						profiled->icc_profile,
+						src_profile,
 						type,
 						com.gui_icc.monitor,
 						TYPE_RGB_8_PLANAR,
@@ -649,16 +656,11 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 }
 
 /* Refreshes the display and proofing transforms after a profile is changed.
- *
- * For FLIS, the authoritative ICC profile lives on the base layer rather
- * than on gfit (which may currently point at any active layer).  Source
- * the same_primaries comparison from flis_get_profiled_fit() so the
- * proofing transform is set up from the canonical FLIS profile and not
- * from a layer that may have icc_profile == NULL. */
+ * Source profile is always com.uniq's (no per-layer profile in any image
+ * type now). */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		fits *profiled = flis_get_profiled_fit();
-		com.gui_icc.same_primaries = same_primaries(profiled->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+		com.gui_icc.same_primaries = same_primaries(current_icc_profile(), com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
 		if (com.gui_icc.proofing_transform)
 			cmsDeleteTransform(com.gui_icc.proofing_transform);
