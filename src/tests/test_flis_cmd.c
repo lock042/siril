@@ -621,6 +621,58 @@ Test(flis_cmd, reorder_hook_below_moves_layer_down) {
 	cr_assert(ha->layer_order < base->layer_order);
 }
 
+Test(flis_cmd, reorder_hook_inherits_target_group) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("G");
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	flis_layer_t *ha   = (flis_layer_t *)com.uniq->layers->next->data;
+	/* Put Ha into the group, base stays out. */
+	flis_layer_set_group(ha, grp->item_id);
+	cr_assert_eq(base->group_id, 0);
+	cr_assert_eq(ha->group_id,   grp->item_id);
+
+	/* Drag base onto Ha → base should join the group. */
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = ha->item_id;
+	payload->place_above = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("reorder into group");
+	args->invalidate_item_id = base->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(base->group_id, grp->item_id,
+		"reordered layer should inherit target's group");
+}
+
+Test(flis_cmd, reorder_hook_onto_ungrouped_clears_source_group) {
+	load_two_layer_fixture();
+	flis_group_t *grp = flis_group_add("G");
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	flis_layer_t *ha   = (flis_layer_t *)com.uniq->layers->next->data;
+	/* Put base into the group; Ha stays out. */
+	flis_layer_set_group(base, grp->item_id);
+	cr_assert_eq(base->group_id, grp->item_id);
+	cr_assert_eq(ha->group_id,   0);
+
+	/* Drag base onto ungrouped Ha → base should leave the group. */
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = ha->item_id;
+	payload->place_above = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("reorder out of group");
+	args->invalidate_item_id = base->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(base->group_id, 0,
+		"dropping on ungrouped layer should clear source's group");
+}
+
 Test(flis_cmd, reorder_hook_self_target_noop) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;

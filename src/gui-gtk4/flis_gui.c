@@ -159,6 +159,7 @@ static GMenu *build_context_menu(void);
 static void   register_panel_actions(void);
 static void   refresh_panel(void);
 static void   sync_property_widgets(flis_layer_t *lay);
+static void   update_toolbar_sensitivity(void);
 static flis_layer_t *current_selected_layer(void);
 static flis_group_t *current_selected_group(void);
 
@@ -811,6 +812,26 @@ static flis_layer_t *current_selected_layer(void) {
 	return lay;
 }
 
+/* Compute toolbar button sensitivity from current selection + image
+ * state.  Called from refresh_panel and on_selection_changed so the
+ * buttons re-enable as soon as the user picks a different row, not
+ * only after a panel rebuild. */
+static void update_toolbar_sensitivity(void) {
+	if (!g_panel) return;
+	const gboolean is_flis  = is_current_image_flis();
+	flis_layer_t  *sel_lay  = current_selected_layer();
+	flis_group_t  *sel_grp  = current_selected_group();
+	const gboolean have_sel = (sel_lay != NULL) || (sel_grp != NULL);
+
+	gtk_widget_set_sensitive(g_panel->btn_remove,    have_sel);
+	gtk_widget_set_sensitive(g_panel->btn_duplicate, sel_lay != NULL);
+	gtk_widget_set_sensitive(g_panel->btn_move_up,   have_sel);
+	gtk_widget_set_sensitive(g_panel->btn_move_down, have_sel);
+	gtk_widget_set_sensitive(g_panel->btn_drag,      sel_lay != NULL);
+	gtk_widget_set_sensitive(g_panel->btn_add,       com.uniq != NULL);
+	gtk_widget_set_sensitive(g_panel->btn_group,     is_flis);
+}
+
 static flis_group_t *current_selected_group(void) {
 	if (!g_panel || !g_panel->list_sel) return NULL;
 	guint pos = gtk_single_selection_get_selected(g_panel->list_sel);
@@ -930,15 +951,7 @@ static void refresh_panel(void) {
 	sync_property_widgets(current_selected_layer());
 
 	/* Sensitivity of toolbar buttons. */
-	const gboolean have_sel  = (current_selected_layer() != NULL) ||
-	                           (current_selected_group() != NULL);
-	gtk_widget_set_sensitive(g_panel->btn_remove,    have_sel);
-	gtk_widget_set_sensitive(g_panel->btn_duplicate, current_selected_layer() != NULL);
-	gtk_widget_set_sensitive(g_panel->btn_move_up,   have_sel);
-	gtk_widget_set_sensitive(g_panel->btn_move_down, have_sel);
-	gtk_widget_set_sensitive(g_panel->btn_drag,      current_selected_layer() != NULL);
-	gtk_widget_set_sensitive(g_panel->btn_add,       com.uniq != NULL);
-	gtk_widget_set_sensitive(g_panel->btn_group,     is_flis);
+	update_toolbar_sensitivity();
 
 	g_panel->refreshing = FALSE;
 }
@@ -1123,6 +1136,7 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 	if (g_panel && g_panel->refreshing) return;
 	flis_layer_t *lay = current_selected_layer();
 	sync_property_widgets(lay);
+	update_toolbar_sensitivity();   /* re-enable Remove/Duplicate/etc. */
 
 	/* §4.5 checkoff: selecting a layer rebinds gfit (and uniq->fit,
 	 * uniq->chans, uniq->active_layer) so tools that operate on gfit
@@ -1315,15 +1329,41 @@ static void on_add_clicked(GtkButton *b, gpointer u) {
 	                      NULL, on_add_file_chosen, NULL);
 	g_object_unref(fd);
 }
+/* Confirmation dialog callback for Remove Layer.  Remove is destructive
+ * and not undoable on this branch (the §1.4 undo plumbing for layer
+ * removal was deemed too costly given typical FLIS sizes), so a
+ * GtkAlertDialog warns before dispatching. */
+static void on_remove_confirm_resp(GObject *src, GAsyncResult *res, gpointer ud) {
+	GtkAlertDialog *ad = GTK_ALERT_DIALOG(src);
+	gint chosen = gtk_alert_dialog_choose_finish(ad, res, NULL);
+	const gint id = GPOINTER_TO_INT(ud);
+	/* Button 0 = Remove, 1 = Cancel.  Esc / close → -1. */
+	if (chosen != 0) return;
+	struct op_payload *op = g_new0(struct op_payload, 1);
+	op->destroy_fn = op_payload_free;
+	op->target_id = id;
+	op->kind = OP_LAYER_REMOVE;
+	dispatch_op(op, _("Remove layer"), FLIS_INV_ALL);
+}
+
 static void on_remove_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
 	if (!lay) return;
-	struct op_payload *op = g_new0(struct op_payload, 1);
-	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_LAYER_REMOVE;
-	dispatch_op(op, _("Remove layer"), FLIS_INV_ALL);
+	GtkAlertDialog *ad = gtk_alert_dialog_new(
+		_("Remove layer '%s'?"),
+		lay->layer_name ? lay->layer_name : "(unnamed)");
+	gtk_alert_dialog_set_detail(ad,
+		_("This action cannot be undone.  The layer's pixel data and "
+		  "mask will be discarded."));
+	const char *buttons[] = { _("Remove"), _("Cancel"), NULL };
+	gtk_alert_dialog_set_buttons(ad, buttons);
+	gtk_alert_dialog_set_default_button(ad, 1);   /* Cancel is default */
+	gtk_alert_dialog_set_cancel_button(ad, 1);
+	gtk_alert_dialog_choose(ad,
+		g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+		NULL, on_remove_confirm_resp, GINT_TO_POINTER(lay->item_id));
+	g_object_unref(ad);
 }
 static void on_duplicate_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
@@ -1356,25 +1396,68 @@ static void on_drag_toggled(GtkToggleButton *b, gpointer u) {
 	siril_log_message(_("FLIS: Canvas drag mode %s — TODO\n"),
 	                  gtk_toggle_button_get_active(b) ? _("on") : _("off"));
 }
+/* Single-layer up/down — go through the slice-4 reorder hook with the
+ * immediate visual neighbour as target.  Deliberately bypasses the
+ * legacy flis_layer_move_up / _down primitives which jump past entire
+ * groups (correct for "promote layer out of group" semantics but
+ * wrong for "swap with immediate neighbour" which is what the panel
+ * buttons should do — Photoshop / GIMP behaviour). */
+static void move_relative(flis_layer_t *lay, gboolean direction_up) {
+	if (!lay || !com.uniq) return;
+	flis_layer_t *neighbour = NULL;
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *cand = (flis_layer_t *)l->data;
+		if (!cand || cand == lay) continue;
+		if (direction_up) {
+			if (cand->layer_order <= lay->layer_order) continue;
+			/* lowest-order layer that's still above us */
+			if (!neighbour || cand->layer_order < neighbour->layer_order)
+				neighbour = cand;
+		} else {
+			if (cand->layer_order >= lay->layer_order) continue;
+			/* highest-order layer that's still below us */
+			if (!neighbour || cand->layer_order > neighbour->layer_order)
+				neighbour = cand;
+		}
+	}
+	if (!neighbour) return;  /* already at the top/bottom of the visual list */
+
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_reorder_args_free;
+	payload->target_id   = neighbour->item_id;
+	payload->place_above = direction_up;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->description        = g_strdup(direction_up ? _("Move layer up")
+	                                                  : _("Move layer down"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = lay->item_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
 static void on_move_up_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
-	struct op_payload *op = g_new0(struct op_payload, 1);
-	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_LAYER_MOVE_UP;
-	dispatch_op(op, _("Move layer up"), FLIS_INV_STACK);
+	if (lay) { move_relative(lay, TRUE); return; }
+	flis_group_t *grp = current_selected_group();
+	if (grp) {
+		/* Moving a group as a whole needs a batch reorder primitive
+		 * — deferred to a follow-up.  For now, log and refuse so the
+		 * user gets clear feedback instead of a partial move. */
+		siril_log_message(_("FLIS: moving a group as a whole is not yet "
+		                    "implemented; select an individual layer\n"));
+	}
 }
 static void on_move_down_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
-	struct op_payload *op = g_new0(struct op_payload, 1);
-	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_LAYER_MOVE_DOWN;
-	dispatch_op(op, _("Move layer down"), FLIS_INV_STACK);
+	if (lay) { move_relative(lay, FALSE); return; }
+	flis_group_t *grp = current_selected_group();
+	if (grp) {
+		siril_log_message(_("FLIS: moving a group as a whole is not yet "
+		                    "implemented; select an individual layer\n"));
+	}
 }
 /* Mask sub-frame handlers (slice 2).
  *
