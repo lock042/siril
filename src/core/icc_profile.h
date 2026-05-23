@@ -110,6 +110,32 @@ void icc_unlock_monitor_profile(void);
 void icc_lock_soft_proof_profile(void);
 void icc_unlock_soft_proof_profile(void);
 
+/* --------------------------------------------------------------------
+ * Current-image ICC accessors.
+ *
+ * The authoritative store for the current image's colour profile lives
+ * on com.uniq (single struct), not on any fits.  Use these helpers
+ * everywhere you would previously have read or written gfit->icc_profile
+ * / gfit->color_managed.  They cope with the no-image-loaded case
+ * (com.uniq == NULL) by returning NULL / FALSE / no-op.
+ *
+ * Sequence frames and intermediate processing buffers do NOT have a
+ * profile attached and must not call these — they either operate
+ * profile-free (sequences) or pass profile explicitly via function
+ * parameters (intermediate transforms).
+ * -------------------------------------------------------------------- */
+cmsHPROFILE current_icc_profile(void);
+gboolean    current_image_color_managed(void);
+/* Takes ownership of @p (caller must not close it after handing it
+ * over); a previous current_icc_profile is cmsCloseProfile'd. */
+void        current_image_set_icc_profile(cmsHPROFILE p);
+/* Close & clear current profile and set color_managed = FALSE. */
+void        current_image_clear_icc_profile(void);
+/* Set color_managed flag without touching the profile.  Updates the
+ * GUI toolbar icon as a side effect (was the responsibility of the
+ * old color_manage() function). */
+void        current_image_color_manage(gboolean active);
+
 /* Image processing hooks for generic_image_worker */
 #include "core/processing.h"
 

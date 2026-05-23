@@ -49,6 +49,45 @@ static gboolean profile_check_verbose = TRUE;
 
 ////// Functions //////
 
+/* --------------------------------------------------------------------
+ * Current-image ICC accessors.  See icc_profile.h for the contract.
+ * -------------------------------------------------------------------- */
+cmsHPROFILE current_icc_profile(void) {
+	return (com.uniq) ? com.uniq->icc_profile : NULL;
+}
+
+gboolean current_image_color_managed(void) {
+	return (com.uniq) ? com.uniq->color_managed : FALSE;
+}
+
+void current_image_set_icc_profile(cmsHPROFILE p) {
+	if (!com.uniq) {
+		if (p) cmsCloseProfile(p);
+		return;
+	}
+	if (com.uniq->icc_profile && com.uniq->icc_profile != p)
+		cmsCloseProfile(com.uniq->icc_profile);
+	com.uniq->icc_profile = p;
+}
+
+void current_image_clear_icc_profile(void) {
+	if (!com.uniq) return;
+	if (com.uniq->icc_profile) {
+		cmsCloseProfile(com.uniq->icc_profile);
+		com.uniq->icc_profile = NULL;
+	}
+	com.uniq->color_managed = FALSE;
+	if (!com.script)
+		gui_iface.update_icc_status_icon(NULL, FALSE);
+}
+
+void current_image_color_manage(gboolean active) {
+	if (!com.uniq) return;
+	com.uniq->color_managed = active;
+	if (!com.script)
+		gui_iface.update_icc_status_icon(NULL, active);
+}
+
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	/* Update the toolbar icon when operating on gfit, *or* on the FLIS
