@@ -2653,6 +2653,121 @@ int flis_exportlayer_hook(struct generic_layer_args *args) {
     return 0;
 }
 
+/* -----------------------------------------------------------------------
+ * flis_group_reorder_hook — move a group as a whole up or down in the
+ * stack.  Preserves the group's internal layer order.  No-op when the
+ * group is already at the requested edge of the stack.
+ *
+ * Approach: find the immediate "external" layer adjacent to the group
+ * in the requested direction (i.e. the layer with layer_order just
+ * above the group's highest member, or just below the group's lowest
+ * — that is NOT itself a group member).  Then swap that external
+ * layer's slot with the entire group block by shifting layer_order
+ * values.  Group cohesion is preserved because we only swap with one
+ * external layer at a time; group members move as a contiguous run.
+ * ----------------------------------------------------------------------- */
+
+void flis_group_reorder_args_free(gpointer p) {
+    struct flis_group_reorder_args *a = p;
+    if (!a) return;
+    g_free(a);
+}
+
+int flis_group_reorder_hook(struct generic_layer_args *args) {
+    struct flis_group_reorder_args *a = (struct flis_group_reorder_args *)args->user;
+    if (!a) return 1;
+    flis_group_t *grp = flis_group_get_by_id(args->invalidate_item_id);
+    if (!grp) return 1;
+    GSList *members = flis_group_get_layers(grp);  /* sorted ascending */
+    if (!members) return 1;
+
+    flis_layer_t *first_member = (flis_layer_t *)members->data;
+    flis_layer_t *last_member  = (flis_layer_t *)g_slist_last(members)->data;
+    g_slist_free(members);
+
+    /* Find the immediate external neighbour above (if up) or below
+     * (if down) the group's range.  com.uniq->layers is sorted
+     * ascending by layer_order. */
+    flis_layer_t *external = NULL;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *cand = (flis_layer_t *)l->data;
+        if (!cand || cand->group_id == grp->item_id) continue;
+        if (a->direction_up) {
+            /* Smallest layer_order > last_member's order */
+            if (cand->layer_order <= last_member->layer_order) continue;
+            if (!external || cand->layer_order < external->layer_order)
+                external = cand;
+        } else {
+            /* Largest layer_order < first_member's order */
+            if (cand->layer_order >= first_member->layer_order) continue;
+            if (!external || cand->layer_order > external->layer_order)
+                external = cand;
+        }
+    }
+    if (!external) return 0;   /* already at top/bottom edge, no-op success */
+
+    /* Swap the external layer with the entire group block via a slot-
+     * shift.  In the "up" case we want the external layer (currently
+     * above the group) to sit BELOW the group; the group shifts up by
+     * one position.  Implementation: swap external->layer_order with
+     * first_member->layer_order; the gap moves to where external used
+     * to be, then we slide every member up by 1 to fill it. */
+    if (a->direction_up) {
+        /* External sits at order E, just above group's last (order L).
+         * After: group occupies orders [old first + 1, old last + 1],
+         * external occupies old first.
+         * Implementation: external.order = first_member.order;
+         * each member.order += 1.  Then re-sort. */
+        gint new_external_order = first_member->layer_order;
+        GSList *ms = flis_group_get_layers(grp);
+        for (GSList *l = ms; l; l = l->next) {
+            flis_layer_t *m = (flis_layer_t *)l->data;
+            if (m) m->layer_order += 1;
+        }
+        g_slist_free(ms);
+        /* The external was at E (= last_member's old order + 1 at minimum,
+         * but could be higher if there was a gap).  We want external
+         * just below group's new bottom = first_member's new order = old_first+1.
+         * So external.order = old_first. */
+        external->layer_order = new_external_order;
+    } else {
+        /* External sits at order E, just below group's first (order F).
+         * After: group occupies [old first - 1, old last - 1], external
+         * sits at old last. */
+        gint new_external_order = last_member->layer_order;
+        GSList *ms = flis_group_get_layers(grp);
+        for (GSList *l = ms; l; l = l->next) {
+            flis_layer_t *m = (flis_layer_t *)l->data;
+            if (m) m->layer_order -= 1;
+        }
+        g_slist_free(ms);
+        external->layer_order = new_external_order;
+    }
+    com.uniq->layers = g_slist_sort(com.uniq->layers,
+                                     (GCompareFunc)layer_order_cmp);
+    flis_group_touch_modified(grp);
+    return 0;
+}
+
+/* flis_movemask_hook — move an lmask from source (invalidate_item_id)
+ * to target (payload->to_layer_id). */
+
+void flis_movemask_args_free(gpointer p) {
+    struct flis_movemask_args *a = p;
+    if (!a) return;
+    g_free(a);
+}
+
+int flis_movemask_hook(struct generic_layer_args *args) {
+    struct flis_movemask_args *a = (struct flis_movemask_args *)args->user;
+    if (!a) return 1;
+    flis_layer_t *from = flis_layer_get_by_id(args->invalidate_item_id);
+    flis_layer_t *to   = flis_layer_get_by_id(a->to_layer_id);
+    if (!from || !to) return 1;
+    if (from == to) return 0;     /* trivially no-op */
+    return flis_layer_move_lmask(from, to);
+}
+
 int flis_clearmask_hook(struct generic_layer_args *args) {
     flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
     if (!lay) {

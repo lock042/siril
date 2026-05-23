@@ -743,6 +743,34 @@ struct flis_reorder_args {
 	                             * used by the panel's edge drop zones to drop
 	                             * a layer outside any group at the top/bottom */
 };
+
+/* Move an entire group up or down in the stack, taking all members
+ * with it and preserving their internal order.  args->invalidate_item_id
+ * holds the GROUP id; payload->direction_up controls direction.
+ *
+ * Algorithm: find the next layer outside the group adjacent to the
+ * group's range in the requested direction; swap that "external"
+ * layer's slot with the group block.  No-op if the group is already
+ * at the edge of the stack on that side. */
+struct flis_group_reorder_args {
+	destructor destroy_fn;
+	gboolean   direction_up;    /* TRUE = move group higher in z-order */
+};
+void flis_group_reorder_args_free(gpointer p);
+int  flis_group_reorder_hook(struct generic_layer_args *args);
+
+/* Move an lmask from one layer to another via the existing
+ * flis_layer_move_lmask primitive.  Source layer id is in
+ * args->invalidate_item_id; payload holds the target layer id.
+ * Both layers' lmask state is touched so the worker invalidates
+ * with the SOURCE id; callers may want to follow up with a panel
+ * refresh to update the target's mask display. */
+struct flis_movemask_args {
+	destructor destroy_fn;
+	gint       to_layer_id;
+};
+void flis_movemask_args_free(gpointer p);
+int  flis_movemask_hook(struct generic_layer_args *args);
 void flis_reorder_args_free(gpointer p);
 int  flis_reorder_hook(struct generic_layer_args *args);
 
