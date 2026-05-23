@@ -87,7 +87,8 @@ char* siril_color_profile_get_manufacturer (cmsHPROFILE profile);
 char* siril_color_profile_get_model (cmsHPROFILE profile);
 gboolean siril_color_profile_is_rgb(cmsHPROFILE profile);
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
-cmsBool fit_icc_is_linear(fits *fit);
+cmsBool fit_icc_is_linear(fits *fit);  /* deprecated; use icc_profile_is_linear */
+cmsBool icc_profile_is_linear(cmsHPROFILE profile);
 cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile);
 void check_profile_correct(fits* fit);
 void enable_profile_check_verbose();

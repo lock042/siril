@@ -617,8 +617,10 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		}
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
-		fit->icc_profile = copyICCProfile(profile);
-		color_manage(fit, (fit_get_icc_profile(fit) != NULL));
+		if (fit == gfit) {
+			current_image_set_icc_profile(copyICCProfile(profile));
+			current_image_color_manage(profile != NULL);
+		}
 	}
 	if (xyzprofile && profile) {
 		transform = cmsCreateTransformTHR(com.icc.context_single,

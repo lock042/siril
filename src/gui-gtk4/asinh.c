@@ -144,14 +144,20 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		float stretch_value, black_value;
 		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
 
-		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
-
-		undo_save_state(&undo_fit,
+		/* Capture pixel-level undo from the preview backup; ICC profile
+		 * state goes in a separate lightweight icc-only undo entry. */
+		undo_save_state(get_preview_gfit_backup(),
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				stretch_value, black_value);
+		if (original_icc) {
+			/* Snapshot the pre-stretch ICC profile so undo restores it. */
+			cmsHPROFILE save = current_icc_profile();
+			current_image_set_icc_profile(copyICCProfile(original_icc));
+			current_image_color_manage(TRUE);
+			undo_save_icc_state("ICC profile (pre-asinh)");
+			current_image_set_icc_profile(save ? copyICCProfile(save) : NULL);
+			current_image_color_manage(save != NULL);
+		}
 	}
 
 	roi_supported(FALSE);

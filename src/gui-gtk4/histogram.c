@@ -1321,13 +1321,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			populate_roi();
 
-			// Prepare undo state with ICC profile handling
-			// Use the backup which contains the original unstretched image
+			// Prepare undo state with separate ICC snapshot
 			fits *backup = get_preview_gfit_backup();
-			fits undo_fit = {0};
-			memcpy(&undo_fit, backup, sizeof(fits));
-			undo_fit.icc_profile = original_icc;
-			undo_fit.color_managed = original_icc != NULL;
 
 			gchar *log_string = NULL;
 
@@ -1371,7 +1366,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			if (log_string) {
-				undo_save_state(&undo_fit, log_string);
+				undo_save_state(backup, log_string);
+				if (original_icc) undo_save_icc_state("ICC profile (pre-stretch)");
 				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}
@@ -1400,12 +1396,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		populate_roi();
 
-		// Prepare undo state with ICC profile handling BEFORE applying stretch
+		// Prepare undo state with separate ICC snapshot BEFORE applying stretch
 		fits *backup = get_preview_gfit_backup();
-		fits undo_fit = {0};
-		memcpy(&undo_fit, backup, sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
 
 		gchar *log_string = NULL;
 
@@ -1449,7 +1441,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		if (log_string) {
-			undo_save_state(&undo_fit, log_string);
+			undo_save_state(backup, log_string);
+			if (original_icc) undo_save_icc_state("ICC profile (pre-stretch)");
 			siril_log_info("%s\n", log_string);
 			g_free(log_string);
 		}

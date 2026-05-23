@@ -361,7 +361,7 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 /* Film sequences are not color managed. Any sequence operations that rely on
  * colorspace conversion (usually xRGB to xyz) will use a sensible default profile.
  */
-	fit->icc_profile = NULL;
+	/* per-fits ICC removed */
 	color_manage(fit, FALSE);
 
 	return FILM_SUCCESS;

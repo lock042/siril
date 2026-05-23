@@ -484,11 +484,8 @@ gpointer do_starnet(gpointer p) {
 	gboolean original_colormanaged = fit_get_color_managed(current_fit);
 
 	// Disable color management so that savetif doesn't mess about with the image
-	if (current_fit == gfit) {
+	if (current_fit == gfit)
 		current_image_color_manage(FALSE);
-	} else {
-		current_fit->color_managed = FALSE;
-	}
 
 	// ok, let's start
 	if (verbose)
@@ -671,10 +668,12 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 
-	if (workingfit.icc_profile) {
-		cmsCloseProfile(workingfit.icc_profile);
-		workingfit.icc_profile = copyICCProfile(original_profile);
-		workingfit.color_managed = original_colormanaged;
+	/* Restore the profile we captured at the start of the operation
+	 * to com.uniq (workingfit becomes the new current image after the
+	 * copyfits below). */
+	if (original_profile) {
+		current_image_set_icc_profile(copyICCProfile(original_profile));
+		current_image_color_manage(original_colormanaged);
 	}
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
@@ -759,13 +758,12 @@ gpointer do_starnet(gpointer p) {
 		}
 		update_filter_information(&fit, "StarMask", TRUE);
 
-		// Replace ICC profile here too
+		/* The starmask fits is saved to disk separately and does not
+		 * become the current image, so no ICC restoration is needed
+		 * here.  Drop the captured profile we'd have used. */
 		if (original_profile) {
-			if (fit.icc_profile)
-				cmsCloseProfile(fit.icc_profile);
-			fit.icc_profile = copyICCProfile(original_profile);
-			fit.color_managed = original_colormanaged;
 			cmsCloseProfile(original_profile);
+			original_profile = NULL;
 		}
 
 		// Save fit as starmask fits

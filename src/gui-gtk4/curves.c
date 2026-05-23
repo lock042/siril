@@ -702,11 +702,8 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 				.do_channel = { do_channel[0], do_channel[1], do_channel[2] }
 			};
 			gchar *summary = curves_log_hook(&undo_params, SUMMARY);
-			fits undo_fit = { 0 };
-			memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-			undo_fit.icc_profile = original_icc;
-			undo_fit.color_managed = original_icc != NULL;
-			undo_save_state(&undo_fit, "%s", summary);
+			undo_save_state(get_preview_gfit_backup(), "%s", summary);
+			if (original_icc) undo_save_icc_state("ICC profile (pre-curves)");
 			g_free(summary);
 
 			populate_roi();

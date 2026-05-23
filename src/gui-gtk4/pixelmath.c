@@ -812,19 +812,10 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		}
 		debayer_if_needed(imagetype, &var_fit[nb_rows], FALSE);
 
-		if (nb_rows > 0) {
-			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
-				if (!icc_warning_given) {
-					siril_log_warning(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"));
-					icc_warning_given = TRUE;
-				}
-				if (var_fit[0].icc_profile)
-					siril_log_warning(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), nb_rows + 1);
-				else
-					siril_log_warning(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"));
-				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
-			}
-		}
+		/* Per-fits ICC removed: cross-layer profile matching for
+		 * pixelmath inputs is no longer available; inputs are treated
+		 * as raw pixel data. */
+		(void)icc_warning_given;
 		if (channel == -1) {
 			width   = var_fit[nb_rows].rx;
 			height  = var_fit[nb_rows].ry;

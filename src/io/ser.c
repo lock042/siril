@@ -953,7 +953,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	// to FALSE: once the sequence is stacked, color management can be done on the
 	// stack.
 	color_manage(fit, FALSE);
-	fit->icc_profile = NULL;
+	/* per-fits ICC removed */
 
 	if (!open_debayer && ser_file->color_id >= SER_BAYER_RGGB &&
 			ser_file->color_id <= SER_BAYER_BGGR) { // we don't write the pattern if the image has been debayered
@@ -1178,7 +1178,7 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
 	if (new_fit_image(&fit, area->w, area->h, 1, DATA_USHORT))
 		return SER_GENERIC_ERROR;
-	fit->icc_profile = NULL;
+	/* per-fits ICC removed */
 	color_manage(fit, FALSE);
 
 	fit->top_down = TRUE;

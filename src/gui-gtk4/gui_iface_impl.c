@@ -1415,13 +1415,14 @@ static void impl_apply_display_icc_compensation(gpointer p) {
 			memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
 		}
 	}
-	cmsHPROFILE temp = copyICCProfile(fit_get_icc_profile(fit));
-	cmsCloseProfile(fit_get_icc_profile(fit));
-	fit->icc_profile = copyICCProfile(com.gui_icc.monitor);
-	siril_colorspace_transform(fit, temp);
-	cmsCloseProfile(fit_get_icc_profile(fit));
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
+	/* Only the current image has profile state to compensate against
+	 * the monitor.  For non-current fits this operation is a no-op. */
+	if (fit == gfit) {
+		cmsHPROFILE temp = copyICCProfile(current_icc_profile());
+		current_image_set_icc_profile(copyICCProfile(com.gui_icc.monitor));
+		siril_colorspace_transform(fit, temp);
+		current_image_set_icc_profile(temp);  /* takes ownership */
+	}
 	if (depth == 1) {
 		size_t npixels = fit->rx * fit->ry;
 		if (fit->type == DATA_FLOAT) {

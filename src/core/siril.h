@@ -676,9 +676,11 @@ struct ffit {
 
 	GSList *history;	// Former HISTORY comments of FITS file
 
-	/* ICC Color Management data */
-	gboolean color_managed; // Whether color management applies to this FITS
-	cmsHPROFILE icc_profile; // ICC color management profile
+	/* ICC color management state is no longer stored per-fits; it lives
+	 * on com.uniq (see icc_profile.h current_*_icc_* accessors).  Sequence
+	 * frames and intermediate buffers operate without colour profile
+	 * tracking — the project explicitly excludes colour management from
+	 * sequence operations. */
 	mask_t* mask; // Mask for image operations
 	gboolean mask_active; // Whether or not the mask is active
 

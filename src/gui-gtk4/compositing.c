@@ -715,9 +715,9 @@ void open_compositing_window() {
 			reference = NULL;
 		}
 		do {
-			// Only check for ICC profile, no file chooser folder update needed
-			if (!reference && layers[i]->the_fit.icc_profile)
-				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
+			/* Per-fits ICC removed: compositing layers no longer carry
+			 * their own profile, so the reference-profile lookup is
+			 * unavailable.  reference stays NULL. */
 			i++;
 		} while (layers[i]);
 		gui_function(update_MenuItem, NULL);
@@ -930,23 +930,10 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 					cmsCloseProfile(reference);
 					reference = NULL;
 				}
-				if (layers[layer]->the_fit.icc_profile)
-					reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
+				/* Per-fits ICC removed: no reference profile to capture. */
 			}
-			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
-			                                                         layers[layer]->the_fit.icc_profile)) {
-				if (reference) {
-					siril_log_warning(_("ICC profile differs to that of the first image loaded. "
-						"Converting this image to match the first one loaded.\n"));
-					siril_colorspace_transform(&layers[layer]->the_fit, reference);
-				} else {
-					siril_log_warning(_("Input images have inconsistent ICC profiles. First image "
-						"had no ICC profile. All input layers will be treated as raw data.\n"));
-					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
-					layers[layer]->the_fit.icc_profile = NULL;
-					color_manage(&layers[layer]->the_fit, FALSE);
-				}
-			}
+			/* Per-fits ICC removed: cross-layer profile matching is no
+			 * longer available; inputs are treated as raw pixel data. */
 			if (number_of_images_loaded() > 1 &&
 			    (gfit->rx != layers[layer]->the_fit.rx ||
 			     gfit->ry != layers[layer]->the_fit.ry)) {
