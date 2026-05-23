@@ -546,6 +546,15 @@ typedef struct {
 	fits *fit;		// the fits is still gfit, but a reference doesn't
 				// hurt.  In FLIS mode, equals the active layer's
 				// fit.  Kept in sync when active_layer changes.
+
+	/* ICC Color Management — authoritative store for the current image's
+	 * colour profile.  Single-image-only: sequence frames have no profile
+	 * (the project does not colour-manage sequence operations).  For FLIS
+	 * the same field describes the always-RGB composite — there is no
+	 * per-layer profile.  Both fields are persisted to / loaded from the
+	 * file at save/load time via the format-specific I/O paths. */
+	cmsHPROFILE icc_profile;
+	gboolean    color_managed;
 } single;
 
 typedef struct {
