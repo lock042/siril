@@ -1147,6 +1147,63 @@ realistic FLIS workloads.
 
 See §3.5a closing paragraphs.  Not blocking any current Stage 3 goal.
 
+### 3.5b — ICC storage moved to com.uniq (post-§3.5a follow-up)
+
+The §3.5a architecture lived on `fit->icc_profile` / `fit->color_managed`,
+with per-layer profile redundantly carried on the FLIS base.  This
+follow-up moves the authoritative store to `com.uniq` (the `single`
+struct) and **removes** the per-fits ICC fields from the `fits` struct.
+
+Why: ICC undo entries on the per-fits + FLIS-multi-layer architecture
+were unnecessarily heavy — undo_save_flis_multi_layer captures every
+layer's pixel data via swap files even for ICC operations that never
+touch pixels (Assign / Remove).  Moving the profile to com.uniq lets
+ICC undo entries snapshot one `cmsHPROFILE` pointer + one boolean,
+with no swap-file overhead.
+
+The change in one paragraph: `com.uniq->icc_profile` +
+`com.uniq->color_managed` are the single source of truth.  A new set
+of accessors in `core/icc_profile.h` (`current_icc_profile`,
+`current_image_color_managed`, `current_image_set_icc_profile`,
+`current_image_clear_icc_profile`, `current_image_color_manage`)
+fronts that storage.  Per-fits helpers (`fit_get_icc_profile`,
+`fit_get_color_managed`) return the current-image profile for `gfit`
+and the FLIS profiled fit, and NULL/FALSE for intermediate buffers
+and sequence frames.  A lightweight `historic->icc_only` undo
+flavour with a one-line restore branch handles ICC undo for Assign
+and Remove (Convert keeps the multi-layer flavour because it does
+rewrite layer pixels).
+
+Migration scope: ~430 call sites across 44 files were updated to
+use the accessors, then the two `fits` struct fields were removed.
+
+Knock-on feature regressions (accepted in the migration):
+* **Compositing / Pixelmath / Remixer cross-layer profile matching**
+  removed.  Input layers are treated as raw pixel data; if a colour-
+  managed workflow is needed the user must pre-convert.  These tools
+  were not in routine FLIS-era use and the alternative — keeping a
+  per-fits profile while everything else moves to com.uniq — was
+  rejected in favour of a clean store.
+* **Sequence-export ICC handling** removed.  Sequence frames carry
+  no profile; this matches the project policy "colour management is
+  excluded from sequence operations".
+* **flis_layer_add cross-profile conversion** removed.  A newly added
+  layer's pixels are assumed to be in the FLIS's colour space; if not,
+  the user should convert before adding or via Image → Color Management
+  after.
+
+GTK3 sibling files (`src/gui/*.c`) still reference the removed fields
+in dead code paths.  They are not built and have not been migrated;
+the GTK4 cutover in the broader Siril roadmap will retire them.
+
+Open follow-ups (small):
+* Delete `flis_get_profiled_fit` once the few remaining call sites
+  (mostly internal to the FLIS-aware ICC accessors and the dialog
+  worker dispatch) are migrated to compare against `gfit` directly.
+* Consider promoting `fits_initialize_icc` / `check_profile_correct`
+  to dedicated load-helpers that take an out-param profile instead
+  of conditionally writing to com.uniq based on `fit == gfit`.
+
 ---
 
 ## 4 · GUI shell — GTK4 layers panel (rewrite)
