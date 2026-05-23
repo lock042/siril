@@ -25,6 +25,12 @@
 #include <glib.h>
 #include "core/siril.h"   /* fits, single, gfit, com, WORD, DATA_FLOAT etc. */
 
+/* Forward decl for §4.3 worker-hook signatures.  Full definition in
+ * core/processing.h; we don't include it here to avoid pulling in the
+ * whole processing-thread surface for files that only need FLIS data
+ * structures. */
+struct generic_layer_args;
+
 /* -----------------------------------------------------------------------
  * FLIS specification version written/expected by this implementation.
  * ----------------------------------------------------------------------- */
@@ -670,6 +676,26 @@ gboolean is_current_image_flis(void);
  * Returns: pointer to the newly created layer, or NULL on failure.
  */
 flis_layer_t *flis_layer_add(fits *fit, const gchar *name);
+
+/* -----------------------------------------------------------------------
+ * Worker-hook payloads (§4.3)
+ *
+ * Per-op argument structs paired with hook functions that the panel
+ * and the matching flis_* commands both submit through
+ * generic_layer_worker.  Both paths produce identical state, log
+ * lines, HISTORY entries, and (in GUI mode) undo entries.  Each
+ * payload's destroy_fn matches `destructor` in processing.h so
+ * generic_layer_args.user gets cleaned up automatically when the
+ * worker frees the args.
+ * ----------------------------------------------------------------------- */
+
+struct flis_addlayer_args {
+	destructor destroy_fn;    /* first field: see processing.h */
+	gchar     *filename;      /* FITS file to read */
+	gchar     *name;          /* layer name; may be NULL → derive from basename */
+};
+void flis_addlayer_args_free(gpointer p);
+int  flis_addlayer_hook(struct generic_layer_args *args);
 
 /**
  * flis_layer_remove:

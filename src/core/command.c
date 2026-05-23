@@ -15880,6 +15880,52 @@ int process_flis_active_layer(int nb) {
 	return CMD_OK;
 }
 
+/* flis_addlayer <file> [-name="X"] — load a FITS from disk and add it
+ * as a new layer on top of the current FLIS stack.  Mirrors the panel's
+ * Add Layer toolbar button: both build a flis_addlayer_args payload and
+ * submit through generic_layer_worker so undo, logging, HISTORY and
+ * invalidation are identical between paths (§4.3 parity). */
+int process_flis_addlayer(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_addlayer <file> [-name=\"X\"]\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	const char *path = word[1];
+	const char *name = NULL;
+	for (int i = 2; i < nb; i++) {
+		if (!word[i]) continue;
+		if (g_str_has_prefix(word[i], "-name=")) {
+			name = word[i] + 6;
+		} else {
+			siril_log_error(_("flis_addlayer: unknown argument '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = g_strdup(path);
+	payload->name       = name ? g_strdup(name) : NULL;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_addlayer_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_addlayer_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_addlayer");
+	args->command            = TRUE;     /* script blocks until done */
+	args->invalidate_flags   = FLIS_INV_ALL;
+	args->invalidate_item_id = 0;        /* hook fills in the new layer's id */
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	/* CMD_NOTIFY_GFIT_MODIFIED makes the script processor wait for the
+	 * worker to finish before running the next command. */
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));

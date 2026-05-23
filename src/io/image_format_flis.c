@@ -2267,6 +2267,61 @@ flis_layer_t *flis_layer_add(fits *fit, const gchar *name) {
     return layer;
 }
 
+/* -----------------------------------------------------------------------
+ * flis_addlayer_hook — shared by the panel's Add Layer toolbar handler
+ * and the flis_addlayer command (§4.3 parity contract).  Reads the FITS
+ * file named in args->user, derives the layer name from the basename if
+ * one wasn't supplied, transfers ownership to flis_layer_add.  Returns
+ * 0 on success, non-zero on failure (file read / alloc / flis_layer_add).
+ * ----------------------------------------------------------------------- */
+
+void flis_addlayer_args_free(gpointer p) {
+    struct flis_addlayer_args *a = p;
+    if (!a) return;
+    g_free(a->filename);
+    g_free(a->name);
+    g_free(a);
+}
+
+int flis_addlayer_hook(struct generic_layer_args *args) {
+    struct flis_addlayer_args *a = (struct flis_addlayer_args *)args->user;
+    if (!a || !a->filename || !*a->filename) {
+        siril_log_error(_("flis_addlayer: no filename\n"));
+        return 1;
+    }
+    fits *f = calloc(1, sizeof(fits));
+    if (!f) { PRINT_ALLOC_ERR; return 1; }
+    if (readfits(a->filename, f, NULL, com.pref.force_16bit ? FALSE : TRUE)) {
+        siril_log_error(_("flis_addlayer: could not read '%s'\n"), a->filename);
+        free(f);
+        return 1;
+    }
+    gchar *name = a->name;
+    gchar *derived = NULL;
+    if (!name || !*name) {
+        gchar *base = g_path_get_basename(a->filename);
+        gchar *dot  = base ? strrchr(base, '.') : NULL;
+        if (dot) *dot = '\0';
+        derived = base;
+        name = derived;
+    }
+    flis_layer_t *added = flis_layer_add(f, name);
+    g_free(derived);
+    if (!added) {
+        /* flis_layer_add already logged the failure; clear the fits we
+         * tried to transfer ownership of. */
+        clearfits(f);
+        free(f);
+        return 1;
+    }
+    /* args->invalidate_item_id lets end_generic_layer route the cache
+     * invalidation precisely.  Even though we used FLIS_INV_ALL here
+     * (stack changed), capturing the id lets the panel select the new
+     * layer after refresh, which is the natural UX. */
+    args->invalidate_item_id = added->item_id;
+    return 0;
+}
+
 int flis_layer_remove(flis_layer_t *layer) {
     if (!com.uniq || !layer) return 1;
     if (flis_check_locked(layer, "remove layer")) return 1;

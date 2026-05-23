@@ -28,9 +28,11 @@
 #include <criterion/criterion.h>
 #include <criterion/redirect.h>
 #include <stdio.h>
+#include <glib/gstdio.h>
 #include "flis_test_helpers.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
+#include "core/processing.h"
 
 cominfo com;
 fits *gfit;
@@ -201,4 +203,120 @@ Test(flis_cmd, active_layer_set_by_unknown_name_fails) {
 	cr_assert_eq(process_flis_active_layer(2), CMD_ARG_ERROR);
 	cr_assert_eq(flis_active_layer()->item_id, orig_id,
 	             "active layer must not change on lookup failure");
+}
+
+/* -----------------------------------------------------------------
+ * flis_addlayer (§4.3 slice 1)
+ *
+ * The command wraps flis_addlayer_hook with start_in_new_thread, but
+ * the test harness doesn't run a processing thread; we exercise the
+ * hook directly through generic_layer_worker — same code path the
+ * worker thread would take, just synchronous.  This is the same
+ * pattern test_flis_worker uses.
+ * ----------------------------------------------------------------- */
+
+/* Write a small fits to a temp file and return the path (caller frees).
+ * Returns NULL on failure. */
+static gchar *write_tmp_mono_fits(int w, int h, float v) {
+	fits *f = flis_test_make_mono_fits(w, h, v);
+	if (!f) return NULL;
+	gchar *path = g_build_filename(g_get_tmp_dir(), "flis_addlayer_test_XXXXXX.fit", NULL);
+	gint fd = g_mkstemp(path);
+	if (fd < 0) { clearfits(f); free(f); g_free(path); return NULL; }
+	close(fd);
+	if (savefits(path, f)) {
+		clearfits(f); free(f); g_unlink(path); g_free(path);
+		return NULL;
+	}
+	clearfits(f);
+	free(f);
+	return path;
+}
+
+Test(flis_cmd, addlayer_hook_adds_layer_with_derived_name) {
+	load_two_layer_fixture();
+	const guint before = flis_layer_count();
+
+	gchar *path = write_tmp_mono_fits(16, 16, 0.25f);
+	cr_assert_not_null(path, "must be able to write temp fits");
+
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = g_strdup(path);
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addlayer_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addlayer test");
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(flis_layer_count(), before + 1);
+
+	/* Derived name: temp basename minus extension.  Without owning the
+	 * args anymore we can't check args->invalidate_item_id directly,
+	 * but the new layer is now the active one. */
+	flis_layer_t *active = flis_active_layer();
+	cr_assert_not_null(active);
+	gchar *base = g_path_get_basename(path);
+	gchar *dot  = base ? strrchr(base, '.') : NULL;
+	if (dot) *dot = '\0';
+	cr_assert_str_eq(active->layer_name, base,
+		"derived name should equal temp basename minus extension");
+	g_free(base);
+	g_unlink(path);
+	g_free(path);
+}
+
+Test(flis_cmd, addlayer_hook_uses_explicit_name) {
+	load_two_layer_fixture();
+	gchar *path = write_tmp_mono_fits(8, 8, 0.1f);
+	cr_assert_not_null(path);
+
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = g_strdup(path);
+	payload->name       = g_strdup("custom_layer_name");
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addlayer_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addlayer explicit name");
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_str_eq(flis_active_layer()->layer_name, "custom_layer_name");
+	g_unlink(path);
+	g_free(path);
+}
+
+Test(flis_cmd, addlayer_hook_missing_file_fails) {
+	load_two_layer_fixture();
+	const guint before = flis_layer_count();
+
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = g_strdup("/no/such/path/should/exist.fit");
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook  = flis_addlayer_hook;
+	args->user        = payload;
+	args->command     = TRUE;
+	args->description = g_strdup("addlayer missing");
+
+	cr_assert_neq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(flis_layer_count(), before, "no layer added on failure");
+}
+
+Test(flis_cmd, addlayer_command_rejects_zero_args) {
+	load_two_layer_fixture();
+	word[0] = "flis_addlayer";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_addlayer(1), CMD_WRONG_N_ARG);
+}
+
+Test(flis_cmd, addlayer_command_rejects_unknown_option) {
+	load_two_layer_fixture();
+	word[0] = "flis_addlayer";
+	word[1] = "/tmp/file.fit";
+	word[2] = "-bogus=1";
+	word[3] = NULL;
+	cr_assert_eq(process_flis_addlayer(3), CMD_ARG_ERROR);
 }
