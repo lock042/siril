@@ -113,6 +113,8 @@ struct flis_panel {
 	GListStore *list_store;         /* of FlisRowItem* */
 	GtkSingleSelection *list_sel;
 	GtkWidget *list_view;
+	GtkWidget *edge_drop_top;       /* drop zone above the list — "to top of stack" */
+	GtkWidget *edge_drop_bottom;    /* drop zone below the list — "to bottom of stack" */
 
 	/* Property panel */
 	GtkWidget *prop_frame;
@@ -160,6 +162,7 @@ static void   register_panel_actions(void);
 static void   refresh_panel(void);
 static void   sync_property_widgets(flis_layer_t *lay);
 static void   update_toolbar_sensitivity(void);
+static void   ensure_flis_css(void);
 static flis_layer_t *current_selected_layer(void);
 static flis_group_t *current_selected_group(void);
 
@@ -202,6 +205,7 @@ void flis_gui_update_from_idle(void) {
 static void build_panel(void) {
 	if (g_panel) return;
 	g_panel = g_new0(struct flis_panel, 1);
+	ensure_flis_css();
 
 	GtkWidget *w = gtk_window_new();
 	g_panel->window = w;
@@ -328,6 +332,38 @@ typedef struct {
 	gint           current_item_id;
 	int            current_kind;
 } row_widgets_t;
+
+/* Load global CSS for the panel — runs once per process.  Currently
+ * styles the active-layer-row marker (subtle highlight tint) and the
+ * "drop into stack edges" zones. */
+static GtkCssProvider *g_flis_css_provider = NULL;
+static void ensure_flis_css(void) {
+	if (g_flis_css_provider) return;
+	g_flis_css_provider = gtk_css_provider_new();
+	gtk_css_provider_load_from_string(g_flis_css_provider,
+		".flis-active-layer-row {"
+		"  background-color: alpha(@accent_bg_color, 0.18);"
+		"  border-left: 3px solid @accent_color;"
+		"}"
+		".flis-edge-drop {"
+		"  min-height: 18px;"
+		"  background: transparent;"
+		"  border: 1px dashed alpha(@borders, 0.6);"
+		"  border-radius: 4px;"
+		"  margin: 2px 4px;"
+		"  color: alpha(@view_fg_color, 0.55);"
+		"  font-size: 90%;"
+		"}"
+		".flis-edge-drop.drop-active {"
+		"  background-color: alpha(@accent_bg_color, 0.25);"
+		"  border-style: solid;"
+		"  color: @accent_fg_color;"
+		"}"
+	);
+	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+		GTK_STYLE_PROVIDER(g_flis_css_provider),
+		GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
 
 /* Drag-source prepare callback: builds a content provider carrying the
  * source row's item_id as a G_TYPE_INT. */
@@ -500,8 +536,10 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	}
 
 	/* Reset row CSS classes (rebind may receive a row that previously
-	 * displayed a group header or a different indent level). */
+	 * displayed a group header or a different indent level / active
+	 * state). */
 	gtk_widget_remove_css_class(rw->row_box, "flis-group-header");
+	gtk_widget_remove_css_class(rw->row_box, "flis-active-layer-row");
 
 	/* Drag-reorder identity: callbacks read these to know which layer
 	 * the row currently represents. */
@@ -519,6 +557,12 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 			gtk_label_set_text(GTK_LABEL(rw->name_label), "?");
 			return;
 		}
+		/* Highlight the active layer's row (the one bound to gfit).
+		 * This may diverge from selection if the user clicks a group
+		 * header, so it's a separate visual signal from selection. */
+		flis_layer_t *active = flis_active_layer();
+		if (active == lay)
+			gtk_widget_add_css_class(rw->row_box, "flis-active-layer-row");
 		gtk_widget_set_visible(rw->visible_toggle, TRUE);
 		gtk_widget_set_visible(rw->lock_toggle,    TRUE);
 		gtk_widget_set_visible(rw->thumb,          TRUE);
@@ -566,6 +610,87 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	}
 }
 
+/* Edge drop zones (top / bottom of list).  Always visible so users
+ * can drag a layer out of a group with no external siblings (the row-
+ * level drop targets all sit on layer rows, so there's no way to
+ * express "drop outside any layer" without these).  Drops here also
+ * force-clear the source's group_id, regardless of what the nearest
+ * layer's group is. */
+static gboolean edge_drop_received(GtkDropTarget *tgt, const GValue *value,
+                                    double x, double y, gpointer ud) {
+	(void)tgt; (void)x; (void)y;
+	if (!G_VALUE_HOLDS_INT(value) || !com.uniq || !com.uniq->layers)
+		return FALSE;
+	const gint src_id = g_value_get_int(value);
+	const gboolean to_top = (ud != NULL);  /* user_data: NULL = bottom, !NULL = top */
+
+	/* Find the topmost / bottommost layer.  com.uniq->layers is sorted
+	 * ascending by layer_order, so head = bottom, tail = top. */
+	GSList *first = com.uniq->layers;
+	GSList *last  = g_slist_last(com.uniq->layers);
+	flis_layer_t *anchor = (flis_layer_t *)(to_top ? last->data : first->data);
+	if (!anchor) return FALSE;
+	if (anchor->item_id == src_id) {
+		/* Source is already at this edge — anchor would be itself.
+		 * We still need to handle the "drag out of group" case: even
+		 * if the layer is at the right end of the stack, its group_id
+		 * might be non-zero and the user dragged it here precisely to
+		 * unset that.  Use the anchor as a self-target with
+		 * force_ungroup; the hook handles src == tgt as a no-op so we
+		 * have to special-case the ungroup here. */
+		flis_layer_t *src = flis_layer_get_by_id(src_id);
+		if (src && src->group_id != 0) {
+			src->group_id = 0;
+			gui_iface.flis_display_invalidate(FLIS_INV_STACK, src_id);
+			gui_iface.flis_gui_update();
+			notify_gfit_data_modified();
+		}
+		return TRUE;
+	}
+
+	struct flis_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn    = flis_reorder_args_free;
+	payload->target_id     = anchor->item_id;
+	payload->place_above   = to_top;
+	payload->force_ungroup = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_reorder_hook;
+	args->user               = payload;
+	args->description        = g_strdup(to_top ? _("Move layer to top")
+	                                            : _("Move layer to bottom"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = src_id;
+	start_in_new_thread(generic_layer_worker, args);
+	return TRUE;
+}
+
+/* GtkDropTarget signals "enter"/"leave" let us add a hover CSS class so
+ * the dashed zone visibly fills with the accent colour when a drag
+ * is overhead.  Plain UX nicety, no functional effect. */
+static GdkDragAction edge_drop_motion(GtkDropTarget *tgt, double x, double y, gpointer ud) {
+	(void)x; (void)y; (void)ud;
+	GtkWidget *w = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(tgt));
+	if (w) gtk_widget_add_css_class(w, "drop-active");
+	return GDK_ACTION_MOVE;
+}
+static void edge_drop_leave(GtkDropTarget *tgt, gpointer ud) {
+	(void)ud;
+	GtkWidget *w = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(tgt));
+	if (w) gtk_widget_remove_css_class(w, "drop-active");
+}
+
+static GtkWidget *make_edge_drop_zone(const gchar *label_text, gboolean to_top) {
+	GtkWidget *lbl = gtk_label_new(label_text);
+	gtk_widget_add_css_class(lbl, "flis-edge-drop");
+	gtk_widget_set_halign(lbl, GTK_ALIGN_FILL);
+	GtkDropTarget *dt = gtk_drop_target_new(G_TYPE_INT, GDK_ACTION_MOVE);
+	g_signal_connect(dt, "drop",  G_CALLBACK(edge_drop_received), to_top ? GINT_TO_POINTER(1) : NULL);
+	g_signal_connect(dt, "motion", G_CALLBACK(edge_drop_motion), NULL);
+	g_signal_connect(dt, "leave",  G_CALLBACK(edge_drop_leave),  NULL);
+	gtk_widget_add_controller(lbl, GTK_EVENT_CONTROLLER(dt));
+	return lbl;
+}
+
 static void build_list(GtkWidget *box) {
 	g_panel->list_store = g_list_store_new(FLIS_TYPE_ROW_ITEM);
 	g_panel->list_sel   = gtk_single_selection_new(G_LIST_MODEL(g_panel->list_store));
@@ -585,7 +710,18 @@ static void build_list(GtkWidget *box) {
 	                                GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), g_panel->list_view);
 	gtk_widget_set_vexpand(sw, TRUE);
+
+	/* Edge drop zones flanking the list — sit always-visible so the
+	 * user can drag a layer to the top / bottom of the stack and
+	 * (most importantly) drag a layer OUT of a group even when no
+	 * other ungrouped layer exists to drop on. */
+	g_panel->edge_drop_top    = make_edge_drop_zone(
+		_("⤴ drop here to move to top of stack (outside any group)"),  TRUE);
+	g_panel->edge_drop_bottom = make_edge_drop_zone(
+		_("⤵ drop here to move to bottom of stack (outside any group)"), FALSE);
+	gtk_box_append(GTK_BOX(box), g_panel->edge_drop_top);
 	gtk_box_append(GTK_BOX(box), sw);
+	gtk_box_append(GTK_BOX(box), g_panel->edge_drop_bottom);
 
 	g_signal_connect(g_panel->list_sel, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), NULL);
@@ -1153,6 +1289,10 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 		if (found && index != com.uniq->active_layer) {
 			uniq_set_active_layer(com.uniq, index);
 			gui_iface.redraw_image(REMAP_ALL);
+			/* Refresh so the active-layer-row CSS class moves to the
+			 * newly active row.  Selection is preserved across the
+			 * rebuild by refresh_panel's snapshot/restore. */
+			refresh_panel();
 		}
 	}
 }

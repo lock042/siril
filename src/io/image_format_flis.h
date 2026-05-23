@@ -737,8 +737,11 @@ int  flis_setgroup_hook(struct generic_layer_args *args);
  * subsequent layers are bumped to make room. */
 struct flis_reorder_args {
 	destructor destroy_fn;
-	gint       target_id;     /* the neighbour layer to drop next to */
-	gboolean   place_above;   /* TRUE = source goes above target (higher z) */
+	gint       target_id;       /* the neighbour layer to drop next to */
+	gboolean   place_above;     /* TRUE = source goes above target (higher z) */
+	gboolean   force_ungroup;   /* TRUE → src->group_id = 0 regardless of target;
+	                             * used by the panel's edge drop zones to drop
+	                             * a layer outside any group at the top/bottom */
 };
 void flis_reorder_args_free(gpointer p);
 int  flis_reorder_hook(struct generic_layer_args *args);
