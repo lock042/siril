@@ -14314,7 +14314,7 @@ int process_icc_assign(int nb) {
 int process_icc_convert_to(int nb) {
 	gui_iface.clear_roi();
 	char *arg = word[1];
-	if (!gfit->icc_profile) {
+	if (!current_icc_profile()) {
 		siril_log_error(_("Image has no color profile assigned to convert from. Assign a profile first.\n"));
 		return CMD_GENERIC_ERROR;
 	}
@@ -15677,7 +15677,7 @@ int process_flis_info(int nb) {
 	gboolean icc = FALSE;
 	if (com.uniq->layers) {
 		base = (flis_layer_t *)com.uniq->layers->data;
-		if (base && base->fit && base->fit->icc_profile) icc = TRUE;
+		if (base && base->fit && fit_get_icc_profile(base->fit)) icc = TRUE;
 	}
 	siril_log_info(_("FLIS image: canvas %ux%u, layers=%u, groups=%u, ICC=%s\n"),
 	               cw, ch, nl, ng, icc ? "yes" : "no");

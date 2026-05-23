@@ -71,16 +71,16 @@ static void free_struct(gpointer user_data) {
 }
 
 void copy_gfit_icc_to_backup() {
-	if (!gfit->icc_profile)
+	if (!current_icc_profile())
 		return;
 	if (preview_icc_backup)
 		cmsCloseProfile(preview_icc_backup);
-	preview_icc_backup = copyICCProfile(gfit->icc_profile);
+	preview_icc_backup = copyICCProfile(current_icc_profile());
 }
 
 static void copy_backup_icc_to_gfit() {
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
+	if (current_icc_profile())
+		cmsCloseProfile(current_icc_profile());
 	gfit->icc_profile = copyICCProfile(preview_icc_backup);
 }
 

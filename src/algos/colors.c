@@ -818,9 +818,9 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
 	gchar *desc = NULL;
-	if(args->fit->icc_profile) {
-		desc = siril_color_profile_get_description(args->fit->icc_profile);
-		cmsCloseProfile(args->fit->icc_profile);
+	if(fit_get_icc_profile(args->fit)) {
+		desc = siril_color_profile_get_description(fit_get_icc_profile(args->fit));
+		cmsCloseProfile(fit_get_icc_profile(args->fit));
 	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
@@ -870,8 +870,8 @@ static gpointer extract_channels_ushort(gpointer p) {
 	case EXTRACT_CIELAB:
 		histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
 		cielab_profile = cmsCreateLab4Profile(NULL);
-		if (args->fit->icc_profile) {
-			image_profile = copyICCProfile(args->fit->icc_profile);
+		if (fit_get_icc_profile(args->fit)) {
+			image_profile = copyICCProfile(fit_get_icc_profile(args->fit));
 		} else {
 			siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
 			image_profile = srgb_trc();
@@ -956,9 +956,9 @@ static gpointer extract_channels_float(gpointer p) {
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
 	gchar *desc = NULL;
-	if(args->fit->icc_profile) {
-		desc = siril_color_profile_get_description(args->fit->icc_profile);
-		cmsCloseProfile(args->fit->icc_profile);
+	if(fit_get_icc_profile(args->fit)) {
+		desc = siril_color_profile_get_description(fit_get_icc_profile(args->fit));
+		cmsCloseProfile(fit_get_icc_profile(args->fit));
 	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
@@ -1006,8 +1006,8 @@ static gpointer extract_channels_float(gpointer p) {
 		case EXTRACT_CIELAB:
 			histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
 			cielab_profile = cmsCreateLab4Profile(NULL);
-			if (args->fit->icc_profile) {
-				image_profile = copyICCProfile(args->fit->icc_profile);
+			if (fit_get_icc_profile(args->fit)) {
+				image_profile = copyICCProfile(fit_get_icc_profile(args->fit));
 			} else {
 				siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
 				image_profile = srgb_trc();
