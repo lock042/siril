@@ -2584,6 +2584,42 @@ int flis_reorder_hook(struct generic_layer_args *args) {
     return 0;
 }
 
+/* -----------------------------------------------------------------------
+ * flis_setposition_hook (§4.3 slice 6) — set a layer's position_x/y for
+ * sparse-layer placement.  Bypasses flis_check_locked because position
+ * is a display attribute, not pixel content (matches the existing
+ * panel convention for "drag layer in canvas" which the user may want
+ * to do even on a layer they've locked against pixel edits).
+ * ----------------------------------------------------------------------- */
+
+void flis_setposition_args_free(gpointer p) {
+    struct flis_setposition_args *a = p;
+    if (!a) return;
+    g_free(a);
+}
+
+int flis_setposition_hook(struct generic_layer_args *args) {
+    struct flis_setposition_args *a = (struct flis_setposition_args *)args->user;
+    if (!a) return 1;
+    flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
+    if (!lay) {
+        siril_log_error(_("flis_setposition: no layer with id %d\n"),
+                        args->invalidate_item_id);
+        return 1;
+    }
+    /* Base layer is canvas-aligned by FLIS spec invariant. */
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    if (lay == base) {
+        siril_log_warning(_("flis_setposition: refusing to move base layer "
+                            "(must stay at canvas origin)\n"));
+        return 1;
+    }
+    lay->position_x = a->x;
+    lay->position_y = a->y;
+    flis_layer_touch_modified(lay);
+    return 0;
+}
+
 int flis_clearmask_hook(struct generic_layer_args *args) {
     flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
     if (!lay) {

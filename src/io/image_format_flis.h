@@ -746,6 +746,19 @@ struct flis_reorder_args {
 void flis_reorder_args_free(gpointer p);
 int  flis_reorder_hook(struct generic_layer_args *args);
 
+/* Slice 6 — set a layer's position_x/y for sparse-layer placement.
+ * Target layer id in args->invalidate_item_id; the payload carries
+ * absolute x/y in canvas pixels (FLIS position is in canvas image
+ * coordinates).  Composite is full-rebuild because the layer's
+ * canvas footprint changes. */
+struct flis_setposition_args {
+	destructor destroy_fn;
+	gint       x;
+	gint       y;
+};
+void flis_setposition_args_free(gpointer p);
+int  flis_setposition_hook(struct generic_layer_args *args);
+
 /**
  * flis_layer_remove:
  * @layer: layer to remove and free.

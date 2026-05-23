@@ -82,6 +82,7 @@ static command commands[] = {
 	{"flis_promote", 0, "flis_promote [-name=\"X\"]", process_flis_promote, STR_FLIS_PROMOTE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"flis_setgroup", 1, "flis_setgroup <layer-id|\"name\"> { <group-id|\"name\"> | -clear }", process_flis_setgroup, STR_FLIS_SETGROUP, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setmask", 2, "flis_setmask <id|\"name\"> <file> [-bitpix=8|32]", process_flis_setmask, STR_FLIS_SETMASK, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_setposition", 3, "flis_setposition <id|\"name\"> <x> <y>", process_flis_setposition, STR_FLIS_SETPOSITION, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"fmedian", 2, "fmedian ksize modulation [-mask]", process_fmedian, STR_FMEDIAN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fmul", 1, "fmul scalar [-mask]", process_fmul, STR_FMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 

@@ -673,6 +673,62 @@ Test(flis_cmd, reorder_hook_onto_ungrouped_clears_source_group) {
 		"dropping on ungrouped layer should clear source's group");
 }
 
+/* -----------------------------------------------------------------
+ * flis_setposition (§4.3 slice 6)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, setposition_hook_moves_non_base_layer) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = (flis_layer_t *)com.uniq->layers->next->data;
+	cr_assert_eq(ha->position_x, 0);
+	cr_assert_eq(ha->position_y, 0);
+
+	struct flis_setposition_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setposition_args_free;
+	payload->x = 123;
+	payload->y = 456;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setposition_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setposition test");
+	args->invalidate_item_id = ha->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(ha->position_x, 123);
+	cr_assert_eq(ha->position_y, 456);
+}
+
+Test(flis_cmd, setposition_hook_refuses_base_layer) {
+	load_two_layer_fixture();
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+	struct flis_setposition_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setposition_args_free;
+	payload->x = 50;
+	payload->y = 50;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setposition_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setposition base");
+	args->invalidate_item_id = base->item_id;
+
+	cr_assert_neq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(base->position_x, 0);
+	cr_assert_eq(base->position_y, 0);
+}
+
+Test(flis_cmd, setposition_command_rejects_non_integer) {
+	load_two_layer_fixture();
+	word[0] = "flis_setposition";
+	word[1] = "Ha";
+	word[2] = "abc";
+	word[3] = "50";
+	word[4] = NULL;
+	cr_assert_eq(process_flis_setposition(4), CMD_ARG_ERROR);
+}
+
 Test(flis_cmd, reorder_hook_self_target_noop) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
