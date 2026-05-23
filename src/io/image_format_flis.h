@@ -729,6 +729,20 @@ struct flis_setgroup_args {
 void flis_setgroup_args_free(gpointer p);
 int  flis_setgroup_hook(struct generic_layer_args *args);
 
+/* Slice 4 — reorder a layer to sit just above another layer in the
+ * stack (drag-to-reorder).  Source layer id is in
+ * args->invalidate_item_id; target neighbour id is in the payload.
+ * New layer_order is computed as target's layer_order + 1 (above) or
+ * - 1 (below) and the stack is re-sorted; if the slot is taken,
+ * subsequent layers are bumped to make room. */
+struct flis_reorder_args {
+	destructor destroy_fn;
+	gint       target_id;     /* the neighbour layer to drop next to */
+	gboolean   place_above;   /* TRUE = source goes above target (higher z) */
+};
+void flis_reorder_args_free(gpointer p);
+int  flis_reorder_hook(struct generic_layer_args *args);
+
 /**
  * flis_layer_remove:
  * @layer: layer to remove and free.
