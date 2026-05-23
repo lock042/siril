@@ -71,15 +71,28 @@
  * recommendation: 2–8 layers).  Slots are O(N) scanned. */
 #define FLIS_CACHE_MAX 64
 
-/* Guard band, in output pixels, included around each baked tile so
- * GSK's bilinear / trilinear sampler has correct neighbour data at
- * tile boundaries (rather than CLAMP_TO_EDGE artefacts that produce
- * visible seams when mipmaps are generated).  1 output pixel is
- * enough for bilinear; 2 keeps trilinear seam-free.  Set to 0 to
- * disable guard bands entirely.  Each tile gains 2*guard pixels per
- * side; at FLIS_TILE_DIM=2048 a guard of 1 adds ~0.1% to texture
- * memory, which is negligible. */
-#define FLIS_TILE_GUARD 1
+/* Guard band, in SOURCE pixels (matches SIRIL_TILE_GUARD in
+ * image_display.c).  GSK's TRILINEAR filter builds a mipmap pyramid
+ * per texture; at mipmap level k each texel is averaged from 2^k
+ * source pixels.  For adjacent tiles' boundary mip-texels to be
+ * averaged from the same source-pixel range — i.e. for the boundary
+ * to look seamless at zoom 1/2^k — each tile needs at least 2^k
+ * source pixels of the next tile's data on each open edge.  64
+ * source pixels covers zoom levels down to 1/64 of the bake mip,
+ * which past mip=4 means past 1/256 effective image-space zoom —
+ * well past anything users routinely use.  Without enough guard,
+ * tile boundaries appear as visible seams (dark lines) at low zoom.
+ *
+ * The output-pixel guard scales inversely with the bake mip stride:
+ * at mip=1 we need 64 output pixels; at mip=4 only 16 output pixels
+ * give the same 64-source-pixel guard.  flis_tile_guard_out() does
+ * that math. */
+#define FLIS_TILE_GUARD 64
+
+static inline int flis_tile_guard_out(int mip) {
+	int g = FLIS_TILE_GUARD / mip;
+	return g < 1 ? 1 : g;
+}
 
 /* Tile-bytes budget across the whole cache.  When materialising a new
  * tile would push g_cache_bytes above this, we evict the oldest
@@ -275,13 +288,14 @@ static GdkTexture *materialise_layer_tile(flis_layer_t *lay,
 	const int inner_w = tile_w / mip;
 	const int inner_h = tile_h / mip;
 	if (inner_w <= 0 || inner_h <= 0) return NULL;
-	const int out_w = inner_w + 2 * FLIS_TILE_GUARD;
-	const int out_h = inner_h + 2 * FLIS_TILE_GUARD;
+	const int g_out = flis_tile_guard_out(mip);
+	const int out_w = inner_w + 2 * g_out;
+	const int out_h = inner_h + 2 * g_out;
 	const size_t n = (size_t)out_w * out_h;
 	uint8_t *bgra = malloc(n * 4);
 	if (!bgra) return NULL;
 	if (!flis_compose_bake_tile_bgra8(lay, FLIS_TILE_DIM, tx, ty,
-	                                   tile_w, tile_h, mip, FLIS_TILE_GUARD,
+	                                   tile_w, tile_h, mip, g_out,
 	                                   gui.remap_index[0], bgra)) {
 		free(bgra);
 		return NULL;
@@ -440,8 +454,9 @@ static GdkTexture *ensure_tile(struct cache_slot *s, flis_layer_t *lay,
 		if (tw <= 0 || th <= 0) return NULL;
 		const int inner_w = tw / s->mip_stride;
 		const int inner_h = th / s->mip_stride;
-		const int out_w   = inner_w + 2 * FLIS_TILE_GUARD;
-		const int out_h   = inner_h + 2 * FLIS_TILE_GUARD;
+		const int g_out   = flis_tile_guard_out(s->mip_stride);
+		const int out_w   = inner_w + 2 * g_out;
+		const int out_h   = inner_h + 2 * g_out;
 		const gsize bytes = (gsize)out_w * out_h * 4;
 		cache_make_room_for(bytes);
 		s->tiles[idx] = materialise_layer_tile(lay, tx, ty, tw, th, s->mip_stride);
@@ -618,14 +633,15 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 				ch * yy);
 
 			if (FLIS_TILE_GUARD > 0) {
-				/* Guard band path: the texture is larger by guard pixels
-				 * on each side (in source-pixel units, that's
-				 * guard*mip pixels).  Draw at the expanded rect so the
-				 * guard pixels physically map outside the canonical rect;
-				 * push_clip ensures only the canonical area is visible
-				 * while GSK's sampler still sees correct neighbour
-				 * pixels at the boundary. */
-				const float gpx = (float)FLIS_TILE_GUARD * (float)slot->mip_stride;
+				/* Guard band path: the texture extends by FLIS_TILE_GUARD
+				 * source pixels on each open edge.  Draw at the
+				 * expanded rect so guard pixels physically map outside
+				 * the canonical rect; push_clip ensures only the
+				 * canonical area is visible while GSK's sampler still
+				 * sees correct neighbour pixels at the boundary —
+				 * critical for mipmap pre-filtering at low zoom, where
+				 * insufficient guard produces visible dark seams. */
+				const float gpx = (float)FLIS_TILE_GUARD;
 				const graphene_rect_t expanded = GRAPHENE_RECT_INIT(
 					r.origin.x - gpx * xx,
 					r.origin.y - gpx * yy,
