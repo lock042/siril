@@ -1181,9 +1181,63 @@ static void on_tint_color_chosen(GtkColorDialogButton *btn, GParamSpec *p, gpoin
 /* Toolbar handlers — these are stubs that print a TODO until the
  * matching flis_* commands ship in §4.3.  The structural wiring is in
  * place; only the body of each handler awaits its command. */
+/* GtkFileDialog completion for the Add Layer toolbar button.  Builds
+ * the same flis_addlayer_args + generic_layer_args struct the
+ * flis_addlayer command builds, then submits to generic_layer_worker
+ * — guaranteed parity with the command path. */
+static void on_add_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
+	(void)ud;
+	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
+	GError *err = NULL;
+	GFile *file = gtk_file_dialog_open_finish(fd, res, &err);
+	if (!file) {
+		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
+			siril_log_error(_("FLIS: Add Layer: %s\n"), err->message);
+		g_clear_error(&err);
+		return;
+	}
+	gchar *path = g_file_get_path(file);
+	g_object_unref(file);
+	if (!path) return;
+
+	struct flis_addlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addlayer_args_free;
+	payload->filename   = path;     /* takes ownership */
+	payload->name       = NULL;     /* hook derives from basename */
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_addlayer_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Add layer"));
+	args->invalidate_flags   = FLIS_INV_ALL;
+	args->invalidate_item_id = 0;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
 static void on_add_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	siril_log_message(_("FLIS: Add layer — TODO (waiting for §4.3 commands)\n"));
+	if (!is_current_image_flis()) {
+		siril_log_message(_("FLIS: Add Layer requires a FLIS image (use flis_promote on a plain FITS first)\n"));
+		return;
+	}
+	GtkFileDialog *fd = gtk_file_dialog_new();
+	gtk_file_dialog_set_title(fd, _("Add layer from FITS file"));
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, _("FITS files"));
+	gtk_file_filter_add_pattern(filter, "*.fit");
+	gtk_file_filter_add_pattern(filter, "*.fits");
+	gtk_file_filter_add_pattern(filter, "*.fts");
+	gtk_file_filter_add_pattern(filter, "*.FIT");
+	gtk_file_filter_add_pattern(filter, "*.FITS");
+	GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+	g_list_store_append(filters, filter);
+	gtk_file_dialog_set_default_filter(fd, filter);
+	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
+	g_object_unref(filters);
+	g_object_unref(filter);
+	gtk_file_dialog_open(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+	                      NULL, on_add_file_chosen, NULL);
+	g_object_unref(fd);
 }
 static void on_remove_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
