@@ -912,6 +912,17 @@ static int undo_restore(fits *fit, historic *hist) {
 		return undo_get_mask_data(fit, hist);
 	}
 
+	/* ICC-profile-only: install the snapshot via the accessor so the
+	 * gfit / FLIS-base mirrors stay consistent.  Then refresh the
+	 * proofing transform so the display picks up the restored profile. */
+	if (hist->icc_only) {
+		current_image_set_icc_profile(hist->icc_profile
+			? copyICCProfile(hist->icc_profile) : NULL);
+		current_image_color_manage(hist->icc_was_managed);
+		refresh_icc_transforms();
+		return 0;
+	}
+
 	/* Full single-layer geometry state: pixels + pmask + lmask + props. */
 	if (hist->full_layer) {
 		if (!is_current_image_flis()) return 1;
@@ -1429,6 +1440,28 @@ int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...) {
 		          sizeof(e->layer_props->name));
 		/* pixel/mask filenames remain NULL */
 	}
+	flis_push_historic(h);
+	return 0;
+}
+
+/* Lightweight ICC-only undo entry.  Captures the current image's
+ * profile + color_managed flag from com.uniq — no swap files, no
+ * pixel data.  Used by the Assign / Convert / Remove ICC dialog
+ * paths and by icc_auto_assign_or_convert.  Restore branch in
+ * undo_restore re-installs the snapshot via the current_image_*
+ * accessors. */
+int undo_save_icc_state(const char *message, ...) {
+	if (com.script) return 0;
+	if (!single_image_is_loaded())
+		return 1;
+	char msg_buf[FLEN_VALUE] = { 0 };
+	FLIS_FORMAT_MESSAGE_INTO(msg_buf, message);
+
+	historic *h = flis_alloc_historic(msg_buf);
+	h->icc_only        = TRUE;
+	h->icc_was_managed = com.uniq ? com.uniq->color_managed : FALSE;
+	h->icc_profile     = (com.uniq && com.uniq->icc_profile)
+	                   ? copyICCProfile(com.uniq->icc_profile) : NULL;
 	flis_push_historic(h);
 	return 0;
 }

@@ -1587,8 +1587,10 @@ void free_icc_data(void *p) {
  * replace this. */
 int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	if (fit_is_current_image(fit) && current_image_color_managed()
-	    && current_icc_profile() && is_current_image_flis()) {
-		undo_save_flis_multi_layer(com.uniq->layers, _("ICC profile removed"));
+	    && current_icc_profile()) {
+		/* Lightweight ICC-only undo: snapshot com.uniq's profile only,
+		 * no swap files.  Works for both plain FITS and FLIS. */
+		undo_save_icc_state(_("ICC profile removed"));
 		gargs->custom_undo = TRUE;
 	}
 	siril_colorspace_transform(fit, NULL);
@@ -1604,10 +1606,10 @@ gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
  * in siril_colorspace_transform, then assigns the new profile. */
 int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
-	if (fit_is_current_image(fit) && is_current_image_flis()) {
+	if (fit_is_current_image(fit)) {
+		/* Lightweight ICC-only undo. */
 		gchar *prof_desc = siril_color_profile_get_description(args->profile);
-		undo_save_flis_multi_layer(com.uniq->layers,
-			_("Assigned ICC profile: %s"),
+		undo_save_icc_state(_("Assigned ICC profile: %s"),
 			prof_desc ? prof_desc : "?");
 		g_free(prof_desc);
 		gargs->custom_undo = TRUE;
