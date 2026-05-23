@@ -923,6 +923,7 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_flatten   (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_stub          (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_move_to_group (GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_export_layer  (GSimpleAction *a, GVariant *v, gpointer u);
 
 static GMenu *build_context_menu(void) {
 	GMenu *m = g_menu_new();
@@ -936,7 +937,7 @@ static GMenu *build_context_menu(void) {
 }
 
 static const GActionEntry flis_panel_actions[] = {
-	{ "flis-export-layer",   on_ctx_stub,       NULL, NULL, NULL },
+	{ "flis-export-layer",   on_ctx_export_layer, NULL, NULL, NULL },
 	{ "flis-register-layers",on_ctx_stub,       NULL, NULL, NULL },
 	{ "flis-layers-match",   on_ctx_stub,       NULL, NULL, NULL },
 	{ "flis-move-to-group",  on_ctx_move_to_group, NULL, NULL, NULL },
@@ -1898,6 +1899,56 @@ static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
 	g_signal_connect(ok,     "clicked", G_CALLBACK(on_move_to_group_ok),     ctx);
 	g_signal_connect(cancel, "clicked", G_CALLBACK(on_move_to_group_cancel), ctx);
 	gtk_window_present(GTK_WINDOW(dialog));
+}
+
+/* Export-layer context menu action.  Opens a GtkFileDialog save-as
+ * dialog; on confirm, dispatches flis_exportlayer_hook through the
+ * worker so the panel and the flis_exportlayer command share the same
+ * code path. */
+static void on_export_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
+	gint target_id = GPOINTER_TO_INT(ud);
+	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
+	GError *err = NULL;
+	GFile *file = gtk_file_dialog_save_finish(fd, res, &err);
+	if (!file) {
+		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
+			siril_log_error(_("FLIS: Export Layer: %s\n"), err->message);
+		g_clear_error(&err);
+		return;
+	}
+	gchar *path = g_file_get_path(file);
+	g_object_unref(file);
+	if (!path) return;
+
+	struct flis_exportlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_exportlayer_args_free;
+	payload->filename   = path;       /* takes ownership */
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_exportlayer_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Export layer"));
+	args->read_only          = TRUE;
+	args->invalidate_item_id = target_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
+static void on_ctx_export_layer(GSimpleAction *a, GVariant *v, gpointer u) {
+	(void)a; (void)v; (void)u;
+	flis_layer_t *lay = current_selected_layer();
+	if (!lay) {
+		siril_log_message(_("FLIS: Export Layer — no layer selected\n"));
+		return;
+	}
+	GtkFileDialog *fd = gtk_file_dialog_new();
+	gtk_file_dialog_set_title(fd, _("Export layer as FITS file"));
+	gchar *suggested = g_strdup_printf("%s.fit",
+		lay->layer_name && *lay->layer_name ? lay->layer_name : "layer");
+	gtk_file_dialog_set_initial_name(fd, suggested);
+	g_free(suggested);
+	gtk_file_dialog_save(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+	                      NULL, on_export_file_chosen,
+	                      GINT_TO_POINTER(lay->item_id));
+	g_object_unref(fd);
 }
 
 static void on_ctx_stub(GSimpleAction *a, GVariant *v, gpointer u) {

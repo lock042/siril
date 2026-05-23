@@ -729,6 +729,52 @@ Test(flis_cmd, setposition_command_rejects_non_integer) {
 	cr_assert_eq(process_flis_setposition(4), CMD_ARG_ERROR);
 }
 
+/* -----------------------------------------------------------------
+ * flis_exportlayer (§4.3 slice 7)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, exportlayer_hook_writes_file) {
+	load_two_layer_fixture();
+	flis_layer_t *ha = (flis_layer_t *)com.uniq->layers->next->data;
+
+	gchar *path = g_build_filename(g_get_tmp_dir(),
+		"flis_exportlayer_test_XXXXXX.fit", NULL);
+	gint fd = g_mkstemp(path);
+	cr_assert(fd >= 0);
+	close(fd);
+	g_unlink(path);   /* let the hook create it fresh */
+
+	struct flis_exportlayer_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_exportlayer_args_free;
+	payload->filename   = g_strdup(path);
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_exportlayer_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->read_only          = TRUE;
+	args->description        = g_strdup("exportlayer test");
+	args->invalidate_item_id = ha->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+
+	/* File should exist and be non-empty. */
+	cr_assert(g_file_test(path, G_FILE_TEST_EXISTS));
+	GStatBuf st;
+	cr_assert_eq(g_stat(path, &st), 0);
+	cr_assert(st.st_size > 0, "exported FITS should be non-empty (got %ld)",
+		(long)st.st_size);
+	g_unlink(path);
+	g_free(path);
+}
+
+Test(flis_cmd, exportlayer_command_rejects_missing_file_arg) {
+	load_two_layer_fixture();
+	word[0] = "flis_exportlayer";
+	word[1] = "Ha";
+	word[2] = NULL;
+	cr_assert_eq(process_flis_exportlayer(2), CMD_WRONG_N_ARG);
+}
+
 Test(flis_cmd, reorder_hook_self_target_noop) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
