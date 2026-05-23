@@ -16001,6 +16001,79 @@ int process_flis_clearmask(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* flis_addgroup [-name="X"] — create a new layer group. */
+int process_flis_addgroup(int nb) {
+	const char *name = NULL;
+	for (int i = 1; i < nb; i++) {
+		if (!word[i]) continue;
+		if (g_str_has_prefix(word[i], "-name=")) {
+			name = word[i] + 6;
+		} else {
+			siril_log_error(_("flis_addgroup: unknown argument '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	struct flis_addgroup_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_addgroup_args_free;
+	payload->name       = (name && *name) ? g_strdup(name) : NULL;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_addgroup_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_addgroup_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_addgroup");
+	args->command            = TRUE;
+	args->invalidate_flags   = FLIS_INV_STACK;  /* groups affect z-order display */
+	args->invalidate_item_id = 0;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+/* flis_setgroup <layer-id|"name"> { <group-id|"name"> | -clear } */
+int process_flis_setgroup(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setgroup <layer-id|\"name\"> "
+		                  "{ <group-id|\"name\"> | -clear }\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+
+	gint target_group = 0;
+	if (!g_strcmp0(word[2], "-clear")) {
+		target_group = 0;
+	} else {
+		flis_group_t *grp = resolve_group_arg(word[2]);
+		if (!grp) return CMD_ARG_ERROR;
+		target_group = grp->item_id;
+	}
+
+	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_setgroup_args_free;
+	payload->group_id   = target_group;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_setgroup_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_setgroup_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_setgroup");
+	args->command            = TRUE;
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = target->item_id;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));

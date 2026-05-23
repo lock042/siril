@@ -711,6 +711,24 @@ void flis_setmask_args_free(gpointer p);
 int  flis_setmask_hook(struct generic_layer_args *args);
 int  flis_clearmask_hook(struct generic_layer_args *args);
 
+/* Slice 3 — create a group / assign a layer to a group (or 0 = ungroup).
+ * For addgroup, the @name in payload may be NULL → auto "Group N".
+ * For setgroup, args->invalidate_item_id holds the LAYER id, and the
+ * payload holds the target GROUP id (0 = ungroup). */
+struct flis_addgroup_args {
+	destructor destroy_fn;
+	gchar     *name;          /* may be NULL → "Group N" with N auto */
+};
+void flis_addgroup_args_free(gpointer p);
+int  flis_addgroup_hook(struct generic_layer_args *args);
+
+struct flis_setgroup_args {
+	destructor destroy_fn;
+	gint       group_id;      /* 0 → remove layer from any group */
+};
+void flis_setgroup_args_free(gpointer p);
+int  flis_setgroup_hook(struct generic_layer_args *args);
+
 /**
  * flis_layer_remove:
  * @layer: layer to remove and free.

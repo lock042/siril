@@ -687,7 +687,8 @@ static void build_mask(GtkWidget *box) {
  * dispatch through the worker directly. */
 static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_flatten   (GSimpleAction *a, GVariant *v, gpointer u);
-static void on_ctx_stub      (GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_stub          (GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_move_to_group (GSimpleAction *a, GVariant *v, gpointer u);
 
 static GMenu *build_context_menu(void) {
 	GMenu *m = g_menu_new();
@@ -704,7 +705,7 @@ static const GActionEntry flis_panel_actions[] = {
 	{ "flis-export-layer",   on_ctx_stub,       NULL, NULL, NULL },
 	{ "flis-register-layers",on_ctx_stub,       NULL, NULL, NULL },
 	{ "flis-layers-match",   on_ctx_stub,       NULL, NULL, NULL },
-	{ "flis-move-to-group",  on_ctx_stub,       NULL, NULL, NULL },
+	{ "flis-move-to-group",  on_ctx_move_to_group, NULL, NULL, NULL },
 	{ "flis-merge-down",     on_ctx_merge_down, NULL, NULL, NULL },
 	{ "flis-flatten",        on_ctx_flatten,    NULL, NULL, NULL },
 };
@@ -1261,7 +1262,19 @@ static void on_duplicate_clicked(GtkButton *b, gpointer u) {
 }
 static void on_group_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	siril_log_message(_("FLIS: New group — TODO\n"));
+	if (!is_current_image_flis()) return;
+	/* No name prompt — the hook picks "Group N" with the smallest N
+	 * not in use.  Users rename via the (future) group properties UI
+	 * or by editing inline once group rows are made editable. */
+	struct flis_addgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_addgroup_args_free;
+	payload->name       = NULL;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_addgroup_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Create group"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	start_in_new_thread(generic_layer_worker, args);
 }
 static void on_drag_toggled(GtkToggleButton *b, gpointer u) {
 	(void)u;
@@ -1432,6 +1445,117 @@ static void on_ctx_flatten(GSimpleAction *a, GVariant *v, gpointer u) {
 	args->description = g_strdup(_("Flatten Image"));
 	args->invalidate_flags = FLIS_INV_ALL;
 	start_in_new_thread(generic_layer_worker, args);
+}
+
+/* Move-to-group dialog — a tiny modal window with a dropdown of
+ * existing groups (plus "(none — remove from group)") and OK/Cancel.
+ * On OK we dispatch flis_setgroup_hook with the chosen group_id. */
+struct move_to_group_ctx {
+	GtkWidget *dialog;
+	GtkWidget *dropdown;
+	gint       layer_id;
+	GArray    *group_ids;  /* parallel to dropdown items: [0] = 0 (none), [n] = item_id */
+};
+
+static void on_move_to_group_ok(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct move_to_group_ctx *ctx = ud;
+	guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->dropdown));
+	gint chosen_id = 0;
+	if (idx < ctx->group_ids->len)
+		chosen_id = g_array_index(ctx->group_ids, gint, idx);
+
+	struct flis_setgroup_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setgroup_args_free;
+	payload->group_id   = chosen_id;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setgroup_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Move layer to group"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = ctx->layer_id;
+	start_in_new_thread(generic_layer_worker, args);
+
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->group_ids);
+	g_free(ctx);
+}
+
+static void on_move_to_group_cancel(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct move_to_group_ctx *ctx = ud;
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->group_ids);
+	g_free(ctx);
+}
+
+static void on_ctx_move_to_group(GSimpleAction *a, GVariant *v, gpointer u) {
+	(void)a; (void)v; (void)u;
+	flis_layer_t *lay = current_selected_layer();
+	if (!lay) {
+		siril_log_message(_("FLIS: Move to group — no layer selected\n"));
+		return;
+	}
+
+	GtkWidget *dialog = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Move layer to group"));
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog),
+	                              g_panel ? GTK_WINDOW(g_panel->window) : NULL);
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 320, 120);
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (box, 12);
+	gtk_widget_set_margin_end   (box, 12);
+	gtk_widget_set_margin_top   (box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_window_set_child(GTK_WINDOW(dialog), box);
+
+	gchar *prompt = g_strdup_printf(_("Move layer '%s' to:"),
+		lay->layer_name ? lay->layer_name : "");
+	GtkWidget *label = gtk_label_new(prompt);
+	g_free(prompt);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_box_append(GTK_BOX(box), label);
+
+	GtkStringList *items = gtk_string_list_new(NULL);
+	gtk_string_list_append(items, _("(none — remove from group)"));
+	GArray *group_ids = g_array_new(FALSE, FALSE, sizeof(gint));
+	gint zero = 0;
+	g_array_append_val(group_ids, zero);
+	for (GSList *g = com.uniq ? com.uniq->groups : NULL; g; g = g->next) {
+		flis_group_t *grp = (flis_group_t *)g->data;
+		if (!grp) continue;
+		gtk_string_list_append(items, grp->name ? grp->name : "(unnamed)");
+		g_array_append_val(group_ids, grp->item_id);
+	}
+	GtkWidget *dd = gtk_drop_down_new(G_LIST_MODEL(items), NULL);
+	/* Pre-select the layer's current group if any. */
+	for (guint i = 0; i < group_ids->len; i++) {
+		if (g_array_index(group_ids, gint, i) == lay->group_id) {
+			gtk_drop_down_set_selected(GTK_DROP_DOWN(dd), i);
+			break;
+		}
+	}
+	gtk_box_append(GTK_BOX(box), dd);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *ok     = gtk_button_new_with_label(_("OK"));
+	gtk_widget_add_css_class(ok, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), cancel);
+	gtk_box_append(GTK_BOX(bbox), ok);
+	gtk_box_append(GTK_BOX(box), bbox);
+
+	struct move_to_group_ctx *ctx = g_new0(struct move_to_group_ctx, 1);
+	ctx->dialog    = dialog;
+	ctx->dropdown  = dd;
+	ctx->layer_id  = lay->item_id;
+	ctx->group_ids = group_ids;
+	g_signal_connect(ok,     "clicked", G_CALLBACK(on_move_to_group_ok),     ctx);
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_move_to_group_cancel), ctx);
+	gtk_window_present(GTK_WINDOW(dialog));
 }
 
 static void on_ctx_stub(GSimpleAction *a, GVariant *v, gpointer u) {
