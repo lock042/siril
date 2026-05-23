@@ -1541,11 +1541,19 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 		 * profile to the target via siril_colorspace_transform — the
 		 * data buffer of the base has already been transformed, so the
 		 * channel-mismatch safety net inside that function will simply
-		 * re-tag with the new RGB profile. */
+		 * re-tag with the new RGB profile.
+		 *
+		 * The safety-net branch in siril_colorspace_transform doesn't
+		 * call refresh_icc_transforms — the proofing transform would
+		 * otherwise remain set up from the old source profile and the
+		 * display path would re-interpret the just-converted pixels
+		 * through the wrong colourspace, producing a second cumulative
+		 * colour shift on top of the legitimate one from the conversion. */
 		cmsHPROFILE old = copyICCProfile(fit->icc_profile);
 		flis_convert_layers_icc(old, args->profile);
 		cmsCloseProfile(old);
 		siril_colorspace_transform(fit, args->profile);
+		refresh_icc_transforms();
 	} else {
 		siril_colorspace_transform(fit, args->profile);
 	}
