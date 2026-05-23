@@ -423,7 +423,15 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 }
 
 int select_vport(int vport) {
-	return vport == RGB_VPORT ? GREEN_VPORT : vport;
+	int v = (vport == RGB_VPORT) ? GREEN_VPORT : vport;
+	/* Clamp to gfit's channel range.  Most callers feed the result
+	 * to statistics() / psf_get_fwhm() / psf_get_minimisation() which
+	 * assert layer < fit->naxes[2].  Falling out of range happens
+	 * naturally on a FLIS where the active layer (= gfit) may be
+	 * mono while the user sees the multi-channel composite and
+	 * picked an RGB / G / B viewport.  Fall back to channel 0. */
+	if (gfit && v >= gfit->naxes[2]) v = 0;
+	return v;
 }
 
 gboolean check_ok_if_cfa() {
