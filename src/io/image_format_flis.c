@@ -1356,25 +1356,26 @@ int load_flis(const gchar *filename) {
      * layer_order).  For any non-base layer whose HDU happened to carry
      * an embedded ICC profile, warn and discard it — ICC profiles are
      * an image-level concept in FLIS, not a per-layer one. */
+    /* Discard any per-layer ICC profiles read from disk — ICC state is
+     * image-level (com.uniq) and is set further down from file_icc.
+     * Any HDU that carried an embedded profile gets a warning. */
     if (layers) {
-        flis_layer_t *base_lay = (flis_layer_t *)layers->data;
-        if (file_icc) {
-            if (base_lay->fit->icc_profile)
-                cmsCloseProfile(base_lay->fit->icc_profile);
-            base_lay->fit->icc_profile = copyICCProfile(file_icc);
-            base_lay->fit->color_managed = TRUE;
-        }
-        for (GSList *l = layers->next; l; l = l->next) {
+        gboolean first = TRUE;
+        for (GSList *l = layers; l; l = l->next) {
             flis_layer_t *lay = (flis_layer_t *)l->data;
             if (!lay || !lay->fit) continue;
             if (lay->fit->icc_profile) {
-                siril_log_warning(
-                    _("FLIS: non-base layer '%s' contained an ICC profile — "
-                      "ignored (ICC profiles are managed at image level)\n"), lay->layer_name);
+                if (!first) {
+                    siril_log_warning(
+                        _("FLIS: non-base layer '%s' contained an ICC profile — "
+                          "ignored (ICC profiles are managed at image level)\n"),
+                        lay->layer_name);
+                }
                 cmsCloseProfile(lay->fit->icc_profile);
                 lay->fit->icc_profile = NULL;
             }
             lay->fit->color_managed = FALSE;
+            first = FALSE;
         }
     }
 
@@ -1730,19 +1731,9 @@ void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
     if (xform_word)  cmsDeleteTransform(xform_word);
     if (xform_tint)  cmsDeleteTransform(xform_tint);
 
-    /* Update base layer: store new profile, clear non-base layers per invariant. */
-    for (GSList *l = com.uniq->layers; l; l = l->next) {
-        flis_layer_t *lay = (flis_layer_t *)l->data;
-        if (!lay || !lay->fit) continue;
-        if (l == com.uniq->layers) {
-            /* Base layer gets the new profile. */
-            if (lay->fit->icc_profile)
-                cmsCloseProfile(lay->fit->icc_profile);
-            lay->fit->icc_profile   = copyICCProfile(new_profile);
-            lay->fit->color_managed = TRUE;
-        }
-        /* Non-base layers already have icc_profile=NULL per invariant. */
-    }
+    /* Profile bookkeeping is now on com.uniq, not per-layer.  The caller
+     * (icc_convert_to_hook) calls siril_colorspace_transform after this
+     * which lands the new profile via current_image_set_icc_profile. */
 }
 
 /* flis_update_layer_offset_after_crop:
@@ -2262,35 +2253,32 @@ flis_layer_t *flis_layer_add(fits *fit, const gchar *name) {
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, layer,
                                               (GCompareFunc)layer_order_cmp);
 
-    /* ICC profile: only the base layer holds the image's ICC profile.
-     * A layer added via flis_layer_add() is always placed at the top of
-     * the stack (highest layer_order), so it is never the base.  If its
-     * fits* carries a profile (e.g. loaded from a FITS file on disk),
-     * convert its pixels to the base layer's colour space first, then
-     * discard the per-layer profile. */
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    if (layer != base && fit->icc_profile) {
-        if (base->fit->icc_profile &&
-            !profiles_identical(fit->icc_profile, base->fit->icc_profile)) {
-            gchar *src_desc = siril_color_profile_get_description(fit->icc_profile);
-            gchar *dst_desc = siril_color_profile_get_description(base->fit->icc_profile);
-            siril_log_message(
-                _("FLIS: converting new layer '%s' from '%s' to base layer profile '%s'\n"),
-                layer->layer_name, src_desc, dst_desc);
-            g_free(src_desc);
-            g_free(dst_desc);
-            /* Ensure color_managed is set so siril_colorspace_transform
-             * performs a real pixel conversion, not a mere profile assignment */
-            fit->color_managed = TRUE;
-            siril_colorspace_transform(fit, base->fit->icc_profile);
-            /* siril_colorspace_transform has now set fit->icc_profile to a
-             * copy of the base profile; fall through to discard it below */
-        }
-        if (fit->icc_profile)
-            cmsCloseProfile(fit->icc_profile);
-        fit->icc_profile   = NULL;
-        fit->color_managed = FALSE;
+    /* ICC profile: image-level state lives on com.uniq.  A new non-base
+     * layer with its own per-fits profile (e.g. loaded from a FITS file
+     * on disk) needs its pixels converted to the FLIS's colour space —
+     * otherwise the composite would mix two colour spaces.  After the
+     * conversion, drop the per-layer profile per the FLIS invariant. */
+    if (fit->icc_profile && com.uniq->icc_profile
+        && com.uniq->color_managed
+        && !profiles_identical(fit->icc_profile, com.uniq->icc_profile)) {
+        gchar *src_desc = siril_color_profile_get_description(fit->icc_profile);
+        gchar *dst_desc = siril_color_profile_get_description(com.uniq->icc_profile);
+        siril_log_message(
+            _("FLIS: converting new layer '%s' from '%s' to FLIS profile '%s'\n"),
+            layer->layer_name, src_desc, dst_desc);
+        g_free(src_desc);
+        g_free(dst_desc);
+        /* fit is an intermediate (not the current image) — siril_colorspace_
+         * transform reads fit->color_managed / fit->icc_profile directly
+         * via the per-fits branch of fit_is_current_image. */
+        fit->color_managed = TRUE;
+        siril_colorspace_transform(fit, com.uniq->icc_profile);
     }
+    if (fit->icc_profile) {
+        cmsCloseProfile(fit->icc_profile);
+        fit->icc_profile = NULL;
+    }
+    fit->color_managed = FALSE;
 
     /* Activate the newly added layer */
     gint idx = flis_layer_get_index(layer);
@@ -2366,14 +2354,34 @@ static void flis_layer_install_render(flis_layer_t *lay, fits *rendered) {
     f->rx          = rendered->rx;
     f->ry          = rendered->ry;
 
-    /* ICC profile: take from rendered composite (derived from base layer) */
-    if (f->icc_profile) { cmsCloseProfile(f->icc_profile); f->icc_profile = NULL; }
-    if (rendered->icc_profile) {
-        f->icc_profile = rendered->icc_profile;
-        rendered->icc_profile = NULL;
-        color_manage(f, TRUE);
+    /* ICC profile transfer.  rendered's profile was copied from com.uniq
+     * (by flis_render_layers) — after flatten the FLIS is collapsing to
+     * a plain FITS, so we keep the profile on com.uniq (it's still the
+     * current image's profile) and just mirror onto f via the legacy
+     * path until the post-flatten sequencing clears the layer stack. */
+    if (f != gfit) {
+        /* intermediate fits — own a copy */
+        if (f->icc_profile) { cmsCloseProfile(f->icc_profile); f->icc_profile = NULL; }
+        if (rendered->icc_profile) {
+            f->icc_profile = rendered->icc_profile;
+            rendered->icc_profile = NULL;
+            f->color_managed = TRUE;
+        } else {
+            f->color_managed = FALSE;
+        }
     } else {
-        color_manage(f, FALSE);
+        /* current image — com.uniq already owns the canonical profile;
+         * close the rendered copy. */
+        if (rendered->icc_profile) {
+            cmsCloseProfile(rendered->icc_profile);
+            rendered->icc_profile = NULL;
+        }
+        /* mirror onto gfit so legacy readers see the right value */
+        if (f->icc_profile != current_icc_profile()) {
+            if (f->icc_profile) cmsCloseProfile(f->icc_profile);
+            f->icc_profile = current_icc_profile() ? copyICCProfile(current_icc_profile()) : NULL;
+        }
+        f->color_managed = current_image_color_managed();
     }
 
     invalidate_stats_from_fit(f);

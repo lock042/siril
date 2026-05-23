@@ -603,14 +603,15 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
     out->rx          = W;
     out->ry          = H;
 
-    /* The FLIS invariant is that the base layer is the only one carrying
-     * an ICC profile, and that profile is RGB-compatible — see
-     * icc_auto_assign_or_convert + siril_colorspace_transform which use
-     * flis_composite_naxes2() (==3 for any FLIS) when assigning a profile
-     * to the base.  Copying it onto the RGB composite is therefore safe. */
-    if (base->fit->icc_profile && base->fit->color_managed) {
-        out->icc_profile = copyICCProfile(base->fit->icc_profile);
-        color_manage(out, TRUE);
+    /* Source the composite's profile from com.uniq — the authoritative
+     * store for the current image's ICC state.  The profile is always
+     * RGB (see icc_auto_assign_or_convert + siril_colorspace_transform,
+     * which use flis_composite_naxes2()==3 to gate the assignment) and
+     * therefore safe to apply to the 3-channel composite. */
+    cmsHPROFILE current = current_icc_profile();
+    if (current && current_image_color_managed()) {
+        out->icc_profile = copyICCProfile(current);
+        out->color_managed = TRUE;
     }
 
     float *out_r = out->fpdata[RLAYER];
