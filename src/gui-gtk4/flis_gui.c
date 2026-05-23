@@ -147,6 +147,11 @@ struct flis_panel {
 	/* Pending idle refresh ID (0 = none).  Coalesces multiple
 	 * flis_gui_update_from_idle calls during a worker burst. */
 	guint      refresh_idle_id;
+	/* What the property panel's widgets currently target.  Set by
+	 * on_selection_changed; read by name/blend/opacity handlers to
+	 * dispatch to either flis_layer_set_* or flis_group_set_*. */
+	int        selected_kind;       /* -1, FLIS_ROW_KIND_LAYER, FLIS_ROW_KIND_GROUP */
+	gint       selected_item_id;
 };
 
 static struct flis_panel *g_panel;  /* NULL until first show */
@@ -309,7 +314,7 @@ static void build_toolbar(GtkWidget *box) {
 
 static void on_row_visible_toggled  (GtkToggleButton *btn, gpointer u);
 static void on_row_lock_toggled     (GtkToggleButton *btn, gpointer u);
-static void on_group_expander_toggled(GtkToggleButton *btn, gpointer u);
+static void on_group_expander_clicked(GtkButton *btn, gpointer u);
 static void on_selection_changed    (GtkSelectionModel *sel, guint pos, guint nitems, gpointer u);
 
 /* The row template — built procedurally rather than from a .ui file
@@ -426,8 +431,11 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_widget_set_margin_top   (rw->row_box, 2);
 	gtk_widget_set_margin_bottom(rw->row_box, 2);
 
-	rw->expander = gtk_toggle_button_new();
-	gtk_button_set_icon_name(GTK_BUTTON(rw->expander), "pan-down-symbolic");
+	/* Plain GtkButton (not toggle) — we don't track state on the widget,
+	 * grp->collapsed is the source of truth; on click we just flip it
+	 * and refresh.  Using a toggle button raced with the bind path's
+	 * set_active call and produced a "two clicks needed" behaviour. */
+	rw->expander = gtk_button_new_from_icon_name("pan-down-symbolic");
 	gtk_widget_set_tooltip_text(rw->expander, _("Toggle group collapse"));
 	gtk_widget_add_css_class(rw->expander, "flat");
 
@@ -622,7 +630,6 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		 * are below), pan-end when collapsed (click to expand). */
 		gtk_button_set_icon_name(GTK_BUTTON(rw->expander),
 			grp->collapsed ? "pan-end-symbolic" : "pan-down-symbolic");
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->expander), !grp->collapsed);
 		gchar *markup = g_markup_printf_escaped(
 			"\xF0\x9F\x97\x80 <b>%s</b>",   /* U+1F5C0 file folder */
 			grp->name ? grp->name : _("(group)"));
@@ -633,8 +640,8 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		rw->vis_handler_id = g_signal_connect(rw->visible_toggle, "toggled",
 		                         G_CALLBACK(on_row_visible_toggled),
 		                         GINT_TO_POINTER(-ri->item_id));  /* negative encodes group */
-		rw->exp_handler_id = g_signal_connect(rw->expander, "toggled",
-		                         G_CALLBACK(on_group_expander_toggled),
+		rw->exp_handler_id = g_signal_connect(rw->expander, "clicked",
+		                         G_CALLBACK(on_group_expander_clicked),
 		                         GINT_TO_POINTER(ri->item_id));
 	}
 }
@@ -953,12 +960,21 @@ static const GActionEntry flis_panel_actions[] = {
 };
 
 static void register_panel_actions(void) {
-	GtkWidget *main_w = lookup_widget("control_window");
-	if (!main_w || !G_IS_ACTION_MAP(main_w)) return;
-	g_action_map_add_action_entries(G_ACTION_MAP(main_w),
+	/* GTK4 resolves "win.*" action names by walking up from the
+	 * widget invoking the action (the GtkMenuButton inside the
+	 * panel) to its root window — which is g_panel->window.  Our
+	 * panel is a plain GtkWindow (not GtkApplicationWindow) so it
+	 * isn't a GActionMap by default; install a GSimpleActionGroup
+	 * under the "win" prefix so "win.flis-*" resolves locally. */
+	if (!g_panel || !g_panel->window) return;
+	GSimpleActionGroup *group = g_simple_action_group_new();
+	g_action_map_add_action_entries(G_ACTION_MAP(group),
 	                                 flis_panel_actions,
 	                                 G_N_ELEMENTS(flis_panel_actions),
 	                                 NULL);
+	gtk_widget_insert_action_group(g_panel->window, "win",
+	                                G_ACTION_GROUP(group));
+	g_object_unref(group);
 }
 
 /* =========================================================================
@@ -1126,22 +1142,20 @@ static void refresh_panel(void) {
 	g_panel->refreshing = FALSE;
 }
 
-static void sync_property_widgets(flis_layer_t *lay) {
-	/* Programmatic widget state changes below — guard against the
-	 * cascade of "changed" signals firing dispatch_op for what is
-	 * really just a display refresh.  Caller may have already set
-	 * the flag (refresh_panel does); set it locally just in case. */
-	const gboolean was_refreshing = g_panel->refreshing;
-	g_panel->refreshing = TRUE;
+/* Set the property panel to a "nothing selected" state. */
+static void sync_property_widgets_empty(void) {
+	gtk_widget_set_sensitive(g_panel->prop_frame, FALSE);
+	gtk_widget_set_sensitive(g_panel->mask_frame, FALSE);
+	gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry), "");
+	gtk_button_set_label(GTK_BUTTON(g_panel->mask_status_btn), _("(no mask)"));
+	gtk_widget_set_sensitive(g_panel->tint_frame, FALSE);
+}
 
-	gtk_widget_set_sensitive(g_panel->prop_frame, lay != NULL);
-	gtk_widget_set_sensitive(g_panel->mask_frame, lay != NULL);
-	if (!lay) {
-		gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry), "");
-		gtk_button_set_label(GTK_BUTTON(g_panel->mask_status_btn), _("(no mask)"));
-		g_panel->refreshing = was_refreshing;
-		return;
-	}
+/* Fill the property panel widgets for a selected LAYER. */
+static void sync_property_widgets_for_layer(flis_layer_t *lay) {
+	gtk_widget_set_sensitive(g_panel->prop_frame, TRUE);
+	gtk_widget_set_sensitive(g_panel->mask_frame, TRUE);
+
 	gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry),
 	                      lay->layer_name ? lay->layer_name : "");
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(g_panel->blend_dropdown),
@@ -1183,6 +1197,44 @@ static void sync_property_widgets(flis_layer_t *lay) {
 	                              /* TODO: replace with real proc-mask test once mask plumbing arrives */
 	                              && FALSE);
 	gtk_widget_set_visible(g_panel->mask_view_row, both_masks);
+}
+
+/* Fill the property panel widgets for a selected GROUP.  Groups support
+ * name / blend mode / opacity (the same three widgets as layers).
+ * Tint and mask are layer-only concepts — disable / hide them. */
+static void sync_property_widgets_for_group(flis_group_t *grp) {
+	gtk_widget_set_sensitive(g_panel->prop_frame, TRUE);
+	gtk_widget_set_sensitive(g_panel->mask_frame, FALSE);
+
+	gtk_editable_set_text(GTK_EDITABLE(g_panel->name_entry),
+	                      grp->name ? grp->name : "");
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(g_panel->blend_dropdown),
+	                            index_for_blend_mode(grp->blend_mode));
+	gtk_adjustment_set_value(g_panel->opacity_adj, (double)(grp->opacity * 100.0f));
+
+	/* Tint sub-frame: not applicable to groups. */
+	gtk_widget_set_sensitive(g_panel->tint_frame, FALSE);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(g_panel->tint_check), FALSE);
+
+	/* Mask sub-frame: groups don't carry their own lmask. */
+	gtk_button_set_label(GTK_BUTTON(g_panel->mask_status_btn), _("(groups have no mask)"));
+	gtk_widget_set_visible(g_panel->mask_view_row, FALSE);
+}
+
+/* Sync the property panel to current selection (layer, group, or none).
+ * Guards against the cascade of widget "changed" signals firing
+ * dispatch_op while we're updating display state. */
+static void sync_property_widgets(flis_layer_t *lay) {
+	const gboolean was_refreshing = g_panel->refreshing;
+	g_panel->refreshing = TRUE;
+
+	if (lay) {
+		sync_property_widgets_for_layer(lay);
+	} else {
+		flis_group_t *grp = current_selected_group();
+		if (grp) sync_property_widgets_for_group(grp);
+		else     sync_property_widgets_empty();
+	}
 
 	g_panel->refreshing = was_refreshing;
 }
@@ -1204,7 +1256,7 @@ static void sync_property_widgets(flis_layer_t *lay) {
 enum op_kind {
 	OP_SET_VISIBLE, OP_SET_LOCKED, OP_SET_NAME, OP_SET_BLEND,
 	OP_SET_OPACITY, OP_SET_TINT, OP_CLEAR_TINT,
-	OP_GROUP_SET_VISIBLE,
+	OP_GROUP_SET_VISIBLE, OP_GROUP_SET_NAME, OP_GROUP_SET_BLEND, OP_GROUP_SET_OPACITY,
 	OP_LAYER_REMOVE, OP_LAYER_DUPLICATE,
 	OP_LAYER_MOVE_UP, OP_LAYER_MOVE_DOWN,
 };
@@ -1229,10 +1281,13 @@ static void op_payload_free(gpointer p) {
 
 static int op_hook(struct generic_layer_args *args) {
 	struct op_payload *op = (struct op_payload *)args->user;
-	flis_layer_t *lay = (op->kind == OP_GROUP_SET_VISIBLE) ? NULL
-	                    : flis_layer_get_by_id(op->target_id);
-	flis_group_t *grp = (op->kind == OP_GROUP_SET_VISIBLE)
-	                    ? flis_group_get_by_id(op->target_id) : NULL;
+	const gboolean is_group_op =
+		(op->kind == OP_GROUP_SET_VISIBLE ||
+		 op->kind == OP_GROUP_SET_NAME    ||
+		 op->kind == OP_GROUP_SET_BLEND   ||
+		 op->kind == OP_GROUP_SET_OPACITY);
+	flis_layer_t *lay = is_group_op ? NULL : flis_layer_get_by_id(op->target_id);
+	flis_group_t *grp = is_group_op ? flis_group_get_by_id(op->target_id) : NULL;
 	switch (op->kind) {
 		case OP_SET_VISIBLE:  return lay ? flis_layer_set_visible (lay, op->bool_v) : 1;
 		case OP_SET_LOCKED:   return lay ? flis_layer_set_locked  (lay, op->bool_v) : 1;
@@ -1242,6 +1297,9 @@ static int op_hook(struct generic_layer_args *args) {
 		case OP_SET_TINT:     return lay ? flis_layer_set_tint    (lay, op->r, op->g, op->b) : 1;
 		case OP_CLEAR_TINT:   if (lay) { lay->has_tint = FALSE; return 0; } return 1;
 		case OP_GROUP_SET_VISIBLE: return grp ? flis_group_set_visible(grp, op->bool_v) : 1;
+		case OP_GROUP_SET_NAME:    return grp ? flis_group_set_name(grp, op->str_v)    : 1;
+		case OP_GROUP_SET_BLEND:   return grp ? flis_group_set_blend_mode(grp, op->blend_v) : 1;
+		case OP_GROUP_SET_OPACITY: return grp ? flis_group_set_opacity(grp, op->float_v)   : 1;
 		case OP_LAYER_REMOVE: return lay ? flis_layer_remove(lay) : 1;
 		case OP_LAYER_DUPLICATE: {
 			if (!lay) return 1;
@@ -1304,12 +1362,13 @@ static void on_row_lock_toggled(GtkToggleButton *btn, gpointer u) {
 /* Group header chevron toggle.  Pure UI state — flips
  * flis_group_t.collapsed and refreshes the panel.  No worker dispatch
  * (the collapse state is panel-only; the composite is unaffected). */
-static void on_group_expander_toggled(GtkToggleButton *btn, gpointer u) {
+static void on_group_expander_clicked(GtkButton *btn, gpointer u) {
+	(void)btn;
 	if (g_panel && g_panel->refreshing) return;
 	const gint gid = GPOINTER_TO_INT(u);
 	flis_group_t *grp = flis_group_get_by_id(gid);
 	if (!grp) return;
-	grp->collapsed = !gtk_toggle_button_get_active(btn);  /* expanded = collapsed FALSE */
+	grp->collapsed = !grp->collapsed;
 	refresh_panel();
 }
 
@@ -1317,6 +1376,10 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 	(void)sel; (void)pos; (void)nitems; (void)u;
 	if (g_panel && g_panel->refreshing) return;
 	flis_layer_t *lay = current_selected_layer();
+	flis_group_t *grp = current_selected_group();
+	if (lay)      { g_panel->selected_kind = FLIS_ROW_KIND_LAYER; g_panel->selected_item_id = lay->item_id; }
+	else if (grp) { g_panel->selected_kind = FLIS_ROW_KIND_GROUP; g_panel->selected_item_id = grp->item_id; }
+	else          { g_panel->selected_kind = -1;                  g_panel->selected_item_id = 0; }
 	sync_property_widgets(lay);
 	update_toolbar_sensitivity();   /* re-enable Remove/Duplicate/etc. */
 
@@ -1347,84 +1410,110 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 static void on_name_activate(GtkEntry *e, gpointer u) {
 	(void)u;
 	if (g_panel && g_panel->refreshing) return;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
+	if (g_panel->selected_item_id == 0) return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_SET_NAME;
+	op->target_id = g_panel->selected_item_id;
+	op->kind = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP)
+	             ? OP_GROUP_SET_NAME : OP_SET_NAME;
 	op->str_v = g_strdup(gtk_editable_get_text(GTK_EDITABLE(e)));
-	dispatch_op(op, _("Layer name"), FLIS_INV_LAYER_PROPS);
+	dispatch_op(op,
+		(g_panel->selected_kind == FLIS_ROW_KIND_GROUP) ? _("Group name") : _("Layer name"),
+		FLIS_INV_LAYER_PROPS);
 }
 
 static void on_blend_changed(GtkDropDown *dd, GParamSpec *p, gpointer u) {
 	(void)p; (void)u;
 	if (g_panel && g_panel->refreshing) return;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
+	if (g_panel->selected_item_id == 0) return;
 	int idx = (int)gtk_drop_down_get_selected(dd);
 	if (idx < 0 || idx >= N_BLENDS) return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_SET_BLEND;
+	op->target_id = g_panel->selected_item_id;
+	op->kind = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP)
+	             ? OP_GROUP_SET_BLEND : OP_SET_BLEND;
 	op->blend_v = blend_mode_for_index_table[idx];
-	dispatch_op(op, _("Layer blend mode"), FLIS_INV_LAYER_PROPS);
+	dispatch_op(op,
+		(g_panel->selected_kind == FLIS_ROW_KIND_GROUP) ? _("Group blend mode") : _("Layer blend mode"),
+		FLIS_INV_LAYER_PROPS);
 }
 
 static void on_opacity_changed(GtkAdjustment *adj, gpointer u) {
 	(void)u;
 	if (g_panel && g_panel->refreshing) return;
+	if (g_panel->selected_item_id == 0) return;
+	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
 	if (g_panel && g_panel->opacity_dragging) {
-		/* While dragging, update layer state live but don't push undo
-		 * per tick — the drag-end handler does that once.  We need a
-		 * full notify_gfit_data_modified, not just a paint queue:
-		 * the CPU composite cache + histogram + per-vport tile
-		 * buffers all hold stale pixels until the composite is
-		 * rebuilt.  This is per-tick during drag and could be heavy
-		 * on huge FLIS images; if that becomes a problem we can
-		 * throttle to every N ms — for now correctness wins. */
-		flis_layer_t *lay = current_selected_layer();
-		if (lay) lay->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
-		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS,
-		                                   lay ? lay->item_id : 0);
+		/* While dragging, update state live but don't push undo per
+		 * tick — the drag-end handler does that once.  Full
+		 * notify_gfit_data_modified rather than just a paint queue:
+		 * CPU composite + histogram + per-vport tiles all hold stale
+		 * pixels until the composite is rebuilt. */
+		if (is_group) {
+			flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+			if (grp) grp->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
+		} else {
+			flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+			if (lay) lay->opacity = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
+		}
+		gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PROPS, g_panel->selected_item_id);
 		notify_gfit_data_modified();
 		return;
 	}
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_SET_OPACITY;
+	op->target_id = g_panel->selected_item_id;
+	op->kind = is_group ? OP_GROUP_SET_OPACITY : OP_SET_OPACITY;
 	op->float_v = (gfloat)(gtk_adjustment_get_value(adj) / 100.0);
-	dispatch_op(op, _("Layer opacity"), FLIS_INV_LAYER_PROPS);
+	dispatch_op(op,
+		is_group ? _("Group opacity") : _("Layer opacity"),
+		FLIS_INV_LAYER_PROPS);
 }
 
 static void on_opacity_drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer u) {
 	(void)g; (void)x; (void)y; (void)u;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay || !g_panel) return;
-	g_panel->opacity_drag_start = lay->opacity;
-	g_panel->opacity_dragging   = TRUE;
+	if (!g_panel || g_panel->selected_item_id == 0) return;
+	if (g_panel->selected_kind == FLIS_ROW_KIND_GROUP) {
+		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+		if (!grp) return;
+		g_panel->opacity_drag_start = grp->opacity;
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+		if (!lay) return;
+		g_panel->opacity_drag_start = lay->opacity;
+	}
+	g_panel->opacity_dragging = TRUE;
 }
 
 static void on_opacity_drag_end(GtkGestureDrag *g, gdouble dx, gdouble dy, gpointer u) {
 	(void)g; (void)dx; (void)dy; (void)u;
 	if (!g_panel) return;
 	g_panel->opacity_dragging = FALSE;
-	flis_layer_t *lay = current_selected_layer();
-	if (!lay) return;
-	const gfloat final_v = lay->opacity;
-	if (final_v == g_panel->opacity_drag_start) return;  /* no net change */
-	/* Stage the end-of-drag value through the worker so undo is recorded once. */
-	lay->opacity = g_panel->opacity_drag_start;  /* reset so the worker sees a real change */
+	if (g_panel->selected_item_id == 0) return;
+	const gboolean is_group = (g_panel->selected_kind == FLIS_ROW_KIND_GROUP);
+	gfloat final_v = 0;
+	if (is_group) {
+		flis_group_t *grp = flis_group_get_by_id(g_panel->selected_item_id);
+		if (!grp) return;
+		final_v = grp->opacity;
+		if (final_v == g_panel->opacity_drag_start) return;
+		grp->opacity = g_panel->opacity_drag_start;
+	} else {
+		flis_layer_t *lay = flis_layer_get_by_id(g_panel->selected_item_id);
+		if (!lay) return;
+		final_v = lay->opacity;
+		if (final_v == g_panel->opacity_drag_start) return;
+		lay->opacity = g_panel->opacity_drag_start;
+	}
 	struct op_payload *op = g_new0(struct op_payload, 1);
 	op->destroy_fn = op_payload_free;
-	op->target_id = lay->item_id;
-	op->kind = OP_SET_OPACITY;
+	op->target_id = g_panel->selected_item_id;
+	op->kind = is_group ? OP_GROUP_SET_OPACITY : OP_SET_OPACITY;
 	op->float_v = final_v;
-	dispatch_op(op, _("Layer opacity (drag)"), FLIS_INV_LAYER_PROPS);
+	dispatch_op(op,
+		is_group ? _("Group opacity (drag)") : _("Layer opacity (drag)"),
+		FLIS_INV_LAYER_PROPS);
 }
 
 static void on_tint_check_toggled(GtkCheckButton *btn, gpointer u) {
