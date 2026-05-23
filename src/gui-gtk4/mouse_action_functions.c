@@ -34,6 +34,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/PSF_list.h"
@@ -489,6 +490,43 @@ static gboolean drag_release(mouse_data *data) {
 	return TRUE;
 }
 
+/* Canvas-drag release: commit the final layer position through the
+ * worker.  The motion handler has been mutating layer->position_x/y
+ * in place for live feedback; we now stage the final value through
+ * flis_setposition_hook so undo metadata is recorded and the panel
+ * refreshes.  The hook will overwrite the position we already set
+ * directly, but with the same value — net no-op except for the
+ * undo bookkeeping. */
+static gboolean flis_drag_layer_release(mouse_data *data) {
+	(void)data;
+	if (!gui.flis_layer_dragging) return TRUE;
+	gui.flis_layer_dragging = FALSE;
+	flis_layer_t *lay = flis_layer_get_by_id(gui.flis_drag_layer_id);
+	if (!lay) return TRUE;
+	/* If the layer didn't actually move, skip the worker round-trip. */
+	if (lay->position_x == gui.flis_drag_start_layer.x &&
+	    lay->position_y == gui.flis_drag_start_layer.y)
+		return TRUE;
+	const gint final_x = lay->position_x;
+	const gint final_y = lay->position_y;
+	/* Restore the start position so the worker sees a real change
+	 * (matches the opacity drag-end pattern in flis_gui.c). */
+	lay->position_x = gui.flis_drag_start_layer.x;
+	lay->position_y = gui.flis_drag_start_layer.y;
+	struct flis_setposition_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setposition_args_free;
+	payload->x = final_x;
+	payload->y = final_y;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setposition_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Drag layer to new canvas position"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = lay->item_id;
+	start_in_new_thread(generic_layer_worker, args);
+	return TRUE;
+}
+
 static gboolean measure_release (mouse_data *data) {
 	if (gui.measure_start.x != -1.) {
 		gui.measure_end.x = data->zoomed.x;
@@ -842,6 +880,32 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
 				register_release_callback(sample_mask_color_release, data->button);
+				break;
+			}
+			case MOUSE_ACTION_FLIS_DRAG_LAYER: {
+				/* Start a canvas-drag of the active FLIS layer.  Record
+				 * the cursor start (image coords) and the layer's
+				 * starting position so the motion handler can compute
+				 * deltas, and the release handler can commit the final
+				 * position via the worker for undo recording. */
+				if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+					flis_layer_t *act = flis_active_layer();
+					/* Refuse to drag the base layer — it defines the canvas
+					 * origin and stays at (0,0).  Match the
+					 * flis_setposition_hook policy. */
+					flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+					if (act && act != base) {
+						gui.flis_drag_layer_id    = act->item_id;
+						gui.flis_drag_start_image = data->zoomed;
+						gui.flis_drag_start_layer.x = act->position_x;
+						gui.flis_drag_start_layer.y = act->position_y;
+						gui.flis_layer_dragging   = TRUE;
+						register_release_callback(flis_drag_layer_release, data->button);
+					} else if (act == base) {
+						siril_log_message(_("FLIS: cannot drag the base layer "
+						                    "(it defines canvas origin)\n"));
+					}
+				}
 				break;
 			}
 			default: {

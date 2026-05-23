@@ -863,6 +863,102 @@ Test(flis_cmd, settint_rejects_partial_rgb) {
 	cr_assert_eq(process_flis_settint(4), CMD_WRONG_N_ARG);
 }
 
+/* -----------------------------------------------------------------
+ * flis_group_reorder_hook (group-up/down panel handler primitive)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, group_reorder_hook_moves_group_up_preserving_internal_order) {
+	/* Fixture: base, l_top with group G containing {l_mid, l_low}
+	 * Order: base=10, l_low=20, l_mid=30, l_top=40
+	 * Group G occupies orders 20 and 30; top external = l_top (40).
+	 * Move group up → group rises above l_top.
+	 * Expected: base=10, l_top=20, l_low=21, l_mid=31 (preserved relative).
+	 * But that doesn't match my hook's algorithm exactly — let me just
+	 * verify the group ends up ABOVE l_top in z-order. */
+	load_two_layer_fixture();
+	flis_layer_t *l_low = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.3f), "L_low");
+	flis_layer_t *l_mid = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "L_mid");
+	flis_layer_t *l_top = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.7f), "L_top");
+	flis_group_t *grp = flis_group_add("G");
+	flis_layer_set_group(l_low, grp->item_id);
+	flis_layer_set_group(l_mid, grp->item_id);
+
+	cr_assert(l_low->layer_order < l_mid->layer_order);
+	cr_assert(l_mid->layer_order < l_top->layer_order);
+
+	struct flis_group_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn   = flis_group_reorder_args_free;
+	payload->direction_up = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_group_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("group reorder up");
+	args->invalidate_item_id = grp->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+
+	/* After moving group up, both group members should sit above
+	 * l_top in z-order, and internal order should be preserved
+	 * (l_low still below l_mid). */
+	cr_assert(l_top->layer_order < l_low->layer_order,
+		"l_top (%d) should be below l_low (%d) after move",
+		l_top->layer_order, l_low->layer_order);
+	cr_assert(l_top->layer_order < l_mid->layer_order);
+	cr_assert(l_low->layer_order < l_mid->layer_order,
+		"group's internal order preserved (l_low < l_mid)");
+}
+
+Test(flis_cmd, movemask_hook_transfers_lmask_to_target) {
+	/* Two layers of same size; src has a mask, dst doesn't.  After
+	 * movemask: src->lmask == NULL, dst->lmask != NULL. */
+	load_two_layer_fixture();
+	flis_layer_t *src = (flis_layer_t *)com.uniq->layers->data;        /* "base", 8x8 RGB */
+	flis_layer_t *dst = (flis_layer_t *)com.uniq->layers->next->data;  /* "Ha",   8x8 MONO */
+	layermask_t *lm = flis_test_make_const_lmask(src->fit->rx, src->fit->ry, 8, 0.5);
+	cr_assert_eq(flis_layer_set_lmask(src, lm), 0);
+	cr_assert_not_null(src->lmask);
+	cr_assert_null(dst->lmask);
+
+	struct flis_movemask_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_movemask_args_free;
+	payload->to_layer_id = dst->item_id;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_movemask_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("movemask test");
+	args->invalidate_item_id = src->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_null(src->lmask, "source's mask should be cleared");
+	cr_assert_not_null(dst->lmask, "target should receive the mask");
+}
+
+Test(flis_cmd, group_reorder_hook_at_top_is_noop_success) {
+	/* Group already on top — moving up should succeed with no change. */
+	load_two_layer_fixture();
+	flis_layer_t *l_a = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.3f), "A");
+	flis_layer_t *l_b = flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "B");
+	flis_group_t *grp = flis_group_add("Top");
+	flis_layer_set_group(l_a, grp->item_id);
+	flis_layer_set_group(l_b, grp->item_id);
+	gint a_before = l_a->layer_order;
+	gint b_before = l_b->layer_order;
+
+	struct flis_group_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn   = flis_group_reorder_args_free;
+	payload->direction_up = TRUE;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_group_reorder_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("group reorder noop");
+	args->invalidate_item_id = grp->item_id;
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(l_a->layer_order, a_before);
+	cr_assert_eq(l_b->layer_order, b_before);
+}
+
 Test(flis_cmd, reorder_hook_self_target_noop) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;

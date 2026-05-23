@@ -160,6 +160,12 @@ struct guiinf {
 
 	gboolean          translating;      /* panning in progress */
 
+	/*** FLIS canvas drag-layer state (§4.3 — toolbar drag toggle) ***/
+	gboolean          flis_layer_dragging;     /* TRUE while a layer is being canvas-dragged */
+	gint              flis_drag_layer_id;       /* item_id of the layer being dragged */
+	pointi            flis_drag_start_image;    /* cursor position in image coords at drag start */
+	pointi            flis_drag_start_layer;    /* layer's position_x/y at drag start */
+
 	gboolean          show_excluded;    /* show excluded images in sequences */
 
 	int               selected_star;    /* selected star in the star list */

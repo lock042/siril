@@ -49,6 +49,8 @@
 #include "core/gui_iface.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
+#include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FLIS_DRAG_LAYER */
+#include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 extern gboolean is_current_image_flis(void);
@@ -1674,8 +1676,20 @@ static void on_group_clicked(GtkButton *b, gpointer u) {
 }
 static void on_drag_toggled(GtkToggleButton *b, gpointer u) {
 	(void)u;
-	siril_log_message(_("FLIS: Canvas drag mode %s — TODO\n"),
-	                  gtk_toggle_button_get_active(b) ? _("on") : _("off"));
+	const gboolean want = gtk_toggle_button_get_active(b);
+	if (want) {
+		mouse_status = MOUSE_ACTION_FLIS_DRAG_LAYER;
+		siril_log_message(_("FLIS: Canvas drag mode on — click and drag on the "
+		                    "image to reposition the active layer\n"));
+	} else {
+		mouse_status = MOUSE_ACTION_NONE;
+		/* Defensive: if a drag was in flight when the user toggled off,
+		 * end it cleanly without committing.  The current in-progress
+		 * position stays — the user can toggle on again to continue or
+		 * commit via flis_setposition. */
+		gui.flis_layer_dragging = FALSE;
+		siril_log_message(_("FLIS: Canvas drag mode off\n"));
+	}
 }
 /* Single-layer up/down — go through the slice-4 reorder hook with the
  * immediate visual neighbour as target.  Deliberately bypasses the
@@ -1717,28 +1731,34 @@ static void move_relative(flis_layer_t *lay, gboolean direction_up) {
 	start_in_new_thread(generic_layer_worker, args);
 }
 
+/* Dispatch a "move group as a whole" op via flis_group_reorder_hook. */
+static void move_group_relative(flis_group_t *grp, gboolean direction_up) {
+	struct flis_group_reorder_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn   = flis_group_reorder_args_free;
+	payload->direction_up = direction_up;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_group_reorder_hook;
+	args->user               = payload;
+	args->description        = g_strdup(direction_up ? _("Move group up")
+	                                                  : _("Move group down"));
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = grp->item_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
 static void on_move_up_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
 	if (lay) { move_relative(lay, TRUE); return; }
 	flis_group_t *grp = current_selected_group();
-	if (grp) {
-		/* Moving a group as a whole needs a batch reorder primitive
-		 * — deferred to a follow-up.  For now, log and refuse so the
-		 * user gets clear feedback instead of a partial move. */
-		siril_log_message(_("FLIS: moving a group as a whole is not yet "
-		                    "implemented; select an individual layer\n"));
-	}
+	if (grp) { move_group_relative(grp, TRUE); }
 }
 static void on_move_down_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
 	flis_layer_t *lay = current_selected_layer();
 	if (lay) { move_relative(lay, FALSE); return; }
 	flis_group_t *grp = current_selected_group();
-	if (grp) {
-		siril_log_message(_("FLIS: moving a group as a whole is not yet "
-		                    "implemented; select an individual layer\n"));
-	}
+	if (grp) { move_group_relative(grp, FALSE); }
 }
 /* Mask sub-frame handlers (slice 2).
  *
@@ -1833,12 +1853,129 @@ static void on_mask_toggle_clicked(GtkButton *b, gpointer u) {
 	g_object_unref(fd);
 }
 
+/* Mask Move dialog — same shape as Move-to-group: small modal with a
+ * dropdown of layers OTHER than the source, plus OK/Cancel.  Dispatches
+ * flis_movemask_hook on confirm.  flis_layer_move_lmask handles the
+ * size-mismatch check itself. */
+struct move_mask_ctx {
+	GtkWidget *dialog;
+	GtkWidget *dropdown;
+	gint       from_id;
+	GArray    *to_ids;       /* parallel to dropdown items: each is a layer item_id */
+};
+
+static void on_move_mask_ok(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct move_mask_ctx *ctx = ud;
+	guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->dropdown));
+	if (idx >= ctx->to_ids->len) {
+		gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+		g_array_unref(ctx->to_ids);
+		g_free(ctx);
+		return;
+	}
+	gint to_id = g_array_index(ctx->to_ids, gint, idx);
+
+	struct flis_movemask_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn  = flis_movemask_args_free;
+	payload->to_layer_id = to_id;
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_movemask_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Move layer mask"));
+	args->updates_lmask      = TRUE;
+	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
+	args->invalidate_item_id = ctx->from_id;
+	start_in_new_thread(generic_layer_worker, args);
+
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->to_ids);
+	g_free(ctx);
+}
+
+static void on_move_mask_cancel(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct move_mask_ctx *ctx = ud;
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->to_ids);
+	g_free(ctx);
+}
+
 static void on_mask_move_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	/* Move mask between layers — needs a layer-chooser dialog.
-	 * Deferred until §4.3 slice 3 lands the Move-to-group infrastructure,
-	 * which uses the same dialog pattern. */
-	siril_log_message(_("FLIS: Move mask — not yet implemented\n"));
+	flis_layer_t *src = current_selected_layer();
+	if (!src) return;
+	if (!src->lmask) {
+		siril_log_message(_("FLIS: Move mask — selected layer has no mask\n"));
+		return;
+	}
+
+	GtkWidget *dialog = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Move layer mask"));
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog),
+	                              g_panel ? GTK_WINDOW(g_panel->window) : NULL);
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 320, 120);
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (box, 12);
+	gtk_widget_set_margin_end   (box, 12);
+	gtk_widget_set_margin_top   (box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_window_set_child(GTK_WINDOW(dialog), box);
+
+	gchar *prompt = g_strdup_printf(_("Move mask of '%s' to:"),
+		src->layer_name ? src->layer_name : "");
+	GtkWidget *label = gtk_label_new(prompt);
+	g_free(prompt);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_box_append(GTK_BOX(box), label);
+
+	GtkStringList *items = gtk_string_list_new(NULL);
+	GArray *to_ids = g_array_new(FALSE, FALSE, sizeof(gint));
+	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
+		flis_layer_t *cand = (flis_layer_t *)l->data;
+		if (!cand || cand == src) continue;     /* skip self */
+		/* Size mismatch can be enforced at dispatch time but show all
+		 * candidates so the user knows which to fix sizes for. */
+		gtk_string_list_append(items, cand->layer_name ? cand->layer_name : "(unnamed)");
+		g_array_append_val(to_ids, cand->item_id);
+	}
+	if (to_ids->len == 0) {
+		GtkWidget *no_targets = gtk_label_new(_("(no other layers available)"));
+		gtk_widget_add_css_class(no_targets, "dim-label");
+		gtk_box_append(GTK_BOX(box), no_targets);
+		g_array_unref(to_ids);
+		g_object_unref(items);
+		GtkWidget *close_btn = gtk_button_new_with_label(_("Close"));
+		gtk_widget_set_halign(close_btn, GTK_ALIGN_END);
+		g_signal_connect_swapped(close_btn, "clicked",
+		                          G_CALLBACK(gtk_window_destroy), dialog);
+		gtk_box_append(GTK_BOX(box), close_btn);
+		gtk_window_present(GTK_WINDOW(dialog));
+		return;
+	}
+
+	GtkWidget *dd = gtk_drop_down_new(G_LIST_MODEL(items), NULL);
+	gtk_box_append(GTK_BOX(box), dd);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *cancel = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *ok     = gtk_button_new_with_label(_("Move"));
+	gtk_widget_add_css_class(ok, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), cancel);
+	gtk_box_append(GTK_BOX(bbox), ok);
+	gtk_box_append(GTK_BOX(box), bbox);
+
+	struct move_mask_ctx *ctx = g_new0(struct move_mask_ctx, 1);
+	ctx->dialog   = dialog;
+	ctx->dropdown = dd;
+	ctx->from_id  = src->item_id;
+	ctx->to_ids   = to_ids;
+	g_signal_connect(ok,     "clicked", G_CALLBACK(on_move_mask_ok),     ctx);
+	g_signal_connect(cancel, "clicked", G_CALLBACK(on_move_mask_cancel), ctx);
+	gtk_window_present(GTK_WINDOW(dialog));
 }
 static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u) {
 	(void)btn; (void)u;
