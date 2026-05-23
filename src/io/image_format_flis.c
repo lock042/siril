@@ -2571,8 +2571,13 @@ int flis_reorder_hook(struct generic_layer_args *args) {
      * outside the group, producing a confusing interleaved visual
      * (group rows + a non-group row mixed together).  Dropping a layer
      * onto a row with group_id == 0 also clears the source's group_id,
-     * which is the expected "drag out of the group" semantics. */
-    src->group_id = tgt->group_id;
+     * which is the expected "drag out of the group" semantics.
+     *
+     * Override: if force_ungroup is set the source is unconditionally
+     * removed from any group regardless of the target's group_id.
+     * Used by the panel's edge drop zones (drag to top/bottom of list)
+     * which are conceptually "place outside any group". */
+    src->group_id = a->force_ungroup ? 0 : tgt->group_id;
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, src,
                                               (GCompareFunc)layer_order_cmp);
     flis_layer_touch_modified(src);
