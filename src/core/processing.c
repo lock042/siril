@@ -1839,7 +1839,22 @@ static gboolean end_generic_layer(gpointer p) {
 			gui_iface.show_or_hide_mask_tab();
 		gui_iface.flis_gui_update();
 
-		if (args->updates_lmask) {
+		/* Stack-structure changes (layer add/remove/reorder) need more
+		 * than a paint queue — the per-vport Cairo tile buffers, the
+		 * histogram, and the hi/lo display range all depend on the
+		 * composite-source pixels and must be rebuilt before the next
+		 * frame can show the new state.  notify_gfit_data_modified()
+		 * is the single chokepoint for "gfit pixels effectively
+		 * changed" that does all of this; route any flags broader than
+		 * pure LAYER_PROPS through it.  Property-only changes
+		 * (opacity / blend / visibility on existing layers) keep the
+		 * cheap redraw_image path because the GPU compose tree is
+		 * rebuilt every frame anyway. */
+		const gboolean stack_changed =
+			(inv & (FLIS_INV_ALL | FLIS_INV_STACK | FLIS_INV_LAYER_PIXELS)) != 0;
+		if (stack_changed) {
+			notify_gfit_data_modified();
+		} else if (args->updates_lmask) {
 			/* Layer mask changed: refresh mask viewport.  redraw_mask_idle
 			 * also drives a full image redraw when mask tints are enabled,
 			 * so guard the explicit REMAP_ALL on that pref to avoid a
