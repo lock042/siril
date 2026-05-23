@@ -1932,6 +1932,7 @@ guint flis_canvas_ry(void) {
 
 gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
                                     size_t *out_idx) {
+    (void)canvas_ry;  /* unused — kept for API stability */
     gint pos_x = 0, pos_y = 0;
 
     if (is_current_image_flis() && com.uniq && com.uniq->layers) {
@@ -1943,16 +1944,31 @@ gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
         }
     }
 
-    gint layer_rx     = (gint)gfit->rx;
-    gint layer_ry     = (gint)gfit->ry;
-    gint local_x      = cx - pos_x;
-    /* position_y is in FITS (bottom-up) coords; convert to a FITS y within
-     * the layer: fits_y_in_layer = canvas_fits_y - position_y
-     *                            = (canvas_ry - 1 - cy_disp) - position_y  */
-    gint local_fits_y = (gint)canvas_ry - 1 - cy_disp - pos_y;
+    gint layer_rx = (gint)gfit->rx;
+    gint layer_ry = (gint)gfit->ry;
+
+    /* Coordinate convention (matches flis_compose.c, the display oracle):
+     * a layer with position_y / lh occupies display top-down rows
+     * [position_y, position_y + lh).  Within that range:
+     *
+     *   local_display_y = cy_disp - position_y       (0 = layer's top edge)
+     *   local_fits_y    = lh - 1 - local_display_y   (flip to FITS bottom-up
+     *                                                  within the layer)
+     *
+     * For the base layer (position_y == 0, lh == canvas_ry) this degenerates
+     * to the standard `canvas_ry - 1 - cy_disp` formula.
+     *
+     * Earlier versions of this function treated position_y as FITS bottom-up
+     * (matching the FLIS spec comment) but that disagreed with the compose
+     * kernel and would have returned the wrong layer pixel for any sparse
+     * upper layer.  The compose's interpretation wins because that's what
+     * the user sees on screen. */
+    gint local_x        = cx - pos_x;
+    gint local_disp_y   = cy_disp - pos_y;
+    gint local_fits_y   = layer_ry - 1 - local_disp_y;
 
     if (local_x < 0 || local_x >= layer_rx ||
-        local_fits_y < 0 || local_fits_y >= layer_ry)
+        local_disp_y < 0 || local_disp_y >= layer_ry)
         return FALSE;
 
     *out_idx = (size_t)layer_rx * local_fits_y + local_x;
