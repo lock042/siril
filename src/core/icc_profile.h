@@ -136,6 +136,16 @@ void        current_image_clear_icc_profile(void);
  * old color_manage() function). */
 void        current_image_color_manage(gboolean active);
 
+/* Per-fits accessor: returns the ICC profile that applies to @fit.
+ * For the current-image fits (gfit, or the FLIS profiled fit) this
+ * is com.uniq's profile; for any intermediate / sequence-frame fits
+ * it is NULL — those buffers carry no colour profile state.  Use
+ * this everywhere old code did `fit->icc_profile`; the eventual
+ * removal of fit->icc_profile from the fits struct will then
+ * compile-error only on remaining hold-out sites. */
+cmsHPROFILE fit_get_icc_profile(const fits *fit);
+gboolean    fit_get_color_managed(const fits *fit);
+
 /* Image processing hooks for generic_image_worker */
 #include "core/processing.h"
 

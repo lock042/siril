@@ -136,6 +136,14 @@ static gboolean fit_is_current_image(const fits *fit) {
 	return FALSE;
 }
 
+cmsHPROFILE fit_get_icc_profile(const fits *fit) {
+	return fit_is_current_image(fit) ? current_icc_profile() : NULL;
+}
+
+gboolean fit_get_color_managed(const fits *fit) {
+	return fit_is_current_image(fit) ? current_image_color_managed() : FALSE;
+}
+
 /* Profile setter that respects current-image-vs-intermediate split.
  * Takes ownership of @p (must not be closed by caller). */
 static void set_fit_icc_profile(fits *fit, cmsHPROFILE p) {

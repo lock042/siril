@@ -525,7 +525,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		}
 
 		// Check for ICC profile warning
-		if (gfit->icc_profile && gfit->color_managed) {
+		if (current_icc_profile() && current_image_color_managed()) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"),
 				_("This image has an attached ICC profile. Applying the CCM will invalidate the "
 				"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
@@ -554,7 +554,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit->icc_profile) {
+	if (current_icc_profile()) {
 		color_manage(gfit, TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
 	}

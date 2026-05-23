@@ -326,7 +326,7 @@ int savebmp(const char *name, fits *fit) {
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
 
 	// Transform the data
-	if (fit->icc_profile && fit->color_managed) {
+	if (fit_get_icc_profile(fit) && fit_get_color_managed(fit)) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
 		size_t nchans = fit->naxes[2];
@@ -339,7 +339,7 @@ int savebmp(const char *name, fits *fit) {
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		gboolean threaded = !processing_in_worker_thread();
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit_get_icc_profile(fit), trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number data_format_size = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit->rx * data_format_size;
 		cmsUInt32Number bytesperplane = npixels * data_format_size;
@@ -685,7 +685,7 @@ static int saveppm(const char *name, fits *fit) {
 	void *dest = NULL;
 
 	// Colorspace transform the data
-	if (fit->color_managed && fit->icc_profile) {
+	if (fit_get_color_managed(fit) && fit_get_icc_profile(fit)) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
@@ -694,9 +694,9 @@ static int saveppm(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		gboolean threaded = !processing_in_worker_thread();
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit_get_icc_profile(fit));
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit_get_icc_profile(fit), trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number datasize = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
@@ -758,7 +758,7 @@ static int savepgm(const char *name, fits *fit) {
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
 
 	// Colorspace transform the data
-	if (fit->color_managed && fit->icc_profile) {
+	if (fit_get_color_managed(fit) && fit_get_icc_profile(fit)) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
@@ -767,9 +767,9 @@ static int savepgm(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		gboolean threaded = processing_in_worker_thread();
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit_get_icc_profile(fit));
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit_get_icc_profile(fit), trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number datasize = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;

@@ -609,8 +609,8 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	//star XYZ to RGB: the SPCC source->working transform is dealt
 	//with later.
 	xyzprofile = cmsCreateXYZProfile();
-	if (fit->icc_profile) {
-		profile = copyICCProfile(fit->icc_profile);
+	if (fit_get_icc_profile(fit)) {
+		profile = copyICCProfile(fit_get_icc_profile(fit));
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_warning(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"));
@@ -618,7 +618,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		fit->icc_profile = copyICCProfile(profile);
-		color_manage(fit, (fit->icc_profile != NULL));
+		color_manage(fit, (fit_get_icc_profile(fit) != NULL));
 	}
 	if (xyzprofile && profile) {
 		transform = cmsCreateTransformTHR(com.icc.context_single,

@@ -160,8 +160,8 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 	cmsFreeToneCurve(tonecurve);
 
 	cmsHPROFILE profile = NULL;
-	if (args->fit->icc_profile) {
-		profile = copyICCProfile(args->fit->icc_profile);
+	if (fit_get_icc_profile(args->fit)) {
+		profile = copyICCProfile(fit_get_icc_profile(args->fit));
 		if (!fit_icc_is_linear(args->fit)) {
 			siril_log_warning(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"));
@@ -169,7 +169,7 @@ gpointer spectrophotometric_cc_standalone(gpointer p) {
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		args->fit->icc_profile = copyICCProfile(profile);
-		color_manage(args->fit, (args->fit->icc_profile != NULL));
+		color_manage(args->fit, (fit_get_icc_profile(args->fit) != NULL));
 	}
 
 	// Create transform from source profile to image-based profile, clean up the profiles
