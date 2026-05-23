@@ -16074,6 +16074,44 @@ int process_flis_setgroup(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* flis_setposition <id|"name"> <x> <y> — move a layer to canvas (x,y). */
+int process_flis_setposition(int nb) {
+	if (nb < 4) {
+		siril_log_error(_("Usage: flis_setposition <id|\"name\"> <x> <y>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	char *endx, *endy;
+	gint x = (gint)strtol(word[2], &endx, 10);
+	gint y = (gint)strtol(word[3], &endy, 10);
+	if (*endx || *endy) {
+		siril_log_error(_("flis_setposition: x and y must be integers\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	struct flis_setposition_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_setposition_args_free;
+	payload->x = x;
+	payload->y = y;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_setposition_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_setposition_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_setposition");
+	args->command            = TRUE;
+	args->invalidate_flags   = FLIS_INV_STACK;
+	args->invalidate_item_id = target->item_id;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));
