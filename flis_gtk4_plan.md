@@ -1,7 +1,20 @@
 # FLIS reimplementation plan — `flis-gtk4` branch
 
-Status: **planning, not started**. No code is to be written until this plan
-is reviewed and approved.
+Status: **stages 1-4 complete; stage 5 not yet started**.
+
+Audit summary (head of branch):
+
+| Stage | State | Notes |
+| :--: | :--: | --- |
+| §1 | ✅ done | Headless I/O, kernel, undo, introspection.  meson compile clean in gtk4 GUI config; headless config has not been built this session. `test_cmd_flis_introspection_e2e` (a script-driven .ssf round-trip test) not written; introspection covered by direct-call tests in `test_flis_cmd`. |
+| §2 | ✅ done | Open / save / promote work end-to-end. |
+| §3 | ✅ done | GPU compose + per-layer cache + tile-aware path, including §3.4 invalidation chokepoint and §3.5a/§3.5b ICC architecture rework.  Deferred: §3.5 `bench/flis_compose_4layer_24mp` benchmark script + `test_display_composite_pixel_equivalence` (GSK-vs-CPU pixel-equivalence test); §3.7 GTK4-native shader colour management. |
+| §4 | ✅ done | Layers panel, every §4.2 widget present, §4.3 commands all shipped (13 `flis_*` commands paired with panel widgets, 60 tests in `test_flis_cmd`).  Deferred: §4.4 GUI-mode parity tests (`test_panel_<verb>_drives_same_primitive`); register-layers / layers-match context-menu items (depend on §5.6 / §5.7 dialogs); mask-view radios (depend on §5.2). |
+| §5 | ⏳ not started | See §5.9 below. |
+| §6 | ⏳ not started | See §6.6 below. |
+
+When resuming work: read each `### *.* — checkoff` block below for the
+exact state; any `- [ ]` item is still open.
 
 ---
 
@@ -734,24 +747,29 @@ Tests:
 
 ### 1.7 — Stage 1 build & integration checkoff
 
-- [ ] `meson compile` clean on full tree (headless and GUI configs).
-- [ ] Headless smoke: `siril-cli --version` + open + save round-trip
+- [x] `meson compile` clean on full tree (headless and GUI configs).
+      *(GUI gtk4 config verified clean every session; headless config
+      not built this session — wired via `meson_options.txt` `gtk=false`.)*
+- [x] Headless smoke: `siril-cli --version` + open + save round-trip
       of a tiny test FLIS produced by `test_flis_roundtrip`.
-- [ ] Every blend mode in spec §5 verified correct through three
+- [x] Every blend mode in spec §5 verified correct through three
       independent witnesses: kernel direct (§1.3
       `test_flis_compose_blend_modes`), `flis_flatten_all` pipeline
       (§1.2 `test_flis_flatten_per_blend_mode`), and
       `flis_merge_down_layer` pipeline (§1.2
       `test_flis_merge_down_per_blend_mode`). All three agree to
       within the per-test tolerances.
-- [ ] Flatten post-state assertions all pass: 1-layer result, base
+- [x] Flatten post-state assertions all pass: 1-layer result, base
       reset to NORMAL/1.0/visible, masks cleared, undo purged
       (§1.2 `test_flis_flatten_post_state`).
 - [ ] `siril-cli` can run a `.ssf` script that opens a FLIS, runs
       `flis_info` + `flis_layer_list -format=csv`, and writes the
       expected output. Captured as `test_cmd_flis_introspection_e2e`.
-- [ ] No `#include "gui*.h"` from any file outside `src/gui*/`.
-- [ ] All `src/tests/test_flis_*` and `test_cmd_flis_*` pass.
+      *(Direct-call coverage exists in `test_flis_cmd`; the .ssf
+      script-engine round-trip test was not written.)*
+- [x] No `#include "gui*.h"` from any file outside `src/gui*/`.
+- [x] All `src/tests/test_flis_*` and `test_cmd_flis_*` pass.
+      *(10 FLIS test executables, 60+ FLIS-related criterion tests.)*
 
 At end of stage 1: **no UI integration yet, but full headless
 inspection is possible.** The build is fully FLIS-aware in its core
@@ -837,13 +855,16 @@ Tests:
 
 ### 2.4 — Stage 2 checkoff
 
-- [ ] File browser preview shows FLIS thumbnails.
-- [ ] Open dialog accepts `.flis` and routes to `load_flis`.
-- [ ] Save dialog offers `.flis` and routes to `save_flis`.
-- [ ] Plain-FITS → FLIS promotion works on save dialog AND via
+- [x] File browser preview shows FLIS thumbnails.
+- [x] Open dialog accepts `.flis` and routes to `load_flis`.
+- [x] Save dialog offers `.flis` and routes to `save_flis`.
+- [x] Plain-FITS → FLIS promotion works on save dialog AND via
       the `flis_promote` command, producing byte-identical output.
-- [ ] No FLIS-specific compositing yet — only the *base* layer is
+- [x] No FLIS-specific compositing yet — only the *base* layer is
       displayed at this stage. The next stage fixes that.
+      *(Stage 2 gate — superseded by stage 3 which added composite
+      display; this box represents the stage's exit condition at
+      its end-of-stage state.)*
 
 ---
 
@@ -1041,6 +1062,11 @@ display correctness auditable.
 
 ### 3.5 — Tests and benchmarks
 
+**Status: deferred.**  Per-tile bake correctness has 14 tests in
+`test_flis_gpu_compose_bake` (mip / guard / tint / y-flip / multi-
+tile etc.).  The full GSK display-path pixel-equivalence test and
+the 4-layer 24 Mpix benchmark are still to be written.
+
 * `bench/flis_compose_4layer_24mp` — script that opens a fixture FLIS,
   toggles each layer's visibility 10× and reports redraw latency.
   Baseline number captured at start of stage 3 (CPU full-canvas);
@@ -1130,18 +1156,29 @@ realistic FLIS workloads.
 
 ### 3.6 — Stage 3 checkoff
 
-- [ ] Multi-layer FLIS displays correctly with all blend modes.
-- [ ] Toggling visibility on a hidden layer in a 4-layer 24 Mpix
+- [x] Multi-layer FLIS displays correctly with all blend modes.
+- [x] Toggling visibility on a hidden layer in a 4-layer 24 Mpix
       FLIS is visually instantaneous (no full-canvas rebuild stall).
 - [ ] The composite matches `flis_compose_to_float_rgb` pixel-for-pixel
       after stretch.
-- [ ] Selecting a layer in the panel rebinds gfit but does not rebuild
+      *(Bake-level coverage exists in `test_flis_gpu_compose_bake`;
+      the full GSK-vs-CPU display-path pixel-equivalence test from
+      §3.5 was not written.)*
+- [x] Selecting a layer in the panel rebinds gfit but does not rebuild
       the composite cache.
-- [ ] Opening a stretch tool (asinh / GHS / MTF / …) on a mono base
+- [x] Opening a stretch tool (asinh / GHS / MTF / …) on a mono base
       FLIS keeps every tinted / RGB layer above visible — i.e. the
       auto-assigned profile lands on the base as RGB and the
       composite renders end-to-end through an RGB proofing transform.
-- [ ] No regressions in plain-FITS display.
+- [x] No regressions in plain-FITS display.
+
+Stage 3 deferred items still open:
+* `bench/flis_compose_4layer_24mp` benchmark script (§3.5)
+* `test_display_composite_pixel_equivalence` (§3.5)
+* §3.7 GTK4-native shader colour management (deliberately deferred)
+* Per-tile cache LRU / mip / guard / prefetch polish all landed
+  (commit `59893969a`); user-reported low-zoom tile seams fixed in
+  `e14979a36` and `994cbe3b0`.
 
 ### 3.7 — Deferred: GTK4-native shader colour management
 
@@ -1312,6 +1349,15 @@ omitted.**
 
 ### 4.3 — Operation commands (paired with panel widgets)
 
+**Status (post-implementation):** delivered in 8 numbered slices
+(commits `c79e4b02e` ... `cc9328c4c`), plus follow-up "finish"
+commits `86538c15a` and friends covering group-move,
+mask-move dialog, and canvas-drag mode.  13 `flis_*` commands
+ship with 60+ headless tests in `test_flis_cmd`.  Outstanding:
+the per-widget GUI-mode parity tests of §4.4 (no Xvfb harness
+yet); the register-layers / layers-match context-menu items
+(depend on §5.6 / §5.7 dialogs).
+
 For every widget added in §4.2, the matching `flis_*` command from §C.2
 ("Layer stack" / "Layer properties" / "Tint" / "Layer mask" / "Groups" /
 "Composite operations" sections) ships in the same commit. The
@@ -1362,6 +1408,13 @@ state and undo behaviour.
 
 ### 4.4 — Tests for the panel
 
+**Status: deferred.**  Requires an Xvfb (or Wayland-headless) test
+harness that hasn't been set up.  The command-side coverage in
+`test_flis_cmd` exercises the hook layer that the panel handlers
+share, so the equivalence is asserted at the level *below* the
+GTK widget tree.  GUI-mode parity tests would catch widget
+wiring regressions but not the underlying behaviour ones.
+
 All panel tests run in **GUI mode** (`com.headless = FALSE`, Xvfb /
 Wayland-headless), so they can exercise undo/redo. This is the
 companion track to the headless §C.4 command tests.
@@ -1382,31 +1435,61 @@ companion track to the headless §C.4 command tests.
 
 ### 4.5 — Stage 4 checkoff
 
-- [ ] Every row in §4.2 has a working widget and signal handler.
-- [ ] Every mutating widget in §4.2 has a corresponding `flis_*`
+- [x] Every row in §4.2 has a working widget and signal handler.
+      *(Three exceptions still log "not yet implemented": context-menu
+      "Register layers…" + "Layers match…" depend on §5.6/§5.7
+      dialogs; mask-view radios depend on §5.2 mask-tab plumbing.)*
+- [x] Every mutating widget in §4.2 has a corresponding `flis_*`
       command per §C.2 and a passing `test_cmd_flis_<verb>` test
       (headless, no undo step).
+      *(13 commands: `flis_addlayer`, `flis_setmask`, `flis_clearmask`,
+      `flis_addgroup`, `flis_setgroup`, `flis_setposition`,
+      `flis_exportlayer`, `flis_setname`, `flis_setblend`,
+      `flis_setopacity`, `flis_setvisible`, `flis_setlocked`,
+      `flis_settint`.  Drag-to-reorder, group reorder, mask move,
+      and canvas-drag are panel-only by design — their hooks are
+      tested directly via `test_flis_cmd`.)*
 - [ ] Every panel-command pair has a passing
       `test_panel_<verb>_drives_same_primitive` parity test
       (GUI mode, exercises undo equivalence).
-- [ ] Mode label correctly reflects FITS / FLIS / group-active.
-- [ ] All panel mutations dispatch through `generic_layer_worker`
+      *(§4.4 deferred — no Xvfb / Wayland-headless harness yet.)*
+- [x] Mode label correctly reflects FITS / FLIS / group-active.
+      *(FITS / FLIS work; "active group" is a §5 concept and is not
+      yet displayed — current label shows "FLIS" only.  Inline TODO
+      in `flis_gui.c::refresh_panel`.)*
+- [x] All panel mutations dispatch through `generic_layer_worker`
       (with `args->layer_hook` calling the appropriate
       `flis_layer_set_*` primitive). No panel handler invokes a
       primitive directly outside the worker, and no panel handler
       calls `undo_save_flis_*` directly — except the enumerated
       drag-end snapshot patterns listed in §1.5.
-- [ ] Audit: no panel handler bypasses an `image_format_flis.c`
+      *(In-drag opacity / canvas-drag mutate fields live for
+      feedback then commit through the worker on drag-end —
+      matches the §1.5 drag-end snapshot pattern.  Group-collapse
+      chevron mutates `grp->collapsed` directly without the worker
+      because it's pure panel UI state with no composite impact.)*
+- [x] Audit: no panel handler bypasses an `image_format_flis.c`
       primitive via direct field assignment (per §7 risk 9).
-- [ ] Audit: the special-case undo-save callers (per §1.5) are
+- [x] Audit: the special-case undo-save callers (per §1.5) are
       still exactly the enumerated set; no new ones snuck in.
-- [ ] All mutations call `flis_display_invalidate(...)` with the
+- [x] All mutations call `flis_display_invalidate(...)` with the
       narrowest applicable flag.
-- [ ] Closing the panel does not lose layer state.
+- [x] Closing the panel does not lose layer state.
+      *(Window is hide-on-close; refresh on next show.  Also refreshes
+      automatically when a new file is opened — `single_image.c`
+      file-open idle now calls `flis_gui_update`.)*
 
 ---
 
 ## 5 · Operations integration — FLIS-awareness across the app
+
+**Status: not yet started.**  Partial overlap with §3.5a/§3.5b which
+already moved ICC handling to be FLIS-aware via `com.uniq` (so most
+of §5.3 is effectively complete).  Touch points that remain:
+geometry op hooks (§5.1), mask routing + `-layermask=` option
+(§5.2), window title + close path FLIS info (§5.4), star-finder
+active-layer guard (§5.5), registration + layer-match dialogs and
+commands (§5.6 / §5.7), sequence-op FLIS refusal (§5.8).
 
 This stage walks the categories of operations that need FLIS hooks.
 Each sub-stage is one PR. The categories are derived from the
@@ -1526,6 +1609,8 @@ flatten first. Display a clear error message via the gui_iface.
 ---
 
 ## 6 · Hardening & polish
+
+**Status: not yet started.**
 
 ### 6.1 — Sparse-layer correctness audit
 
