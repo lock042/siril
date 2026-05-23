@@ -160,11 +160,15 @@ struct guiinf {
 
 	gboolean          translating;      /* panning in progress */
 
-	/*** FLIS canvas drag-layer state (§4.3 — toolbar drag toggle) ***/
-	gboolean          flis_layer_dragging;     /* TRUE while a layer is being canvas-dragged */
-	gint              flis_drag_layer_id;       /* item_id of the layer being dragged */
-	pointi            flis_drag_start_image;    /* cursor position in image coords at drag start */
-	pointi            flis_drag_start_layer;    /* layer's position_x/y at drag start */
+	/*** FLIS canvas drag-layer state (§4.3 — toolbar drag toggle).
+	 * Cursor start position is in UNCLAMPED image coords (point,
+	 * doubles) so dragging past the canvas edge keeps producing
+	 * correct deltas — FLIS supports negative position_x/y and
+	 * positions beyond the canvas extent (sparse layers). ***/
+	gboolean          flis_layer_dragging;
+	gint              flis_drag_layer_id;
+	point             flis_drag_start_image;
+	pointi            flis_drag_start_layer;
 
 	gboolean          show_excluded;    /* show excluded images in sequences */
 

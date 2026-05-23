@@ -310,6 +310,12 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
 	gui_iface.redraw_image(REMAP_ALL);
+	/* Tell the layers panel to refresh.  Unconditional so opening a
+	 * non-FLIS file also clears the previously-shown layers (panel
+	 * survives across image switches per §4.1).  flis_gui_update
+	 * schedules an idle that's a no-op if the panel isn't visible,
+	 * so this is cheap when the user hasn't opened the panel. */
+	gui_iface.flis_gui_update();
 	return FALSE;
 }
 
