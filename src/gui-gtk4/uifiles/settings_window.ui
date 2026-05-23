@@ -8,6 +8,13 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_flis_tile_budget_mb">
+    <property name="lower">128</property>
+    <property name="upper">4096</property>
+    <property name="value">256</property>
+    <property name="step-increment">64</property>
+    <property name="page-increment">256</property>
+  </object>
   <object class="GtkAdjustment" id="adjGain">
     <property name="upper">100</property>
     <property name="value">2.2999999999999998</property>
@@ -4412,6 +4419,53 @@ Weight files are saved in the drizztmp subfolder of the working directory and ca
                                   <property name="column">0</property>
                                   <property name="row">1</property>
                                 </layout>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkFrame">
+                            <property name="child">
+                              <object class="GtkGrid">
+                                <property name="margin-start">6</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <property name="row-homogeneous">1</property>
+                                <property name="column-homogeneous">1</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="1">FLIS tile cache budget (MiB)</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="pref_flis_tile_budget_mb">
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">GPU texture cache size for FLIS layered images.  Larger values keep more tiles resident across pan / zoom, reducing visible stalls on multi-100Mpix mosaics; the cost is video memory.  Range 128–4096 MiB, default 256.  The cache evicts least-recently-used tiles once this budget is reached.</property>
+                                    <property name="halign">start</property>
+                                    <property name="adjustment">adj_flis_tile_budget_mb</property>
+                                    <property name="numeric">1</property>
+                                    <property name="value">256</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                            <child type="label">
+                              <object class="GtkLabel">
+                                <property name="margin-top">10</property>
+                                <property name="margin-bottom">10</property>
+                                <property name="label" translatable="1">FLIS display cache</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold" />
+                                </attributes>
                               </object>
                             </child>
                           </object>

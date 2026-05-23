@@ -453,6 +453,7 @@ static void update_performances_preferences() {
 	com.pref.fftw_conf.strategy = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("pref_fftw_plan_strategy")));
 	com.pref.fftw_conf.multithreaded = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("pref_fftw_multithreaded"))));
 	com.pref.fftw_conf.fft_cutoff = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")));
+	com.pref.gui.flis_tile_budget_mb = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_flis_tile_budget_mb")));
 	int max_slice_size = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("pref_max_slice_size")));
 	com.pref.max_slice_size = max_slice_size == 0 ? 32769 : 1 << (max_slice_size + 8);
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
@@ -958,6 +959,7 @@ void update_preferences_from_model() {
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("pref_fftw_plan_strategy")), pref->fftw_conf.strategy);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("pref_fftw_multithreaded"))), pref->fftw_conf.multithreaded);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")), pref->fftw_conf.fft_cutoff);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_flis_tile_budget_mb")), pref->gui.flis_tile_budget_mb);
 	int n = pref->max_slice_size, max_slice_size = 0;
 	// Shift n to the right until it becomes 1
 	if (n > 0) {
