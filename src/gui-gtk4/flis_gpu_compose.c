@@ -348,49 +348,36 @@ gboolean flis_gpu_compose_compatible(GSList *layers) {
 	for (GSList *l = layers; l; l = l->next, is_base = FALSE) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay || !lay->fit) return FALSE;
-		/* Group membership not yet supported via GPU path. */
-		if (lay->group_id != 0) return FALSE;
 		/* Base layer must fill the canvas — the FLIS spec invariant.
 		 * Upper layers may be sparse (positioned anywhere with their
 		 * own extent); the snapshot path places them via per-layer
-		 * dst_rects.  Sparse-layer support added in §3.3 slice 1. */
+		 * dst_rects (§3.3 slice 1). */
 		if (is_base) {
 			if (lay->position_x != 0 || lay->position_y != 0) return FALSE;
 			if (lay->fit->rx != canvas_w || lay->fit->ry != canvas_h) return FALSE;
+			/* Base layer cannot be inside a non-PASS_THROUGH group —
+			 * that would require blending against empty content for the
+			 * group's bottom, which the snapshot tree can't express
+			 * without further work. */
+			if (lay->group_id != 0) {
+				flis_group_t *grp = flis_group_get_by_id(lay->group_id);
+				if (grp && grp->blend_mode != FLIS_BLEND_PASS_THROUGH)
+					return FALSE;
+			}
 		}
-		/* Blend mode must translate to a GSK mode. */
+		/* Blend mode must translate to a GSK mode.  For grouped layers
+		 * we also need the group's blend mode (non-PASS_THROUGH only)
+		 * to translate. */
 		GskBlendMode dummy;
 		if (!translate_blend_mode(lay->blend_mode, &dummy)) return FALSE;
+		if (lay->group_id != 0) {
+			flis_group_t *grp = flis_group_get_by_id(lay->group_id);
+			if (grp && grp->blend_mode != FLIS_BLEND_PASS_THROUGH
+			    && !translate_blend_mode(grp->blend_mode, &dummy))
+				return FALSE;
+		}
 	}
 	return TRUE;
-}
-
-/* =====================================================================
- * Per-layer append (texture + optional mask + optional opacity)
- * ===================================================================== */
-
-static void append_layer_full(GtkSnapshot *snap, struct cache_slot *s,
-                               flis_layer_t *lay,
-                               const graphene_rect_t *dst,
-                               GskScalingFilter filter) {
-	gboolean wrap_opacity = (lay->opacity < 0.999f);
-	gboolean wrap_mask    = (s->lmask_tex != NULL);
-
-	if (wrap_opacity)
-		gtk_snapshot_push_opacity(snap, (double)lay->opacity);
-	if (wrap_mask)
-		gtk_snapshot_push_mask(snap, GSK_MASK_MODE_LUMINANCE);
-
-	/* Source subtree (will be masked if mask was pushed) */
-	gtk_snapshot_append_scaled_texture(snap, s->layer_tex, filter, dst);
-
-	if (wrap_mask) {
-		gtk_snapshot_pop(snap);  /* close source */
-		gtk_snapshot_append_scaled_texture(snap, s->lmask_tex, filter, dst);
-		gtk_snapshot_pop(snap);  /* close mask node */
-	}
-	if (wrap_opacity)
-		gtk_snapshot_pop(snap);  /* close opacity */
 }
 
 /* =====================================================================
@@ -427,6 +414,128 @@ static void layer_dst_rect(const flis_layer_t *lay,
 		(float)lh * yy);
 }
 
+/* =====================================================================
+ * Render-item model
+ *
+ * A "render item" is a single composite atom that produces one source
+ * subtree in the snapshot tree.  It is either:
+ *
+ *   - SINGLE: one layer (its texture + optional mask/opacity).  Used
+ *     for ungrouped layers and for layers in PASS_THROUGH groups
+ *     (whose group only contributes opacity multiplication / hidden-
+ *     skipping, not a real sub-composite).
+ *
+ *   - GROUP: a list of member layers + a group blend mode + group
+ *     opacity.  The members composite internally (in their own
+ *     push_blend chain) and the whole sub-tree blends with the rest
+ *     of the stack via the group's blend mode.
+ *
+ * Items are emitted in z-order; a GROUP item sits at the z-order of
+ * its lowest-order member.  Non-PASS_THROUGH-group members are
+ * absorbed into the corresponding GROUP item and removed from the
+ * single-layer pass.
+ * ===================================================================== */
+
+enum render_item_kind { RENDER_ITEM_SINGLE, RENDER_ITEM_GROUP };
+
+struct render_item {
+	enum render_item_kind kind;
+	flis_blend_mode_t     blend_mode;     /* layer's or group's */
+	gfloat                opacity;        /* effective: layer*group for SINGLE, group's for GROUP */
+	/* SINGLE */
+	flis_layer_t         *layer;
+	struct cache_slot    *slot;
+	graphene_rect_t       rect;
+	/* GROUP: a flat array of member descriptions (own pre-built slots
+	 * + rects).  Each member contributes its own internal blend mode. */
+	int                   member_count;
+	flis_layer_t        **member_layers;
+	struct cache_slot   **member_slots;
+	graphene_rect_t      *member_rects;
+};
+
+static void render_item_free(struct render_item *it) {
+	g_free(it->member_layers);
+	g_free(it->member_slots);
+	g_free(it->member_rects);
+}
+
+/* Emit a SINGLE item: one texture + optional opacity/mask. */
+static void emit_single(GtkSnapshot *snap, const struct render_item *it,
+                         GskScalingFilter filter) {
+	gboolean wrap_opacity = (it->opacity < 0.999f);
+	if (wrap_opacity)
+		gtk_snapshot_push_opacity(snap, (double)it->opacity);
+	gboolean wrap_mask = (it->slot->lmask_tex != NULL);
+	if (wrap_mask)
+		gtk_snapshot_push_mask(snap, GSK_MASK_MODE_LUMINANCE);
+	gtk_snapshot_append_scaled_texture(snap, it->slot->layer_tex, filter, &it->rect);
+	if (wrap_mask) {
+		gtk_snapshot_pop(snap);  /* close source subtree */
+		gtk_snapshot_append_scaled_texture(snap, it->slot->lmask_tex, filter, &it->rect);
+		gtk_snapshot_pop(snap);  /* close mask node */
+	}
+	if (wrap_opacity)
+		gtk_snapshot_pop(snap);
+}
+
+/* Append a member layer inside a GROUP sub-tree (its own texture
+ * + optional opacity / mask).  No group-opacity multiplication here
+ * — the group opacity wraps the entire sub-tree at the caller. */
+static void emit_group_member(GtkSnapshot *snap,
+                               flis_layer_t *lay,
+                               struct cache_slot *slot,
+                               const graphene_rect_t *rect,
+                               GskScalingFilter filter) {
+	gboolean wrap_opacity = (lay->opacity < 0.999f);
+	if (wrap_opacity)
+		gtk_snapshot_push_opacity(snap, (double)lay->opacity);
+	gboolean wrap_mask = (slot->lmask_tex != NULL);
+	if (wrap_mask)
+		gtk_snapshot_push_mask(snap, GSK_MASK_MODE_LUMINANCE);
+	gtk_snapshot_append_scaled_texture(snap, slot->layer_tex, filter, rect);
+	if (wrap_mask) {
+		gtk_snapshot_pop(snap);
+		gtk_snapshot_append_scaled_texture(snap, slot->lmask_tex, filter, rect);
+		gtk_snapshot_pop(snap);
+	}
+	if (wrap_opacity)
+		gtk_snapshot_pop(snap);
+}
+
+/* Emit a GROUP item's sub-tree: push_opacity(group), then a nested
+ * push_blend chain of the group's members (bottom-most member is the
+ * group's base, no blend wrap for it).  The whole sub-tree is the
+ * source for the outer group-blend at the caller. */
+static void emit_group_subtree(GtkSnapshot *snap, const struct render_item *it,
+                                GskScalingFilter filter) {
+	gboolean wrap_opacity = (it->opacity < 0.999f);
+	if (wrap_opacity)
+		gtk_snapshot_push_opacity(snap, (double)it->opacity);
+
+	const int m = it->member_count;
+	/* For m members we push m-1 inner blends (one per member above the
+	 * group's lowest-order). */
+	for (int i = 0; i < m - 1; i++) {
+		flis_layer_t *top = it->member_layers[m - 1 - i];
+		GskBlendMode mode;
+		translate_blend_mode(top->blend_mode, &mode);
+		gtk_snapshot_push_blend(snap, mode);
+	}
+	/* Bottom-most member (group's base) — no blend wrap. */
+	emit_group_member(snap, it->member_layers[0], it->member_slots[0],
+	                  &it->member_rects[0], filter);
+	for (int i = 1; i < m; i++) {
+		gtk_snapshot_pop(snap);  /* switch to top subtree of this member's blend */
+		emit_group_member(snap, it->member_layers[i], it->member_slots[i],
+		                  &it->member_rects[i], filter);
+		gtk_snapshot_pop(snap);  /* finalise this member's blend */
+	}
+
+	if (wrap_opacity)
+		gtk_snapshot_pop(snap);
+}
+
 void flis_gpu_compose_render(GtkSnapshot *snapshot,
                               GSList *layers,
                               guint canvas_w, guint canvas_h,
@@ -434,63 +543,127 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
                               GskScalingFilter filter) {
 	if (!layers) return;
 
-	/* Filter to visible layers only — invisible ones produce no
-	 * contribution but would still push a needless blend frame. */
-	GSList *visible = NULL;
-	for (GSList *l = layers; l; l = l->next) {
-		flis_layer_t *lay = (flis_layer_t *)l->data;
-		if (lay && lay->visible) visible = g_slist_append(visible, lay);
-	}
-	if (!visible) return;
-
-	/* Build all layer textures up front so we can short-circuit on
-	 * any failure before pushing any snapshot nodes. */
 	const WORD lo = gui.lo;
 	const WORD hi = gui.hi;
-	const int n = g_slist_length(visible);
-	struct cache_slot **slots = g_new0(struct cache_slot *, n);
-	graphene_rect_t *rects = g_new0(graphene_rect_t, n);
-	GSList *it = visible;
-	for (int i = 0; i < n; i++, it = it->next) {
-		flis_layer_t *lay = (flis_layer_t *)it->data;
-		slots[i] = ensure_layer_built(lay, lo, hi);
-		if (!slots[i] || !slots[i]->layer_tex) {
-			/* Build failure: bail and let caller fall back to CPU. */
-			g_free(slots);
-			g_free(rects);
-			g_slist_free(visible);
-			return;
+
+	/* ---- Phase 1: assemble render items (atoms) in z-order. ---- */
+	GArray *items = g_array_new(FALSE, TRUE, sizeof(struct render_item));
+	GHashTable *consumed_groups = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+	for (GSList *l = layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay || !lay->fit || !lay->visible) continue;
+
+		flis_group_t *grp = (lay->group_id != 0)
+			? flis_group_get_by_id(lay->group_id) : NULL;
+		if (grp && !grp->visible) continue;
+
+		gboolean grouped_real = grp && grp->blend_mode != FLIS_BLEND_PASS_THROUGH;
+		if (grouped_real) {
+			if (g_hash_table_contains(consumed_groups, GINT_TO_POINTER(grp->item_id)))
+				continue;
+			/* Build the GROUP item.  Collect all visible members in
+			 * layer_order (helper returns ascending order). */
+			GSList *members = flis_group_get_layers(grp);
+			GArray *mem_layers = g_array_new(FALSE, FALSE, sizeof(flis_layer_t *));
+			GArray *mem_slots  = g_array_new(FALSE, FALSE, sizeof(struct cache_slot *));
+			GArray *mem_rects  = g_array_new(FALSE, FALSE, sizeof(graphene_rect_t));
+			gboolean ok = TRUE;
+			for (GSList *m = members; m; m = m->next) {
+				flis_layer_t *mlay = (flis_layer_t *)m->data;
+				if (!mlay || !mlay->fit || !mlay->visible) continue;
+				struct cache_slot *mslot = ensure_layer_built(mlay, lo, hi);
+				if (!mslot || !mslot->layer_tex) { ok = FALSE; break; }
+				graphene_rect_t r;
+				layer_dst_rect(mlay, canvas_w, canvas_h, dst_rect, &r);
+				g_array_append_val(mem_layers, mlay);
+				g_array_append_val(mem_slots,  mslot);
+				g_array_append_val(mem_rects,  r);
+			}
+			g_slist_free(members);
+			if (!ok || mem_layers->len == 0) {
+				g_array_free(mem_layers, TRUE);
+				g_array_free(mem_slots, TRUE);
+				g_array_free(mem_rects, TRUE);
+				if (!ok) goto bail;
+				continue;
+			}
+			struct render_item it = { 0 };
+			it.kind        = RENDER_ITEM_GROUP;
+			it.blend_mode  = grp->blend_mode;
+			it.opacity     = grp->opacity;
+			it.member_count   = mem_layers->len;
+			it.member_layers  = (flis_layer_t **)     g_array_free(mem_layers, FALSE);
+			it.member_slots   = (struct cache_slot **)g_array_free(mem_slots,  FALSE);
+			it.member_rects   = (graphene_rect_t *)   g_array_free(mem_rects,  FALSE);
+			g_array_append_val(items, it);
+			g_hash_table_insert(consumed_groups,
+				GINT_TO_POINTER(grp->item_id), GINT_TO_POINTER(1));
+		} else {
+			/* SINGLE item (ungrouped, or PASS_THROUGH-grouped which
+			 * inherits the group's opacity but composes normally). */
+			struct cache_slot *slot = ensure_layer_built(lay, lo, hi);
+			if (!slot || !slot->layer_tex) goto bail;
+			struct render_item it = { 0 };
+			it.kind        = RENDER_ITEM_SINGLE;
+			it.blend_mode  = lay->blend_mode;
+			it.opacity     = lay->opacity * (grp ? grp->opacity : 1.0f);
+			it.layer       = lay;
+			it.slot        = slot;
+			layer_dst_rect(lay, canvas_w, canvas_h, dst_rect, &it.rect);
+			g_array_append_val(items, it);
 		}
-		layer_dst_rect(lay, canvas_w, canvas_h, dst_rect, &rects[i]);
 	}
 
-	/* Nested push_blend chain (see header comment).  For N visible
-	 * layers we push N-1 blends, each pop emits one layer in turn. */
-	GSList *iter_layers = visible;
+	if (items->len == 0) {
+		g_array_free(items, TRUE);
+		g_hash_table_destroy(consumed_groups);
+		return;
+	}
+
+	/* ---- Phase 2: emit the nested push_blend chain over items. ---- */
+	const int n = items->len;
+	struct render_item *it0 = &g_array_index(items, struct render_item, 0);
+	(void)it0;
+	/* Push (n-1) outer blends in outer-to-inner order — outermost = top item */
 	for (int i = 0; i < n - 1; i++) {
-		/* Push blends in outer-to-inner order — outermost = top layer */
-		flis_layer_t *top = (flis_layer_t *)g_slist_nth_data(visible, n - 1 - i);
+		struct render_item *top = &g_array_index(items, struct render_item, n - 1 - i);
 		GskBlendMode mode;
 		translate_blend_mode(top->blend_mode, &mode);
 		gtk_snapshot_push_blend(snapshot, mode);
 	}
 
-	/* Append the base layer (deepest "bottom"). */
-	flis_layer_t *base = (flis_layer_t *)iter_layers->data;
-	append_layer_full(snapshot, slots[0], base, &rects[0], filter);
-
-	/* For each subsequent layer, pop into its top subtree, emit it,
-	 * pop again to finalise the blend node. */
+	/* Emit the base item (deepest "bottom") */
+	{
+		struct render_item *base = &g_array_index(items, struct render_item, 0);
+		if (base->kind == RENDER_ITEM_SINGLE)
+			emit_single(snapshot, base, filter);
+		else
+			emit_group_subtree(snapshot, base, filter);
+	}
+	/* For each subsequent item: pop, emit, pop. */
 	for (int i = 1; i < n; i++) {
-		gtk_snapshot_pop(snapshot);  /* switch to top subtree of this blend */
-		flis_layer_t *lay = (flis_layer_t *)g_slist_nth_data(visible, i);
-		append_layer_full(snapshot, slots[i], lay, &rects[i], filter);
-		gtk_snapshot_pop(snapshot);  /* finalise this blend node */
+		gtk_snapshot_pop(snapshot);  /* switch to top subtree */
+		struct render_item *cur = &g_array_index(items, struct render_item, i);
+		if (cur->kind == RENDER_ITEM_SINGLE)
+			emit_single(snapshot, cur, filter);
+		else
+			emit_group_subtree(snapshot, cur, filter);
+		gtk_snapshot_pop(snapshot);  /* finalise this blend */
 	}
 
-	g_free(slots);
-	g_free(rects);
-	g_slist_free(visible);
+	for (guint i = 0; i < items->len; i++)
+		render_item_free(&g_array_index(items, struct render_item, i));
+	g_array_free(items, TRUE);
+	g_hash_table_destroy(consumed_groups);
+	return;
+
+bail:
+	/* Build failure path: free items and fall back to CPU. */
+	for (guint i = 0; i < items->len; i++)
+		render_item_free(&g_array_index(items, struct render_item, i));
+	g_array_free(items, TRUE);
+	g_hash_table_destroy(consumed_groups);
 }
 
 /* =====================================================================
