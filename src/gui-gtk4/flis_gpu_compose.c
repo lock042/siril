@@ -597,6 +597,21 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 	const int   layer_disp_x0 = lay->position_x;
 	const int   layer_disp_y0 = lay->position_y;
 
+	/* Push a single clip at the LAYER's extent so each tile can draw
+	 * its full guard-padded texture without the per-tile clip — that
+	 * approach left sub-pixel gaps at the canonical boundaries where
+	 * neighbouring clips meet (visible as 1-px dark lines at all
+	 * zooms).  Instead, adjacent tiles' guard regions overlap and
+	 * paint identical pixels (the bake samples neighbouring tile
+	 * source data into each tile's guard), so the union of all tiles
+	 * inside the layer clip is seamless.  The layer-extent clip then
+	 * trims the edge-clamped overflow at the layer's outer boundary,
+	 * which would otherwise show as duplicated edge pixels beyond
+	 * the layer's canonical area. */
+	graphene_rect_t layer_clip;
+	layer_dst_rect(lay, canvas_w, canvas_h, canvas_dst, &layer_clip);
+	gtk_snapshot_push_clip(snap, &layer_clip);
+
 	for (int ty = 0; ty < slot->tile_rows; ty++) {
 		for (int tx = 0; tx < slot->tile_cols; tx++) {
 			int tw, th;
@@ -625,36 +640,22 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 			GdkTexture *tex = ensure_tile(slot, lay, tx, ty);
 			if (!tex) continue;
 
-			/* Canonical tile rect — the visible area we want to show. */
-			const graphene_rect_t r = GRAPHENE_RECT_INIT(
-				canvas_dst->origin.x + cx * xx,
-				canvas_dst->origin.y + cy * yy,
-				cw * xx,
-				ch * yy);
-
-			if (FLIS_TILE_GUARD > 0) {
-				/* Guard band path: the texture extends by FLIS_TILE_GUARD
-				 * source pixels on each open edge.  Draw at the
-				 * expanded rect so guard pixels physically map outside
-				 * the canonical rect; push_clip ensures only the
-				 * canonical area is visible while GSK's sampler still
-				 * sees correct neighbour pixels at the boundary —
-				 * critical for mipmap pre-filtering at low zoom, where
-				 * insufficient guard produces visible dark seams. */
-				const float gpx = (float)FLIS_TILE_GUARD;
-				const graphene_rect_t expanded = GRAPHENE_RECT_INIT(
-					r.origin.x - gpx * xx,
-					r.origin.y - gpx * yy,
-					r.size.width  + 2.f * gpx * xx,
-					r.size.height + 2.f * gpx * yy);
-				gtk_snapshot_push_clip(snap, &r);
-				gtk_snapshot_append_scaled_texture(snap, tex, filter, &expanded);
-				gtk_snapshot_pop(snap);
-			} else {
-				gtk_snapshot_append_scaled_texture(snap, tex, filter, &r);
-			}
+			/* The texture extends by FLIS_TILE_GUARD source pixels on
+			 * each side beyond the canonical tile rect.  Draw at the
+			 * expanded extent; the outer layer clip handles edge
+			 * overflow, and adjacent tiles overlap in their guard
+			 * regions with identical pixel data. */
+			const float gpx = (float)FLIS_TILE_GUARD;
+			const graphene_rect_t expanded = GRAPHENE_RECT_INIT(
+				canvas_dst->origin.x + (cx - gpx) * xx,
+				canvas_dst->origin.y + (cy - gpx) * yy,
+				(cw + 2.f * gpx) * xx,
+				(ch + 2.f * gpx) * yy);
+			gtk_snapshot_append_scaled_texture(snap, tex, filter, &expanded);
 		}
 	}
+
+	gtk_snapshot_pop(snap);   /* layer_clip */
 }
 
 /* Emit a SINGLE item: wrap any visible tiles of the layer in
