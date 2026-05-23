@@ -1485,8 +1485,19 @@ void free_icc_data(void *p) {
 }
 
 /* Hook for profile removal. Calls siril_colorspace_transform with NULL
- * to remove the profile and disable color management. */
+ * to remove the profile and disable color management.
+ *
+ * FLIS: see comment in icc_convert_to_hook.  For Assign/Remove on a
+ * FLIS we use the same multi-layer undo path even though pixels and
+ * tints don't change — it's the only existing undo helper that
+ * captures the base layer's ICC profile, and a plain undo_save_state
+ * would target gfit (the active layer) rather than the base. */
 int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	if (is_current_image_flis() && fit == flis_get_profiled_fit()
+	    && fit->color_managed && fit->icc_profile) {
+		undo_save_flis_multi_layer(com.uniq->layers, _("ICC profile removed"));
+		gargs->custom_undo = TRUE;
+	}
 	siril_colorspace_transform(fit, NULL);
 	return 0;
 }
@@ -1500,6 +1511,14 @@ gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
  * in siril_colorspace_transform, then assigns the new profile. */
 int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
+	if (is_current_image_flis() && fit == flis_get_profiled_fit()) {
+		gchar *prof_desc = siril_color_profile_get_description(args->profile);
+		undo_save_flis_multi_layer(com.uniq->layers,
+			_("Assigned ICC profile: %s"),
+			prof_desc ? prof_desc : "?");
+		g_free(prof_desc);
+		gargs->custom_undo = TRUE;
+	}
 	if (fit->icc_profile) {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = NULL;
