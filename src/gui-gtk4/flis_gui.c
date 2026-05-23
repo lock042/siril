@@ -1288,17 +1288,105 @@ static void on_move_down_clicked(GtkButton *b, gpointer u) {
 	op->kind = OP_LAYER_MOVE_DOWN;
 	dispatch_op(op, _("Move layer down"), FLIS_INV_STACK);
 }
+/* Mask sub-frame handlers (slice 2).
+ *
+ * status_btn click  → toggles lmask_active on the selected layer
+ * toggle_btn click  → if layer has a mask: removes it via flis_clearmask_hook
+ *                     if layer has no mask: opens FITS chooser → flis_setmask_hook
+ * move_btn click    → stub (needs a layer chooser; deferred)
+ *
+ * Both worker dispatches mirror the flis_setmask / flis_clearmask
+ * commands' args so panel and CLI paths produce identical state. */
+
+static void dispatch_clearmask(flis_layer_t *lay) {
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_clearmask_hook;
+	args->description        = g_strdup(_("Remove layer mask"));
+	args->updates_lmask      = TRUE;
+	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
+	args->invalidate_item_id = lay->item_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
+static void on_mask_file_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
+	gint target_id = GPOINTER_TO_INT(ud);
+	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
+	GError *err = NULL;
+	GFile *file = gtk_file_dialog_open_finish(fd, res, &err);
+	if (!file) {
+		if (err && !g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
+			siril_log_error(_("FLIS: Set Mask: %s\n"), err->message);
+		g_clear_error(&err);
+		return;
+	}
+	gchar *path = g_file_get_path(file);
+	g_object_unref(file);
+	if (!path) return;
+
+	struct flis_setmask_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setmask_args_free;
+	payload->filename   = path;     /* takes ownership */
+	payload->bitpix     = com.pref.default_mask_bitpix > 0
+	                       ? com.pref.default_mask_bitpix : 8;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setmask_hook;
+	args->user               = payload;
+	args->description        = g_strdup(_("Set layer mask"));
+	args->updates_lmask      = TRUE;
+	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
+	args->invalidate_item_id = target_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
 static void on_mask_status_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	siril_log_message(_("FLIS: Toggle mask active — TODO\n"));
+	flis_layer_t *lay = current_selected_layer();
+	if (!lay || !lay->lmask) return;
+	/* Toggle active state directly on the layer struct — no primitive
+	 * for this yet; flis_layer_set_lmask doesn't have an active-only
+	 * mode.  The display invalidation does the right thing. */
+	lay->lmask_active = !lay->lmask_active;
+	gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PIXELS, lay->item_id);
+	gui_iface.redraw_image(REMAP_ALL);
+	flis_gui_update_from_idle();
 }
+
 static void on_mask_toggle_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	siril_log_message(_("FLIS: Add/Remove mask — TODO\n"));
+	flis_layer_t *lay = current_selected_layer();
+	if (!lay) return;
+	if (lay->lmask) {
+		dispatch_clearmask(lay);
+		return;
+	}
+	GtkFileDialog *fd = gtk_file_dialog_new();
+	gtk_file_dialog_set_title(fd, _("Add layer mask from FITS file"));
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, _("FITS files"));
+	gtk_file_filter_add_pattern(filter, "*.fit");
+	gtk_file_filter_add_pattern(filter, "*.fits");
+	gtk_file_filter_add_pattern(filter, "*.fts");
+	gtk_file_filter_add_pattern(filter, "*.FIT");
+	gtk_file_filter_add_pattern(filter, "*.FITS");
+	GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+	g_list_store_append(filters, filter);
+	gtk_file_dialog_set_default_filter(fd, filter);
+	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
+	g_object_unref(filters);
+	g_object_unref(filter);
+	gtk_file_dialog_open(fd, g_panel ? GTK_WINDOW(g_panel->window) : NULL,
+	                      NULL, on_mask_file_chosen,
+	                      GINT_TO_POINTER(lay->item_id));
+	g_object_unref(fd);
 }
+
 static void on_mask_move_clicked(GtkButton *b, gpointer u) {
 	(void)b; (void)u;
-	siril_log_message(_("FLIS: Move mask — TODO\n"));
+	/* Move mask between layers — needs a layer-chooser dialog.
+	 * Deferred until §4.3 slice 3 lands the Move-to-group infrastructure,
+	 * which uses the same dialog pattern. */
+	siril_log_message(_("FLIS: Move mask — not yet implemented\n"));
 }
 static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u) {
 	(void)btn; (void)u;

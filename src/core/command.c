@@ -15926,6 +15926,81 @@ int process_flis_addlayer(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* flis_setmask <id|"name"> <file> [-bitpix=8|32] — load a mono FITS and
+ * attach it as the named layer's mask.  Mirrors the panel's mask Add…
+ * button via shared flis_setmask_hook. */
+int process_flis_setmask(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setmask <id|\"name\"> <file> [-bitpix=8|32]\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	const char *path = word[2];
+	int bitpix = 0;
+	for (int i = 3; i < nb; i++) {
+		if (!word[i]) continue;
+		if (g_str_has_prefix(word[i], "-bitpix=")) {
+			bitpix = atoi(word[i] + 8);
+			if (bitpix != 8 && bitpix != 32) {
+				siril_log_error(_("flis_setmask: -bitpix must be 8 or 32\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_error(_("flis_setmask: unknown argument '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	struct flis_setmask_args *payload = calloc(1, sizeof(*payload));
+	if (!payload) return CMD_ALLOC_ERROR;
+	payload->destroy_fn = flis_setmask_args_free;
+	payload->filename   = g_strdup(path);
+	payload->bitpix     = bitpix;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) { flis_setmask_args_free(payload); return CMD_ALLOC_ERROR; }
+	args->layer_hook         = flis_setmask_hook;
+	args->user               = payload;
+	args->description        = g_strdup("flis_setmask");
+	args->command            = TRUE;
+	args->updates_lmask      = TRUE;
+	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;  /* lmask is per-layer */
+	args->invalidate_item_id = target->item_id;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+/* flis_clearmask <id|"name"> — strip the layer's mask.  Mirrors the
+ * panel's mask Remove… button. */
+int process_flis_clearmask(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_clearmask <id|\"name\">\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	if (!args) return CMD_ALLOC_ERROR;
+	args->layer_hook         = flis_clearmask_hook;
+	args->description        = g_strdup("flis_clearmask");
+	args->command            = TRUE;
+	args->updates_lmask      = TRUE;
+	args->invalidate_flags   = FLIS_INV_LAYER_PIXELS;
+	args->invalidate_item_id = target->item_id;
+
+	if (!start_in_new_thread(generic_layer_worker, args)) {
+		free_generic_layer_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 int process_flis_group_info(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("Usage: flis_group_info <gid|\"name\">\n"));

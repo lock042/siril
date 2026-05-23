@@ -697,6 +697,20 @@ struct flis_addlayer_args {
 void flis_addlayer_args_free(gpointer p);
 int  flis_addlayer_hook(struct generic_layer_args *args);
 
+/* Slice 2 — set / clear a layer's lmask via a FITS file.  The target
+ * layer is the one whose item_id is in args->invalidate_item_id.  For
+ * setmask, @filename must point to a mono FITS — pixel data is
+ * converted to the layer mask's bit depth (default 8).  For clearmask,
+ * no payload beyond the target id is needed. */
+struct flis_setmask_args {
+	destructor destroy_fn;
+	gchar     *filename;
+	int        bitpix;        /* 8 or 32; 0 → default (8) */
+};
+void flis_setmask_args_free(gpointer p);
+int  flis_setmask_hook(struct generic_layer_args *args);
+int  flis_clearmask_hook(struct generic_layer_args *args);
+
 /**
  * flis_layer_remove:
  * @layer: layer to remove and free.
