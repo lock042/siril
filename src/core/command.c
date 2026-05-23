@@ -15592,6 +15592,41 @@ static const char *flis_blend_mode_name(flis_blend_mode_t m) {
 	return "?";
 }
 
+/* Reverse of flis_blend_mode_name — case-insensitive lookup.  Returns
+ * the matched mode or 0 (= invalid) on miss; caller checks. */
+static flis_blend_mode_t flis_blend_mode_from_name(const char *s) {
+	if (!s) return 0;
+	if (!g_ascii_strcasecmp(s, "NORMAL"))       return FLIS_BLEND_NORMAL;
+	if (!g_ascii_strcasecmp(s, "MULTIPLY"))     return FLIS_BLEND_MULTIPLY;
+	if (!g_ascii_strcasecmp(s, "SCREEN"))       return FLIS_BLEND_SCREEN;
+	if (!g_ascii_strcasecmp(s, "OVERLAY"))      return FLIS_BLEND_OVERLAY;
+	if (!g_ascii_strcasecmp(s, "SOFT_LIGHT"))   return FLIS_BLEND_SOFT_LIGHT;
+	if (!g_ascii_strcasecmp(s, "HARD_LIGHT"))   return FLIS_BLEND_HARD_LIGHT;
+	if (!g_ascii_strcasecmp(s, "COLOR_DODGE"))  return FLIS_BLEND_COLOR_DODGE;
+	if (!g_ascii_strcasecmp(s, "COLOR_BURN"))   return FLIS_BLEND_COLOR_BURN;
+	if (!g_ascii_strcasecmp(s, "DARKEN"))       return FLIS_BLEND_DARKEN;
+	if (!g_ascii_strcasecmp(s, "LIGHTEN"))      return FLIS_BLEND_LIGHTEN;
+	if (!g_ascii_strcasecmp(s, "DIFFERENCE"))   return FLIS_BLEND_DIFFERENCE;
+	if (!g_ascii_strcasecmp(s, "EXCLUSION"))    return FLIS_BLEND_EXCLUSION;
+	if (!g_ascii_strcasecmp(s, "HUE"))          return FLIS_BLEND_HUE;
+	if (!g_ascii_strcasecmp(s, "SATURATION"))   return FLIS_BLEND_SATURATION;
+	if (!g_ascii_strcasecmp(s, "COLOR"))        return FLIS_BLEND_COLOR;
+	if (!g_ascii_strcasecmp(s, "LUMINOSITY"))   return FLIS_BLEND_LUMINOSITY;
+	if (!g_ascii_strcasecmp(s, "LRGB_COLOR"))   return FLIS_BLEND_CHROMA;
+	if (!g_ascii_strcasecmp(s, "CHROMA"))       return FLIS_BLEND_CHROMA;
+	if (!g_ascii_strcasecmp(s, "PASS_THROUGH")) return FLIS_BLEND_PASS_THROUGH;
+	return 0;
+}
+
+/* Parse on / off / true / false / 1 / 0 → gboolean; returns -1 on
+ * invalid input. */
+static int parse_bool_arg(const char *s) {
+	if (!s) return -1;
+	if (!g_ascii_strcasecmp(s, "on")  || !g_ascii_strcasecmp(s, "true")  || !strcmp(s, "1")) return 1;
+	if (!g_ascii_strcasecmp(s, "off") || !g_ascii_strcasecmp(s, "false") || !strcmp(s, "0")) return 0;
+	return -1;
+}
+
 /* Resolve an argument that is either a positive integer (item_id) or a
  * layer name in double quotes, e.g. `flis_layer_info 3` or
  * `flis_layer_info "Ha Narrowband"`.  Returns the layer or NULL with an
@@ -16140,6 +16175,124 @@ int process_flis_exportlayer(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+/* -----------------------------------------------------------------
+ * Layer property commands (§4.3 slice 8) — set name / blend mode /
+ * opacity / visibility / locked / tint.  Thin wrappers around the
+ * existing flis_layer_set_* primitives.  Following the pattern of
+ * flis_active_layer, they call the primitive directly (no worker)
+ * — these are fast property mutations and don't need the worker's
+ * thread management.  Display refresh is the caller's
+ * responsibility (the script processor flushes at end; interactive
+ * GUI users see the panel's own widget feedback).
+ * ----------------------------------------------------------------- */
+
+int process_flis_setname(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setname <id|\"name\"> \"<new name>\"\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	/* Strip surrounding quotes on the new name if present. */
+	gchar *name = g_strdup(word[2]);
+	size_t len = strlen(name);
+	if (len >= 2 && name[0] == '"' && name[len-1] == '"') {
+		name[len-1] = '\0';
+		memmove(name, name + 1, len - 1);
+	}
+	int rv = flis_layer_set_name(target, name);
+	g_free(name);
+	return rv ? CMD_GENERIC_ERROR : CMD_OK;
+}
+
+int process_flis_setblend(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setblend <id|\"name\"> <mode>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	flis_blend_mode_t mode = flis_blend_mode_from_name(word[2]);
+	if (!mode) {
+		siril_log_error(_("flis_setblend: unknown blend mode '%s'\n"), word[2]);
+		return CMD_ARG_ERROR;
+	}
+	return flis_layer_set_blend_mode(target, mode) ? CMD_GENERIC_ERROR : CMD_OK;
+}
+
+int process_flis_setopacity(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setopacity <id|\"name\"> <0.0-1.0>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	char *end;
+	double v = g_ascii_strtod(word[2], &end);
+	if (*end || v < 0.0 || v > 1.0) {
+		siril_log_error(_("flis_setopacity: opacity must be a float in [0.0, 1.0]\n"));
+		return CMD_ARG_ERROR;
+	}
+	return flis_layer_set_opacity(target, (gfloat)v) ? CMD_GENERIC_ERROR : CMD_OK;
+}
+
+int process_flis_setvisible(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setvisible <id|\"name\"> <on|off>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	int b = parse_bool_arg(word[2]);
+	if (b < 0) {
+		siril_log_error(_("flis_setvisible: expected on/off/true/false/1/0\n"));
+		return CMD_ARG_ERROR;
+	}
+	return flis_layer_set_visible(target, b) ? CMD_GENERIC_ERROR : CMD_OK;
+}
+
+int process_flis_setlocked(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_setlocked <id|\"name\"> <on|off>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	int b = parse_bool_arg(word[2]);
+	if (b < 0) {
+		siril_log_error(_("flis_setlocked: expected on/off/true/false/1/0\n"));
+		return CMD_ARG_ERROR;
+	}
+	return flis_layer_set_locked(target, b) ? CMD_GENERIC_ERROR : CMD_OK;
+}
+
+int process_flis_settint(int nb) {
+	if (nb < 3) {
+		siril_log_error(_("Usage: flis_settint <id|\"name\"> { -clear | <r> <g> <b> }\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	flis_layer_t *target = resolve_layer_arg(word[1]);
+	if (!target) return CMD_ARG_ERROR;
+	if (!g_strcmp0(word[2], "-clear")) {
+		target->has_tint = FALSE;
+		return CMD_OK;
+	}
+	if (nb < 5) {
+		siril_log_error(_("flis_settint: need three colour components (r g b) or -clear\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	char *er, *eg, *eb;
+	double r = g_ascii_strtod(word[2], &er);
+	double g = g_ascii_strtod(word[3], &eg);
+	double b = g_ascii_strtod(word[4], &eb);
+	if (*er || *eg || *eb ||
+	    r < 0.0 || r > 1.0 || g < 0.0 || g > 1.0 || b < 0.0 || b > 1.0) {
+		siril_log_error(_("flis_settint: r g b must each be floats in [0.0, 1.0]\n"));
+		return CMD_ARG_ERROR;
+	}
+	return flis_layer_set_tint(target, r, g, b) ? CMD_GENERIC_ERROR : CMD_OK;
 }
 
 int process_flis_group_info(int nb) {
