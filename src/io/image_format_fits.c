@@ -1936,13 +1936,24 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	if (com.pref.fits_save_icc && f->color_managed) {
-		/* Only write the ICC profile for color managed FITS. This avoids writing
-		 * ICC profiles to things like extracted channels where it doesn't really
-		 * make sense. */
-		if (f->icc_profile) {
+	if (com.pref.fits_save_icc) {
+		/* Profile lives on com.uniq when this is the current image.  For
+		 * sequence frames / intermediate buffers (where com.uniq is not
+		 * the source of truth) fall back to the legacy fit-level fields,
+		 * which the new accessors keep mirrored during the migration. */
+		gboolean save_it     = (f == gfit && com.uniq)
+		                       ? com.uniq->color_managed
+		                       : f->color_managed;
+		cmsHPROFILE save_prof = (f == gfit && com.uniq)
+		                       ? com.uniq->icc_profile
+		                       : f->icc_profile;
+		if (save_it && save_prof) {
+			/* write_icc_profile_to_fits still reads f->icc_profile; for
+			 * the gfit case the mirror keeps that == com.uniq's profile.
+			 * Once the migration is complete this path can call
+			 * write_icc_profile_to_fptr(f->fptr, save_prof) directly. */
 			write_icc_profile_to_fits(f);
-		} else {
+		} else if (save_it) {
 			siril_log_debug("Info: FITS has no assigned ICC profile, saving without one.\n");
 		}
 	}

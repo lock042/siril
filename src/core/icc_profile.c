@@ -60,6 +60,25 @@ gboolean current_image_color_managed(void) {
 	return (com.uniq) ? com.uniq->color_managed : FALSE;
 }
 
+/* During the migration we mirror the canonical com.uniq state onto
+ * the legacy locations (gfit; FLIS base layer's fit) so that the ~430
+ * existing call sites that still read fit->icc_profile / fit->color_managed
+ * continue to see the right value.  These two helpers find the legacy
+ * mirror target without pulling in the full FLIS header. */
+static fits *_legacy_icc_mirror_target(void) {
+	if (com.uniq && com.uniq->layers) {
+		/* FLIS: the base layer was the legacy profile carrier. */
+		void *base_node = com.uniq->layers->data;
+		if (base_node) {
+			/* flis_layer_t layout begins with the fit pointer's
+			 * accessor; resolve via the GSList head. */
+			extern fits *flis_get_profiled_fit(void);
+			return flis_get_profiled_fit();
+		}
+	}
+	return gfit;
+}
+
 void current_image_set_icc_profile(cmsHPROFILE p) {
 	if (!com.uniq) {
 		if (p) cmsCloseProfile(p);
@@ -68,6 +87,14 @@ void current_image_set_icc_profile(cmsHPROFILE p) {
 	if (com.uniq->icc_profile && com.uniq->icc_profile != p)
 		cmsCloseProfile(com.uniq->icc_profile);
 	com.uniq->icc_profile = p;
+	/* Mirror onto legacy location (gfit / FLIS base) for back-compat
+	 * during migration.  Remove once all reads route via the accessors. */
+	fits *mirror = _legacy_icc_mirror_target();
+	if (mirror) {
+		if (mirror->icc_profile && mirror->icc_profile != p)
+			cmsCloseProfile(mirror->icc_profile);
+		mirror->icc_profile = p ? copyICCProfile(p) : NULL;
+	}
 }
 
 void current_image_clear_icc_profile(void) {
@@ -77,6 +104,14 @@ void current_image_clear_icc_profile(void) {
 		com.uniq->icc_profile = NULL;
 	}
 	com.uniq->color_managed = FALSE;
+	fits *mirror = _legacy_icc_mirror_target();
+	if (mirror) {
+		if (mirror->icc_profile) {
+			cmsCloseProfile(mirror->icc_profile);
+			mirror->icc_profile = NULL;
+		}
+		mirror->color_managed = FALSE;
+	}
 	if (!com.script)
 		gui_iface.update_icc_status_icon(NULL, FALSE);
 }
@@ -84,6 +119,8 @@ void current_image_clear_icc_profile(void) {
 void current_image_color_manage(gboolean active) {
 	if (!com.uniq) return;
 	com.uniq->color_managed = active;
+	fits *mirror = _legacy_icc_mirror_target();
+	if (mirror) mirror->color_managed = active;
 	if (!com.script)
 		gui_iface.update_icc_status_icon(NULL, active);
 }

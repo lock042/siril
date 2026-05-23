@@ -74,6 +74,16 @@ void free_image_data() {
 	gui_iface.invalidate_histogram();
 
 	if (com.uniq) {
+		/* Release the authoritative ICC profile.  fit->icc_profile may
+		 * be the same pointer (mirrored during the migration), so NULL
+		 * out either side once we close to avoid double-free. */
+		if (com.uniq->icc_profile) {
+			if (gfit->icc_profile == com.uniq->icc_profile)
+				gfit->icc_profile = NULL;
+			cmsCloseProfile(com.uniq->icc_profile);
+			com.uniq->icc_profile = NULL;
+		}
+		com.uniq->color_managed = FALSE;
 		/* FLIS cleanup (stage 3.1): release the display-side composite
 		 * cache and the in-memory layer stack before freeing the single
 		 * struct.  Order matters — see below for the gfit detach dance. */
@@ -207,7 +217,7 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 		g_free(com.uniq->filename);
 		com.uniq->filename = filename;
 		com.uniq->fileexist = exists;
-		/* chans / fit already set by uniq_set_active_layer in load_flis */
+		/* chans / fit / icc state already set by load_flis */
 		return 0;
 	}
 	com.uniq = calloc(1, sizeof(single));
@@ -219,6 +229,13 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->fileexist = exists;
 	com.uniq->chans = gfit->naxes[2];
 	com.uniq->fit = gfit;
+	/* Take ownership of any ICC profile the loader put on gfit and hoist
+	 * it to com.uniq, the new authoritative store.  We don't copy — we
+	 * move ownership and leave gfit holding the same pointer (the
+	 * accessor mirroring continues to mirror writes back to gfit during
+	 * the migration). */
+	com.uniq->icc_profile  = gfit->icc_profile;
+	com.uniq->color_managed = gfit->color_managed;
 	return 0;
 }
 
