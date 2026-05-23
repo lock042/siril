@@ -1688,16 +1688,25 @@ void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
              * unchanged after an ICC conversion would produce the wrong hue
              * (e.g. an sRGB-green tint rendered as Rec2020-green is far
              * outside sRGB gamut and appears very wrong on a standard display).
-             */
+             *
+             * The relative-colorimetric transform can produce out-of-gamut
+             * values when the source-space tint sits outside the destination
+             * gamut (e.g. Rec2020 green (0,1,0) → sRGB ≈ (-0.59, 1.13, -0.10)).
+             * Those values break the SCREEN/blend math downstream — the
+             * (1 - source) factor inverts sign and the composite picks up a
+             * cyan/teal cast instead of the green the user expects.  Clamp
+             * into [0, 1]: a no-op for in-gamut tints, and for out-of-gamut
+             * tints it lands on the same primary the monitor would have
+             * displayed via the proofing transform anyway. */
             if (lay->has_tint && xform_tint) {
                 float tint_in[3]  = { (float)lay->layer_tint.r,
                                       (float)lay->layer_tint.g,
                                       (float)lay->layer_tint.b };
                 float tint_out[3] = { 0.f, 0.f, 0.f };
                 cmsDoTransform(xform_tint, tint_in, tint_out, 1);
-                lay->layer_tint.r = (double)tint_out[0];
-                lay->layer_tint.g = (double)tint_out[1];
-                lay->layer_tint.b = (double)tint_out[2];
+                lay->layer_tint.r = (double)CLAMP(tint_out[0], 0.0f, 1.0f);
+                lay->layer_tint.g = (double)CLAMP(tint_out[1], 0.0f, 1.0f);
+                lay->layer_tint.b = (double)CLAMP(tint_out[2], 0.0f, 1.0f);
             }
         }
     }
