@@ -1212,24 +1212,22 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (com.script)
 		return;
 
-	/* For FLIS, always operate on the base (profiled) layer rather than the
-	 * active non-base layer that gfit may currently point to.  The FLIS
-	 * invariant is that only the base carries an ICC profile, and that
-	 * profile describes the RGB composite — not the (possibly mono) base
-	 * data — so per-channel-count decisions use flis_composite_naxes2()
-	 * below. */
+	/* All callers pass gfit; the function operates on the current image
+	 * (com.uniq).  fit is kept as a parameter so siril_colorspace_transform
+	 * + history-append still have a fits to write to. */
 	gboolean called_with_gfit = (fit == gfit);
-	if (called_with_gfit && is_current_image_flis())
-		fit = flis_get_profiled_fit();
+	if (!com.uniq) return;
 
-	/* Effective channel count for ICC purposes: composite (3) for any FLIS
-	 * profiled fit, raw fit->naxes[2] otherwise.  Picking mono_standard for
-	 * a mono FLIS base would later trip the channel-mismatch error inside
+	/* Effective channel count: 3 for any FLIS (composite is always RGB),
+	 * fit->naxes[2] otherwise.  Picking mono_standard for a mono FLIS
+	 * base would later trip the channel-mismatch error inside
 	 * siril_colorspace_transform (the composite is RGB) so the profile
 	 * would never get assigned. */
-	guint eff_naxes2 = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	guint eff_naxes2 = is_current_image_flis()
 	                   ? flis_composite_naxes2() : (guint)fit->naxes[2];
 
+	cmsHPROFILE cur_profile = current_icc_profile();
+	gboolean    cur_managed = current_image_color_managed();
 	gboolean proceed = FALSE;
 
 	// Handle images that have been extracted as channels from a 3-color image
@@ -1248,22 +1246,23 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 
 	// If there is no existing profile and the appropriate preference is set,
 	// assign the working color profile
-	if (!fit->color_managed || !fit->icc_profile) {
+	if (!cur_managed || !cur_profile) {
 		if (com.pref.icc.autoassignment & occasion) {
 			if (fit_appears_stretched(fit)) {
 				// if the fit has previously been stretched, we assign the sRGB TRC:
 				// this will then be converted to the working color space rather than
 				// just assigned which would cause a color shift
-				fit->icc_profile = eff_naxes2 == 1 ? gray_srgbtrc() : srgb_trc();
+				current_image_set_icc_profile(eff_naxes2 == 1 ? gray_srgbtrc() : srgb_trc());
 				// color_manage() is called later from siril_colorspace_transform()
 			} else if (com.pref.icc.pedantic_linear && !(occasion & ICC_ASSIGN_ON_STRETCH)) {
-				fit->icc_profile = siril_color_profile_linear_from_color_profile (eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard);
+				cmsHPROFILE lin = siril_color_profile_linear_from_color_profile(eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard);
+				current_image_set_icc_profile(lin);
 				// Unless we're about to stack, leave the image with a linear profile and return
-				gchar *desc = siril_color_profile_get_description(fit->icc_profile);
+				gchar *desc = siril_color_profile_get_description(lin);
 				fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
 				g_free(desc);
 				if (!(occasion & ICC_ASSIGN_ON_STACK)) {
-					color_manage(fit, TRUE);
+					current_image_color_manage(TRUE);
 					return;
 				}
 			}
@@ -1276,7 +1275,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			return;
 
 		// If the image is already in the working color space, we have nothing to do
-		if (fit->color_managed && profiles_identical(fit->icc_profile, eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard))
+		if (profiles_identical(cur_profile, eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard))
 			return;
 
 		// If the preference is that we always convert, trigger the conversion
@@ -1284,7 +1283,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			proceed = TRUE;
 
 		else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
-			if (!fit->color_managed) {
+			if (!cur_managed) {
 				proceed = gui_iface.confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
 			} else {
 				proceed = gui_iface.confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
@@ -1317,26 +1316,20 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
  */
 
 void icc_auto_assign(fits *fit, icc_assign_type occasion) {
-	/* For FLIS, always operate on the base (profiled) layer.  See the
-	 * companion comment in icc_auto_assign_or_convert. */
 	gboolean called_with_gfit = (fit == gfit);
-	if (called_with_gfit && is_current_image_flis())
-		fit = flis_get_profiled_fit();
-	guint eff_naxes2 = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	if (!com.uniq) return;
+	guint eff_naxes2 = is_current_image_flis()
 	                   ? flis_composite_naxes2() : (guint)fit->naxes[2];
 
 	// Check if the occasion matches the preference
 	if (com.pref.icc.autoassignment & occasion) {
 		siril_log_debug("Auto assigning working profile\n");
 		gui_iface.set_busy(TRUE);
-		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
-		fit->icc_profile = copyICCProfile((eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard));
-		color_manage(fit, TRUE);
+		current_image_set_icc_profile(copyICCProfile(
+			eff_naxes2 == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		current_image_color_manage(TRUE);
 	} else {
-		if (fit->icc_profile)
-			cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = NULL;
-		color_manage(fit, FALSE);
+		current_image_clear_icc_profile();
 	}
 	if (called_with_gfit) {
 		gui_iface.set_source_information();
@@ -1588,14 +1581,13 @@ void free_icc_data(void *p) {
 /* Hook for profile removal. Calls siril_colorspace_transform with NULL
  * to remove the profile and disable color management.
  *
- * FLIS: see comment in icc_convert_to_hook.  For Assign/Remove on a
- * FLIS we use the same multi-layer undo path even though pixels and
- * tints don't change — it's the only existing undo helper that
- * captures the base layer's ICC profile, and a plain undo_save_state
- * would target gfit (the active layer) rather than the base. */
+ * For the current image the multi-layer undo capture is overkill (no
+ * pixel data changes; only com.uniq->icc_profile / color_managed).
+ * Task 20 introduces a lightweight ICC-only undo flavour that will
+ * replace this. */
 int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	if (is_current_image_flis() && fit == flis_get_profiled_fit()
-	    && fit->color_managed && fit->icc_profile) {
+	if (fit_is_current_image(fit) && current_image_color_managed()
+	    && current_icc_profile() && is_current_image_flis()) {
 		undo_save_flis_multi_layer(com.uniq->layers, _("ICC profile removed"));
 		gargs->custom_undo = TRUE;
 	}
@@ -1612,7 +1604,7 @@ gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
  * in siril_colorspace_transform, then assigns the new profile. */
 int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct icc_data *args = (struct icc_data *)gargs->user;
-	if (is_current_image_flis() && fit == flis_get_profiled_fit()) {
+	if (fit_is_current_image(fit) && is_current_image_flis()) {
 		gchar *prof_desc = siril_color_profile_get_description(args->profile);
 		undo_save_flis_multi_layer(com.uniq->layers,
 			_("Assigned ICC profile: %s"),
@@ -1620,12 +1612,20 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		g_free(prof_desc);
 		gargs->custom_undo = TRUE;
 	}
-	if (fit->icc_profile) {
+	/* Force the assign-only path: clear any current profile so
+	 * siril_colorspace_transform sees !color_managed. */
+	if (fit_is_current_image(fit))
+		current_image_clear_icc_profile();
+	else if (fit->icc_profile) {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = NULL;
 	}
 	siril_colorspace_transform(fit, args->profile);
-	if (!fit->icc_profile) {
+	/* Check that the assign landed.  For the current-image case the
+	 * profile is on com.uniq; for an intermediate fits it's on fit. */
+	cmsHPROFILE landed = fit_is_current_image(fit)
+	                     ? current_icc_profile() : fit->icc_profile;
+	if (!landed) {
 		siril_log_error(_("Error assigning ICC profile.\n"));
 		color_manage(fit, FALSE);
 		return 1;
@@ -1655,16 +1655,13 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = args->intent;
 
-	if (is_current_image_flis() && fit == flis_get_profiled_fit()
-	    && fit->color_managed && fit->icc_profile) {
-		/* Capture every layer's pre-conversion state — pixels, tints,
-		 * base profile — before flis_convert_layers_icc rewrites them.
-		 * The generic_image_worker's built-in undo only snapshots
-		 * args->fit (the base) and only when args->fit==gfit; both
-		 * conditions miss the per-layer pixel transforms and the tint-
-		 * vector rewrites that the FLIS convert does to every other
-		 * layer.  Marking custom_undo on the args stops the worker
-		 * from also saving a redundant base-only state on top. */
+	if (fit_is_current_image(fit) && is_current_image_flis()
+	    && current_image_color_managed() && current_icc_profile()) {
+		/* Multi-layer undo capture: pixels + tints + base profile.
+		 * Task 20 will replace this with an ICC-only undo flavour
+		 * (no pixel/mask swaps) since the convert only rewrites pixels
+		 * via flis_convert_layers_icc — which we own and could re-run
+		 * on undo too. */
 		gchar *prof_desc = siril_color_profile_get_description(args->profile);
 		undo_save_flis_multi_layer(com.uniq->layers,
 			_("Converted to ICC profile: %s"),
@@ -1672,20 +1669,12 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 		g_free(prof_desc);
 		gargs->custom_undo = TRUE;
 
-		/* Run the per-layer conversion first (uses the old profile, which
-		 * is still on the base at this point), then swap the base's
-		 * profile to the target via siril_colorspace_transform — the
-		 * data buffer of the base has already been transformed, so the
-		 * channel-mismatch safety net inside that function will simply
-		 * re-tag with the new RGB profile.
-		 *
-		 * The safety-net branch in siril_colorspace_transform doesn't
-		 * call refresh_icc_transforms — the proofing transform would
-		 * otherwise remain set up from the old source profile and the
-		 * display path would re-interpret the just-converted pixels
-		 * through the wrong colourspace, producing a second cumulative
-		 * colour shift on top of the legitimate one from the conversion. */
-		cmsHPROFILE old = copyICCProfile(fit->icc_profile);
+		/* Transform every layer's pixels (and tinted-mono tint vectors)
+		 * Rec2020→sRGB-style, then re-tag the base / com.uniq with the
+		 * new profile.  The proofing transform must be refreshed
+		 * explicitly: siril_colorspace_transform's safety-net branch
+		 * (mono base + RGB profile → re-tag only) does not call it. */
+		cmsHPROFILE old = copyICCProfile(current_icc_profile());
 		flis_convert_layers_icc(old, args->profile);
 		cmsCloseProfile(old);
 		siril_colorspace_transform(fit, args->profile);
@@ -1695,7 +1684,9 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 	}
 
 	com.pref.icc.processing_intent = temp_intent;
-	if (!fit->icc_profile) {
+	cmsHPROFILE landed = fit_is_current_image(fit)
+	                     ? current_icc_profile() : fit->icc_profile;
+	if (!landed) {
 		siril_log_error(_("Error converting ICC color space.\n"));
 		return 1;
 	}
