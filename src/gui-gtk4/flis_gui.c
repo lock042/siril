@@ -307,9 +307,10 @@ static void build_toolbar(GtkWidget *box) {
 
 /* ---- Layer list ---------------------------------------------------- */
 
-static void on_row_visible_toggled (GtkToggleButton *btn, gpointer u);
-static void on_row_lock_toggled    (GtkToggleButton *btn, gpointer u);
-static void on_selection_changed   (GtkSelectionModel *sel, guint pos, guint nitems, gpointer u);
+static void on_row_visible_toggled  (GtkToggleButton *btn, gpointer u);
+static void on_row_lock_toggled     (GtkToggleButton *btn, gpointer u);
+static void on_group_expander_toggled(GtkToggleButton *btn, gpointer u);
+static void on_selection_changed    (GtkSelectionModel *sel, guint pos, guint nitems, gpointer u);
 
 /* The row template — built procedurally rather than from a .ui file
  * since it's small.  Each row is a horizontal box of: expander (groups
@@ -317,7 +318,7 @@ static void on_selection_changed   (GtkSelectionModel *sel, guint pos, guint nit
  * thumbnail, and name label. */
 typedef struct {
 	GtkWidget *row_box;
-	GtkWidget *expander;
+	GtkWidget *expander;          /* chevron button on group rows; hidden on layer rows */
 	GtkWidget *visible_toggle;
 	GtkWidget *lock_toggle;
 	GtkWidget *thumb;
@@ -325,6 +326,7 @@ typedef struct {
 	GtkWidget *kind_badge;        /* "group" badge for group rows */
 	gulong     vis_handler_id;
 	gulong     lock_handler_id;
+	gulong     exp_handler_id;
 	/* Drag-to-reorder state — cached so bind can update item_id without
 	 * tearing down the controllers each time. */
 	GtkDragSource *drag_source;
@@ -424,6 +426,11 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_widget_set_margin_top   (rw->row_box, 2);
 	gtk_widget_set_margin_bottom(rw->row_box, 2);
 
+	rw->expander = gtk_toggle_button_new();
+	gtk_button_set_icon_name(GTK_BUTTON(rw->expander), "pan-down-symbolic");
+	gtk_widget_set_tooltip_text(rw->expander, _("Toggle group collapse"));
+	gtk_widget_add_css_class(rw->expander, "flat");
+
 	rw->visible_toggle = gtk_toggle_button_new();
 	gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle), "view-reveal-symbolic");
 	gtk_widget_set_tooltip_text(rw->visible_toggle, _("Toggle visibility"));
@@ -444,6 +451,7 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	rw->kind_badge = gtk_label_new(NULL);
 	gtk_widget_add_css_class(rw->kind_badge, "dim-label");
 
+	gtk_box_append(GTK_BOX(rw->row_box), rw->expander);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->visible_toggle);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->lock_toggle);
 	gtk_box_append(GTK_BOX(rw->row_box), rw->thumb);
@@ -534,6 +542,10 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		g_signal_handler_disconnect(rw->lock_toggle, rw->lock_handler_id);
 		rw->lock_handler_id = 0;
 	}
+	if (rw->exp_handler_id) {
+		g_signal_handler_disconnect(rw->expander, rw->exp_handler_id);
+		rw->exp_handler_id = 0;
+	}
 
 	/* Reset row CSS classes (rebind may receive a row that previously
 	 * displayed a group header or a different indent level / active
@@ -563,6 +575,7 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		flis_layer_t *active = flis_active_layer();
 		if (active == lay)
 			gtk_widget_add_css_class(rw->row_box, "flis-active-layer-row");
+		gtk_widget_set_visible(rw->expander,       FALSE);
 		gtk_widget_set_visible(rw->visible_toggle, TRUE);
 		gtk_widget_set_visible(rw->lock_toggle,    TRUE);
 		gtk_widget_set_visible(rw->thumb,          TRUE);
@@ -594,9 +607,15 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 			return;
 		}
 		gtk_widget_add_css_class(rw->row_box, "flis-group-header");
+		gtk_widget_set_visible(rw->expander,    TRUE);
 		gtk_widget_set_visible(rw->lock_toggle, FALSE);
 		gtk_widget_set_visible(rw->thumb,       FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->visible_toggle), grp->visible);
+		/* Chevron orientation: pan-down when expanded (the contents
+		 * are below), pan-end when collapsed (click to expand). */
+		gtk_button_set_icon_name(GTK_BUTTON(rw->expander),
+			grp->collapsed ? "pan-end-symbolic" : "pan-down-symbolic");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->expander), !grp->collapsed);
 		gchar *markup = g_markup_printf_escaped(
 			"\xF0\x9F\x97\x80 <b>%s</b>",   /* U+1F5C0 file folder */
 			grp->name ? grp->name : _("(group)"));
@@ -607,6 +626,9 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		rw->vis_handler_id = g_signal_connect(rw->visible_toggle, "toggled",
 		                         G_CALLBACK(on_row_visible_toggled),
 		                         GINT_TO_POINTER(-ri->item_id));  /* negative encodes group */
+		rw->exp_handler_id = g_signal_connect(rw->expander, "toggled",
+		                         G_CALLBACK(on_group_expander_toggled),
+		                         GINT_TO_POINTER(ri->item_id));
 	}
 }
 
@@ -1048,6 +1070,7 @@ static void refresh_panel(void) {
 			flis_layer_t *lay = arr[k];
 			if (!lay) continue;
 			const gint gid = lay->group_id;
+			flis_group_t *grp = (gid != 0) ? flis_group_get_by_id(gid) : NULL;
 			if (gid != 0 &&
 			    !g_hash_table_contains(emitted_groups, GINT_TO_POINTER(gid))) {
 				FlisRowItem *hri = flis_row_item_new(FLIS_ROW_KIND_GROUP, gid, 0);
@@ -1056,6 +1079,9 @@ static void refresh_panel(void) {
 				g_hash_table_insert(emitted_groups, GINT_TO_POINTER(gid),
 				                     GINT_TO_POINTER(1));
 			}
+			/* Skip member rows when the group is collapsed — the header
+			 * row's chevron is the user's affordance to expand. */
+			if (grp && grp->collapsed) continue;
 			FlisRowItem *ri = flis_row_item_new(FLIS_ROW_KIND_LAYER, lay->item_id,
 			                                     gid != 0 ? 1 : 0);
 			g_list_store_append(g_panel->list_store, ri);
@@ -1265,6 +1291,18 @@ static void on_row_lock_toggled(GtkToggleButton *btn, gpointer u) {
 	 * the panel needs a refresh; use LAYER_PROPS as the narrowest
 	 * flag that still triggers the refresh cycle. */
 	dispatch_op(op, _("Layer locked"), FLIS_INV_LAYER_PROPS);
+}
+
+/* Group header chevron toggle.  Pure UI state — flips
+ * flis_group_t.collapsed and refreshes the panel.  No worker dispatch
+ * (the collapse state is panel-only; the composite is unaffected). */
+static void on_group_expander_toggled(GtkToggleButton *btn, gpointer u) {
+	if (g_panel && g_panel->refreshing) return;
+	const gint gid = GPOINTER_TO_INT(u);
+	flis_group_t *grp = flis_group_get_by_id(gid);
+	if (!grp) return;
+	grp->collapsed = !gtk_toggle_button_get_active(btn);  /* expanded = collapsed FALSE */
+	refresh_panel();
 }
 
 static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems, gpointer u) {
