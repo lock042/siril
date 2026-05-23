@@ -86,7 +86,8 @@ static GActionEntry image_entries[] = {
 	{ "regframe", regframe_activate , NULL, "true", regframe_state },
 	{ "nina_light_curve", nina_lc_activate },
 	{ "compstars", compstars_activate },
-	{ "catmag", catmag_activate }
+	{ "catmag", catmag_activate },
+	{ "show-layers", show_layers_activate }
 };
 
 static GActionEntry selection_entries[] = {

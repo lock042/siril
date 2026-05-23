@@ -706,10 +706,10 @@ static void impl_flis_display_invalidate(int flags, int item_id) {
 	flis_display_invalidate(flags, item_id);
 }
 
+extern void flis_gui_update_from_idle(void);  /* flis_gui.h, stage 4 */
+
 static void impl_flis_gui_update(void) {
-	/* intentionally no-op until stage 4 wires the layers panel.  Once the
-	 * panel exists, this becomes flis_gui_update_from_idle() so it can
-	 * be called safely from worker threads. */
+	flis_gui_update_from_idle();
 }
 
 /* ── Group G additions: Channel / precision display state ────────────────── */

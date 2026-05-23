@@ -1920,6 +1920,7 @@ static void load_accels() {
 		"win.mirrory-processing",     "<Primary>Down", NULL,
 
 		"win.regframe",               "<Primary>r", NULL,
+		"win.show-layers",            "<Primary>l", NULL,
 
 		NULL /* Terminating NULL */
 	};

@@ -45,6 +45,7 @@
 #include "gui-gtk4/colors.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/curves.h"
+#include "gui-gtk4/flis_gui.h"
 #include "gui-gtk4/documentation.h"
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/histo_display.h"
@@ -948,6 +949,11 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("catmag");
+}
+
+void show_layers_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void)action; (void)parameter; (void)user_data;
+	flis_gui_toggle_visible();
 }
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

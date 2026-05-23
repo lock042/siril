@@ -462,8 +462,10 @@ void notify_gfit_data_modified() {
 	 * but the rebuild cost is bounded and avoids needing per-layer
 	 * pixel-version tracking.  (Per-layer-only invalidation is §3.4
 	 * territory once the granular flis_display_invalidate API arrives.) */
-	if (is_current_image_flis())
+	if (is_current_image_flis()) {
 		gui_iface.flis_invalidate_composite();
+		gui_iface.flis_gui_update();   /* layers panel sees new stack */
+	}
 	// The following are only required in GUI mode
 	if (!com.headless) {
 		/* Hold histogram_mutex across the invalidate+recompute pair so the
