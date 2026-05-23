@@ -193,15 +193,18 @@ typedef struct {
 	void     (*update_histogram)(void);
 	/* Queue an idle mask redraw (may also trigger a full image redraw). */
 	void     (*redraw_mask_idle)(void);
-	/* FLIS composite invalidation hook.  Called by primitives in
-	 * io/image_format_flis.c after any mutation that affects the
-	 * composited display image.  No-op in headless / GTK3 builds; the
-	 * GTK4 display layer (stage 3) implements the real invalidation
-	 * against the per-layer GdkTexture cache and the tiled snapshot
-	 * pipeline.  At stage 1.2 this is a no-op stub; it gets the
-	 * narrow-flag variants and the texture-cache drop logic in
-	 * stage 3.4. */
+	/* FLIS composite invalidation hook (legacy "drop everything" form).
+	 * Equivalent to flis_display_invalidate(FLIS_INV_ALL, 0); kept as a
+	 * convenience for call sites that don't know which layer or aspect
+	 * changed.  Prefer flis_display_invalidate with the narrowest flag
+	 * where possible. */
 	void     (*flis_invalidate_composite)(void);
+	/* Stage 3.4 — narrow-flag display-cache invalidation chokepoint.
+	 * @flags: one or more FLIS_INV_* bits (image_format_flis.h).
+	 * @item_id: layer id (required for FLIS_INV_LAYER_PIXELS /
+	 *          FLIS_INV_LAYER_PROPS; ignored otherwise).
+	 * No-op in headless / GTK3 builds. */
+	void     (*flis_display_invalidate)(int flags, int item_id);
 	/* Release the cached FLIS display composite.  Called when an image
 	 * is closed (free_image_data) so the per-image composite memory is
 	 * released promptly rather than waiting for the next FLIS open.

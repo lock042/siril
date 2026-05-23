@@ -268,6 +268,9 @@ struct gui_config {
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 	struct editor_config editor_cfg; // Configuration for the script editor
 	gboolean mask_tints_vports; // Whether to show the mask as a red tint in the image mask_tints_vports
+	int flis_tile_budget_mb;    // FLIS per-layer GdkTexture tile cache byte
+	                            // budget in MiB (LRU evicts oldest tile once
+	                            // exceeded).  128–4096; default 256.
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

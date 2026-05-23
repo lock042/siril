@@ -1833,7 +1833,8 @@ static gboolean end_generic_layer(gpointer p) {
 	stop_processing_thread();
 
 	if (!args->retval && is_current_image_flis()) {
-		gui_iface.flis_invalidate_composite();
+		int inv = args->invalidate_flags ? args->invalidate_flags : FLIS_INV_ALL;
+		gui_iface.flis_display_invalidate(inv, args->invalidate_item_id);
 		if (args->updates_lmask)
 			gui_iface.show_or_hide_mask_tab();
 		gui_iface.flis_gui_update();

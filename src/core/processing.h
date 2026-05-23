@@ -271,6 +271,12 @@ struct generic_layer_args {
 	float         mem_ratio;        /* reserved; set 0 to skip memory check */
 	int           max_threads;      /* reserved */
 	int           retval;           /* set by the hook; 0 = success */
+	/* Stage 3.4 — display-cache invalidation declaration.  Leave 0 to
+	 * default to FLIS_INV_ALL (the safe legacy behaviour); otherwise
+	 * set to the narrowest applicable FLIS_INV_* flag(s) and, when
+	 * using LAYER_PIXELS / LAYER_PROPS, set invalidate_item_id. */
+	int           invalidate_flags;
+	int           invalidate_item_id;
 };
 
 gpointer generic_layer_worker(gpointer p);

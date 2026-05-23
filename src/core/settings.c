@@ -182,7 +182,8 @@ preferences pref_init = {
 			.shownewlines = FALSE,
 			.minimap = FALSE
 		},
-		.mask_tints_vports = TRUE
+		.mask_tints_vports = TRUE,
+		.flis_tile_budget_mb = 256
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -512,6 +513,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
+	{ "gui", "flis_tile_budget_mb", STYPE_INT, N_("FLIS GPU tile cache byte budget (MiB)"), &com.pref.gui.flis_tile_budget_mb, { .range_int = { 128, 4096 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },

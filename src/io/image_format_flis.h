@@ -63,6 +63,38 @@ typedef enum {
 #define FLIS_BLND_ALL 262143  /* bitmask declaring all 18 modes supported */
 
 /* -----------------------------------------------------------------------
+ * Display-cache invalidation flags (stage 3.4).
+ *
+ * The display layer keeps two caches: the CPU float composite
+ * (image_display.c) and the per-layer GdkTexture tile grid
+ * (flis_gpu_compose.c).  Mutating ops in image_format_flis.c declare
+ * what changed by passing one of these flags to
+ * gui_iface.flis_display_invalidate(); the chokepoint translates the
+ * declaration into the right cache-drop pattern.
+ *
+ *   FLIS_INV_LAYER_PIXELS  — pixel data, tint, or lmask of one layer
+ *                            changed.  Drop that one layer's tile grid
+ *                            and the CPU composite.  Item id required.
+ *   FLIS_INV_LAYER_PROPS   — opacity/blend/visibility of one layer
+ *                            changed.  No texture rebuild; CPU
+ *                            composite needs re-walk.  Item id required.
+ *   FLIS_INV_STACK         — layer order or membership changed.  No
+ *                            texture rebuild (tile contents unchanged);
+ *                            CPU composite needs re-walk.
+ *   FLIS_INV_ALL           — catch-all; drop everything.
+ *
+ * Flags are bitwise OR-able though common use is a single flag.
+ * Item-id-bearing flags read args->invalidate_item_id; STACK and ALL
+ * ignore it. */
+typedef enum {
+    FLIS_INV_NONE         = 0,
+    FLIS_INV_LAYER_PIXELS = 1 << 0,
+    FLIS_INV_LAYER_PROPS  = 1 << 1,
+    FLIS_INV_STACK        = 1 << 2,
+    FLIS_INV_ALL          = 1 << 3,
+} flis_invalidate_flags_t;
+
+/* -----------------------------------------------------------------------
  * Tint colour for MONO layers composited into an RGB stack.
  * Components are normalised linear-light values [0.0, 1.0].
  * Default (no tint) is {1.0, 1.0, 1.0} — neutral broadcast.
