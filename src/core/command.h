@@ -291,5 +291,7 @@ int process_flis_active_layer(int nb);
 
 /* FLIS layer-stack mutation commands (stage 4.3) */
 int process_flis_addlayer(int nb);
+int process_flis_setmask(int nb);
+int process_flis_clearmask(int nb);
 
 #endif

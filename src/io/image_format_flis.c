@@ -2322,6 +2322,134 @@ int flis_addlayer_hook(struct generic_layer_args *args) {
     return 0;
 }
 
+/* -----------------------------------------------------------------------
+ * Shared helper: build a layermask_t from a standalone FITS file.
+ *
+ * The file is read via readfits (handles all the format conversions).
+ * The first channel is downsampled / converted into the requested
+ * @bitpix (8 or 32).  Caller takes ownership of the returned struct.
+ * Returns NULL on read failure or bad bitpix.
+ *
+ * For bitpix=8: pixel→byte via (WORD >> 8) or (float * 255).
+ * For bitpix=32: pixel→float in [0,1].
+ * ----------------------------------------------------------------------- */
+static layermask_t *flis_layermask_from_fits_file(const char *path, int bitpix) {
+    if (bitpix != 8 && bitpix != 32) return NULL;
+    fits *f = calloc(1, sizeof(fits));
+    if (!f) { PRINT_ALLOC_ERR; return NULL; }
+    if (readfits(path, f, NULL, TRUE)) {
+        siril_log_error(_("flis: could not read mask file '%s'\n"), path);
+        free(f);
+        return NULL;
+    }
+    const size_t w = (size_t)f->rx;
+    const size_t h = (size_t)f->ry;
+    const size_t n = w * h;
+    layermask_t *m = calloc(1, sizeof(layermask_t));
+    if (!m) { PRINT_ALLOC_ERR; clearfits(f); free(f); return NULL; }
+    m->w = w; m->h = h; m->bitpix = (guint8)bitpix;
+    m->data = malloc(n * (bitpix / 8));
+    if (!m->data) { PRINT_ALLOC_ERR; free(m); clearfits(f); free(f); return NULL; }
+
+    const gboolean is_float = (f->type == DATA_FLOAT);
+    if (bitpix == 8) {
+        uint8_t *out = m->data;
+        if (is_float) {
+            const float *src = f->fpdata[0];
+            for (size_t i = 0; i < n; i++) {
+                float v = src[i] * 255.f;
+                out[i] = (uint8_t)(v < 0.f ? 0 : v > 255.f ? 255 : (int)v);
+            }
+        } else {
+            const WORD *src = f->pdata[0];
+            for (size_t i = 0; i < n; i++) out[i] = (uint8_t)(src[i] >> 8);
+        }
+    } else {  /* bitpix == 32 */
+        float *out = m->data;
+        if (is_float) {
+            memcpy(out, f->fpdata[0], n * sizeof(float));
+        } else {
+            const WORD *src = f->pdata[0];
+            for (size_t i = 0; i < n; i++)
+                out[i] = (float)src[i] * INV_USHRT_MAX_SINGLE;
+        }
+    }
+    clearfits(f);
+    free(f);
+    return m;
+}
+
+/* -----------------------------------------------------------------------
+ * flis_setmask_hook / flis_clearmask_hook — shared by the panel's mask
+ * Add… / Remove… buttons and the matching flis_setmask / flis_clearmask
+ * commands.  The target layer's id is in args->invalidate_item_id;
+ * setmask additionally reads filename + bitpix from a flis_setmask_args
+ * payload in args->user.  Both wrap flis_layer_set_lmask /
+ * flis_layer_remove_lmask, which honour the layer-lock check.
+ * ----------------------------------------------------------------------- */
+
+void flis_setmask_args_free(gpointer p) {
+    struct flis_setmask_args *a = p;
+    if (!a) return;
+    g_free(a->filename);
+    g_free(a);
+}
+
+int flis_setmask_hook(struct generic_layer_args *args) {
+    struct flis_setmask_args *a = (struct flis_setmask_args *)args->user;
+    if (!a || !a->filename || !*a->filename) {
+        siril_log_error(_("flis_setmask: no mask filename\n"));
+        return 1;
+    }
+    flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
+    if (!lay) {
+        siril_log_error(_("flis_setmask: no layer with id %d\n"),
+                        args->invalidate_item_id);
+        return 1;
+    }
+    int bitpix = a->bitpix > 0 ? a->bitpix : 8;
+    if (bitpix != 8 && bitpix != 32) {
+        siril_log_error(_("flis_setmask: bitpix must be 8 or 32 (got %d)\n"), bitpix);
+        return 1;
+    }
+    layermask_t *m = flis_layermask_from_fits_file(a->filename, bitpix);
+    if (!m) return 1;
+    /* Reject if mask dimensions don't match the layer. */
+    if ((size_t)lay->fit->rx != m->w || (size_t)lay->fit->ry != m->h) {
+        siril_log_error(_("flis_setmask: mask size %zux%zu does not match layer "
+                          "'%s' size %ux%u\n"),
+                        m->w, m->h,
+                        lay->layer_name ? lay->layer_name : "?",
+                        lay->fit->rx, lay->fit->ry);
+        layermask_free(m);
+        return 1;
+    }
+    /* flis_layer_set_lmask transfers ownership of the mask. */
+    if (flis_layer_set_lmask(lay, m)) {
+        layermask_free(m);
+        return 1;
+    }
+    siril_log_message(_("flis_setmask: layer '%s' mask loaded from '%s'\n"),
+                      lay->layer_name ? lay->layer_name : "?",
+                      a->filename);
+    return 0;
+}
+
+int flis_clearmask_hook(struct generic_layer_args *args) {
+    flis_layer_t *lay = flis_layer_get_by_id(args->invalidate_item_id);
+    if (!lay) {
+        siril_log_error(_("flis_clearmask: no layer with id %d\n"),
+                        args->invalidate_item_id);
+        return 1;
+    }
+    if (!lay->lmask) {
+        siril_log_message(_("flis_clearmask: layer '%s' has no mask\n"),
+                          lay->layer_name ? lay->layer_name : "?");
+        return 0;
+    }
+    return flis_layer_remove_lmask(lay);
+}
+
 int flis_layer_remove(flis_layer_t *layer) {
     if (!com.uniq || !layer) return 1;
     if (flis_check_locked(layer, "remove layer")) return 1;

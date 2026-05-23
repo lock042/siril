@@ -320,3 +320,125 @@ Test(flis_cmd, addlayer_command_rejects_unknown_option) {
 	word[3] = NULL;
 	cr_assert_eq(process_flis_addlayer(3), CMD_ARG_ERROR);
 }
+
+/* -----------------------------------------------------------------
+ * flis_setmask / flis_clearmask (§4.3 slice 2)
+ * ----------------------------------------------------------------- */
+
+Test(flis_cmd, setmask_hook_loads_mask_at_8bit_default) {
+	load_two_layer_fixture();
+	flis_layer_t *target = flis_active_layer();   /* the 8x8 "Ha" layer */
+	cr_assert_not_null(target);
+	cr_assert_eq(target->fit->rx, 8);
+	cr_assert_eq(target->fit->ry, 8);
+	cr_assert_null(target->lmask, "fixture starts without a mask");
+
+	/* Write a same-sized mono mask file. */
+	gchar *path = write_tmp_mono_fits(8, 8, 0.5f);
+	cr_assert_not_null(path);
+
+	struct flis_setmask_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setmask_args_free;
+	payload->filename   = g_strdup(path);
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setmask_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setmask test");
+	args->invalidate_item_id = target->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	/* Re-resolve target — generic_layer_worker freed args but the
+	 * layer pointer is owned by com.uniq. */
+	target = flis_active_layer();
+	cr_assert_not_null(target->lmask, "mask should be attached after hook");
+	cr_assert_eq(target->lmask->w, 8);
+	cr_assert_eq(target->lmask->h, 8);
+	cr_assert_eq(target->lmask->bitpix, 8);
+	/* 0.5 * 255 = 127.5 → 127 (truncated) for the 8-bit mask. */
+	cr_assert_eq(((uint8_t *)target->lmask->data)[0], 127,
+		"central pixel should be ~127 for input value 0.5");
+	g_unlink(path);
+	g_free(path);
+}
+
+Test(flis_cmd, setmask_hook_size_mismatch_fails) {
+	load_two_layer_fixture();
+	flis_layer_t *target = flis_active_layer();   /* 8x8 layer */
+	gchar *path = write_tmp_mono_fits(4, 4, 0.5f);  /* wrong size */
+	cr_assert_not_null(path);
+
+	struct flis_setmask_args *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = flis_setmask_args_free;
+	payload->filename   = g_strdup(path);
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_setmask_hook;
+	args->user               = payload;
+	args->command            = TRUE;
+	args->description        = g_strdup("setmask wrong size");
+	args->invalidate_item_id = target->item_id;
+
+	cr_assert_neq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_null(flis_active_layer()->lmask, "no mask attached on size mismatch");
+	g_unlink(path);
+	g_free(path);
+}
+
+Test(flis_cmd, clearmask_hook_removes_existing_mask) {
+	load_two_layer_fixture();
+	flis_layer_t *target = flis_active_layer();
+	layermask_t *lm = flis_test_make_const_lmask(target->fit->rx, target->fit->ry,
+	                                              8, 0.4);
+	cr_assert_eq(flis_layer_set_lmask(target, lm), 0);
+	cr_assert_not_null(target->lmask);
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_clearmask_hook;
+	args->command            = TRUE;
+	args->description        = g_strdup("clearmask test");
+	args->invalidate_item_id = target->item_id;
+
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_null(flis_active_layer()->lmask, "mask should be gone");
+}
+
+Test(flis_cmd, clearmask_hook_on_layer_without_mask_succeeds) {
+	load_two_layer_fixture();
+	flis_layer_t *target = flis_active_layer();
+	cr_assert_null(target->lmask);
+
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer_hook         = flis_clearmask_hook;
+	args->command            = TRUE;
+	args->description        = g_strdup("clearmask no-op");
+	args->invalidate_item_id = target->item_id;
+
+	/* Clearing a non-existent mask is a no-op success, not an error. */
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+}
+
+Test(flis_cmd, setmask_command_rejects_bad_bitpix) {
+	load_two_layer_fixture();
+	word[0] = "flis_setmask";
+	word[1] = "Ha";
+	word[2] = "/tmp/dummy.fit";
+	word[3] = "-bitpix=16";
+	word[4] = NULL;
+	cr_assert_eq(process_flis_setmask(4), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, setmask_command_rejects_unknown_layer) {
+	load_two_layer_fixture();
+	word[0] = "flis_setmask";
+	word[1] = "ghost";
+	word[2] = "/tmp/dummy.fit";
+	word[3] = NULL;
+	cr_assert_eq(process_flis_setmask(3), CMD_ARG_ERROR);
+}
+
+Test(flis_cmd, clearmask_command_rejects_zero_args) {
+	load_two_layer_fixture();
+	word[0] = "flis_clearmask";
+	word[1] = NULL;
+	cr_assert_eq(process_flis_clearmask(1), CMD_WRONG_N_ARG);
+}
