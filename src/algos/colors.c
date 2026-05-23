@@ -820,13 +820,12 @@ static gpointer extract_channels_ushort(gpointer p) {
 	gchar *desc = NULL;
 	if(fit_get_icc_profile(args->fit)) {
 		desc = siril_color_profile_get_description(fit_get_icc_profile(args->fit));
-		cmsCloseProfile(fit_get_icc_profile(args->fit));
 	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.
 		* See also the HSV and CIELAB cases below.*/
-	args->fit->icc_profile = NULL;
+	current_image_clear_icc_profile();
 	color_manage(args->fit, FALSE);
 
 	switch (args->type) {
@@ -958,13 +957,12 @@ static gpointer extract_channels_float(gpointer p) {
 	gchar *desc = NULL;
 	if(fit_get_icc_profile(args->fit)) {
 		desc = siril_color_profile_get_description(fit_get_icc_profile(args->fit));
-		cmsCloseProfile(fit_get_icc_profile(args->fit));
 	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.
 		* See also the HSV and CIELAB cases below.*/
-	args->fit->icc_profile = NULL;
+	current_image_clear_icc_profile();
 	color_manage(args->fit, FALSE);
 
 	switch (args->type) {

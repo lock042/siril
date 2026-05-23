@@ -480,11 +480,15 @@ gpointer do_starnet(gpointer p) {
 	/* Copy the ICC profile because starnet is not color managed: the output will
 	 * be the same color space as the imput but will have no ICC profile embedded
 	 * so we have to replace the original */
-	cmsHPROFILE original_profile = copyICCProfile(current_fit->icc_profile);
-	gboolean original_colormanaged = current_fit->color_managed;
+	cmsHPROFILE original_profile = copyICCProfile(fit_get_icc_profile(current_fit));
+	gboolean original_colormanaged = fit_get_color_managed(current_fit);
 
 	// Disable color management so that savetif doesn't mess about with the image
-	current_fit->color_managed = FALSE;
+	if (current_fit == gfit) {
+		current_image_color_manage(FALSE);
+	} else {
+		current_fit->color_managed = FALSE;
+	}
 
 	// ok, let's start
 	if (verbose)
