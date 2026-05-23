@@ -581,6 +581,11 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_widget_set_visible(rw->thumb,          TRUE);
 		gtk_widget_set_sensitive(rw->lock_toggle, TRUE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->visible_toggle), lay->visible);
+		/* Open / crossed-out eye to make the state unambiguous at a
+		 * glance (the toggle button's pressed/unpressed visual alone
+		 * is too subtle, especially in flat-button style). */
+		gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle),
+			lay->visible ? "view-reveal-symbolic" : "view-conceal-symbolic");
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->lock_toggle),    lay->locked);
 		gtk_label_set_text(GTK_LABEL(rw->name_label),
 		                   lay->layer_name ? lay->layer_name : "(unnamed)");
@@ -611,6 +616,8 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_widget_set_visible(rw->lock_toggle, FALSE);
 		gtk_widget_set_visible(rw->thumb,       FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->visible_toggle), grp->visible);
+		gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle),
+			grp->visible ? "view-reveal-symbolic" : "view-conceal-symbolic");
 		/* Chevron orientation: pan-down when expanded (the contents
 		 * are below), pan-end when collapsed (click to expand). */
 		gtk_button_set_icon_name(GTK_BUTTON(rw->expander),

@@ -205,6 +205,14 @@ typedef struct {
 	 *          FLIS_INV_LAYER_PROPS; ignored otherwise).
 	 * No-op in headless / GTK3 builds. */
 	void     (*flis_display_invalidate)(int flags, int item_id);
+	/* Swap gfit to the FLIS composite for the duration of caller's
+	 * read-from-gfit work (histogram, hi/lo computation, etc.).
+	 * Returns the saved gfit on success — caller MUST pass it back
+	 * to flis_swap_out_composite to restore.  Returns NULL when
+	 * no swap is needed / possible (non-FLIS, or composite build
+	 * failed); no unswap call then. */
+	void    *(*flis_swap_in_composite)(void);
+	void     (*flis_swap_out_composite)(void *saved);
 	/* Release the cached FLIS display composite.  Called when an image
 	 * is closed (free_image_data) so the per-image composite memory is
 	 * released promptly rather than waiting for the next FLIS open.

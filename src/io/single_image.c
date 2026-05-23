@@ -501,6 +501,16 @@ void notify_gfit_data_modified() {
 				((gfit->type == DATA_FLOAT && roi_fit->fdata) ||
 				 (gfit->type == DATA_USHORT && roi_fit->data)))
 			gui_iface.copy_roi_into_gfit();
+
+		/* For FLIS, the histogram and display range must be computed
+		 * against the multi-layer composite — not the active layer
+		 * alone (gfit).  Without this swap the LUT gets a range
+		 * derived from whichever layer is active, which can leave
+		 * the visible composite looking much darker (or washed out)
+		 * than its actual pixel distribution.  The swap holds gui.
+		 * cairo_mutex briefly to coordinate with the remap path
+		 * that does its own swap. */
+		fits *flis_saved = gui_iface.flis_swap_in_composite();
 		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
 		/* Update hi/lo display range BEFORE remapping so the first rendered frame
@@ -510,6 +520,7 @@ void notify_gfit_data_modified() {
 		g_mutex_lock(&com.mutex);
 		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
 		g_mutex_unlock(&com.mutex);
+		gui_iface.flis_swap_out_composite(flis_saved);
 		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 	}
 }
