@@ -10899,6 +10899,12 @@ int process_register(int nb) {
 				siril_log_error(_("Missing argument to %s, aborting.\n"), word[i]);
 				goto terminate_register_on_error;
 			}
+			fits reffit = { 0 };
+			if (read_fits_metadata_from_path_first_HDU(value, &reffit)) {
+				siril_log_error(_("External reference path %s could not be loaded, aborting.\n"), value);
+				goto terminate_register_on_error;
+			}
+			clearfits(&reffit);
 			if (regargs->external_ref_path)
 				g_free(regargs->external_ref_path);
 			regargs->external_ref_path = g_strdup(value);

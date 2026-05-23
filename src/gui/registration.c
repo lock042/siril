@@ -856,9 +856,7 @@ static gboolean check_disto(disto_source index) {
 	return status;
 }
 
-static gboolean check_ext_ref_disto(disto_source disto_index) {
-	if (disto_index == DISTO_UNDEF)
-		return TRUE;
+static gboolean check_ext_ref(disto_source disto_index) {
 	if (!gtk_toggle_button_get_active(reg_reference_checkbutton))
 		return TRUE;
 	const gchar *path = gtk_entry_get_text(reg_reference_entry);
@@ -866,6 +864,8 @@ static gboolean check_ext_ref_disto(disto_source disto_index) {
 		gtk_label_set_text(labelregisterinfo, _("External reference: enter a file path"));
 		return FALSE;
 	}
+	if (disto_index == DISTO_UNDEF)
+		return TRUE;
 	fits fit = { 0 };
 	if (read_fits_metadata_from_path_first_HDU(path, &fit)) {
 		gtk_label_set_text(labelregisterinfo, _("External reference: cannot read file"));
@@ -989,7 +989,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		if (!com.seq.is_variable) {
 			disto_source_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
 			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_source_index == DISTO_FILE);
+		} else {
+			gtk_toggle_button_set_active(checkStarSelect, FALSE);
 		}
+		gtk_widget_set_sensitive(GTK_WIDGET(checkStarSelect), !com.seq.is_variable);
 	}
 	/* external reference image: available for global and 2-pass star alignment */
 	if (!dont_change_reg_radio && com.seq.ext_ref_path) {
@@ -1070,7 +1073,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_comet(regindex) &&
 			check_3stars(regindex) &&
 			check_disto(disto_source_index) &&
-			check_ext_ref_disto(disto_source_index);
+			check_ext_ref(disto_source_index);
 
 	if (!ready) { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
@@ -1201,10 +1204,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	regargs->no_output = !has_output_images && regindex != REG_COMET; // comet produces a new sequence with symlinks to previous images
 	if (is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton)) {
 		const gchar *path = gtk_entry_get_text(reg_reference_entry);
-		if (!path || path[0] == '\0') {
-			siril_log_error(_("External reference image path is empty\n"));
-			return 1;
-		}
 		regargs->external_ref_path = g_strdup(path);
 	}
 	if (regindex == REG_3STARS) {
@@ -1217,10 +1216,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 		regargs->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
 		regargs->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
-		if (regargs->matchSelection && regargs->seq->is_variable) {
-			siril_log_error(_("Cannot use area selection on a sequence with variable image sizes\n"));
-			return 1;
-		}
 		if (!regargs->matchSelection) {
 			delete_selected_area(); // otherwise it is enforced
 		}
