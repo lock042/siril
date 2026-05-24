@@ -44,6 +44,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/proto.h"          /* gui_function */
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
@@ -51,6 +52,7 @@
 #include "io/single_image.h"
 #include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FLIS_DRAG_LAYER */
 #include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
+#include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 extern gboolean is_current_image_flis(void);
@@ -191,6 +193,10 @@ void flis_gui_toggle_visible(void) {
 
 static gboolean refresh_idle_cb(gpointer p) {
 	(void)p;
+	/* Title bar reflects FLIS active-layer state independently of the panel.
+	 * Refresh it on every coalesced tick so name / count / active changes
+	 * land in the header even when the layers panel is hidden. */
+	gui_function(set_GUI_CWD, NULL);
 	if (g_panel) {
 		g_panel->refresh_idle_id = 0;
 		if (gtk_widget_get_visible(g_panel->window))
@@ -200,9 +206,14 @@ static gboolean refresh_idle_cb(gpointer p) {
 }
 
 void flis_gui_update_from_idle(void) {
-	if (!g_panel) return;                /* panel not yet built — nothing to refresh */
-	if (g_panel->refresh_idle_id != 0) return;  /* already pending */
-	g_panel->refresh_idle_id = g_idle_add(refresh_idle_cb, NULL);
+	/* Coalesce when the panel exists.  When it doesn't, fall through to a
+	 * standalone idle so set_GUI_CWD still gets called. */
+	if (g_panel) {
+		if (g_panel->refresh_idle_id != 0) return;  /* already pending */
+		g_panel->refresh_idle_id = g_idle_add(refresh_idle_cb, NULL);
+	} else {
+		g_idle_add(refresh_idle_cb, NULL);
+	}
 }
 
 /* =========================================================================

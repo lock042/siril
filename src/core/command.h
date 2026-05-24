@@ -304,4 +304,8 @@ int process_flis_setvisible(int nb);
 int process_flis_setlocked(int nb);
 int process_flis_settint(int nb);
 
+/* FLIS multi-layer integration ops (stage 5.6 / 5.7) */
+int process_flis_layers_match(int nb);
+int process_flis_register_layers(int nb);
+
 #endif

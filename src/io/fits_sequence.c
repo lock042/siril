@@ -218,6 +218,25 @@ int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 		free(candidate_filename);
 		return -1;
 	}
+	/* §5.8: a FLIS file is a multi-HDU FITS with a FLISCORE marker in the
+	 * primary HDU.  Without this check fitseq_open would happily try to
+	 * read the FLIS_META HDU as an image frame and produce garbage frame
+	 * data; the user must flatten the FLIS before treating it as a
+	 * sequence.  Detect early and emit a clean refusal. */
+	{
+		int flis_flag = 0, flis_status = 0;
+		fits_read_key(fitseq->fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+		if (flis_status == 0 && flis_flag) {
+			siril_log_error(_("%s is a FLIS layered image, not a FITS sequence. "
+			                  "Flatten the image first if you want to use it as "
+			                  "a sequence frame source.\n"), candidate_filename);
+			status = 0;
+			fits_close_file(fitseq->fptr, &status);
+			fitseq->fptr = NULL;
+			free(candidate_filename);
+			return -1;
+		}
+	}
 	if (_find_hdus(fitseq->fptr, &fitseq->hdu_index, &fitseq->frame_count) || fitseq->frame_count <= 1) {
 		siril_log_error(_("Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"), candidate_filename);
 		free(candidate_filename);

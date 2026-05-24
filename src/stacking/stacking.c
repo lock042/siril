@@ -33,6 +33,7 @@
 #include "core/siril_log.h"
 #include "core/arithm.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -110,6 +111,19 @@ void main_stack(struct stacking_args *args) {
 /* the function that runs the thread. */
 gpointer stack_function_handler(gpointer p) {
 	struct stacking_args *args = (struct stacking_args *)p;
+
+	/* §5.8: stacking writes its result into gfit, which is the active
+	 * layer's fit for a FLIS.  Letting a sequence stack overwrite an
+	 * active layer would silently corrupt the FLIS document.  Refuse
+	 * cleanly — the user should close or flatten the FLIS first. */
+	if (is_current_image_flis()) {
+		siril_log_error(_("Stacking cannot run while a FLIS layered image is "
+		                  "loaded.  Flatten the image or close it first; the "
+		                  "stack result would otherwise overwrite the active "
+		                  "layer.\n"));
+		args->retval = -1;
+		return GINT_TO_POINTER(-1);
+	}
 
 	main_stack(args);
 

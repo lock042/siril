@@ -292,6 +292,23 @@ void flis_layer_free(flis_layer_t *layer);
 void layermask_free(layermask_t *mask);
 
 /**
+ * layermask_clone:
+ * Deep-copy a layer mask (pixel data and metadata).  Returns NULL if @src
+ * is NULL or allocation fails.  The result is independently owned and must
+ * be freed by the caller with layermask_free().
+ */
+layermask_t *layermask_clone(const layermask_t *src);
+
+/**
+ * flis_layer_capture_props:
+ * Snapshot every non-pixel property of @layer into @out.  Used to record
+ * the pre-op state for undo entries that need a full property baseline.
+ * No allocation; @out must point to valid storage.
+ */
+void flis_layer_capture_props(const flis_layer_t *layer,
+                              flis_layer_props_t *out);
+
+/**
  * flis_free_layers:
  * @uniq: the single struct whose layers list is to be freed.
  *
@@ -464,6 +481,31 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
 void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
                                                 gint new_rx, gint new_ry,
                                                 double angle);
+
+/**
+ * flis_update_layer_offset_after_mirrorx:
+ *
+ * Updates FLIS layer offsets after a top↔bottom flip (mirrorx, the vertical
+ * flip Siril names "mirror in X" because it inverts pixels across the
+ * horizontal X-axis).
+ *
+ * - Base layer mirrored: every non-base layer's canvas-Y is mirrored around
+ *   the canvas centre so the visible composite stays consistent.
+ * - Non-base layer mirrored: the layer's centre on the canvas is preserved,
+ *   so no position change is needed.
+ *
+ * Invalidates the composite.  No-op if no FLIS is loaded.
+ */
+void flis_update_layer_offset_after_mirrorx(void);
+
+/**
+ * flis_update_layer_offset_after_mirrory:
+ *
+ * Updates FLIS layer offsets after a left↔right flip (mirrory, the horizontal
+ * flip Siril names "mirror in Y" because it inverts pixels across the
+ * vertical Y-axis).  Same rules as mirrorx, applied to canvas-X.
+ */
+void flis_update_layer_offset_after_mirrory(void);
 
 /**
  * flis_canvas_rx / flis_canvas_ry:
