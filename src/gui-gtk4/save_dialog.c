@@ -991,13 +991,113 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 	return FALSE;
 }
 
-static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPaintable *paintable) {
+/* Build a self-contained notification popover.
+ *
+ * popover_new_with_image() parents every popover to `control_window`
+ * (the top-level GtkApplicationWindow).  Parenting a GtkPopover
+ * directly to a GtkWindow is unreliable in GTK4 — the popup surface
+ * never becomes visible for this notification, even though the popover
+ * widget is created and gtk_popover_popup() is called.  Parent the
+ * notification to the snapshot button's containing headerbar instead:
+ * a plain GtkHeaderBar accepts a popover child via gtk_widget_set_parent
+ * and the popup surface renders correctly. */
+static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *filename, GdkPaintable *paintable) {
 	gchar *text;
 	if (filename)
 		text = g_strdup_printf(_("Snapshot <b>%s</b> was saved into the working directory."), filename);
 	else
-		text = g_strdup((_("Snapshot was saved into the clipboard.")));
-	GtkWidget *popover = popover_new_with_image(widget, text, paintable);
+		text = g_strdup(_("Snapshot was saved into the clipboard."));
+
+	GtkWidget *popover = gtk_popover_new();
+	/* Don't grab input — this is a transient toast that shouldn't
+	 * dismiss when the user clicks elsewhere in the app. */
+	gtk_popover_set_autohide(GTK_POPOVER(popover), FALSE);
+
+	/* Walk up from the snapshot button until we find a non-popover
+	 * ancestor — the headerbar.  This avoids parenting the popover
+	 * to the snapshot menubutton (whose own popover machinery would
+	 * conflict) or to the snapshot_menu popover (which is mid-popdown). */
+	GtkWidget *parent = NULL;
+	if (anchor_btn) {
+		for (GtkWidget *p = gtk_widget_get_parent(anchor_btn); p; p = gtk_widget_get_parent(p)) {
+			if (GTK_IS_HEADER_BAR(p)) { parent = p; break; }
+		}
+	}
+	if (!parent && gui.builder) {
+		GObject *obj = gtk_builder_get_object(gui.builder, "headerbar");
+		if (GTK_IS_WIDGET(obj)) parent = GTK_WIDGET(obj);
+	}
+	if (parent) {
+		gtk_widget_set_parent(popover, parent);
+		if (anchor_btn && anchor_btn != parent) {
+			graphene_rect_t bounds;
+			if (gtk_widget_compute_bounds(anchor_btn, parent, &bounds)) {
+				GdkRectangle rect = {
+					(int) bounds.origin.x, (int) bounds.origin.y,
+					(int) bounds.size.width, (int) bounds.size.height,
+				};
+				gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
+			}
+		}
+	}
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget *image;
+	if (paintable) {
+		int iw = gdk_paintable_get_intrinsic_width(paintable);
+		int ih = gdk_paintable_get_intrinsic_height(paintable);
+		/* Fit the thumbnail into a 256-px square: scale so the larger
+		 * dimension hits 256 and the other shrinks proportionally. */
+		const int MAX_DIM = 256;
+		int tw = MAX_DIM, th = MAX_DIM;
+		if (iw > 0 && ih > 0) {
+			if (iw >= ih) {
+				tw = MAX_DIM;
+				th = (int) ((float) ih * MAX_DIM / (float) iw);
+			} else {
+				th = MAX_DIM;
+				tw = (int) ((float) iw * MAX_DIM / (float) ih);
+			}
+		}
+		image = gtk_picture_new_for_paintable(paintable);
+		gtk_picture_set_content_fit(GTK_PICTURE(image), GTK_CONTENT_FIT_CONTAIN);
+		gtk_picture_set_can_shrink(GTK_PICTURE(image), TRUE);
+		gtk_widget_set_size_request(image, tw, th);
+	} else {
+		image = gtk_image_new_from_icon_name("dialog-information-symbolic");
+	}
+	gtk_widget_set_margin_start(image, 10);
+	gtk_widget_set_margin_end(image, 10);
+	gtk_widget_set_margin_top(image, 10);
+	gtk_widget_set_margin_bottom(image, 10);
+	gtk_box_append(GTK_BOX(box), image);
+
+	GtkWidget *label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), text);
+	gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
+	/* With wrap enabled, GTK4 derives the label's natural width from
+	 * width-chars.  Without it, the natural width collapses to the
+	 * longest single word and the popover-box ends up squeezing the
+	 * label down to a one-word-per-line column.  width-chars sets the
+	 * target line length; max-width-chars caps growth on very long
+	 * filenames. */
+	gtk_label_set_width_chars(GTK_LABEL(label), 30);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	/* xalign positions the text inside the label's allocation but
+	 * doesn't shrink the allocation itself.  halign=START + hexpand=FALSE
+	 * makes the label widget request just its natural width so the
+	 * popover doesn't carry a wide empty strip on the right. */
+	gtk_widget_set_halign(label, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(label, FALSE);
+	gtk_widget_set_margin_start(label, 10);
+	gtk_widget_set_margin_end(label, 10);
+	gtk_widget_set_margin_top(label, 10);
+	gtk_widget_set_margin_bottom(label, 10);
+	gtk_box_append(GTK_BOX(box), label);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	gtk_popover_popup(GTK_POPOVER(popover));
 	g_free(text);
 	return popover;
@@ -1057,18 +1157,50 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	cairo_surface_destroy(surface);
 
 	GdkTexture *tex = siril_texture_from_cairo_surface(sub);
+
+	/* Build a small thumbnail texture (max 256 px on the long edge) for
+	 * the notification popover.  Without this the popover would size
+	 * itself to the snapshot's intrinsic dimensions — GtkPicture's
+	 * natural size is its paintable's intrinsic size, and set_size_request
+	 * only sets the minimum.  Done before destroying `sub` so we can
+	 * scale in cairo. */
+	GdkTexture *thumb_tex = NULL;
+	{
+		const int MAX_DIM = 256;
+		int w = x2 - x1, h = y2 - y1;
+		if (w > 0 && h > 0) {
+			int tw, th;
+			if (w >= h) { tw = MAX_DIM; th = (int) ((float) h * MAX_DIM / (float) w); }
+			else        { th = MAX_DIM; tw = (int) ((float) w * MAX_DIM / (float) h); }
+			if (tw < 1) tw = 1;
+			if (th < 1) th = 1;
+			cairo_surface_t *thumb_surf = cairo_image_surface_create(
+				CAIRO_FORMAT_ARGB32, tw, th);
+			cairo_t *tcr = cairo_create(thumb_surf);
+			cairo_scale(tcr, (double) tw / (double) w, (double) th / (double) h);
+			cairo_set_source_surface(tcr, sub, 0, 0);
+			cairo_paint(tcr);
+			cairo_destroy(tcr);
+			thumb_tex = siril_texture_from_cairo_surface(thumb_surf);
+			cairo_surface_destroy(thumb_surf);
+		}
+	}
 	cairo_surface_destroy(sub);
 
 	if (!tex) {
+		if (thumb_tex) g_object_unref(thumb_tex);
 		g_free(filename);
 		return;
 	}
 
+	GdkPaintable *thumb_paintable = thumb_tex ? GDK_PAINTABLE(thumb_tex) : GDK_PAINTABLE(tex);
+
 	if (clipboard) {
 		GdkClipboard *cb = gdk_display_get_clipboard(gdk_display_get_default());
 		gdk_clipboard_set_texture(cb, tex);
+		siril_log_message(_("Snapshot copied to clipboard.\n"));
 		GtkWidget *popover = snapshot_notification(sd_header_snapshot_btn, NULL,
-		                                           GDK_PAINTABLE(tex));
+		                                           thumb_paintable);
 		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
 	} else {
 		GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
@@ -1080,8 +1212,9 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 		gboolean ok = path && gdk_texture_save_to_png(tex, path);
 		if (ok) {
 			gchar *basename = g_file_get_basename(file);
+			siril_log_message(_("Snapshot %s saved into the working directory.\n"), basename);
 			GtkWidget *popover = snapshot_notification(sd_header_snapshot_btn,
-			                                           basename, GDK_PAINTABLE(tex));
+			                                           basename, thumb_paintable);
 			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
 			g_free(basename);
 		} else {
@@ -1091,6 +1224,7 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 		g_object_unref(file);
 	}
 	g_object_unref(tex);
+	if (thumb_tex) g_object_unref(thumb_tex);
 	g_free(filename);
 }
 
