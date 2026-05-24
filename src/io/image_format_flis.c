@@ -48,6 +48,8 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
+#include "config.h"  /* VERSION */
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -205,6 +207,12 @@ static gchar *build_metadata_string(const flis_layer_t *layer) {
                                layer->layer_tint.g,
                                layer->layer_tint.b);
 
+    /* §6.3 forward-compat: re-emit any keys we didn't recognise at
+     * load time, so future Siril versions' fields survive a round-
+     * trip through this build. */
+    if (layer->unknown_metadata && layer->unknown_metadata[0])
+        g_string_append_printf(s, "%s;", layer->unknown_metadata);
+
     /* Strip trailing semicolon */
     if (s->len > 0 && s->str[s->len - 1] == ';')
         g_string_truncate(s, s->len - 1);
@@ -220,8 +228,13 @@ static void parse_metadata_string(const char *meta, flis_layer_t *layer) {
     if (!meta || meta[0] == '\0')
         return;
 
+    /* §6.3 forward-compat: collect any pair we don't recognise into
+     * layer->unknown_metadata so it survives the next save unchanged. */
+    GString *unknown = NULL;
+
     gchar **pairs = g_strsplit(meta, ";", -1);
     for (int i = 0; pairs[i]; i++) {
+        if (!pairs[i][0]) continue;  /* skip empty fragment (trailing ;) */
         gchar **kv = g_strsplit(pairs[i], "=", 2);
         if (!kv[0] || !kv[1]) { g_strfreev(kv); continue; }
 
@@ -244,11 +257,57 @@ static void parse_metadata_string(const char *meta, flis_layer_t *layer) {
                 layer->layer_tint.g = g;
                 layer->layer_tint.b = b;
             }
+        } else {
+            /* Unrecognised key — preserve verbatim for re-emit on save. */
+            if (!unknown) unknown = g_string_new(NULL);
+            if (unknown->len) g_string_append_c(unknown, ';');
+            g_string_append_printf(unknown, "%s=%s", k, v);
         }
-        /* MASKGEN and other keys are preserved on save but not acted upon here */
         g_strfreev(kv);
     }
     g_strfreev(pairs);
+    if (unknown) {
+        g_free(layer->unknown_metadata);
+        layer->unknown_metadata = g_string_free(unknown, FALSE);
+    }
+}
+
+/*
+ * Parse a group's METADATA string.  Recognised keys: COLLAPSED, CREATED,
+ * MODIFIED.  Unknown keys are stashed in group->unknown_metadata for
+ * lossless round-trip (§6.3).
+ */
+static void parse_group_metadata_string(const char *meta, flis_group_t *group) {
+    if (!meta || !meta[0]) return;
+    GString *unknown = NULL;
+    gchar **pairs = g_strsplit(meta, ";", -1);
+    for (int i = 0; pairs[i]; i++) {
+        if (!pairs[i][0]) continue;
+        gchar **kv = g_strsplit(pairs[i], "=", 2);
+        if (!kv[0] || !kv[1]) { g_strfreev(kv); continue; }
+        const char *k = g_strstrip(kv[0]);
+        const char *v = g_strstrip(kv[1]);
+
+        if (!g_ascii_strcasecmp(k, "COLLAPSED")) {
+            group->collapsed = (v[0] == '1' || v[0] == 'T' || v[0] == 't');
+        } else if (!g_ascii_strcasecmp(k, "CREATED")) {
+            g_free(group->created);
+            group->created = g_strdup(v);
+        } else if (!g_ascii_strcasecmp(k, "MODIFIED")) {
+            g_free(group->modified);
+            group->modified = g_strdup(v);
+        } else {
+            if (!unknown) unknown = g_string_new(NULL);
+            if (unknown->len) g_string_append_c(unknown, ';');
+            g_string_append_printf(unknown, "%s=%s", k, v);
+        }
+        g_strfreev(kv);
+    }
+    g_strfreev(pairs);
+    if (unknown) {
+        g_free(group->unknown_metadata);
+        group->unknown_metadata = g_string_free(unknown, FALSE);
+    }
 }
 
 /* ===================================================================== */
@@ -417,14 +476,28 @@ static int write_thumbnail_hdu(fitsfile *fptr, const fits *base_fit,
                        "Canvas background fill (R G B in [0,1])", &status);
     }
 
-    /* Capability flags */
-    fits_write_key(fptr, TSTRING,  "FLISIMPL","Siril",         "FLIS implementation",              &status);
-    fits_write_key(fptr, TLOGICAL, "FLISCORE",&(int){1},       "Core FLIS features supported",     &status);
+    /* §6.2 capability flags — declare what features this writer supports
+     * so older readers can decide whether they understand the file's
+     * contents.  These are per-implementation capabilities; the file's
+     * actual feature use is signalled separately (e.g. FLISICC above
+     * indicates whether THIS file embeds an ICC profile, not whether
+     * the writer supports ICC).  Reuse-of-FLISICC bug fixed: the
+     * second write was overwriting the presence flag with the
+     * capability flag and making the load-time `if (icc_present)`
+     * always true. */
+    gchar impl_str[FLEN_VALUE];
+    g_snprintf(impl_str, sizeof(impl_str), "Siril-%s-flis-gtk4", VERSION);
+    fits_write_key(fptr, TSTRING,  "FLISIMPL", impl_str,        "FLIS implementation/version",    &status);
+    fits_write_key(fptr, TLOGICAL, "FLISCORE",&(int){1},        "Core FLIS features supported",   &status);
     ival = FLIS_BLND_ALL;
-    fits_write_key(fptr, TINT,     "FLISBLND",&ival,           "Supported blend modes bitmask",    &status);
-    fits_write_key(fptr, TLOGICAL, "FLISLMSK",&(int){1},       "Layer mask (LMASK) supported",     &status);
-    fits_write_key(fptr, TLOGICAL, "FLISEFF", &(int){0},       "Effects metadata supported",       &status);
-    fits_write_key(fptr, TLOGICAL, "FLISICC", &(int){1},       "ICC profile supported",            &status);
+    fits_write_key(fptr, TINT,     "FLISBLND",&ival,            "Supported blend modes bitmask",  &status);
+    fits_write_key(fptr, TLOGICAL, "FLISLMSK",&(int){1},        "Layer mask (LMASK) supported",   &status);
+    fits_write_key(fptr, TLOGICAL, "FLISGRP", &(int){1},        "Layer groups supported",         &status);
+    fits_write_key(fptr, TLOGICAL, "FLISEFF", &(int){0},        "Effects metadata supported",     &status);
+    /* FLISEXT: comma-separated list of optional FLIS extensions this
+     * writer understands.  SPARSE = layers may extend past the canvas
+     * (§6.2 sparse-layer correctness).  Future extensions append. */
+    fits_write_key(fptr, TSTRING,  "FLISEXT", "SPARSE",         "Optional extensions supported",  &status);
 
     if (status) {
         report_fits_error(status);
@@ -612,11 +685,16 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             gfloat op = grp->opacity;
             int vis   = grp->visible ? 1 : 0;
             const char *name = grp->name ? grp->name : "Group";
-            /* Build metadata string for group: COLLAPSED and timestamps */
-            gchar *meta = g_strdup_printf("COLLAPSED=%d;CREATED=%s;MODIFIED=%s",
+            /* Build metadata string for group: COLLAPSED + timestamps +
+             * §6.3 forward-compat re-emit of unrecognised keys. */
+            GString *gms = g_string_new(NULL);
+            g_string_append_printf(gms, "COLLAPSED=%d;CREATED=%s;MODIFIED=%s",
                 grp->collapsed ? 1 : 0,
                 grp->created  ? grp->created  : "",
                 grp->modified ? grp->modified : "");
+            if (grp->unknown_metadata && grp->unknown_metadata[0])
+                g_string_append_printf(gms, ";%s", grp->unknown_metadata);
+            gchar *meta = g_string_free(gms, FALSE);
             fits_write_col(fptr, TINT,     COL_ITEM_ID,     row, 1, 1, &id,                        &status);
             fits_write_col(fptr, TSTRING,  COL_ITEM_TYPE,   row, 1, 1, &(char*){FLIS_TYPE_GROUP},  &status);
             fits_write_col(fptr, TINT,     COL_HDU_INDEX,   row, 1, 1, &zero,                      &status);
@@ -1049,6 +1127,7 @@ void flis_layer_free(flis_layer_t *layer) {
     g_free(layer->layer_name);
     g_free(layer->created);
     g_free(layer->modified);
+    g_free(layer->unknown_metadata);
     g_free(layer);
 }
 
@@ -1420,30 +1499,9 @@ int load_flis(const gchar *filename) {
         grp->opacity    = row->opacity;
         grp->visible    = row->visible;
         grp->blend_mode = str_to_blend_mode(row->blend_mode);
-        /* Parse COLLAPSED from metadata string */
-        if (row->metadata && strstr(row->metadata, "COLLAPSED=1"))
-            grp->collapsed = TRUE;
-        /* Parse timestamps from metadata: CREATED=...; MODIFIED=... */
-        {
-            const char *p = row->metadata ? strstr(row->metadata, "CREATED=") : NULL;
-            if (p) {
-                p += 8;
-                const char *end = strchr(p, ';');
-                if (end && end > p)
-                    grp->created = g_strndup(p, end - p);
-                else if (*p)
-                    grp->created = g_strdup(p);
-            }
-            const char *q = row->metadata ? strstr(row->metadata, "MODIFIED=") : NULL;
-            if (q) {
-                q += 9;
-                const char *end = strchr(q, ';');
-                if (end && end > q)
-                    grp->modified = g_strndup(q, end - q);
-                else if (*q)
-                    grp->modified = g_strdup(q);
-            }
-        }
+        /* §6.3: route through the shared parser so unrecognised keys
+         * are captured for re-emit on save. */
+        parse_group_metadata_string(row->metadata, grp);
         groups = g_slist_append(groups, grp);
     }
 
@@ -2321,6 +2379,7 @@ void flis_group_free(flis_group_t *group) {
     g_free(group->name);
     g_free(group->created);
     g_free(group->modified);
+    g_free(group->unknown_metadata);
     g_free(group);
 }
 
@@ -3297,6 +3356,11 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
     dup->layer_order = src->layer_order + FLIS_ORDER_STEP;
     dup->created     = flis_now_iso8601();
     dup->modified    = g_strdup(dup->created);
+
+    /* §6.3: forward-compat metadata travels with the duplicate so a
+     * future-Siril attribute on the source isn't dropped on a copy. */
+    if (src->unknown_metadata)
+        dup->unknown_metadata = g_strdup(src->unknown_metadata);
 
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, dup,
                                               (GCompareFunc)layer_order_cmp);

@@ -147,6 +147,8 @@ typedef struct _flis_group_t {
     gboolean          collapsed;  /* UI only: list rows hidden when TRUE          */
     gchar            *created;    /* ISO 8601 or NULL                             */
     gchar            *modified;   /* ISO 8601 or NULL                             */
+    /* §6.3 forward-compat — see comment on flis_layer_t::unknown_metadata. */
+    gchar            *unknown_metadata;
 } flis_group_t;
 
 /* Lightweight snapshot of non-pixel group properties for undo. */
@@ -228,6 +230,13 @@ typedef struct _flis_layer_t {
     gchar            *modified;      /* ISO 8601 modification timestamp or NULL */
     gboolean          locked;        /* TRUE: layer locked against edits  */
     gint              group_id;      /* item_id of owning flis_group_t; 0 = ungrouped */
+
+    /* §6.3 forward-compat: METADATA key=value pairs this build does not
+     * recognise are preserved here on load and re-emitted on save so a
+     * future Siril version's layer fields survive a round-trip through
+     * this build.  Format: "k=v;k=v;..." (no trailing separator;
+     * NULL when there are no unknown pairs).  Owned; free with g_free. */
+    gchar            *unknown_metadata;
 } flis_layer_t;
 
 /* -----------------------------------------------------------------------

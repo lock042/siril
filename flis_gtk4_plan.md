@@ -1,6 +1,6 @@
 # FLIS reimplementation plan — `flis-gtk4` branch
 
-Status: **stages 1-5 and §7 complete; §6 hardening pass last**.
+Status: **all stages complete (1-7) — project DoD satisfied modulo the manual production-resolution perf check (DoD #6)**.
 
 Audit summary (head of branch):
 
@@ -11,7 +11,7 @@ Audit summary (head of branch):
 | §3 | ✅ done | GPU compose + per-layer cache + tile-aware path, including §3.4 invalidation chokepoint and §3.5a/§3.5b ICC architecture rework.  Deferred: §3.5 `bench/flis_compose_4layer_24mp` benchmark script + `test_display_composite_pixel_equivalence` (GSK-vs-CPU pixel-equivalence test); §3.7 GTK4-native shader colour management. |
 | §4 | ✅ done | Layers panel, every §4.2 widget present, §4.3 commands all shipped (13 `flis_*` commands paired with panel widgets, 60 tests in `test_flis_cmd`).  Context-menu register-layers / layers-match items wired in the post-§5 GUI pass.  Mask-view radios wired (`flis_get_displayed_mask` accessor + `single.flis_mask_view`).  Deferred: §4.4 GUI-mode parity tests (`test_panel_<verb>_drives_same_primitive` — needs Xvfb harness). |
 | §5 | ✅ done | All eight sub-stages shipped, plus the post-stage GUI bundle: §5.1 geometry offset helpers + `geometry_changing` worker undo path (9 tests); §5.2 `target_layer_id` on `generic_mask_args` + `-layermask=` on the 4 `mask_from_*` commands + procedural Target dropdown in the 3 mask creation dialogs (5 tests); §5.3 ICC already FLIS-aware via §3.5a/§3.5b; §5.4 header bar shows `"name.flis — layer 'X' [n/N]"`; §5.5 star-finder active-layer log; §5.6 `flis_register_layers` primitive + command + panel context menu with reference / interp / clamp dialog (5 tests); §5.7 `flis_layers_match` command + panel context menu with confirmation dialog (6 tests); §5.8 `fitseq_open` / livestacking / stacking refuse FLIS frames. |
-| §6 | ⏳ not started | See §6.6 below. |
+| §6 | ✅ done | §6.1 sparse-layer audit (7 tests in `test_flis_sparse`); §6.2 capability headers added on save (FLISGRP, FLISEXT='SPARSE', FLISIMPL with version) + duplicate FLISICC fixed; §6.3 forward-compat (unknown METADATA keys preserved on round-trip — `unknown_metadata` field on layer + group, 2 tests in `test_flis_roundtrip`); §6.4 stress (4 tests in `test_flis_stress`: 16-layer round-trip, every blend mode, every group config, id-uniqueness under add/remove churn); §6.5 docs (`docs/flis_user_guide.md` — GUI walkthrough + scripting example) + in-app help (status-bar hint at bottom of layers panel); §6.6 final DoD checkoff (see §6.6 below). |
 | §7 | ✅ done | Canvas decoupling complete.  `single.canvas_w/h/bg_*` on `com.uniq` populated by `flis_promote_from_gfit` + `load_flis` (CANVASW/CANVASH/CANVASBG, with FLISSIZX/Y read-fallback for in-progress files).  `flis_render_layers_internal` allocates canvas-sized output, fills `canvas_bg`, composites every layer uniformly (no more `first_layer` BASE_LOOP shortcut for the main pass; preserved for sub-composites).  §5.1 helpers collapsed to per-layer-only.  New helpers `flis_canvas_resize/_fit_to_layers/_rotate/_mirrorx/_mirrory` + matching commands `flis_canvas_*` with parity tests.  Window title shows canvas dims; zoom-to-fit already used `flis_canvas_rx/ry` (now sourced from `com.uniq`).  GPU compose fast-path still requires bottom layer covers canvas at origin; gracefully falls back to CPU otherwise. |
 
 When resuming work: read each `### *.* — checkoff` block below for the
@@ -1628,7 +1628,7 @@ flatten first. Display a clear error message via the gui_iface.
 
 ## 6 · Hardening & polish
 
-**Status: not yet started.**
+**Status: ✅ done.**
 
 ### 6.1 — Sparse-layer correctness audit
 
@@ -1672,10 +1672,38 @@ byte-identical.
 
 ### 6.6 — Final checkoff (whole project DoD)
 
-- [ ] All §0 Definition of Done items satisfied.
-- [ ] `git diff master...flis-gtk4 --stat` reviewed; no surprising
-      drift in unrelated subsystems.
-- [ ] This plan archived under `docs/dev/flis_gtk4_plan.md`.
+- [x] §0 DoD #1 — round-trip coverage: `test_flis_roundtrip` +
+      `test_flis_stress` + `test_flis_canvas` exercise every metadata
+      field and the full save/load cycle including unknown-key
+      forward-compat (§6.3) and canvas keys (§7).
+- [x] §0 DoD #2 / #3 — every §4 widget has a matching `flis_*`
+      command and shares the same primitive (~30 `flis_*` commands
+      cover the panel surface; parity contract enforced by
+      construction).
+- [x] §0 DoD #4 — `is_current_image_flis()` guards in `fitseq_open`,
+      `start_livestacking`, `stack_function_handler`, and at every
+      gfit-mutating geometry / mask op via the layer-aware undo
+      path (§5.1, §5.8).
+- [x] §0 DoD #5 — undo gate centralised in `undo_save_flis_*`
+      family (skips when `com.script`), the same primitive serves
+      both command-driven and panel-driven paths (§C.1a).
+- [ ] §0 DoD #6 — display perf at 4-layer 24 Mpix matches plain
+      24 Mpix.  Verified at small-fixture level (compose tests
+      complete in ~ms); production-resolution perf check is a manual
+      step left for the reviewer (open a real multi-layer FLIS,
+      pan/zoom, observe frame rate).
+- [x] §0 DoD #7 — no regressions in plain-FITS open/save/process
+      flows.  Existing non-FLIS tests (siril_date, ser, photometry,
+      stacking_blocks, etc.) all pass alongside the FLIS suite.
+- [x] §0 DoD #8 — no GTK3-period direct GUI includes from non-GUI
+      code (enforced throughout the FLIS work; gui_iface mediates).
+- [x] §0 DoD #9 — no FLIS GUI work in `src/gui/`.  Verified:
+      `git diff master...flis-gtk4 -- src/gui/ | grep -c flis_` is 0.
+- [x] `git diff master...flis-gtk4 --stat` reviewed: changes
+      concentrate in `src/core/`, `src/io/`, `src/gui-gtk4/`,
+      `src/registration/`, `src/tests/`, and `src/algos/geometry.c`
+      / `src/algos/star_finder.c`.  No surprising drift.
+- [x] This plan archived under `docs/dev/flis_gtk4_plan.md`.
 
 ---
 
@@ -2038,7 +2066,7 @@ the next save.
 | 3     | Display composite (CPU oracle → GSK per-layer → tile)                    |     ✓     | Multi-layer FLIS renders correctly                                    | None (display internal)                                             |
 | 4     | GTK4 layers panel + per-layer editor + paired operation commands         |     ✓     | Full panel interaction, and every panel operation also scriptable     | ~30 `flis_*` commands (stack / props / tint / lmask / groups / composite) |
 | 5     | Geometry/mask/ICC/registration/layer-match integration + integration commands |     ✓     | Operations FLIS-aware; integration dialogs and matching CLI commands  | `flis_register_layers`, `flis_layers_match`, `-layermask=` on mask cmds |
-| 6     | Hardening, capability headers, docs (incl. scripting guide)              |     ✓     | Spec-compliant artefacts; user guide covers GUI + scripting           | None new                                                            |
+| 6     | Hardening, capability headers, forward-compat (unknown-key preserve), stress tests, user guide |     ✓     | Spec-compliant artefacts; user guide covers GUI + scripting           | None new                                                            |
 | 7     | Canvas decoupling — canvas is a `single` property; base layer becomes a regular layer; spec edited in place | ✓ | Canvas resize/fit/rotate/mirror operate independently of any layer; base layer draggable / resizable like the rest | `flis_canvas_resize/_fit/_rotate/_mirrorx/_mirrory` |
 
 Each stage's checkoff list is the gate for the next stage to begin.

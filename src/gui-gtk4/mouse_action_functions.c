@@ -513,6 +513,10 @@ static gboolean flis_drag_layer_release(mouse_data *data) {
 	 * (matches the opacity drag-end pattern in flis_gui.c). */
 	lay->position_x = gui.flis_drag_start_layer.x;
 	lay->position_y = gui.flis_drag_start_layer.y;
+	/* §C.1a: save undo BEFORE the mutation.  With the layer's position
+	 * restored to its pre-drag value, the props snapshot captures
+	 * exactly the state to revert to.  No-op when com.script is set. */
+	undo_save_flis_layer_props(lay, _("Drag layer to new canvas position"));
 	struct flis_setposition_args *payload = calloc(1, sizeof(*payload));
 	payload->destroy_fn = flis_setposition_args_free;
 	payload->x = final_x;
@@ -704,19 +708,18 @@ gboolean main_action_click(mouse_data *data) {
 	 * gfit bounds, and the user clicking on it would otherwise be
 	 * gated off by data->inside.  Handle before the inside gate. */
 	if (*data->mouse_status == MOUSE_ACTION_FLIS_DRAG_LAYER) {
+		/* §7 canvas decoupling: every layer (including the bottom layer
+		 * formerly known as the "base") carries its own canvas position
+		 * and is draggable. */
 		if (is_current_image_flis() && com.uniq && com.uniq->layers) {
 			flis_layer_t *act = flis_active_layer();
-			flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-			if (act && act != base) {
-				gui.flis_drag_layer_id    = act->item_id;
-				gui.flis_drag_start_image = data->evpos;
+			if (act) {
+				gui.flis_drag_layer_id      = act->item_id;
+				gui.flis_drag_start_image   = data->evpos;
 				gui.flis_drag_start_layer.x = act->position_x;
 				gui.flis_drag_start_layer.y = act->position_y;
-				gui.flis_layer_dragging   = TRUE;
+				gui.flis_layer_dragging     = TRUE;
 				register_release_callback(flis_drag_layer_release, data->button);
-			} else if (act == base) {
-				siril_log_message(_("FLIS: cannot drag the base layer "
-				                    "(it defines canvas origin)\n"));
 			}
 		}
 		return TRUE;

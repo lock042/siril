@@ -114,6 +114,7 @@ struct flis_panel {
 	/* Toolbar */
 	GtkWidget *btn_add, *btn_remove, *btn_duplicate, *btn_group;
 	GtkWidget *btn_drag, *btn_move_up, *btn_move_down;
+	GtkWidget *btn_canvas;   /* opens the canvas properties dialog */
 	GtkWidget *btn_menu;
 
 	/* List */
@@ -194,6 +195,20 @@ void flis_gui_toggle_visible(void) {
 	}
 }
 
+void flis_gui_present_if_flis(void) {
+	if (!is_current_image_flis()) return;
+	if (!g_panel) build_panel();
+	if (!g_panel || !g_panel->window) return;
+	if (gtk_widget_get_visible(g_panel->window)) {
+		/* Already up — just refresh to pick up the freshly-loaded stack. */
+		refresh_panel();
+		return;
+	}
+	refresh_panel();
+	gtk_widget_set_visible(g_panel->window, TRUE);
+	gtk_window_present(GTK_WINDOW(g_panel->window));
+}
+
 static gboolean refresh_idle_cb(gpointer p) {
 	(void)p;
 	/* Title bar reflects FLIS active-layer state independently of the panel.
@@ -231,24 +246,27 @@ static void build_panel(void) {
 	GtkWidget *w = gtk_window_new();
 	g_panel->window = w;
 	gtk_window_set_title(GTK_WINDOW(w), _("FLIS Layers"));
-	gtk_window_set_default_size(GTK_WINDOW(w), 360, 720);
+	/* Compact default size; the layer list inside the scrolled window
+	 * absorbs vertical growth, so we don't need a tall initial window. */
+	gtk_window_set_default_size(GTK_WINDOW(w), 320, 540);
 	gtk_window_set_hide_on_close(GTK_WINDOW(w), TRUE);
 	GtkWidget *main_w = lookup_widget("control_window");
 	if (main_w)
 		gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(main_w));
 
-	GtkWidget *outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-	gtk_widget_set_margin_start (outer, 6);
-	gtk_widget_set_margin_end   (outer, 6);
-	gtk_widget_set_margin_top   (outer, 6);
-	gtk_widget_set_margin_bottom(outer, 6);
+	GtkWidget *outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+	gtk_widget_set_margin_start (outer, 4);
+	gtk_widget_set_margin_end   (outer, 4);
+	gtk_widget_set_margin_top   (outer, 4);
+	gtk_widget_set_margin_bottom(outer, 4);
 	gtk_window_set_child(GTK_WINDOW(w), outer);
 
-	/* Mode indicator at the top. */
+	/* Mode indicator — folded into the toolbar to save a row.  Kept as a
+	 * member for the refresh path which writes "FITS" / "FLIS" / "FLIS ·
+	 * group X selected". */
 	g_panel->mode_label = gtk_label_new("FITS");
 	gtk_label_set_xalign(GTK_LABEL(g_panel->mode_label), 0.0f);
 	gtk_widget_add_css_class(g_panel->mode_label, "dim-label");
-	gtk_box_append(GTK_BOX(outer), g_panel->mode_label);
 
 	build_toolbar (outer);
 	build_list    (outer);
@@ -278,12 +296,13 @@ static void on_add_clicked       (GtkButton *b, gpointer u);
 static void on_remove_clicked    (GtkButton *b, gpointer u);
 static void on_duplicate_clicked (GtkButton *b, gpointer u);
 static void on_group_clicked     (GtkButton *b, gpointer u);
+static void on_canvas_clicked    (GtkButton *b, gpointer u);
 static void on_drag_toggled      (GtkToggleButton *b, gpointer u);
 static void on_move_up_clicked   (GtkButton *b, gpointer u);
 static void on_move_down_clicked (GtkButton *b, gpointer u);
 
 static void build_toolbar(GtkWidget *box) {
-	GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_widget_add_css_class(bar, "toolbar");
 
 	g_panel->btn_add       = icon_button("list-add-symbolic",        _("Add layer"));
@@ -293,6 +312,8 @@ static void build_toolbar(GtkWidget *box) {
 	g_panel->btn_drag      = icon_toggle("input-mouse-symbolic",     _("Drag layer in canvas"));
 	g_panel->btn_move_up   = icon_button("go-up-symbolic",           _("Move layer up"));
 	g_panel->btn_move_down = icon_button("go-down-symbolic",         _("Move layer down"));
+	g_panel->btn_canvas    = icon_button("document-page-setup-symbolic",
+	                                      _("Canvas properties — resize, fit, rotate, mirror…"));
 
 	g_signal_connect(g_panel->btn_add,       "clicked", G_CALLBACK(on_add_clicked),       NULL);
 	g_signal_connect(g_panel->btn_remove,    "clicked", G_CALLBACK(on_remove_clicked),    NULL);
@@ -301,6 +322,7 @@ static void build_toolbar(GtkWidget *box) {
 	g_signal_connect(g_panel->btn_drag,      "toggled", G_CALLBACK(on_drag_toggled),      NULL);
 	g_signal_connect(g_panel->btn_move_up,   "clicked", G_CALLBACK(on_move_up_clicked),   NULL);
 	g_signal_connect(g_panel->btn_move_down, "clicked", G_CALLBACK(on_move_down_clicked), NULL);
+	g_signal_connect(g_panel->btn_canvas,    "clicked", G_CALLBACK(on_canvas_clicked),    NULL);
 
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_add);
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_remove);
@@ -309,11 +331,13 @@ static void build_toolbar(GtkWidget *box) {
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_drag);
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_move_up);
 	gtk_box_append(GTK_BOX(bar), g_panel->btn_move_down);
+	gtk_box_append(GTK_BOX(bar), g_panel->btn_canvas);
 
-	/* Context menu button on the right. */
-	GtkWidget *spacer = gtk_label_new(NULL);
-	gtk_widget_set_hexpand(spacer, TRUE);
-	gtk_box_append(GTK_BOX(bar), spacer);
+	/* Mode label between the toolbar buttons and the right-side menu —
+	 * keeps the panel header to a single row. */
+	gtk_widget_set_margin_start(g_panel->mode_label, 8);
+	gtk_widget_set_hexpand(g_panel->mode_label, TRUE);
+	gtk_box_append(GTK_BOX(bar), g_panel->mode_label);
 
 	g_panel->btn_menu = gtk_menu_button_new();
 	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(g_panel->btn_menu), "open-menu-symbolic");
@@ -441,11 +465,11 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	(void)f; (void)u;
 	row_widgets_t *rw = g_new0(row_widgets_t, 1);
 
-	rw->row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	gtk_widget_set_margin_start (rw->row_box, 4);
-	gtk_widget_set_margin_end   (rw->row_box, 4);
-	gtk_widget_set_margin_top   (rw->row_box, 2);
-	gtk_widget_set_margin_bottom(rw->row_box, 2);
+	rw->row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	gtk_widget_set_margin_start (rw->row_box, 2);
+	gtk_widget_set_margin_end   (rw->row_box, 2);
+	gtk_widget_set_margin_top   (rw->row_box, 1);
+	gtk_widget_set_margin_bottom(rw->row_box, 1);
 
 	/* Plain GtkButton (not toggle) — we don't track state on the widget,
 	 * grp->collapsed is the source of truth; on click we just flip it
@@ -461,8 +485,10 @@ static void on_row_setup(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 	gtk_widget_add_css_class(rw->visible_toggle, "flat");
 
 	rw->lock_toggle = gtk_toggle_button_new();
-	gtk_button_set_icon_name(GTK_BUTTON(rw->lock_toggle), "changes-prevent-symbolic");
-	gtk_widget_set_tooltip_text(rw->lock_toggle, _("Lock layer (prevent edits)"));
+	/* Initial icon = "allow edits" (unlocked).  sync_property_widgets
+	 * swaps to "prevent" when the layer is locked. */
+	gtk_button_set_icon_name(GTK_BUTTON(rw->lock_toggle), "changes-allow-symbolic");
+	gtk_widget_set_tooltip_text(rw->lock_toggle, _("Unlocked — click to lock"));
 	gtk_widget_add_css_class(rw->lock_toggle, "flat");
 
 	rw->thumb = gtk_picture_new();
@@ -611,6 +637,14 @@ static void on_row_bind(GtkListItemFactory *f, GtkListItem *item, gpointer u) {
 		gtk_button_set_icon_name(GTK_BUTTON(rw->visible_toggle),
 			lay->visible ? "view-reveal-symbolic" : "view-conceal-symbolic");
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rw->lock_toggle),    lay->locked);
+		/* Same treatment as visibility: swap closed-padlock / open-padlock
+		 * icons so the state is obvious at a glance.  changes-prevent =
+		 * "edits prevented" (locked); changes-allow = "edits allowed". */
+		gtk_button_set_icon_name(GTK_BUTTON(rw->lock_toggle),
+			lay->locked ? "changes-prevent-symbolic" : "changes-allow-symbolic");
+		gtk_widget_set_tooltip_text(rw->lock_toggle,
+			lay->locked ? _("Locked — click to unlock")
+			            : _("Unlocked — click to lock"));
 		gtk_label_set_text(GTK_LABEL(rw->name_label),
 		                   lay->layer_name ? lay->layer_name : "(unnamed)");
 
@@ -817,12 +851,12 @@ static void build_property(GtkWidget *box) {
 	g_panel->prop_frame = gtk_frame_new(_("Layer properties"));
 
 	GtkWidget *grid = gtk_grid_new();
-	gtk_grid_set_row_spacing   (GTK_GRID(grid), 6);
-	gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
-	gtk_widget_set_margin_start (grid, 8);
-	gtk_widget_set_margin_end   (grid, 8);
-	gtk_widget_set_margin_top   (grid, 8);
-	gtk_widget_set_margin_bottom(grid, 8);
+	gtk_grid_set_row_spacing   (GTK_GRID(grid), 3);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
+	gtk_widget_set_margin_start (grid, 6);
+	gtk_widget_set_margin_end   (grid, 6);
+	gtk_widget_set_margin_top   (grid, 4);
+	gtk_widget_set_margin_bottom(grid, 4);
 
 	int row = 0;
 
@@ -869,10 +903,10 @@ static void build_property(GtkWidget *box) {
 	/* Tint frame */
 	g_panel->tint_frame = gtk_frame_new(_("Tint"));
 	GtkWidget *tbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	gtk_widget_set_margin_start (tbox, 6);
-	gtk_widget_set_margin_end   (tbox, 6);
-	gtk_widget_set_margin_top   (tbox, 6);
-	gtk_widget_set_margin_bottom(tbox, 6);
+	gtk_widget_set_margin_start (tbox, 4);
+	gtk_widget_set_margin_end   (tbox, 4);
+	gtk_widget_set_margin_top   (tbox, 3);
+	gtk_widget_set_margin_bottom(tbox, 3);
 	gtk_frame_set_child(GTK_FRAME(g_panel->tint_frame), tbox);
 	g_panel->tint_check    = gtk_check_button_new_with_label(_("Apply"));
 	GtkColorDialog *cd     = gtk_color_dialog_new();
@@ -900,11 +934,11 @@ static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u);
 
 static void build_mask(GtkWidget *box) {
 	g_panel->mask_frame = gtk_frame_new(_("Layer mask"));
-	GtkWidget *mbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	GtkWidget *mbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
 	gtk_widget_set_margin_start (mbox, 6);
 	gtk_widget_set_margin_end   (mbox, 6);
-	gtk_widget_set_margin_top   (mbox, 6);
-	gtk_widget_set_margin_bottom(mbox, 6);
+	gtk_widget_set_margin_top   (mbox, 4);
+	gtk_widget_set_margin_bottom(mbox, 4);
 	gtk_frame_set_child(GTK_FRAME(g_panel->mask_frame), mbox);
 
 	GtkWidget *row1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -955,6 +989,7 @@ static void on_ctx_move_to_group (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_export_layer  (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_layers_match  (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_delete_group  (GSimpleAction *a, GVariant *v, gpointer u);
 
 static GMenu *build_context_menu(void) {
 	GMenu *m = g_menu_new();
@@ -962,6 +997,7 @@ static GMenu *build_context_menu(void) {
 	g_menu_append(m, _("Register layers…"),              "win.flis-register-layers");
 	g_menu_append(m, _("Layers match…"),                 "win.flis-layers-match");
 	g_menu_append(m, _("Move layer to group…"),          "win.flis-move-to-group");
+	g_menu_append(m, _("Delete group…"),                 "win.flis-delete-group");
 	g_menu_append(m, _("Merge Down"),                    "win.flis-merge-down");
 	g_menu_append(m, _("Flatten Image"),                 "win.flis-flatten");
 	return m;
@@ -972,6 +1008,7 @@ static const GActionEntry flis_panel_actions[] = {
 	{ "flis-register-layers",on_ctx_register_layers, NULL, NULL, NULL },
 	{ "flis-layers-match",   on_ctx_layers_match,    NULL, NULL, NULL },
 	{ "flis-move-to-group",  on_ctx_move_to_group, NULL, NULL, NULL },
+	{ "flis-delete-group",   on_ctx_delete_group,  NULL, NULL, NULL },
 	{ "flis-merge-down",     on_ctx_merge_down, NULL, NULL, NULL },
 	{ "flis-flatten",        on_ctx_flatten,    NULL, NULL, NULL },
 };
@@ -1355,6 +1392,30 @@ static int op_hook(struct generic_layer_args *args) {
 
 static void dispatch_op(struct op_payload *op, const char *desc,
                          int invalidate_flags) {
+	/* §C.1a: save undo BEFORE the mutation runs.  Pure-property layer
+	 * ops use the props-only undo entry (no swap file, just a
+	 * snapshot of the layer's pre-change props).  The undo function
+	 * already short-circuits when com.script is set, so headless and
+	 * Python script runs see no undo as designed.  Group property
+	 * ops and structural ops (remove / duplicate / move) are not
+	 * undoable here yet — TODO follow-up. */
+	switch (op->kind) {
+		case OP_SET_VISIBLE:
+		case OP_SET_LOCKED:
+		case OP_SET_NAME:
+		case OP_SET_BLEND:
+		case OP_SET_OPACITY:
+		case OP_SET_TINT:
+		case OP_CLEAR_TINT: {
+			flis_layer_t *lay = flis_layer_get_by_id(op->target_id);
+			if (lay) undo_save_flis_layer_props(lay,
+			                                    desc ? desc : "Layer op");
+			break;
+		}
+		default:
+			break;
+	}
+
 	struct generic_layer_args *args = calloc(1, sizeof(*args));
 	args->layer        = NULL;     /* hook resolves layer from op->target_id */
 	args->layer_hook   = op_hook;
@@ -1721,12 +1782,16 @@ static void on_drag_toggled(GtkToggleButton *b, gpointer u) {
 		siril_log_message(_("FLIS: Canvas drag mode on — click and drag on the "
 		                    "image to reposition the active layer\n"));
 	} else {
-		mouse_status = MOUSE_ACTION_NONE;
 		/* Defensive: if a drag was in flight when the user toggled off,
 		 * end it cleanly without committing.  The current in-progress
 		 * position stays — the user can toggle on again to continue or
 		 * commit via flis_setposition. */
 		gui.flis_layer_dragging = FALSE;
+		/* Return to the default rectangular-select mouse mode, not to
+		 * MOUSE_ACTION_NONE — leaving it at NONE leaves the user with
+		 * no usable mouse action until they pick something else from
+		 * the mouse-actions menu. */
+		init_mouse();
 		siril_log_message(_("FLIS: Canvas drag mode off\n"));
 	}
 }
@@ -2042,11 +2107,78 @@ static int op_merge_down_hook(struct generic_layer_args *args) {
 	if (!lay) return 1;
 	return flis_merge_down_layer(lay);
 }
+
+/* Hook for "merge group": collapse every member into the bottom-most,
+ * then remove the group so the surviving layer is ungrouped.  Members
+ * are iterated top-down so each merge_down has a target underneath.
+ * Group members must be at adjacent layer_order slots for the merge
+ * sequence to be unambiguous; if a non-member layer is interleaved it
+ * gets absorbed by mistake, so the user should reorder their stack
+ * first.  Returns non-zero on any merge_down failure. */
+static int op_merge_group_hook(struct generic_layer_args *args) {
+	gint group_id = args->invalidate_item_id;
+	flis_group_t *grp = flis_group_get_by_id(group_id);
+	if (!grp) return 1;
+	GSList *members = flis_group_get_layers(grp);  /* asc by layer_order */
+	if (!members || !members->next) {
+		/* 0 or 1 members — nothing to merge; just remove the group. */
+		g_slist_free(members);
+		flis_group_remove(grp);
+		return 0;
+	}
+	/* Process from topmost member down to (and excluding) the bottom-
+	 * most.  Reverse the list so we iterate top-first. */
+	GSList *rev = g_slist_reverse(g_slist_copy(members));
+	g_slist_free(members);
+	int rv = 0;
+	for (GSList *l = rev; l && l->next; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (flis_merge_down_layer(lay)) { rv = 1; break; }
+	}
+	g_slist_free(rev);
+	if (!rv) flis_group_remove(grp);
+	return rv;
+}
+
 static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 	(void)a; (void)v; (void)u;
+	flis_group_t *grp = current_selected_group();
+	if (grp) {
+		guint n_members = g_slist_length(flis_group_get_layers(grp));
+		if (n_members < 2) {
+			siril_log_message(
+			    _("FLIS: Merge Down on group — group has fewer than 2 "
+			      "members; nothing to merge\n"));
+			return;
+		}
+		gchar *msg = g_strdup_printf(_(
+		    "Merge all %u layers in group '%s' into the bottom-most "
+		    "member and remove the group?\n\n"
+		    "Undo for the merged layers is purged."),
+		    n_members, grp->name ? grp->name : "?");
+		gboolean ok = siril_confirm_dialog(_("Merge Group"), msg, _("Merge"));
+		g_free(msg);
+		if (!ok) return;
+		struct generic_layer_args *args = calloc(1, sizeof(*args));
+		args->layer = NULL;
+		args->layer_hook = op_merge_group_hook;
+		args->description = g_strdup(_("Merge group"));
+		args->invalidate_flags   = FLIS_INV_ALL;
+		args->invalidate_item_id = grp->item_id;
+		start_in_new_thread(generic_layer_worker, args);
+		return;
+	}
+
 	flis_layer_t *lay = current_selected_layer();
 	if (!lay) {
-		siril_log_message(_("FLIS: Merge Down — no layer selected\n"));
+		siril_log_message(_("FLIS: Merge Down — no layer or group selected\n"));
+		return;
+	}
+	if (!siril_confirm_dialog(
+	        _("Merge Down"),
+	        _("Merge the active layer into the one beneath it?\n\n"
+	          "Undo for both layers is purged after the merge."),
+	        _("Merge"))) {
 		return;
 	}
 	struct generic_layer_args *args = calloc(1, sizeof(*args));
@@ -2056,6 +2188,146 @@ static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u) {
 	args->invalidate_flags   = FLIS_INV_ALL;
 	args->invalidate_item_id = lay->item_id;
 	start_in_new_thread(generic_layer_worker, args);
+}
+
+/* ---- Delete group dialog ---------------------------------------------
+ *
+ * Two-action choice: "Just remove group" (members become ungrouped,
+ * layer pixel data preserved) vs "Delete group and members" (both
+ * the group AND its member layers are destroyed).  Neither path is
+ * undoable — group ops don't have an undo flavour yet. */
+
+struct delete_group_ctx {
+	GtkWidget *dialog;
+	gint       group_id;
+};
+
+static int op_group_remove_hook(struct generic_layer_args *args) {
+	flis_group_t *grp = flis_group_get_by_id(args->invalidate_item_id);
+	return grp ? flis_group_remove(grp) : 1;
+}
+
+static int op_group_delete_with_layers_hook(struct generic_layer_args *args) {
+	flis_group_t *grp = flis_group_get_by_id(args->invalidate_item_id);
+	return grp ? flis_group_delete_with_layers(grp) : 1;
+}
+
+static void delete_group_dispatch(gint group_id,
+                                  gboolean delete_members) {
+	struct generic_layer_args *args = calloc(1, sizeof(*args));
+	args->layer              = NULL;
+	args->layer_hook         = delete_members
+	                           ? op_group_delete_with_layers_hook
+	                           : op_group_remove_hook;
+	args->user               = NULL;
+	args->description        = g_strdup(delete_members
+	                                    ? _("Delete group and members")
+	                                    : _("Delete group (ungroup members)"));
+	args->invalidate_flags   = FLIS_INV_ALL;
+	args->invalidate_item_id = group_id;
+	start_in_new_thread(generic_layer_worker, args);
+}
+
+static void on_delete_group_just_remove(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct delete_group_ctx *ctx = ud;
+	delete_group_dispatch(ctx->group_id, FALSE);
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_free(ctx);
+}
+
+static void on_delete_group_with_members(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct delete_group_ctx *ctx = ud;
+	flis_group_t *grp = flis_group_get_by_id(ctx->group_id);
+	GSList *members = grp ? flis_group_get_layers(grp) : NULL;
+	guint n_members = g_slist_length(members);
+	g_slist_free(members);
+	if (n_members > 0) {
+		gchar *msg = g_strdup_printf(_(
+		    "Permanently delete the group and all %u member layers?\n\n"
+		    "Undo is not available for this operation."), n_members);
+		gboolean ok = siril_confirm_dialog(_("Delete group and members"),
+		                                    msg, _("Delete"));
+		g_free(msg);
+		if (!ok) return;  /* keep the chooser dialog open */
+	}
+	delete_group_dispatch(ctx->group_id, TRUE);
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_free(ctx);
+}
+
+static void on_delete_group_cancel(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct delete_group_ctx *ctx = ud;
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_free(ctx);
+}
+
+static void on_ctx_delete_group(GSimpleAction *a, GVariant *v, gpointer u) {
+	(void)a; (void)v; (void)u;
+	flis_group_t *grp = current_selected_group();
+	if (!grp) {
+		siril_log_message(_("FLIS: Delete group — no group selected "
+		                    "(select a group header row first)\n"));
+		return;
+	}
+
+	struct delete_group_ctx *ctx = g_new0(struct delete_group_ctx, 1);
+	ctx->group_id = grp->item_id;
+	ctx->dialog   = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(ctx->dialog), _("Delete group"));
+	gtk_window_set_modal(GTK_WINDOW(ctx->dialog), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(ctx->dialog),
+	                             GTK_WINDOW(g_panel->window));
+	gtk_window_set_default_size(GTK_WINDOW(ctx->dialog), 380, -1);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (vbox, 12);
+	gtk_widget_set_margin_end   (vbox, 12);
+	gtk_widget_set_margin_top   (vbox, 12);
+	gtk_widget_set_margin_bottom(vbox, 12);
+	gtk_window_set_child(GTK_WINDOW(ctx->dialog), vbox);
+
+	gchar *prompt = g_strdup_printf(
+	    _("How should group '%s' be deleted?"),
+	    grp->name ? grp->name : "?");
+	GtkWidget *label = gtk_label_new(prompt);
+	gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_box_append(GTK_BOX(vbox), label);
+	g_free(prompt);
+
+	GtkWidget *hint = gtk_label_new(_(
+	    "• Just remove group — member layers are kept and become "
+	    "ungrouped.\n"
+	    "• Delete group and members — group AND every member layer "
+	    "are permanently removed.\n\n"
+	    "Neither action is undoable."));
+	gtk_label_set_wrap(GTK_LABEL(hint), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(hint), 0.0f);
+	gtk_widget_add_css_class(hint, "dim-label");
+	gtk_box_append(GTK_BOX(vbox), hint);
+
+	GtkWidget *btn_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(btn_row, GTK_ALIGN_END);
+	GtkWidget *cancel_btn = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *remove_btn = gtk_button_new_with_label(_("Just remove group"));
+	GtkWidget *delete_btn = gtk_button_new_with_label(_("Delete group and members"));
+	gtk_widget_add_css_class(delete_btn, "destructive-action");
+	gtk_box_append(GTK_BOX(btn_row), cancel_btn);
+	gtk_box_append(GTK_BOX(btn_row), remove_btn);
+	gtk_box_append(GTK_BOX(btn_row), delete_btn);
+	gtk_box_append(GTK_BOX(vbox), btn_row);
+
+	g_signal_connect(cancel_btn, "clicked",
+	                 G_CALLBACK(on_delete_group_cancel), ctx);
+	g_signal_connect(remove_btn, "clicked",
+	                 G_CALLBACK(on_delete_group_just_remove), ctx);
+	g_signal_connect(delete_btn, "clicked",
+	                 G_CALLBACK(on_delete_group_with_members), ctx);
+
+	gtk_window_present(GTK_WINDOW(ctx->dialog));
 }
 
 static int op_flatten_hook(struct generic_layer_args *args) {
@@ -2314,15 +2586,25 @@ static void on_ctx_layers_match(GSimpleAction *a, GVariant *v, gpointer u) {
 
 struct ctx_register_args_dialog {
 	GtkWidget *dialog;
+	GtkWidget *method_dropdown;
 	GtkWidget *ref_dropdown;
 	GtkWidget *interp_dropdown;
 	GtkWidget *clamp_toggle;
-	GArray    *ref_ids;     /* parallel to dropdown items: layer item_ids */
+	GtkWidget *requirement_label;  /* dim label showing the current method's
+	                                * selection requirement */
+	GArray    *ref_ids;     /* parallel to ref_dropdown items: layer item_ids */
+	gint       group_id;    /* 0 = register every layer; otherwise restrict
+	                         * to this group's members.  Set from the panel
+	                         * selection when the dialog opens; passed
+	                         * through to op_register_layers_hook. */
 };
 
 struct ctx_register_payload {
 	destructor   destroy_fn;
 	gint         ref_item_id;       /* 0 = use current active */
+	gint         group_id;          /* 0 = register all layers; otherwise
+	                                 * restrict to this group's members */
+	flis_reg_method_id   method_id;
 	opencv_interpolation interp;
 	gboolean     clamp;
 };
@@ -2335,7 +2617,28 @@ static int op_register_layers_hook(struct generic_layer_args *args) {
 	struct ctx_register_payload *p = (struct ctx_register_payload *)args->user;
 	flis_layer_t *ref = p->ref_item_id ? flis_layer_get_by_id(p->ref_item_id)
 	                                   : flis_active_layer();
-	return flis_register_layers(ref, NULL, p->interp, p->clamp);
+	selection_type sel;
+	transformation_type tx;
+	registration_function method = flis_register_resolve_method(
+	    p->method_id, &sel, &tx);
+
+	/* Group-scoped registration: pull just this group's members from
+	 * com.uniq->layers so flis_register_layers builds its internal
+	 * sequence over the subset only.  NULL → register all layers. */
+	GSList *targets = NULL;
+	gboolean owned = FALSE;
+	if (p->group_id != 0) {
+		flis_group_t *grp = flis_group_get_by_id(p->group_id);
+		if (grp) {
+			targets = flis_group_get_layers(grp);
+			owned = TRUE;
+		}
+	}
+
+	int rv = flis_register_layers(ref, targets, method, sel, tx,
+	                              p->interp, p->clamp);
+	if (owned) g_slist_free(targets);
+	return rv;
 }
 
 static const opencv_interpolation REGISTER_INTERP_VALUES[] = {
@@ -2346,6 +2649,55 @@ static const char *REGISTER_INTERP_NAMES[] = {
 };
 #define REGISTER_INTERP_DEFAULT_IDX 4   /* Lanczos4 */
 
+static const flis_reg_method_id REGISTER_METHOD_VALUES[] = {
+	FLIS_REG_GLOBAL, FLIS_REG_2PASS, FLIS_REG_DFT, FLIS_REG_KOMBAT
+};
+static const char *REGISTER_METHOD_NAMES[] = {
+	N_("Global star alignment (1-pass, recommended)"),
+	N_("Global star alignment (2-pass)"),
+	N_("Image pattern (DFT shift — needs a square selection)"),
+	N_("KOMBAT pattern match (needs a selection)"),
+};
+
+/* Refresh the requirement-label below the method dropdown so the user
+ * sees at a glance whether the chosen method needs a selection on the
+ * image and whether the current com.selection satisfies it. */
+static void update_register_requirement_hint(struct ctx_register_args_dialog *ctx) {
+	guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->method_dropdown));
+	if (idx >= G_N_ELEMENTS(REGISTER_METHOD_VALUES)) idx = 0;
+	selection_type sel;
+	(void)flis_register_resolve_method(REGISTER_METHOD_VALUES[idx], &sel, NULL);
+	const gboolean has_sel = (com.selection.w > 0 && com.selection.h > 0);
+	const gboolean is_square = has_sel && (com.selection.w == com.selection.h);
+	const char *txt = "";
+	switch (sel) {
+		case REQUIRES_NO_SELECTION:
+			txt = _("No selection needed.");
+			break;
+		case REQUIRES_ANY_SELECTION:
+			txt = has_sel
+			    ? _("Selection ✓ — any size works.")
+			    : _("Needs a selection — drag a rectangle on the image first.");
+			break;
+		case REQUIRES_SQUARED_SELECTION:
+			txt = is_square
+			    ? _("Selection ✓ — square, ready.")
+			    : (has_sel
+			        ? _("Selection must be SQUARE.  Adjust the rectangle to "
+			            "equal width and height.")
+			        : _("Needs a square selection — drag a square rectangle "
+			            "on the image first."));
+			break;
+	}
+	gtk_label_set_text(GTK_LABEL(ctx->requirement_label), txt);
+}
+
+static void on_register_method_changed(GObject *obj, GParamSpec *p,
+                                       gpointer ud) {
+	(void)obj; (void)p;
+	update_register_requirement_hint((struct ctx_register_args_dialog *)ud);
+}
+
 static void on_register_dialog_ok(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct ctx_register_args_dialog *ctx = ud;
@@ -2355,12 +2707,37 @@ static void on_register_dialog_ok(GtkButton *btn, gpointer ud) {
 	if (ref_idx < ctx->ref_ids->len)
 		ref_id = g_array_index(ctx->ref_ids, gint, ref_idx);
 
+	guint method_idx = gtk_drop_down_get_selected(
+	    GTK_DROP_DOWN(ctx->method_dropdown));
+	if (method_idx >= G_N_ELEMENTS(REGISTER_METHOD_VALUES)) method_idx = 0;
+	flis_reg_method_id method_id = REGISTER_METHOD_VALUES[method_idx];
+
 	guint interp_idx = gtk_drop_down_get_selected(
 	    GTK_DROP_DOWN(ctx->interp_dropdown));
 	if (interp_idx >= G_N_ELEMENTS(REGISTER_INTERP_VALUES))
 		interp_idx = REGISTER_INTERP_DEFAULT_IDX;
 
 	gboolean clamp = siril_toggle_get_active(ctx->clamp_toggle);
+
+	/* Up-front selection requirement check — duplicates the inside
+	 * flis_register_layers check, but gives the user immediate feedback
+	 * without closing the dialog or starting the worker. */
+	selection_type sel_req;
+	(void)flis_register_resolve_method(method_id, &sel_req, NULL);
+	const gboolean has_sel    = (com.selection.w > 0 && com.selection.h > 0);
+	const gboolean is_square  = has_sel && (com.selection.w == com.selection.h);
+	if (sel_req == REQUIRES_ANY_SELECTION && !has_sel) {
+		siril_log_error(_("Register layers: this method requires an "
+		                  "image selection — drag a rectangle on the "
+		                  "image first.\n"));
+		return;
+	}
+	if (sel_req == REQUIRES_SQUARED_SELECTION && (!has_sel || !is_square)) {
+		siril_log_error(_("Register layers: this method requires a SQUARE "
+		                  "image selection — drag a square rectangle on "
+		                  "the image first.\n"));
+		return;
+	}
 
 	/* Snapshot every layer before the resampling pass. */
 	if (undo_save_flis_multi_layer(com.uniq->layers, _("Register layers"))) {
@@ -2370,6 +2747,8 @@ static void on_register_dialog_ok(GtkButton *btn, gpointer ud) {
 	struct ctx_register_payload *payload = calloc(1, sizeof(*payload));
 	payload->destroy_fn = ctx_register_payload_free;
 	payload->ref_item_id = ref_id;
+	payload->group_id    = ctx->group_id;
+	payload->method_id   = method_id;
 	payload->interp = REGISTER_INTERP_VALUES[interp_idx];
 	payload->clamp = clamp;
 
@@ -2400,13 +2779,25 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 		siril_log_message(_("FLIS: Register layers — current image is not a FLIS\n"));
 		return;
 	}
-	if (g_slist_length(com.uniq->layers) < 2) {
-		siril_log_message(_("FLIS: Register layers — need at least two layers\n"));
+
+	/* Scope: when a group is currently selected in the panel, register
+	 * only the group's members.  Otherwise register every layer. */
+	flis_group_t *sel_grp = current_selected_group();
+	GSList *scope_layers = sel_grp ? flis_group_get_layers(sel_grp) : com.uniq->layers;
+	const gboolean owned_scope = (sel_grp != NULL);
+	const guint scope_n = g_slist_length(scope_layers);
+
+	if (scope_n < 2) {
+		if (owned_scope) g_slist_free(scope_layers);
+		siril_log_message(_("FLIS: Register layers — need at least two "
+		                    "layers in %s\n"),
+		                  sel_grp ? _("the selected group") : _("the FLIS"));
 		return;
 	}
 
 	struct ctx_register_args_dialog *ctx = g_new0(struct ctx_register_args_dialog, 1);
-	ctx->ref_ids = g_array_new(FALSE, FALSE, sizeof(gint));
+	ctx->ref_ids  = g_array_new(FALSE, FALSE, sizeof(gint));
+	ctx->group_id = sel_grp ? sel_grp->item_id : 0;
 
 	ctx->dialog = gtk_window_new();
 	gtk_window_set_title(GTK_WINDOW(ctx->dialog), _("Register layers"));
@@ -2423,11 +2814,51 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 	gtk_window_set_child(GTK_WINDOW(ctx->dialog), vbox);
 
 	gtk_box_append(GTK_BOX(vbox),
-	    gtk_label_new(_("Aligns all layers to a chosen reference, "
+	    gtk_label_new(_("Aligns the chosen layers to a reference, "
 	                    "resampling pixel data and updating canvas offsets. "
 	                    "Undoable in one step.")));
 
-	/* Reference layer dropdown. */
+	/* Scope indicator — make it obvious which layers will be touched. */
+	gchar *scope_txt = sel_grp
+	    ? g_strdup_printf(_("Scope: %u layers in group '%s'"),
+	                      scope_n, sel_grp->name ? sel_grp->name : "?")
+	    : g_strdup_printf(_("Scope: all %u layers in the FLIS "
+	                        "(select a group row in the panel before opening "
+	                        "this dialog to register just that group)"),
+	                      scope_n);
+	GtkWidget *scope_label = gtk_label_new(scope_txt);
+	gtk_label_set_xalign(GTK_LABEL(scope_label), 0.0f);
+	gtk_label_set_wrap(GTK_LABEL(scope_label), TRUE);
+	gtk_widget_add_css_class(scope_label, "dim-label");
+	gtk_box_append(GTK_BOX(vbox), scope_label);
+	g_free(scope_txt);
+
+	/* Method dropdown — default to single-pass global star alignment so
+	 * the dialog works on a freshly-loaded FLIS without any selection.
+	 * DFT and KOMBAT need a selection; the requirement hint below the
+	 * dropdown updates live as the user picks. */
+	GtkWidget *method_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_box_append(GTK_BOX(method_row), gtk_label_new(_("Method:")));
+	ctx->method_dropdown = gtk_drop_down_new(NULL, NULL);
+	gtk_widget_set_hexpand(ctx->method_dropdown, TRUE);
+	for (guint i = 0; i < G_N_ELEMENTS(REGISTER_METHOD_NAMES); i++)
+		siril_drop_down_append_text(GTK_DROP_DOWN(ctx->method_dropdown),
+		                            _(REGISTER_METHOD_NAMES[i]));
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(ctx->method_dropdown), 0);
+	gtk_box_append(GTK_BOX(method_row), ctx->method_dropdown);
+	gtk_box_append(GTK_BOX(vbox), method_row);
+
+	ctx->requirement_label = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(ctx->requirement_label), 0.0f);
+	gtk_label_set_wrap(GTK_LABEL(ctx->requirement_label), TRUE);
+	gtk_widget_add_css_class(ctx->requirement_label, "dim-label");
+	gtk_box_append(GTK_BOX(vbox), ctx->requirement_label);
+	g_signal_connect(ctx->method_dropdown, "notify::selected",
+	                 G_CALLBACK(on_register_method_changed), ctx);
+	update_register_requirement_hint(ctx);
+
+	/* Reference layer dropdown — only the layers in scope are listed
+	 * (all layers, or the group's members when a group is selected). */
 	GtkWidget *ref_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	gtk_box_append(GTK_BOX(ref_row), gtk_label_new(_("Reference:")));
 	ctx->ref_dropdown = gtk_drop_down_new(NULL, NULL);
@@ -2439,7 +2870,7 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 	}
 	guint active_idx = 0;
 	guint idx = 0;
-	for (GSList *l = com.uniq->layers; l; l = l->next, idx++) {
+	for (GSList *l = scope_layers; l; l = l->next, idx++) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay) continue;
 		const gchar *name = lay->layer_name ? lay->layer_name : "?";
@@ -2450,6 +2881,8 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(ctx->ref_dropdown), active_idx);
 	gtk_box_append(GTK_BOX(ref_row), ctx->ref_dropdown);
 	gtk_box_append(GTK_BOX(vbox), ref_row);
+	if (owned_scope) g_slist_free(scope_layers);
+	scope_layers = NULL;
 
 	/* Interpolation dropdown. */
 	GtkWidget *interp_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -2486,4 +2919,265 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
 	                 G_CALLBACK(on_register_dialog_ok), ctx);
 
 	gtk_window_present(GTK_WINDOW(ctx->dialog));
+}
+
+/* =========================================================================
+ * Canvas properties dialog (§7 GUI)
+ *
+ * One modeless dialog holding every canvas-scoped operation: resize,
+ * fit-to-layers, rotate, mirror.  The dialog stays open so the user can
+ * chain several ops; the "Current" label refreshes after each one.
+ * Each op saves a multi-layer-props undo entry before running so the
+ * layer positions revert atomically (canvas dim change is not yet part
+ * of the undo bundle — same caveat as the canvas commands per §7.10
+ * deferred).
+ * ========================================================================= */
+
+struct canvas_dialog {
+	GtkWidget *window;
+	GtkWidget *current_label;
+	GtkWidget *spin_w, *spin_h, *spin_dx, *spin_dy;
+	GtkWidget *include_invisible;
+	GtkWidget *spin_angle;
+};
+
+static void canvas_dialog_refresh_current(struct canvas_dialog *cd) {
+	if (!cd || !cd->current_label) return;
+	gchar *txt = g_strdup_printf(_("Current canvas: %u × %u"),
+	    flis_canvas_rx(), flis_canvas_ry());
+	gtk_label_set_text(GTK_LABEL(cd->current_label), txt);
+	g_free(txt);
+}
+
+static void canvas_dialog_after_op(struct canvas_dialog *cd) {
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	notify_gfit_data_modified();
+	/* notify_gfit_data_modified rebuilds the tile buffers but doesn't
+	 * queue a paint of the image vports — the cvport widget keeps its
+	 * last GtkSnapshot until something invalidates it.  Explicit
+	 * redraw so the canvas op result is visible immediately rather
+	 * than on the next incidental redraw (mouse move, focus change). */
+	gui_iface.redraw_image(REMAP_ALL);
+	canvas_dialog_refresh_current(cd);
+	/* Resync the spin defaults to the new canvas dims so a follow-up
+	 * resize starts from the just-applied state. */
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w),
+	                          (double)flis_canvas_rx());
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h),
+	                          (double)flis_canvas_ry());
+}
+
+static void on_canvas_resize_click(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	if (!is_current_image_flis()) return;
+	guint w  = (guint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_w));
+	guint h  = (guint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_h));
+	gint  dx = (gint) gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_dx));
+	gint  dy = (gint) gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_dy));
+	if (w == 0 || h == 0) {
+		siril_log_error(_("Canvas dims must be positive (got %ux%u)\n"), w, h);
+		return;
+	}
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Resize canvas"));
+	if (flis_canvas_resize(w, h, dx, dy) == 0)
+		canvas_dialog_after_op(cd);
+}
+
+static void on_canvas_fit_click(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	if (!is_current_image_flis()) return;
+	gboolean include_invisible =
+	    siril_toggle_get_active(cd->include_invisible);
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Fit canvas to layers"));
+	if (flis_canvas_fit_to_layers(include_invisible) == 0)
+		canvas_dialog_after_op(cd);
+}
+
+static void on_canvas_rotate_by(struct canvas_dialog *cd, double angle) {
+	if (!is_current_image_flis()) return;
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Rotate canvas"));
+	if (flis_canvas_rotate(angle) == 0)
+		canvas_dialog_after_op(cd);
+}
+static void on_canvas_rotate_minus_90(GtkButton *b, gpointer ud) { (void)b; on_canvas_rotate_by(ud,  -90.0); }
+static void on_canvas_rotate_180     (GtkButton *b, gpointer ud) { (void)b; on_canvas_rotate_by(ud, 180.0); }
+static void on_canvas_rotate_plus_90 (GtkButton *b, gpointer ud) { (void)b; on_canvas_rotate_by(ud,  90.0); }
+static void on_canvas_rotate_free_click(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	double angle = gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_angle));
+	on_canvas_rotate_by(cd, angle);
+}
+
+static void on_canvas_mirrorx_click(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	if (!is_current_image_flis()) return;
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas X"));
+	if (flis_canvas_mirrorx() == 0) canvas_dialog_after_op(cd);
+}
+static void on_canvas_mirrory_click(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	if (!is_current_image_flis()) return;
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas Y"));
+	if (flis_canvas_mirrory() == 0) canvas_dialog_after_op(cd);
+}
+
+static void on_canvas_dialog_close(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct canvas_dialog *cd = ud;
+	gtk_window_destroy(GTK_WINDOW(cd->window));
+	g_free(cd);
+}
+
+/* Small helper to wrap a labelled section in a frame.  Keeps the
+ * dialog layout compact while making each operation visually
+ * distinct. */
+static GtkWidget *canvas_section(const char *title, GtkWidget *body) {
+	GtkWidget *frame = gtk_frame_new(title);
+	gtk_widget_set_margin_start (body, 6);
+	gtk_widget_set_margin_end   (body, 6);
+	gtk_widget_set_margin_top   (body, 4);
+	gtk_widget_set_margin_bottom(body, 4);
+	gtk_frame_set_child(GTK_FRAME(frame), body);
+	return frame;
+}
+
+static void on_canvas_clicked(GtkButton *b, gpointer u) {
+	(void)b; (void)u;
+	if (!is_current_image_flis()) {
+		siril_log_message(_("FLIS: Canvas properties — current image is not a FLIS\n"));
+		return;
+	}
+
+	struct canvas_dialog *cd = g_new0(struct canvas_dialog, 1);
+	cd->window = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(cd->window), _("Canvas properties"));
+	gtk_window_set_transient_for(GTK_WINDOW(cd->window),
+	                             GTK_WINDOW(g_panel->window));
+	gtk_window_set_default_size(GTK_WINDOW(cd->window), 380, -1);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_start (vbox, 10);
+	gtk_widget_set_margin_end   (vbox, 10);
+	gtk_widget_set_margin_top   (vbox, 10);
+	gtk_widget_set_margin_bottom(vbox, 10);
+	gtk_window_set_child(GTK_WINDOW(cd->window), vbox);
+
+	cd->current_label = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(cd->current_label), 0.0f);
+	gtk_widget_add_css_class(cd->current_label, "dim-label");
+	canvas_dialog_refresh_current(cd);
+	gtk_box_append(GTK_BOX(vbox), cd->current_label);
+
+	/* Resize section */
+	{
+		GtkWidget *grid = gtk_grid_new();
+		gtk_grid_set_row_spacing   (GTK_GRID(grid), 4);
+		gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Width")),  0, 0, 1, 1);
+		cd->spin_w  = gtk_spin_button_new_with_range(1, 100000, 1);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w),  (double)flis_canvas_rx());
+		gtk_grid_attach(GTK_GRID(grid), cd->spin_w,           1, 0, 1, 1);
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Height")), 2, 0, 1, 1);
+		cd->spin_h  = gtk_spin_button_new_with_range(1, 100000, 1);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h),  (double)flis_canvas_ry());
+		gtk_grid_attach(GTK_GRID(grid), cd->spin_h,           3, 0, 1, 1);
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Δx")),     0, 1, 1, 1);
+		cd->spin_dx = gtk_spin_button_new_with_range(-100000, 100000, 1);
+		gtk_grid_attach(GTK_GRID(grid), cd->spin_dx,          1, 1, 1, 1);
+		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Δy")),     2, 1, 1, 1);
+		cd->spin_dy = gtk_spin_button_new_with_range(-100000, 100000, 1);
+		gtk_grid_attach(GTK_GRID(grid), cd->spin_dy,          3, 1, 1, 1);
+		GtkWidget *btn_resize = gtk_button_new_with_label(_("Resize"));
+		gtk_widget_set_halign(btn_resize, GTK_ALIGN_END);
+		gtk_grid_attach(GTK_GRID(grid), btn_resize, 0, 2, 4, 1);
+		g_signal_connect(btn_resize, "clicked",
+		                 G_CALLBACK(on_canvas_resize_click), cd);
+		gtk_box_append(GTK_BOX(vbox),
+		    canvas_section(_("Canvas size"), grid));
+	}
+
+	/* Fit-to-layers section */
+	{
+		GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		cd->include_invisible = gtk_check_button_new_with_label(
+		    _("Include hidden layers"));
+		GtkWidget *btn_fit = gtk_button_new_with_label(_("Fit"));
+		gtk_widget_set_hexpand(cd->include_invisible, TRUE);
+		gtk_widget_set_halign(btn_fit, GTK_ALIGN_END);
+		gtk_box_append(GTK_BOX(row), cd->include_invisible);
+		gtk_box_append(GTK_BOX(row), btn_fit);
+		g_signal_connect(btn_fit, "clicked",
+		                 G_CALLBACK(on_canvas_fit_click), cd);
+		gtk_box_append(GTK_BOX(vbox),
+		    canvas_section(_("Fit canvas to layers"), row));
+	}
+
+	/* Rotate section */
+	{
+		GtkWidget *vb = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+		GtkWidget *quick = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *b_m90 = gtk_button_new_with_label("−90°");
+		GtkWidget *b_180 = gtk_button_new_with_label("180°");
+		GtkWidget *b_p90 = gtk_button_new_with_label("+90°");
+		gtk_box_append(GTK_BOX(quick), b_m90);
+		gtk_box_append(GTK_BOX(quick), b_180);
+		gtk_box_append(GTK_BOX(quick), b_p90);
+		gtk_box_append(GTK_BOX(vb), quick);
+
+		GtkWidget *free_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		gtk_box_append(GTK_BOX(free_row), gtk_label_new(_("Free angle")));
+		cd->spin_angle = gtk_spin_button_new_with_range(-360.0, 360.0, 1.0);
+		gtk_spin_button_set_digits(GTK_SPIN_BUTTON(cd->spin_angle), 2);
+		gtk_widget_set_hexpand(cd->spin_angle, TRUE);
+		gtk_box_append(GTK_BOX(free_row), cd->spin_angle);
+		GtkWidget *btn_rot = gtk_button_new_with_label(_("Rotate"));
+		gtk_box_append(GTK_BOX(free_row), btn_rot);
+		gtk_box_append(GTK_BOX(vb), free_row);
+
+		g_signal_connect(b_m90,   "clicked", G_CALLBACK(on_canvas_rotate_minus_90), cd);
+		g_signal_connect(b_180,   "clicked", G_CALLBACK(on_canvas_rotate_180),      cd);
+		g_signal_connect(b_p90,   "clicked", G_CALLBACK(on_canvas_rotate_plus_90),  cd);
+		g_signal_connect(btn_rot, "clicked", G_CALLBACK(on_canvas_rotate_free_click), cd);
+		gtk_box_append(GTK_BOX(vbox),
+		    canvas_section(_("Rotate canvas"), vb));
+	}
+
+	/* Mirror section */
+	{
+		GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *btn_h = gtk_button_new_with_label(_("Flip horizontal"));
+		GtkWidget *btn_v = gtk_button_new_with_label(_("Flip vertical"));
+		gtk_box_append(GTK_BOX(row), btn_h);
+		gtk_box_append(GTK_BOX(row), btn_v);
+		g_signal_connect(btn_h, "clicked", G_CALLBACK(on_canvas_mirrory_click), cd);
+		g_signal_connect(btn_v, "clicked", G_CALLBACK(on_canvas_mirrorx_click), cd);
+		gtk_box_append(GTK_BOX(vbox),
+		    canvas_section(_("Mirror canvas"), row));
+	}
+
+	/* Note + Close */
+	GtkWidget *note = gtk_label_new(_(
+	    "Canvas ops update layer positions but never modify layer pixel "
+	    "data — text and image content within each layer stays axis-"
+	    "aligned.  Rotate / flip rebalances the layout around the new "
+	    "canvas centre; rotate individual layers separately if you want "
+	    "their content to follow."));
+	gtk_label_set_wrap(GTK_LABEL(note), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(note), 50);
+	gtk_widget_add_css_class(note, "dim-label");
+	gtk_box_append(GTK_BOX(vbox), note);
+
+	GtkWidget *close_btn = gtk_button_new_with_label(_("Close"));
+	gtk_widget_set_halign(close_btn, GTK_ALIGN_END);
+	gtk_box_append(GTK_BOX(vbox), close_btn);
+	g_signal_connect(close_btn, "clicked",
+	                 G_CALLBACK(on_canvas_dialog_close), cd);
+
+	gtk_window_present(GTK_WINDOW(cd->window));
 }

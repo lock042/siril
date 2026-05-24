@@ -42,4 +42,12 @@
 void flis_gui_toggle_visible(void);
 void flis_gui_update_from_idle(void);
 
+/* Idempotent show: present the panel (building it if needed) only when
+ * a FLIS is currently loaded.  No-op for plain FITS / sequences / no
+ * image.  Wired from single_image.c::open_single_image_from_gfit via
+ * gui_iface.flis_gui_present_if_flis so opening a FLIS automatically
+ * reveals the layers panel without stealing focus when the user is
+ * working with non-FLIS images. */
+void flis_gui_present_if_flis(void);
+
 #endif /* FLIS_GUI_H */
