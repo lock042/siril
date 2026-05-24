@@ -366,6 +366,38 @@ columnview.siril-dense-rows listview > row > cell {
    margin-right: 3px;
 }
 
+/* Pair specific buttons flush against their neighbour with zero gap:
+ *   Open  + Recent-dropdown  (file-open cluster)
+ *   Undo  + Redo             (history cluster)
+ * Zero both adjacent margins so 3 + 3 = 0 instead of the usual 6 px gap.
+ * Higher specificity than the uniform-margin rule above (ID selector
+ * inside #siril-headerbar) so this wins.
+ *
+ * GtkMenuButton (Recent) wraps its visible widget in an inner `button`
+ * node; Adwaita gives that inner button its own horizontal margin which
+ * leaves a small residual gap even when the outer menubutton is
+ * margin-zeroed.  Zero the inner button too. */
+#siril-headerbar #open-button,
+#siril-headerbar #undo-button {
+   margin-right: 0;
+}
+#siril-headerbar #recent-button,
+#siril-headerbar #redo-button {
+   margin-left: 0;
+}
+/* Recent is a GtkMenuButton: only the inner <button> node paints in
+ * Adwaita, so any padding on the outer menubutton (3 px from the
+ * .image-button rule above) shows through as headerbar background ===
+ * visible gap.  Zero its left padding so the inner button starts flush
+ * against the Open button's right edge. */
+#siril-headerbar #recent-button {
+   padding-left: 0;
+}
+#siril-headerbar #recent-button > button {
+   margin-left: 0;
+   margin-right: 0;
+}
+
 /* Restore icon sizes that the GTK3 build set explicitly on toolbars but that
  * the GTK4 conversion lost when GtkToolbar was replaced by GtkBox.toolbar.
  *   GtkToolMainBar (inside #toolbarbox)  GTK3: icon_size=5 (DND, 32 px)
