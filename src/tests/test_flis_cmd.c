@@ -699,7 +699,11 @@ Test(flis_cmd, setposition_hook_moves_non_base_layer) {
 	cr_assert_eq(ha->position_y, 456);
 }
 
-Test(flis_cmd, setposition_hook_refuses_base_layer) {
+/* §7 canvas decoupling: the base layer (= bottom-of-stack) is now a
+ * regular layer with its own position.  Setting its position succeeds
+ * and the layer moves like any other.  Pre-§7 this op was refused
+ * because the base implicitly defined the canvas origin. */
+Test(flis_cmd, setposition_hook_moves_base_layer) {
 	load_two_layer_fixture();
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
 
@@ -714,9 +718,9 @@ Test(flis_cmd, setposition_hook_refuses_base_layer) {
 	args->description        = g_strdup("setposition base");
 	args->invalidate_item_id = base->item_id;
 
-	cr_assert_neq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
-	cr_assert_eq(base->position_x, 0);
-	cr_assert_eq(base->position_y, 0);
+	cr_assert_eq(GPOINTER_TO_INT(generic_layer_worker(args)), 0);
+	cr_assert_eq(base->position_x, 50);
+	cr_assert_eq(base->position_y, 50);
 }
 
 Test(flis_cmd, setposition_command_rejects_non_integer) {

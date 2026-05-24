@@ -511,6 +511,14 @@ gboolean flis_gpu_compose_compatible(GSList *layers) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay || !lay->fit) return FALSE;
 		if (is_base) {
+			/* §7: the GPU fast path doesn't paint canvas_bg into uncovered
+			 * pixels, so it can only run when the bottom layer fully covers
+			 * the canvas at the origin.  When the user moves or shrinks
+			 * the bottom layer, this predicate fails and the caller falls
+			 * back to the CPU composite — which correctly fills canvas_bg
+			 * where no layer covers.  A future GPU extension could paint
+			 * a canvas_bg rectangle before the layer textures and lift
+			 * this restriction. */
 			if (lay->position_x != 0 || lay->position_y != 0) return FALSE;
 			if (lay->fit->rx != canvas_w || lay->fit->ry != canvas_h) return FALSE;
 			if (lay->group_id != 0) {

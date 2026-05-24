@@ -1970,9 +1970,14 @@ gboolean set_GUI_CWD(gpointer user_data) {
 			basename = _("(untitled FLIS)");
 		}
 		if (active && n_layers > 0) {
+			/* §7: canvas is a first-class document property; surface its
+			 * dimensions alongside the active-layer indicator so users
+			 * can tell at a glance whether the canvas matches a given
+			 * layer's pixel dims. */
 			subtitle = g_strdup_printf(
-				"%s — layer '%s' [%d/%u]",
+				"%s — canvas %ux%u — layer '%s' [%d/%u]",
 				basename,
+				flis_canvas_rx(), flis_canvas_ry(),
 				active->layer_name ? active->layer_name : "?",
 				com.uniq->active_layer + 1, n_layers);
 		} else {

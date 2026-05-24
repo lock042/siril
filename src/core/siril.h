@@ -555,6 +555,25 @@ typedef struct {
 	 * file at save/load time via the format-specific I/O paths. */
 	cmsHPROFILE icc_profile;
 	gboolean    color_managed;
+
+	/* §4.2 mask-view radio: which mask source feeds the mask tab + the
+	 * tint overlay on image vports.  0 = processing mask (gfit->mask,
+	 * the default), 1 = layer mask (active layer's lmask).  Only takes
+	 * effect when both sources exist; the panel's radio row is hidden
+	 * otherwise. */
+	gint flis_mask_view;  /* 0 = PROC, 1 = LAYER */
+
+	/* §7 canvas decoupling: the FLIS canvas is a document property,
+	 * independent of any layer.  Every layer (including the base) is
+	 * composited at its own dimensions, positioned at position_x/y on
+	 * the canvas; pixels not covered by any layer take canvas_bg.
+	 *
+	 * Populated on FLIS load (from CANVASW/H/BG, defaulting from the
+	 * base layer when those keys are absent — see §7.1 leniency) and
+	 * on flis_promote_from_gfit (canvas = the promoted fits dims).
+	 * Zero on non-FLIS images. */
+	guint canvas_w, canvas_h;
+	double canvas_bg_r, canvas_bg_g, canvas_bg_b;
 } single;
 
 typedef struct {

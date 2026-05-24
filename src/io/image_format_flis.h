@@ -292,6 +292,26 @@ void flis_layer_free(flis_layer_t *layer);
 void layermask_free(layermask_t *mask);
 
 /**
+ * flis_get_displayed_mask:
+ *
+ * Fills @out_mask with the mask source currently selected by the FLIS
+ * panel's mask-view radio (§4.2): gfit's processing mask (default) or
+ * the active layer's lmask wrapped as a mask_t (bitpix + data; the
+ * caller uses gfit->rx / gfit->ry for dimensions — which match the
+ * lmask's w/h by the data model's set_lmask invariant).
+ *
+ * Returns TRUE when @out_mask is populated with a usable source, FALSE
+ * when the panel selection has no data behind it (e.g. user picked
+ * Layer but the active layer has no lmask) — display callers should
+ * then skip mask rendering for this frame.
+ *
+ * Safe to call from any thread; reads are atomic with respect to the
+ * underlying enum field.
+ */
+struct _mask_t;
+gboolean flis_get_displayed_mask(struct _mask_t *out_mask);
+
+/**
  * layermask_clone:
  * Deep-copy a layer mask (pixel data and metadata).  Returns NULL if @src
  * is NULL or allocation fails.  The result is independently owned and must
@@ -510,11 +530,65 @@ void flis_update_layer_offset_after_mirrory(void);
 /**
  * flis_canvas_rx / flis_canvas_ry:
  *
- * Return the canvas (base-layer) width/height.  For non-FLIS images these
- * simply return gfit->rx / gfit->ry, so callers can use them unconditionally.
+ * Return the canvas width / height — a document property of the loaded
+ * FLIS, independent of any layer (§7).  For non-FLIS images these
+ * simply return gfit->rx / gfit->ry, so callers can use them
+ * unconditionally.
  */
 guint flis_canvas_rx(void);
 guint flis_canvas_ry(void);
+
+/* ---------------------------------------------------------------------
+ * §7 canvas-scoped operations.  Each acts on com.uniq->canvas_w/h AND
+ * on every layer's position_x/y so layers track the canvas change.
+ * Layer pixel data is NOT modified — these are document-geometry ops,
+ * not per-layer geometry ops.  All return 0 on success, non-zero on
+ * failure (logged).
+ * --------------------------------------------------------------------- */
+
+/**
+ * flis_canvas_resize:
+ * @new_w / @new_h: new canvas dimensions in pixels (must be > 0).
+ * @dx / @dy:      shift applied to every layer's position so they
+ *                 track the new canvas origin (e.g. when growing the
+ *                 canvas to the left, dx > 0 keeps layers visually in
+ *                 place).
+ */
+int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy);
+
+/**
+ * flis_canvas_fit_to_layers:
+ * @include_invisible: when TRUE, hidden layers are also considered for
+ *                     the bounding box.
+ *
+ * Computes the bounding box of every (optionally visible-only) layer
+ * and resizes the canvas to match it, shifting all layers so the bbox
+ * sits at (0, 0).  Useful for "shrink wrap to content" or to expose
+ * layer pixels that currently extend beyond the canvas.
+ */
+int flis_canvas_fit_to_layers(gboolean include_invisible);
+
+/**
+ * flis_canvas_rotate:
+ * @angle: rotation angle in degrees (positive = CCW in Siril convention).
+ *
+ * Rotates the canvas about its centre.  Updates canvas_w/h to the
+ * bounding box of the rotated canvas and rotates every layer's centre
+ * around the old canvas centre, mapping it into the new canvas.  Layer
+ * pixel data is not rotated; rotate each layer's fit separately if
+ * full document rotation is desired.
+ */
+int flis_canvas_rotate(double angle);
+
+/**
+ * flis_canvas_mirrorx / flis_canvas_mirrory:
+ *
+ * Flip the canvas about the horizontal / vertical axis.  Updates
+ * every layer's position so its centre reflects across the axis.
+ * Layer pixel data is not flipped.
+ */
+int flis_canvas_mirrorx(void);
+int flis_canvas_mirrory(void);
 
 /**
  * flis_canvas_to_pixel_index:

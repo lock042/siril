@@ -53,6 +53,9 @@
 #include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FLIS_DRAG_LAYER */
 #include "gui-gtk4/gui_state.h"            /* gui.flis_layer_dragging */
 #include "gui-gtk4/callbacks.h"            /* set_GUI_CWD (header bar refresh) */
+#include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
+#include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
+#include "registration/flis_register.h"    /* flis_register_layers primitive */
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 extern gboolean is_current_image_flis(void);
@@ -948,9 +951,10 @@ static void build_mask(GtkWidget *box) {
  * dispatch through the worker directly. */
 static void on_ctx_merge_down(GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_flatten   (GSimpleAction *a, GVariant *v, gpointer u);
-static void on_ctx_stub          (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_move_to_group (GSimpleAction *a, GVariant *v, gpointer u);
 static void on_ctx_export_layer  (GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_layers_match  (GSimpleAction *a, GVariant *v, gpointer u);
+static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u);
 
 static GMenu *build_context_menu(void) {
 	GMenu *m = g_menu_new();
@@ -965,8 +969,8 @@ static GMenu *build_context_menu(void) {
 
 static const GActionEntry flis_panel_actions[] = {
 	{ "flis-export-layer",   on_ctx_export_layer, NULL, NULL, NULL },
-	{ "flis-register-layers",on_ctx_stub,       NULL, NULL, NULL },
-	{ "flis-layers-match",   on_ctx_stub,       NULL, NULL, NULL },
+	{ "flis-register-layers",on_ctx_register_layers, NULL, NULL, NULL },
+	{ "flis-layers-match",   on_ctx_layers_match,    NULL, NULL, NULL },
 	{ "flis-move-to-group",  on_ctx_move_to_group, NULL, NULL, NULL },
 	{ "flis-merge-down",     on_ctx_merge_down, NULL, NULL, NULL },
 	{ "flis-flatten",        on_ctx_flatten,    NULL, NULL, NULL },
@@ -1205,11 +1209,35 @@ static void sync_property_widgets_for_layer(flis_layer_t *lay) {
 	}
 
 	/* View-row visible only when both a processing mask and a layer
-	 * mask exist (chooses which one the global mask tab shows). */
-	const gboolean both_masks = (lay->lmask != NULL && gfit && gfit->pdata[0] != NULL
-	                              /* TODO: replace with real proc-mask test once mask plumbing arrives */
-	                              && FALSE);
+	 * mask exist — picks which one the global mask tab and the tint
+	 * overlay on the image vports source from. */
+	const gboolean has_proc_mask = (gfit && gfit->mask && gfit->mask->data);
+	const gboolean has_lmask     = (lay->lmask && lay->lmask->data);
+	const gboolean both_masks    = has_proc_mask && has_lmask;
 	gtk_widget_set_visible(g_panel->mask_view_row, both_masks);
+
+	/* Sync the radio state to com.uniq's view enum without firing
+	 * the toggled handlers (which would loop back into the model). */
+	if (both_masks && com.uniq) {
+		GtkCheckButton *want = (com.uniq->flis_mask_view == 1)
+		    ? GTK_CHECK_BUTTON(g_panel->mask_view_layer_radio)
+		    : GTK_CHECK_BUTTON(g_panel->mask_view_proc_radio);
+		if (!siril_toggle_get_active(GTK_WIDGET(want))) {
+			g_signal_handlers_block_by_func(
+			    g_panel->mask_view_proc_radio,
+			    on_mask_view_radio_toggled, GINT_TO_POINTER(0));
+			g_signal_handlers_block_by_func(
+			    g_panel->mask_view_layer_radio,
+			    on_mask_view_radio_toggled, GINT_TO_POINTER(1));
+			gtk_check_button_set_active(want, TRUE);
+			g_signal_handlers_unblock_by_func(
+			    g_panel->mask_view_proc_radio,
+			    on_mask_view_radio_toggled, GINT_TO_POINTER(0));
+			g_signal_handlers_unblock_by_func(
+			    g_panel->mask_view_layer_radio,
+			    on_mask_view_radio_toggled, GINT_TO_POINTER(1));
+		}
+	}
 }
 
 /* Fill the property panel widgets for a selected GROUP.  Groups support
@@ -1989,8 +2017,22 @@ static void on_mask_move_clicked(GtkButton *b, gpointer u) {
 	gtk_window_present(GTK_WINDOW(dialog));
 }
 static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u) {
-	(void)btn; (void)u;
-	siril_log_message(_("FLIS: Mask view radio toggled — TODO\n"));
+	/* GINT_TO_POINTER(0) → Processing radio (view = 0)
+	 * GINT_TO_POINTER(1) → Layer radio      (view = 1)
+	 * Both radios in the same group emit "toggled" — handle the on
+	 * transition only so we don't fire twice per click. */
+	if (!siril_toggle_get_active(GTK_WIDGET(btn))) return;
+	if (!is_current_image_flis() || !com.uniq) return;
+
+	gint view = GPOINTER_TO_INT(u);
+	if (com.uniq->flis_mask_view == view) return;
+	com.uniq->flis_mask_view = view;
+
+	/* Redraw both the mask tab and (if tint overlays are enabled) the
+	 * image vports so the swap is immediately visible. */
+	gui_iface.redraw_mask_idle();
+	if (com.pref.gui.mask_tints_vports)
+		gui_iface.redraw_image(REMAP_ALL);
 }
 
 /* Context menu action handlers ---------------------------------- */
@@ -2195,8 +2237,253 @@ static void on_ctx_export_layer(GSimpleAction *a, GVariant *v, gpointer u) {
 	g_object_unref(fd);
 }
 
-static void on_ctx_stub(GSimpleAction *a, GVariant *v, gpointer u) {
-	(void)v; (void)u;
-	const char *name = g_action_get_name(G_ACTION(a));
-	siril_log_message(_("FLIS: %s — not yet implemented (needs §4.3 / §5)\n"), name);
+/* ---- Layers match (§5.7 — background neutralise) ---------------------
+ *
+ * Wraps flis_background_neutralise_layers in a generic_layer_worker
+ * so progress / logging / completion idle all behave like other layer
+ * ops.  When a group is currently selected in the panel we restrict
+ * the operation to that group's layers (mirroring the GTK3 dialog's
+ * implicit behaviour); otherwise every mono layer participates. */
+
+struct ctx_layers_match_payload {
+	destructor destroy_fn;
+	GSList *subset;  /* NULL = all layers.  Owns the list shell only. */
+};
+
+static void ctx_layers_match_payload_free(void *p) {
+	struct ctx_layers_match_payload *a = p;
+	if (!a) return;
+	if (a->subset) g_slist_free(a->subset);
+	free(a);
+}
+
+static int op_layers_match_hook(struct generic_layer_args *args) {
+	struct ctx_layers_match_payload *a =
+	    (struct ctx_layers_match_payload *)args->user;
+	return flis_background_neutralise_layers(a ? a->subset : NULL);
+}
+
+static void on_ctx_layers_match(GSimpleAction *a, GVariant *v, gpointer u) {
+	(void)a; (void)v; (void)u;
+	if (!is_current_image_flis()) {
+		siril_log_message(_("FLIS: Layers match — current image is not a FLIS\n"));
+		return;
+	}
+	if (g_slist_length(com.uniq->layers) < 2) {
+		siril_log_message(_("FLIS: Layers match — need at least two layers\n"));
+		return;
+	}
+	if (!siril_confirm_dialog(
+	        _("Layers match"),
+	        _("Background-neutralise mono layers so their tinted "
+	          "contributions sum to a neutral grey background. Layer "
+	          "pixel data will be modified (undoable in one step)."),
+	        _("Match"))) {
+		return;
+	}
+
+	/* Build subset from the currently selected group, if any. */
+	GSList *subset = NULL;
+	flis_group_t *grp = current_selected_group();
+	if (grp) subset = flis_group_get_layers(grp);
+
+	GSList *snap_target = subset ? subset : com.uniq->layers;
+	if (undo_save_flis_multi_layer(snap_target, _("Layers match"))) {
+		siril_log_warning(_("Layers match: could not save undo state\n"));
+	}
+
+	struct ctx_layers_match_payload *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = ctx_layers_match_payload_free;
+	payload->subset     = subset;  /* ownership transferred */
+
+	struct generic_layer_args *gargs = calloc(1, sizeof(*gargs));
+	gargs->layer             = NULL;       /* multi-layer op */
+	gargs->layer_hook        = op_layers_match_hook;
+	gargs->user              = payload;
+	gargs->description       = g_strdup(_("Layers match"));
+	gargs->invalidate_flags  = FLIS_INV_ALL;
+	start_in_new_thread(generic_layer_worker, gargs);
+}
+
+/* ---- Register layers (§5.6) -----------------------------------------
+ *
+ * Tiny procedural dialog: reference layer dropdown + interpolation
+ * dropdown + clamp toggle, then Cancel / Register.  On Register, the
+ * primitive runs in a worker thread; a multi-layer undo snapshot is
+ * taken first so the operation reverts in one step. */
+
+struct ctx_register_args_dialog {
+	GtkWidget *dialog;
+	GtkWidget *ref_dropdown;
+	GtkWidget *interp_dropdown;
+	GtkWidget *clamp_toggle;
+	GArray    *ref_ids;     /* parallel to dropdown items: layer item_ids */
+};
+
+struct ctx_register_payload {
+	destructor   destroy_fn;
+	gint         ref_item_id;       /* 0 = use current active */
+	opencv_interpolation interp;
+	gboolean     clamp;
+};
+
+static void ctx_register_payload_free(void *p) {
+	free(p);
+}
+
+static int op_register_layers_hook(struct generic_layer_args *args) {
+	struct ctx_register_payload *p = (struct ctx_register_payload *)args->user;
+	flis_layer_t *ref = p->ref_item_id ? flis_layer_get_by_id(p->ref_item_id)
+	                                   : flis_active_layer();
+	return flis_register_layers(ref, NULL, p->interp, p->clamp);
+}
+
+static const opencv_interpolation REGISTER_INTERP_VALUES[] = {
+	OPENCV_NEAREST, OPENCV_LINEAR, OPENCV_CUBIC, OPENCV_AREA, OPENCV_LANCZOS4
+};
+static const char *REGISTER_INTERP_NAMES[] = {
+	"Nearest", "Linear", "Cubic", "Area", "Lanczos4"
+};
+#define REGISTER_INTERP_DEFAULT_IDX 4   /* Lanczos4 */
+
+static void on_register_dialog_ok(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct ctx_register_args_dialog *ctx = ud;
+
+	guint ref_idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->ref_dropdown));
+	gint  ref_id = 0;
+	if (ref_idx < ctx->ref_ids->len)
+		ref_id = g_array_index(ctx->ref_ids, gint, ref_idx);
+
+	guint interp_idx = gtk_drop_down_get_selected(
+	    GTK_DROP_DOWN(ctx->interp_dropdown));
+	if (interp_idx >= G_N_ELEMENTS(REGISTER_INTERP_VALUES))
+		interp_idx = REGISTER_INTERP_DEFAULT_IDX;
+
+	gboolean clamp = siril_toggle_get_active(ctx->clamp_toggle);
+
+	/* Snapshot every layer before the resampling pass. */
+	if (undo_save_flis_multi_layer(com.uniq->layers, _("Register layers"))) {
+		siril_log_warning(_("Register layers: could not save undo state\n"));
+	}
+
+	struct ctx_register_payload *payload = calloc(1, sizeof(*payload));
+	payload->destroy_fn = ctx_register_payload_free;
+	payload->ref_item_id = ref_id;
+	payload->interp = REGISTER_INTERP_VALUES[interp_idx];
+	payload->clamp = clamp;
+
+	struct generic_layer_args *gargs = calloc(1, sizeof(*gargs));
+	gargs->layer             = NULL;
+	gargs->layer_hook        = op_register_layers_hook;
+	gargs->user              = payload;
+	gargs->description       = g_strdup(_("Register layers"));
+	gargs->invalidate_flags  = FLIS_INV_ALL;
+	start_in_new_thread(generic_layer_worker, gargs);
+
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->ref_ids);
+	g_free(ctx);
+}
+
+static void on_register_dialog_cancel(GtkButton *btn, gpointer ud) {
+	(void)btn;
+	struct ctx_register_args_dialog *ctx = ud;
+	gtk_window_destroy(GTK_WINDOW(ctx->dialog));
+	g_array_unref(ctx->ref_ids);
+	g_free(ctx);
+}
+
+static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
+	(void)a; (void)v; (void)u;
+	if (!is_current_image_flis()) {
+		siril_log_message(_("FLIS: Register layers — current image is not a FLIS\n"));
+		return;
+	}
+	if (g_slist_length(com.uniq->layers) < 2) {
+		siril_log_message(_("FLIS: Register layers — need at least two layers\n"));
+		return;
+	}
+
+	struct ctx_register_args_dialog *ctx = g_new0(struct ctx_register_args_dialog, 1);
+	ctx->ref_ids = g_array_new(FALSE, FALSE, sizeof(gint));
+
+	ctx->dialog = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(ctx->dialog), _("Register layers"));
+	gtk_window_set_modal(GTK_WINDOW(ctx->dialog), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(ctx->dialog),
+	                             GTK_WINDOW(g_panel->window));
+	gtk_window_set_default_size(GTK_WINDOW(ctx->dialog), 360, -1);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_start (vbox, 12);
+	gtk_widget_set_margin_end   (vbox, 12);
+	gtk_widget_set_margin_top   (vbox, 12);
+	gtk_widget_set_margin_bottom(vbox, 12);
+	gtk_window_set_child(GTK_WINDOW(ctx->dialog), vbox);
+
+	gtk_box_append(GTK_BOX(vbox),
+	    gtk_label_new(_("Aligns all layers to a chosen reference, "
+	                    "resampling pixel data and updating canvas offsets. "
+	                    "Undoable in one step.")));
+
+	/* Reference layer dropdown. */
+	GtkWidget *ref_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_box_append(GTK_BOX(ref_row), gtk_label_new(_("Reference:")));
+	ctx->ref_dropdown = gtk_drop_down_new(NULL, NULL);
+	gtk_widget_set_hexpand(ctx->ref_dropdown, TRUE);
+	gint active_id = 0;
+	{
+		flis_layer_t *act = flis_active_layer();
+		if (act) active_id = act->item_id;
+	}
+	guint active_idx = 0;
+	guint idx = 0;
+	for (GSList *l = com.uniq->layers; l; l = l->next, idx++) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay) continue;
+		const gchar *name = lay->layer_name ? lay->layer_name : "?";
+		siril_drop_down_append_text(GTK_DROP_DOWN(ctx->ref_dropdown), name);
+		g_array_append_val(ctx->ref_ids, lay->item_id);
+		if (lay->item_id == active_id) active_idx = idx;
+	}
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(ctx->ref_dropdown), active_idx);
+	gtk_box_append(GTK_BOX(ref_row), ctx->ref_dropdown);
+	gtk_box_append(GTK_BOX(vbox), ref_row);
+
+	/* Interpolation dropdown. */
+	GtkWidget *interp_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_box_append(GTK_BOX(interp_row), gtk_label_new(_("Interpolation:")));
+	ctx->interp_dropdown = gtk_drop_down_new(NULL, NULL);
+	gtk_widget_set_hexpand(ctx->interp_dropdown, TRUE);
+	for (guint i = 0; i < G_N_ELEMENTS(REGISTER_INTERP_NAMES); i++)
+		siril_drop_down_append_text(GTK_DROP_DOWN(ctx->interp_dropdown),
+		                            REGISTER_INTERP_NAMES[i]);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(ctx->interp_dropdown),
+	                           REGISTER_INTERP_DEFAULT_IDX);
+	gtk_box_append(GTK_BOX(interp_row), ctx->interp_dropdown);
+	gtk_box_append(GTK_BOX(vbox), interp_row);
+
+	/* Clamp toggle (only meaningful for cubic / lanczos). */
+	ctx->clamp_toggle = gtk_check_button_new_with_label(
+	    _("Clamp cubic/Lanczos to suppress ringing"));
+	siril_toggle_set_active(ctx->clamp_toggle, TRUE);
+	gtk_box_append(GTK_BOX(vbox), ctx->clamp_toggle);
+
+	/* Buttons row. */
+	GtkWidget *btn_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(btn_row, GTK_ALIGN_END);
+	GtkWidget *cancel_btn = gtk_button_new_with_label(_("Cancel"));
+	GtkWidget *ok_btn     = gtk_button_new_with_label(_("Register"));
+	gtk_widget_add_css_class(ok_btn, "suggested-action");
+	gtk_box_append(GTK_BOX(btn_row), cancel_btn);
+	gtk_box_append(GTK_BOX(btn_row), ok_btn);
+	gtk_box_append(GTK_BOX(vbox), btn_row);
+
+	g_signal_connect(cancel_btn, "clicked",
+	                 G_CALLBACK(on_register_dialog_cancel), ctx);
+	g_signal_connect(ok_btn, "clicked",
+	                 G_CALLBACK(on_register_dialog_ok), ctx);
+
+	gtk_window_present(GTK_WINDOW(ctx->dialog));
 }

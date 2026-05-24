@@ -308,4 +308,11 @@ int process_flis_settint(int nb);
 int process_flis_layers_match(int nb);
 int process_flis_register_layers(int nb);
 
+/* FLIS canvas-scoped operations (stage 7) */
+int process_flis_canvas_resize(int nb);
+int process_flis_canvas_fit(int nb);
+int process_flis_canvas_rotate(int nb);
+int process_flis_canvas_mirrorx(int nb);
+int process_flis_canvas_mirrory(int nb);
+
 #endif

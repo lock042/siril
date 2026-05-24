@@ -395,10 +395,27 @@ static int write_thumbnail_hdu(fitsfile *fptr, const fits *base_fit,
     fits_write_key(fptr, TSTRING,  "FLISVER", FLIS_VERSION_STRING, "FLIS version",                 &status);
     fits_write_key(fptr, TLOGICAL, "FLISICC", &(int){icc_present}, "ICC profile present",          &status);
     fits_write_key(fptr, TLOGICAL, "FLISTHMB",&(int){1},       "Primary HDU contains thumbnail",   &status);
+    /* §7: canvas size lives on com.uniq independently of any layer.  Written
+     * as CANVASW/CANVASH; older builds wrote FLISSIZX/Y derived from base,
+     * and the loader still recognises them as a fallback.  Once the spec is
+     * formally published the FLISSIZX/Y leniency can be dropped. */
     ival = (int)canvas_w;
-    fits_write_key(fptr, TINT,     "FLISSIZX",&ival,           "Original canvas width in pixels",  &status);
+    fits_write_key(fptr, TINT,     "CANVASW", &ival,           "Canvas width in pixels",           &status);
     ival = (int)canvas_h;
-    fits_write_key(fptr, TINT,     "FLISSIZY",&ival,           "Original canvas height in pixels", &status);
+    fits_write_key(fptr, TINT,     "CANVASH", &ival,           "Canvas height in pixels",          &status);
+    /* CANVASBG: only written when non-default (saves a row in the typical
+     * case of a black background).  Format: "r g b" floats in [0,1]. */
+    if (com.uniq && (com.uniq->canvas_bg_r != 0.0
+                     || com.uniq->canvas_bg_g != 0.0
+                     || com.uniq->canvas_bg_b != 0.0)) {
+        gchar bg_str[64];
+        g_snprintf(bg_str, sizeof(bg_str), "%.6f %.6f %.6f",
+                   com.uniq->canvas_bg_r,
+                   com.uniq->canvas_bg_g,
+                   com.uniq->canvas_bg_b);
+        fits_write_key(fptr, TSTRING, "CANVASBG", bg_str,
+                       "Canvas background fill (R G B in [0,1])", &status);
+    }
 
     /* Capability flags */
     fits_write_key(fptr, TSTRING,  "FLISIMPL","Siril",         "FLIS implementation",              &status);
@@ -930,6 +947,42 @@ void layermask_free(layermask_t *mask) {
     free(mask);
 }
 
+gboolean flis_get_displayed_mask(struct _mask_t *out_mask) {
+    if (!out_mask) return FALSE;
+    out_mask->bitpix = 0;
+    out_mask->data   = NULL;
+
+    /* Non-FLIS path: always the processing mask. */
+    if (!is_current_image_flis() || !com.uniq) {
+        if (gfit && gfit->mask && gfit->mask->data) {
+            out_mask->bitpix = gfit->mask->bitpix;
+            out_mask->data   = gfit->mask->data;
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    /* FLIS, view = LAYER: source the active layer's lmask if present. */
+    if (com.uniq->flis_mask_view == 1) {
+        flis_layer_t *act = flis_active_layer();
+        if (act && act->lmask && act->lmask->data) {
+            out_mask->bitpix = act->lmask->bitpix;
+            out_mask->data   = act->lmask->data;
+            return TRUE;
+        }
+        /* Fall through to the processing mask if the layer source isn't
+         * available — better than a black mask tab. */
+    }
+
+    /* FLIS, view = PROC (or LAYER fallback): the processing mask. */
+    if (gfit && gfit->mask && gfit->mask->data) {
+        out_mask->bitpix = gfit->mask->bitpix;
+        out_mask->data   = gfit->mask->data;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 layermask_t *layermask_clone(const layermask_t *src) {
     if (!src) return NULL;
     size_t elem;
@@ -1057,10 +1110,16 @@ int save_flis(const gchar *filename) {
     GSList *sorted = g_slist_copy(com.uniq->layers);
     sorted = g_slist_sort(sorted, (GCompareFunc)layer_order_cmp);
 
-    /* Determine canvas dimensions from the base layer (lowest layer_order) */
+    /* §7: canvas dimensions live on com.uniq, independent of any layer.
+     * Fall back to base dims only if the canvas wasn't initialised (which
+     * shouldn't happen for a loaded/promoted FLIS but is defensive). */
     flis_layer_t *base = (flis_layer_t *)sorted->data;
-    long canvas_w = base->fit ? base->fit->rx : 0;
-    long canvas_h = base->fit ? base->fit->ry : 0;
+    long canvas_w = com.uniq->canvas_w
+                    ? (long)com.uniq->canvas_w
+                    : (base->fit ? (long)base->fit->rx : 0);
+    long canvas_h = com.uniq->canvas_h
+                    ? (long)com.uniq->canvas_h
+                    : (base->fit ? (long)base->fit->ry : 0);
 
     /* Determine whether an ICC profile should be written.  The profile
      * is image-level state on com.uniq, not per-layer. */
@@ -1239,10 +1298,39 @@ int load_flis(const gchar *filename) {
     }
     status = 0;
 
-    /* Read canvas dimensions */
+    /* §7: read canvas dimensions from CANVASW/H (the post-decoupling
+     * spelling).  Fall back to FLISSIZX/Y for files written by earlier
+     * builds of this branch — those values were derived from the base
+     * layer so the geometry is identical, only the keyword names
+     * changed.  If neither is present (genuinely pre-canvas-stage
+     * file), default-fill from the base layer's dims after the layer
+     * loads further down. */
     int canvas_w = 0, canvas_h = 0;
-    fits_read_key(fptr, TINT, "FLISSIZX", &canvas_w, NULL, &status);
-    fits_read_key(fptr, TINT, "FLISSIZY", &canvas_h, NULL, &status);
+    int s_cw = 0, s_ch = 0;
+    fits_read_key(fptr, TINT, "CANVASW", &canvas_w, NULL, &s_cw);
+    fits_read_key(fptr, TINT, "CANVASH", &canvas_h, NULL, &s_ch);
+    if (s_cw || s_ch || !canvas_w || !canvas_h) {
+        canvas_w = canvas_h = 0;
+        int s2x = 0, s2y = 0;
+        fits_read_key(fptr, TINT, "FLISSIZX", &canvas_w, NULL, &s2x);
+        fits_read_key(fptr, TINT, "FLISSIZY", &canvas_h, NULL, &s2y);
+        if (s2x || s2y) { canvas_w = 0; canvas_h = 0; }
+    }
+    /* Optional CANVASBG: "r g b" floats in [0,1].  Default (0,0,0). */
+    double canvas_bg_r = 0.0, canvas_bg_g = 0.0, canvas_bg_b = 0.0;
+    {
+        char bg_str[FLEN_VALUE] = { 0 };
+        int s_bg = 0;
+        fits_read_key(fptr, TSTRING, "CANVASBG", bg_str, NULL, &s_bg);
+        if (!s_bg && bg_str[0]) {
+            double r = 0.0, g = 0.0, b = 0.0;
+            if (sscanf(bg_str, "%lf %lf %lf", &r, &g, &b) == 3) {
+                canvas_bg_r = r; canvas_bg_g = g; canvas_bg_b = b;
+            } else {
+                siril_log_warning(_("FLIS: malformed CANVASBG '%s'; defaulting to black\n"), bg_str);
+            }
+        }
+    }
     status = 0;
 
     /* Check ICC flag */
@@ -1502,6 +1590,23 @@ int load_flis(const gchar *filename) {
 
     /* Set active layer to the base (index 0 = lowest layer_order after sort) */
     uniq_set_active_layer(com.uniq, 0);
+
+    /* §7: commit canvas dimensions and background to com.uniq.  If neither
+     * CANVASW/H nor FLISSIZX/Y was found on disk (pre-canvas-stage file)
+     * default-fill from the base layer's pixel dims, matching the
+     * historical implicit canvas == base convention. */
+    if (!canvas_w || !canvas_h) {
+        flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+        if (base && base->fit) {
+            canvas_w = (int)base->fit->rx;
+            canvas_h = (int)base->fit->ry;
+        }
+    }
+    com.uniq->canvas_w    = (guint)canvas_w;
+    com.uniq->canvas_h    = (guint)canvas_h;
+    com.uniq->canvas_bg_r = canvas_bg_r;
+    com.uniq->canvas_bg_g = canvas_bg_g;
+    com.uniq->canvas_bg_b = canvas_bg_b;
 
     siril_log_message(_("FLIS: loaded %d layer(s) from %s (%dx%d canvas)\n"),
                       g_slist_length(layers), filename, canvas_w, canvas_h);
@@ -1767,15 +1872,10 @@ void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
  * @sel_x, @sel_y: top-left of the crop selection in canvas coordinates
  *                 (i.e. com.selection.x and com.selection.y before the crop)
  *
- * Two cases:
- *
- * 1. Base layer cropped: the canvas itself shrinks.  All non-base layers
- *    have their offsets reduced by (sel_x, sel_y) so they remain correctly
- *    positioned relative to the new canvas origin.
- *
- * 2. Non-base layer cropped: the layer's pixel data is now the selection
- *    area.  Its position on the canvas is the selection top-left, so set
- *    position_x = sel_x, position_y = sel_y.
+ * §7 canvas decoupling: every layer is equivalent — no special case for the
+ * base.  Cropping a layer leaves the data sitting at the selection top-left
+ * in canvas coords; set position_x = sel_x, position_y = sel_y.  To shrink
+ * the canvas to a region, use the separate flis_canvas_crop operation.
  */
 void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
@@ -1783,24 +1883,11 @@ void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-
-    if (active == base) {
-        /* Base layer cropped: adjust all non-base layer offsets */
-        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay) continue;
-            lay->position_x -= sel_x;
-            lay->position_y -= sel_y;
-        }
-    } else {
-        /* Non-base layer cropped: the data now sits at (sel_x, sel_y) */
-        active->position_x = sel_x;
-        active->position_y = sel_y;
-    }
+    active->position_x = sel_x;
+    active->position_y = sel_y;
 
     gui_iface.flis_invalidate_composite();
-    siril_debug_print("FLIS: layer offsets updated after crop (sel %d,%d)\n",
+    siril_debug_print("FLIS: layer offset updated after crop (sel %d,%d)\n",
                       sel_x, sel_y);
 }
 
@@ -1810,18 +1897,13 @@ void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
  * (i.e. after the pixel data has been scaled and gfit->rx/ry updated) when
  * a FLIS image is loaded.
  *
- * @old_rx, @old_ry: canvas dimensions before the resize
- * @new_rx, @new_ry: canvas dimensions after the resize
+ * @old_rx, @old_ry: layer dimensions before the resize
+ * @new_rx, @new_ry: layer dimensions after the resize
  *
- * Two cases:
- *
- * 1. Base layer resized: the canvas itself scales.  All non-base layers have
- *    their centres scaled proportionally so they remain at the same relative
- *    position on the canvas.
- *
- * 2. Non-base layer resized: the layer's pixel data changes size but its
- *    centre on the canvas stays fixed.  position_x/y are adjusted by half
- *    the dimension delta so the centre is preserved.
+ * §7: the layer's pixel data changes size but its centre on the canvas
+ * stays fixed.  position_x/y are adjusted by half the dimension delta so
+ * the centre is preserved.  Use flis_canvas_resize for canvas-scoped
+ * resizing.
  */
 void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
                                            gint new_rx, gint new_ry) {
@@ -1830,28 +1912,11 @@ void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-
-    if (active == base) {
-        /* Base layer resized: scale all non-base layer centres proportionally */
-        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay) continue;
-            double cx = lay->position_x + lay->fit->rx / 2.0;
-            double cy = lay->position_y + lay->fit->ry / 2.0;
-            cx *= (double)new_rx / old_rx;
-            cy *= (double)new_ry / old_ry;
-            lay->position_x = (gint)round(cx - lay->fit->rx / 2.0);
-            lay->position_y = (gint)round(cy - lay->fit->ry / 2.0);
-        }
-    } else {
-        /* Non-base layer resized: preserve its centre on the canvas */
-        active->position_x += (old_rx - new_rx) / 2;
-        active->position_y += (old_ry - new_ry) / 2;
-    }
+    active->position_x += (old_rx - new_rx) / 2;
+    active->position_y += (old_ry - new_ry) / 2;
 
     gui_iface.flis_invalidate_composite();
-    siril_debug_print("FLIS: layer offsets updated after resize (%dx%d -> %dx%d)\n",
+    siril_debug_print("FLIS: layer offset updated after resize (%dx%d -> %dx%d)\n",
                       old_rx, old_ry, new_rx, new_ry);
 }
 
@@ -1861,61 +1926,32 @@ void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
  * gfit (i.e. after the pixel data has been transformed and gfit->rx/ry
  * updated) when a FLIS image is loaded.
  *
- * @old_rx, @old_ry: canvas dimensions before the rotation
- * @new_rx, @new_ry: canvas dimensions after the rotation
+ * @old_rx, @old_ry: layer dimensions before the rotation
+ * @new_rx, @new_ry: layer dimensions after the rotation
  * @angle:           rotation angle in degrees (positive = CCW in Siril convention)
  *
- * Two cases:
- *
- * 1. Base layer rotated: the canvas itself rotates.  All non-base layers have
- *    their centres rotated by the same angle around the old canvas centre and
- *    then mapped into the new canvas.  (Their pixel data is not rotated.)
- *
- * 2. Non-base layer rotated: the layer's pixel data is rotated but its centre
- *    on the canvas stays fixed.  position_x/y are adjusted by half the
- *    dimension delta so the centre is preserved.
+ * §7: the layer's pixel data is rotated but its centre on the canvas stays
+ * fixed.  position_x/y are adjusted by half the dimension delta so the
+ * centre is preserved.  @angle is unused for this per-layer helper (the
+ * pixel transform itself has already happened); it is retained in the
+ * signature so callers don't have to change.  Use flis_canvas_rotate for
+ * canvas-scoped rotation that re-anchors every layer.
  */
 void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
                                            gint new_rx, gint new_ry,
                                            double angle) {
+    (void)angle;
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
 
     flis_layer_t *active = flis_active_layer();
     if (!active) return;
 
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-
-    if (active == base) {
-        /* Base layer rotated: rotate each non-base layer's centre position
-         * by the same angle around the old canvas centre, then map to the
-         * new canvas.  The layer pixel data itself is not rotated. */
-        double rad = angle * M_PI / 180.0;
-        double cos_a = cos(rad);
-        double sin_a = sin(rad);
-        double ocx = old_rx / 2.0;
-        double ocy = old_ry / 2.0;
-
-        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay) continue;
-            double cx = lay->position_x + lay->fit->rx / 2.0;
-            double cy = lay->position_y + lay->fit->ry / 2.0;
-            double dx = cx - ocx;
-            double dy = cy - ocy;
-            double new_cx = new_rx / 2.0 + dx * cos_a - dy * sin_a;
-            double new_cy = new_ry / 2.0 + dx * sin_a + dy * cos_a;
-            lay->position_x = (gint)round(new_cx - lay->fit->rx / 2.0);
-            lay->position_y = (gint)round(new_cy - lay->fit->ry / 2.0);
-        }
-    } else {
-        /* Non-base layer rotated: preserve its centre on the canvas */
-        active->position_x += (old_rx - new_rx) / 2;
-        active->position_y += (old_ry - new_ry) / 2;
-    }
+    active->position_x += (old_rx - new_rx) / 2;
+    active->position_y += (old_ry - new_ry) / 2;
 
     gui_iface.flis_invalidate_composite();
-    siril_debug_print("FLIS: layer offsets updated after rotate (%.2f deg, %dx%d -> %dx%d)\n",
-                      angle, old_rx, old_ry, new_rx, new_ry);
+    siril_debug_print("FLIS: layer offset updated after rotate (%dx%d -> %dx%d)\n",
+                      old_rx, old_ry, new_rx, new_ry);
 }
 
 /* flis_update_all_layer_offsets_after_rotate:
@@ -1958,54 +1994,173 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
                       angle, old_rx, old_ry, new_rx, new_ry);
 }
 
-/* Shared core: flip non-base layer positions across the canvas centre(s).
- * @vertical: TRUE for mirrorx (top↔bottom flip, invert Y).
- * @horizontal: TRUE for mirrory (left↔right flip, invert X).
- * Only active==base triggers updates; non-base mirror preserves the layer
- * centre, so positions stay unchanged. */
-static void flis_update_layer_offset_after_mirror_axis(gboolean vertical,
-                                                       gboolean horizontal) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
-    flis_layer_t *active = flis_active_layer();
-    if (!active) return;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    if (!base || !base->fit) return;
-
-    if (active == base) {
-        gint cw = (gint)base->fit->rx;
-        gint ch = (gint)base->fit->ry;
-        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay || !lay->fit) continue;
-            if (vertical)
-                lay->position_y = ch - lay->position_y - (gint)lay->fit->ry;
-            if (horizontal)
-                lay->position_x = cw - lay->position_x - (gint)lay->fit->rx;
-        }
-    }
-    gui_iface.flis_invalidate_composite();
-    siril_debug_print("FLIS: layer offsets updated after mirror (vert=%d, horiz=%d)\n",
-                      vertical, horizontal);
-}
-
+/* §7: mirroring a layer about its own centre doesn't change the layer's
+ * canvas position, since the centre is invariant under reflection.  These
+ * helpers just invalidate the composite so the next redraw picks up the
+ * new pixel data; use flis_canvas_mirrorx / _mirrory for canvas-scoped
+ * mirroring that flips every layer's position too. */
 void flis_update_layer_offset_after_mirrorx(void) {
-    flis_update_layer_offset_after_mirror_axis(TRUE, FALSE);
+    if (!is_current_image_flis() || !com.uniq) return;
+    gui_iface.flis_invalidate_composite();
 }
 
 void flis_update_layer_offset_after_mirrory(void) {
-    flis_update_layer_offset_after_mirror_axis(FALSE, TRUE);
+    if (!is_current_image_flis() || !com.uniq) return;
+    gui_iface.flis_invalidate_composite();
 }
 
+/* =====================================================================
+ * §7 canvas-scoped operations.
+ *
+ * Each updates com.uniq->canvas_w/h AND every layer's position_x/y
+ * (layer pixel data is not touched).  Composite invalidated; layers
+ * touched-modified for save bookkeeping.
+ * ===================================================================== */
+
+int flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy) {
+    if (!is_current_image_flis() || !com.uniq) return 1;
+    if (new_w == 0 || new_h == 0) {
+        siril_log_error(_("FLIS: canvas dimensions must be positive (got %ux%u)\n"),
+                        new_w, new_h);
+        return 1;
+    }
+    com.uniq->canvas_w = new_w;
+    com.uniq->canvas_h = new_h;
+    if (dx != 0 || dy != 0) {
+        for (GSList *l = com.uniq->layers; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            lay->position_x += dx;
+            lay->position_y += dy;
+            flis_layer_touch_modified(lay);
+        }
+    }
+    gui_iface.flis_invalidate_composite();
+    siril_debug_print("FLIS: canvas resized to %ux%u (layer shift %d,%d)\n",
+                      new_w, new_h, dx, dy);
+    return 0;
+}
+
+int flis_canvas_fit_to_layers(gboolean include_invisible) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+
+    gboolean any = FALSE;
+    gint min_x = 0, min_y = 0, max_x = 0, max_y = 0;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (!include_invisible && !lay->visible) continue;
+        gint x0 = lay->position_x;
+        gint y0 = lay->position_y;
+        gint x1 = x0 + (gint)lay->fit->rx;
+        gint y1 = y0 + (gint)lay->fit->ry;
+        if (!any) {
+            min_x = x0; min_y = y0; max_x = x1; max_y = y1; any = TRUE;
+        } else {
+            if (x0 < min_x) min_x = x0;
+            if (y0 < min_y) min_y = y0;
+            if (x1 > max_x) max_x = x1;
+            if (y1 > max_y) max_y = y1;
+        }
+    }
+    if (!any) {
+        siril_log_warning(_("FLIS: canvas_fit_to_layers — no eligible layers\n"));
+        return 1;
+    }
+    gint new_w = max_x - min_x;
+    gint new_h = max_y - min_y;
+    if (new_w <= 0 || new_h <= 0) {
+        siril_log_warning(_("FLIS: canvas_fit_to_layers — empty bounding box\n"));
+        return 1;
+    }
+    /* Shift every layer so the bbox sits at the new canvas origin. */
+    return flis_canvas_resize((guint)new_w, (guint)new_h, -min_x, -min_y);
+}
+
+int flis_canvas_rotate(double angle) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+    if (com.uniq->canvas_w == 0 || com.uniq->canvas_h == 0) return 1;
+
+    const gint old_w = (gint)com.uniq->canvas_w;
+    const gint old_h = (gint)com.uniq->canvas_h;
+    const double rad   = angle * M_PI / 180.0;
+    const double cos_a = cos(rad);
+    const double sin_a = sin(rad);
+
+    /* New canvas dims = bounding box of the rotated old canvas. */
+    const double abs_cos = fabs(cos_a);
+    const double abs_sin = fabs(sin_a);
+    const gint new_w = (gint)round(old_w * abs_cos + old_h * abs_sin);
+    const gint new_h = (gint)round(old_w * abs_sin + old_h * abs_cos);
+    if (new_w <= 0 || new_h <= 0) return 1;
+
+    const double ocx = old_w / 2.0;
+    const double ocy = old_h / 2.0;
+    const double ncx = new_w / 2.0;
+    const double ncy = new_h / 2.0;
+
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        double cx = lay->position_x + lay->fit->rx / 2.0;
+        double cy = lay->position_y + lay->fit->ry / 2.0;
+        double dx = cx - ocx;
+        double dy = cy - ocy;
+        double new_cx = ncx + dx * cos_a - dy * sin_a;
+        double new_cy = ncy + dx * sin_a + dy * cos_a;
+        lay->position_x = (gint)round(new_cx - lay->fit->rx / 2.0);
+        lay->position_y = (gint)round(new_cy - lay->fit->ry / 2.0);
+        flis_layer_touch_modified(lay);
+    }
+    com.uniq->canvas_w = (guint)new_w;
+    com.uniq->canvas_h = (guint)new_h;
+    gui_iface.flis_invalidate_composite();
+    siril_debug_print("FLIS: canvas rotated %.2f° (%dx%d -> %dx%d)\n",
+                      angle, old_w, old_h, new_w, new_h);
+    return 0;
+}
+
+static int flis_canvas_mirror_axis(gboolean vertical, gboolean horizontal) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+    if (com.uniq->canvas_w == 0 || com.uniq->canvas_h == 0) return 1;
+    const gint cw = (gint)com.uniq->canvas_w;
+    const gint ch = (gint)com.uniq->canvas_h;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (vertical)
+            lay->position_y = ch - lay->position_y - (gint)lay->fit->ry;
+        if (horizontal)
+            lay->position_x = cw - lay->position_x - (gint)lay->fit->rx;
+        flis_layer_touch_modified(lay);
+    }
+    gui_iface.flis_invalidate_composite();
+    return 0;
+}
+
+int flis_canvas_mirrorx(void) { return flis_canvas_mirror_axis(TRUE, FALSE); }
+int flis_canvas_mirrory(void) { return flis_canvas_mirror_axis(FALSE, TRUE); }
+
 guint flis_canvas_rx(void) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->rx;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    return (base && base->fit) ? (guint)base->fit->rx : gfit->rx;
+    if (!is_current_image_flis() || !com.uniq) return gfit ? gfit->rx : 0;
+    if (com.uniq->canvas_w) return com.uniq->canvas_w;
+    /* Fallback for an in-flight FLIS where the canvas hasn't been
+     * initialised yet (mid-promote / mid-load).  Prefer base dims. */
+    if (com.uniq->layers) {
+        flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+        if (base && base->fit) return (guint)base->fit->rx;
+    }
+    return gfit ? gfit->rx : 0;
 }
 
 guint flis_canvas_ry(void) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->ry;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    return (base && base->fit) ? (guint)base->fit->ry : gfit->ry;
+    if (!is_current_image_flis() || !com.uniq) return gfit ? gfit->ry : 0;
+    if (com.uniq->canvas_h) return com.uniq->canvas_h;
+    if (com.uniq->layers) {
+        flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+        if (base && base->fit) return (guint)base->fit->ry;
+    }
+    return gfit ? gfit->ry : 0;
 }
 
 gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
@@ -2013,10 +2168,11 @@ gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
     (void)canvas_ry;  /* unused — kept for API stability */
     gint pos_x = 0, pos_y = 0;
 
+    /* §7: every layer (including the base) sits at its own position_x/y
+     * on the canvas.  No special-case for the base layer. */
     if (is_current_image_flis() && com.uniq && com.uniq->layers) {
         flis_layer_t *active = flis_active_layer();
-        flis_layer_t *base   = (flis_layer_t *)com.uniq->layers->data;
-        if (active && active != base) {
+        if (active) {
             pos_x = active->position_x;
             pos_y = active->position_y;
         }
@@ -2084,6 +2240,14 @@ int flis_promote_from_gfit(const gchar *name) {
 
     com.uniq->layers = g_slist_prepend(NULL, base);
     uniq_set_active_layer(com.uniq, 0);
+
+    /* §7: canvas dimensions = the promoted fits's dims; bg = black.  Every
+     * subsequent layer is positioned on this canvas. */
+    com.uniq->canvas_w    = (guint)gfit->rx;
+    com.uniq->canvas_h    = (guint)gfit->ry;
+    com.uniq->canvas_bg_r = 0.0;
+    com.uniq->canvas_bg_g = 0.0;
+    com.uniq->canvas_bg_b = 0.0;
 
     /* com.uniq->filename and fileexist are already correct from
      * create_uniq_from_gfit().  Mark the composite dirty. */
@@ -2685,13 +2849,8 @@ int flis_setposition_hook(struct generic_layer_args *args) {
                         args->invalidate_item_id);
         return 1;
     }
-    /* Base layer is canvas-aligned by FLIS spec invariant. */
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    if (lay == base) {
-        siril_log_warning(_("flis_setposition: refusing to move base layer "
-                            "(must stay at canvas origin)\n"));
-        return 1;
-    }
+    /* §7 canvas decoupling: every layer (including the base) carries its
+     * own position on the canvas — no special-case for the base. */
     lay->position_x = a->x;
     lay->position_y = a->y;
     flis_layer_touch_modified(lay);

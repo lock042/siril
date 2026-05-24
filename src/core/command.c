@@ -16498,3 +16498,133 @@ int process_flis_register_layers(int nb) {
 	gui_iface.flis_gui_update();
 	return CMD_OK;
 }
+
+/* =====================================================================
+ * §7 canvas-scoped commands: act on the FLIS document's canvas
+ * (com.uniq->canvas_w/h) and shift every layer's position to track
+ * the change.  Layer pixel data is never touched.
+ *
+ * Each command snapshots every layer's props for one-step undo via
+ * undo_save_flis_multi_layer_props (positions change, pixels don't,
+ * so the props-only variant is sufficient).  When the canvas dims
+ * also change (resize / fit / rotate) the snapshot doesn't capture
+ * them — undo restores layer positions; the user re-runs the inverse
+ * canvas op to restore dims.  A future undo_save_flis_canvas could
+ * bundle both, but the props-only path is correct for the common case
+ * of restoring layer alignment.
+ * ===================================================================== */
+
+int process_flis_canvas_resize(int nb) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_canvas_resize: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	gint w = 0, h = 0, dx = 0, dy = 0;
+	for (int i = 1; i < nb; i++) {
+		char *end;
+		if (g_str_has_prefix(word[i], "-w=")) {
+			w = (gint)g_ascii_strtoll(word[i] + 3, &end, 10);
+			if (end == word[i] + 3 || w <= 0) return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[i], "-h=")) {
+			h = (gint)g_ascii_strtoll(word[i] + 3, &end, 10);
+			if (end == word[i] + 3 || h <= 0) return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[i], "-dx=")) {
+			dx = (gint)g_ascii_strtoll(word[i] + 4, &end, 10);
+			if (end == word[i] + 4) return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[i], "-dy=")) {
+			dy = (gint)g_ascii_strtoll(word[i] + 4, &end, 10);
+			if (end == word[i] + 4) return CMD_ARG_ERROR;
+		} else {
+			siril_log_error(_("flis_canvas_resize: unknown option '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (w == 0 || h == 0) {
+		siril_log_error(_("flis_canvas_resize: -w= and -h= are required\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Resize canvas"))) {
+		siril_log_warning(_("flis_canvas_resize: could not save undo state\n"));
+	}
+	if (flis_canvas_resize((guint)w, (guint)h, dx, dy)) return CMD_GENERIC_ERROR;
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}
+
+int process_flis_canvas_fit(int nb) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_canvas_fit: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	gboolean include_invisible = FALSE;
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-all")) {
+			include_invisible = TRUE;
+		} else {
+			siril_log_error(_("flis_canvas_fit: unknown option '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Fit canvas to layers"))) {
+		siril_log_warning(_("flis_canvas_fit: could not save undo state\n"));
+	}
+	if (flis_canvas_fit_to_layers(include_invisible)) return CMD_GENERIC_ERROR;
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}
+
+int process_flis_canvas_rotate(int nb) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_canvas_rotate: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (nb < 2) {
+		siril_log_error(_("Usage: flis_canvas_rotate <angle-degrees>\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	char *end;
+	double angle = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_error(_("flis_canvas_rotate: angle must be a number\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Rotate canvas"))) {
+		siril_log_warning(_("flis_canvas_rotate: could not save undo state\n"));
+	}
+	if (flis_canvas_rotate(angle)) return CMD_GENERIC_ERROR;
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}
+
+int process_flis_canvas_mirrorx(int nb) {
+	(void)nb;
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_canvas_mirrorx: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas X"))) {
+		siril_log_warning(_("flis_canvas_mirrorx: could not save undo state\n"));
+	}
+	if (flis_canvas_mirrorx()) return CMD_GENERIC_ERROR;
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}
+
+int process_flis_canvas_mirrory(int nb) {
+	(void)nb;
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_canvas_mirrory: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+	if (undo_save_flis_multi_layer_props(com.uniq->layers, _("Mirror canvas Y"))) {
+		siril_log_warning(_("flis_canvas_mirrory: could not save undo state\n"));
+	}
+	if (flis_canvas_mirrory()) return CMD_GENERIC_ERROR;
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}

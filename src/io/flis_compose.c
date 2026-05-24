@@ -725,19 +725,28 @@ static void flis_blend_chroma_pixel(float opacity,
 static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite) {
     if (!layers) return NULL;
 
-    flis_layer_t *base = (flis_layer_t *)layers->data;
-    if (!base || !base->fit) return NULL;
-
-    const guint W  = base->fit->rx;
-    const guint H  = base->fit->ry;
+    /* §7: canvas dimensions are a document property on com.uniq, separate
+     * from any single layer.  Both main and sub-composites use the canvas
+     * dimensions so that group members' position_x/y resolve in the same
+     * coordinate frame as the rest of the composite.  Defensive fallback
+     * to the first layer's dims for hand-built layer lists without a
+     * com.uniq (used by some unit tests). */
+    guint W, H;
+    if (com.uniq && com.uniq->canvas_w && com.uniq->canvas_h) {
+        W = com.uniq->canvas_w;
+        H = com.uniq->canvas_h;
+    } else {
+        flis_layer_t *first = (flis_layer_t *)layers->data;
+        if (!first || !first->fit) return NULL;
+        W = first->fit->rx;
+        H = first->fit->ry;
+    }
     const size_t N = (size_t)W * H;
 
     fits *out = calloc(1, sizeof(fits));
     if (!out) { PRINT_ALLOC_ERR; return NULL; }
     out->fdata = malloc(N * 3 * sizeof(float));
     if (!out->fdata) { PRINT_ALLOC_ERR; free(out); return NULL; }
-
-    memset(out->fdata, 0, N * 3 * sizeof(float));
 
     out->fpdata[RLAYER] = out->fdata;
     out->fpdata[GLAYER] = out->fdata + N;
@@ -752,6 +761,25 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
     out->rx          = W;
     out->ry          = H;
 
+    /* §7: fill main composite with canvas_bg (transparent black for the
+     * common case).  Sub-composites stay zero — they accumulate group
+     * members on top of a transparent baseline that BASE_LOOP / the
+     * first_layer special-case below establishes. */
+    if (!sub_composite && com.uniq
+        && (com.uniq->canvas_bg_r != 0.0 || com.uniq->canvas_bg_g != 0.0
+            || com.uniq->canvas_bg_b != 0.0)) {
+        const float bgr = (float)com.uniq->canvas_bg_r;
+        const float bgg = (float)com.uniq->canvas_bg_g;
+        const float bgb = (float)com.uniq->canvas_bg_b;
+        for (size_t i = 0; i < N; i++) {
+            out->fpdata[RLAYER][i] = bgr;
+            out->fpdata[GLAYER][i] = bgg;
+            out->fpdata[BLAYER][i] = bgb;
+        }
+    } else {
+        memset(out->fdata, 0, N * 3 * sizeof(float));
+    }
+
     /* Composite carries no per-fits ICC state — the display path sources
      * the profile directly from com.uniq.  The composite is a transient
      * buffer used during remap. */
@@ -760,7 +788,13 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
     float *out_g = out->fpdata[GLAYER];
     float *out_b = out->fpdata[BLAYER];
 
-    gboolean first_layer = TRUE;
+    /* §7: for the main composite, every layer (including the bottom one)
+     * dispatches through the regular blend path — the canvas_bg fill above
+     * is what each layer blends onto.  For sub-composites the bottom
+     * member is still painted with FLIS_BASE_LOOP so the group baseline
+     * is the bottom member's pixels (matching the pre-§7 semantics that
+     * downstream group-blend code depends on). */
+    gboolean first_layer = sub_composite;
 
     /* Pre-pass: build sub-composites for non-PASS_THROUGH groups.
      * These are composited separately and then blended using the group blend mode. */

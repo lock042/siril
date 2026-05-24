@@ -29,6 +29,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "masks_gui.h"
 #include "opencv/opencv.h"
 
@@ -57,6 +58,18 @@ static GtkWidget *toggle_mask_stars_invert = NULL;
 /* State for mask from image dialog */
 static gboolean mask_from_file_mode = FALSE;
 static gchar *selected_mask_filename = NULL;
+
+/* §5.2 mask-target combo, injected procedurally into each mask
+ * creation dialog so the user can route the result to an FLIS layer's
+ * lmask instead of the processing mask.  One static per dialog because
+ * each lives in its own window; the parallel GArray maps a dropdown
+ * index to the layer's stable item_id (or 0 for "Processing mask"). */
+static GtkWidget *combo_mask_target_image = NULL;
+static GtkWidget *combo_mask_target_stars = NULL;
+static GtkWidget *combo_mask_target_color = NULL;
+static GArray    *target_ids_image = NULL;
+static GArray    *target_ids_stars = NULL;
+static GArray    *target_ids_color = NULL;
 
 /* Static widget pointers for color mask dialog */
 static GtkWidget *combo_color_mask_bitdepth = NULL;
@@ -93,6 +106,84 @@ static GtkSpinButton *spin_blur_radius = NULL;
 static GtkSpinButton *spin_feather_distance = NULL;
 static GtkDropDown *combo_feather_type = NULL;
 static GtkSpinButton *spin_multiply_factor = NULL;
+
+/* ----------------------------------------------------------------------
+ * §5.2 — mask-target combo, shared across the three creation dialogs.
+ *
+ * On first call we synthesise a "Target: [dropdown]" row and prepend it
+ * to the dialog's content area.  Every subsequent call refreshes the
+ * dropdown's contents to reflect the current FLIS state (or hides the
+ * row entirely when no FLIS is loaded).  The parallel GArray maps a
+ * dropdown index back to the layer's stable item_id, so the dialog's
+ * Apply handler can read it without re-resolving by name.
+ *
+ * Index 0 is always "(Processing mask)" → item_id 0 = no routing.
+ * Item ids start at 1 by the FLIS data model, so 0 is unambiguous.
+ * --------------------------------------------------------------------- */
+static void refresh_mask_target_combo(const char *dialog_id,
+                                      GtkWidget **out_combo,
+                                      GArray   **out_ids) {
+	GtkWidget *dialog = GTK_WIDGET(
+	    gtk_builder_get_object(gui.builder, dialog_id));
+	if (!dialog) return;
+	GtkWidget *area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	if (!area) return;
+
+	gboolean is_flis = is_current_image_flis() && com.uniq && com.uniq->layers;
+
+	if (!*out_combo) {
+		/* Lazy build: one row containing a label + dropdown. */
+		GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *label = gtk_label_new(_("Target:"));
+		gtk_widget_set_halign(label, GTK_ALIGN_START);
+		*out_combo = gtk_drop_down_new(NULL, NULL);
+		gtk_widget_set_hexpand(*out_combo, TRUE);
+		gtk_widget_set_tooltip_text(*out_combo,
+		    _("Where to store the generated mask.  Layer mask requires "
+		      "a FLIS image; the chosen layer must match the active "
+		      "layer's dimensions."));
+		gtk_box_append(GTK_BOX(row), label);
+		gtk_box_append(GTK_BOX(row), *out_combo);
+		gtk_box_prepend(GTK_BOX(area), row);
+	}
+	if (!*out_ids)
+		*out_ids = g_array_new(FALSE, FALSE, sizeof(gint));
+	g_array_set_size(*out_ids, 0);
+
+	GtkWidget *row = gtk_widget_get_parent(*out_combo);
+	gtk_widget_set_visible(row, is_flis);
+
+	siril_drop_down_clear_strings(GTK_DROP_DOWN(*out_combo));
+	siril_drop_down_append_text(GTK_DROP_DOWN(*out_combo),
+	                            _("Processing mask"));
+	gint zero = 0;
+	g_array_append_val(*out_ids, zero);
+
+	if (is_flis) {
+		for (GSList *l = com.uniq->layers; l; l = l->next) {
+			flis_layer_t *lay = (flis_layer_t *)l->data;
+			if (!lay) continue;
+			gchar *label_txt = g_strdup_printf(
+			    _("Layer mask of %s"),
+			    lay->layer_name ? lay->layer_name : "?");
+			siril_drop_down_append_text(GTK_DROP_DOWN(*out_combo),
+			                            label_txt);
+			g_free(label_txt);
+			g_array_append_val(*out_ids, lay->item_id);
+		}
+	}
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(*out_combo), 0);
+}
+
+/* Reads the dropdown's current selection and resolves to the target
+ * layer item_id, or 0 when "Processing mask" is selected (the default
+ * code path).  Safe to call with a NULL combo (returns 0). */
+static gint read_mask_target_id(GtkWidget *combo, GArray *ids) {
+	if (!combo || !ids) return 0;
+	guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(combo));
+	if (idx >= ids->len) return 0;
+	return g_array_index(ids, gint, idx);
+}
 
 /* Sync the mask-enable toggle button without triggering its signal handler.
  * The button is a GtkCheckButton (created via gtk_check_button_new_with_label
@@ -171,6 +262,9 @@ static void masks_gui_init_statics(void) {
 */
 void on_mask_from_image_dialog_show(GtkWidget *widget, gpointer user_data) {
 	masks_gui_init_statics();
+	refresh_mask_target_combo("mask_from_image_dialog",
+	                          &combo_mask_target_image,
+	                          &target_ids_image);
 
 	/* Configure dialog based on mode */
 	if (mask_from_file_mode) {
@@ -365,6 +459,8 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = read_mask_target_id(
+			    combo_mask_target_image, target_ids_image);
 
 			start_in_new_thread(generic_mask_worker, args);
 		} else {
@@ -388,6 +484,8 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = read_mask_target_id(
+			    combo_mask_target_image, target_ids_image);
 
 			start_in_new_thread(generic_mask_worker, args);
 		}
@@ -421,6 +519,8 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = read_mask_target_id(
+			    combo_mask_target_image, target_ids_image);
 
 			start_in_new_thread(generic_mask_worker, args);
 		} else if (mask_type == 1) {
@@ -444,6 +544,8 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = read_mask_target_id(
+			    combo_mask_target_image, target_ids_image);
 
 			start_in_new_thread(generic_mask_worker, args);
 		}
@@ -529,6 +631,9 @@ void on_combo_mask_luminance_type_changed(GObject *obj, GParamSpec *pspec, gpoin
 */
 void on_mask_from_stars_dialog_show(GtkWidget *widget, gpointer user_data) {
 	masks_gui_init_statics();
+	refresh_mask_target_combo("mask_from_stars_dialog",
+	                          &combo_mask_target_stars,
+	                          &target_ids_stars);
 	// TODO: initialize the bitdepth combo box based on the preference, when added
 }
 
@@ -589,6 +694,9 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->mask_creation = TRUE;
+	args->target_layer_id = read_mask_target_id(
+	    combo_mask_target_stars, target_ids_stars);
 
 	start_in_new_thread(generic_mask_worker, args);
 
@@ -708,6 +816,9 @@ gboolean on_color_display_draw(GtkWidget *widget, cairo_t *cr, gpointer user_dat
 
 void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
 	masks_gui_init_statics();
+	refresh_mask_target_combo("mask_from_color_dialog",
+	                          &combo_mask_target_color,
+	                          &target_ids_color);
 
 	/* Trigger initial draw */
 	if (drawing_area_color_display) {
@@ -814,6 +925,9 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->mask_creation = TRUE;
+	args->target_layer_id = read_mask_target_id(
+	    combo_mask_target_color, target_ids_color);
 
 	start_in_new_thread(generic_mask_worker, args);
 

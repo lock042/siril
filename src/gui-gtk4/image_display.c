@@ -1412,23 +1412,26 @@ static void remap(int vport) {
 		index = gui.remap_index[target_index];
 
 	// Check if mask overlay is active
-	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active && com.pref.gui.mask_tints_vports);
+	mask_t overlay_mask = { 0 };
+	gboolean apply_mask =
+	    (gfit->mask_active && com.pref.gui.mask_tints_vports
+	     && flis_get_displayed_mask(&overlay_mask));
 	uint8_t *mask_u8 = NULL;
 	uint16_t *mask_u16 = NULL;
 	float *mask_f32 = NULL;
 	int mask_bitpix = 0;
 
 	if (apply_mask) {
-		mask_bitpix = gfit->mask->bitpix;
+		mask_bitpix = overlay_mask.bitpix;
 		switch (mask_bitpix) {
 			case 8:
-				mask_u8 = (uint8_t *)gfit->mask->data;
+				mask_u8 = (uint8_t *)overlay_mask.data;
 				break;
 			case 16:
-				mask_u16 = (uint16_t *)gfit->mask->data;
+				mask_u16 = (uint16_t *)overlay_mask.data;
 				break;
 			case 32:
-				mask_f32 = (float *)gfit->mask->data;
+				mask_f32 = (float *)overlay_mask.data;
 				break;
 			default:
 				apply_mask = FALSE; // Invalid bitpix, disable mask
@@ -1533,24 +1536,28 @@ static void remap_all_vports() {
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
 
-	// Check if mask overlay is active
-	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active && com.pref.gui.mask_tints_vports);
+	// Check if mask overlay is active (§4.2 — honours the panel's
+	// mask-view radio via flis_get_displayed_mask).
+	mask_t overlay_mask = { 0 };
+	gboolean apply_mask =
+	    (gfit->mask_active && com.pref.gui.mask_tints_vports
+	     && flis_get_displayed_mask(&overlay_mask));
 	uint8_t *mask_u8 = NULL;
 	uint16_t *mask_u16 = NULL;
 	float *mask_f32 = NULL;
 	int mask_bitpix = 0;
 
 	if (apply_mask) {
-		mask_bitpix = gfit->mask->bitpix;
+		mask_bitpix = overlay_mask.bitpix;
 		switch (mask_bitpix) {
 			case 8:
-				mask_u8 = (uint8_t *)gfit->mask->data;
+				mask_u8 = (uint8_t *)overlay_mask.data;
 				break;
 			case 16:
-				mask_u16 = (uint16_t *)gfit->mask->data;
+				mask_u16 = (uint16_t *)overlay_mask.data;
 				break;
 			case 32:
-				mask_f32 = (float *)gfit->mask->data;
+				mask_f32 = (float *)overlay_mask.data;
 				break;
 			default:
 				apply_mask = FALSE; // Invalid bitpix, disable mask
@@ -3972,8 +3979,12 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 
 gboolean redraw_mask_idle(gpointer p) {
 	g_rw_lock_reader_lock(&gfit->rwlock);
-	if (gfit->mask && gfit->mask->data)
-		remap_mask(gfit->mask);
+	/* §4.2 mask-view radio: route through flis_get_displayed_mask so the
+	 * tab paints whichever source (processing or active-layer lmask) the
+	 * user picked.  For non-FLIS the helper just returns gfit->mask. */
+	mask_t display_mask = { 0 };
+	if (flis_get_displayed_mask(&display_mask))
+		remap_mask(&display_mask);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 	if (com.pref.gui.mask_tints_vports) {
 		/* Reader lock released before this call: notify_gfit_data_modified()
