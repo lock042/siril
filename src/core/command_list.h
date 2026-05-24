@@ -87,7 +87,7 @@ static command commands[] = {
 	{"flis_layer_list", 0, "flis_layer_list [-format=text|csv]", process_flis_layer_list, STR_FLIS_LAYER_LIST, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_layers_match", 0, "flis_layers_match [-subset=<id|\"name\">,...]", process_flis_layers_match, STR_FLIS_LAYERS_MATCH, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_promote", 0, "flis_promote [-name=\"X\"]", process_flis_promote, STR_FLIS_PROMOTE, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"flis_register_layers", 0, "flis_register_layers [-ref=<id|\"name\">] [-interp=<nearest|linear|cubic|area|lanczos>] [-noclamp]", process_flis_register_layers, STR_FLIS_REGISTER_LAYERS, TRUE, REQ_CMD_FLIS_IMAGE},
+	{"flis_register_layers", 0, "flis_register_layers [-method=<global|2pass|dft|kombat>] [-ref=<id|\"name\">] [-interp=<nearest|linear|cubic|area|lanczos>] [-noclamp]", process_flis_register_layers, STR_FLIS_REGISTER_LAYERS, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setblend", 2, "flis_setblend <id|\"name\"> <mode>", process_flis_setblend, STR_FLIS_SETBLEND, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setgroup", 1, "flis_setgroup <layer-id|\"name\"> { <group-id|\"name\"> | -clear }", process_flis_setgroup, STR_FLIS_SETGROUP, TRUE, REQ_CMD_FLIS_IMAGE},
 	{"flis_setlocked", 2, "flis_setlocked <id|\"name\"> <on|off>", process_flis_setlocked, STR_FLIS_SETLOCKED, TRUE, REQ_CMD_FLIS_IMAGE},

@@ -16445,6 +16445,15 @@ static int parse_interp_name(const char *s) {
 	return -1;
 }
 
+static flis_reg_method_id parse_reg_method_name(const char *s) {
+	if (!s) return (flis_reg_method_id)-1;
+	if (!g_ascii_strcasecmp(s, "global")) return FLIS_REG_GLOBAL;
+	if (!g_ascii_strcasecmp(s, "2pass"))  return FLIS_REG_2PASS;
+	if (!g_ascii_strcasecmp(s, "dft"))    return FLIS_REG_DFT;
+	if (!g_ascii_strcasecmp(s, "kombat")) return FLIS_REG_KOMBAT;
+	return (flis_reg_method_id)-1;
+}
+
 int process_flis_register_layers(int nb) {
 	if (!is_current_image_flis()) {
 		siril_log_error(_("flis_register_layers: requires a FLIS image\n"));
@@ -16454,11 +16463,21 @@ int process_flis_register_layers(int nb) {
 	flis_layer_t *ref = NULL;
 	opencv_interpolation interp = OPENCV_LANCZOS4;
 	gboolean clamp = TRUE;
+	flis_reg_method_id method_id = FLIS_REG_GLOBAL;
 
 	for (int i = 1; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-ref=")) {
 			ref = resolve_layer_arg(word[i] + 5);
 			if (!ref) return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[i], "-method=")) {
+			flis_reg_method_id m = parse_reg_method_name(word[i] + 8);
+			if ((int)m < 0) {
+				siril_log_error(_("flis_register_layers: unknown -method= "
+				                  "value '%s' (expected one of: global, "
+				                  "2pass, dft, kombat)\n"), word[i] + 8);
+				return CMD_ARG_ERROR;
+			}
+			method_id = m;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			int v = parse_interp_name(word[i] + 8);
 			if (v < 0) {
@@ -16483,12 +16502,20 @@ int process_flis_register_layers(int nb) {
 	/* Default reference: the currently active layer. */
 	if (!ref) ref = flis_active_layer();
 
+	selection_type sel_req;
+	transformation_type tx;
+	registration_function method = flis_register_resolve_method(method_id, &sel_req, &tx);
+	if (!method) {
+		siril_log_error(_("flis_register_layers: internal — unresolved method\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
 	/* Snapshot every layer for one-step undo (pixels change). */
 	if (undo_save_flis_multi_layer(com.uniq->layers, _("Register layers"))) {
 		siril_log_warning(_("flis_register_layers: could not save undo state\n"));
 	}
 
-	int ret = flis_register_layers(ref, NULL, interp, clamp);
+	int ret = flis_register_layers(ref, NULL, method, sel_req, tx, interp, clamp);
 	if (ret) {
 		siril_log_error(_("flis_register_layers failed\n"));
 		return CMD_GENERIC_ERROR;

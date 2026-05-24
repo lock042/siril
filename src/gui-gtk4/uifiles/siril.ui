@@ -1940,6 +1940,16 @@
                     <property name="action-name">win.image-information</property>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkSeparator" />
+                </child>
+                <child>
+                  <object class="GtkButton" id="tools_menu_flis_layers">
+                    <property name="tooltip-text" translatable="1">Open the FLIS layers panel</property>
+                    <property name="label" translatable="1">FLIS Layers...</property>
+                    <property name="action-name">win.show-layers</property>
+                  </object>
+                </child>
               </object>
             </property>
           </object>

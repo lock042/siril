@@ -716,9 +716,13 @@ static void impl_flis_swap_out_composite(void *saved) {
 }
 
 extern void flis_gui_update_from_idle(void);  /* flis_gui.h, stage 4 */
+extern void flis_gui_present_if_flis(void);
 
 static void impl_flis_gui_update(void) {
 	flis_gui_update_from_idle();
+}
+static void impl_flis_gui_present_if_flis(void) {
+	flis_gui_present_if_flis();
 }
 
 /* ── Group G additions: Channel / precision display state ────────────────── */
@@ -1291,6 +1295,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.flis_swap_out_composite     = impl_flis_swap_out_composite;
 	gui_iface.flis_composite_free         = impl_flis_composite_free;
 	gui_iface.flis_gui_update             = impl_flis_gui_update;
+	gui_iface.flis_gui_present_if_flis    = impl_flis_gui_present_if_flis;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;

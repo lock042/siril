@@ -168,6 +168,22 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_flis_canvas_cmd', test_flis_canvas_cmd_exec, suite: 'flis')
 
+     test_flis_sparse_exec = executable('test_flis_sparse',
+                                'test_flis_sparse.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_sparse', test_flis_sparse_exec, suite: 'flis')
+
+     test_flis_stress_exec = executable('test_flis_stress',
+                                'test_flis_stress.c',
+                                dependencies : [siril_dep, criterion_dep],
+                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                c_args : siril_c_flag,
+                                cpp_args : siril_cpp_flag)
+     test('test_flis_stress', test_flis_stress_exec, suite: 'flis')
+
      test_flis_compose_exec = executable('test_flis_compose',
                                 'test_flis_compose.c',
                                 dependencies : [siril_dep, criterion_dep],

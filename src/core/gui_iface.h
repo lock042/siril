@@ -222,6 +222,12 @@ typedef struct {
 	 * widgets to current state).  No-op when the panel hasn't been
 	 * created yet — the real implementation lands in stage 4. */
 	void     (*flis_gui_update)(void);
+	/* Idempotent show: present the FLIS layers panel iff a FLIS is
+	 * currently loaded.  No-op for plain FITS / sequences / no image,
+	 * no-op when the panel is already visible.  Called from
+	 * open_single_image_from_gfit so opening a FLIS automatically
+	 * reveals the panel without stealing focus during plain-FITS work. */
+	void     (*flis_gui_present_if_flis)(void);
 
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */

@@ -183,3 +183,45 @@ Test(flis_roundtrip, position_offset_survives) {
 	cr_assert_eq(r_top->position_x, 4);
 	cr_assert_eq(r_top->position_y, 3);
 }
+
+/* §6.3 forward-compat: any METADATA key the loader does not recognise
+ * (e.g. attributes added by a future Siril release) is stashed on the
+ * layer / group and re-emitted on save so the round-trip is lossless. */
+Test(flis_roundtrip, unknown_layer_metadata_round_trips) {
+	flis_layer_t *base = flis_test_add_layer(
+	    flis_test_make_mono_fits(8, 8, 0.5f), "base");
+	/* Simulate a future-version key that this build doesn't understand. */
+	base->unknown_metadata = g_strdup("FUTURE_KEY=hello world;ANOTHER=42");
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	flis_layer_t *r = (flis_layer_t *)com.uniq->layers->data;
+	cr_assert_not_null(r->unknown_metadata,
+	    "unknown metadata must be preserved across save/load");
+	/* The exact ordering matches the build/parse contract: known keys
+	 * first, then unknown.  Pair order within unknown is preserved. */
+	cr_assert(strstr(r->unknown_metadata, "FUTURE_KEY=hello world") != NULL,
+	    "FUTURE_KEY value preserved (got: %s)", r->unknown_metadata);
+	cr_assert(strstr(r->unknown_metadata, "ANOTHER=42") != NULL,
+	    "ANOTHER value preserved (got: %s)", r->unknown_metadata);
+}
+
+Test(flis_roundtrip, unknown_group_metadata_round_trips) {
+	flis_test_add_layer(flis_test_make_mono_fits(8, 8, 0.5f), "base");
+	flis_group_t *grp = flis_group_add("g1");
+	cr_assert_not_null(grp);
+	grp->unknown_metadata = g_strdup("FUTURE_GROUP_KEY=alpha;BLEND_PROFILE=lab");
+
+	cr_assert_eq(save_flis(tmppath), 0);
+	flis_free_layers(com.uniq);
+	flis_free_groups(com.uniq);
+	cr_assert_eq(load_flis(tmppath), 0);
+
+	cr_assert_not_null(com.uniq->groups);
+	flis_group_t *r_grp = (flis_group_t *)com.uniq->groups->data;
+	cr_assert_not_null(r_grp->unknown_metadata);
+	cr_assert(strstr(r_grp->unknown_metadata, "FUTURE_GROUP_KEY=alpha") != NULL);
+	cr_assert(strstr(r_grp->unknown_metadata, "BLEND_PROFILE=lab") != NULL);
+}

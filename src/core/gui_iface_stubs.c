@@ -122,6 +122,7 @@ static void *stub_flis_swap_in_composite(void) { return NULL; }
 static void stub_flis_swap_out_composite(void *saved) { (void)saved; }
 static void stub_flis_composite_free(void) {}
 static void stub_flis_gui_update(void) {}
+static void stub_flis_gui_present_if_flis(void) {}
 
 /* G additions */
 static void stub_on_channel_count_changed(void) {}
@@ -369,6 +370,7 @@ SirilGuiInterface gui_iface = {
 	.flis_swap_out_composite     = stub_flis_swap_out_composite,
 	.flis_composite_free         = stub_flis_composite_free,
 	.flis_gui_update             = stub_flis_gui_update,
+	.flis_gui_present_if_flis    = stub_flis_gui_present_if_flis,
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
 	.roi_is_active               = stub_roi_is_active,
