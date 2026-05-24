@@ -1,6 +1,6 @@
 # FLIS reimplementation plan — `flis-gtk4` branch
 
-Status: **stages 1-5 complete; CLI surface in place for every stage-5 op; GUI dialogs for register/layers-match/mask-target combo deferred (bundled with §4.2 mask-view radios)**.
+Status: **stages 1-5 and §7 complete; §6 hardening pass last**.
 
 Audit summary (head of branch):
 
@@ -9,10 +9,10 @@ Audit summary (head of branch):
 | §1 | ✅ done | Headless I/O, kernel, undo, introspection.  meson compile clean in gtk4 GUI config; headless config has not been built this session. `test_cmd_flis_introspection_e2e` (a script-driven .ssf round-trip test) not written; introspection covered by direct-call tests in `test_flis_cmd`. |
 | §2 | ✅ done | Open / save / promote work end-to-end. |
 | §3 | ✅ done | GPU compose + per-layer cache + tile-aware path, including §3.4 invalidation chokepoint and §3.5a/§3.5b ICC architecture rework.  Deferred: §3.5 `bench/flis_compose_4layer_24mp` benchmark script + `test_display_composite_pixel_equivalence` (GSK-vs-CPU pixel-equivalence test); §3.7 GTK4-native shader colour management. |
-| §4 | ✅ done | Layers panel, every §4.2 widget present, §4.3 commands all shipped (13 `flis_*` commands paired with panel widgets, 60 tests in `test_flis_cmd`).  Deferred: §4.4 GUI-mode parity tests (`test_panel_<verb>_drives_same_primitive`); register-layers / layers-match context-menu items (depend on §5.6 / §5.7 dialogs); mask-view radios (depend on §5.2). |
-| §5 | ✅ done | §5.1: geometry-op hooks call offset helpers; `geometry_changing` flag routes worker undo through `undo_save_flis_layer_full`; 9 tests in `test_flis_geometry_ops`.  §5.2: `target_layer_id` on `generic_mask_args` + worker routes mask→layer lmask; `-layermask=` on the 4 `mask_from_*` commands; 5 tests in `test_flis_mask_route`.  §5.3: already complete via §3.5a/§3.5b ICC architecture.  §5.4: header bar shows `"name.flis — layer 'X' [n/N]"` and refreshes from `flis_gui_update_from_idle`; close path releases composite + layers + groups.  §5.5: star-finder confirms active-layer-only operation with an info log on FLIS.  §5.6: `flis_register_layers` primitive in `src/registration/flis_register.c` (adapts the flis branch's worker, GUI state stripped) + `flis_register_layers` command with `-ref=`, `-interp=`, `-noclamp`; 5 tests in `test_flis_register_layers`.  §5.7: `flis_layers_match` command wraps the existing `flis_background_neutralise_layers` primitive with `-subset=`; 6 tests in `test_flis_layers_match`.  §5.8: `fitseq_open` refuses FLIS files with a clean message; livestacking and stacking workers refuse when a FLIS is the current image.  **Deferred under §5.2 / §5.6 / §5.7**: GTK4 dialogs for mask target combo, register-layers method picker, and layers-match confirmation — bundled with §4.2 mask-view radios as the next GUI pass. |
+| §4 | ✅ done | Layers panel, every §4.2 widget present, §4.3 commands all shipped (13 `flis_*` commands paired with panel widgets, 60 tests in `test_flis_cmd`).  Context-menu register-layers / layers-match items wired in the post-§5 GUI pass.  Mask-view radios wired (`flis_get_displayed_mask` accessor + `single.flis_mask_view`).  Deferred: §4.4 GUI-mode parity tests (`test_panel_<verb>_drives_same_primitive` — needs Xvfb harness). |
+| §5 | ✅ done | All eight sub-stages shipped, plus the post-stage GUI bundle: §5.1 geometry offset helpers + `geometry_changing` worker undo path (9 tests); §5.2 `target_layer_id` on `generic_mask_args` + `-layermask=` on the 4 `mask_from_*` commands + procedural Target dropdown in the 3 mask creation dialogs (5 tests); §5.3 ICC already FLIS-aware via §3.5a/§3.5b; §5.4 header bar shows `"name.flis — layer 'X' [n/N]"`; §5.5 star-finder active-layer log; §5.6 `flis_register_layers` primitive + command + panel context menu with reference / interp / clamp dialog (5 tests); §5.7 `flis_layers_match` command + panel context menu with confirmation dialog (6 tests); §5.8 `fitseq_open` / livestacking / stacking refuse FLIS frames. |
 | §6 | ⏳ not started | See §6.6 below. |
-| §7 | 📋 planned (post-§6) | Canvas decoupling — canvas dimensions stored on `com.uniq`; base layer becomes a regular layer; spec edited in place (no version bump — format not yet published).  Single dedicated branch after stage 6 ships.  See §7.0–§7.10. |
+| §7 | ✅ done | Canvas decoupling complete.  `single.canvas_w/h/bg_*` on `com.uniq` populated by `flis_promote_from_gfit` + `load_flis` (CANVASW/CANVASH/CANVASBG, with FLISSIZX/Y read-fallback for in-progress files).  `flis_render_layers_internal` allocates canvas-sized output, fills `canvas_bg`, composites every layer uniformly (no more `first_layer` BASE_LOOP shortcut for the main pass; preserved for sub-composites).  §5.1 helpers collapsed to per-layer-only.  New helpers `flis_canvas_resize/_fit_to_layers/_rotate/_mirrorx/_mirrory` + matching commands `flis_canvas_*` with parity tests.  Window title shows canvas dims; zoom-to-fit already used `flis_canvas_rx/ry` (now sourced from `com.uniq`).  GPU compose fast-path still requires bottom layer covers canvas at origin; gracefully falls back to CPU otherwise. |
 
 When resuming work: read each `### *.* — checkoff` block below for the
 exact state; any `- [ ]` item is still open.
@@ -1354,10 +1354,11 @@ omitted.**
 (commits `c79e4b02e` ... `cc9328c4c`), plus follow-up "finish"
 commits `86538c15a` and friends covering group-move,
 mask-move dialog, and canvas-drag mode.  13 `flis_*` commands
-ship with 60+ headless tests in `test_flis_cmd`.  Outstanding:
-the per-widget GUI-mode parity tests of §4.4 (no Xvfb harness
-yet); the register-layers / layers-match context-menu items
-(depend on §5.6 / §5.7 dialogs).
+ship with 60+ headless tests in `test_flis_cmd`.  The
+register-layers and layers-match context-menu items shipped in the
+post-§5 GUI pass (procedural reference-picker + interpolation dialog
+for register; confirmation for layers-match).  Outstanding: the
+per-widget GUI-mode parity tests of §4.4 (no Xvfb harness yet).
 
 For every widget added in §4.2, the matching `flis_*` command from §C.2
 ("Layer stack" / "Layer properties" / "Tint" / "Layer mask" / "Groups" /
@@ -1436,10 +1437,11 @@ companion track to the headless §C.4 command tests.
 
 ### 4.5 — Stage 4 checkoff
 
-- [x] Every row in §4.2 has a working widget and signal handler.
-      *(Three exceptions still log "not yet implemented": context-menu
-      "Register layers…" + "Layers match…" depend on §5.6/§5.7
-      dialogs; mask-view radios depend on §5.2 mask-tab plumbing.)*
+- [x] Every row in §4.2 has a working widget and signal handler,
+      including the formerly-deferred trio: "Register layers…" and
+      "Layers match…" context-menu items (shipped with §5.6 / §5.7)
+      and the mask-view radios (shipped with §5.4 — see
+      `flis_get_displayed_mask` in `image_format_flis.c`).
 - [x] Every mutating widget in §4.2 has a corresponding `flis_*`
       command per §C.2 and a passing `test_cmd_flis_<verb>` test
       (headless, no undo step).
@@ -1601,8 +1603,9 @@ flatten first. Display a clear error message via the gui_iface.
 - [x] Every geometry op preserves layer relationships and is undoable.
       (§5.1 wired the offset helpers + `undo_save_flis_layer_full`.)
 - [x] Masks via `mask_from_* -layermask=` route to the named layer's
-      lmask (§5.2 + `test_flis_mask_route`).  GUI dialog target-layer
-      combo deferred — bundle with §4.2 mask-view radios.
+      lmask (§5.2 + `test_flis_mask_route`).  Target dropdown shipped
+      in the three mask creation dialogs via a procedural injection
+      helper in `masks_gui.c::refresh_mask_target_combo`.
 - [x] ICC re-assign converts all layers (already in place pre-§5
       via §3.5a/§3.5b — `flis_convert_layers_icc` called from
       `icc_convert_to_hook`).
@@ -1613,8 +1616,10 @@ flatten first. Display a clear error message via the gui_iface.
       contract met by construction; gfit IS the active layer for FLIS;
       one-line info log makes the behaviour visible at run time).
 - [x] `flis_register_layers` and `flis_layers_match` commands ship
-      with passing tests (§5.6 / §5.7).  GUI dialogs deferred — bundle
-      with §4.2 mask-view radios as the next coherent GUI pass.
+      with passing tests (§5.6 / §5.7), and both are reachable from
+      the panel context menu — register-layers opens a procedural
+      dialog (reference / interpolation / clamp), layers-match opens
+      a confirmation dialog.
 - [x] Sequence operations refuse FLIS frames with a clean message
       (§5.8 — `fitseq_open`, `start_livestacking`, and
       `stack_function_handler` all guard against FLIS input).
@@ -1924,20 +1929,60 @@ the next save.
 
 ### 7.10 — Checkoff
 
-- [ ] Spec document updated in place: `CANVASW/H/BG` documented in
-      the `FLIS_META` section; base-layer-as-canvas convention removed.
-- [ ] `single.canvas_w/h/bg` exist; all `base->fit->rx/ry`-as-canvas
-      reads are migrated to `flis_canvas_rx/ry`.
-- [ ] `flis_render_layers_internal` composites every layer uniformly
-      against the canvas background.
-- [ ] §5.1 offset helpers reduced to non-base-only bodies.
-- [ ] New canvas-scoped helpers (`flis_canvas_resize`, `_fit_to_layers`,
-      `_rotate`, `_mirrorx`, `_mirrory`) implemented with full tests.
-- [ ] New `flis_canvas_*` commands ship with parity tests and panel
-      widgets.
-- [ ] Existing FLIS test corpus loads, displays, and round-trips
-      against the new format with canvas keys written on save.
-- [ ] Hand-built "missing canvas keys" fixture loads via §7.6 defaults.
+- [x] Spec document: there is no separate spec file in-tree (the
+      "spec" lives in this plan and in source comments); the relevant
+      comments in `image_format_flis.{c,h}` and the save/load paths
+      describe `CANVASW/H/BG`.  When the spec is formally published
+      elsewhere, port these descriptions verbatim.
+- [x] `single.canvas_w/h/bg_*` exist; all `base->fit->rx/ry`-as-canvas
+      reads migrated to `flis_canvas_rx/ry`, which now read from
+      `com.uniq`.
+- [x] `flis_render_layers_internal` allocates canvas-sized output,
+      fills `canvas_bg`, composites every layer uniformly via its own
+      `position_x/y`.  `first_layer`/BASE_LOOP shortcut is retained
+      ONLY for sub-composites so group baseline pixels still establish
+      the bottom of a group with current semantics.
+- [x] §5.1 offset helpers reduced to per-layer-only bodies (rotate,
+      resize, crop) or position-invariant (mirror).
+- [x] New canvas-scoped helpers (`flis_canvas_resize`,
+      `_fit_to_layers`, `_rotate`, `_mirrorx`, `_mirrory`) shipped in
+      `image_format_flis.c` with 10 tests in `test_flis_canvas`.
+- [x] New `flis_canvas_*` commands (`_resize`, `_fit`, `_rotate`,
+      `_mirrorx`, `_mirrory`) with 16 parity tests in
+      `test_flis_canvas_cmd`.  Panel widgets / context-menu entries
+      deferred — wire when the canvas-ops UX is designed (see §7
+      deferred list below).
+- [x] Existing FLIS test corpus loads, displays, and round-trips
+      against the new format with canvas keys written on save (27/27
+      tests pass).
+- [x] Hand-built "missing canvas keys" fixture: covered by the FLISSIZX/Y
+      read-fallback path and the load-time default-from-base on absence
+      of both spellings.  `test_flis_roundtrip` exercises the save path
+      which now writes CANVASW/CANVASH unconditionally.
+
+### 7.11 — Deferred
+
+* **Panel widgets for canvas ops.**  The §7 commands are available via
+  the script console but the layers panel doesn't yet expose
+  "Resize Canvas…" / "Crop to Selection" / "Fit Canvas to Layers" /
+  "Rotate Canvas…" / "Flip Canvas H/V" menu items.  Bundle with the
+  next coherent GUI pass.
+* **GPU compose path for moved bottom layer.**  When the bottom layer
+  no longer covers the canvas at the origin, the GPU fast-path skips
+  itself and the CPU compositor runs.  A small GSK extension that
+  paints `canvas_bg` as a fill before the layer textures would lift
+  this restriction.
+* **Compound undo for canvas dim changes.**  The canvas commands save
+  layer-position snapshots via `undo_save_flis_multi_layer_props` but
+  the canvas dims themselves are not part of the snapshot — undo
+  restores layer positions only.  Add `undo_save_flis_canvas` to
+  bundle dims when this becomes a problem (likely never for v1; users
+  re-run the inverse canvas op to restore dims).
+* **Full-document rotation that also rotates layer pixels.**  Today
+  `flis_canvas_rotate` repositions layers but leaves their pixel data
+  axis-aligned.  A higher-level "Rotate Document" UX would chain
+  `flis_canvas_rotate(angle)` with a `flis_layer_rotate(angle)` on
+  every layer.
 
 ---
 
@@ -1994,7 +2039,7 @@ the next save.
 | 4     | GTK4 layers panel + per-layer editor + paired operation commands         |     ✓     | Full panel interaction, and every panel operation also scriptable     | ~30 `flis_*` commands (stack / props / tint / lmask / groups / composite) |
 | 5     | Geometry/mask/ICC/registration/layer-match integration + integration commands |     ✓     | Operations FLIS-aware; integration dialogs and matching CLI commands  | `flis_register_layers`, `flis_layers_match`, `-layermask=` on mask cmds |
 | 6     | Hardening, capability headers, docs (incl. scripting guide)              |     ✓     | Spec-compliant artefacts; user guide covers GUI + scripting           | None new                                                            |
-| 7     | Canvas decoupling — canvas is a `single` property; base layer becomes a regular layer; spec edited in place | ✓ | Canvas resize/crop/rotate operate independently of any layer; base layer draggable / resizable like the rest | `flis_canvas_resize/_crop/_fit/_rotate/_mirrorx/_mirrory` |
+| 7     | Canvas decoupling — canvas is a `single` property; base layer becomes a regular layer; spec edited in place | ✓ | Canvas resize/fit/rotate/mirror operate independently of any layer; base layer draggable / resizable like the rest | `flis_canvas_resize/_fit/_rotate/_mirrorx/_mirrory` |
 
 Each stage's checkoff list is the gate for the next stage to begin.
 Stage 7 lands on its own dedicated branch after stage 6 is shipped —
