@@ -37,6 +37,7 @@
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "core/gui_iface.h"
 #include "registration/registration.h"
@@ -1377,6 +1378,15 @@ gpointer findstar_worker(gpointer p) {
 	fits *green_fit = NULL;
 	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
+	/* §5.5 contract: for FLIS, star detection runs against the active layer
+	 * only — never the composite.  The caller passes gfit which the data
+	 * model guarantees IS the active layer's fit, so the contract is met by
+	 * construction.  Log it once per run so the behaviour is visible. */
+	if (args->im.fit == gfit && is_current_image_flis()) {
+		flis_layer_t *active = flis_active_layer();
+		siril_log_info(_("FLIS: star detection running on active layer '%s'\n"),
+		               (active && active->layer_name) ? active->layer_name : "?");
+	}
 	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
 		orig = args->im.fit;

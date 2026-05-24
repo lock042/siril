@@ -1546,6 +1546,18 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
 
+	/* FLIS geometry-op undo capture: when geometry_changing is set AND a FLIS
+	 * is loaded, route the undo entry through undo_save_flis_layer_full so the
+	 * active layer's pixels, pmask, lmask and props are reverted together.
+	 * The pre-op lmask and props are captured below (before the hook mutates
+	 * them) and consumed in the post-hook undo block. */
+	gboolean geom_flis = args->geometry_changing && args->fit == gfit
+	                     && is_current_image_flis()
+	                     && !args->custom_undo && !args->for_preview && !com.script;
+	flis_layer_t      *geom_active     = NULL;
+	flis_layer_props_t geom_pre_props  = { 0 };
+	layermask_t       *geom_pre_lmask  = NULL;
+
 	/* For single-image operations (args->fit == gfit) the remap buffers are
 	 * stale until remap_all() runs, so suppress viewport redraws and disable
 	 * the display-mode menu for the duration.  Sequence operations leave gfit
@@ -1576,6 +1588,20 @@ gpointer generic_image_worker(gpointer p) {
 			siril_log_error(_("Failed to copy original image.\n"));
 			args->retval = 1;
 			goto the_end;
+		}
+	}
+
+	/* Capture pre-op layer state for the FLIS geometry undo path while the
+	 * writer lock guarantees a stable view of the active layer. */
+	if (geom_flis && orig) {
+		geom_active = flis_active_layer();
+		if (geom_active) {
+			flis_layer_capture_props(geom_active, &geom_pre_props);
+			geom_pre_lmask = layermask_clone(geom_active->lmask);
+		} else {
+			/* Active layer pointer unexpectedly missing — fall back to the
+			 * plain undo path rather than silently dropping the undo entry. */
+			geom_flis = FALSE;
 		}
 	}
 
@@ -1682,7 +1708,18 @@ the_end:;
 
 	if (!retval) {
 		if (undo_state && orig) {
-			undo_save_state(orig, summary); // We just use the short description for the undo state
+			if (geom_flis && geom_active) {
+				/* Active-layer geometry undo: bundles pixels + pmask + lmask
+				 * + props.  On failure fall back to the legacy path so we
+				 * still record SOMETHING in the undo stack. */
+				if (undo_save_flis_layer_full(orig, geom_active,
+				                              geom_pre_lmask, &geom_pre_props,
+				                              summary)) {
+					undo_save_state(orig, summary);
+				}
+			} else {
+				undo_save_state(orig, summary); // We just use the short description for the undo state
+			}
 		} else {
 			// Update the HISTORY card if it wasn't updated by undo_save_state'
 			if (!arg_custom_undo && arg_update_gfit) {
@@ -1691,6 +1728,10 @@ the_end:;
 				update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
 			}
 		}
+	}
+	if (geom_pre_lmask) {
+		layermask_free(geom_pre_lmask);
+		geom_pre_lmask = NULL;
 	}
 	g_rw_lock_writer_unlock(&argfit->rwlock);
 	g_rw_lock_reader_unlock(&com.pref_rwlock);
@@ -1780,6 +1821,50 @@ the_end:
 	}
 
 	int retval = args->retval;
+
+	/* FLIS layermask routing: move the freshly-built mask onto the target
+	 * layer's lmask slot and clear the processing-mask slot.  Only when the
+	 * hook succeeded and produced a mask.  Failure here (no FLIS / layer
+	 * gone / dimension mismatch) leaves the mask as the processing mask —
+	 * better than dropping it on the floor. */
+	if (!retval && args->target_layer_id != 0 && args->fit->mask
+	    && args->fit->mask->data && is_current_image_flis()) {
+		flis_layer_t *target = flis_layer_get_by_id(args->target_layer_id);
+		if (!target || !target->fit) {
+			siril_log_warning(_("Mask routing: target layer (id %d) not found; "
+			                    "mask left on processing slot\n"),
+			                  args->target_layer_id);
+		} else if ((size_t)target->fit->rx != args->fit->rx
+		           || (size_t)target->fit->ry != args->fit->ry) {
+			siril_log_warning(_("Mask routing: target layer '%s' (%ux%u) "
+			                    "does not match mask dimensions (%ux%u); "
+			                    "mask left on processing slot\n"),
+			                  target->layer_name ? target->layer_name : "?",
+			                  target->fit->rx, target->fit->ry,
+			                  args->fit->rx, args->fit->ry);
+		} else {
+			layermask_t *lm = calloc(1, sizeof(layermask_t));
+			if (lm) {
+				lm->w      = args->fit->rx;
+				lm->h      = args->fit->ry;
+				lm->bitpix = args->fit->mask->bitpix;
+				lm->data   = args->fit->mask->data;
+				args->fit->mask->data = NULL;
+				free_mask(args->fit->mask);
+				args->fit->mask = NULL;
+				set_mask_active(args->fit, FALSE);
+				if (flis_layer_set_lmask(target, lm)) {
+					layermask_free(lm);
+				} else {
+					gui_iface.flis_invalidate_composite();
+					gui_iface.flis_gui_update();
+				}
+				/* Suppress the generic mask_creation activate below — the
+				 * processing mask is now empty. */
+				args->mask_creation = FALSE;
+			}
+		}
+	}
 
 	if (args->mask_creation) {
 		set_mask_active(args->fit, TRUE);

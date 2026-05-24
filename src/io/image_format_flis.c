@@ -930,6 +930,46 @@ void layermask_free(layermask_t *mask) {
     free(mask);
 }
 
+layermask_t *layermask_clone(const layermask_t *src) {
+    if (!src) return NULL;
+    size_t elem;
+    switch (src->bitpix) {
+        case 8:  elem = sizeof(uint8_t);  break;
+        case 16: elem = sizeof(uint16_t); break;
+        case 32: elem = sizeof(float);    break;
+        default: return NULL;
+    }
+    layermask_t *out = calloc(1, sizeof(layermask_t));
+    if (!out) return NULL;
+    out->w = src->w;
+    out->h = src->h;
+    out->bitpix = src->bitpix;
+    if (src->data && src->w && src->h) {
+        size_t bytes = (size_t)src->w * src->h * elem;
+        out->data = malloc(bytes);
+        if (!out->data) { free(out); return NULL; }
+        memcpy(out->data, src->data, bytes);
+    }
+    return out;
+}
+
+void flis_layer_capture_props(const flis_layer_t *layer,
+                              flis_layer_props_t *out) {
+    if (!layer || !out) return;
+    out->blend_mode   = layer->blend_mode;
+    out->opacity      = layer->opacity;
+    out->visible      = layer->visible;
+    out->locked       = layer->locked;
+    out->has_tint     = layer->has_tint;
+    out->tint         = layer->layer_tint;
+    out->lmask_active = layer->lmask_active;
+    out->position_x   = layer->position_x;
+    out->position_y   = layer->position_y;
+    g_strlcpy(out->name,
+              layer->layer_name ? layer->layer_name : "",
+              sizeof(out->name));
+}
+
 flis_layer_t *flis_layer_new(fits *fit, const gchar *name) {
     flis_layer_t *layer = g_new0(flis_layer_t, 1);
     if (!layer) return NULL;
@@ -1916,6 +1956,44 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
     gui_iface.flis_invalidate_composite();
     siril_debug_print("FLIS: all layer offsets updated after group rotate (%.2f deg, %dx%d -> %dx%d)\n",
                       angle, old_rx, old_ry, new_rx, new_ry);
+}
+
+/* Shared core: flip non-base layer positions across the canvas centre(s).
+ * @vertical: TRUE for mirrorx (top↔bottom flip, invert Y).
+ * @horizontal: TRUE for mirrory (left↔right flip, invert X).
+ * Only active==base triggers updates; non-base mirror preserves the layer
+ * centre, so positions stay unchanged. */
+static void flis_update_layer_offset_after_mirror_axis(gboolean vertical,
+                                                       gboolean horizontal) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+    flis_layer_t *active = flis_active_layer();
+    if (!active) return;
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    if (!base || !base->fit) return;
+
+    if (active == base) {
+        gint cw = (gint)base->fit->rx;
+        gint ch = (gint)base->fit->ry;
+        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay || !lay->fit) continue;
+            if (vertical)
+                lay->position_y = ch - lay->position_y - (gint)lay->fit->ry;
+            if (horizontal)
+                lay->position_x = cw - lay->position_x - (gint)lay->fit->rx;
+        }
+    }
+    gui_iface.flis_invalidate_composite();
+    siril_debug_print("FLIS: layer offsets updated after mirror (vert=%d, horiz=%d)\n",
+                      vertical, horizontal);
+}
+
+void flis_update_layer_offset_after_mirrorx(void) {
+    flis_update_layer_offset_after_mirror_axis(TRUE, FALSE);
+}
+
+void flis_update_layer_offset_after_mirrory(void) {
+    flis_update_layer_offset_after_mirror_axis(FALSE, TRUE);
 }
 
 guint flis_canvas_rx(void) {

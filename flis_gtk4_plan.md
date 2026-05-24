@@ -1,6 +1,6 @@
 # FLIS reimplementation plan — `flis-gtk4` branch
 
-Status: **stages 1-4 complete; stage 5 not yet started**.
+Status: **stages 1-5 complete; CLI surface in place for every stage-5 op; GUI dialogs for register/layers-match/mask-target combo deferred (bundled with §4.2 mask-view radios)**.
 
 Audit summary (head of branch):
 
@@ -10,8 +10,9 @@ Audit summary (head of branch):
 | §2 | ✅ done | Open / save / promote work end-to-end. |
 | §3 | ✅ done | GPU compose + per-layer cache + tile-aware path, including §3.4 invalidation chokepoint and §3.5a/§3.5b ICC architecture rework.  Deferred: §3.5 `bench/flis_compose_4layer_24mp` benchmark script + `test_display_composite_pixel_equivalence` (GSK-vs-CPU pixel-equivalence test); §3.7 GTK4-native shader colour management. |
 | §4 | ✅ done | Layers panel, every §4.2 widget present, §4.3 commands all shipped (13 `flis_*` commands paired with panel widgets, 60 tests in `test_flis_cmd`).  Deferred: §4.4 GUI-mode parity tests (`test_panel_<verb>_drives_same_primitive`); register-layers / layers-match context-menu items (depend on §5.6 / §5.7 dialogs); mask-view radios (depend on §5.2). |
-| §5 | ⏳ not started | See §5.9 below. |
+| §5 | ✅ done | §5.1: geometry-op hooks call offset helpers; `geometry_changing` flag routes worker undo through `undo_save_flis_layer_full`; 9 tests in `test_flis_geometry_ops`.  §5.2: `target_layer_id` on `generic_mask_args` + worker routes mask→layer lmask; `-layermask=` on the 4 `mask_from_*` commands; 5 tests in `test_flis_mask_route`.  §5.3: already complete via §3.5a/§3.5b ICC architecture.  §5.4: header bar shows `"name.flis — layer 'X' [n/N]"` and refreshes from `flis_gui_update_from_idle`; close path releases composite + layers + groups.  §5.5: star-finder confirms active-layer-only operation with an info log on FLIS.  §5.6: `flis_register_layers` primitive in `src/registration/flis_register.c` (adapts the flis branch's worker, GUI state stripped) + `flis_register_layers` command with `-ref=`, `-interp=`, `-noclamp`; 5 tests in `test_flis_register_layers`.  §5.7: `flis_layers_match` command wraps the existing `flis_background_neutralise_layers` primitive with `-subset=`; 6 tests in `test_flis_layers_match`.  §5.8: `fitseq_open` refuses FLIS files with a clean message; livestacking and stacking workers refuse when a FLIS is the current image.  **Deferred under §5.2 / §5.6 / §5.7**: GTK4 dialogs for mask target combo, register-layers method picker, and layers-match confirmation — bundled with §4.2 mask-view radios as the next GUI pass. |
 | §6 | ⏳ not started | See §6.6 below. |
+| §7 | 📋 planned (post-§6) | Canvas decoupling — canvas dimensions stored on `com.uniq`; base layer becomes a regular layer; spec edited in place (no version bump — format not yet published).  Single dedicated branch after stage 6 ships.  See §7.0–§7.10. |
 
 When resuming work: read each `### *.* — checkoff` block below for the
 exact state; any `- [ ]` item is still open.
@@ -1469,7 +1470,7 @@ companion track to the headless §C.4 command tests.
       chevron mutates `grp->collapsed` directly without the worker
       because it's pure panel UI state with no composite impact.)*
 - [x] Audit: no panel handler bypasses an `image_format_flis.c`
-      primitive via direct field assignment (per §7 risk 9).
+      primitive via direct field assignment (per §8 risk 9).
 - [x] Audit: the special-case undo-save callers (per §1.5) are
       still exactly the enumerated set; no new ones snuck in.
 - [x] All mutations call `flis_display_invalidate(...)` with the
@@ -1501,7 +1502,9 @@ non-FLIS-specific refactors in that diff are not ported.
 `src/algos/geometry.c`, `src/gui-gtk4/menu_gray_geometry.c`:
 * Every op that resizes or rotates the active layer must call
   `flis_update_layer_offset_after_*` so non-active layers' positions
-  remain correct.
+  remain correct. Geometry ops should act centred on the centre of
+  the layer the affect, but if applied to a layer group should act
+  centred on the centre of the bottom layer of the layer group.
 * `generic_img_args.geometry_changing = TRUE` for these ops, so
   `generic_image_worker` saves a `undo_save_flis_layer_full` state.
 * Group-level rotation/mirror operates via
@@ -1595,16 +1598,26 @@ flatten first. Display a clear error message via the gui_iface.
 
 ### 5.9 — Stage 5 checkoff
 
-- [ ] Every geometry op preserves layer relationships and is undoable.
-- [ ] Masks targeting a specific layer end up on that layer's lmask
-      whether driven from the dialog or via `mask_from_* -layermask=`.
-- [ ] ICC re-assign converts all layers.
-- [ ] Window title and panel update across image close/open.
-- [ ] Star finder and analysis target the active layer.
-- [ ] Registration and layer-match dialogs functional and undoable;
-      `flis_register_layers` and `flis_layers_match` commands ship
-      with passing tests.
-- [ ] Sequence operations refuse FLIS frames with a clean message.
+- [x] Every geometry op preserves layer relationships and is undoable.
+      (§5.1 wired the offset helpers + `undo_save_flis_layer_full`.)
+- [x] Masks via `mask_from_* -layermask=` route to the named layer's
+      lmask (§5.2 + `test_flis_mask_route`).  GUI dialog target-layer
+      combo deferred — bundle with §4.2 mask-view radios.
+- [x] ICC re-assign converts all layers (already in place pre-§5
+      via §3.5a/§3.5b — `flis_convert_layers_icc` called from
+      `icc_convert_to_hook`).
+- [x] Window title and panel update across image close/open (§5.4 —
+      header bar shows FLIS layer info; refreshes via the panel idle
+      and via `free_image_data` on close).
+- [x] Star finder and analysis target the active layer (§5.5 —
+      contract met by construction; gfit IS the active layer for FLIS;
+      one-line info log makes the behaviour visible at run time).
+- [x] `flis_register_layers` and `flis_layers_match` commands ship
+      with passing tests (§5.6 / §5.7).  GUI dialogs deferred — bundle
+      with §4.2 mask-view radios as the next coherent GUI pass.
+- [x] Sequence operations refuse FLIS frames with a clean message
+      (§5.8 — `fitseq_open`, `start_livestacking`, and
+      `stack_function_handler` all guard against FLIS input).
 
 ---
 
@@ -1661,7 +1674,274 @@ byte-identical.
 
 ---
 
-## 7 · Risks & open questions (for review)
+## 7 · Canvas decoupling — independent canvas dimensions on `com.uniq`
+
+**Status: not yet started.  Major refactor; touches roughly every file
+already touched by stages 1–6.  Plan to execute as a single dedicated
+branch off the post-stage-6 trunk, not interleaved with earlier stages.
+The spec is not yet formally published, so this stage edits the spec
+in place — no version bump or back-compat fallback machinery.**
+
+### 7.0 — Motivation
+
+The current data model treats the **base layer** (first entry in
+`com.uniq->layers`) as the canvas.  Canvas width/height is read from
+`base->fit->rx/ry`; the base layer always sits at `(0,0)` and cannot
+be repositioned; all other layers' `position_x/y` are interpreted in
+"canvas == base-layer" coordinates.  Every helper in `image_format_flis.c`
+that deals with geometry (`flis_canvas_rx`, `flis_update_layer_offset_after_crop`,
+`…_after_resize`, `…_after_rotate`, the mirror helpers added in §5.1)
+encodes a special "active == base" branch with different semantics from
+the "active == non-base" branch.
+
+This is wrong for several reasons:
+
+* **Asymmetry leaks into the GUI.**  The base layer can't be moved or
+  resized like any other layer — a quirk the user notices and that
+  the panel has to handle specially.
+* **Geometry op semantics are confusing.**  Cropping the base layer
+  shifts every other layer's position; cropping a non-base layer
+  doesn't.  The same operation, from the same menu, does two very
+  different things depending on what's active.
+* **"Resize canvas to fit visible layers" — a basic, expected layered-
+  editor operation — is impossible** without first picking a layer to
+  promote/swap into the base slot.
+* **Sparse / out-of-canvas layers (spec §6.2)** are hard to express
+  cleanly when the canvas itself is tied to one layer's extent.
+* **Promote / open of a 1-layer FLIS makes the base layer the canvas
+  even when the user's mental model is "canvas is the document"** —
+  loading a 4000×3000 mono image as the base implicitly creates a
+  4000×3000 canvas, which then cannot be enlarged without resizing the
+  pixels.
+
+After decoupling, the canvas is a property of the FLIS document
+(`com.uniq->canvas_w / canvas_h`).  Every layer — including the base —
+has its own `position_x/y` and is composited at its own dimensions.
+The "base layer" still exists as the bottom-most z-order entry (and
+carries the on-disk ICC profile per §3.5b) but is otherwise just a
+layer; geometry ops on the base layer behave like geometry ops on any
+other layer.
+
+### 7.1 — Spec change
+
+Edit the spec document in place (`spec_xpcts_delta_v1.0.1.md` in the
+working tree) with the following additions; no version bump.
+
+* **New `FLIS_META` keywords:**
+  * `CANVASW` / `CANVASH` — canvas dimensions in pixels.  Both
+    integers, both required.  Loaders that see one without the other
+    must reject the file.
+  * `CANVASBG` (optional) — RGB triplet describing the canvas
+    background fill used by the composite where no layer covers
+    (default: `0 0 0`).  Encoded as `"R G B"` floats in [0,1] for
+    consistency with the LAYER_COLOR / tint convention.
+
+* **Removed implicit semantics:**
+  * The base layer's `rx/ry` no longer implies canvas dimensions.
+    Base layers carry their own `position_x/y` (which may be non-zero).
+
+* **Loader leniency for in-progress files:** files written by earlier
+  builds of this branch don't have `CANVASW/H`.  The loader treats
+  missing canvas keys as a default-fill: `canvas_w/h = base->rx/ry`,
+  `base->position_x/y = 0`, `canvas_bg = (0,0,0)`.  This is a
+  one-line load-time default, not a versioning mechanism — once this
+  stage ships, every save writes the canvas keys and loads with no
+  defaulting needed.  Drop the leniency when the spec is formally
+  published (no one will have pre-publication files at that point).
+
+### 7.2 — Data-model changes in `core/siril.h` / `image_format_flis.{c,h}`
+
+Add to `single`:
+* `guint canvas_w, canvas_h;` — authoritative canvas size.
+* `flis_tint_t canvas_bg;` — background fill for uncovered pixels.
+
+Update accessors:
+* `flis_canvas_rx()` / `flis_canvas_ry()` — return `com.uniq->canvas_w/h`
+  (was `base->fit->rx/ry`).  Non-FLIS path unchanged (`gfit->rx/ry`).
+* `flis_canvas_to_pixel_index()` — switch the base-layer carve-out
+  branch (currently `if (active && active != base) …`) to
+  treating every layer uniformly via `position_x/y`.
+
+Remove special-casing:
+* `flis_layer_set_position()` already exists for non-base layers; lift
+  the "refuse base layer" guard.
+* The "base layer is read-only for positioning" panel guard (§4.2's
+  drag-toggle) — base layer becomes draggable like any other.
+
+Per-layer changes: none — every layer already has `position_x/y`,
+`fit`, blend mode, etc.  The base layer just now uses them like the
+rest.
+
+### 7.3 — Compositing kernel (`io/flis_compose.c`)
+
+`flis_render_layers_internal()` currently allocates the output composite
+sized to `base->fit->rx/ry` and uses base as the implicit canvas:
+
+* Rewrite to allocate `out` sized to `com.uniq->canvas_w/h`.
+* Fill with `canvas_bg` (currently the composite is `memset 0`; that
+  becomes the default for `canvas_bg = (0,0,0)` so the change is
+  semantically identical when bg is black).
+* Composite **every** layer (including base) using its `position_x/y`
+  via the same per-layer code path currently used for non-base layers.
+* Drop the `first_layer` flag and the implicit "first layer paints
+  everything, subsequent layers blend on top" logic.  All layers blend
+  uniformly onto the canvas background.
+
+Tile path (`gui-gtk4/flis_gpu_compose.c`, §3.3):
+
+* Tile grid is sized to the canvas, not the base layer.  Per-layer
+  tile materialisation uses each layer's `position_x/y` to decide
+  which tiles overlap the layer — the existing per-layer-tile code in
+  `flis_compose_bake_tile_bgra8` already handles arbitrary positions,
+  so this is mostly removing the base-special-case in the tile-grid
+  setup.
+
+GSK blend path (§3.2):
+* The composite-as-source-of-truth path is unaffected — it just sees
+  the canvas-sized composite.
+
+### 7.4 — Geometry / offset helpers (`image_format_flis.{c,h}`)
+
+The §5.1 helpers (`flis_update_layer_offset_after_crop`, `_after_resize`,
+`_after_rotate`, `_after_mirrorx`, `_after_mirrory`) become much
+simpler: every case is "non-base active layer" semantics.  Remove the
+`if (active == base) { … } else { … }` branches and keep only the
+non-base body.
+
+Add NEW canvas-scoped helpers:
+
+* `flis_canvas_resize(guint new_w, guint new_h, gint dx, gint dy)` —
+  changes `com.uniq->canvas_w/h`; offsets every layer's `position_x/y`
+  by `(dx, dy)` (i.e. layers track the new origin if the user grew
+  the canvas to the left/top).  This replaces the "crop the base
+  layer shifts everything" case.
+
+* `flis_canvas_fit_to_layers(gboolean include_invisible)` —
+  computes the bounding box of every (optionally visible-only) layer
+  and resizes the canvas to that, with optional padding.  Updates
+  `canvas_w/h` and layer offsets accordingly.
+
+* `flis_canvas_rotate(double angle)` — rotates the canvas about its
+  centre.  Updates `canvas_w/h` and rotates every layer's centre
+  about the old canvas centre, mapping into the new canvas.  This is
+  the new "base layer rotated" semantics, but now an operation on the
+  canvas itself rather than implicit in a base-layer rotation.
+
+* `flis_canvas_mirrorx()` / `flis_canvas_mirrory()` — flip canvas
+  axes; update every layer's centre.
+
+The existing `flis_update_all_layer_offsets_after_rotate` becomes the
+group-rotate variant (still scoped to a subset of layers); the canvas
+helper above is the new whole-document variant.
+
+### 7.5 — Geometry-op hook rework (§5.1 callbacks)
+
+After decoupling, the rotation/crop/resize/mirror **image hooks** stop
+calling the per-layer offset helpers in the `active == base` case
+(because that case is gone).  They only update the active layer's
+position via the non-base branch.
+
+A **new dedicated path** carries the canvas-scoped operations:
+
+* New panel buttons: "Resize Canvas…", "Crop to Selection", "Fit Canvas
+  to Layers", "Rotate Canvas…", "Flip Canvas Horizontal / Vertical".
+  Each invokes the corresponding `flis_canvas_*` helper and saves
+  undo via a new `undo_save_flis_canvas` family.
+
+* New commands: `flis_canvas_resize`, `flis_canvas_crop`,
+  `flis_canvas_fit`, `flis_canvas_rotate`, `flis_canvas_mirrorx`,
+  `flis_canvas_mirrory` — same parity contract as §C.
+
+* `crop` (the existing single-image command) becomes per-active-layer
+  in FLIS mode.  The canvas-trim equivalent is `flis_canvas_crop`.
+
+### 7.6 — File I/O (`io/image_format_flis.c`)
+
+Load path:
+* Parse `CANVASW/H` from `FLIS_META`; if absent (pre-canvas-stage
+  files only — see §7.1), default to `base->rx/ry`,
+  `base->position_x/y = 0`.
+* Parse `CANVASBG`; if absent, default to `(0,0,0)`.
+* Layer position parsing already exists; nothing changes there.
+
+Save path:
+* Always write `CANVASW/H`.
+* Write `CANVASBG` only if non-default (keeps the FLIS_META table
+  short when nothing interesting is there to record).
+
+Open via plain FITS (`flis_promote_from_gfit`):
+* Sets `canvas_w/h = fit->rx/ry`, `base->position_x/y = 0`,
+  `canvas_bg = (0,0,0)`.
+
+### 7.7 — Display integration
+
+* Window title: "name.flis — canvas 4096×3072 — layer 'X' [3/5]"
+  (canvas size becomes a first-class display fact).
+* The image_display tile grid uses canvas dimensions.
+* "Zoom to fit" calculations use canvas, not gfit (which is the
+  active layer).
+* `image_display_canvas_size` getter (gui_iface) returns canvas
+  dimensions for any caller currently using `flis_canvas_rx/ry`.
+
+### 7.8 — Tests
+
+* `test_flis_canvas_load_save_roundtrip` — save a FLIS with non-zero
+  `CANVASBG` and at least one layer at a non-canvas position; reload;
+  assert canvas dimensions, background, and every layer position
+  recovered byte-identical.
+* `test_flis_canvas_load_missing_keys` — load a hand-built fixture
+  that omits `CANVASW/H` (simulating a pre-canvas-stage file); assert
+  canvas dimensions defaulted from base and the file displays
+  correctly.
+* `test_flis_canvas_resize` — resize canvas to bigger / smaller /
+  with negative offsets; assert layer offsets preserve their visual
+  position.
+* `test_flis_canvas_fit_to_layers` — layers extending beyond canvas;
+  fit-to-layers grows canvas; layers reposition; nothing clipped.
+* `test_flis_canvas_rotate` — rotate canvas with non-base layer at
+  known position; assert layer's new position matches geometric
+  rotation around the old canvas centre.
+* `test_flis_geometry` and `test_flis_geometry_ops` regressions:
+  the "base layer cropped shifts non-base offsets" behaviour is
+  replaced by "active layer cropped only repositions itself";
+  rewrite assertions to match the simplified per-layer semantics.
+
+### 7.9 — Migration / impact on §5.1 code
+
+The §5.1 offset helpers shrink to their non-base branch only.  Most
+callers continue to work unchanged because they only ever applied to
+the active layer.  The two specific behaviour changes a user will
+notice:
+
+1. Cropping when the active layer is the bottom-of-stack layer no
+   longer shifts the other layers — it just resizes that one layer.
+2. To shrink the canvas to the cropped region, the user invokes the
+   new "Crop Canvas" / `flis_canvas_crop` operation.
+
+In-progress FLIS files (saved by earlier builds of this branch) load
+fine via the §7.6 missing-keys default and gain canvas metadata on
+the next save.
+
+### 7.10 — Checkoff
+
+- [ ] Spec document updated in place: `CANVASW/H/BG` documented in
+      the `FLIS_META` section; base-layer-as-canvas convention removed.
+- [ ] `single.canvas_w/h/bg` exist; all `base->fit->rx/ry`-as-canvas
+      reads are migrated to `flis_canvas_rx/ry`.
+- [ ] `flis_render_layers_internal` composites every layer uniformly
+      against the canvas background.
+- [ ] §5.1 offset helpers reduced to non-base-only bodies.
+- [ ] New canvas-scoped helpers (`flis_canvas_resize`, `_fit_to_layers`,
+      `_rotate`, `_mirrorx`, `_mirrory`) implemented with full tests.
+- [ ] New `flis_canvas_*` commands ship with parity tests and panel
+      widgets.
+- [ ] Existing FLIS test corpus loads, displays, and round-trips
+      against the new format with canvas keys written on save.
+- [ ] Hand-built "missing canvas keys" fixture loads via §7.6 defaults.
+
+---
+
+## 8 · Risks & open questions (for review)
 
 1. **GSK pixel-equivalence with the CPU oracle (stage 3.3)** — GSK
    premultiplied-alpha blending and our CPU kernel's straight-alpha
@@ -1704,7 +1984,7 @@ byte-identical.
 
 ---
 
-## 8 · Stage delivery summary
+## 9 · Stage delivery summary
 
 | Stage | Deliverable                                                              | Buildable | User-visible change                                                   | Commands shipping (§C)                                              |
 | :---: | ------------------------------------------------------------------------ | :-------: | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -1714,5 +1994,9 @@ byte-identical.
 | 4     | GTK4 layers panel + per-layer editor + paired operation commands         |     ✓     | Full panel interaction, and every panel operation also scriptable     | ~30 `flis_*` commands (stack / props / tint / lmask / groups / composite) |
 | 5     | Geometry/mask/ICC/registration/layer-match integration + integration commands |     ✓     | Operations FLIS-aware; integration dialogs and matching CLI commands  | `flis_register_layers`, `flis_layers_match`, `-layermask=` on mask cmds |
 | 6     | Hardening, capability headers, docs (incl. scripting guide)              |     ✓     | Spec-compliant artefacts; user guide covers GUI + scripting           | None new                                                            |
+| 7     | Canvas decoupling — canvas is a `single` property; base layer becomes a regular layer; spec edited in place | ✓ | Canvas resize/crop/rotate operate independently of any layer; base layer draggable / resizable like the rest | `flis_canvas_resize/_crop/_fit/_rotate/_mirrorx/_mirrory` |
 
 Each stage's checkoff list is the gate for the next stage to begin.
+Stage 7 lands on its own dedicated branch after stage 6 is shipped —
+not interleaved with the v1.0 work — because it requires the spec
+bump and touches roughly every file touched by stages 1–6.

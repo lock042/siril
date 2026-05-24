@@ -114,6 +114,7 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
+#include "registration/flis_register.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -4837,6 +4838,7 @@ int process_mirrorx(int nb){
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -4874,6 +4876,7 @@ int process_mirrory(int nb){
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -4926,6 +4929,7 @@ int process_binxy(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5061,6 +5065,7 @@ int process_resample(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5133,6 +5138,7 @@ int process_crop(int nb) {
 	args->max_threads = 1;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5247,6 +5253,7 @@ int process_rotate(int nb) {
 	args->max_threads = com.max_thread;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -5289,6 +5296,7 @@ int process_rotatepi(int nb){
 	args->max_threads = 1;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
+	args->geometry_changing = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14827,16 +14835,41 @@ int process_catmag_mono(int nb) {
 }
 
 // Process functions refactored
+
+/* Forward decl of the §C.1 layer-arg parser (defined further down in the
+ * flis_* command block).  Lets the mask_from_* commands share the same
+ * <id|"name"> resolution as the rest of the FLIS surface. */
+static flis_layer_t *resolve_layer_arg(const char *arg);
+
+/* Parse the value of a -layermask=<id|"name"> option.  Returns the
+ * resolved layer's stable item_id, or 0 on failure (logging the cause).
+ * Used by every mask_from_* command to honour the §5.2 routing contract:
+ * when present, the mask is stored on the named layer's lmask instead
+ * of gfit's processing mask. */
+static gint parse_layermask_value(const char *arg) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("-layermask= requires a FLIS image to be loaded\n"));
+		return 0;
+	}
+	flis_layer_t *lay = resolve_layer_arg(arg);
+	return lay ? lay->item_id : 0;
+}
+
 int process_mask_from_stars(int nb) {
 	int argidx = 1;
 	float r = 0.f, feather = 0.f;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
 		if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_value(word[argidx] + 11);
+			if (!target_layer_id) return CMD_ARG_ERROR;
 		}
 		else if (g_str_has_prefix(word[argidx], "-r=")) {
 			char *arg = word[argidx] + 3;
@@ -14884,6 +14917,7 @@ int process_mask_from_stars(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -14896,6 +14930,7 @@ int process_mask_from_channel(int nb) {
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
 	gchar *filename = NULL;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
@@ -14904,6 +14939,10 @@ int process_mask_from_channel(int nb) {
 		}
 		else if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_value(word[argidx] + 11);
+			if (!target_layer_id) return CMD_ARG_ERROR;
 		}
 		else if (g_str_has_prefix(word[argidx], "-channel=")) {
 			char *arg = word[argidx] + 9;
@@ -14952,6 +14991,7 @@ int process_mask_from_channel(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -14966,6 +15006,7 @@ int process_mask_from_lum(int nb) {
 	gboolean use_even = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
 	gchar *filename = NULL;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
@@ -14974,6 +15015,10 @@ int process_mask_from_lum(int nb) {
 		}
 		else if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_value(word[argidx] + 11);
+			if (!target_layer_id) return CMD_ARG_ERROR;
 		}
 		else if (g_str_has_prefix(word[argidx], "-human")) {
 			use_human = TRUE;
@@ -15075,6 +15120,7 @@ int process_mask_from_lum(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -15428,11 +15474,16 @@ int process_mask_from_color(int nb) {
 	int feather_radius = 0;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
 		if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_value(word[argidx] + 11);
+			if (!target_layer_id) return CMD_ARG_ERROR;
 		}
 		else if (g_str_has_prefix(word[argidx], "-cr=")) {
 			char *arg = word[argidx] + 4;
@@ -15540,6 +15591,7 @@ int process_mask_from_color(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -16317,5 +16369,132 @@ int process_flis_group_info(int nb) {
 			siril_log_info(_("    [%d] \"%s\"\n"),
 			               lay->item_id, lay->layer_name ? lay->layer_name : "");
 	}
+	return CMD_OK;
+}
+
+/* Parse a comma-separated `<id|"name">` list into a freshly-allocated
+ * GSList of flis_layer_t* (no ownership transfer of the layers).  On any
+ * resolution failure logs and returns NULL.  Caller frees the GSList
+ * shell via g_slist_free (layer pointers are borrowed). */
+static GSList *parse_layer_subset(const char *csv) {
+	if (!csv || !*csv) return NULL;
+	GSList *out = NULL;
+	gchar **toks = g_strsplit(csv, ",", -1);
+	gboolean ok = TRUE;
+	for (gchar **t = toks; *t && ok; t++) {
+		gchar *trimmed = g_strstrip(*t);
+		if (!*trimmed) continue;
+		flis_layer_t *lay = resolve_layer_arg(trimmed);
+		if (!lay) { ok = FALSE; break; }
+		out = g_slist_append(out, lay);
+	}
+	g_strfreev(toks);
+	if (!ok) { g_slist_free(out); return NULL; }
+	return out;
+}
+
+int process_flis_layers_match(int nb) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_layers_match: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	GSList *subset = NULL;
+	gboolean owned_subset = FALSE;
+	for (int i = 1; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-subset=")) {
+			subset = parse_layer_subset(word[i] + 8);
+			if (!subset) return CMD_ARG_ERROR;
+			owned_subset = TRUE;
+		} else {
+			siril_log_error(_("flis_layers_match: unknown option '%s'\n"), word[i]);
+			if (owned_subset) g_slist_free(subset);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* Snapshot every affected layer for one-step undo. */
+	GSList *snap_target = subset ? subset : com.uniq->layers;
+	if (undo_save_flis_multi_layer(snap_target, _("Layers match"))) {
+		siril_log_warning(_("flis_layers_match: could not save undo state\n"));
+	}
+
+	int ret = flis_background_neutralise_layers(subset);
+	if (owned_subset) g_slist_free(subset);
+
+	if (ret) {
+		siril_log_error(_("flis_layers_match failed\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
+	return CMD_OK;
+}
+
+/* Parse a -interp= argument string into an OpenCV interpolation constant.
+ * Returns -1 on unknown value (caller logs and aborts). */
+static int parse_interp_name(const char *s) {
+	if (!s) return -1;
+	if (!g_ascii_strcasecmp(s, "nearest")) return OPENCV_NEAREST;
+	if (!g_ascii_strcasecmp(s, "linear"))  return OPENCV_LINEAR;
+	if (!g_ascii_strcasecmp(s, "cubic"))   return OPENCV_CUBIC;
+	if (!g_ascii_strcasecmp(s, "area"))    return OPENCV_AREA;
+	if (!g_ascii_strcasecmp(s, "lanczos")) return OPENCV_LANCZOS4;
+	if (!g_ascii_strcasecmp(s, "lanczos4")) return OPENCV_LANCZOS4;
+	return -1;
+}
+
+int process_flis_register_layers(int nb) {
+	if (!is_current_image_flis()) {
+		siril_log_error(_("flis_register_layers: requires a FLIS image\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	flis_layer_t *ref = NULL;
+	opencv_interpolation interp = OPENCV_LANCZOS4;
+	gboolean clamp = TRUE;
+
+	for (int i = 1; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-ref=")) {
+			ref = resolve_layer_arg(word[i] + 5);
+			if (!ref) return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			int v = parse_interp_name(word[i] + 8);
+			if (v < 0) {
+				siril_log_error(_("flis_register_layers: unknown -interp= value '%s'\n"),
+				                word[i] + 8);
+				return CMD_ARG_ERROR;
+			}
+			interp = (opencv_interpolation)v;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else {
+			siril_log_error(_("flis_register_layers: unknown option '%s'\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (g_slist_length(com.uniq->layers) < 2) {
+		siril_log_error(_("flis_register_layers: need at least two layers\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	/* Default reference: the currently active layer. */
+	if (!ref) ref = flis_active_layer();
+
+	/* Snapshot every layer for one-step undo (pixels change). */
+	if (undo_save_flis_multi_layer(com.uniq->layers, _("Register layers"))) {
+		siril_log_warning(_("flis_register_layers: could not save undo state\n"));
+	}
+
+	int ret = flis_register_layers(ref, NULL, interp, clamp);
+	if (ret) {
+		siril_log_error(_("flis_register_layers failed\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	gui_iface.flis_invalidate_composite();
+	gui_iface.flis_gui_update();
 	return CMD_OK;
 }

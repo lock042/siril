@@ -1951,17 +1951,45 @@ gboolean set_GUI_CWD(gpointer user_data) {
 		return FALSE;
 	/* GTK4: gtk_header_bar_set_title / set_subtitle were removed.  The
 	 * replacement is set_title_widget with a custom GtkLabel containing
-	 * markup for the two lines (title + dimmed subtitle). */
+	 * markup for the two lines (title + dimmed subtitle).
+	 *
+	 * For a FLIS image the subtitle becomes "name.flis — layer 'X' [n/N]"
+	 * so the active layer and stack position are visible at a glance.
+	 * For sequence / plain-FITS / no-image we keep the working directory. */
 	GtkHeaderBar *bar = GTK_HEADER_BAR(lookup_widget("headerbar"));
-	gchar *truncated_wd = siril_truncate_str(com.wd, 50);
+	gchar *subtitle = NULL;
+	if (single_image_is_loaded() && is_current_image_flis() && com.uniq) {
+		guint n_layers = g_slist_length(com.uniq->layers);
+		flis_layer_t *active = flis_active_layer();
+		const gchar *basename = NULL;
+		gchar *bn = NULL;
+		if (com.uniq->filename && *com.uniq->filename) {
+			bn = g_path_get_basename(com.uniq->filename);
+			basename = bn;
+		} else {
+			basename = _("(untitled FLIS)");
+		}
+		if (active && n_layers > 0) {
+			subtitle = g_strdup_printf(
+				"%s — layer '%s' [%d/%u]",
+				basename,
+				active->layer_name ? active->layer_name : "?",
+				com.uniq->active_layer + 1, n_layers);
+		} else {
+			subtitle = g_strdup_printf("%s — FLIS", basename);
+		}
+		g_free(bn);
+	}
+	if (!subtitle)
+		subtitle = siril_truncate_str(com.wd, 50);
 	gchar *markup = g_markup_printf_escaped(
-		"<b>Siril-%s</b>\n<small>%s</small>", VERSION, truncated_wd);
+		"<b>Siril-%s</b>\n<small>%s</small>", VERSION, subtitle);
 	GtkWidget *title = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(title), markup);
 	gtk_label_set_justify(GTK_LABEL(title), GTK_JUSTIFY_CENTER);
 	gtk_header_bar_set_title_widget(bar, title);
 	g_free(markup);
-	g_free(truncated_wd);
+	g_free(subtitle);
 	return FALSE;
 }
 

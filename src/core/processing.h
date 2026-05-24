@@ -195,6 +195,13 @@ struct generic_img_args {
 	 * rwlock is held) instead of in the idle function, keeping gfit reads on the
 	 * processing thread. */
 	gboolean populate_roi_on_complete;
+	/* When TRUE, this op resizes / rotates / mirrors the layer fit, so when
+	 * a FLIS is loaded the worker routes the undo entry through
+	 * undo_save_flis_layer_full (which captures pixels + pmask + lmask + props
+	 * for the active layer together) instead of the plain undo_save_state.
+	 * Each geometry image_hook is responsible for calling the corresponding
+	 * flis_update_layer_offset_after_* helper itself. */
+	gboolean geometry_changing;
 };
 
 struct generic_mask_args {
@@ -217,6 +224,12 @@ struct generic_mask_args {
 	gpointer user;
 	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
 	int max_threads; // number of threads to use for the operation
+	/* FLIS lmask routing: when non-zero the mask produced by mask_hook is
+	 * moved from args->fit->mask onto the layer with this stable item_id
+	 * (set via flis_layer_set_lmask) instead of being left as gfit's
+	 * processing mask.  Validated against the target layer's pixel
+	 * dimensions in generic_mask_worker.  0 = no routing (default). */
+	gint target_layer_id;
 };
 
 void free_generic_img_args(struct generic_img_args *args);

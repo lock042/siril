@@ -119,8 +119,12 @@ void free_image_data() {
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
 
-	if (!com.headless)
+	if (!com.headless) {
 		gui_iface.on_image_closed();
+		/* Refresh the layers panel and the header bar title (set_GUI_CWD via
+		 * the flis_gui idle), so closing a FLIS clears both. */
+		gui_iface.flis_gui_update();
+	}
 	clearfits(gfit);
 	siril_log_debug("free_image_data() complete\n");
 }
@@ -528,9 +532,19 @@ void notify_gfit_data_modified() {
 		/* Update hi/lo display range BEFORE remapping so the first rendered frame
 		 * of a new image uses the correct stretch (not stale values from the
 		 * previously displayed image).  In USER slider mode this is a no-op, so
-		 * manually-set slider values are preserved. */
+		 * manually-set slider values are preserved.
+		 *
+		 * Skip the call entirely when the user is in MIPSLOHI but the active
+		 * layer has no MIPS-HI keyword (common for FLIS layers added from
+		 * stacker output that doesn't carry MIPS-HI): init would silently
+		 * fall through to its MINMAX branch and rewrite gui.sliders to MINMAX
+		 * behind the user's back, leaving the display "too dark" because the
+		 * LUT range widens to the full pixel min/max.  The user's existing
+		 * gui.lo/hi remain valid for the active layer's pixel data. */
 		g_mutex_lock(&com.mutex);
-		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
+		sliders_mode sm = (sliders_mode)gui_iface.get_sliders_mode();
+		if (!(sm == MIPSLOHI && gfit->keywords.hi == 0))
+			init_layers_hi_and_lo_values(sm);
 		g_mutex_unlock(&com.mutex);
 		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 	}
