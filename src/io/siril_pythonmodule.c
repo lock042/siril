@@ -66,9 +66,15 @@
 
 #ifdef _WIN32
 #define PYTHON_EXE "python.exe"
+#define UV_EXE "uv.exe"
 #else
 #define PYTHON_EXE "python3"
+#define UV_EXE "uv"
 #endif
+
+// Minimum uv version that supports the features we rely on
+// (--seed, --python <interpreter>, and stable PEP 723 handling).
+#define UV_MINIMUM_VERSION "0.5.0"
 
 #define MODULE_DIR "python_module"
 // Statics
@@ -77,6 +83,31 @@
 static void cleanup_connection(Connection *conn);
 static gboolean wait_for_client(Connection *conn);
 static gboolean handle_client_communication(Connection *conn);
+static gchar *find_uv_executable(GError **error);
+static gboolean validate_uv_version(const gchar *uv_path,
+                                    const gchar *min_version,
+                                    GError **error);
+static void probe_uv_executable(void);
+static const gchar *get_uv_executable_path(void);
+static void clear_uv_state(void);
+static gchar *get_uv_managed_python_token(void);
+static void inject_uv_env(gchar ***env, const gchar *project_path);
+static gboolean install_or_update_sirilpy_module(const gchar *module_path,
+                                                 const gchar *user_module_path,
+                                                 const gchar *venv_path,
+                                                 const gchar *project_path,
+                                                 GError **error);
+
+// Cached uv path. NULL when uv is not in use (either the SIRIL_USE_UV gate is
+// off, uv was not found, or the discovered uv was too old). Set by
+// probe_uv_executable(), cleared by rebuild_venv(). Owned by this TU.
+//
+// All access is serialised through g_uv_mutex. In practice the path is set
+// once on the init thread and read by venv operations that follow on the
+// same thread; the mutex defends against rebuild_venv() racing with future
+// callers.
+static gchar *g_uv_path = NULL;
+static GMutex g_uv_mutex;
 
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
 	ResponseHeader header = {
@@ -1915,6 +1946,214 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 	return python_exe;
 }
 
+// Locate the uv executable.
+//
+// Resolution order (per uv-conversion-plan.md §4.1):
+//   1. SIRIL_UV env var (full path; debug/override).
+//   2. <bundle>/bin/uv[.exe] on Windows (we ship uv there).
+//      macOS falls through to step 3: the launcher prepends the bundled
+//      bin dir to PATH and get_siril_bundle_path() is _WIN32-only here.
+//   3. g_find_program_in_path() (Linux / Flatpak / AppImage / macOS bundle).
+//   4. NULL with *error set; caller falls back to the legacy pip path.
+static gchar *find_uv_executable(GError **error) {
+	const gchar *override = g_getenv("SIRIL_UV");
+	if (override && *override) {
+		if (g_file_test(override, G_FILE_TEST_IS_EXECUTABLE)) {
+			siril_log_debug("Using uv from SIRIL_UV: %s\n", override);
+			return g_strdup(override);
+		}
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+				"SIRIL_UV points to '%s' but it is not executable",
+				override);
+		return NULL;
+	}
+
+#ifdef _WIN32
+	gchar *bundle_root = get_siril_bundle_path();
+	if (bundle_root) {
+		gchar *bundled = g_build_filename(bundle_root, "bin", UV_EXE, NULL);
+		g_free(bundle_root);
+		if (g_file_test(bundled, G_FILE_TEST_IS_EXECUTABLE)) {
+			siril_log_debug("Using bundled uv: %s\n", bundled);
+			return bundled;
+		}
+		g_free(bundled);
+	}
+#endif
+
+	gchar *on_path = g_find_program_in_path(UV_EXE);
+	if (on_path) {
+		siril_log_debug("Using uv from PATH: %s\n", on_path);
+		return on_path;
+	}
+
+	g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+			"uv executable not found");
+	return NULL;
+}
+
+// Run `uv --version` and confirm the parsed version is >= min_version.
+// On success returns TRUE; on failure returns FALSE with *error set.
+static gboolean validate_uv_version(const gchar *uv_path,
+                                    const gchar *min_version,
+                                    GError **error) {
+	g_return_val_if_fail(uv_path != NULL, FALSE);
+	g_return_val_if_fail(min_version != NULL, FALSE);
+
+	gchar *argv[] = { (gchar *)uv_path, "--version", NULL };
+	gchar *stdout_data = NULL;
+	gchar *stderr_data = NULL;
+	gint exit_status = 0;
+	GError *spawn_error = NULL;
+
+	if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_DEFAULT,
+			NULL, NULL,
+			&stdout_data, &stderr_data,
+			&exit_status, &spawn_error)) {
+		g_propagate_prefixed_error(error, spawn_error,
+				"Failed to execute uv: ");
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_wait_status(exit_status, &spawn_error)) {
+		g_propagate_prefixed_error(error, spawn_error,
+				"uv --version exited with error: ");
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return FALSE;
+	}
+
+	// Expected output format: "uv 0.5.11" (possibly followed by build metadata).
+	gboolean ok = FALSE;
+	if (stdout_data) {
+		gchar **tokens = g_strsplit_set(g_strstrip(stdout_data), " \t\n", -1);
+		if (tokens && tokens[0] && tokens[1]) {
+			version_number installed = get_version_number_from_string(tokens[1]);
+			version_number minimum = get_version_number_from_string(min_version);
+			if (compare_version(installed, minimum) >= 0) {
+				siril_log_debug("uv version %s satisfies minimum %s\n",
+						tokens[1], min_version);
+				ok = TRUE;
+			} else {
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+						"uv version %s is older than required minimum %s",
+						tokens[1], min_version);
+			}
+		} else {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Could not parse uv version from output: '%s'",
+					stdout_data);
+		}
+		g_strfreev(tokens);
+	} else {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv --version produced no output");
+	}
+
+	g_free(stdout_data);
+	g_free(stderr_data);
+	return ok;
+}
+
+// Probe for uv and cache the result. Gated on SIRIL_USE_UV=1 so default
+// behaviour is unchanged until callers opt in. On success g_uv_path holds
+// the absolute path; on failure g_uv_path is NULL and the legacy pip path
+// is used.
+//
+// Safe to call repeatedly; each call resets state and re-probes (so that
+// rebuild_venv() picks up a freshly installed uv).
+static void probe_uv_executable(void) {
+	clear_uv_state();
+
+	const gchar *gate = g_getenv("SIRIL_USE_UV");
+	if (!gate || g_strcmp0(gate, "1") != 0)
+		return;
+
+	GError *error = NULL;
+	gchar *uv = find_uv_executable(&error);
+	if (!uv) {
+		siril_log_message(_("SIRIL_USE_UV is set but uv was not found: %s. "
+				"Legacy pip path will be used.\n"),
+				error ? error->message : "unknown");
+		g_clear_error(&error);
+		return;
+	}
+
+	if (!validate_uv_version(uv, UV_MINIMUM_VERSION, &error)) {
+		siril_log_warning(_("Found uv at %s but it is unusable: %s. "
+				"Legacy pip path will be used.\n"),
+				uv, error ? error->message : "unknown");
+		g_clear_error(&error);
+		g_free(uv);
+		return;
+	}
+
+	siril_log_message(_("uv discovered: %s (>= minimum %s).\n"),
+			uv, UV_MINIMUM_VERSION);
+
+	g_mutex_lock(&g_uv_mutex);
+	g_uv_path = uv;  // ownership transferred to the static
+	g_mutex_unlock(&g_uv_mutex);
+}
+
+// Returns the cached uv executable path, or NULL if uv is not in use.
+// The returned pointer is valid until the next clear_uv_state() /
+// probe_uv_executable() call; callers must not free it.
+static const gchar *get_uv_executable_path(void) {
+	g_mutex_lock(&g_uv_mutex);
+	const gchar *p = g_uv_path;
+	g_mutex_unlock(&g_uv_mutex);
+	return p;
+}
+
+// Drop the cached uv path. Called from rebuild_venv() so that a subsequent
+// initialize_python_venv() re-probes (allowing the user to install/uninstall
+// uv on the side and have the change picked up).
+static void clear_uv_state(void) {
+	g_mutex_lock(&g_uv_mutex);
+	g_free(g_uv_path);
+	g_uv_path = NULL;
+	g_mutex_unlock(&g_uv_mutex);
+}
+
+// §4.4: when the user opts in to uv-managed Python (SIRIL_UV_MANAGED_PYTHON=1),
+// return a version token suitable for `uv venv --python <token>`. uv will
+// fetch and install the toolchain on demand, sidestepping distro python3-venv
+// / ensurepip pain. Returns NULL when opt-out; caller frees on non-NULL.
+//
+// Phase 0 wiring: env-var gated, no preference UI yet (§4.4 plan checklist:
+// "Preference added" remains unticked until the prefs panel work lands).
+static gchar *get_uv_managed_python_token(void) {
+	const gchar *gate = g_getenv("SIRIL_UV_MANAGED_PYTHON");
+	if (!gate || g_strcmp0(gate, "1") != 0)
+		return NULL;
+	// Pin to a known-good Python series. Bump in lock-step with our minimum
+	// supported sirilpy interpreter (currently 3.9 per pyproject.toml).
+	return g_strdup("3.12");
+}
+
+// Set uv-specific environment variables on a g_get_environ()-style env array.
+// Pins UV_CACHE_DIR to project_path/uv-cache so that hardlink dedup stays on
+// the same volume as the venvs (critical on Windows multi-drive layouts).
+// Sets UV_PYTHON_INSTALL_DIR when managed Python is on so the downloaded
+// toolchain lives next to the rest of the Siril Python data.
+static void inject_uv_env(gchar ***env, const gchar *project_path) {
+	gchar *cache_dir = g_build_filename(project_path, "uv-cache", NULL);
+	*env = g_environ_setenv(*env, "UV_CACHE_DIR", cache_dir, TRUE);
+	*env = g_environ_setenv(*env, "UV_NO_PROGRESS", "1", TRUE);
+	g_free(cache_dir);
+
+	const gchar *managed_gate = g_getenv("SIRIL_UV_MANAGED_PYTHON");
+	if (managed_gate && g_strcmp0(managed_gate, "1") == 0) {
+		gchar *python_install_dir = g_build_filename(project_path, "python", NULL);
+		*env = g_environ_setenv(*env, "UV_PYTHON_INSTALL_DIR",
+				python_install_dir, TRUE);
+		g_free(python_install_dir);
+	}
+}
+
 static gchar* get_setup_path(const gchar* module_dir) {
 	return g_build_filename(module_dir, "pyproject.toml", NULL);
 }
@@ -2575,6 +2814,217 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	return TRUE;
 }
 
+// Query the installed sirilpy version via `uv pip show --python <venv_python>
+// sirilpy`. The output format is the standard `Name:/Version:/...` form that
+// pip produces, so we reuse the same Version: regex used by the legacy
+// helper. On any error returns a zero-init version_number with *error set.
+static version_number uv_get_installed_module_version(const gchar *uv_path,
+                                                     const gchar *venv_python,
+                                                     const gchar *project_path,
+                                                     GError **error) {
+	version_number ver = { 0 };
+	gchar *argv[] = {
+		(gchar *)uv_path, "pip", "show",
+		"--python", (gchar *)venv_python,
+		"sirilpy", NULL
+	};
+
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+
+	gchar *stdout_data = NULL;
+	gchar *stderr_data = NULL;
+	gint exit_status = 0;
+	GError *spawn_error = NULL;
+
+	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL,
+			&stdout_data, &stderr_data,
+			&exit_status, &spawn_error);
+	g_strfreev(env);
+
+	if (!spawned) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to execute uv: %s",
+				spawn_error ? spawn_error->message : "Unknown error");
+		g_clear_error(&spawn_error);
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return ver;
+	}
+
+	if (exit_status != 0) {
+		// Treat "package not installed" as a non-error: caller compares
+		// against ver={0,0,0} and triggers an install.
+		siril_log_debug("uv pip show sirilpy: not installed (exit=%d)\n",
+				exit_status);
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return ver;
+	}
+
+	GRegex *regex = g_regex_new("^Version:\\s*([^\\s]+)",
+			G_REGEX_MULTILINE, 0, error);
+	if (!regex) {
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return ver;
+	}
+
+	GMatchInfo *match = NULL;
+	if (g_regex_match(regex, stdout_data, 0, &match)) {
+		gchar *version_str = g_match_info_fetch(match, 1);
+		if (version_str)
+			ver = get_version_number_from_string(version_str);
+		g_free(version_str);
+	} else {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Version number not found in uv pip show output");
+	}
+	g_match_info_free(match);
+	g_regex_unref(regex);
+	g_free(stdout_data);
+	g_free(stderr_data);
+	return ver;
+}
+
+// uv-backed sirilpy install. Equivalent to install_module_with_pip but:
+//   - no retry loop (uv handles network retries internally);
+//   - no atomic-rename temp-dir dance (uv pip install writes atomically and
+//     takes a process-wide lock around the cache);
+//   - no string-matching on stderr for retry/fatal classification;
+//   - upgrade and downgrade are both expressed as a single
+//     `uv pip install --reinstall-package sirilpy <module_path>` call.
+//
+// The legacy user_module_path marker dir is no longer needed (uv operates
+// directly on <module_path>) but the parameter is kept so the dispatcher
+// has one signature.
+static gboolean uv_install_sirilpy(const gchar *module_path,
+                                   const gchar *user_module_path,
+                                   const gchar *venv_path,
+                                   const gchar *uv_path,
+                                   const gchar *project_path,
+                                   GError **error) {
+	(void)user_module_path;  // intentionally unused; see comment above
+
+	g_return_val_if_fail(module_path != NULL, FALSE);
+	g_return_val_if_fail(venv_path != NULL, FALSE);
+	g_return_val_if_fail(uv_path != NULL, FALSE);
+
+	gchar *venv_python = find_venv_python_exe(venv_path, TRUE);
+	if (!venv_python) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+				"venv python not found at %s", venv_path);
+		return FALSE;
+	}
+
+	GError *modver_error = NULL;
+	gchar *setup_path = get_setup_path(module_path);
+	version_number module_version = get_module_version(setup_path, &modver_error);
+	g_free(setup_path);
+	if (modver_error) {
+		g_propagate_error(error, modver_error);
+		g_free(venv_python);
+		return FALSE;
+	}
+
+	GError *ver_error = NULL;
+	version_number installed_version = uv_get_installed_module_version(
+			uv_path, venv_python, project_path, &ver_error);
+	if (ver_error) {
+		// `uv pip show` exits 0 even when the package is missing (the
+		// "Package(s) not found" message goes to stderr). We end up here
+		// via the regex-miss path, which is exactly how we detect a
+		// not-yet-installed sirilpy. Treat as harmless and proceed to
+		// install.
+		siril_log_debug("uv pip show sirilpy: not yet installed (%s)\n",
+				ver_error->message);
+		g_clear_error(&ver_error);
+	}
+
+	siril_log_debug("Installed sirilpy: %u.%u.%u, on-disk: %u.%u.%u\n",
+			installed_version.major_version,
+			installed_version.minor_version,
+			installed_version.micro_version,
+			module_version.major_version,
+			module_version.minor_version,
+			module_version.micro_version);
+
+	if (compare_version(module_version, installed_version) == 0
+			&& installed_version.major_version + installed_version.minor_version
+				+ installed_version.micro_version > 0) {
+		siril_log_debug("uv: sirilpy already at target version, skipping install\n");
+		memcpy(&com.python_version, &module_version, sizeof(version_number));
+		g_free(venv_python);
+		return TRUE;
+	}
+
+	siril_log_message(_("Installing / updating Siril python module with uv...\n"));
+
+	gchar *argv[] = {
+		(gchar *)uv_path, "pip", "install",
+		"--python", venv_python,
+		"--reinstall-package", "sirilpy",
+		(gchar *)module_path,
+		NULL
+	};
+
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+
+	gchar *std_out = NULL;
+	gchar *std_err = NULL;
+	gint exit_status = 0;
+	GError *spawn_err = NULL;
+	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL,
+			&std_out, &std_err,
+			&exit_status, &spawn_err);
+	g_strfreev(env);
+	g_free(venv_python);
+
+	if (!spawned) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to spawn uv: %s",
+				spawn_err ? spawn_err->message : "unknown");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv pip install failed: %s%s%s",
+				spawn_err ? spawn_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "",
+				std_err ? std_err : "");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	g_free(std_out);
+	g_free(std_err);
+	memcpy(&com.python_version, &module_version, sizeof(version_number));
+	return TRUE;
+}
+
+// Dispatcher: pick uv or legacy pip based on whether uv is in use.
+static gboolean install_or_update_sirilpy_module(const gchar *module_path,
+                                                 const gchar *user_module_path,
+                                                 const gchar *venv_path,
+                                                 const gchar *project_path,
+                                                 GError **error) {
+	const gchar *uv_path = get_uv_executable_path();
+	if (uv_path)
+		return uv_install_sirilpy(module_path, user_module_path, venv_path,
+				uv_path, project_path, error);
+	return install_module_with_pip(module_path, user_module_path,
+			venv_path, error);
+}
+
 gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
@@ -2663,12 +3113,15 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 	g_hash_table_remove(info->env_vars, "PYTHONHOME");
 
 	// Check the sirilpy python module is the latest version and install or
-	// update it using the venv pip if not.
+	// update it using the venv pip (or uv pip) if not.
 	siril_log_message(_("Checking the python module is up-to-date...\n"));
 	gchar *module_path = g_build_filename(siril_get_system_data_dir(), MODULE_DIR, NULL);
 	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
+	gchar *project_path = g_path_get_dirname(venv_path);
 	GError *install_error = NULL;
-	if (!install_module_with_pip(module_path, user_module_path, venv_path, &install_error)) {
+	if (!install_or_update_sirilpy_module(module_path, user_module_path,
+			venv_path, project_path, &install_error)) {
+		g_free(project_path);
 		siril_log_warning(_("Warning: unable to install or update the "
 					"Siril python module.\n"));
 		g_warning("Failed to install Python module: %s",
@@ -2681,6 +3134,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 		g_clear_error(&install_error);
 		goto cleanup;
 	} else {
+		g_free(project_path);
 		siril_log_info(_("Python module is up-to-date\n"));
 		get_python_magic_number(com.python_magic, 9);
 		// this repopulates gui.repo_scripts and updates the script menu
@@ -2736,11 +3190,162 @@ void rebuild_venv() {
 		siril_log_error(error2->message);
 		g_error_free(error2);
 	}
+	// Force a re-probe on next init so uv install/uninstall on the side
+	// is picked up.
+	clear_uv_state();
 	initialize_python_venv_in_thread();
 }
 
-// Updated check_or_create_venv function with health validation
-static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
+// Resolve the Python interpreter we will hand to `uv venv --python`.
+//
+// Order of preference:
+//   1. SIRIL_UV_MANAGED_PYTHON=1 → a version token (e.g. "3.12") that uv
+//      will resolve against its own toolchain, downloading if necessary
+//      (see §4.4). Returns immediately without touching the filesystem.
+//   2. Windows: bundled python under <bundle>/python/.
+//   3. Anything else: PATH lookup (the macOS bundle launcher prepends its
+//      bin dir to PATH; get_siril_bundle_path() is _WIN32-only here).
+//
+// Returns NULL with *error set if nothing usable is found. Caller frees.
+static gchar *resolve_system_python_for_uv(GError **error) {
+	gchar *managed = get_uv_managed_python_token();
+	if (managed)
+		return managed;
+
+#ifdef _WIN32
+	gchar *bundle_root = get_siril_bundle_path();
+	if (bundle_root) {
+		gchar *bundle_python = g_build_filename(bundle_root, "python", PYTHON_EXE, NULL);
+		g_free(bundle_root);
+		if (g_file_test(bundle_python, G_FILE_TEST_IS_EXECUTABLE))
+			return bundle_python;
+		g_free(bundle_python);
+	}
+#endif
+	gchar *on_path = g_find_program_in_path(PYTHON_EXE);
+	if (on_path)
+		return on_path;
+
+	g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+			"No Python interpreter found in bundle or on PATH");
+	return NULL;
+}
+
+// Create / validate the base venv using uv. Equivalent to the legacy
+// `python -m venv <path>` flow but driven by `uv venv --python <python>
+// --seed <venv_path>`. The --seed flag installs pip into the venv so that
+// scripts which still shell out to pip directly keep working during the
+// transition.
+//
+// UV_CACHE_DIR is pinned to <project_path>/uv-cache to ensure the wheel
+// cache lives on the same volume as the venvs (critical on Windows for
+// hardlink dedup — see uv-conversion-plan.md §6.3 / §3.1).
+//
+// uv_path is the result of get_uv_executable_path(); caller has already
+// validated that it is non-NULL and the version is acceptable.
+static gboolean uv_create_or_check_base_venv(const gchar *project_path,
+                                             const gchar *uv_path,
+                                             GError **error) {
+	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+	siril_log_debug("uv venv path: %s\n", venv_path);
+
+	// If a usable venv already exists, keep it.
+	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
+	if (python_exe) {
+		GError *health_error = NULL;
+		if (validate_venv_health(venv_path, &health_error)) {
+			siril_log_debug("uv: existing venv is healthy\n");
+			g_free(python_exe);
+			g_free(venv_path);
+			return TRUE;
+		}
+		siril_log_warning(_("Virtual environment health check failed: %s\n"),
+				health_error ? health_error->message : "unknown error");
+		siril_log_message(_("Venv exists but is unhealthy. Recreating with uv...\n"));
+		g_clear_error(&health_error);
+
+		GError *del_error = NULL;
+		if (!delete_directory(venv_path, &del_error)) {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Failed to remove unhealthy venv: %s",
+					del_error ? del_error->message : "unknown error");
+			g_clear_error(&del_error);
+			g_free(python_exe);
+			g_free(venv_path);
+			return FALSE;
+		}
+		g_free(python_exe);
+	}
+
+	GError *local_error = NULL;
+	gchar *sys_python = resolve_system_python_for_uv(&local_error);
+	if (!sys_python) {
+		g_propagate_error(error, local_error);
+		g_free(venv_path);
+		return FALSE;
+	}
+
+	gchar *argv[] = {
+		(gchar *)uv_path,
+		"venv",
+		"--python", sys_python,
+		"--seed",
+		venv_path,
+		NULL
+	};
+
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+
+	siril_log_message(_("Creating Python virtual environment with uv: %s\n"),
+			venv_path);
+	siril_log_debug("uv venv command: %s venv --python %s --seed %s\n",
+			uv_path, sys_python, venv_path);
+
+	gchar *std_out = NULL;
+	gchar *std_err = NULL;
+	gint exit_status = 0;
+	GError *spawn_err = NULL;
+	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL,
+			&std_out, &std_err,
+			&exit_status, &spawn_err);
+	g_strfreev(env);
+	g_free(sys_python);
+
+	if (!spawned) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to spawn uv: %s",
+				spawn_err ? spawn_err->message : "unknown error");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		g_free(venv_path);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv venv failed: %s%s%s",
+				spawn_err ? spawn_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "",
+				std_err ? std_err : "");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		g_free(venv_path);
+		return FALSE;
+	}
+
+	g_free(std_out);
+	g_free(std_err);
+	g_free(venv_path);
+	return TRUE;
+}
+
+// Legacy `python -m venv` path. Kept for fallback when uv is not in use
+// (either SIRIL_USE_UV gate off, uv not installed, or uv too old).
+static gboolean legacy_check_or_create_venv(const gchar *project_path, GError **error) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	siril_log_debug("venv path: %s\n", venv_path);
 
@@ -2928,6 +3533,16 @@ cleanup:
 	return success;
 }
 
+// Dispatcher: route to the uv-backed implementation when uv is in use,
+// otherwise to the legacy `python -m venv` path. Callers (initialize_python_venv)
+// see no signature change.
+static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
+	const gchar *uv_path = get_uv_executable_path();
+	if (uv_path)
+		return uv_create_or_check_base_venv(project_path, uv_path, error);
+	return legacy_check_or_create_venv(project_path, error);
+}
+
 static void execute_startup_scripts(void) {
 	if (!com.pref.startup_scripts)
 		return;
@@ -2977,6 +3592,10 @@ gboolean python_venv_idle(gpointer user_data) {
 static gpointer initialize_python_venv(gpointer user_data) {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+
+	// Phase 0: probe for uv (no-op unless SIRIL_USE_UV=1). Logs only;
+	// venv setup below still uses the legacy pip path.
+	probe_uv_executable();
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
