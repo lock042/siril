@@ -2855,8 +2855,11 @@ static version_number uv_get_installed_module_version(const gchar *uv_path,
 
 	if (exit_status != 0) {
 		// Treat "package not installed" as a non-error: caller compares
-		// against ver={0,0,0} and triggers an install.
-		siril_log_debug("uv pip show sirilpy: not installed (exit=%d)\n",
+		// against ver={0,0,0} and triggers an install. exit_status is the
+		// raw waitpid status; on Unix the real exit code is in
+		// WEXITSTATUS() but on Windows it is the value directly. Log the
+		// raw status; precise interpretation isn't needed here.
+		siril_log_debug("uv pip show sirilpy: not installed (status=%d)\n",
 				exit_status);
 		g_free(stdout_data);
 		g_free(stderr_data);
@@ -3126,8 +3129,10 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 					"Siril python module.\n"));
 		g_warning("Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
-		g_error_free(install_error);
-		// This is a critical failure - propagate it
+		// Pre-existing bug fixed in passing: the previous code freed
+		// install_error here and then read ->message in the next
+		// g_set_error call, which was a use-after-free. We now defer
+		// the free to g_clear_error() after the propagation.
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");

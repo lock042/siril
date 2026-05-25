@@ -218,6 +218,13 @@ static void siril_app_activate(GApplication *application) {
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
 
+	/* Kick off Python venv initialisation BEFORE running any script, so a
+	 * `pyscript` command inside an SSF script (or any command sent via the
+	 * pipe interface) can join the init thread instead of failing with
+	 * "python not ready yet". The init runs concurrently with script
+	 * execution; the join happens lazily inside execute_python_script(). */
+	initialize_python_venv_in_thread();
+
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
 
@@ -249,7 +256,6 @@ static void siril_app_activate(GApplication *application) {
 		read_pipe(main_option_rpipe_path);
 	}
 
-	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
 	if (main_option_sync_spcc) {
