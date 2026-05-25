@@ -2995,23 +2995,8 @@ class SirilInterface:
         if response is None:
             return None
         try:
-            format_string = '!q2d'
-
-            fixed_length = struct.calcsize(format_string)
-            values = struct.unpack(format_string, response[:fixed_length])
-            # Extract remaining bytes for the null-terminated string
-            if len(response) > fixed_length:
-                remaining_data = response[fixed_length:]
-                distofilename_string = remaining_data.decode('utf-8').rstrip('\x00')
-            else:
-                distofilename_string = ''
-
-            return DistoData (
-                index = values[0],
-                velocity = (values[1], values[2]),
-                filename = distofilename_string
-            )
-        except struct.error as e:
+            return DistoData.deserialize(response)
+        except (struct.error, ValueError) as e:
             raise SirilError(f"Error in get_seq_distodata(): {e}") from e
 
     def get_seq(self) -> Optional[Sequence]:

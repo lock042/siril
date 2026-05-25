@@ -1079,9 +1079,10 @@ class ImgData:
             ValueError: If received data size is incorrect.
             struct.error: If unpacking fails.
         """
-        format_string = '!3qd2q'
+        # Native widths (mirrors imgdata_to_py in C): 4 int32 + 1 int64
+        # (unix timestamp) + 1 double = 32 bytes.
+        format_string = '=iiqdii'
 
-        # Verify data size
         expected_size = struct.calcsize(format_string)
         if len(response) != expected_size:
             raise ValueError(
@@ -1089,12 +1090,10 @@ class ImgData:
             )
 
         try:
-            # Unpack the binary data
             values = struct.unpack(format_string, response)
-
             return cls(
                 filenum=values[0],
-                incl=values[1],
+                incl=bool(values[1]),
                 date_obs=datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
                 airmass=values[3],
                 rx=values[4],
@@ -1109,6 +1108,36 @@ class DistoData:
     index: DistoType = DistoType.DISTO_UNDEF #: Specifies the distrosion type
     filename: str = ""                     #: filename if DISTO_FILE or DISTO_MASTER (and optional for DISTO_FILE_COMET)
     velocity: Tuple[float, float] = (0, 0) #: shift velocity if DISTO_FILE_COMET
+
+    # Fixed-header wire format mirrors distodata_to_py() in C: 1 int32
+    # (disto_source enum) + 2 floats (pointf velocity) = 12 bytes. The
+    # filename follows as a NUL-terminated UTF-8 string.
+    _HEAD_FORMAT: ClassVar[str] = '=iff'
+    _HEAD_SIZE: ClassVar[int] = struct.calcsize('=iff')
+
+    def serialize(self) -> bytes:
+        """Pack into the wire format used by distodata_to_py()."""
+        filename_bytes = self.filename.encode('utf-8') + b'\x00' if self.filename else b''
+        return struct.pack(
+            self._HEAD_FORMAT,
+            int(self.index),
+            float(self.velocity[0]),
+            float(self.velocity[1]),
+        ) + filename_bytes
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'DistoData':
+        """Decode the distodata_to_py wire format (12-byte head + optional NUL-terminated filename)."""
+        if len(data) < cls._HEAD_SIZE:
+            raise ValueError(
+                f"DistoData wire size {len(data)} smaller than header {cls._HEAD_SIZE}"
+            )
+        index, vx, vy = struct.unpack(cls._HEAD_FORMAT, data[:cls._HEAD_SIZE])
+        if len(data) > cls._HEAD_SIZE:
+            filename = data[cls._HEAD_SIZE:].decode('utf-8').rstrip('\x00')
+        else:
+            filename = ''
+        return cls(index=DistoType(index), filename=filename, velocity=(vx, vy))
 
     def __str__(self):
         """For pretty-printing distortion information"""

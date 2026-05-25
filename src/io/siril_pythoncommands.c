@@ -285,13 +285,15 @@ static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr, size_t max
 
 	unsigned char *start_ptr = ptr;
 
+	// Native widths: 4 int32 + 1 int64 (unix timestamp) + 1 double
+	// = 32 bytes. Mirrors ImgData.deserialize() in sirilpy/models.py.
 	int64_t date_obs_ts = imgparam->date_obs ? g_date_time_to_unix(imgparam->date_obs) : 0;
-	COPY_FIELD((int64_t) imgparam->filenum, int64_t);
-	COPY_FIELD((int64_t) imgparam->incl, int64_t);
-	COPY_FIELD((int64_t) date_obs_ts, int64_t);
-	COPY_FIELD((double) imgparam->airmass, double);
-	COPY_FIELD((int64_t) imgparam->rx, int64_t);
-	COPY_FIELD((int64_t) imgparam->ry, int64_t);
+	COPY_FIELD(imgparam->filenum, int);                // int32
+	COPY_FIELD((int32_t) imgparam->incl, int32_t);     // gboolean → int32 (truncate; only 0/1)
+	COPY_FIELD(date_obs_ts, int64_t);                  // unix ts: int64
+	COPY_FIELD(imgparam->airmass, double);
+	COPY_FIELD(imgparam->rx, int);                     // int32
+	COPY_FIELD(imgparam->ry, int);                     // int32
 	return 0;
 }
 
@@ -417,9 +419,12 @@ static int distodata_to_py(const disto_params *disto, unsigned char* ptr, size_t
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_FIELD((int64_t) disto->index, int64_t);
-	COPY_FIELD((double) disto->velocity.x, double);
-	COPY_FIELD((double) disto->velocity.y, double);
+	// Native widths: 1 int32 (disto_source enum) + 2 floats
+	// (pointf velocity x/y) + filename string. Mirrors
+	// DistoData.deserialize() in sirilpy/models.py.
+	COPY_FIELD((int32_t) disto->index, int32_t);  // enum → int32
+	COPY_FIELD(disto->velocity.x, float);
+	COPY_FIELD(disto->velocity.y, float);
 	if (disto->filename)
 		COPY_STRING(disto->filename);
 	return 0;
@@ -1695,8 +1700,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			// Calculate size needed for response
-			size_t total_size = 6 * sizeof(double);
+			// ImgData payload at native widths (mirrors imgdata_to_py):
+			// 4 int32 + 1 int64 + 1 double = 32 bytes.
+			size_t total_size = 4 * sizeof(int32_t) + sizeof(int64_t) + sizeof(double);
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
@@ -2575,7 +2581,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t stringsize = 0;
 			if (com.seq.distoparam[chan].filename)
 				stringsize = strlen(com.seq.distoparam[chan].filename) + 1;
-			size_t varsize = sizeof(int64_t) + 2 * sizeof(double);
+			// DistoData fixed header at native widths (mirrors
+			// distodata_to_py): 1 int32 + 2 floats = 12 bytes.
+			size_t varsize = sizeof(int32_t) + 2 * sizeof(float);
 			size_t total_size = varsize + stringsize;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
