@@ -620,11 +620,64 @@ series easy to review:
 
 ## 5. Python-side changes (`python_module/sirilpy/`)
 
+### 5.0 Backwards-compatibility constraint (NEW)
+
+This MR ships in Siril 1.5. Siril 1.4 (already released, still in
+use) ships an older sirilpy. **All Python-side changes must be
+additive: existing function signatures and behaviour are
+preserved**, so scripts that work today against Siril 1.4 continue
+to work unchanged against Siril 1.5.
+
+Concretely:
+
+* `python_module/pyproject.toml` version bumps from
+  **1.1.12 → 1.1.13** (micro-version; the existing
+  `sirilpy.utility.check_module_version()` reads this string).
+* All new public symbols (`pip_show`, `pip_list`, `pip_uninstall`,
+  `declare_dependencies`) are added without modifying existing
+  ones.
+* Internal rewires (e.g. routing `_install_package()` through uv
+  when present) are invisible to script authors — public API
+  unchanged.
+
+Any script change in the siril-scripts repository (notably
+`GPU_Manager.py`, §13) that *uses* a 1.1.13+ symbol MUST gate the
+call so the same file still imports cleanly on Siril 1.4. The
+idiomatic gates:
+
+```python
+# Version-string gate (preferred — matches existing sirilpy idiom)
+import sirilpy as s
+if s.utility.check_module_version(">=1.1.13"):
+    s.utility.pip_show("torch")
+else:
+    subprocess.run([sys.executable, "-m", "pip", "show", "torch"], ...)
+
+# Duck-typing gate (also fine; useful when adding many calls)
+if hasattr(s.utility, "pip_show"):
+    s.utility.pip_show("torch")
+else:
+    subprocess.run(...)
+```
+
+An unconditional call to a 1.1.13+ symbol from a script that is
+also expected to run on Siril 1.4 would crash with `AttributeError`
+on import. CI for the scripts repository should verify both code
+paths.
+
 ### 5.1 `utility.py::_install_package` and `ensure_installed`
 
 - [ ] `_resolve_installer()` helper added
 - [ ] `_install_package` switched over
 - [ ] `uninstall_package` switched over
+
+**Compatibility:** invisible to scripts. The public `ensure_installed`
+/ `check_module_version` / `needs_module_version` signatures and
+return values are unchanged. The only observable difference on
+Siril 1.5 is that the underlying subprocess prefers `uv pip install`
+when `uv` is on `PATH` — same semantics, better resolver, faster.
+Scripts targeting Siril 1.4 see no behaviour difference because
+sirilpy 1.1.12 (and earlier) keeps its existing pip-only path.
 
 Reimplement `_install_package()` (utility.py:433) to prefer uv:
 
@@ -653,7 +706,15 @@ Public API of `ensure_installed`, `check_module_version`,
 - [ ] `TorchHelper.install_torch` routed through resolver
 - [ ] `TorchHelper.uninstall_torch` routed through resolver
 - [ ] New `sirilpy.utility.pip_show / pip_list / pip_uninstall` helpers exposed
-- [ ] (scripts repo, separate PR) `GPU_Manager.py` switched to use the new helpers
+- [ ] (scripts repo, separate PR) `GPU_Manager.py` switched to use the new helpers **behind a `check_module_version(">=1.1.13")` gate** with the existing subprocess path as the fallback
+
+**Compatibility:** the `TorchHelper` / `ONNXHelper` / `JaxHelper`
+public surface is unchanged. The new `pip_*` helpers are
+additive, exported from `sirilpy.utility`, available only on
+sirilpy ≥ 1.1.13. Scripts that want to use them must follow the
+§5.0 gating pattern. `GPU_Manager.py`'s existing `subprocess.run([
+sys.executable, '-m', 'pip', …])` calls stay as the fallback path
+so the same file still runs on Siril 1.4.
 
 Three call sites that build `[sys.executable, '-m', 'pip', …]`
 arrays directly:
@@ -683,6 +744,24 @@ on pip-only installs; faster and resolver-clean on uv.
 
 - [ ] `declare_dependencies()` implemented
 - [ ] Exported from `sirilpy/__init__.py`
+
+**Compatibility:** `declare_dependencies` is a new public symbol
+added in sirilpy 1.1.13. Scripts that call it must guard with
+`check_module_version(">=1.1.13")` (or `hasattr`), exactly as for
+the `pip_*` helpers. Recommended new-script idiom (works on both
+versions):
+
+```python
+import sirilpy as s
+# Single canonical declaration: works as a no-op when sirilpy 1.1.13+
+# is paired with a Siril 1.5 that has already provisioned the venv
+# from the PEP 723 block; falls back to runtime ensure_installed on
+# older Siril.
+if s.utility.check_module_version(">=1.1.13"):
+    s.declare_dependencies(["numpy>=1.20", "scipy", "opencv-python"])
+else:
+    s.ensure_installed("numpy", "scipy", "opencv-python")
+```
 
 A no-op runtime helper that scripts can call to keep working both
 on old and new Siril releases:
@@ -715,8 +794,11 @@ Optional; not required for the conversion to work.
 
 ### 5.4 `pyproject.toml`
 
-No change. Deliberately: do *not* add `uv` to `dependencies`. See
-non-goal #1.
+- [ ] `version = "1.1.12"` → `version = "1.1.13"` (micro bump; new
+      surface area is purely additive — see §5.0)
+
+No other change. Deliberately: do *not* add `uv` to `dependencies`.
+See non-goal #1.
 
 We could add a build-system marker `[tool.uv]` block to express
 authoritative torch-backend pinning for sirilpy itself, but sirilpy
@@ -1080,7 +1162,7 @@ the change merges into the `uv` branch.
 | `[x]` | `src/core/command_list.h:158`                   | `pyenv_maint` dispatch entry |
 | `[ ]` | `python_module/sirilpy/utility.py`              | `_install_package`, `uninstall_package`, new `pip_*` helpers |
 | `[ ]` | `python_module/sirilpy/gpuhelper.py`            | route all pip subprocesses through `_resolve_installer()` |
-| `[—]` | `python_module/pyproject.toml`                  | (no change — deliberately)                            |
+| `[ ]` | `python_module/pyproject.toml`                  | version bump 1.1.12 → 1.1.13 only (no `uv` dep — see §5.0/§5.4) |
 | `[ ]` | `python_module/sirilpy/__init__.py`             | export `pip_show`/`pip_list`/`pip_uninstall`, optional `declare_dependencies` |
 | `[ ]` | `build/windows/native-gitlab-ci/siril-build.sh` | fetch+verify+place `uv.exe`                           |
 | `[ ]` | `build/windows/installer/siril64.iss`           | install `uv.exe`                                      |
@@ -1091,6 +1173,6 @@ the change merges into the `uv` branch.
 | `[ ]` | `build/build-image/Dockerfile.debian-latest`    | install pinned `uv` (CI parity)                       |
 | `[ ]` | `build/build-image/Dockerfile.win64-latest`     | install pinned `uv` (build-agent parity with bundle)  |
 | `[ ]` | `build/UV_VERSION` (new file)                   | single pinned uv version tag sourced by every packaging recipe |
-| `[ ]` | `siril-scripts/core/GPU_Manager.py` (scripts repo, separate PR) | switch `subprocess.run([sys.executable, '-m', 'pip', …])` calls to `sirilpy.utility.pip_*` helpers |
+| `[ ]` | `siril-scripts/core/GPU_Manager.py` (scripts repo, separate PR) | route `subprocess.run([sys.executable, '-m', 'pip', …])` calls through `sirilpy.utility.pip_*` helpers **behind a `check_module_version(">=1.1.13")` gate** with the existing subprocess path retained as the Siril 1.4 fallback (see §5.0) |
 
 End of plan.
