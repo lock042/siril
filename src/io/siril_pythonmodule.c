@@ -105,6 +105,11 @@ static gchar *pep723_canonical_hash(const pep723_metadata *meta);
 static gchar *resolve_system_python_for_uv(GError **error);
 static gchar *make_writable_module_copy(const gchar *src_module_path, GError **error);
 static void chmod_tree_writable(const gchar *root);
+static gboolean uv_install_sirilpy_into_venv(const gchar *uv_path,
+                                             const gchar *venv_python_path,
+                                             const gchar *module_path,
+                                             const gchar *project_path,
+                                             GError **error);
 
 // Cached uv path. NULL when uv is not in use (either the SIRIL_USE_UV gate is
 // off, uv was not found, or the discovered uv was too old). Set by
@@ -2663,20 +2668,22 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	// ledger_record or prune); we must free `entry` below before
 	// returning regardless of outcome.
 	venv_ledger_entry *entry = ledger_lookup(ledger, script_hash);
-	gboolean fresh = FALSE;
-	if (entry && g_file_test(venv_path, G_FILE_TEST_IS_DIR)) {
-		gboolean pep_ok = (entry->pep723_hash == NULL && pep723_hash == NULL)
+	gboolean had_entry = (entry != NULL);
+	gboolean dir_exists = g_file_test(venv_path, G_FILE_TEST_IS_DIR);
+	gboolean pep_ok = FALSE;
+	gboolean sirilpy_ok = FALSE;
+	if (had_entry && dir_exists) {
+		pep_ok = (entry->pep723_hash == NULL && pep723_hash == NULL)
 				|| (entry->pep723_hash && pep723_hash
 					&& g_strcmp0(entry->pep723_hash, pep723_hash) == 0);
-		gboolean sirilpy_ok = entry->sirilpy_version
+		sirilpy_ok = entry->sirilpy_version
 				&& g_strcmp0(entry->sirilpy_version, current_sirilpy) == 0;
-		fresh = pep_ok && sirilpy_ok;
 	}
 	venv_ledger_entry_free(entry);
 	entry = NULL;
 
-	if (fresh) {
-		// Touch last_used + persist.
+	if (had_entry && dir_exists && pep_ok && sirilpy_ok) {
+		// FRESH: nothing to do but touch last_used.
 		ledger_record(ledger, script_hash, script_path,
 				pep723_hash, current_sirilpy);
 		GError *save_err = NULL;
@@ -2688,6 +2695,49 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 		g_free(pep723_hash);
 		g_free(current_sirilpy);
 		return venv_path;
+	}
+
+	// SURGICAL UPDATE: only the sirilpy version is stale (typical case
+	// when Siril has been upgraded but a script's declared deps are
+	// unchanged). `uv pip install --reinstall-package sirilpy` is
+	// package-scoped, so the PEP 723 deps and any ad-hoc
+	// ensure_installed()'d packages inside the venv survive — vs the
+	// full-rebuild path below which loses ad-hoc packages.
+	//
+	// On any failure here, fall through to the full rebuild — safer to
+	// nuke and recreate than to leave the venv in a half-updated state.
+	if (had_entry && dir_exists && pep_ok && !sirilpy_ok) {
+		gchar *venv_python = find_venv_python_exe(venv_path, FALSE);
+		if (venv_python) {
+			gchar *module_path = g_build_filename(siril_get_system_data_dir(),
+					MODULE_DIR, NULL);
+			GError *install_err = NULL;
+			siril_log_message(_("Updating sirilpy in per-script venv %s "
+					"to match Siril's installed version...\n"), script_hash);
+			gboolean ok = uv_install_sirilpy_into_venv(uv_path, venv_python,
+					module_path, project_path, &install_err);
+			g_free(module_path);
+			g_free(venv_python);
+			if (ok) {
+				ledger_record(ledger, script_hash, script_path,
+						pep723_hash, current_sirilpy);
+				GError *save_err = NULL;
+				if (!ledger_save(ledger, project_path, &save_err)) {
+					siril_log_warning(_("Could not update script venv "
+							"ledger: %s\n"),
+							save_err ? save_err->message : "unknown");
+					g_clear_error(&save_err);
+				}
+				g_free(pep723_hash);
+				g_free(current_sirilpy);
+				return venv_path;
+			}
+			siril_log_warning(_("Surgical sirilpy update failed for %s; "
+					"falling back to full rebuild: %s\n"),
+					script_hash,
+					install_err ? install_err->message : "unknown");
+			g_clear_error(&install_err);
+		}
 	}
 
 	// Stale or absent → wipe and recreate.
@@ -2746,9 +2796,7 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	}
 	g_free(std_err);
 
-	// Install sirilpy into the new venv. We can't reuse the legacy install
-	// helpers verbatim because they assume the base venv path; instead use
-	// uv pip install directly against this venv's python.
+	// Install sirilpy into the new venv via the shared helper.
 	gchar *venv_python = find_venv_python_exe(venv_path, TRUE);
 	if (!venv_python) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
@@ -2760,53 +2808,18 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	}
 	gchar *module_path = g_build_filename(siril_get_system_data_dir(),
 			MODULE_DIR, NULL);
-	// Same writable-copy workaround as in uv_install_sirilpy: setuptools'
-	// egg_info step writes to the source directory during build, which
-	// fails on the read-only system data dir.
-	GError *copy_err = NULL;
-	gchar *build_path = make_writable_module_copy(module_path, &copy_err);
+	GError *install_err = NULL;
+	gboolean sirilpy_installed = uv_install_sirilpy_into_venv(
+			uv_path, venv_python, module_path, project_path, &install_err);
 	g_free(module_path);
-	if (!build_path) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"Could not prepare sirilpy build dir: %s",
-				copy_err ? copy_err->message : "unknown");
-		g_clear_error(&copy_err);
+	if (!sirilpy_installed) {
+		g_propagate_error(error, install_err);
 		g_free(venv_python);
 		g_free(venv_path);
 		g_free(pep723_hash);
 		g_free(current_sirilpy);
 		return NULL;
 	}
-	gchar *sirilpy_argv[] = {
-		(gchar *)uv_path, "pip", "install",
-		"--python", venv_python,
-		"--reinstall-package", "sirilpy",
-		build_path,
-		NULL
-	};
-	env = g_get_environ();
-	inject_uv_env(&env, project_path);
-	std_err = NULL;
-	gint sirilpy_status = 0;
-	gboolean sirilpy_ok = g_spawn_sync(NULL, sirilpy_argv, env, G_SPAWN_DEFAULT,
-			NULL, NULL, NULL, &std_err, &sirilpy_status, &local_err);
-	g_strfreev(env);
-	delete_directory(build_path, NULL);
-	g_free(build_path);
-	if (!sirilpy_ok || !g_spawn_check_wait_status(sirilpy_status, &local_err)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"uv pip install sirilpy (per-script) failed: %s%s%s",
-				local_err ? local_err->message : "non-zero exit",
-				std_err && *std_err ? "\n" : "", std_err ? std_err : "");
-		g_clear_error(&local_err);
-		g_free(std_err);
-		g_free(venv_python);
-		g_free(venv_path);
-		g_free(pep723_hash);
-		g_free(current_sirilpy);
-		return NULL;
-	}
-	g_free(std_err);
 
 	// Install PEP 723 declared dependencies (if any). Done in a single uv
 	// invocation so uv's resolver sees them together.
@@ -3775,6 +3788,79 @@ static version_number uv_get_installed_module_version(const gchar *uv_path,
 // The legacy user_module_path marker dir is no longer needed (uv operates
 // directly on <module_path>) but the parameter is kept so the dispatcher
 // has one signature.
+// Install (or re-install) sirilpy into a specific venv via
+// `uv pip install --reinstall-package sirilpy <module_path>`. Used by
+// both the base-venv install path and the per-script-venv surgical
+// update path (§4.5 / option-3 from the audit). The
+// `--reinstall-package` form is package-scoped, so other packages in
+// the venv (PEP 723 deps, ad-hoc ensure_installed()'d packages) are
+// not disturbed.
+//
+// Handles the read-only system data dir by copying the module into a
+// writable tempdir first; see make_writable_module_copy() comment.
+//
+// Caller owns all parameters and the venv must already exist. Returns
+// TRUE on success; on failure returns FALSE with *error set.
+static gboolean uv_install_sirilpy_into_venv(const gchar *uv_path,
+                                             const gchar *venv_python_path,
+                                             const gchar *module_path,
+                                             const gchar *project_path,
+                                             GError **error) {
+	g_return_val_if_fail(uv_path != NULL, FALSE);
+	g_return_val_if_fail(venv_python_path != NULL, FALSE);
+	g_return_val_if_fail(module_path != NULL, FALSE);
+
+	GError *copy_err = NULL;
+	gchar *build_path = make_writable_module_copy(module_path, &copy_err);
+	if (!build_path) {
+		g_propagate_error(error, copy_err);
+		return FALSE;
+	}
+
+	gchar *argv[] = {
+		(gchar *)uv_path, "pip", "install",
+		"--python", (gchar *)venv_python_path,
+		"--reinstall-package", "sirilpy",
+		build_path,
+		NULL
+	};
+
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+
+	gchar *std_err = NULL;
+	gint exit_status = 0;
+	GError *spawn_err = NULL;
+	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL, NULL, &std_err, &exit_status, &spawn_err);
+	g_strfreev(env);
+	delete_directory(build_path, NULL);
+	g_free(build_path);
+
+	if (!spawned) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to spawn uv: %s",
+				spawn_err ? spawn_err->message : "unknown");
+		g_clear_error(&spawn_err);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv pip install sirilpy failed: %s%s%s",
+				spawn_err ? spawn_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "",
+				std_err ? std_err : "");
+		g_clear_error(&spawn_err);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	g_free(std_err);
+	return TRUE;
+}
+
 static gboolean uv_install_sirilpy(const gchar *module_path,
                                    const gchar *user_module_path,
                                    const gchar *venv_path,
@@ -3837,66 +3923,14 @@ static gboolean uv_install_sirilpy(const gchar *module_path,
 
 	siril_log_message(_("Installing / updating Siril python module with uv...\n"));
 
-	// Copy module to a writable tempdir before building — see
-	// make_writable_module_copy() comment for rationale.
-	GError *copy_err = NULL;
-	gchar *build_path = make_writable_module_copy(module_path, &copy_err);
-	if (!build_path) {
-		g_propagate_error(error, copy_err);
-		g_free(venv_python);
-		return FALSE;
-	}
-
-	gchar *argv[] = {
-		(gchar *)uv_path, "pip", "install",
-		"--python", venv_python,
-		"--reinstall-package", "sirilpy",
-		build_path,
-		NULL
-	};
-
-	gchar **env = g_get_environ();
-	inject_uv_env(&env, project_path);
-
-	gchar *std_out = NULL;
-	gchar *std_err = NULL;
-	gint exit_status = 0;
-	GError *spawn_err = NULL;
-	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
-			NULL, NULL,
-			&std_out, &std_err,
-			&exit_status, &spawn_err);
-	g_strfreev(env);
+	GError *install_err = NULL;
+	gboolean ok = uv_install_sirilpy_into_venv(uv_path, venv_python,
+			module_path, project_path, &install_err);
 	g_free(venv_python);
-
-	// build_path no longer needed regardless of outcome
-	delete_directory(build_path, NULL);
-	g_free(build_path);
-
-	if (!spawned) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"Failed to spawn uv: %s",
-				spawn_err ? spawn_err->message : "unknown");
-		g_clear_error(&spawn_err);
-		g_free(std_out);
-		g_free(std_err);
+	if (!ok) {
+		g_propagate_error(error, install_err);
 		return FALSE;
 	}
-
-	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"uv pip install failed: %s%s%s",
-				spawn_err ? spawn_err->message : "non-zero exit",
-				std_err && *std_err ? "\n" : "",
-				std_err ? std_err : "");
-		g_clear_error(&spawn_err);
-		g_free(std_out);
-		g_free(std_err);
-		return FALSE;
-	}
-
-	g_free(std_out);
-	g_free(std_err);
 	memcpy(&com.python_version, &module_version, sizeof(version_number));
 	return TRUE;
 }
