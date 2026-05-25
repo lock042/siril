@@ -611,17 +611,17 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
-	info->width = GUINT32_FROM_BE(info->width);
-	info->height = GUINT32_FROM_BE(info->height);
-	info->channels = GUINT32_FROM_BE(info->channels);
-	info->size = GUINT64_FROM_BE(info->size);
+	/* info->width: native byte order */
+	/* info->height: native byte order */
+	/* info->channels: native byte order */
+	/* info->size: native byte order */
 	if (info->size > get_available_memory() / 2) {
 		const char* error_msg = _("Invalid image size: exceeds memory limit");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
-	info->data_type = GUINT32_FROM_BE(info->data_type);
+	/* info->data_type: native byte order */
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
@@ -788,8 +788,8 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 	}
 
 	// Convert from network byte order to host byte order
-	info->width = GUINT32_FROM_BE(info->width);
-	info->height = GUINT32_FROM_BE(info->height);
+	/* info->width: native byte order */
+	/* info->height: native byte order */
 	// info->size already converted in the switch case, so skip here
 
 	if (info->size > get_available_memory() / 2) {
@@ -798,7 +798,7 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			siril_log_error("Error in send_response\n");
 		return FALSE;
 	}
-	info->data_type = GUINT32_FROM_BE(info->data_type);
+	/* info->data_type: native byte order */
 	uint8_t bitpix = (uint8_t) info->data_type;
 	// Validate image dimensions and format
 	if (info->width != fit->rx || info->height != fit->ry || info->size == 0 ||
@@ -935,13 +935,12 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	save_image_info_t* info = (save_image_info_t*)payload;
 
 	// Convert from network byte order
-	info->width = GUINT32_FROM_BE(info->width);
-	info->height = GUINT32_FROM_BE(info->height);
-	info->channels = GUINT32_FROM_BE(info->channels);
-	info->data_type = GUINT32_FROM_BE(info->data_type);
-	info->image_size = GUINT64_FROM_BE(info->image_size);
-	info->header_size = GUINT64_FROM_BE(info->header_size);
-
+	/* info->width: native byte order */
+	/* info->height: native byte order */
+	/* info->channels: native byte order */
+	/* info->data_type: native byte order */
+	/* info->image_size: native byte order */
+	/* info->header_size: native byte order */
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->image_size == 0) {

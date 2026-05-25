@@ -1889,7 +1889,7 @@ class SirilInterface:
 
             # Pack the plot info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 1 if save else 0,  # width (repurposed as a "save" flag)
                 1 if display else 0,  # height (repurposed as a "display" flag)
                 0,  # reserved/unused
@@ -2015,7 +2015,7 @@ class SirilInterface:
 
             # Pack the plot info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 0,  # width (not used for plots)
                 0,  # height (not used for plots)
                 1 if recalc else 0,  # recalculate flag
@@ -2119,7 +2119,7 @@ class SirilInterface:
 
             # Pack the image info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 width,
                 height,
                 channels,
@@ -2241,7 +2241,7 @@ class SirilInterface:
 
             # Pack the image info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 width,
                 height,
                 channels,
@@ -4027,7 +4027,7 @@ class SirilInterface:
 
             # Pack the image info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 0,
                 0,
                 0,
@@ -4104,7 +4104,7 @@ class SirilInterface:
 
             # Pack the polygon info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 0,  # unused field 1
                 0,  # unused field 2
                 0,  # unused field 3
@@ -4890,7 +4890,7 @@ class SirilInterface:
 
             # Pack the plot info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 0,  # width (not used for ICC profile)
                 0,  # height (not used for ICC profile)
                 0, # not used
@@ -5517,7 +5517,7 @@ class SirilInterface:
             # Format: width, height, channels, data_type, image_size, image_shm_name,
             #         header_size, header_shm_name, filename
             info = struct.pack(
-                '!IIIIQ256sQ256s256s',
+                '=IIIIQ256sQ256s256s',
                 width,
                 height,
                 channels,
@@ -5744,7 +5744,7 @@ class SirilInterface:
 
             # Pack the image info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 width,
                 height,
                 1,
@@ -5879,7 +5879,7 @@ class SirilInterface:
 
             # Pack the polygon info structure
             info = struct.pack(
-                '!IIIIQ256s',
+                '=IIIIQ256s',
                 int_adding,  # representation of "adding"
                 0,  # unused field 2
                 0,  # unused field 3
