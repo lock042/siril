@@ -946,9 +946,11 @@ class PSFStar:
             ValueError: If the buffer slice size does not match the expected size.
             struct.error: If there is an error unpacking the binary data.
         """
-        # CORRECTED format_string:
-        # 13d (B to sat) | 2q (R, has_saturated) | d (beta) | q (profile) | 7d (xpos to SNR) | q (phot_is_valid) | d (BV) | 8d (B_err to beta_err) | q (layer) | 2d (ra, dec)
-        format_string = '!13d2qdq7d q d8d q 2d'
+        # Wire format mirrors psfstar_to_py at native widths (plan §4.2bis):
+        # 13d (B to sat) | 2i (R, has_saturated) | d (beta) | i (profile) |
+        # 7d (xpos to SNR) | i (phot_is_valid) | d (BV) | 8d (B_err to beta_err) |
+        # i (layer) | 2d (ra, dec). 32 doubles + 5 int32 = 276 bytes.
+        format_string = '=13d2idi7did8di2d'
         expected_size = struct.calcsize(format_string)
         # Verify we got the expected amount of data
 
@@ -1499,17 +1501,19 @@ class ImageAnalysis:
     width: int = 0          #: image width
     filter: str = ""        #: filter name (fixed-length string from C, max 70 chars)
 
-    # Network-safe format:
-    # ! = network (big-endian), standard sizes, no padding
-    # d = 8-byte double, q = 8-byte int, 70s = 70-byte string
-    _struct_fmt = f"!dddqdqqqqq{FLEN}s"
+    # Wire format mirrors analysis_to_py() in C at native widths
+    # (plan §4.2bis): 3 doubles + int32 (nbstars) + double (roundness)
+    # + int32 (imagetype) + int64 (unix timestamp) + 3 int32 (channels,
+    # height, width) + FLEN-byte filter string.
+    #   = = native byte order, standard sizes, no alignment
+    _struct_fmt = f"=dddidiqiii{FLEN}s"
     _struct = struct.Struct(_struct_fmt)
 
     def serialize(self) -> bytes:
-        """Pack the dataclass into a network-safe binary struct."""
+        """Pack the dataclass into the wire format used by analysis_to_py()."""
         # Ensure filter fits FLEN, pad with null bytes if shorter
-        filter_bytes = self.filter.encode("utf-8")[:FLEN]
-        filter_bytes = filter_bytes.ljust(FLEN, b"\x00")
+        filter_bytes = self.filter.encode("utf-8")[:self.FLEN]
+        filter_bytes = filter_bytes.ljust(self.FLEN, b"\x00")
 
         return self._struct.pack(
             self.bgnoise,

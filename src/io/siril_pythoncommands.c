@@ -219,9 +219,12 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 // sirilpy/models.py). Use this instead of `11 * sizeof(double)`.
 #define HOMOGRAPHY_WIRE_SIZE (9 * sizeof(double) + 2 * sizeof(int32_t))
 
-static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
-						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
-						  const int64_t channels, const int64_t height, const int64_t width, const char *filter,
+// Native widths (mirrors ImageAnalysis._struct_fmt in models.py):
+// 3 doubles + int32 + double + int32 + int64 (unix ts) + 3 int32 +
+// FLEN_VALUE string = 24 + 4 + 8 + 4 + 8 + 12 + 71 = 131 bytes.
+static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int32_t nbstars,
+						  const double roundness, const int32_t imagetype, int64_t unix_timestamp,
+						  const int32_t channels, const int32_t height, const int32_t width, const char *filter,
 						  unsigned char *ptr, size_t maxlen) {
 	if (!ptr)
 		return 1;
@@ -231,13 +234,13 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 	COPY_FIELD(bgnoise, double);
 	COPY_FIELD(fwhm, double);
 	COPY_FIELD(wfwhm, double);
-	COPY_FIELD(nbstars, int64_t);
+	COPY_FIELD(nbstars, int32_t);
 	COPY_FIELD(roundness, double);
-	COPY_FIELD(imagetype, int64_t);
+	COPY_FIELD(imagetype, int32_t);
 	COPY_FIELD(unix_timestamp, int64_t);
-	COPY_FIELD(channels, int64_t);
-	COPY_FIELD(height, int64_t);
-	COPY_FIELD(width, int64_t);
+	COPY_FIELD(channels, int32_t);
+	COPY_FIELD(height, int32_t);
+	COPY_FIELD(width, int32_t);
 	COPY_FLEN_STRING(filter);
 	return 0;
 }
@@ -316,10 +319,10 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_FIELD(data->angle, double);
 	COPY_FIELD(data->rmse, double);
 	COPY_FIELD(data->sat, double);
-	COPY_FIELD((int64_t) data->R, int64_t);
-	COPY_FIELD((int64_t) data->has_saturated, int64_t);
+	COPY_FIELD(data->R, int);                          // int32
+	COPY_FIELD((int32_t) data->has_saturated, int32_t); // gboolean → int32
 	COPY_FIELD(data->beta, double);
-	COPY_FIELD((int64_t) data->profile, int64_t);
+	COPY_FIELD((int32_t) data->profile, int32_t);      // starprofile enum → int32
 	COPY_FIELD(data->xpos, double);
 	COPY_FIELD(data->ypos, double);
 	COPY_FIELD(data->mag, double);
@@ -328,7 +331,7 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_FIELD(data->s_Bmag, double);
 	COPY_FIELD(data->SNR, double);
 	// photometry *phot not currently passed to python
-	COPY_FIELD((int64_t) data->phot_is_valid, int64_t);
+	COPY_FIELD((int32_t) data->phot_is_valid, int32_t); // gboolean → int32
 	COPY_FIELD(data->BV, double);
 	COPY_FIELD(data->B_err, double);
 	COPY_FIELD(data->A_err, double);
@@ -338,11 +341,16 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_FIELD(data->sy_err, double);
 	COPY_FIELD(data->ang_err, double);
 	COPY_FIELD(data->beta_err, double);
-	COPY_FIELD((int64_t) data->layer, int64_t);
+	COPY_FIELD(data->layer, int);                       // int32
 	COPY_FIELD(data->ra, double);
 	COPY_FIELD(data->dec, double);
 	return 0;
 }
+
+// Serialised wire size of one psf_star (mirrors psfstar_to_py above
+// and PSFStar.deserialize() in sirilpy/models.py). 32 doubles +
+// 5 int32 = 276 bytes.
+#define PSFSTAR_WIRE_SIZE (32 * sizeof(double) + 5 * sizeof(int32_t))
 
 static int seq_to_py(const sequence *seq, unsigned char* ptr, size_t maxlen) {
 	if (!seq || !ptr)
@@ -954,7 +962,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 
-			const size_t psf_star_size = 37 * sizeof(double);
+			const size_t psf_star_size = PSFSTAR_WIRE_SIZE;
 			unsigned char* star = g_try_malloc0(psf_star_size);
 			unsigned char* ptr = star;
 			if (psfstar_to_py(psf, ptr, psf_star_size)) {
@@ -2036,7 +2044,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Allocate memory for all star data
-			const size_t psf_star_size = 37 * sizeof(double);
+			const size_t psf_star_size = PSFSTAR_WIRE_SIZE;
 			const size_t total_size = nb_stars * psf_star_size;
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
@@ -3060,9 +3068,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
-			int64_t channels = fit->naxes[2];
-			int64_t height   = fit->naxes[1];
-			int64_t width    = fit->naxes[0];
+			int32_t channels = (int32_t) fit->naxes[2];
+			int32_t height   = (int32_t) fit->naxes[1];
+			int32_t width    = (int32_t) fit->naxes[0];
 
 			// Capture filter string
 			char filter_str[FLEN_VALUE];
@@ -3073,7 +3081,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			free(fit);
 
 			// --- Response ---
-			size_t total_size = 10 * sizeof(int64_t) + FLEN_VALUE; // numeric fields + filter string
+			// Analysis payload at native widths (mirrors analysis_to_py
+			// and ImageAnalysis._struct_fmt): 3 doubles + int32 + double
+			// + int32 + int64 + 3 int32 + FLEN_VALUE filter string =
+			// 24 + 4 + 8 + 4 + 8 + 12 + FLEN_VALUE = 60 + FLEN_VALUE bytes.
+			size_t total_size = 4 * sizeof(double) + 5 * sizeof(int32_t)
+				+ sizeof(int64_t) + FLEN_VALUE;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
@@ -3082,7 +3095,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			unsigned char *ptr = response_buffer;
-			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype,
+			if (analysis_to_py(bgnoise, fwhm, 0.0, nb_stars, roundness, imagetype,
 				unix_timestamp, channels, height, width, filter_str, ptr, total_size)) {
 				const char* error_message = _("No analysis available");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
