@@ -64,37 +64,31 @@ typedef enum {
 		ptr += len; \
 	}
 
-#define COPY_BE64(val, type) \
-	{ \
-		size_t len = sizeof(type); \
-		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_log_debug("Error: Exceeded max length for COPY_BE64 at %s\n", #val); \
+// Write a single field of the given native C type to the serialisation
+// buffer, advancing ptr. Same-machine IPC, so the wire mirrors the C
+// struct exactly: no byte swap, no width widening. Both endpoints share
+// endianness and ABI.
+//
+// The `type` parameter exists so the macro accepts literal rvalues
+// (e.g. `COPY_FIELD(0.0, double)`) as well as lvalues uniformly — the
+// temporary `_tmp` lets us take its address regardless.
+//
+// Replaces the former COPY_BE64 / FROM_BE64_INTO / TO_BE64_INTO trio:
+//   - COPY_BE64 (write) → COPY_FIELD (this macro)
+//   - FROM_BE64_INTO (read) → call sites become `memcpy(&dest, &val,
+//     sizeof(type))` or direct assignment — no macro needed
+//   - TO_BE64_INTO (type-pun assignment) → call sites become a direct
+//     `dest = val` — no macro needed
+#define COPY_FIELD(val, type) \
+	do { \
+		type _tmp = (val); \
+		if ((ptr + sizeof(_tmp)) - start_ptr > maxlen) { \
+			siril_log_debug("Error: Exceeded max length for COPY_FIELD at %s\n", #val); \
 			return 1; \
 		} \
-		union { type v; uint64_t i; } conv; \
-		conv.v = val; \
-		uint64_t be = GUINT64_TO_BE(conv.i); \
-		memcpy(ptr, &be, len); \
-		ptr += len; \
-	}
-
-#define FROM_BE64_INTO(dest, val, type) \
-do { \
-	union { type v; uint64_t i; } conv; \
-	memcpy(&conv.i, &val, sizeof(type)); \
-	conv.i = GUINT64_FROM_BE(conv.i); \
-	(dest) = conv.v; \
-} while(0)
-
-#define TO_BE64_INTO(dest, val, type) \
-	do { \
-		union { type v; uint64_t i; } conv; \
-		conv.v = val; \
-		conv.i = GUINT64_TO_BE(conv.i); \
-		union { type v; uint64_t i; } result; \
-		result.i = conv.i; \
-		(dest) = result.v; \
-	} while(0)
+		memcpy(ptr, &_tmp, sizeof(_tmp)); \
+		ptr += sizeof(_tmp); \
+	} while (0)
 
 #define BOOL_FROM_BYTE(x) ((x) ? TRUE : FALSE)
 
@@ -126,50 +120,50 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
-	COPY_BE64(1.0, double); // aligned to the code in fits_keywords.c
-	COPY_BE64(0.0, double); // aligned to the code in fits_keywords.c
-	COPY_BE64((uint64_t) fit->keywords.lo, uint64_t);
-	COPY_BE64((uint64_t) fit->keywords.hi, uint64_t);
-	COPY_BE64((double) fit->keywords.flo, double);
-	COPY_BE64((double) fit->keywords.fhi, double);
-	COPY_BE64(fit->keywords.data_max, double);
-	COPY_BE64(fit->keywords.data_min, double);
-	COPY_BE64(fit->keywords.pixel_size_x, double);
-	COPY_BE64(fit->keywords.pixel_size_y, double);
-	COPY_BE64((uint64_t) fit->keywords.binning_x, uint64_t);
-	COPY_BE64((uint64_t) fit->keywords.binning_y, uint64_t);
-	COPY_BE64(fit->keywords.expstart, double);
-	COPY_BE64(fit->keywords.expend, double);
-	COPY_BE64(fit->keywords.centalt, double);
-	COPY_BE64(fit->keywords.centaz, double);
-	COPY_BE64(fit->keywords.sitelat, double);
-	COPY_BE64(fit->keywords.sitelong, double);
-	COPY_BE64(fit->keywords.siteelev, double);
-	COPY_BE64((int64_t) fit->keywords.bayer_xoffset, int64_t);
-	COPY_BE64((int64_t) fit->keywords.bayer_yoffset, int64_t);
-	COPY_BE64(fit->keywords.airmass, double);
-	COPY_BE64(fit->keywords.focal_length, double);
-	COPY_BE64(fit->keywords.flength, double);
-	COPY_BE64(fit->keywords.iso_speed, double);
-	COPY_BE64(fit->keywords.exposure, double);
-	COPY_BE64(fit->keywords.aperture, double);
-	COPY_BE64(fit->keywords.ccd_temp, double);
-	COPY_BE64(fit->keywords.set_temp, double);
-	COPY_BE64(fit->keywords.livetime, double);
-	COPY_BE64((uint64_t) fit->keywords.stackcnt, uint64_t);
-	COPY_BE64(fit->keywords.cvf, double);
-	COPY_BE64((int64_t) fit->keywords.key_gain, int64_t);
-	COPY_BE64((int64_t) fit->keywords.key_offset, int64_t);
-	COPY_BE64((int64_t) fit->keywords.focuspos, int64_t);
-	COPY_BE64((int64_t) fit->keywords.focussz, int64_t);
-	COPY_BE64(fit->keywords.foctemp, double);
-	COPY_BE64(date_ts, int64_t);
-	COPY_BE64(date_obs_ts, int64_t);
+	COPY_FIELD(1.0, double); // aligned to the code in fits_keywords.c
+	COPY_FIELD(0.0, double); // aligned to the code in fits_keywords.c
+	COPY_FIELD((uint64_t) fit->keywords.lo, uint64_t);
+	COPY_FIELD((uint64_t) fit->keywords.hi, uint64_t);
+	COPY_FIELD((double) fit->keywords.flo, double);
+	COPY_FIELD((double) fit->keywords.fhi, double);
+	COPY_FIELD(fit->keywords.data_max, double);
+	COPY_FIELD(fit->keywords.data_min, double);
+	COPY_FIELD(fit->keywords.pixel_size_x, double);
+	COPY_FIELD(fit->keywords.pixel_size_y, double);
+	COPY_FIELD((uint64_t) fit->keywords.binning_x, uint64_t);
+	COPY_FIELD((uint64_t) fit->keywords.binning_y, uint64_t);
+	COPY_FIELD(fit->keywords.expstart, double);
+	COPY_FIELD(fit->keywords.expend, double);
+	COPY_FIELD(fit->keywords.centalt, double);
+	COPY_FIELD(fit->keywords.centaz, double);
+	COPY_FIELD(fit->keywords.sitelat, double);
+	COPY_FIELD(fit->keywords.sitelong, double);
+	COPY_FIELD(fit->keywords.siteelev, double);
+	COPY_FIELD((int64_t) fit->keywords.bayer_xoffset, int64_t);
+	COPY_FIELD((int64_t) fit->keywords.bayer_yoffset, int64_t);
+	COPY_FIELD(fit->keywords.airmass, double);
+	COPY_FIELD(fit->keywords.focal_length, double);
+	COPY_FIELD(fit->keywords.flength, double);
+	COPY_FIELD(fit->keywords.iso_speed, double);
+	COPY_FIELD(fit->keywords.exposure, double);
+	COPY_FIELD(fit->keywords.aperture, double);
+	COPY_FIELD(fit->keywords.ccd_temp, double);
+	COPY_FIELD(fit->keywords.set_temp, double);
+	COPY_FIELD(fit->keywords.livetime, double);
+	COPY_FIELD((uint64_t) fit->keywords.stackcnt, uint64_t);
+	COPY_FIELD(fit->keywords.cvf, double);
+	COPY_FIELD((int64_t) fit->keywords.key_gain, int64_t);
+	COPY_FIELD((int64_t) fit->keywords.key_offset, int64_t);
+	COPY_FIELD((int64_t) fit->keywords.focuspos, int64_t);
+	COPY_FIELD((int64_t) fit->keywords.focussz, int64_t);
+	COPY_FIELD(fit->keywords.foctemp, double);
+	COPY_FIELD(date_ts, int64_t);
+	COPY_FIELD(date_obs_ts, int64_t);
 	double ra = fit->keywords.wcsdata.ra;
 	double dec = fit->keywords.wcsdata.dec;
 	uint8_t solved = fit->keywords.wcsdata.pltsolvd;
-	COPY_BE64(ra, double);
-	COPY_BE64(dec, double);
+	COPY_FIELD(ra, double);
+	COPY_FIELD(dec, double);
 	memcpy(ptr, &solved, sizeof(uint8_t));
 	return 0;
 }
@@ -183,19 +177,19 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
-	COPY_BE64((int64_t) fit->rx, int64_t);
-	COPY_BE64((int64_t) fit->ry, int64_t);
-	COPY_BE64((int64_t) fit->naxes[2], int64_t);
-	COPY_BE64((int64_t) fit->bitpix, int64_t);
-	COPY_BE64((int64_t) fit->orig_bitpix, int64_t);
-	COPY_BE64((uint64_t) fit->checksum, uint64_t);
-	COPY_BE64(fit->mini, double);
-	COPY_BE64(fit->maxi, double);
-	COPY_BE64((double) fit->neg_ratio, double);
-	COPY_BE64((uint64_t) fit->top_down, uint64_t);
-	COPY_BE64((uint64_t) fit->focalkey, uint64_t);
-	COPY_BE64((uint64_t) fit->pixelkey, uint64_t);
-	COPY_BE64((uint64_t) fit->color_managed, uint64_t);
+	COPY_FIELD((int64_t) fit->rx, int64_t);
+	COPY_FIELD((int64_t) fit->ry, int64_t);
+	COPY_FIELD((int64_t) fit->naxes[2], int64_t);
+	COPY_FIELD((int64_t) fit->bitpix, int64_t);
+	COPY_FIELD((int64_t) fit->orig_bitpix, int64_t);
+	COPY_FIELD((uint64_t) fit->checksum, uint64_t);
+	COPY_FIELD(fit->mini, double);
+	COPY_FIELD(fit->maxi, double);
+	COPY_FIELD((double) fit->neg_ratio, double);
+	COPY_FIELD((uint64_t) fit->top_down, uint64_t);
+	COPY_FIELD((uint64_t) fit->focalkey, uint64_t);
+	COPY_FIELD((uint64_t) fit->pixelkey, uint64_t);
+	COPY_FIELD((uint64_t) fit->color_managed, uint64_t);
 	return 0;
 }
 
@@ -205,17 +199,17 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64((double) H->h00, double);
-	COPY_BE64((double) H->h01, double);
-	COPY_BE64((double) H->h02, double);
-	COPY_BE64((double) H->h10, double);
-	COPY_BE64((double) H->h11, double);
-	COPY_BE64((double) H->h12, double);
-	COPY_BE64((double) H->h20, double);
-	COPY_BE64((double) H->h21, double);
-	COPY_BE64((double) H->h22, double);
-	COPY_BE64((int64_t) H->pair_matched, int64_t);
-	COPY_BE64((int64_t) H->Inliers, int64_t);
+	COPY_FIELD((double) H->h00, double);
+	COPY_FIELD((double) H->h01, double);
+	COPY_FIELD((double) H->h02, double);
+	COPY_FIELD((double) H->h10, double);
+	COPY_FIELD((double) H->h11, double);
+	COPY_FIELD((double) H->h12, double);
+	COPY_FIELD((double) H->h20, double);
+	COPY_FIELD((double) H->h21, double);
+	COPY_FIELD((double) H->h22, double);
+	COPY_FIELD((int64_t) H->pair_matched, int64_t);
+	COPY_FIELD((int64_t) H->Inliers, int64_t);
 	return 0;
 }
 
@@ -228,16 +222,16 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64(bgnoise, double);
-	COPY_BE64(fwhm, double);
-	COPY_BE64(wfwhm, double);
-	COPY_BE64(nbstars, int64_t);
-	COPY_BE64(roundness, double);
-	COPY_BE64(imagetype, int64_t);
-	COPY_BE64(unix_timestamp, int64_t);
-	COPY_BE64(channels, int64_t);
-	COPY_BE64(height, int64_t);
-	COPY_BE64(width, int64_t);
+	COPY_FIELD(bgnoise, double);
+	COPY_FIELD(fwhm, double);
+	COPY_FIELD(wfwhm, double);
+	COPY_FIELD(nbstars, int64_t);
+	COPY_FIELD(roundness, double);
+	COPY_FIELD(imagetype, int64_t);
+	COPY_FIELD(unix_timestamp, int64_t);
+	COPY_FIELD(channels, int64_t);
+	COPY_FIELD(height, int64_t);
+	COPY_FIELD(width, int64_t);
 	COPY_FLEN_STRING(filter);
 	return 0;
 }
@@ -247,16 +241,16 @@ static int sample_to_py(const background_sample *sample, unsigned char *ptr, siz
 		return 1;
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64(sample->median[0], double);
-	COPY_BE64(sample->median[1], double);
-	COPY_BE64(sample->median[2], double);
-	COPY_BE64(sample->mean, double);
-	COPY_BE64(sample->min, double);
-	COPY_BE64(sample->max, double);
-	COPY_BE64((uint64_t) sample->size, uint64_t);
-	COPY_BE64(sample->position.x, double);
-	COPY_BE64(sample->position.y, double);
-	COPY_BE64((uint64_t) sample->valid, uint64_t);
+	COPY_FIELD(sample->median[0], double);
+	COPY_FIELD(sample->median[1], double);
+	COPY_FIELD(sample->median[2], double);
+	COPY_FIELD(sample->mean, double);
+	COPY_FIELD(sample->min, double);
+	COPY_FIELD(sample->max, double);
+	COPY_FIELD((uint64_t) sample->size, uint64_t);
+	COPY_FIELD(sample->position.x, double);
+	COPY_FIELD(sample->position.y, double);
+	COPY_FIELD((uint64_t) sample->valid, uint64_t);
 	return 0;
 }
 
@@ -266,12 +260,12 @@ static int regdata_to_py(const regdata *regparam, unsigned char *ptr, size_t max
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64((double) regparam->fwhm, double);
-	COPY_BE64((double) regparam->weighted_fwhm, double);
-	COPY_BE64((double) regparam->roundness, double);
-	COPY_BE64(regparam->quality, double);
-	COPY_BE64((double) regparam->background_lvl, double);
-	COPY_BE64((int64_t) regparam->number_of_stars, int64_t);
+	COPY_FIELD((double) regparam->fwhm, double);
+	COPY_FIELD((double) regparam->weighted_fwhm, double);
+	COPY_FIELD((double) regparam->roundness, double);
+	COPY_FIELD(regparam->quality, double);
+	COPY_FIELD((double) regparam->background_lvl, double);
+	COPY_FIELD((int64_t) regparam->number_of_stars, int64_t);
 	homography_to_py(&regparam->H, ptr, 11 * sizeof(double));
 	return 0;
 }
@@ -283,12 +277,12 @@ static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr, size_t max
 	unsigned char *start_ptr = ptr;
 
 	int64_t date_obs_ts = imgparam->date_obs ? g_date_time_to_unix(imgparam->date_obs) : 0;
-	COPY_BE64((int64_t) imgparam->filenum, int64_t);
-	COPY_BE64((int64_t) imgparam->incl, int64_t);
-	COPY_BE64((int64_t) date_obs_ts, int64_t);
-	COPY_BE64((double) imgparam->airmass, double);
-	COPY_BE64((int64_t) imgparam->rx, int64_t);
-	COPY_BE64((int64_t) imgparam->ry, int64_t);
+	COPY_FIELD((int64_t) imgparam->filenum, int64_t);
+	COPY_FIELD((int64_t) imgparam->incl, int64_t);
+	COPY_FIELD((int64_t) date_obs_ts, int64_t);
+	COPY_FIELD((double) imgparam->airmass, double);
+	COPY_FIELD((int64_t) imgparam->rx, int64_t);
+	COPY_FIELD((int64_t) imgparam->ry, int64_t);
 	return 0;
 }
 
@@ -298,44 +292,44 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64(data->B, double);
-	COPY_BE64(data->A, double);
-	COPY_BE64(data->x0, double);
-	COPY_BE64(data->y0, double);
-	COPY_BE64(data->sx, double);
-	COPY_BE64(data->sy, double);
-	COPY_BE64(data->fwhmx, double);
-	COPY_BE64(data->fwhmy, double);
-	COPY_BE64(data->fwhmx_arcsec, double);
-	COPY_BE64(data->fwhmy_arcsec, double);
-	COPY_BE64(data->angle, double);
-	COPY_BE64(data->rmse, double);
-	COPY_BE64(data->sat, double);
-	COPY_BE64((int64_t) data->R, int64_t);
-	COPY_BE64((int64_t) data->has_saturated, int64_t);
-	COPY_BE64(data->beta, double);
-	COPY_BE64((int64_t) data->profile, int64_t);
-	COPY_BE64(data->xpos, double);
-	COPY_BE64(data->ypos, double);
-	COPY_BE64(data->mag, double);
-	COPY_BE64(data->Bmag, double);
-	COPY_BE64(data->s_mag, double);
-	COPY_BE64(data->s_Bmag, double);
-	COPY_BE64(data->SNR, double);
+	COPY_FIELD(data->B, double);
+	COPY_FIELD(data->A, double);
+	COPY_FIELD(data->x0, double);
+	COPY_FIELD(data->y0, double);
+	COPY_FIELD(data->sx, double);
+	COPY_FIELD(data->sy, double);
+	COPY_FIELD(data->fwhmx, double);
+	COPY_FIELD(data->fwhmy, double);
+	COPY_FIELD(data->fwhmx_arcsec, double);
+	COPY_FIELD(data->fwhmy_arcsec, double);
+	COPY_FIELD(data->angle, double);
+	COPY_FIELD(data->rmse, double);
+	COPY_FIELD(data->sat, double);
+	COPY_FIELD((int64_t) data->R, int64_t);
+	COPY_FIELD((int64_t) data->has_saturated, int64_t);
+	COPY_FIELD(data->beta, double);
+	COPY_FIELD((int64_t) data->profile, int64_t);
+	COPY_FIELD(data->xpos, double);
+	COPY_FIELD(data->ypos, double);
+	COPY_FIELD(data->mag, double);
+	COPY_FIELD(data->Bmag, double);
+	COPY_FIELD(data->s_mag, double);
+	COPY_FIELD(data->s_Bmag, double);
+	COPY_FIELD(data->SNR, double);
 	// photometry *phot not currently passed to python
-	COPY_BE64((int64_t) data->phot_is_valid, int64_t);
-	COPY_BE64(data->BV, double);
-	COPY_BE64(data->B_err, double);
-	COPY_BE64(data->A_err, double);
-	COPY_BE64(data->x_err, double);
-	COPY_BE64(data->y_err, double);
-	COPY_BE64(data->sx_err, double);
-	COPY_BE64(data->sy_err, double);
-	COPY_BE64(data->ang_err, double);
-	COPY_BE64(data->beta_err, double);
-	COPY_BE64((int64_t) data->layer, int64_t);
-	COPY_BE64(data->ra, double);
-	COPY_BE64(data->dec, double);
+	COPY_FIELD((int64_t) data->phot_is_valid, int64_t);
+	COPY_FIELD(data->BV, double);
+	COPY_FIELD(data->B_err, double);
+	COPY_FIELD(data->A_err, double);
+	COPY_FIELD(data->x_err, double);
+	COPY_FIELD(data->y_err, double);
+	COPY_FIELD(data->sx_err, double);
+	COPY_FIELD(data->sy_err, double);
+	COPY_FIELD(data->ang_err, double);
+	COPY_FIELD(data->beta_err, double);
+	COPY_FIELD((int64_t) data->layer, int64_t);
+	COPY_FIELD(data->ra, double);
+	COPY_FIELD(data->dec, double);
 	return 0;
 }
 
@@ -345,22 +339,22 @@ static int seq_to_py(const sequence *seq, unsigned char* ptr, size_t maxlen) {
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64((int64_t) seq->number, int64_t);
-	COPY_BE64((int64_t) seq->selnum, int64_t);
-	COPY_BE64((int64_t) seq->fixed, int64_t);
-	COPY_BE64((int64_t) seq->nb_layers, int64_t);
-	COPY_BE64((uint64_t) seq->rx, uint64_t);
-	COPY_BE64((uint64_t) seq->ry, uint64_t);
-	COPY_BE64((uint64_t) seq->is_variable, uint64_t);
-	COPY_BE64((int64_t) seq->bitpix, int64_t);
-	COPY_BE64((int64_t) seq->reference_image, int64_t);
-	COPY_BE64((int64_t) seq->beg, int64_t);
-	COPY_BE64((int64_t) seq->end, int64_t);
-	COPY_BE64(seq->exposure, double);
-	COPY_BE64((uint64_t) seq->fz, uint64_t);
-	COPY_BE64((int64_t) seq->type, int64_t);
-	COPY_BE64((uint64_t) seq->cfa_opened_monochrome, uint64_t);
-	COPY_BE64((int64_t) seq->current, int64_t);
+	COPY_FIELD((int64_t) seq->number, int64_t);
+	COPY_FIELD((int64_t) seq->selnum, int64_t);
+	COPY_FIELD((int64_t) seq->fixed, int64_t);
+	COPY_FIELD((int64_t) seq->nb_layers, int64_t);
+	COPY_FIELD((uint64_t) seq->rx, uint64_t);
+	COPY_FIELD((uint64_t) seq->ry, uint64_t);
+	COPY_FIELD((uint64_t) seq->is_variable, uint64_t);
+	COPY_FIELD((int64_t) seq->bitpix, int64_t);
+	COPY_FIELD((int64_t) seq->reference_image, int64_t);
+	COPY_FIELD((int64_t) seq->beg, int64_t);
+	COPY_FIELD((int64_t) seq->end, int64_t);
+	COPY_FIELD(seq->exposure, double);
+	COPY_FIELD((uint64_t) seq->fz, uint64_t);
+	COPY_FIELD((int64_t) seq->type, int64_t);
+	COPY_FIELD((uint64_t) seq->cfa_opened_monochrome, uint64_t);
+	COPY_FIELD((int64_t) seq->current, int64_t);
 	COPY_STRING(seq->seqname);
 	// Registration preview coords are not passed to python
 	// The dirty and invalid reg flags are not passed to python
@@ -374,20 +368,20 @@ static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64(stats->total, int64_t);
-	COPY_BE64(stats->ngoodpix, int64_t);
-	COPY_BE64(stats->mean, double);
-	COPY_BE64(stats->median, double);
-	COPY_BE64(stats->sigma, double);
-	COPY_BE64(stats->avgDev, double);
-	COPY_BE64(stats->mad, double);
-	COPY_BE64(stats->sqrtbwmv, double);
-	COPY_BE64(stats->location, double);
-	COPY_BE64(stats->scale, double);
-	COPY_BE64(stats->min, double);
-	COPY_BE64(stats->max, double);
-	COPY_BE64(stats->normValue, double);
-	COPY_BE64(stats->bgnoise, double);
+	COPY_FIELD(stats->total, int64_t);
+	COPY_FIELD(stats->ngoodpix, int64_t);
+	COPY_FIELD(stats->mean, double);
+	COPY_FIELD(stats->median, double);
+	COPY_FIELD(stats->sigma, double);
+	COPY_FIELD(stats->avgDev, double);
+	COPY_FIELD(stats->mad, double);
+	COPY_FIELD(stats->sqrtbwmv, double);
+	COPY_FIELD(stats->location, double);
+	COPY_FIELD(stats->scale, double);
+	COPY_FIELD(stats->min, double);
+	COPY_FIELD(stats->max, double);
+	COPY_FIELD(stats->normValue, double);
+	COPY_FIELD(stats->bgnoise, double);
 	return 0;
 }
 
@@ -414,9 +408,9 @@ static int distodata_to_py(const disto_params *disto, unsigned char* ptr, size_t
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_BE64((int64_t) disto->index, int64_t);
-	COPY_BE64((double) disto->velocity.x, double);
-	COPY_BE64((double) disto->velocity.y, double);
+	COPY_FIELD((int64_t) disto->index, int64_t);
+	COPY_FIELD((double) disto->velocity.x, double);
+	COPY_FIELD((double) disto->velocity.y, double);
 	if (disto->filename)
 		COPY_STRING(disto->filename);
 	return 0;
@@ -454,7 +448,7 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 		double* double_val = g_malloc(maxlen);
 		unsigned char *ptr = (unsigned char*) double_val;
 		unsigned char *start_ptr = ptr;
-		COPY_BE64(*(double*) desc->data, double);
+		COPY_FIELD(*(double*) desc->data, double);
 		*type = CONFIG_TYPE_DOUBLE;
 		*value = double_val;
 		*value_size = sizeof(double);
@@ -549,10 +543,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		double x_BE, y_BE;
 		memcpy(&x_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		FROM_BE64_INTO(datamin.x, x_BE, double);
+		memcpy(&(datamin.x), &(x_BE), sizeof(double));
 		memcpy(&y_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		FROM_BE64_INTO(datamin.y, y_BE, double);
+		memcpy(&(datamin.y), &(y_BE), sizeof(double));
 		memcpy(&plot_data->datamin, &datamin, sizeof(point));
 	}
 
@@ -563,10 +557,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		double x_BE, y_BE;
 		memcpy(&x_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		FROM_BE64_INTO(datamax.x, x_BE, double);
+		memcpy(&(datamax.x), &(x_BE), sizeof(double));
 		memcpy(&y_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		FROM_BE64_INTO(datamax.y, y_BE, double);
+		memcpy(&(datamax.y), &(y_BE), sizeof(double));
 		memcpy(&plot_data->datamax, &datamax, sizeof(point));
 	}
 
@@ -612,26 +606,26 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 			// Read raw bytes for x
 			memcpy(&x_BE, buffer + offset, sizeof(double));
 			offset += sizeof(double);
-			FROM_BE64_INTO(x, x_BE, double);
+			memcpy(&(x), &(x_BE), sizeof(double));
 			xdata[point_idx] = x;
 
 			// Read raw bytes for y
 			memcpy(&y_BE, buffer + offset, sizeof(double));
 			offset += sizeof(double);
-			FROM_BE64_INTO(y, y_BE, double);
+			memcpy(&(y), &(y_BE), sizeof(double));
 			ydata[point_idx] = y;
 
 			if (with_errors) {
 				// Read raw bytes for negative error
 				memcpy(&ne_BE, buffer + offset, sizeof(double));
 				offset += sizeof(double);
-				FROM_BE64_INTO(ne, ne_BE, double);
+				memcpy(&(ne), &(ne_BE), sizeof(double));
 				nerror[point_idx] = ne;
 
 				// Read raw bytes for positive error
 				memcpy(&pe_BE, buffer + offset, sizeof(double));
 				offset += sizeof(double);
-				FROM_BE64_INTO(pe, pe_BE, double);
+				memcpy(&(pe), &(pe_BE), sizeof(double));
 				perror[point_idx] = pe;
 			}
 
@@ -663,7 +657,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 	// Get command header
 	CommandHeader* header = (CommandHeader*)buffer;
-	int32_t payload_length = GINT32_FROM_BE(header->length);  // Convert from network byte order
+	int32_t payload_length = header->length;  // Native byte order; same-machine IPC.
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
 		siril_log_error(_("Received incomplete command payload: length = %u, expected %u\n"), length, payload_length);
@@ -1853,7 +1847,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					goto CLEANUP;
 				}
 				// Convert the values to BE
-				TO_BE64_INTO(pixel_info->size, pixel_info->size, size_t);
+				/* native byte order: no conversion needed for pixel_info->size */
 				pixel_info->data_type = GUINT32_TO_BE(pixel_info->data_type);
 				pixel_info->width = GUINT32_TO_BE(pixel_info->width);
 				pixel_info->height = GUINT32_TO_BE(pixel_info->height);
@@ -1874,7 +1868,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (header_info) {
 				// Convert the values to BE
-				TO_BE64_INTO(header_info->size, header_info->size, size_t);
+				/* native byte order: no conversion needed for header_info->size */
 				header_info->data_type = GUINT32_TO_BE(header_info->data_type);
 				header_info->width = GUINT32_TO_BE(header_info->width);
 				header_info->height = GUINT32_TO_BE(header_info->height);
@@ -1898,7 +1892,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (icc_info) {
 				// Convert the values to BE
-				TO_BE64_INTO(icc_info->size, icc_info->size, size_t);
+				/* native byte order: no conversion needed for icc_info->size */
 				icc_info->data_type = GUINT32_TO_BE(icc_info->data_type);
 				icc_info->width = GUINT32_TO_BE(icc_info->width);
 				icc_info->height = GUINT32_TO_BE(icc_info->height);
@@ -2368,8 +2362,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double x_BE = DblPtrBE[0];
 					double y_BE = DblPtrBE[1];
 					double x, y;
-					FROM_BE64_INTO(x, x_BE, double);
-					FROM_BE64_INTO(y, y_BE, double);
+					memcpy(&(x), &(x_BE), sizeof(double));
+					memcpy(&(y), &(y_BE), sizeof(double));
 					double ra, dec, ra_BE, dec_BE;
 					double fx, fy;
 					fx = x;
@@ -2377,8 +2371,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					pix2wcs2(gfit->keywords.wcslib, fx, fy, &ra, &dec);
 					g_rw_lock_reader_unlock(&gfit->rwlock);
 					// ra and dec = -1 is the error code
-					TO_BE64_INTO(ra_BE, ra, double);
-					TO_BE64_INTO(dec_BE, dec, double);
+					memcpy(&(ra_BE), &(ra), sizeof(double));
+					memcpy(&(dec_BE), &(dec), sizeof(double));
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
 					DblPtrBE = (double*) payload;
 					DblPtrBE[0] = ra_BE;
@@ -2412,15 +2406,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double ra_BE = DblPtrBE[0];
 					double dec_BE = DblPtrBE[1];
 					double ra, dec;
-					FROM_BE64_INTO(ra, ra_BE, double);
-					FROM_BE64_INTO(dec, dec_BE, double);
+					memcpy(&(ra), &(ra_BE), sizeof(double));
+					memcpy(&(dec), &(dec_BE), sizeof(double));
 					double x, y, fx, fy, x_BE, y_BE;
 					wcs2pix(gfit, ra, dec, &fx, &fy);
 					x = fx;
 					y = gfit->ry - fy;
 					g_rw_lock_reader_unlock(&gfit->rwlock);
-					TO_BE64_INTO(x_BE, x, double);
-					TO_BE64_INTO(y_BE, y, double);
+					memcpy(&(x_BE), &(x), sizeof(double));
+					memcpy(&(y_BE), &(y), sizeof(double));
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
 					DblPtrBE = (double*) payload;
 					DblPtrBE[0] = x_BE;
@@ -2923,7 +2917,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					goto CLEANUP_FILE;
 				}
 				// Convert the values to BE
-				TO_BE64_INTO(info->size, info->size, size_t);
+				/* native byte order: no conversion needed for info->size */
 				info->data_type = GUINT32_TO_BE(info->data_type);
 				info->width = GUINT32_TO_BE(info->width);
 				info->height = GUINT32_TO_BE(info->height);
@@ -2942,7 +2936,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				goto CLEANUP_FILE;
 			}
 			// Convert the values to BE
-			TO_BE64_INTO(headerinfo->size, headerinfo->size, size_t);
+			/* native byte order: no conversion needed for headerinfo->size */
 			headerinfo->data_type = GUINT32_TO_BE(headerinfo->data_type);
 			headerinfo->width = GUINT32_TO_BE(headerinfo->width);
 			headerinfo->height = GUINT32_TO_BE(headerinfo->height);
@@ -2962,7 +2956,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					goto CLEANUP_FILE;
 				}
 				// Convert the values to BE
-				TO_BE64_INTO(info->size, info->size, size_t);
+				/* native byte order: no conversion needed for info->size */
 				info->data_type = GUINT32_TO_BE(info->data_type);
 				info->width = GUINT32_TO_BE(info->width);
 				info->height = GUINT32_TO_BE(info->height);
@@ -3259,9 +3253,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			double x_off = 0.0, y_off = 0.0;
 			gui_iface.get_display_offset(&x_off, &y_off);
 			double zoom = gui_iface.get_zoom_value();
-			TO_BE64_INTO(x_off, x_off, double);
-			TO_BE64_INTO(y_off, y_off, double);
-			TO_BE64_INTO(zoom, zoom, double);
+			/* native byte order: no conversion needed for x_off */
+			/* native byte order: no conversion needed for y_off */
+			/* native byte order: no conversion needed for zoom */
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &x_off, sizeof(double));
@@ -3355,8 +3349,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					// Mode only
 					double* values = (double*) payload;
 					double xoff, yoff;
-					TO_BE64_INTO(xoff, values[0], double);
-					TO_BE64_INTO(yoff, values[1], double);
+					memcpy(&(xoff), &(values[0]), sizeof(double));
+					memcpy(&(yoff), &(values[1]), sizeof(double));
 					gui_iface.set_display_offset(xoff, yoff);
 					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
@@ -3383,7 +3377,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == sizeof(double)) {
 					double* values = (double*) payload;
 					double zoom;
-					TO_BE64_INTO(zoom, values[0], double);
+					memcpy(&(zoom), &(values[0]), sizeof(double));
 					if (zoom <= 0.0)
 						zoom = ZOOM_FIT;
 					gui_iface.set_zoom_value(zoom);

@@ -123,9 +123,10 @@ static gchar *g_uv_path = NULL;
 static GMutex g_uv_mutex;
 
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
+	// Native byte order — sirilpy is same-machine IPC.
 	ResponseHeader header = {
 		.status = status,
-		.length = GUINT32_TO_BE(length)  // Convert to network byte order
+		.length = length,
 	};
 #ifdef _WIN32
     DWORD bytes_written = 0;

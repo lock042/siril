@@ -326,7 +326,7 @@ class SirilInterface:
 
             try:
                 # Pack command and length into fixed-size header
-                header = struct.pack('!Bi', command, data_length)
+                header = struct.pack('=Bi', command, data_length)
 
                 if os.name == 'nt':
                     # Create event for this write operation
@@ -359,7 +359,7 @@ class SirilInterface:
                         response_header = self._recv_exact(5, timeout)  # Pass timeout
                         if not response_header:
                             return None, None
-                        status, response_length = struct.unpack('!BI', response_header)
+                        status, response_length = struct.unpack('=BI', response_header)
 
                         response_data = None
                         if response_length > 0:
@@ -385,7 +385,7 @@ class SirilInterface:
                     if not response_header:
                         return None, None
 
-                    status, response_length = struct.unpack('!BI', response_header)
+                    status, response_length = struct.unpack('=BI', response_header)
                     response_data = None
                     if response_length > 0:
                         response_data = self._recv_exact(response_length, timeout)  # Pass timeout
