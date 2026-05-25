@@ -81,13 +81,22 @@ are updated in lock-step.
 ~/.local/share/siril/
 ├── uv-cache/                        # UV_CACHE_DIR — on the same volume as venvs
 ├── python/                          # uv-managed Python toolchain (optional, see §4.1)
-├── venvs/
-│   ├── _base/                       # sirilpy-only venv used by ad-hoc scripts
-│   │                                #   and as the fallback when no per-script venv exists
+├── venv/                            # base venv (sirilpy-only; used when per-script
+│                                    #   selector returns base, e.g. no PEP 723 + the
+│                                    #   feature gate is off)
+├── script_venvs/
 │   └── <script-hash>/               # one venv per known script file
 │       └── (sirilpy + that script's declared / ensure_installed-added deps)
-└── venvs.json                       # script-path → venv-hash mapping, last-used time
+└── script_venvs.json                # script-hash → venv metadata, last-used time
 ```
+
+NOTE: an earlier draft of this plan proposed `venvs/_base/` for the
+base venv. The implementation kept the base at `venv/` (matching
+the legacy layout) and put per-script venvs in a sibling
+`script_venvs/` directory. The two-tree layout keeps the legacy
+path stable for callers that hardcode `<data>/siril/venv` (e.g.
+`get_python_magic_number`) and makes per-script venvs purely
+additive.
 
 * A single `uv` binary on `PATH` (shipped or system-provided, see §6)
   is the only new external dependency.
@@ -116,9 +125,9 @@ are updated in lock-step.
 | uv binary           | bundled (Win/macOS), system pkg (Linux/Flatpak)     |
 | uv cache            | `$XDG_DATA_HOME/siril/uv-cache`                     |
 | uv-managed Python   | `$XDG_DATA_HOME/siril/python` (optional)            |
-| Base venv           | `$XDG_DATA_HOME/siril/venvs/_base`                  |
-| Per-script venv     | `$XDG_DATA_HOME/siril/venvs/<script-hash>`          |
-| Venv ledger         | `$XDG_DATA_HOME/siril/venvs.json`                   |
+| Base venv           | `$XDG_DATA_HOME/siril/venv` (kept stable for legacy callers) |
+| Per-script venv     | `$XDG_DATA_HOME/siril/script_venvs/<script-hash>`   |
+| Venv ledger         | `$XDG_DATA_HOME/siril/script_venvs.json`            |
 
 `UV_CACHE_DIR` must be set explicitly so the cache lives next to the
 venvs on a single volume; on Windows the default cache lives under
@@ -147,9 +156,9 @@ directories from sharing a venv. The ledger `venvs.json` maps:
 }
 ```
 
-`rebuild_venv()` in `siril_pythonmodule.c` becomes "blow away
-`venvs/`, `uv-cache/`, and `venvs.json`" — the entire surface stays
-self-contained under `$XDG_DATA_HOME/siril/`.
+`rebuild_venv()` in `siril_pythonmodule.c` is split into four
+operations (see §4.8) covering surgical, single-script, nuclear,
+and routine-maintenance use cases respectively.
 
 ## 4. C-side changes
 
@@ -422,26 +431,189 @@ UV_LINK_MODE                                         (do NOT set; let uv pick th
 This goes in the same place that `PYTHONUNBUFFERED`/`PYTHONUTF8` are
 already set today (siril_pythonmodule.c:3315–3318).
 
-### 4.8 `rebuild_venv()` semantics
+### 4.8 Venv rebuild and maintenance operations
 
-- [ ] `rebuild_venv()` updated to clear new layout
+Today there is a single `rebuild_venv()` function — nuclear-only,
+no concept of per-script venvs, always wipes everything. With
+per-script venvs in place (§4.5) this conflates three distinct
+user needs:
+
+* recovery from corruption (rare, blast-radius minimised by being
+  targeted),
+* "I changed my system Python and nothing works" (single nuclear
+  action),
+* "disk is filling up with venvs for scripts I don't use" (routine
+  maintenance).
+
+We split into four operations. The first three are recovery; the
+fourth is maintenance.
+
+#### 4.8.1 `rebuild_base_venv()` — surgical, base venv only
+
+- [ ] Existing `rebuild_venv()` renamed and scoped down
 - [ ] Preferences confirm-dialog text updated
+- [ ] Per-script venvs and uv cache explicitly preserved
 
-Today: delete `venv/` and `.python_module/`, re-initialise.
+Scope:
 
-After: delete `venvs/`, `uv-cache/`, `venvs.json`. Confirmation
-dialog wording in `src/gui/preferences.c:1182` will need an update
-because the consequences are larger — *all* per-script envs are
-rebuilt, not just sirilpy. Worth a second confirmation step that
-mentions "approximately N per-script environments will be rebuilt
-on next use of each script."
+* Delete `<data>/siril/venv/` and `<data>/siril/.python_module/`.
+* Leave `<data>/siril/script_venvs/`, `<data>/siril/script_venvs.json`,
+  and `<data>/siril/uv-cache/` untouched.
+* Call `clear_uv_state()` so the next `initialize_python_venv()`
+  re-probes uv (handles "user installed a newer uv on the side").
+* Re-run `initialize_python_venv_in_thread()`.
 
-Consideration: if there is a need for this "nuclear option" of
-rebuilding all the venvs, should it also clear the uv cache? (Is
-the need for this expected to be when the user's python version changes?)
-And is there also a need for a more targeted function that can be used
-to rebuild a single misbehaving venv? These points must be discussed
-before carrying out 4.8.
+Why this is the right default: rebuilding the base venv is cheap
+(one venv + cached wheels) and addresses the common "something is
+off with sirilpy" symptom. Per-script venvs survive untouched.
+
+Equivalent to today's `rebuild_venv()` minus the implicit
+assumption that there is only one venv to care about.
+
+#### 4.8.2 `rebuild_script_venv(script_hash)` — single per-script venv
+
+- [ ] C-side: function in `siril_pythonmodule.c` that wipes
+      `script_venvs/<hash>/` and removes the ledger entry under
+      a single ledger lock + ledger save
+- [ ] GUI integration via `treeview_scripts` context menu (see below)
+- [ ] Right-click handler refactored from direct-dialog to popup
+      menu so the existing "Select Revision" item and the new
+      "Rebuild Python environment" item can coexist
+
+Scope:
+
+* Take the ledger mutex.
+* Delete `<data>/siril/script_venvs/<hash>/`.
+* Remove the ledger entry for that hash.
+* Persist the ledger.
+* Done. Next launch of the script triggers `ensure_per_script_venv()`
+  which rebuilds from the (preserved) uv cache — sub-second for
+  most scripts because all wheels are already cached.
+
+GUI integration (`src/gui/uifiles/settings_window.ui` →
+`treeview_scripts`, populated by `git_gui.c::fill_script_repo_tree_idle`):
+
+The existing right-click handler at git_gui.c:378–520
+(`on_treeview_scripts_button_press`) opens a "Select Revision"
+dialog directly. Refactor that to open a `GtkMenu` with two items:
+
+```
+Right-click on a Python script row →
+┌──────────────────────────────────────┐
+│ Open at earlier revision…            │   (existing behaviour)
+│ Rebuild Python environment           │   (new, §4.8.2)
+└──────────────────────────────────────┘
+```
+
+The "Rebuild Python environment" item is sensitive only when:
+
+* the row's `COLUMN_IS_PYTHON` is TRUE (skip SSF scripts), and
+* a ledger entry exists for the script's hash (otherwise the
+  per-script venv hasn't been built yet — nothing to rebuild).
+
+The handler computes the script hash the same way
+`compute_script_hash()` does (SHA-256 of canonicalised
+`COLUMN_SCRIPTPATH`), calls `rebuild_script_venv()`, and shows a
+confirmation toast or modal — the action is fast enough that no
+progress dialog is needed.
+
+Optional follow-up (deferred, but worth noting): a new
+`COLUMN_VENV_STATUS` next to `COLUMN_STARTUP` that shows at a
+glance whether a per-script venv exists, is up-to-date, or is
+stale relative to the script's PEP 723 block. This adds visual
+clutter; keep behind a preference if implemented.
+
+#### 4.8.3 `rebuild_all_python_state()` — nuclear option
+
+- [ ] C-side function that wipes everything (with optional
+      uv-cache-also flag)
+- [ ] Confirmation dialog rewritten with N-venv-rebuilt warning
+      and "Also clear uv cache" checkbox
+
+Scope (cache preserved by default):
+
+* `kill_all_python_scripts()`.
+* Delete `<data>/siril/venv/`, `<data>/siril/.python_module/`,
+  `<data>/siril/script_venvs/`, `<data>/siril/script_venvs.json`.
+* If the "Also clear uv cache" checkbox is ticked: delete
+  `<data>/siril/uv-cache/` too. Default OFF for the reasons
+  discussed below.
+* `clear_uv_state()`; re-run `initialize_python_venv_in_thread()`.
+
+Why preserve the cache by default:
+
+* The common trigger for this action is "Python upgraded" — old
+  wheels become orphans (keyed by Python version) but cost only
+  disk, never break anything. `uv cache prune` removes them on
+  demand if disk space matters.
+* The cache exists *so that rebuilds are fast*. Wiping it converts
+  a sub-second per-venv rebuild into a multi-GB re-download for
+  every script that uses heavy deps (numpy / torch / CUDA libs).
+* The "cache is itself corrupt" failure mode is rare and better
+  served by a separate "Clean uv cache" action (or by deleting the
+  directory by hand) than by entangling it with "rebuild venvs."
+
+Confirmation dialog text along the lines of:
+
+> This will delete the base Python environment AND **N**
+> per-script environments. They will be rebuilt automatically the
+> next time each script runs, using wheels already in the local
+> cache.
+>
+> ☐ Also clear the uv wheel cache (slow; forces re-download of
+>   every dependency on next use).
+>
+> Continue?
+
+The current preference button at `src/gui/preferences.c:1182`
+becomes the trigger for this operation, with text updated from
+"Rebuild Python venv" to something like "Rebuild all Python
+environments…".
+
+#### 4.8.4 `prune_unused_script_venvs(max_age_days)` — routine maintenance
+
+- [ ] Ledger eviction pass implemented
+- [ ] Preferences UI: "Clean up unused script environments" button
+      with an editable age threshold
+
+Scope:
+
+* Walk the ledger.
+* For each entry: delete its venv directory + drop its ledger
+  entry IF either:
+  - the `script_path` no longer exists on disk (orphan venv), OR
+  - the `last_used` timestamp is older than the configured
+    threshold (default 90 days).
+* Persist the ledger.
+* Cache untouched.
+
+Why a separate operation from `rebuild_all`: this is "disk getting
+full" not "something is broken." Different user intent, different
+mental model, different blast radius.
+
+Default age threshold: 90 days. Provide an editable
+`GtkSpinButton` in the preference panel alongside the button.
+
+Report the result inline in the prefs panel: "Removed N
+environments, freed M MB."
+
+#### 4.8.5 Cross-cutting: the existing `rebuild_venv()` symbol
+
+`rebuild_venv()` is called from `src/gui/preferences.c:1182` and
+declared in `src/io/siril_pythonmodule.h:291`. To keep the patch
+series easy to review:
+
+* Rename in place: `rebuild_venv` → `rebuild_base_venv`. Update
+  callers. This is the minimal change in `siril_pythonmodule.c`'s
+  existing logic — same body, scoped name.
+* Add the three new functions (`rebuild_script_venv`,
+  `rebuild_all_python_state`, `prune_unused_script_venvs`) as
+  separate symbols.
+* Wire the preferences button at preferences.c:1182 to
+  `rebuild_all_python_state()` (with the new confirm-dialog UI),
+  not to `rebuild_base_venv()`, because the historical user intent
+  of clicking that button is "nuclear option" — preserving that
+  user intent is more important than preserving the symbol name.
 
 ## 5. Python-side changes (`python_module/sirilpy/`)
 
@@ -896,7 +1068,8 @@ the change merges into the `uv` branch.
 | `[ ]` | `src/gui/python_gui.c:1148–1192`                | pass `current_file` path + buffer text into the extended `execute_python_script`; PEP 723 extraction from buffer |
 | `[ ]` | `src/gui/script_menu.c:208`                     | pass canonical `script_file` for venv identity (one-line update) |
 | `[ ]` | `src/core/command.c:14572`                      | pass `data->script_name` for venv identity (one-line update) |
-| `[ ]` | `src/gui/preferences.c:1182`                    | confirm-dialog wording + new "clean up unused envs" button |
+| `[ ]` | `src/gui/preferences.c:1182`                    | rewire existing button to `rebuild_all_python_state()`, new confirm dialog with cache checkbox; add "Rebuild base venv" + "Clean up unused script envs" buttons |
+| `[ ]` | `src/gui/git_gui.c:378` (`on_treeview_scripts_button_press`) | refactor direct-dialog right-click to popup menu; add "Rebuild Python environment" item for §4.8.2 |
 | `[ ]` | `python_module/sirilpy/utility.py`              | `_install_package`, `uninstall_package`, new `pip_*` helpers |
 | `[ ]` | `python_module/sirilpy/gpuhelper.py`            | route all pip subprocesses through `_resolve_installer()` |
 | `[—]` | `python_module/pyproject.toml`                  | (no change — deliberately)                            |
