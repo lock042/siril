@@ -284,6 +284,22 @@ typedef struct {
 // the SIRIL_PER_SCRIPT_VENVS feature gate is set; otherwise the base venv
 // is used regardless.
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, const gchar *venv_identity_path, const gchar *pep723_source);
+
+// Fire-and-forget async variant for GUI callers (script menu, editor).
+// execute_python_script's preamble — wait for venv init, run
+// select_venv_for_script, create/install the per-script venv if needed —
+// can take many seconds on first run. Calling that synchronously from the
+// GTK main thread freezes the UI; this wrapper hops onto a worker thread
+// instead. The wrapper takes ownership of `script_name`, `argv_script`
+// (frees them via execute_python_script's existing semantics), and the
+// strings passed via `venv_identity_path` / `pep723_source` (duped
+// internally).
+//
+// Always async (no sync flag) and never joined: GUI callers want the
+// menu/dialog to return immediately so the user can keep working while
+// the venv is built. Background lifecycle is handled by the existing
+// child-watch hooks in execute_python_script.
+void execute_python_script_async(gchar* script_name, gboolean from_file, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, const gchar *venv_identity_path, const gchar *pep723_source);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);

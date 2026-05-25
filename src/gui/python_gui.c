@@ -1190,15 +1190,18 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			// than the per-click tempfile path. Pass the buffer text as pep723_source so
 			// the selector reads the *current* metadata, not whatever is saved on disk
 			// (which may be stale if the user has unsaved edits).
+			//
+			// Use the async variant so the per-script venv build does not block
+			// the GTK main thread on first run.
 			gchar *identity_path = NULL;
 			if (current_file) {
 				identity_path = g_file_get_path(current_file);
 			}
-			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug,
+			execute_python_script_async(temp_filename, TRUE, script_args, TRUE, from_cli, python_debug,
 					identity_path /* venv_identity_path: NULL for unsaved buffer */,
 					text          /* pep723_source: the buffer text */);
+			// script_args ownership transferred to execute_python_script_async.
 			g_free(identity_path);
-			g_strfreev(script_args);
 			g_free(text);
 			break;
 		case LANG_SSF:;

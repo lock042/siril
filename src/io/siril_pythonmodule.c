@@ -4847,6 +4847,64 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 	return g_strcmp0(actual_hex, expected_hex_magic) == 0;
 }
 
+// Argument bundle for execute_python_script_async's worker thread.
+// Ownership: the wrapper takes ownership of every pointer it stores —
+// script_name and argv_script are consumed by execute_python_script
+// (existing semantics for script_name; we add explicit g_strfreev for
+// argv_script). venv_identity_path and pep723_source are dup'd by the
+// wrapper at call time and freed by the thread.
+typedef struct {
+	gchar *script_name;
+	gboolean from_file;
+	gchar **argv_script;
+	gboolean is_temp_file;
+	gboolean from_cli;
+	gboolean debug_mode;
+	gchar *venv_identity_path;
+	gchar *pep723_source;
+} python_script_async_args;
+
+static gpointer execute_python_script_async_thread(gpointer user_data) {
+	python_script_async_args *a = user_data;
+	execute_python_script(a->script_name, a->from_file, FALSE /* sync */,
+			a->argv_script, a->is_temp_file, a->from_cli, a->debug_mode,
+			a->venv_identity_path, a->pep723_source);
+	// script_name was consumed by execute_python_script. argv_script is
+	// borrowed (used during spawn but not freed there), so we free it
+	// here once execute_python_script has returned (post-spawn).
+	g_strfreev(a->argv_script);
+	g_free(a->venv_identity_path);
+	g_free(a->pep723_source);
+	g_free(a);
+	return NULL;
+}
+
+// Fire-and-forget. Takes ownership of script_name AND argv_script —
+// callers MUST NOT free them after this returns. venv_identity_path and
+// pep723_source are dup'd internally; callers retain ownership of their
+// originals.
+void execute_python_script_async(gchar *script_name, gboolean from_file,
+                                 gchar **argv_script, gboolean is_temp_file,
+                                 gboolean from_cli, gboolean debug_mode,
+                                 const gchar *venv_identity_path,
+                                 const gchar *pep723_source) {
+	python_script_async_args *a = g_new0(python_script_async_args, 1);
+	a->script_name = script_name;
+	a->from_file = from_file;
+	a->argv_script = argv_script;
+	a->is_temp_file = is_temp_file;
+	a->from_cli = from_cli;
+	a->debug_mode = debug_mode;
+	a->venv_identity_path = venv_identity_path ? g_strdup(venv_identity_path) : NULL;
+	a->pep723_source = pep723_source ? g_strdup(pep723_source) : NULL;
+
+	GThread *thread = g_thread_new("python-launch",
+			execute_python_script_async_thread, a);
+	// Fire-and-forget: the spawned python child has its own child-watch
+	// hook for cleanup; we don't need to track this thread.
+	g_thread_unref(thread);
+}
+
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
 						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
 						gboolean debug_mode,
