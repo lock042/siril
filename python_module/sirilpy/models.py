@@ -1210,6 +1210,51 @@ class Sequence:
     cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
     current: int = 0                     #: file number currently loaded
 
+    # Fixed-header wire format mirrors seq_to_py() in C: 9 int32
+    # (number, selnum, fixed, nb_layers, bitpix, reference_image, beg,
+    # end, current) interleaved with 2 uint32 (rx, ry), 4 int32
+    # gbooleans (is_variable, fz, cfa_opened_monochrome), 1 int32 enum
+    # (type), 1 double (exposure). Seqname follows as NUL-terminated UTF-8.
+    _HEAD_FORMAT: ClassVar[str] = '=iiiiIIiiiiidiiii'
+    _HEAD_SIZE: ClassVar[int] = struct.calcsize('=iiiiIIiiiiidiiii')
+
+    @classmethod
+    def deserialize_head(cls, data: bytes) -> Tuple[int, int, int, int, int, int,
+                                                     bool, int, int, int, int,
+                                                     float, bool, int, bool, int, str]:
+        """
+        Decode the seq_to_py fixed-header block (68 bytes) plus a
+        trailing NUL-terminated seqname. Returns a 17-tuple of the
+        decoded fields (booleans already wrapped in `bool(...)`):
+        (number, selnum, fixed, nb_layers, rx, ry, is_variable, bitpix,
+         reference_image, beg, end, exposure, fz, type_int,
+         cfa_opened_monochrome, current, seqname_str).
+
+        The expensive nested imgparam / regparam / stats / distoparam
+        lists are NOT fetched here — the caller assembles those itself
+        with per-frame requests, since they're not part of the same
+        wire response.
+        """
+        if len(data) < cls._HEAD_SIZE:
+            raise ValueError(
+                f"Sequence wire size {len(data)} smaller than head {cls._HEAD_SIZE}"
+            )
+        v = struct.unpack(cls._HEAD_FORMAT, data[:cls._HEAD_SIZE])
+        seqname = data[cls._HEAD_SIZE:].decode('utf-8').rstrip('\x00') if len(data) > cls._HEAD_SIZE else ''
+        return (
+            v[0], v[1], v[2], v[3],      # number, selnum, fixed, nb_layers
+            v[4], v[5],                   # rx, ry (uint32)
+            bool(v[6]),                   # is_variable
+            v[7], v[8],                   # bitpix, reference_image
+            v[9], v[10],                  # beg, end
+            v[11],                        # exposure (double)
+            bool(v[12]),                  # fz
+            v[13],                        # type (raw enum int — caller wraps in SequenceType)
+            bool(v[14]),                  # cfa_opened_monochrome
+            v[15],                        # current
+            seqname,
+        )
+
     def __post_init__(self):
         """Initialize lists that were set to None by default"""
         if self.imgparam is None:
@@ -1248,6 +1293,24 @@ class FPoint:
     """
     x: float #: x co-ordinate
     y: float #: y co-ordinate
+
+    # 2-double wire format used by Polygon.serialize / .deserialize_polygon.
+    _FORMAT: ClassVar[str] = '=dd'
+    _SIZE: ClassVar[int] = struct.calcsize('=dd')
+
+    def serialize(self) -> bytes:
+        """Pack one (x, y) point as 16 bytes (native double, no alignment)."""
+        return struct.pack(self._FORMAT, self.x, self.y)
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'FPoint':
+        """Decode 16 bytes into an FPoint. Raises ValueError if too short."""
+        if len(data) < cls._SIZE:
+            raise ValueError(
+                f"FPoint wire size {len(data)} smaller than expected {cls._SIZE}"
+            )
+        x, y = struct.unpack(cls._FORMAT, data[:cls._SIZE])
+        return cls(x, y)
 
 # This is a very liberal limit, only there to protect C against unbounded g_malloc0
 # calls that could arise from attempts to create a Polygon with astronomical numbers

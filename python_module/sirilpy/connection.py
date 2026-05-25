@@ -3022,16 +3022,10 @@ class SirilInterface:
             return None
 
         try:
-            format_string = '!4q3Q4qdQqQq'
-            fixed_length = struct.calcsize(format_string)
-
-            values = struct.unpack(format_string, response[:fixed_length])
-            # Extract remaining bytes for the null-terminated string
-            remaining_data = response[fixed_length:]
-            seqname_string = remaining_data.decode('utf-8').rstrip('\x00')
-
-            number = values[0]
-            nb_layers = values[3]
+            (number, selnum, fixed, nb_layers, rx, ry,
+             is_variable, bitpix, reference_image, beg, end, exposure,
+             fz, type_int, cfa_opened_monochrome, current,
+             seqname_string) = Sequence.deserialize_head(response)
 
             imgparam_list = [self.get_seq_imgdata(frame)
                              for frame in range(number)]
@@ -3047,30 +3041,30 @@ class SirilInterface:
             disto_list = [self.get_seq_distodata(channel)
                              for channel in range(nb_layers)]
 
-            return Sequence (
-                number = values[0],
-                selnum = values[1],
-                fixed = values[2],
-                nb_layers = values[3],
-                rx = values[4],
-                ry = values[5],
-                is_variable = bool(values[6]),
-                bitpix = values[7],
-                reference_image = values[8],
+            return Sequence(
+                number = number,
+                selnum = selnum,
+                fixed = fixed,
+                nb_layers = nb_layers,
+                rx = rx,
+                ry = ry,
+                is_variable = is_variable,
+                bitpix = bitpix,
+                reference_image = reference_image,
                 imgparam = imgparam_list,
                 regparam = regdata_list,
                 stats = stats_list,
                 distoparam = disto_list,
-                beg = values[9],
-                end = values[10],
-                exposure = values[11],
-                fz = bool(values[12]),
-                type = SequenceType(values[13]),
-                cfa_opened_monochrome = bool(values[14]),
-                current = values[15],
+                beg = beg,
+                end = end,
+                exposure = exposure,
+                fz = fz,
+                type = SequenceType(type_int),
+                cfa_opened_monochrome = cfa_opened_monochrome,
+                current = current,
                 seqname = seqname_string
             )
-        except struct.error as e:
+        except (struct.error, ValueError) as e:
             raise SirilError(f"Error in get_seq(): {e}") from e
 
     def get_image_keywords(self) -> Optional[FKeywords]:
@@ -3244,10 +3238,7 @@ class SirilInterface:
 
             # Calculate expected size with shared memory info structs.
             # Header and ICC profile are always included; pixels only if requested.
-            # shminfo_format mirrors `shared_memory_info_t` in C: uint64 size,
-            # int data_type/width/height/channels, char shm_name[256].
-            shminfo_format = '=Qiiii256s'
-            single_shminfo_size = struct.calcsize(shminfo_format)
+            single_shminfo_size = _SharedMemoryInfo._STRUCT_SIZE
 
             # Always include header and ICC profile shared memory info structs
             shminfo_size = single_shminfo_size * 2  # header + icc_profile
@@ -3284,16 +3275,7 @@ class SirilInterface:
 
             # Extract pixel data shm_info (only if with_pixels=True)
             if with_pixels:
-                (size_be, data_type_be, width_be, height_be, channels_be, shm_name_bytes) = struct.unpack_from(shminfo_format, response, current_offset)
-
-                shm_pixels_info = _SharedMemoryInfo(
-                    size = size_be,
-                    data_type = data_type_be,
-                    width = width_be,
-                    height = height_be,
-                    channels = channels_be,
-                    shm_name = shm_name_bytes
-                )
+                shm_pixels_info = _SharedMemoryInfo.from_wire_buffer(response, current_offset)
 
                 # Check if pixel data is available (non-zero size and valid shm_name)
                 shm_name_str = shm_pixels_info.shm_name.decode('utf-8').rstrip('\x00')
@@ -3342,16 +3324,7 @@ class SirilInterface:
                 current_offset += single_shminfo_size
 
             # Extract header data shm_info (always present)
-            (size_be, data_type_be, width_be, height_be, channels_be, shm_name_bytes) = struct.unpack_from(shminfo_format, response, current_offset)
-
-            shm_header_info = _SharedMemoryInfo(
-                size = size_be,
-                data_type = data_type_be,
-                width = width_be,
-                height = height_be,
-                channels = channels_be,
-                shm_name = shm_name_bytes
-            )
+            shm_header_info = _SharedMemoryInfo.from_wire_buffer(response, current_offset)
 
             # Check if header data is available
             shm_name_str = shm_header_info.shm_name.decode('utf-8').rstrip('\x00')
@@ -3371,16 +3344,7 @@ class SirilInterface:
             current_offset += single_shminfo_size
 
             # Extract ICC profile data shm_info (always present)
-            (size_be, data_type_be, width_be, height_be, channels_be, shm_name_bytes) = struct.unpack_from(shminfo_format, response, current_offset)
-
-            shm_icc_info = _SharedMemoryInfo(
-                size = size_be,
-                data_type = data_type_be,
-                width = width_be,
-                height = height_be,
-                channels = channels_be,
-                shm_name = shm_name_bytes
-            )
+            shm_icc_info = _SharedMemoryInfo.from_wire_buffer(response, current_offset)
 
             # Check if ICC profile data is available
             shm_name_str = shm_icc_info.shm_name.decode('utf-8').rstrip('\x00')

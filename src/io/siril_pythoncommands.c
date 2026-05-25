@@ -360,34 +360,43 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 // 5 int32 = 276 bytes.
 #define PSFSTAR_WIRE_SIZE (32 * sizeof(double) + 5 * sizeof(int32_t))
 
+// Native widths (mirrors Sequence.deserialize() in sirilpy/models.py):
+// 9 int32 (number, selnum, fixed, nb_layers, bitpix, reference_image,
+// beg, end, current) + 2 uint32 (rx, ry) + 4 int32 gbooleans
+// (is_variable, fz, cfa_opened_monochrome) + 1 int32 enum (type) +
+// 1 double (exposure) + variable-length NUL-terminated seqname.
+// Fixed header = 15 × 4 + 8 = 68 bytes (was 16 × 8 = 128).
 static int seq_to_py(const sequence *seq, unsigned char* ptr, size_t maxlen) {
 	if (!seq || !ptr)
 		return 1;
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_FIELD((int64_t) seq->number, int64_t);
-	COPY_FIELD((int64_t) seq->selnum, int64_t);
-	COPY_FIELD((int64_t) seq->fixed, int64_t);
-	COPY_FIELD((int64_t) seq->nb_layers, int64_t);
-	COPY_FIELD((uint64_t) seq->rx, uint64_t);
-	COPY_FIELD((uint64_t) seq->ry, uint64_t);
-	COPY_FIELD((uint64_t) seq->is_variable, uint64_t);
-	COPY_FIELD((int64_t) seq->bitpix, int64_t);
-	COPY_FIELD((int64_t) seq->reference_image, int64_t);
-	COPY_FIELD((int64_t) seq->beg, int64_t);
-	COPY_FIELD((int64_t) seq->end, int64_t);
+	COPY_FIELD(seq->number, int);                        // int32
+	COPY_FIELD(seq->selnum, int);                        // int32
+	COPY_FIELD(seq->fixed, int);                         // int32
+	COPY_FIELD(seq->nb_layers, int);                     // int32
+	COPY_FIELD(seq->rx, unsigned int);                   // uint32
+	COPY_FIELD(seq->ry, unsigned int);                   // uint32
+	COPY_FIELD((int32_t) seq->is_variable, int32_t);     // gboolean → int32
+	COPY_FIELD(seq->bitpix, int);                        // int32
+	COPY_FIELD(seq->reference_image, int);               // int32
+	COPY_FIELD(seq->beg, int);                           // int32
+	COPY_FIELD(seq->end, int);                           // int32
 	COPY_FIELD(seq->exposure, double);
-	COPY_FIELD((uint64_t) seq->fz, uint64_t);
-	COPY_FIELD((int64_t) seq->type, int64_t);
-	COPY_FIELD((uint64_t) seq->cfa_opened_monochrome, uint64_t);
-	COPY_FIELD((int64_t) seq->current, int64_t);
+	COPY_FIELD((int32_t) seq->fz, int32_t);              // gboolean → int32
+	COPY_FIELD((int32_t) seq->type, int32_t);            // sequence_type enum → int32
+	COPY_FIELD((int32_t) seq->cfa_opened_monochrome, int32_t); // gboolean → int32
+	COPY_FIELD(seq->current, int);                       // int32
 	COPY_STRING(seq->seqname);
 	// Registration preview coords are not passed to python
 	// The dirty and invalid reg flags are not passed to python
 	// The photometry data is not currently passed to python
 	return 0;
 }
+
+// Wire size of the seq_to_py fixed header (before the seqname string).
+#define SEQ_TO_PY_HEAD_SIZE (15 * sizeof(int32_t) + sizeof(double))
 
 static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen) {
 	if (!stats || !ptr)
@@ -1939,10 +1948,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			// Calculate size needed for the response
+			// Calculate size needed for the response (mirrors seq_to_py
+			// in C and Sequence.deserialize in sirilpy/models.py): 68-byte
+			// fixed header at native widths + NUL-terminated seqname.
 			size_t stringsize = strlen(com.seq.seqname) + 1;
-			size_t varsize = sizeof(uint64_t) * 16;
-			size_t total_size = varsize + stringsize;
+			size_t total_size = SEQ_TO_PY_HEAD_SIZE + stringsize;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 

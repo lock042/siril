@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import struct
 import ctypes
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
@@ -22,9 +23,34 @@ class _SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
+    # Wire format of the shm-info struct emitted by Siril. Matches the
+    # ctypes layout above field-for-field. Use this from connection.py
+    # rather than copy-pasting `struct.unpack_from('=Qiiii256s', ...)`.
+    _STRUCT_FORMAT = '=Qiiii256s'
+    _STRUCT_SIZE = struct.calcsize('=Qiiii256s')
+
     def __len__(self):
         """Return the size in bytes of this structure."""
         return ctypes.sizeof(self)
+
+    @classmethod
+    def from_wire_buffer(cls, data: bytes, offset: int = 0) -> '_SharedMemoryInfo':
+        """
+        Decode the on-wire shm-info struct (`=Qiiii256s`, 280 bytes
+        starting at `offset`) into a _SharedMemoryInfo instance.
+        Retires the copy-pasted unpack pattern in connection.py.
+        """
+        size, data_type, width, height, channels, shm_name = struct.unpack_from(
+            cls._STRUCT_FORMAT, data, offset
+        )
+        return cls(
+            size=size,
+            data_type=data_type,
+            width=width,
+            height=height,
+            channels=channels,
+            shm_name=shm_name,
+        )
 
 class SharedMemoryWrapper:
     """
