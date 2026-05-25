@@ -205,7 +205,9 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
-		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE, FALSE, get_python_debug_mode());
+		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE, FALSE, get_python_debug_mode(),
+				script_file /* venv_identity_path: canonical script file */,
+				NULL /* pep723_source: read from file */);
 		// script_file is freed by execute_python_script
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */

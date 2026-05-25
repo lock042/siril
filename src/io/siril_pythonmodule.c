@@ -28,6 +28,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "yyjson.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
 #include "core/OS_utils.h"
@@ -97,6 +98,11 @@ static gboolean install_or_update_sirilpy_module(const gchar *module_path,
                                                  const gchar *venv_path,
                                                  const gchar *project_path,
                                                  GError **error);
+typedef struct pep723_metadata pep723_metadata;
+static void pep723_metadata_free(pep723_metadata *meta);
+static pep723_metadata *parse_pep723(const gchar *source);
+static gchar *pep723_canonical_hash(const pep723_metadata *meta);
+static gchar *resolve_system_python_for_uv(GError **error);
 
 // Cached uv path. NULL when uv is not in use (either the SIRIL_USE_UV gate is
 // off, uv was not found, or the discovered uv was too old). Set by
@@ -2134,6 +2140,717 @@ static gchar *get_uv_managed_python_token(void) {
 	return g_strdup("3.12");
 }
 
+// PEP 723 inline script metadata. We only care about the `dependencies`
+// array; everything else (requires-python, tool tables, etc.) is currently
+// ignored. Storage: gchar*-owning GPtrArray.
+struct pep723_metadata {
+	GPtrArray *dependencies;  // sorted list of dependency strings
+};
+
+static void pep723_metadata_free(pep723_metadata *meta) {
+	if (!meta) return;
+	if (meta->dependencies) g_ptr_array_free(meta->dependencies, TRUE);
+	g_free(meta);
+}
+
+// g_ptr_array_sort comparator: receives gchar** (pointers to array slots).
+static gint pep723_compare_strings(gconstpointer a, gconstpointer b) {
+	return g_ascii_strcasecmp(*(const gchar * const *)a,
+	                          *(const gchar * const *)b);
+}
+
+// Extract the PEP 723 metadata block from a source string. Returns NULL if
+// no block is found or no `dependencies` array is present. The caller owns
+// the returned struct.
+//
+// PEP 723 block format:
+//   # /// script
+//   # dependencies = [
+//   #   "numpy>=1.20",
+//   #   "scipy",
+//   # ]
+//   # requires-python = ">=3.11"
+//   # ///
+//
+// We support both single-line `dependencies = ["a", "b"]` and the multi-line
+// form shown above. We do NOT support full TOML — comments inside the array,
+// trailing commas, environment markers, etc. all just work as long as the
+// strings between `[` and `]` are simple double-quoted entries. Anything
+// fancier should be expressed in pyproject.toml, not in inline metadata.
+static pep723_metadata *parse_pep723(const gchar *source) {
+	if (!source || !*source) return NULL;
+
+	// Find the block start: a line containing "# /// script" (allowing
+	// arbitrary whitespace).
+	GRegex *block_re = g_regex_new(
+			"^#\\s*///\\s*script\\s*$([\\s\\S]*?)^#\\s*///\\s*$",
+			G_REGEX_MULTILINE, 0, NULL);
+	if (!block_re) return NULL;
+
+	GMatchInfo *block_match = NULL;
+	gchar *block_inner = NULL;
+	if (g_regex_match(block_re, source, 0, &block_match)) {
+		block_inner = g_match_info_fetch(block_match, 1);
+	}
+	g_match_info_free(block_match);
+	g_regex_unref(block_re);
+
+	if (!block_inner) return NULL;
+
+	// Strip the leading "# " (or "#") from each line so we have a TOML-ish
+	// chunk to scan.
+	GString *cleaned = g_string_new(NULL);
+	gchar **lines = g_strsplit(block_inner, "\n", -1);
+	for (gchar **p = lines; *p; p++) {
+		const gchar *line = *p;
+		// Skip leading whitespace
+		while (*line == ' ' || *line == '\t') line++;
+		if (*line != '#') {
+			// Stop at any non-comment line; PEP 723 blocks are entirely
+			// comment-prefixed.
+			continue;
+		}
+		line++;  // skip the '#'
+		if (*line == ' ') line++;  // skip optional single space
+		g_string_append(cleaned, line);
+		g_string_append_c(cleaned, '\n');
+	}
+	g_strfreev(lines);
+	g_free(block_inner);
+
+	// Find `dependencies = [ ... ]` — the `]` may be on the same line or a
+	// later one. We capture everything between the brackets non-greedily.
+	GRegex *deps_re = g_regex_new(
+			"dependencies\\s*=\\s*\\[([\\s\\S]*?)\\]",
+			G_REGEX_MULTILINE, 0, NULL);
+	if (!deps_re) {
+		g_string_free(cleaned, TRUE);
+		return NULL;
+	}
+
+	GMatchInfo *deps_match = NULL;
+	gchar *deps_inner = NULL;
+	if (g_regex_match(deps_re, cleaned->str, 0, &deps_match)) {
+		deps_inner = g_match_info_fetch(deps_match, 1);
+	}
+	g_match_info_free(deps_match);
+	g_regex_unref(deps_re);
+	g_string_free(cleaned, TRUE);
+
+	if (!deps_inner) return NULL;
+
+	// Extract each "..."-quoted string. Single quotes accepted too.
+	GRegex *str_re = g_regex_new("[\"']([^\"']*)[\"']", 0, 0, NULL);
+	if (!str_re) {
+		g_free(deps_inner);
+		return NULL;
+	}
+
+	pep723_metadata *meta = g_new0(pep723_metadata, 1);
+	meta->dependencies = g_ptr_array_new_with_free_func(g_free);
+
+	GMatchInfo *str_match = NULL;
+	g_regex_match(str_re, deps_inner, 0, &str_match);
+	while (g_match_info_matches(str_match)) {
+		gchar *dep = g_match_info_fetch(str_match, 1);
+		if (dep && *dep)
+			g_ptr_array_add(meta->dependencies, dep);
+		else
+			g_free(dep);
+		g_match_info_next(str_match, NULL);
+	}
+	g_match_info_free(str_match);
+	g_regex_unref(str_re);
+	g_free(deps_inner);
+
+	if (meta->dependencies->len == 0) {
+		pep723_metadata_free(meta);
+		return NULL;
+	}
+
+	// Canonicalise: sort case-insensitively so {numpy, scipy} and
+	// {scipy, numpy} hash to the same identity. NOTE: g_ptr_array_sort
+	// passes pointer-to-pointer (gchar**), not gchar*, to the comparator,
+	// so we cannot use g_ascii_strcasecmp directly.
+	g_ptr_array_sort(meta->dependencies, pep723_compare_strings);
+
+	return meta;
+}
+
+// SHA-256 of the canonicalised dependencies array, used as part of the
+// per-script venv identity for unsaved editor buffers. Returns the first
+// 16 hex chars (64 bits) as a newly-allocated string.
+static gchar *pep723_canonical_hash(const pep723_metadata *meta) {
+	if (!meta || !meta->dependencies || meta->dependencies->len == 0)
+		return NULL;
+	GString *buf = g_string_new(NULL);
+	for (guint i = 0; i < meta->dependencies->len; i++) {
+		g_string_append(buf, (const gchar *)g_ptr_array_index(meta->dependencies, i));
+		g_string_append_c(buf, '\n');
+	}
+	gchar *full = g_compute_checksum_for_string(G_CHECKSUM_SHA256, buf->str, buf->len);
+	g_string_free(buf, TRUE);
+	if (!full) return NULL;
+	gchar *truncated = g_strndup(full, 16);
+	g_free(full);
+	return truncated;
+}
+
+// Per-script venv ledger.
+//
+// Maps script_hash → metadata about the venv we created for it. Lives on
+// disk at <project_path>/script_venvs.json. Loaded lazily on first use of
+// the per-script feature; saved synchronously after each mutation.
+//
+// File format (versioned for forward compat):
+//   { "version": 1,
+//     "entries": {
+//       "<script-hash>": {
+//         "script_path": "/path/to/script.py",   (may be missing)
+//         "created":      "2026-05-25T01:23:45Z",
+//         "last_used":    "2026-05-25T01:30:00Z",
+//         "pep723_hash":  "08b3f2c357e52145",    (may be missing)
+//         "sirilpy_version": "1.1.12"
+//       }, ...
+//     }
+//   }
+typedef struct {
+	gchar *script_hash;       // venv identity (also hash table key)
+	gchar *script_path;       // absolute path of the script, may be NULL
+	gchar *created_iso;       // ISO-8601 UTC
+	gchar *last_used_iso;     // ISO-8601 UTC
+	gchar *pep723_hash;       // canonical-deps hash, may be NULL
+	gchar *sirilpy_version;   // e.g. "1.1.12"
+} venv_ledger_entry;
+
+typedef struct {
+	GHashTable *entries;      // script_hash -> venv_ledger_entry*
+	GMutex mutex;             // serialises mutations and disk I/O
+} venv_ledger;
+
+static venv_ledger *g_venv_ledger = NULL;
+static GMutex g_venv_ledger_init_mutex;
+
+static void venv_ledger_entry_free(venv_ledger_entry *e) {
+	if (!e) return;
+	g_free(e->script_hash);
+	g_free(e->script_path);
+	g_free(e->created_iso);
+	g_free(e->last_used_iso);
+	g_free(e->pep723_hash);
+	g_free(e->sirilpy_version);
+	g_free(e);
+}
+
+static gchar *ledger_path_for(const gchar *project_path) {
+	return g_build_filename(project_path, "script_venvs.json", NULL);
+}
+
+// Load ledger from disk. Missing file → empty ledger (not an error).
+static venv_ledger *ledger_load(const gchar *project_path) {
+	venv_ledger *ledger = g_new0(venv_ledger, 1);
+	g_mutex_init(&ledger->mutex);
+	ledger->entries = g_hash_table_new_full(g_str_hash, g_str_equal,
+			g_free, (GDestroyNotify)venv_ledger_entry_free);
+
+	gchar *path = ledger_path_for(project_path);
+	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+		g_free(path);
+		return ledger;
+	}
+
+	yyjson_doc *doc = yyjson_read_file(path, 0, NULL, NULL);
+	g_free(path);
+	if (!doc) {
+		siril_log_warning(_("Could not parse %s; starting with an empty ledger.\n"),
+				"script_venvs.json");
+		return ledger;
+	}
+
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *entries = root ? yyjson_obj_get(root, "entries") : NULL;
+	if (!entries || !yyjson_is_obj(entries)) {
+		yyjson_doc_free(doc);
+		return ledger;
+	}
+
+	yyjson_obj_iter iter;
+	yyjson_obj_iter_init(entries, &iter);
+	yyjson_val *key, *val;
+	while ((key = yyjson_obj_iter_next(&iter))) {
+		val = yyjson_obj_iter_get_val(key);
+		if (!yyjson_is_obj(val)) continue;
+		venv_ledger_entry *e = g_new0(venv_ledger_entry, 1);
+		e->script_hash = g_strdup(yyjson_get_str(key));
+		yyjson_val *v;
+		if ((v = yyjson_obj_get(val, "script_path")) && yyjson_is_str(v))
+			e->script_path = g_strdup(yyjson_get_str(v));
+		if ((v = yyjson_obj_get(val, "created")) && yyjson_is_str(v))
+			e->created_iso = g_strdup(yyjson_get_str(v));
+		if ((v = yyjson_obj_get(val, "last_used")) && yyjson_is_str(v))
+			e->last_used_iso = g_strdup(yyjson_get_str(v));
+		if ((v = yyjson_obj_get(val, "pep723_hash")) && yyjson_is_str(v))
+			e->pep723_hash = g_strdup(yyjson_get_str(v));
+		if ((v = yyjson_obj_get(val, "sirilpy_version")) && yyjson_is_str(v))
+			e->sirilpy_version = g_strdup(yyjson_get_str(v));
+		g_hash_table_replace(ledger->entries, g_strdup(e->script_hash), e);
+	}
+	yyjson_doc_free(doc);
+	return ledger;
+}
+
+// Atomic save: write to .tmp then rename. Returns FALSE with *error set on
+// failure; on success the on-disk ledger reflects the in-memory state.
+static gboolean ledger_save(venv_ledger *ledger, const gchar *project_path,
+                            GError **error) {
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
+	yyjson_mut_obj_add_int(doc, root, "version", 1);
+
+	yyjson_mut_val *entries = yyjson_mut_obj(doc);
+	yyjson_mut_obj_add_val(doc, root, "entries", entries);
+
+	GHashTableIter iter;
+	gpointer k, v;
+	g_hash_table_iter_init(&iter, ledger->entries);
+	while (g_hash_table_iter_next(&iter, &k, &v)) {
+		venv_ledger_entry *e = (venv_ledger_entry *)v;
+		yyjson_mut_val *obj = yyjson_mut_obj(doc);
+		if (e->script_path)
+			yyjson_mut_obj_add_str(doc, obj, "script_path", e->script_path);
+		if (e->created_iso)
+			yyjson_mut_obj_add_str(doc, obj, "created", e->created_iso);
+		if (e->last_used_iso)
+			yyjson_mut_obj_add_str(doc, obj, "last_used", e->last_used_iso);
+		if (e->pep723_hash)
+			yyjson_mut_obj_add_str(doc, obj, "pep723_hash", e->pep723_hash);
+		if (e->sirilpy_version)
+			yyjson_mut_obj_add_str(doc, obj, "sirilpy_version", e->sirilpy_version);
+		yyjson_mut_obj_add_val(doc, entries, e->script_hash, obj);
+	}
+
+	gchar *final_path = ledger_path_for(project_path);
+	gchar *tmp_path = g_strdup_printf("%s.tmp.%d", final_path, getpid());
+
+	yyjson_write_err werr;
+	gboolean wrote = yyjson_mut_write_file(tmp_path, doc,
+			YYJSON_WRITE_PRETTY, NULL, &werr);
+	yyjson_mut_doc_free(doc);
+
+	if (!wrote) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"yyjson write failed: %s", werr.msg ? werr.msg : "unknown");
+		g_unlink(tmp_path);
+		g_free(tmp_path);
+		g_free(final_path);
+		return FALSE;
+	}
+
+	if (g_rename(tmp_path, final_path) != 0) {
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+				"Could not rename ledger tmp file: %s", g_strerror(errno));
+		g_unlink(tmp_path);
+		g_free(tmp_path);
+		g_free(final_path);
+		return FALSE;
+	}
+	g_free(tmp_path);
+	g_free(final_path);
+	return TRUE;
+}
+
+static void ledger_free(venv_ledger *ledger) {
+	if (!ledger) return;
+	if (ledger->entries) g_hash_table_destroy(ledger->entries);
+	g_mutex_clear(&ledger->mutex);
+	g_free(ledger);
+}
+
+// Lazily initialise the global ledger from disk. Returns the singleton
+// (never NULL). Subsequent callers see whatever state mutations have
+// produced.
+static venv_ledger *get_venv_ledger(const gchar *project_path) {
+	g_mutex_lock(&g_venv_ledger_init_mutex);
+	if (!g_venv_ledger)
+		g_venv_ledger = ledger_load(project_path);
+	g_mutex_unlock(&g_venv_ledger_init_mutex);
+	return g_venv_ledger;
+}
+
+static venv_ledger_entry *ledger_lookup(venv_ledger *ledger,
+                                        const gchar *script_hash) {
+	if (!ledger || !script_hash) return NULL;
+	g_mutex_lock(&ledger->mutex);
+	venv_ledger_entry *e = g_hash_table_lookup(ledger->entries, script_hash);
+	g_mutex_unlock(&ledger->mutex);
+	return e;
+}
+
+// Insert or update an entry. The `created` timestamp is preserved when
+// updating an existing entry; `last_used` is always refreshed. Caller is
+// responsible for calling ledger_save() afterwards to persist.
+static void ledger_record(venv_ledger *ledger,
+                          const gchar *script_hash,
+                          const gchar *script_path,
+                          const gchar *pep723_hash,
+                          const gchar *sirilpy_version) {
+	if (!ledger || !script_hash) return;
+	GDateTime *now = g_date_time_new_now_utc();
+	gchar *now_iso = g_date_time_format_iso8601(now);
+	g_date_time_unref(now);
+
+	g_mutex_lock(&ledger->mutex);
+	venv_ledger_entry *existing = g_hash_table_lookup(ledger->entries, script_hash);
+	venv_ledger_entry *e = g_new0(venv_ledger_entry, 1);
+	e->script_hash = g_strdup(script_hash);
+	e->script_path = g_strdup(script_path);
+	e->created_iso = g_strdup(existing && existing->created_iso ? existing->created_iso : now_iso);
+	e->last_used_iso = g_strdup(now_iso);
+	e->pep723_hash = g_strdup(pep723_hash);
+	e->sirilpy_version = g_strdup(sirilpy_version);
+	g_hash_table_replace(ledger->entries, g_strdup(script_hash), e);
+	g_mutex_unlock(&ledger->mutex);
+
+	g_free(now_iso);
+}
+
+// Per-script venv selection (§4.5 of the uv conversion plan).
+//
+// Gated by SIRIL_PER_SCRIPT_VENVS=1: when off, always returns the base
+// venv path so the existing behaviour is preserved. When on AND uv is
+// available AND the caller provided enough context (either an identity
+// path or a PEP 723 block), a per-script venv is created/reused.
+
+static gboolean per_script_venvs_enabled(void) {
+	const gchar *gate = g_getenv("SIRIL_PER_SCRIPT_VENVS");
+	return gate && g_strcmp0(gate, "1") == 0;
+}
+
+// Compute the venv identity hash. Returns a newly-allocated string the
+// caller must free. The two cases:
+//   - identity_path != NULL: SHA-256(canonical_path) → 16 hex chars
+//   - identity_path == NULL but pep723 present: "unsaved-<deps_hash>"
+//   - both absent: NULL (caller should use base venv)
+static gchar *compute_script_hash(const gchar *identity_path,
+                                  const pep723_metadata *pep723) {
+	if (identity_path && *identity_path) {
+		gchar *abs_path = g_canonicalize_filename(identity_path, NULL);
+		gchar *full = g_compute_checksum_for_string(G_CHECKSUM_SHA256,
+				abs_path, -1);
+		g_free(abs_path);
+		if (!full) return NULL;
+		gchar *out = g_strndup(full, 16);
+		g_free(full);
+		return out;
+	}
+	if (pep723) {
+		gchar *deps_hash = pep723_canonical_hash(pep723);
+		if (!deps_hash) return NULL;
+		gchar *out = g_strdup_printf("unsaved-%s", deps_hash);
+		g_free(deps_hash);
+		return out;
+	}
+	return NULL;
+}
+
+// Format the on-disk path for a per-script venv given its hash.
+static gchar *per_script_venv_path(const gchar *project_path,
+                                   const gchar *script_hash) {
+	return g_build_filename(project_path, "script_venvs", script_hash, NULL);
+}
+
+// Format the currently-installed sirilpy version (from com.python_version)
+// as a dotted string for ledger comparison.
+static gchar *current_sirilpy_version_string(void) {
+	return g_strdup_printf("%u.%u.%u",
+			com.python_version.major_version,
+			com.python_version.minor_version,
+			com.python_version.micro_version);
+}
+
+// Create or refresh a per-script venv. Returns the venv path on success
+// (newly allocated, caller frees), or NULL on failure with *error set.
+//
+// Reuses the existing venv when:
+//   - the directory exists,
+//   - the ledger entry's pep723_hash matches the current block hash, and
+//   - the ledger entry's sirilpy_version matches the currently-installed
+//     module version.
+// Otherwise (re)creates from scratch: blow away any existing dir, run
+// `uv venv --python … --seed …`, install sirilpy, install the PEP 723
+// deps, update the ledger.
+static gchar *ensure_per_script_venv(const gchar *project_path,
+                                     const gchar *uv_path,
+                                     const gchar *script_hash,
+                                     const gchar *script_path,
+                                     const pep723_metadata *pep723,
+                                     GError **error) {
+	gchar *venv_path = per_script_venv_path(project_path, script_hash);
+	venv_ledger *ledger = get_venv_ledger(project_path);
+
+	gchar *pep723_hash = pep723 ? pep723_canonical_hash(pep723) : NULL;
+	gchar *current_sirilpy = current_sirilpy_version_string();
+
+	// Check freshness against the ledger.
+	venv_ledger_entry *entry = ledger_lookup(ledger, script_hash);
+	gboolean fresh = FALSE;
+	if (entry && g_file_test(venv_path, G_FILE_TEST_IS_DIR)) {
+		gboolean pep_ok = (entry->pep723_hash == NULL && pep723_hash == NULL)
+				|| (entry->pep723_hash && pep723_hash
+					&& g_strcmp0(entry->pep723_hash, pep723_hash) == 0);
+		gboolean sirilpy_ok = entry->sirilpy_version
+				&& g_strcmp0(entry->sirilpy_version, current_sirilpy) == 0;
+		fresh = pep_ok && sirilpy_ok;
+	}
+
+	if (fresh) {
+		// Touch last_used + persist.
+		ledger_record(ledger, script_hash, script_path,
+				pep723_hash, current_sirilpy);
+		GError *save_err = NULL;
+		if (!ledger_save(ledger, project_path, &save_err)) {
+			siril_log_warning(_("Could not update script venv ledger: %s\n"),
+					save_err ? save_err->message : "unknown");
+			g_clear_error(&save_err);
+		}
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return venv_path;
+	}
+
+	// Stale or absent → wipe and recreate.
+	siril_log_message(_("Building per-script venv %s\n"), script_hash);
+	if (g_file_test(venv_path, G_FILE_TEST_EXISTS)) {
+		GError *del_err = NULL;
+		if (!delete_directory(venv_path, &del_err)) {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Could not remove stale per-script venv %s: %s",
+					venv_path,
+					del_err ? del_err->message : "unknown");
+			g_clear_error(&del_err);
+			g_free(venv_path);
+			g_free(pep723_hash);
+			g_free(current_sirilpy);
+			return NULL;
+		}
+	}
+
+	GError *local_err = NULL;
+	gchar *sys_python = resolve_system_python_for_uv(&local_err);
+	if (!sys_python) {
+		g_propagate_error(error, local_err);
+		g_free(venv_path);
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return NULL;
+	}
+
+	gchar *argv[] = {
+		(gchar *)uv_path, "venv",
+		"--python", sys_python,
+		"--seed",
+		venv_path,
+		NULL
+	};
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+	gchar *std_err = NULL;
+	gint exit_status = 0;
+	gboolean ok = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL, NULL, &std_err, &exit_status, &local_err);
+	g_strfreev(env);
+	g_free(sys_python);
+	if (!ok || !g_spawn_check_wait_status(exit_status, &local_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv venv (per-script) failed: %s%s%s",
+				local_err ? local_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "", std_err ? std_err : "");
+		g_clear_error(&local_err);
+		g_free(std_err);
+		g_free(venv_path);
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return NULL;
+	}
+	g_free(std_err);
+
+	// Install sirilpy into the new venv. We can't reuse the legacy install
+	// helpers verbatim because they assume the base venv path; instead use
+	// uv pip install directly against this venv's python.
+	gchar *venv_python = find_venv_python_exe(venv_path, TRUE);
+	if (!venv_python) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+				"per-script venv was created but its python is missing");
+		g_free(venv_path);
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return NULL;
+	}
+	gchar *module_path = g_build_filename(siril_get_system_data_dir(),
+			MODULE_DIR, NULL);
+	gchar *sirilpy_argv[] = {
+		(gchar *)uv_path, "pip", "install",
+		"--python", venv_python,
+		"--reinstall-package", "sirilpy",
+		module_path,
+		NULL
+	};
+	env = g_get_environ();
+	inject_uv_env(&env, project_path);
+	std_err = NULL;
+	gint sirilpy_status = 0;
+	gboolean sirilpy_ok = g_spawn_sync(NULL, sirilpy_argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL, NULL, &std_err, &sirilpy_status, &local_err);
+	g_strfreev(env);
+	g_free(module_path);
+	if (!sirilpy_ok || !g_spawn_check_wait_status(sirilpy_status, &local_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv pip install sirilpy (per-script) failed: %s%s%s",
+				local_err ? local_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "", std_err ? std_err : "");
+		g_clear_error(&local_err);
+		g_free(std_err);
+		g_free(venv_python);
+		g_free(venv_path);
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return NULL;
+	}
+	g_free(std_err);
+
+	// Install PEP 723 declared dependencies (if any). Done in a single uv
+	// invocation so uv's resolver sees them together.
+	if (pep723 && pep723->dependencies && pep723->dependencies->len > 0) {
+		GPtrArray *deps_argv = g_ptr_array_new();
+		g_ptr_array_add(deps_argv, (gpointer)uv_path);
+		g_ptr_array_add(deps_argv, "pip");
+		g_ptr_array_add(deps_argv, "install");
+		g_ptr_array_add(deps_argv, "--python");
+		g_ptr_array_add(deps_argv, venv_python);
+		for (guint i = 0; i < pep723->dependencies->len; i++)
+			g_ptr_array_add(deps_argv, g_ptr_array_index(pep723->dependencies, i));
+		g_ptr_array_add(deps_argv, NULL);
+
+		env = g_get_environ();
+		inject_uv_env(&env, project_path);
+		std_err = NULL;
+		gint deps_status = 0;
+		gboolean deps_ok = g_spawn_sync(NULL, (gchar **)deps_argv->pdata, env,
+				G_SPAWN_DEFAULT, NULL, NULL, NULL, &std_err,
+				&deps_status, &local_err);
+		g_strfreev(env);
+		g_ptr_array_free(deps_argv, TRUE);
+		if (!deps_ok || !g_spawn_check_wait_status(deps_status, &local_err)) {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"uv pip install (PEP 723 deps) failed: %s%s%s",
+					local_err ? local_err->message : "non-zero exit",
+					std_err && *std_err ? "\n" : "", std_err ? std_err : "");
+			g_clear_error(&local_err);
+			g_free(std_err);
+			g_free(venv_python);
+			g_free(venv_path);
+			g_free(pep723_hash);
+			g_free(current_sirilpy);
+			return NULL;
+		}
+		g_free(std_err);
+	}
+
+	g_free(venv_python);
+
+	// Record + persist.
+	ledger_record(ledger, script_hash, script_path,
+			pep723_hash, current_sirilpy);
+	GError *save_err = NULL;
+	if (!ledger_save(ledger, project_path, &save_err)) {
+		siril_log_warning(_("Could not save script venv ledger: %s\n"),
+				save_err ? save_err->message : "unknown");
+		g_clear_error(&save_err);
+	}
+	g_free(pep723_hash);
+	g_free(current_sirilpy);
+	return venv_path;
+}
+
+// Top-level dispatcher used by execute_python_script(). Returns the
+// venv path to use, newly allocated; caller frees. Returns NULL only on
+// catastrophic error (e.g. base venv missing).
+//
+// Decision tree:
+//   - Per-script feature gate off OR uv unavailable → base venv.
+//   - Caller provided no identity AND no PEP 723 → base venv.
+//   - Otherwise → per-script venv (created/refreshed as needed).
+//
+// On any per-script error, logs a warning and falls back to base venv
+// rather than refusing to run the script.
+static gchar *select_venv_for_script(const gchar *venv_identity_path,
+                                     const gchar *pep723_source,
+                                     GError **error) {
+	gchar *project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	gchar *base_venv = g_build_filename(project_path, "venv", NULL);
+
+	if (!per_script_venvs_enabled()) {
+		g_free(project_path);
+		return base_venv;
+	}
+	const gchar *uv_path = get_uv_executable_path();
+	if (!uv_path) {
+		g_free(project_path);
+		return base_venv;
+	}
+
+	// PEP 723 source: when the caller didn't supply buffer text, fall back
+	// to reading the file at venv_identity_path. This is the common case
+	// for `pyscript`-style callers that pass a path; the editor passes
+	// buffer text explicitly so we don't read a stale on-disk version.
+	gchar *file_contents = NULL;
+	const gchar *parse_input = pep723_source;
+	if (!parse_input && venv_identity_path
+			&& g_file_test(venv_identity_path, G_FILE_TEST_IS_REGULAR)) {
+		gsize len = 0;
+		GError *read_err = NULL;
+		if (g_file_get_contents(venv_identity_path, &file_contents, &len, &read_err)) {
+			parse_input = file_contents;
+		} else {
+			siril_log_debug("Could not read %s for PEP 723 parse: %s\n",
+					venv_identity_path,
+					read_err ? read_err->message : "unknown");
+			g_clear_error(&read_err);
+		}
+	}
+
+	pep723_metadata *pep723 = parse_input ? parse_pep723(parse_input) : NULL;
+	g_free(file_contents);
+	gchar *script_hash = compute_script_hash(venv_identity_path, pep723);
+	if (!script_hash) {
+		// No identity to key off. Fall back to base.
+		pep723_metadata_free(pep723);
+		g_free(project_path);
+		return base_venv;
+	}
+
+	GError *local_err = NULL;
+	gchar *venv = ensure_per_script_venv(project_path, uv_path,
+			script_hash, venv_identity_path, pep723, &local_err);
+	if (!venv) {
+		siril_log_warning(_("Per-script venv creation failed (falling back "
+				"to base venv): %s\n"),
+				local_err ? local_err->message : "unknown");
+		g_clear_error(&local_err);
+		pep723_metadata_free(pep723);
+		g_free(script_hash);
+		g_free(project_path);
+		return base_venv;
+	}
+
+	g_free(base_venv);
+	g_free(script_hash);
+	g_free(project_path);
+	pep723_metadata_free(pep723);
+	return venv;
+}
+
 // Set uv-specific environment variables on a g_get_environ()-style env array.
 // Pins UV_CACHE_DIR to project_path/uv-cache so that hardlink dedup stays on
 // the same volume as the venvs (critical on Windows multi-drive layouts).
@@ -3580,7 +4297,9 @@ static void execute_startup_scripts(void) {
 							NULL,                    /* argv_script  */
 							FALSE,                   /* is_temp_file */
 							FALSE,                   /* from_cli     */
-							FALSE);
+							FALSE,                   /* debug_mode   */
+							script_path,             /* venv_identity_path */
+							NULL                     /* pep723_source */);
 	}
 }
 
@@ -3813,7 +4532,9 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
 						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
-						gboolean debug_mode) {
+						gboolean debug_mode,
+						const gchar *venv_identity_path,
+						const gchar *pep723_source) {
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
@@ -3889,9 +4610,24 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		return;
 	}
 
-	// Handle virtual environment if active
-	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
+	// Pick the venv for this script (§4.5). When the per-script gate is
+	// off this just returns the base venv path, so behaviour matches the
+	// pre-existing VIRTUAL_ENV lookup. The owned string lifetime extends
+	// to the end of this function.
+	GError *venv_select_err = NULL;
+	gchar *venv_path = select_venv_for_script(venv_identity_path,
+			pep723_source, &venv_select_err);
+	if (venv_select_err) {
+		// Selector logs internally; just clear here so we don't leak.
+		g_clear_error(&venv_select_err);
+	}
+
 	if (venv_path != NULL) {
+		// Set VIRTUAL_ENV in the child env so the script sees the selected
+		// venv (per-script venvs differ from the process-wide VIRTUAL_ENV
+		// that was set by prepare_venv_environment for the base venv).
+		env = g_environ_setenv(env, "VIRTUAL_ENV", venv_path, TRUE);
+
 		// Get the specific Python version for the site-packages path
 		gchar* python_version = get_venv_python_version(venv_path);
 		if (python_version) {
@@ -3915,6 +4651,16 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			g_free(site_packages);
 			g_free(python_version);
 		}
+	}
+
+	// §4.7: pin uv-related env on the spawned python child too. The script
+	// may call `uv pip install` via sirilpy.ensure_installed() once we
+	// rewire it (§5.1); UV_CACHE_DIR needs to live next to the venvs.
+	{
+		gchar *project_path_for_env = g_build_filename(
+				g_get_user_data_dir(), "siril", NULL);
+		inject_uv_env(&env, project_path_for_env);
+		g_free(project_path_for_env);
 	}
 
 	// Set up connection information in environment
@@ -3952,6 +4698,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		cleanup_shm_resources(commstate.python_conn);
 		free(commstate.python_conn);
 		g_strfreev(env);
+		g_free(venv_path);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
@@ -4028,6 +4775,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		cleanup_shm_resources(commstate.python_conn);
 		free(commstate.python_conn);
 		g_strfreev(env);
+		g_free(venv_path);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
@@ -4043,6 +4791,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		gui_iface.script_widgets_async(TRUE);
 		return;
 	}
+	g_free(venv_path);
 
 	// Create cleanup info structure for either synchronous or async operation
 	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));

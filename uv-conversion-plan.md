@@ -245,10 +245,10 @@ bugs we cannot otherwise solve.
 
 ### 4.5 New: per-script venv selection in `execute_python_script`
 
-- [ ] Extended `execute_python_script` signature plumbed through
-- [ ] PEP 723 parser implemented
-- [ ] `select_venv_for_script` selector implemented
-- [ ] Per-script venv creation wired up
+- [x] Extended `execute_python_script` signature plumbed through
+- [x] PEP 723 parser implemented
+- [x] `select_venv_for_script` selector implemented
+- [x] Per-script venv creation wired up
 
 Replace the single-`venv_path` lookup at lines 3269–3320. The
 existing signature is unsuitable because the script editor (see
@@ -323,8 +323,8 @@ warning and fall back to `_base`.
 
 #### 4.5.1 Script editor integration (`src/gui/python_gui.c`)
 
-- [ ] PEP 723 extraction from buffer text wired up
-- [ ] `current_file` path threaded into `execute_python_script`
+- [x] PEP 723 extraction from buffer text wired up
+- [x] `current_file` path threaded into `execute_python_script`
 
 The editor's run path is `on_action_file_execute` at
 python_gui.c:1148. Today it:
@@ -373,9 +373,9 @@ plumbing patch in Stage 0/1 and zero further work in Stage 2.
 
 #### 4.5.2 Other callers of `execute_python_script`
 
-- [ ] `src/core/command.c:14572` updated
-- [ ] `src/gui/script_menu.c:208` updated
-- [ ] `src/io/siril_pythonmodule.c:2957` (`execute_startup_scripts`) updated
+- [x] `src/core/command.c:14572` updated
+- [x] `src/gui/script_menu.c:208` updated
+- [x] `src/io/siril_pythonmodule.c:2957` (`execute_startup_scripts`) updated
 
 `grep -n execute_python_script src/` shows three callers besides
 the editor; each needs a one-line update to pass the new
@@ -390,9 +390,9 @@ parameters:
 
 ### 4.6 Ledger management
 
-- [ ] Ledger load/lookup/record implemented
-- [ ] LRU eviction helper implemented
-- [ ] Cross-instance advisory lock implemented
+- [x] Ledger load/lookup/record implemented (yyjson read+write to `script_venvs.json`, atomic via temp+rename)
+- [ ] LRU eviction helper implemented (deferred — will land with §4.8 "Clean up unused script environments" preference button)
+- [ ] Cross-instance advisory lock implemented (deferred — single-instance assumption holds today; revisit if it bites)
 
 A small `venvs.json` reader/writer using GLib's JSON helpers
 (`json-glib`). Functions:
@@ -406,8 +406,8 @@ A small `venvs.json` reader/writer using GLib's JSON helpers
 
 ### 4.7 Cache directory env var
 
-- [ ] `UV_CACHE_DIR` / `UV_NO_PROGRESS` env vars set on uv subprocesses
-- [ ] `UV_PYTHON_INSTALL_DIR` set when managed-Python preference is enabled
+- [x] `UV_CACHE_DIR` / `UV_NO_PROGRESS` env vars set on uv subprocesses (centralised in `inject_uv_env()`; applied at every uv invocation and on the spawned python child too)
+- [x] `UV_PYTHON_INSTALL_DIR` set when managed-Python preference is enabled
 
 When spawning any uv subprocess and when spawning the Python script
 itself, set:

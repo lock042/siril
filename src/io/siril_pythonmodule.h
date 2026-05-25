@@ -271,7 +271,19 @@ typedef struct {
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode);
+// venv_identity_path: canonical script path for venv lookup. When NULL the
+//   buffer-content rules apply (see §4.5 of the uv conversion plan): if a
+//   PEP 723 block is found in pep723_source, an "unsaved-<hash>" venv is
+//   reused across buffers with identical declared deps; otherwise the base
+//   venv is used. NULL is correct for one-off snippets (e.g. -c on the CLI)
+//   and for editor buffers that have never been saved.
+// pep723_source: text to parse PEP 723 metadata from. When NULL the file at
+//   script_name is read. Pass the *buffer* text from the editor (which may
+//   differ from the saved file).
+// Both new parameters are advisory: per-script venvs are only created when
+// the SIRIL_PER_SCRIPT_VENVS feature gate is set; otherwise the base venv
+// is used regardless.
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, const gchar *venv_identity_path, const gchar *pep723_source);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);

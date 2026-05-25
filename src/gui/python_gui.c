@@ -1184,9 +1184,20 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 				from_cli = TRUE;
 			}
 
-			// Execute the script with the path to the temp file instead of the text content
-			// Passing TRUE as the last parameter to indicate this is a temporary file
-			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
+			// Execute the script with the path to the temp file instead of the text content.
+			// Pass the canonical saved path (current_file) as venv_identity_path so the
+			// venv selector keys off a stable identifier across edit-run cycles rather
+			// than the per-click tempfile path. Pass the buffer text as pep723_source so
+			// the selector reads the *current* metadata, not whatever is saved on disk
+			// (which may be stale if the user has unsaved edits).
+			gchar *identity_path = NULL;
+			if (current_file) {
+				identity_path = g_file_get_path(current_file);
+			}
+			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug,
+					identity_path /* venv_identity_path: NULL for unsaved buffer */,
+					text          /* pep723_source: the buffer text */);
+			g_free(identity_path);
 			g_strfreev(script_args);
 			g_free(text);
 			break;
