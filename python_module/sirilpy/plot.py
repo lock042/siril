@@ -187,7 +187,7 @@ class PlotData:
     @classmethod
     def serialize(cls, plot_data: 'PlotData') -> Tuple[bytes, int]:
         """
-        Serialize plot data for shared memory transfer using network byte order.
+        Serialize plot data for shared memory transfer (native byte order).
 
         Args:
             plot_data: PlotData object containing plot configuration

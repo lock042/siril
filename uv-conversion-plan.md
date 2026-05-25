@@ -643,6 +643,16 @@ Concretely:
 * `python_module/pyproject.toml` version bumps from
   **1.1.12 → 1.1.20** (micro-version; the existing
   `sirilpy.utility.check_module_version()` reads this string).
+* As of sirilpy 1.1.22 the on-wire IPC protocol moved to native byte
+  order and native field widths (see `sirilpy_naitveendian.md`).
+  Siril 1.5.0+ with this branch and sirilpy 1.1.22+ are
+  bidirectionally tied: the C and Python halves no longer big-endian
+  encode, and the bulk-struct field widths (FKeywords, ImageStats,
+  Homography, DistoData/ImgData, PSFStar, ImageAnalysis, FFit core,
+  Sequence) shrink to match their actual C-struct sizes. Mixing
+  versions across the boundary will produce size-mismatch or garbage
+  reads; the venv/installer pins are responsible for keeping a
+  Siril ⇄ sirilpy pair in sync.
 * All new public symbols (`pip_show`, `pip_list`, `pip_uninstall`,
   `declare_dependencies`) are added without modifying existing
   ones.

@@ -525,7 +525,7 @@ class SirilInterface:
             ValueError: If the shared memory information is invalid
             SirilError: For other errors
         """
-        size_data = struct.pack('=Q', size)  # Pack the size as a uint64_t in network byte order.
+        size_data = struct.pack('=Q', size)  # Pack the size as a uint64_t.
 
         try:
             # Send the shared memory request command.
@@ -1091,8 +1091,7 @@ class SirilInterface:
             # Convert string to UTF-8 bytes
             message_bytes = message.encode('utf-8')
 
-            # Create payload: network-order float followed by string
-            # '!f' for network byte order 32-bit float
+            # Create payload: (native byte order) float followed by string
             float_bytes = struct.pack('=f', progress)
 
             # Combine float and string bytes
@@ -1149,7 +1148,7 @@ class SirilInterface:
             if response is None:
                 raise DataError(_(f"Error: _request_data({args}) failed."))
 
-            # Convert response bytes to integer from network byte order
+            # (native byte order)
             if len(response) == 4:  # Valid response is int32_t ie 4 bytes
                 status_code = int.from_bytes(response, byteorder='big')
 
@@ -1208,7 +1207,7 @@ class SirilInterface:
             else:
                 raise ValueError("Either provide a selection tuple or all four coordinate parameters (x, y, w, h)")
 
-            # Pack the coordinates and dimensions into bytes using network byte order (!)
+            # Pack the coordinates and dimensions into bytes
             payload = struct.pack('=IIII', x, y, w, h)
             self._execute_command(_Command.SET_SELECTION, payload)
             return True
@@ -1489,9 +1488,9 @@ class SirilInterface:
             if not response:
                 raise SirilConnectionError(_("Failed to transfer coordinates: No data received"))
             # Define the format string for unpacking the C struct
-            # '!' for network byte order (big-endian)
+            # native byte order, standard sizes, no alignment
             # 'd' for double (all floating point values)
-            format_string = '!2d'  # '!' ensures network byte order
+            format_string = '!2d'  # native byte order
 
             # Calculate expected size
             expected_size = struct.calcsize(format_string)
@@ -1547,9 +1546,9 @@ class SirilInterface:
                 raise SirilConnectionError(_("Failed to transfer coordinates: No data received"))
             try:
                 # Define the format string for unpacking the C struct
-                # '!' for network byte order (big-endian)
+                # native byte order, standard sizes, no alignment
                 # 'd' for double (all floating point values)
-                format_string = '!2d'  # '!' ensures network byte order
+                format_string = '!2d'  # native byte order
 
                 # Calculate expected size
                 expected_size = struct.calcsize(format_string)
@@ -1735,7 +1734,7 @@ class SirilInterface:
         """
 
         shm = None
-        # Convert channel number to network byte order bytes
+        # (native byte order)
 
         try:
             preview_payload = struct.pack('=??', preview, linked)
@@ -2816,8 +2815,8 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_frame_filename(): no sequence is loaded"))
 
-        # Convert frame number to network byte order bytes
-        frame_payload = struct.pack('=I', frame)  # '!I' for network byte order uint32_t
+        # (native byte order)
+        frame_payload = struct.pack('=I', frame)
 
         response = self._request_data(_Command.GET_SEQ_FRAME_FILENAME, payload=frame_payload)
 
@@ -2847,8 +2846,8 @@ class SirilInterface:
             SirilError: if an error occurs.
         """
 
-        # Convert channel number to network byte order bytes
-        channel_payload = struct.pack('=I', channel)  # '!I' for network byte order uint32_t
+        # (native byte order)
+        channel_payload = struct.pack('=I', channel)
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
@@ -2887,7 +2886,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_regdata(): no sequence is loaded"))
 
-        data_payload = struct.pack('=II', frame, channel)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=II', frame, channel)
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
@@ -2924,7 +2923,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_stats(): no sequence is loaded"))
 
-        data_payload = struct.pack('=II', frame, channel)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=II', frame, channel)
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_STATS, payload=data_payload)
@@ -2959,7 +2958,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_imgdata(): no sequence is loaded"))
 
-        data_payload = struct.pack('=I', frame)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=I', frame)
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
@@ -3728,8 +3727,8 @@ class SirilInterface:
         filters.
 
         Args:
-            index: integer or list of integers specifying which frame(s) to set the 
-                inclusion status for. This uses a 0-based indexing scheme, i.e. the 
+            index: integer or list of integers specifying which frame(s) to set the
+                inclusion status for. This uses a 0-based indexing scheme, i.e. the
                 first frame is frame number 0, not frame number 1.
                 Passing a list is available since sirilpy 1.0.17
             incl: bool specifying whether the frame(s) are included or not.
@@ -3742,7 +3741,7 @@ class SirilInterface:
         try:
             if not self.is_sequence_loaded():
                 raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
-            
+
             # Validate and normalize index parameter
             if isinstance(index, int):
                 indices = [index]
@@ -3754,13 +3753,13 @@ class SirilInterface:
                 indices = index
             else:
                 raise TypeError(_("Index must be an integer or list of integers"))
-            
+
             # Build payload: count, indices, incl
             # Format: count (I) + indices (I * count) + incl (I)
             count = len(indices)
             format_string = f'!I{count}II'  # count + indices + incl
             payload = struct.pack(format_string, count, *indices, incl)
-            
+
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
             return
         except SirilError:
@@ -4070,8 +4069,7 @@ class SirilInterface:
             SirilError: on failure
         """
         try:
-            # Create payload: network-order int followed by string
-            # '!I' for network byte order 32-bit int
+            # Create payload: (native byte order) int followed by string
             payload = struct.pack('=i', polygon_id)
 
             self._execute_command(_Command.DELETE_USER_POLYGON, payload)
@@ -4369,7 +4367,7 @@ class SirilInterface:
 
         try:
             # Build format string for struct unpacking
-            # Network byte order for all values
+            # Native byte order, standard sizes
             FLEN_VALUE = 71  # Standard FITS keyword length
             format_parts = [
                 # Core FFfit (start at index 0)
@@ -4881,7 +4879,7 @@ class SirilInterface:
             if not isinstance(mode, SlidersMode):
                 raise ValueError("Mode must be a SlidersMode enum value")
 
-            # Pack the values into bytes using network byte order (!)
+            # Pack the values into bytes
             # Format depends on which arguments are provided
             payload = struct.pack('=I', mode.value)
             self._execute_command(_Command.SET_SLIDER_STATE, payload)
@@ -4927,7 +4925,7 @@ class SirilInterface:
             converted_lo = convert_value(lo)
             converted_hi = convert_value(hi)
 
-            # Pack the values into bytes using network byte order (!)
+            # Pack the values into bytes
             # All values packed as 32-bit integers for consistency
             payload = struct.pack('=II', converted_lo, converted_hi)
             self._execute_command(_Command.SET_SLIDER_LOHI, payload)
@@ -4977,7 +4975,7 @@ class SirilInterface:
             if not isinstance(mode, STFType):
                 raise ValueError("Mode must be a STFType enum value")
 
-            # Pack the values into bytes using network byte order (!)
+            # Pack the values into bytes
             # Format depends on which arguments are provided
             payload = struct.pack('=I', mode.value)
             self._execute_command(_Command.SET_STFMODE, payload)
@@ -5025,7 +5023,7 @@ class SirilInterface:
         """
         try:
 
-            # Pack the values into bytes using network byte order (!)
+            # Pack the values into bytes
             # All values packed as 32-bit integers for consistency
             payload = struct.pack('=dd', xoff, yoff)
             self._execute_command(_Command.SET_PAN, payload)
@@ -5048,7 +5046,7 @@ class SirilInterface:
         """
         try:
 
-            # Pack the values into bytes using network byte order (!)
+            # Pack the values into bytes
             # All values packed as 32-bit integers for consistency
             payload = struct.pack('=d', zoom)
             self._execute_command(_Command.SET_ZOOM, payload)
@@ -5875,8 +5873,7 @@ class SirilInterface:
             raise TypeError(f"dialog must be a DialogID, got {type(dialog).__name__}")
 
         try:
-            # Convert dialog ID to network byte order bytes
-            dialog_payload = struct.pack('=I', dialog.value)  # '!I' for network byte order uint32_t
+            dialog_payload = struct.pack('=I', dialog.value)
 
             response = self._execute_command(_Command.OPEN_DIALOG, payload=dialog_payload)
 

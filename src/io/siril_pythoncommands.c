@@ -578,13 +578,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	offset += sizeof(uint8_t);
 	if (datamin_set) {
 		point datamin;
-		double x_BE, y_BE;
-		memcpy(&x_BE, buffer + offset, sizeof(double));
+		memcpy(&datamin.x, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		memcpy(&(datamin.x), &(x_BE), sizeof(double));
-		memcpy(&y_BE, buffer + offset, sizeof(double));
+		memcpy(&datamin.y, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		memcpy(&(datamin.y), &(y_BE), sizeof(double));
 		memcpy(&plot_data->datamin, &datamin, sizeof(point));
 	}
 
@@ -592,13 +589,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	offset += sizeof(uint8_t);
 	if (datamax_set) {
 		point datamax;
-		double x_BE, y_BE;
-		memcpy(&x_BE, buffer + offset, sizeof(double));
+		memcpy(&datamax.x, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		memcpy(&(datamax.x), &(x_BE), sizeof(double));
-		memcpy(&y_BE, buffer + offset, sizeof(double));
+		memcpy(&datamax.y, buffer + offset, sizeof(double));
 		offset += sizeof(double);
-		memcpy(&(datamax.y), &(y_BE), sizeof(double));
 		memcpy(&plot_data->datamax, &datamax, sizeof(point));
 	}
 
@@ -635,36 +629,19 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		double *ydata = malloc(num_points * sizeof(double));
 		double *nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
 		double *perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		// Read coordinates (network byte-order)
+		// Read coordinates (native byte order, packed doubles)
 		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
-			double x, y, x_BE, y_BE, ne, pe, ne_BE, pe_BE;
-
-			// Read raw bytes for x
-			memcpy(&x_BE, buffer + offset, sizeof(double));
+			memcpy(&xdata[point_idx], buffer + offset, sizeof(double));
 			offset += sizeof(double);
-			memcpy(&(x), &(x_BE), sizeof(double));
-			xdata[point_idx] = x;
-
-			// Read raw bytes for y
-			memcpy(&y_BE, buffer + offset, sizeof(double));
+			memcpy(&ydata[point_idx], buffer + offset, sizeof(double));
 			offset += sizeof(double);
-			memcpy(&(y), &(y_BE), sizeof(double));
-			ydata[point_idx] = y;
 
 			if (with_errors) {
-				// Read raw bytes for negative error
-				memcpy(&ne_BE, buffer + offset, sizeof(double));
+				memcpy(&nerror[point_idx], buffer + offset, sizeof(double));
 				offset += sizeof(double);
-				memcpy(&(ne), &(ne_BE), sizeof(double));
-				nerror[point_idx] = ne;
-
-				// Read raw bytes for positive error
-				memcpy(&pe_BE, buffer + offset, sizeof(double));
+				memcpy(&perror[point_idx], buffer + offset, sizeof(double));
 				offset += sizeof(double);
-				memcpy(&(pe), &(pe_BE), sizeof(double));
-				perror[point_idx] = pe;
 			}
-
 		}
 
 		// Add to plot list (assuming simple xy plot)
@@ -714,15 +691,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 				// Convert the integers to BE format for consistency across the UNIX socket
 				g_rw_lock_reader_lock(&gfit->rwlock);
-				uint32_t width_BE = (gfit->rx);
-				uint32_t height_BE = (gfit->ry);
-				uint32_t channels_BE = (gfit->naxes[2]);
+				uint32_t width = gfit->rx;
+				uint32_t height = gfit->ry;
+				uint32_t channels = (uint32_t) gfit->naxes[2];
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 
 				// Copy the packed data into the response buffer
-				memcpy(response_data, &width_BE, sizeof(uint32_t));      // First 4 bytes: width
-				memcpy(response_data + 4, &height_BE, sizeof(uint32_t)); // Next 4 bytes: height
-				memcpy(response_data + 8, &channels_BE, sizeof(uint32_t)); // Final 4 bytes: channels
+				memcpy(response_data, &width, sizeof(uint32_t));      // First 4 bytes: width
+				memcpy(response_data + 4, &height, sizeof(uint32_t)); // Next 4 bytes: height
+				memcpy(response_data + 8, &channels, sizeof(uint32_t)); // Final 4 bytes: channels
 
 				// Send success response with dimensions
 				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -750,16 +727,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t x_BE = (sel.x);
-				uint32_t y_BE = (sel.y);
-				uint32_t w_BE = (sel.w);
-				uint32_t h_BE = (sel.h);
+				uint32_t x = sel.x;
+				uint32_t y = sel.y;
+				uint32_t w = sel.w;
+				uint32_t h = sel.h;
 
 				// Copy the packed data into the response buffer
-				memcpy(response_data, &x_BE, sizeof(uint32_t));
-				memcpy(response_data + 4, &y_BE, sizeof(uint32_t));
-				memcpy(response_data + 8, &w_BE, sizeof(uint32_t));
-				memcpy(response_data + 12, &h_BE, sizeof(uint32_t));
+				memcpy(response_data, &x, sizeof(uint32_t));
+				memcpy(response_data + 4, &y, sizeof(uint32_t));
+				memcpy(response_data + 8, &w, sizeof(uint32_t));
+				memcpy(response_data + 12, &h, sizeof(uint32_t));
 
 				// Send success response with dimensions
 				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -779,10 +756,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t vport_BE = (gui_iface.get_active_vport());
+				uint32_t vport = gui_iface.get_active_vport();
 
 				// Copy the packed data into the response buffer
-				memcpy(response_data, &vport_BE, sizeof(uint32_t));
+				memcpy(response_data, &vport, sizeof(uint32_t));
 
 				// Send success response with dimensions
 				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -798,11 +775,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (payload_length == 16) {
-					rectangle region_BE = *(rectangle*) payload;
-					rectangle selection = {(region_BE.x),
-										(region_BE.y),
-										(region_BE.w),
-										(region_BE.h)};
+					rectangle selection = *(rectangle*) payload;
 					g_rw_lock_reader_lock(&gfit->rwlock);
 					guint32 image_rx = gfit->rx;
 					guint32 image_ry = gfit->ry;
@@ -859,19 +832,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Unpack the payload
-			guint32 x_BE = *((guint32*) payload);
-			guint32 y_BE = *((guint32*) (payload + 4));
-			guint32 w_BE = *((guint32*) (payload + 8));
-			guint32 h_BE = *((guint32*) (payload + 12));
-			guint32 channel_BE = *((guint32*) (payload + 16));
-			guint32 centred_BE = *((guint32*) (payload + 20));
-
-			guint32 x = (x_BE);
-			guint32 y = (y_BE);
-			guint32 w = (w_BE);
-			guint32 h = (h_BE);
-			guint32 channel_val = (channel_BE);
-			centred = (centred_BE) != 0;
+			guint32 x = *((guint32*) payload);
+			guint32 y = *((guint32*) (payload + 4));
+			guint32 w = *((guint32*) (payload + 8));
+			guint32 h = *((guint32*) (payload + 12));
+			guint32 channel_val = *((guint32*) (payload + 16));
+			centred = *((guint32*) (payload + 20)) != 0;
 
 			// Check if shape was provided (not sentinel values)
 			gboolean shape_provided = (x != SENTINEL_VALUE && y != SENTINEL_VALUE &&
@@ -1004,11 +970,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (payload_length == 16 || payload_length == 20) {
 				// Shape provided (with or without channel)
-				rectangle region_BE = *(rectangle*) payload;
-				selection = (rectangle) {(region_BE.x),
-									(region_BE.y),
-									(region_BE.w),
-									(region_BE.h)};
+				selection = *(rectangle*) payload;
 				if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 					selection.y < 0 || selection.y  + selection.h > gfit->ry - 1) {
 					g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -1081,11 +1043,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
 				unsigned char* rectptr = (unsigned char*) payload + 2;
-				rectangle region_BE = *(rectangle*) rectptr;
-				rectangle region = {(region_BE.x),
-									(region_BE.y),
-									(region_BE.w),
-									(region_BE.h)};
+				rectangle region = *(rectangle*) rectptr;
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
 				g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -1454,8 +1412,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Get the channel number from payload (convert from network byte order)
-			uint32_t channel_BE = *(uint32_t*)payload;
-			uint32_t channel = (channel_BE);
+			uint32_t channel = *(uint32_t*)payload;
 
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
@@ -1976,8 +1933,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Parse channel from payload if provided
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (payload_length == 4) {
-				guint32 channel_BE = *((guint32*) payload);
-				guint32 channel_val = (channel_BE);
+				guint32 channel_val = *((guint32*) payload);
 
 				if (channel_val != SENTINEL_VALUE) {
 					layer = channel_val;
@@ -2388,27 +2344,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 				if (payload_length == 16) {
-					double *DblPtrBE = (double*) payload;
-					double x_BE = DblPtrBE[0];
-					double y_BE = DblPtrBE[1];
-					double x, y;
-					memcpy(&(x), &(x_BE), sizeof(double));
-					memcpy(&(y), &(y_BE), sizeof(double));
-					double ra, dec, ra_BE, dec_BE;
-					double fx, fy;
-					fx = x;
-					fy = gfit->ry - y;
+					double *xy = (double*) payload;
+					double x = xy[0];
+					double y = xy[1];
+					double ra, dec;
+					double fx = x;
+					double fy = gfit->ry - y;
 					pix2wcs2(gfit->keywords.wcslib, fx, fy, &ra, &dec);
 					g_rw_lock_reader_unlock(&gfit->rwlock);
 					// ra and dec = -1 is the error code
-					memcpy(&(ra_BE), &(ra), sizeof(double));
-					memcpy(&(dec_BE), &(dec), sizeof(double));
-					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
-					DblPtrBE = (double*) payload;
-					DblPtrBE[0] = ra_BE;
-					DblPtrBE[1] = dec_BE;
-					success = send_response(conn, STATUS_OK, payload, 2 * sizeof(double));
-					g_free(payload);
+					double *out = g_try_malloc0(2 * sizeof(double));
+					out[0] = ra;
+					out[1] = dec;
+					success = send_response(conn, STATUS_OK, out, 2 * sizeof(double));
+					g_free(out);
 					break;
 				}
 				g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -2432,25 +2381,19 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 				if (payload_length == 16) {
-					double *DblPtrBE = (double*) payload;
-					double ra_BE = DblPtrBE[0];
-					double dec_BE = DblPtrBE[1];
-					double ra, dec;
-					memcpy(&(ra), &(ra_BE), sizeof(double));
-					memcpy(&(dec), &(dec_BE), sizeof(double));
-					double x, y, fx, fy, x_BE, y_BE;
+					double *radec = (double*) payload;
+					double ra = radec[0];
+					double dec = radec[1];
+					double fx, fy;
 					wcs2pix(gfit, ra, dec, &fx, &fy);
-					x = fx;
-					y = gfit->ry - fy;
+					double x = fx;
+					double y = gfit->ry - fy;
 					g_rw_lock_reader_unlock(&gfit->rwlock);
-					memcpy(&(x_BE), &(x), sizeof(double));
-					memcpy(&(y_BE), &(y), sizeof(double));
-					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
-					DblPtrBE = (double*) payload;
-					DblPtrBE[0] = x_BE;
-					DblPtrBE[1] = y_BE;
-					success = send_response(conn, STATUS_OK, payload, 2 * sizeof(double));
-					g_free(payload);
+					double *out = g_try_malloc0(2 * sizeof(double));
+					out[0] = x;
+					out[1] = y;
+					success = send_response(conn, STATUS_OK, out, 2 * sizeof(double));
+					g_free(out);
 					break;
 				}
 				g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -3163,14 +3106,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Convert the integers to BE format for consistency across the UNIX socket
 			int ilo = 0, ihi = 0xFFFF;
 			gui_iface.get_display_lo_hi(&ilo, &ihi);
-			uint16_t lo_BE = ((guint16)ilo);
-			uint16_t hi_BE = ((guint16)ihi);
-			uint32_t mode_BE = ((guint32)gui_iface.get_sliders_mode());
+			uint16_t lo = (guint16)ilo;
+			uint16_t hi = (guint16)ihi;
+			uint32_t mode = (guint32)gui_iface.get_sliders_mode();
 
 			// Copy the packed data into the response buffer
-			memcpy(response_data, &lo_BE, sizeof(uint16_t));
-			memcpy(response_data + 2, &hi_BE, sizeof(uint16_t));
-			memcpy(response_data + 4, &mode_BE, sizeof(uint32_t));
+			memcpy(response_data, &lo, sizeof(uint16_t));
+			memcpy(response_data + 2, &hi, sizeof(uint16_t));
+			memcpy(response_data + 4, &mode, sizeof(uint32_t));
 
 			// Send success response with dimensions
 			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -3182,10 +3125,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint32_t mode_BE = ((guint32)gui_iface.get_rendering_mode());
+			uint32_t mode = (guint32)gui_iface.get_rendering_mode();
 
 			// Copy the packed data into the response buffer
-			memcpy(response_data, &mode_BE, sizeof(uint32_t));
+			memcpy(response_data, &mode, sizeof(uint32_t));
 
 			// Send success response with dimensions
 			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -3198,10 +3141,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Convert the integers to BE format for consistency across the UNIX socket
 			gboolean linked = gui_iface.get_channels_linked();
-			uint32_t linked_BE = ((uint32_t) linked);
+			uint32_t linked_word = (uint32_t) linked;
 
 			// Copy the packed data into the response buffer
-			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+			memcpy(response_data, &linked_word, sizeof(uint32_t));
 
 			// Send success response with dimensions
 			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
@@ -3216,8 +3159,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
 				if (payload_length == 4) {
 					// Mode only
-					guint32 mode_BE = *(guint32*) payload;
-					guint32 mode = (mode_BE);
+				guint32 mode = *(guint32*) payload;
 					display_mode stf = (display_mode) mode;
 
 					if (mode > DISPLAY_MODE_MAX) {
@@ -3298,8 +3240,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Validate payload length - must be 4
 				if (payload_length == 4) {
 					// Mode only
-					guint32 mode_BE = *(guint32*) payload;
-					guint32 mode = (mode_BE);
+				guint32 mode = *(guint32*) payload;
 					sliders_mode sliders = (sliders_mode) mode;
 
 					if (mode > USER) {
@@ -3563,11 +3504,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Convert the integers to BE format for consistency across the UNIX socket
 			gboolean linked = gfit->mask_active;
-			uint32_t linked_BE = ((uint32_t) linked);
+			uint32_t linked_word = (uint32_t) linked;
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			// Copy the packed data into the response buffer
-			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+			memcpy(response_data, &linked_word, sizeof(uint32_t));
 
 			// Send success response with dimensions
 			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
