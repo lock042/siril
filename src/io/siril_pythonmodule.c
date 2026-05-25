@@ -2555,10 +2555,53 @@ static gboolean per_script_venvs_enabled(void) {
 //   - identity_path != NULL: SHA-256(canonical_path) → 16 hex chars
 //   - identity_path == NULL but pep723 present: "unsaved-<deps_hash>"
 //   - both absent: NULL (caller should use base venv)
+
+// Resolve identity_path to a cwd-independent, symlink-resolved absolute
+// form so equivalent invocations of the same script hash identically.
+//
+// Scenarios that now collapse to one venv:
+//   - `pyscript /abs/path/foo.py` (absolute).
+//   - `pyscript ./foo.py` run from /abs/path/ (relative against cwd).
+//   - `pyscript ~/link-to-foo.py` where the link points at /abs/path/foo.py.
+//   - `pyscript /abs/path/../path/foo.py` (with redundant segments).
+//
+// All resolve to /abs/path/foo.py via realpath()/_fullpath(), so they
+// all hash to the same per-script venv key.
+//
+// Scenarios that intentionally remain distinct:
+//   - Two physically different files happening to share a basename
+//     (`./foo.py` from /a vs from /b — those are different files).
+//   - A script moved to a new location after its venv was first built
+//     (the old venv becomes an orphan, recoverable via prune).
+//
+// Returns a newly-allocated path string. On failure (e.g. the file no
+// longer exists), falls back to g_canonicalize_filename which is at
+// least stable for absolute inputs.
+static gchar *resolve_script_path_for_identity(const gchar *path) {
+	if (!path || !*path) return NULL;
+#ifdef _WIN32
+	gchar *resolved = _fullpath(NULL, path, 0);
+	if (resolved) {
+		gchar *out = g_strdup(resolved);
+		free(resolved);
+		return out;
+	}
+#else
+	char *resolved = realpath(path, NULL);
+	if (resolved) {
+		gchar *out = g_strdup(resolved);
+		free(resolved);
+		return out;
+	}
+#endif
+	return g_canonicalize_filename(path, NULL);
+}
+
 static gchar *compute_script_hash(const gchar *identity_path,
                                   const pep723_metadata *pep723) {
 	if (identity_path && *identity_path) {
-		gchar *abs_path = g_canonicalize_filename(identity_path, NULL);
+		gchar *abs_path = resolve_script_path_for_identity(identity_path);
+		if (!abs_path) return NULL;
 		gchar *full = g_compute_checksum_for_string(G_CHECKSUM_SHA256,
 				abs_path, -1);
 		g_free(abs_path);
@@ -4761,6 +4804,40 @@ void shutdown_python_communication(CommunicationState *commstate) {
 	}
 }
 
+// Synchronously tear down the python comms in execute_python_script's
+// error paths.
+//
+// Without this, the error branches that ran AFTER `g_thread_new(
+// "python-comm", connection_worker, commstate.python_conn)` would call
+// `free(commstate.python_conn)` while the worker thread was still alive
+// and reading from that same pointer — a UAF window. The fix is the
+// standard signal-and-join pattern:
+//
+//   1. cleanup_connection() signals conn->should_stop = TRUE and closes
+//      the pipe / socket FDs the worker is blocked on, so the worker's
+//      next read returns and it exits its loop.
+//   2. g_thread_join() blocks until the worker has fully returned.
+//   3. Only then is it safe to release SHM tracking and free the conn
+//      struct.
+//
+// Safe to call with worker_thread == NULL (early failure before the
+// worker was spawned) and with python_conn == NULL (defensive).
+static void teardown_python_comms_in_error_path(CommunicationState *cs) {
+	if (!cs) return;
+	if (cs->python_conn) {
+		cleanup_connection(cs->python_conn);
+	}
+	if (cs->worker_thread) {
+		g_thread_join(cs->worker_thread);
+		cs->worker_thread = NULL;
+	}
+	if (cs->python_conn) {
+		cleanup_shm_resources(cs->python_conn);
+		free(cs->python_conn);
+		cs->python_conn = NULL;
+	}
+}
+
 typedef struct {
     gchar *temp_filename;  // Path to temporary file
     GPid child_pid;        // Process ID of the spawned Python process
@@ -4985,8 +5062,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	if (!commstate.worker_thread) {
 		siril_log_error(_("Error: Python worker thread not available.\n"));
-		cleanup_connection(commstate.python_conn);
-		// Clean up the temporary file if it's one; always free script_name.
+		// teardown handles the conn struct free (the worker never started
+		// so there's no thread to join). Previously we only called
+		// cleanup_connection here, which signalled stop + closed FDs but
+		// leaked the conn struct itself.
+		teardown_python_comms_in_error_path(&commstate);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
@@ -5000,12 +5080,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	gchar** env = g_get_environ();
 	if (!env) {
 		siril_log_error(_("Error: failed to get environment variables.\n"));
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		teardown_python_comms_in_error_path(&commstate);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
 		g_free(script_name);
+		g_free(connection_path);
 		return;
 	}
 
@@ -5094,8 +5174,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (!python_path) {
 		siril_log_error(_("Error finding venv python path, unable to spawn python.\n"));
 		// Clean up on error
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		teardown_python_comms_in_error_path(&commstate);
 		g_strfreev(env);
 		g_free(venv_path);
 		if (is_temp_file && script_name) {
@@ -5171,8 +5250,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	if (!success) {
 		// Clean up on error
-		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		teardown_python_comms_in_error_path(&commstate);
 		g_strfreev(env);
 		g_free(venv_path);
 		if (is_temp_file && script_name) {
