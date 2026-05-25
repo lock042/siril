@@ -616,6 +616,31 @@ def _resolve_uv_path() -> Optional[str]:
     return shutil.which("uv")
 
 
+def _uv_subprocess_env() -> dict:
+    """
+    Return a copy of `os.environ` with uv tuning vars set for our
+    install / uninstall subprocess invocations.
+
+    Rationale: large CUDA / cuDNN wheels are served from
+    `pypi.nvidia.com`, which occasionally drops mid-download
+    connections. uv's defaults (50 concurrent streams, 30 s per-request
+    timeout) hit the wall fast on flaky CDN paths — a single stalled
+    chunk during a 600 MB transfer can fail the whole `uv pip install`
+    and the user has to re-run the script. Throttling concurrency and
+    extending the per-request timeout gives the CDN room to recover
+    without giving up the entire transaction.
+
+    Caller does not need to gate on backend == "uv"; these variables are
+    harmless to pip and any other process that doesn't recognise them.
+
+    Introduced in sirilpy 1.1.22.
+    """
+    env = os.environ.copy()
+    env.setdefault("UV_CONCURRENT_DOWNLOADS", "3")
+    env.setdefault("UV_HTTP_TIMEOUT", "300")
+    return env
+
+
 def _build_install_command(install_target: str,
                            index_url: Optional[str] = None,
                            from_url: Optional[str] = None,
@@ -724,7 +749,8 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=-1,
-            universal_newlines=False
+            universal_newlines=False,
+            env=_uv_subprocess_env(),
         ) as process:
             # Create and start output streaming thread
             output_thread = threading.Thread(target=_stream_output, args=(process,))

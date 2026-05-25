@@ -26,7 +26,7 @@ import numpy as np
 from .version import __version__
 from .utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr, _build_install_command, _build_uninstall_command, \
-                     pip_list, pip_show
+                     _uv_subprocess_env, pip_list, pip_show
 
 
 # ----------------------------------------------------------------------------
@@ -1705,7 +1705,7 @@ class ONNXHelper:
             print(f"Uninstalling {package}...")
             argv, _backend = _build_uninstall_command(package)
             try:
-                subprocess.run(argv, check=True)
+                subprocess.run(argv, check=True, env=_uv_subprocess_env())
                 uninstalled.append(package)
                 print(f"Successfully uninstalled {package}")
             except subprocess.CalledProcessError:
@@ -1938,7 +1938,7 @@ class TorchHelper:
 
         try:
             print(f"Installing: {' '.join(packages)}")
-            subprocess.run(install_cmd, check=True)
+            subprocess.run(install_cmd, check=True, env=_uv_subprocess_env())
             self.torch_installed = self.is_torch_installed()
             print("PyTorch installation completed successfully")
         except subprocess.CalledProcessError as e:
@@ -2323,7 +2323,7 @@ class TorchHelper:
             print(f"Uninstalling {package}...")
             argv, _backend = _build_uninstall_command(package)
             try:
-                subprocess.run(argv, check=True)
+                subprocess.run(argv, check=True, env=_uv_subprocess_env())
                 uninstalled.append(package)
                 print(f"Successfully uninstalled {package}")
             except subprocess.CalledProcessError:
@@ -2664,7 +2664,7 @@ class JaxHelper:
                     index_url=extra_index_url,
                 )
                 cmd = cmd[:-1] + packages
-                subprocess.run(cmd, check=True)
+                subprocess.run(cmd, check=True, env=_uv_subprocess_env())
                 self.jax_installed = True
                 return True
             except Exception as e:
@@ -2875,7 +2875,8 @@ class JaxHelper:
                             argv,
                             check=True,
                             capture_output=True,
-                            text=True
+                            text=True,
+                            env=_uv_subprocess_env(),
                         )
                         results['uninstalled_packages'].append(pkg_info)
                         print(f"Successfully uninstalled {pkg_name}")
