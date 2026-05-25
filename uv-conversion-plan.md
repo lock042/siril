@@ -1073,7 +1073,7 @@ TorchHelper().install_torch()      # picks the right backend
 | `[x]` | **0** | Wrap uv discovery behind a feature gate (`SIRIL_USE_UV=1`); ship uv in Win/macOS bundles only. | Low    |
 | `[x]` | **1** | Default-on uv for venv/install when present. Gate inverted to opt-out (`SIRIL_USE_UV=0`).      | Medium |
 | `[x]` | **2** | Default-on per-script venvs with PEP 723 parsing. Opt-out via `SIRIL_PER_SCRIPT_VENVS=0`.      | Medium |
-| `[ ]` | **3** | Migrate scripts repo: add PEP 723 to the most-installed scripts. Update docs.                  | Low    |
+| `[~]` | **3** | Migrate scripts repo: add PEP 723 to the most-installed scripts. Update docs. (GPU_Manager.py done in siril-scripts branch `uv-pip-helpers`; broader PEP 723 rollout to other scripts deferred to platform maintainers.) | Low    |
 | `[ ]` | **4** | (Optional) Default-on uv-managed Python.                                                       | Low    |
 
 Each phase is independently shippable. Phase 0 can land on master
@@ -1183,6 +1183,6 @@ the change merges into the `uv` branch.
 | `[x]` | `build/build-image/Dockerfile.debian-latest`    | install pinned `uv` (CI parity)                       |
 | `[—]` | `build/build-image/Dockerfile.win64-latest`     | (Windows cross-build image — Windows packaging done separately) |
 | `[x]` | `build/UV_VERSION` (new file)                   | single pinned uv version tag: read by `generate.sh`, mirrored as the `ARG UV_VERSION=` default in each Dockerfile, embedded in Flatpak source URL+sha |
-| `[ ]` | `siril-scripts/core/GPU_Manager.py` (scripts repo, separate PR) | route `subprocess.run([sys.executable, '-m', 'pip', …])` calls through `sirilpy.utility.pip_*` helpers **behind a `check_module_version(">=1.1.20")` gate** with the existing subprocess path retained as the Siril 1.4 fallback (see §5.0) |
+| `[x]` | `siril-scripts/core/GPU_Manager.py` (scripts repo, branch `uv-pip-helpers`, commit `9d580a1`) | routed `subprocess.run([sys.executable, '-m', 'pip', …])` calls through `sirilpy.pip_show` / `sirilpy.ensure_installed` behind a `check_module_version(">=1.1.20")` gate with the legacy subprocess paths retained for Siril 1.4; ROCm wheel install also picks up uv via `shutil.which` when present. Version bumped to 1.2.0. |
 
 End of plan.
