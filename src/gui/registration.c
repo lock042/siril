@@ -1002,9 +1002,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
 		g_signal_handlers_unblock_by_func(reg_reference_checkbutton, on_reg_reference_checkbutton_toggled, NULL);
 	}
-	gboolean use_ext_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
+	gboolean use_external_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
 	gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
-	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_ext_ref);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_external_ref);
 
 	/* show the appropriate outputregframe widgets */
 	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
@@ -1205,6 +1205,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	if (is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton)) {
 		const gchar *path = gtk_entry_get_text(reg_reference_entry);
 		regargs->external_ref_path = g_strdup(path);
+		regargs->use_external_ref = TRUE;
 	}
 	if (regindex == REG_3STARS) {
 		regargs->follow_star = gtk_toggle_button_get_active(followStarCheckButton);

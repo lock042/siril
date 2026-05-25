@@ -385,12 +385,12 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	float scale = 1.0;
 	gint64 im_size = 0; // total size of all images after registration
 	if (regargs->func == &register_star_alignment) {// global registration
-		if (!regargs->use_external_ref && regargs->seq->is_variable) {
-			w_out = regargs->seq->imgparam[regargs->reference_image].rx;
-			h_out = regargs->seq->imgparam[regargs->reference_image].ry;
+		if (!regargs->use_external_ref) {
+			w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+			h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		} else {
-			w_out = regargs->seq->rx;
-			h_out = regargs->seq->ry;
+			w_out = regargs->external_ref_rx;
+			h_out = regargs->external_ref_ry;
 		}
 		scale = regargs->output_scale;
 		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;

@@ -530,6 +530,107 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	return disto;
 }
 
+// This function is used to init the disto data for the external reference in case of image or file disto spec
+// as we need to undistort the stars of the external reference to align them with the sequence stars. 
+// Ideally, the disto_params for ext_ref should be independant of the disto_params for the sequence,
+// But for simplicity, we have chosen to use same input:
+// If image is selected, we force the external reference to be solved:
+// - if it's solved but already undistorted (e.g. if the ref is an undistorted stack), we ignore
+// - if it contains distortion info, we use it to undistort stars of the external ref only
+// If file is selected, we apply the same model to external reference as the one we apply to the sequence
+// If master is selected, we fetch the master corresponding to the external reference
+// For all other cases, we return a NULL disto
+// Note: distoparam is left untouched as it is used by the main sequence
+disto_data *init_disto_data_ext(disto_params *distoparam, fits *extfit, int *status) {
+	*status = 1;
+	if (!distoparam)
+		return NULL;
+	struct wcsprm *wcs = NULL;
+	disto_data *disto = NULL;
+	int statusread = 0;
+	fits fit = { 0 };
+	switch (distoparam->index) {
+		case DISTO_UNDEF: // nothing to do
+		case DISTO_FILE_COMET: // cannot happen, not supported
+		case DISTO_FILES: // (astrometry registration) not supported yet
+			break;
+		case DISTO_IMAGE:
+			if (!extfit->keywords.wcslib->lin.dispre) {
+				siril_log_warning(_("External reference has no SIP information, its stars will not be undistorted to align\n"));
+				return NULL;
+			} else {
+				wcs = wcs_deepcopy(extfit->keywords.wcslib, NULL);
+			}
+			break;
+		case DISTO_FILE:;
+			statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
+			if (statusread) {
+				siril_log_error(_("Could not load FITS file for distortion\n"));
+				clearfits(&fit);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			if (statusread) {
+				siril_log_error(_("Could not copy WCS information for distortion\n"));
+				clearfits(&fit);
+				return NULL;
+			}
+			clearfits(&fit);
+			break;
+		case DISTO_MASTER:
+		// If master is selected, we fetch the master corresponding to the external reference
+			if (!com.pref.prepro.disto_lib) {
+				siril_log_error(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"));
+				return NULL;
+			}
+			statusread = 0;
+			gchar *wcsname = path_parse(extfit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			if (statusread) {
+				siril_log_error(_("Could not parse master file name for distortion, aborting\n"));
+				free_disto_args(disto);
+				return NULL;
+			}
+			statusread = read_fits_metadata_from_path_first_HDU(wcsname, &fit);
+			if (statusread) {
+				siril_log_error(_("Could not load master file for distortion, aborting\n"));
+				clearfits(&fit);
+				free_disto_args(disto);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			clearfits(&fit);
+			if (statusread) {
+				siril_log_error(_("Could not copy WCS information for distortion, aborting\n"));
+				free_disto_args(disto);
+				return NULL;
+			}
+			break;
+		default:
+			return NULL;
+	}
+
+	// we only have one disto spec, we can init the disto structure
+	if (!wcs)
+		return NULL;
+	if (!wcs->lin.dispre) {
+		siril_log_error(_("Selected file has no distortion information\n"));
+		wcsfree(wcs);
+		return NULL;
+	}
+	disto = calloc(1, sizeof(disto_data));
+	disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[0].A, disto[0].B, disto[0].AP, disto[0].BP);
+	disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+	disto[0].yref = wcs->crpix[1] - 1.;
+	disto[0].dtype = DISTO_MAP_D2S;
+	wcsfree(wcs);
+
+	*status = 0;
+	siril_log_info(_("External reference: Distortion data is valid and will be used\n"));
+
+	return disto;
+}
+
+
 gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source index, gchar **msg1, gchar **msg2) {
 	if (index == DISTO_UNDEF)
 		return TRUE;

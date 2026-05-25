@@ -425,16 +425,21 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
-	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
-	Homography Href = seq->regparam[layer][ref_image].H;
-	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
-	// For ext_ref sequences, H matrices are absolute (in the external reference frame).
-	// Using Href as-is in cvTransfPoint would cancel the ext_ref contribution and show
-	// drift relative to the internal reference image instead of the external one.
-	Homography Hbase = Href;
-	if (seq->ext_ref) {
-		cvGetEye(&Hbase);
+	Homography Href = { 0 };
+	gboolean Href_is_invalid = FALSE;
+	if (!seq->ext_ref) {
+		cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
+		cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
+		Href = seq->regparam[layer][ref_image].H;
+		Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
+	} else {
+		// For ext_ref sequences, H matrices are absolute (in the external reference frame).
+		// Using Href as-is in cvTransfPoint would cancel the ext_ref contribution and show
+		// drift relative to the internal reference image instead of the external one.
+		// We also need to use the external reference size
+		cx = (double)seq->ext_ref_rx * 0.5;
+		cy = (double)seq->ext_ref_ry * 0.5;
+		cvGetEye(&Href);
 	}
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
@@ -464,7 +469,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 					plot->data[j].x = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Hbase, 1.);
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
 				plot->data[j].x = (X_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
@@ -514,7 +519,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 					plot->data[j].y = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Hbase, 1.);
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
 				plot->data[j].y = (registration_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:

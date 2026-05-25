@@ -2581,7 +2581,10 @@ static void draw_regframe(const draw_data_t* dd) {
 		image_display_init_statics();
 	if (!gtk_toggle_button_get_active(drawframe)) return;
 	int activelayer = gtk_combo_box_get_active(seqcombo);
-	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (!layer_has_registration(&com.seq, activelayer)) {
+		activelayer = seq_has_any_regdata(&com.seq);
+		if (activelayer < 0) return;
+	}
 	if (com.seq.reg_invalidated) return;
 	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
@@ -2597,8 +2600,8 @@ static void draw_regframe(const draw_data_t* dd) {
 	int ref_rx, ref_ry;
 	if (com.seq.ext_ref) {
 		cvGetEye(&Href);
-		ref_rx = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].rx : com.seq.rx;
-		ref_ry = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].ry : com.seq.ry;
+		ref_rx = com.seq.ext_ref_rx;
+		ref_ry = com.seq.ext_ref_ry;
 	} else {
 		if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION)
 			return;

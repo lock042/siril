@@ -2325,6 +2325,13 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 				siril_log_message(_("Registration data cleared for layer %d\n"), i);
 			}
 		}
+		if (seq->ext_ref_path) {
+			g_free(seq->ext_ref_path);
+			seq->ext_ref_path = NULL;
+			siril_log_message(_("External reference path cleared\n"));
+			seq->ext_ref = FALSE;
+			seq->ext_ref_rx = seq->ext_ref_ry = 0;
+		}
 		// remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {

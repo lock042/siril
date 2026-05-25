@@ -109,9 +109,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	// cvGetEye(&Href);
 	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
-	int rx = regargs->framingd.override_rx ? regargs->framingd.override_rx :
+	int rx = regargs->use_external_ref ? regargs->external_ref_rx :
 		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx);
-	int ry = regargs->framingd.override_ry ? regargs->framingd.override_ry :
+	int ry = regargs->use_external_ref ? regargs->external_ref_ry :
 		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry);
 	int x0, y0, rx_0 = rx, ry_0 = ry;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
@@ -336,13 +336,18 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	sadata->current_regdata = apply_reg_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
 
-
-	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
-		siril_log_error(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		clearfits(&fit);
-		return 1;
+	if (regargs->use_external_ref) {
+		siril_log_message(_("Using external reference image for registration\n"));
+	} else {
+		siril_log_message(_("Using reference image #%d for registration\n"), regargs->reference_image + 1);
+		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
+			siril_log_error(_("Could not load reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			clearfits(&fit);
+			return 1;
+		}
 	}
+
 	if (!regargs->driz && fit_is_cfa(&fit))
 		siril_log_error(_("Applying interpolation on a sequence opened as CFA is a bad idea.\n"));
 
@@ -1200,17 +1205,26 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 		regargs->framingd.Htransf = Href;
 	} else if (regargs->seq->ext_ref) {
-		// H matrices are absolute (relative to external ref): use identity so they are applied as-is
-		cvGetEye(&regargs->framingd.Htransf);
-		// Load external reference metadata: WCS for output images, dimensions for framing
+		// Load external reference metadata: WCS for output images, dimensions for framing, distorsion model if required
 		if (regargs->seq->ext_ref_path) {
 			fits ext_fit = { 0 };
 			if (!read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit)) {
 				if (has_wcs(&ext_fit))
 					regargs->wcsref = wcs_deepcopy(ext_fit.keywords.wcslib, NULL);
-				regargs->framingd.override_rx = ext_fit.rx;
-				regargs->framingd.override_ry = ext_fit.ry;
+				regargs->external_ref_rx = ext_fit.rx;
+				regargs->external_ref_ry = ext_fit.ry;
+				regargs->use_external_ref = TRUE;
+				// H matrices are absolute (relative to external ref): use identity so they are applied as-is
+				cvGetEye(&regargs->framingd.Htransf);
 				clearfits(&ext_fit);
+			} else {
+				siril_log_error(_("Could not load external reference from %s, ignoring\n"), regargs->seq->ext_ref_path);
+				g_free(regargs->seq->ext_ref_path);
+				regargs->seq->ext_ref_path = NULL;
+				regargs->seq->ext_ref = FALSE;
+				regargs->use_external_ref = FALSE;
+				// we fall back on using internal reference image for framing
+				regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 			}
 		}
 	} else {
@@ -1260,11 +1274,16 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
-		int status = 1;
+		int status = 1, status2 = 0;
 		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it will be set to UNDEF
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
+		if (regargs->use_external_ref) { // we fetch its model to undistort its stars
+			fits ext_fit = { 0 };
+			read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit); // we don't check the status here as we have loded it before
+			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &ext_fit, &status2);
+		}
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
-		if (status) {
+		if (status || status2) {
 			siril_log_error(_("Could not initialize distortion data, aborting\n"));
 			free(sadata);
 			args->user = NULL;
@@ -1275,11 +1294,12 @@ int register_apply_reg(struct registration_args *regargs) {
 			regargs->undistort = DISTO_UNDEF;
 		}
 	}
-	if (!regargs->wcsref)
+	if (!regargs->wcsref && !regargs->use_external_ref)
+	// For external ref, wcsref was read the first time we imported its metadata, so we don't want/need to fetch it again here
 		regargs->wcsref = get_wcs_ref(regargs->seq);
 	if (regargs->wcsref) {
 		if (regargs->undistort && regargs->wcsref->lin.dispre)
-			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted, so its astrometry should be as well
 		if (!regargs->undistort && regargs->wcsref->lin.dispre)
 			siril_log_warning(_("Distortion was found in reference image astrometry but you did not include distortion correction when registering the images\n"));
 		if (index == DISTO_FILES && image_is_flipped_from_wcs(regargs->wcsref)) { // we are in astrometric reg, we will need to flip the solution if required
@@ -1374,9 +1394,9 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size
-	int rx0 = regargs->framingd.override_rx ? regargs->framingd.override_rx :
+	int rx0 = regargs->use_external_ref ? regargs->external_ref_rx :
 		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx);
-	int ry0 = regargs->framingd.override_ry ? regargs->framingd.override_ry :
+	int ry0 = regargs->use_external_ref ? regargs->external_ref_ry :
 		(regargs->seq->is_variable ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry);
 	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
 		siril_log_error(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"));

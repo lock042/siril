@@ -114,14 +114,13 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 
 	/* first we're looking for stars in reference image */
-	if (regargs->external_ref_path) {
+	if (regargs->use_external_ref) {
 		if (readfits(regargs->external_ref_path, &fit, NULL, FALSE)) {
 			siril_log_error(_("Could not load external reference image\n"));
 			args->seq->regparam[regargs->layer] = NULL;
 			free(sadata->current_regdata);
 			return 1;
 		}
-		regargs->use_external_ref = TRUE;
 		siril_log_info(_("External Reference Image:\n"));
 	} else {
 		if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
@@ -157,7 +156,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	/* copying refstars to com.stars for display
 	/ * we make this cop before distortion correction */
-	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
+	if (!com.script && &com.seq == args->seq && !regargs->use_external_ref && com.seq.current == regargs->reference_image) {
 		psf_star **stars = new_fitted_stars(MAX_STARS);
 		if (stars) {
 			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
@@ -176,7 +175,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	// We prepare the distortion structure maps if required
-	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
+	if (regargs->undistort && init_disto_map(regargs->seq->rx, regargs->seq->ry, regargs->disto)) {
 		siril_log_error(
 				_("Could not init distortion mapping\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -202,13 +201,20 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	// the distortion source is logged together with the registration info in the .seq file
 	// Note: for global reg, disto source can only by DISTO_IMAGE or DISTO_FILE
 	// i.e regargs->disto is of size 1
-	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
-		siril_log_error(
-			_("Could not correct the stars position with SIP coeffients\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
-		clearfits(&fit);
-		return 1;
+	if (regargs->undistort) {
+		int status = 0;
+		if (!regargs->use_external_ref)
+			status = disto_correct_stars(sadata->refstars, regargs->disto);
+		else if (regargs->disto_ext) // ext ref may not have distortion info, this was handled at init
+			status = disto_correct_stars(sadata->refstars, regargs->disto_ext);
+		if (status) {
+			siril_log_error(
+				_("Could not correct the stars position with SIP coeffients\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			clearfits(&fit);
+			return 1;
+		}
 	}
 
 	sadata->ref.x = fit.rx;
@@ -648,6 +654,37 @@ int register_star_alignment(struct registration_args *regargs) {
 		}
 	}
 
+	if (regargs->use_external_ref) {
+		fits extfit = { 0 };
+		if (readfits(regargs->external_ref_path, &extfit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference\n"));
+			free(args);
+			return -1;
+		}
+		regargs->external_ref_rx = extfit.rx;
+		regargs->external_ref_ry = extfit.ry;
+		if (regargs->undistort) {
+			int status = 1;
+			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &extfit, &status);
+		}
+		if (!regargs->no_output && has_wcs(&extfit))
+			regargs->wcsref = wcs_deepcopy(extfit.keywords.wcslib, NULL);
+		// we will update the incoming sequence
+		regargs->seq->ext_ref = TRUE;
+		regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
+		regargs->seq->ext_ref_rx = extfit.rx;
+		regargs->seq->ext_ref_ry = extfit.ry;
+		clearfits(&extfit);
+	}
+
+	if (!regargs->no_output) {
+		if (!regargs->use_external_ref)
+			regargs->wcsref = get_wcs_ref(regargs->seq);
+		if (regargs->wcsref && regargs->undistort && regargs->wcsref->lin.dispre) {
+			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+		}
+	}
+
 	// preparing detection params
 	regargs->sfargs = calloc(1, sizeof(struct starfinder_data));
 	regargs->sfargs->im.from_seq = regargs->seq;
@@ -681,13 +718,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
-
-	if (!regargs->no_output) {
-		regargs->wcsref = get_wcs_ref(regargs->seq);
-		if (regargs->wcsref && regargs->undistort && regargs->wcsref->lin.dispre) {
-			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
-		}
-	}
 
 	generic_sequence_worker(args);
 
@@ -1093,7 +1123,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	}
 
 	// 5. If external reference is set, compose all H matrices with H_ext (internal_ref → external_ref)
-	if (!retval && regargs->external_ref_path) {
+	if (!retval && regargs->use_external_ref) {
 		fits ext_fit = { 0 };
 		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
 			siril_log_error(_("Could not load external reference image, ignoring external reference\n"));
@@ -1153,7 +1183,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 					regargs->seq->ext_ref = TRUE;
 					g_free(regargs->seq->ext_ref_path);
 					regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
-					regargs->use_external_ref = TRUE;
+					regargs->seq->ext_ref_rx = ext_fit.rx;
+					regargs->seq->ext_ref_ry = ext_fit.ry;
 					siril_log_message(_("All registration transforms composed with external reference alignment\n"));
 				} else {
 					siril_log_error(_("Could not match external reference to sequence reference image, ignoring external reference\n"));
@@ -1162,11 +1193,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 				siril_log_error(_("Not enough stars found in external reference image, ignoring external reference\n"));
 			}
 			if (sf_ext) {
-				if (sf_ext->onepass) {
-					free_fitted_stars(*sf_ext->stars);
-					free(sf_ext->stars);
-					free(sf_ext->nb_stars);
-				}
+				free_fitted_stars(*sf_ext->stars);
+				free(sf_ext->stars);
+				free(sf_ext->nb_stars);
 				free(sf_ext);
 			}
 			clearfits(&ext_fit);

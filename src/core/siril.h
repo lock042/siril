@@ -458,6 +458,8 @@ struct sequ {
 	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
 	gboolean ext_ref;	// H matrices are absolute (relative to an external reference image)
 	gchar *ext_ref_path;	// path to the external reference image used for registration
+	unsigned int ext_ref_rx;	// external reference image width (or ref if set)
+	unsigned int ext_ref_ry;	// external reference image height (or ref if set)
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence

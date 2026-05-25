@@ -10908,6 +10908,7 @@ int process_register(int nb) {
 			if (regargs->external_ref_path)
 				g_free(regargs->external_ref_path);
 			regargs->external_ref_path = g_strdup(value);
+			regargs->use_external_ref = TRUE;
 		} else {
 			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
