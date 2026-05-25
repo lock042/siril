@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-18 07:16+0000\n"
+"PO-Revision-Date: 2026-05-20 10:42+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -17509,7 +17509,7 @@ msgstr ""
 
 #: src/core/command_def.h:20
 msgid "Lists Siril capabilities, based on compilation options and runtime"
-msgstr ""
+msgstr "コンパイルオプションおよび実行時環境に基づいて、Sirilの機能の一覧を表示します"
 
 #: src/core/command_def.h:21
 msgid ""
