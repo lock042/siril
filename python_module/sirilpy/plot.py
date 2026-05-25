@@ -205,42 +205,42 @@ class PlotData:
         serialized += encode_null_string(plot_data.savename or "")
 
         # Pack boolean and number of series
-        serialized += struct.pack('!?', plot_data.show_legend)
-        serialized += struct.pack('!I', len(plot_data.series_data))
+        serialized += struct.pack('=?', plot_data.show_legend)
+        serialized += struct.pack('=I', len(plot_data.series_data))
 
         # If datamin is set, serialize it
-        serialized += struct.pack('!?', plot_data.datamin is not None)
+        serialized += struct.pack('=?', plot_data.datamin is not None)
         if plot_data.datamin is not None:
-            serialized += struct.pack('!dd', plot_data.datamin[0], plot_data.datamin[1])
+            serialized += struct.pack('=dd', plot_data.datamin[0], plot_data.datamin[1])
 
         # If datamax is set, serialize it
-        serialized += struct.pack('!?', plot_data.datamax is not None)
+        serialized += struct.pack('=?', plot_data.datamax is not None)
         if plot_data.datamax is not None:
-            serialized += struct.pack('!dd', plot_data.datamax[0], plot_data.datamax[1])
+            serialized += struct.pack('=dd', plot_data.datamax[0], plot_data.datamax[1])
 
         for series in plot_data.series_data:
             with_errors = series.n_error is not None or series.p_error is not None
             serialized += encode_null_string(series.label)
-            serialized += struct.pack('!?', with_errors)
-            serialized += struct.pack('!I', len(series.x_coords))
-            serialized += struct.pack('!I', series.plot_type.value)
+            serialized += struct.pack('=?', with_errors)
+            serialized += struct.pack('=I', len(series.x_coords))
+            serialized += struct.pack('=I', series.plot_type.value)
 
             # Serialize coordinates with optional error bars for each point
             for i, (x, y) in enumerate(zip(series.x_coords, series.y_coords)):
                 # Serialize x and y coordinates
-                serialized += struct.pack('!dd', x, y)
+                serialized += struct.pack('=dd', x, y)
 
                 if with_errors:
                     # Serialize negative error (if exists, otherwise 0)
                     if series.n_error is not None and i < len(series.n_error):
-                        serialized += struct.pack('!d', series.n_error[i])
+                        serialized += struct.pack('=d', series.n_error[i])
                     else:
-                        serialized += struct.pack('!d', 0.0)
+                        serialized += struct.pack('=d', 0.0)
 
                     # Serialize positive error (if exists, otherwise 0)
                     if series.p_error is not None and i < len(series.p_error):
-                        serialized += struct.pack('!d', series.p_error[i])
+                        serialized += struct.pack('=d', series.p_error[i])
                     else:
-                        serialized += struct.pack('!d', 0.0)
+                        serialized += struct.pack('=d', 0.0)
 
         return serialized, len(serialized)

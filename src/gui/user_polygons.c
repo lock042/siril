@@ -23,14 +23,6 @@
 #include "gui/user_polygons.h"
 #include "gui/image_display.h"
 
-#define FROM_BE64_INTO(dest, val, type) \
-do { \
-	union { type v; uint64_t i; } conv; \
-	memcpy(&conv.i, &val, sizeof(type)); \
-	conv.i = GUINT64_FROM_BE(conv.i); \
-	(dest) = conv.v; \
-} while(0)
-
 #define MAX_LEGEND_LENGTH 4095  // Allows for +1 null terminator without exceeding 4096
 
 static gint unused_polygon_id = 0;
@@ -183,15 +175,15 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	}
 
 	// Read ID
-	polygon->id = (int32_t)g_ntohl(*(uint32_t *)ptr);
+	polygon->id = (int32_t)(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
 
 	// Read number of points
-	polygon->n_points = (int32_t)g_ntohl(*(uint32_t *)ptr);
+	polygon->n_points = (int32_t)(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
 
 	// Read RGBA (packed into uint32_t)
-	uint32_t packed_color = g_ntohl(*(uint32_t *)ptr);
+	uint32_t packed_color = *(uint32_t *)ptr;
 	ptr += sizeof(uint32_t);
 	polygon->color[0] = ((packed_color >> 24) & 0xFF) / 255.0;
 	polygon->color[1] = ((packed_color >> 16) & 0xFF) / 255.0;
@@ -228,17 +220,14 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 
 	// Read points
 	for (int i = 0; i < polygon->n_points; i++) {
-		double x_BE, y_BE;
-		memcpy(&x_BE, ptr, sizeof(double));
+		memcpy(&polygon->points[i].x, ptr, sizeof(double));
 		ptr += sizeof(double);
-		FROM_BE64_INTO(polygon->points[i].x, x_BE, double);
-		memcpy(&y_BE, ptr, sizeof(double));
+		memcpy(&polygon->points[i].y, ptr, sizeof(double));
 		ptr += sizeof(double);
-		FROM_BE64_INTO(polygon->points[i].y, y_BE, double);
 	}
 
 	// Read legend string length
-	int32_t legend_length = (int32_t)g_ntohl(*(uint32_t *)ptr);
+	int32_t legend_length = (int32_t)(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
 
 	// Check if we have enough data for the legend string
@@ -293,20 +282,20 @@ uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size) {
 	uint8_t *ptr = buffer;
 
 	// Write ID
-	*(uint32_t *)ptr = g_htonl((uint32_t)polygon->id);
+	*(uint32_t *)ptr = (uint32_t)polygon->id;
 	ptr += sizeof(uint32_t);
 
 	// Write number of points
-	*(uint32_t *)ptr = g_htonl((uint32_t)polygon->n_points);
+	*(uint32_t *)ptr = (uint32_t)polygon->n_points;
 	ptr += sizeof(uint32_t);
 
-	/* Pack RGBA into a network-byte-order uint32 */
+	/* Pack RGBA into a uint32 (native byte order — same-machine IPC) */
 	uint32_t packed_color =
 	((uint32_t)(polygon->color[0] * 255) << 24) |
 	((uint32_t)(polygon->color[1] * 255) << 16) |
 	((uint32_t)(polygon->color[2] * 255) << 8) |
 	((uint32_t)(polygon->color[3] * 255));
-	*(uint32_t *)ptr = g_htonl(packed_color);
+	*(uint32_t *)ptr = packed_color;
 	ptr += sizeof(uint32_t);
 
 	// Write fill flag
@@ -315,17 +304,14 @@ uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size) {
 
 	// Write points
 	for (int i = 0; i < polygon->n_points; i++) {
-		double x_BE, y_BE;
-		FROM_BE64_INTO(x_BE, polygon->points[i].x, double);
-		FROM_BE64_INTO(y_BE, polygon->points[i].y, double);
-		memcpy(ptr, &x_BE, sizeof(double));
+		memcpy(ptr, &polygon->points[i].x, sizeof(double));
 		ptr += sizeof(double);
-		memcpy(ptr, &y_BE, sizeof(double));
+		memcpy(ptr, &polygon->points[i].y, sizeof(double));
 		ptr += sizeof(double);
 	}
 
 	// Write legend length and string
-	*(uint32_t *)ptr = g_htonl((uint32_t)legend_size);
+	*(uint32_t *)ptr = (uint32_t)legend_size;
 	ptr += sizeof(uint32_t);
 
 	if (legend_size > 0) {
@@ -364,7 +350,7 @@ uint8_t* serialize_polygon_list(GSList *polygons, size_t *out_size) {
 	uint8_t *ptr = buffer;
 
 	// Write number of polygons
-	*(uint32_t *)ptr = g_htonl(g_slist_length(polygons));
+	*(uint32_t *)ptr = (uint32_t)g_slist_length(polygons);
 	ptr += sizeof(uint32_t);
 
 	for (node = polygons; node != NULL; node = node->next) {

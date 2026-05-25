@@ -525,7 +525,7 @@ class SirilInterface:
             ValueError: If the shared memory information is invalid
             SirilError: For other errors
         """
-        size_data = struct.pack('!Q', size)  # Pack the size as a uint64_t in network byte order.
+        size_data = struct.pack('=Q', size)  # Pack the size as a uint64_t in network byte order.
 
         try:
             # Send the shared memory request command.
@@ -1093,7 +1093,7 @@ class SirilInterface:
 
             # Create payload: network-order float followed by string
             # '!f' for network byte order 32-bit float
-            float_bytes = struct.pack('!f', progress)
+            float_bytes = struct.pack('=f', progress)
 
             # Combine float and string bytes
             payload = float_bytes + message_bytes
@@ -1209,7 +1209,7 @@ class SirilInterface:
                 raise ValueError("Either provide a selection tuple or all four coordinate parameters (x, y, w, h)")
 
             # Pack the coordinates and dimensions into bytes using network byte order (!)
-            payload = struct.pack('!IIII', x, y, w, h)
+            payload = struct.pack('=IIII', x, y, w, h)
             self._execute_command(_Command.SET_SELECTION, payload)
             return True
         except Exception as e:
@@ -1234,7 +1234,7 @@ class SirilInterface:
 
         try:
             # Assuming the response is in the format: x (4 bytes), y (4 bytes), w (4 bytes), h (4 bytes)
-            x, y, w, h = struct.unpack('!IIII', response)
+            x, y, w, h = struct.unpack('=IIII', response)
             return x, y, w, h  # Returning as (x, y, w, h)
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_selection(): {}").format(e)) from e
@@ -1268,7 +1268,7 @@ class SirilInterface:
 
         try:
             # Assuming the response is in the format: !I
-            vport = struct.unpack('!I', response)[0]
+            vport = struct.unpack('=I', response)[0]
             return vport
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_active_vport()")) from e
@@ -1292,7 +1292,7 @@ class SirilInterface:
                 return None
 
             # Assuming the response is in the format: width (4 bytes), height (4 bytes), nb_channels (4 bytes)
-            width, height, channels = struct.unpack('!III', response)
+            width, height, channels = struct.unpack('=III', response)
             return channels, height, width  # Returning as (channels, height, width)
         except Exception as e:
             raise SirilError(_("Error occurred in get_image_shape()")) from e
@@ -1360,7 +1360,7 @@ class SirilInterface:
                 raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
 
             # Always pack the same payload: x, y, w, h, channel, centred_flag (24 bytes)
-            shape_data = struct.pack('!IIIIII', x, y, w, h, channel_val, centred_flag)
+            shape_data = struct.pack('=IIIIII', x, y, w, h, channel_val, centred_flag)
 
             status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
 
@@ -1422,14 +1422,14 @@ class SirilInterface:
             # Pack shape data for the command
             if len(shape) == 4:
                 if channel is None:
-                    shape_data = struct.pack('!IIII', *shape)
+                    shape_data = struct.pack('=IIII', *shape)
                 else:
-                    shape_data = struct.pack('!IIIII', *shape, channel)
+                    shape_data = struct.pack('=IIIII', *shape, channel)
             else:
                 raise ValueError(_("Incorrect shape data provided: must be (x,y,w,h)"))
         elif channel is not None:
             # Pack only channel data when no shape is provided but channel is specified
-            shape_data = struct.pack('!I', channel)
+            shape_data = struct.pack('=I', channel)
 
         status, response = self._send_command(_Command.GET_STATS_FOR_SELECTION, shape_data)
         # Handle error responses
@@ -1470,7 +1470,7 @@ class SirilInterface:
             SirilError: For errors during pix2radec execution.
         """
         try:
-            shape_data = struct.pack('!2d', x, y)
+            shape_data = struct.pack('=2d', x, y)
             status, response = self._send_command(_Command.PIX2WCS, shape_data)
             # Handle error responses
             if status == _Status.ERROR:
@@ -1527,7 +1527,7 @@ class SirilInterface:
             SirilError: For errors during radec2pix execution.
         """
         try:
-            shape_data = struct.pack('!2d', ra, dec)
+            shape_data = struct.pack('=2d', ra, dec)
             status, response = self._send_command(_Command.WCS2PIX, shape_data)
             # Handle error responses
             if status == _Status.ERROR:
@@ -1597,7 +1597,7 @@ class SirilInterface:
 
         shm = None
         try:
-            preview_data = struct.pack('!??', preview, linked)
+            preview_data = struct.pack('=??', preview, linked)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1608,7 +1608,7 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be non-negative"))
 
                 # Pack shape data for the command
-                shape_data = struct.pack('!IIII', *shape)
+                shape_data = struct.pack('=IIII', *shape)
                 command = _Command.GET_PIXELDATA_REGION
             else:
                 shape_data = None
@@ -1738,8 +1738,8 @@ class SirilInterface:
         # Convert channel number to network byte order bytes
 
         try:
-            preview_payload = struct.pack('!??', preview, linked)
-            frame_payload = struct.pack('!I', frame)
+            preview_payload = struct.pack('=??', preview, linked)
+            frame_payload = struct.pack('=I', frame)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1750,7 +1750,7 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be non-negative"))
 
                 # Pack shape data for the command
-                shape_data = struct.pack('!IIII', *shape)
+                shape_data = struct.pack('=IIII', *shape)
             else:
                 shape_data = None
             payload = preview_payload + frame_payload + shape_data if shape_data else preview_payload + frame_payload
@@ -2262,7 +2262,7 @@ class SirilInterface:
 
             # Create payload
             # We don't range check index here as it is done more efficiently in the C code
-            index_bytes = struct.pack('!i', index)
+            index_bytes = struct.pack('=i', index)
             payload = index_bytes + info + prefix_bytes
 
             # Send command using the existing _execute_command method
@@ -2744,7 +2744,7 @@ class SirilInterface:
             raise DataError(_("Error in is_image_loaded(): no response received from Siril"))
 
         try:
-            image_loaded = struct.unpack('!i', response)[0] != 0
+            image_loaded = struct.unpack('=i', response)[0] != 0
             return bool(image_loaded)
         except Exception as e:
             raise SirilError("Error in is_image_loaded()") from e
@@ -2767,7 +2767,7 @@ class SirilInterface:
             raise DataError(_("Error in is_sequence_loaded(): no response received from Siril"))
 
         try:
-            sequence_loaded = struct.unpack('!i', response)[0] != 0
+            sequence_loaded = struct.unpack('=i', response)[0] != 0
             return bool(sequence_loaded)
         except Exception as e:
             raise SirilError(_("Error in is_sequence_loaded()")) from e
@@ -2817,7 +2817,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_frame_filename(): no sequence is loaded"))
 
         # Convert frame number to network byte order bytes
-        frame_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
+        frame_payload = struct.pack('=I', frame)  # '!I' for network byte order uint32_t
 
         response = self._request_data(_Command.GET_SEQ_FRAME_FILENAME, payload=frame_payload)
 
@@ -2848,7 +2848,7 @@ class SirilInterface:
         """
 
         # Convert channel number to network byte order bytes
-        channel_payload = struct.pack('!I', channel)  # '!I' for network byte order uint32_t
+        channel_payload = struct.pack('=I', channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
@@ -2887,7 +2887,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_regdata(): no sequence is loaded"))
 
-        data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=II', frame, channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
@@ -2924,7 +2924,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_stats(): no sequence is loaded"))
 
-        data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=II', frame, channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_STATS, payload=data_payload)
@@ -2959,7 +2959,7 @@ class SirilInterface:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_imgdata(): no sequence is loaded"))
 
-        data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('=I', frame)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
@@ -2990,7 +2990,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_distodata(): no sequence is loaded"))
 
         # Request data with the channel number as payload
-        data_payload = struct.pack('!I', channel)
+        data_payload = struct.pack('=I', channel)
         response = self._request_data(_Command.GET_SEQ_DISTODATA, payload=data_payload)
         if response is None:
             return None
@@ -3264,7 +3264,7 @@ class SirilInterface:
         shm_header_info = None
         shm_icc_info = None
 
-        data_payload = struct.pack('!I???', frame, with_pixels, preview, linked)
+        data_payload = struct.pack('=I???', frame, with_pixels, preview, linked)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
             return None
@@ -3544,7 +3544,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_frame_header(): no sequence is loaded"))
 
         try:
-            payload = struct.pack('!I', frame)
+            payload = struct.pack('=I', frame)
             # Request shared memory setup
             status, response = self._send_command(_Command.GET_SEQ_FRAME_HEADER, payload)
 
@@ -3652,7 +3652,7 @@ class SirilInterface:
             channel_val = SENTINEL_VALUE if channel is None else channel
 
             # Pack channel data for the command
-            channel_data = struct.pack('!I', channel_val)
+            channel_data = struct.pack('=I', channel_val)
 
             # Request shared memory setup
             status, response = self._send_command(_Command.GET_PSFSTARS, channel_data)
@@ -3777,11 +3777,11 @@ class SirilInterface:
 
             # Parse based on type
             if config_type == _ConfigType.BOOL:
-                return bool(struct.unpack('!I', value_data)[0])
+                return bool(struct.unpack('=I', value_data)[0])
             if config_type == _ConfigType.INT:
-                return struct.unpack('!i', value_data)[0]
+                return struct.unpack('=i', value_data)[0]
             if config_type == _ConfigType.DOUBLE:
-                return struct.unpack('!d', value_data)[0]
+                return struct.unpack('=d', value_data)[0]
             if config_type in (_ConfigType.STR, _ConfigType.STRDIR):
                 # Assume null-terminated string
                 string_value = value_data.split(b'\0')[0].decode('utf-8')
@@ -4118,7 +4118,7 @@ class SirilInterface:
             if response is None:
                 raise SirilConnectionError(("Failed to get a response from the SirilInterface"))
             try:
-                polygon_id = struct.unpack('!i', response[:4])[0]
+                polygon_id = struct.unpack('=i', response[:4])[0]
                 polygon.polygon_id = polygon_id
                 return polygon
 
@@ -4151,7 +4151,7 @@ class SirilInterface:
         try:
             # Create payload: network-order int followed by string
             # '!I' for network byte order 32-bit int
-            payload = struct.pack('!i', polygon_id)
+            payload = struct.pack('=i', polygon_id)
 
             self._execute_command(_Command.DELETE_USER_POLYGON, payload)
             return
@@ -4188,7 +4188,7 @@ class SirilInterface:
             color: uint32 specifying packed RGBA values. Default: 0x00FF0040, 75% transparent green)
             fill: bool specifying whether or not to fill the polygon (default: False)
         """
-        payload = struct.pack('!I?', color, fill)
+        payload = struct.pack('=I?', color, fill)
         status, response = self._send_command(_Command.DRAW_POLYGON, payload)
         if status == _Status.ERROR:
             if response:
@@ -4218,7 +4218,7 @@ class SirilInterface:
         """
         shm = None
         try:
-            payload = struct.pack('!i', polygon_id)
+            payload = struct.pack('=i', polygon_id)
             # Send it using _request_data
             status, response = self._send_command(_Command.GET_USER_POLYGON, payload)
             # Handle error responses
@@ -4441,7 +4441,7 @@ class SirilInterface:
         shm_icc_profile = None
 
         # Pack boolean flags + filepath
-        data_payload = struct.pack('!???', with_pixels, preview, linked) + filepath_bytes
+        data_payload = struct.pack('=???', with_pixels, preview, linked) + filepath_bytes
         response = self._request_data(_Command.GET_IMAGE_FILE, data_payload, timeout=None)
         if response is None:
             return None
@@ -4932,7 +4932,7 @@ class SirilInterface:
             return None
 
         try:
-            lo, hi, mode = struct.unpack('!HHI', response)
+            lo, hi, mode = struct.unpack('=HHI', response)
             if float_range:
                 lo = lo / 65535.0
                 hi = hi / 65535.0
@@ -4962,7 +4962,7 @@ class SirilInterface:
 
             # Pack the values into bytes using network byte order (!)
             # Format depends on which arguments are provided
-            payload = struct.pack('!I', mode.value)
+            payload = struct.pack('=I', mode.value)
             self._execute_command(_Command.SET_SLIDER_STATE, payload)
             return True
         except Exception as e:
@@ -5008,7 +5008,7 @@ class SirilInterface:
 
             # Pack the values into bytes using network byte order (!)
             # All values packed as 32-bit integers for consistency
-            payload = struct.pack('!II', converted_lo, converted_hi)
+            payload = struct.pack('=II', converted_lo, converted_hi)
             self._execute_command(_Command.SET_SLIDER_LOHI, payload)
             return True
         except Exception as e:
@@ -5031,7 +5031,7 @@ class SirilInterface:
             return None
 
         try:
-            mode = struct.unpack('!I', response)
+            mode = struct.unpack('=I', response)
             return mode[0]
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e
@@ -5058,7 +5058,7 @@ class SirilInterface:
 
             # Pack the values into bytes using network byte order (!)
             # Format depends on which arguments are provided
-            payload = struct.pack('!I', mode.value)
+            payload = struct.pack('=I', mode.value)
             self._execute_command(_Command.SET_STFMODE, payload)
             return True
         except Exception as e:
@@ -5081,7 +5081,7 @@ class SirilInterface:
             return None
 
         try:
-            x_off, y_off, zoomlevel = struct.unpack('!ddd', response)
+            x_off, y_off, zoomlevel = struct.unpack('=ddd', response)
             return x_off, y_off, zoomlevel
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_slider_state(): {}").format(e)) from e
@@ -5106,7 +5106,7 @@ class SirilInterface:
 
             # Pack the values into bytes using network byte order (!)
             # All values packed as 32-bit integers for consistency
-            payload = struct.pack('!dd', xoff, yoff)
+            payload = struct.pack('=dd', xoff, yoff)
             self._execute_command(_Command.SET_PAN, payload)
             return True
         except Exception as e:
@@ -5129,7 +5129,7 @@ class SirilInterface:
 
             # Pack the values into bytes using network byte order (!)
             # All values packed as 32-bit integers for consistency
-            payload = struct.pack('!d', zoom)
+            payload = struct.pack('=d', zoom)
             self._execute_command(_Command.SET_ZOOM, payload)
             return True
         except Exception as e:
@@ -5233,7 +5233,7 @@ class SirilInterface:
             return None
 
         try:
-            mode = struct.unpack('!I', response)
+            mode = struct.unpack('=I', response)
             return bool(mode[0])
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e
@@ -5820,7 +5820,7 @@ class SirilInterface:
             return None
 
         try:
-            mode = struct.unpack('!I', response)
+            mode = struct.unpack('=I', response)
             return bool(mode[0])
         except struct.error as e:
             raise SirilError(_("Error occurred in get_image_mask_state(): {}").format(e)) from e
@@ -5955,7 +5955,7 @@ class SirilInterface:
 
         try:
             # Convert dialog ID to network byte order bytes
-            dialog_payload = struct.pack('!I', dialog.value)  # '!I' for network byte order uint32_t
+            dialog_payload = struct.pack('=I', dialog.value)  # '!I' for network byte order uint32_t
 
             response = self._execute_command(_Command.OPEN_DIALOG, payload=dialog_payload)
 

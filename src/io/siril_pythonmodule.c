@@ -1551,8 +1551,7 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		polygon->id = id;
 		gui_iface.add_user_polygon_to_list(polygon);
 		gui_iface.redraw_image(REDRAW_OVERLAY);
-		int id_be = GINT32_TO_BE(id);
-		result = send_response(conn, STATUS_OK, &id_be, 4);
+		result = send_response(conn, STATUS_OK, &id, 4);
 	} else {
 		siril_log_debug("Failed to deserialize user polygon\n");
 		const char* error_msg = _("Failed to add user polygon");

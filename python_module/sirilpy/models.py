@@ -1326,21 +1326,21 @@ class Polygon:
         # Pack ID, number of points, color, and fill flag
         # Use 'I' for unsigned int and '?' for boolean
         buffer = bytearray()
-        buffer.extend(struct.pack('!iiI?', self.polygon_id, len(self.points), self.color, self.fill))
+        buffer.extend(struct.pack('=iiI?', self.polygon_id, len(self.points), self.color, self.fill))
 
         # Pack each point as float
         for point in self.points:
-            buffer.extend(struct.pack('!dd', point.x, point.y))
+            buffer.extend(struct.pack('=dd', point.x, point.y))
 
         # Pack the legend (if it exists)
         if self.legend is not None:
             legend_bytes = self.legend.encode('utf-8')
             # Pack the length of the string first, then the string itself
-            buffer.extend(struct.pack('!i', len(legend_bytes)))
+            buffer.extend(struct.pack('=i', len(legend_bytes)))
             buffer.extend(legend_bytes)
         else:
             # If legend is None, pack a length of 0
-            buffer.extend(struct.pack('!i', 0))
+            buffer.extend(struct.pack('=i', 0))
 
         return bytes(buffer)
 
@@ -1361,7 +1361,7 @@ class Polygon:
         if len(data) < 13:
             raise ValueError("Invalid data size for polygon")
 
-        polygon_id, n_points, color, fill = struct.unpack('!iiI?', data[:13])
+        polygon_id, n_points, color, fill = struct.unpack('=iiI?', data[:13])
         data = data[13:]
 
         if n_points < 0 or n_points > MAX_POINTS_PER_POLYGON:
@@ -1372,7 +1372,7 @@ class Polygon:
             if len(data) < 16:
                 raise ValueError("Not enough data for points")
 
-            x, y = struct.unpack('!dd', data[:16])
+            x, y = struct.unpack('=dd', data[:16])
             data = data[16:]
             points.append(FPoint(x, y))
 
@@ -1380,7 +1380,7 @@ class Polygon:
         if len(data) < 4:
             raise ValueError("Not enough data for legend length")
 
-        legend_length = struct.unpack('!i', data[:4])[0]
+        legend_length = struct.unpack('=i', data[:4])[0]
         data = data[4:]
 
         if legend_length > 0:
@@ -1409,7 +1409,7 @@ class Polygon:
         if len(data) < 4:
             raise ValueError("Invalid data size for polygon list")
 
-        num_polygons = struct.unpack('!I', data[:4])[0]
+        num_polygons = struct.unpack('=I', data[:4])[0]
         data = data[4:]
 
         polygons = []

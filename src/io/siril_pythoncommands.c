@@ -430,14 +430,14 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 	// You'll need to adjust this logic based on your actual configuration system
 	if (desc->type == STYPE_BOOL) {
 		uint32_t* bool_val = g_malloc(sizeof(uint32_t));
-		*bool_val = GUINT32_TO_BE(*(uint32_t*) desc->data);
+		*bool_val = (*(uint32_t*) desc->data);
 		*type = CONFIG_TYPE_BOOL;
 		*value = bool_val;
 		*value_size = sizeof(uint32_t);
 	}
 	else if (desc->type == STYPE_INT) {
 		gint32* int_val = g_malloc(sizeof(gint32));
-		*int_val = GINT32_TO_BE(*(int*) desc->data);
+		*int_val = (*(int*) desc->data);
 		*type = CONFIG_TYPE_INT;
 		*value = int_val;
 		*value_size = sizeof(gint32);
@@ -533,7 +533,6 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack number of series (network byte-order)
 	uint32_t num_series;
 	memcpy(&num_series, buffer + offset, sizeof(uint32_t));
-	num_series = GUINT32_FROM_BE(num_series);
 	offset += sizeof(uint32_t);
 
 	gboolean datamin_set = BOOL_FROM_BYTE(buffer[offset]);
@@ -578,7 +577,6 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		// Read number of points (network byte-order)
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
-		num_points = GUINT32_FROM_BE(num_points);
 		if (num_points > get_available_memory() / 64) {
 			// Error if the unpacked data would use more than half the available memory
 			free_siril_plot_data(plot_data);
@@ -591,7 +589,6 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		// Read plot type (network byte-order)
 		uint32_t plot_type;
 		memcpy(&plot_type, buffer + offset, sizeof(uint32_t));
-		plot_type = GUINT32_FROM_BE(plot_type);
 		offset += sizeof(uint32_t);
 
 		// Create a new dataseries and add it to plot_data
@@ -678,9 +675,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 				// Convert the integers to BE format for consistency across the UNIX socket
 				g_rw_lock_reader_lock(&gfit->rwlock);
-				uint32_t width_BE = GUINT32_TO_BE(gfit->rx);
-				uint32_t height_BE = GUINT32_TO_BE(gfit->ry);
-				uint32_t channels_BE = GUINT32_TO_BE(gfit->naxes[2]);
+				uint32_t width_BE = (gfit->rx);
+				uint32_t height_BE = (gfit->ry);
+				uint32_t channels_BE = (gfit->naxes[2]);
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 
 				// Copy the packed data into the response buffer
@@ -714,10 +711,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t x_BE = GUINT32_TO_BE(sel.x);
-				uint32_t y_BE = GUINT32_TO_BE(sel.y);
-				uint32_t w_BE = GUINT32_TO_BE(sel.w);
-				uint32_t h_BE = GUINT32_TO_BE(sel.h);
+				uint32_t x_BE = (sel.x);
+				uint32_t y_BE = (sel.y);
+				uint32_t w_BE = (sel.w);
+				uint32_t h_BE = (sel.h);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &x_BE, sizeof(uint32_t));
@@ -743,7 +740,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t vport_BE = GUINT32_TO_BE(gui_iface.get_active_vport());
+				uint32_t vport_BE = (gui_iface.get_active_vport());
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &vport_BE, sizeof(uint32_t));
@@ -763,10 +760,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (result) {
 				if (payload_length == 16) {
 					rectangle region_BE = *(rectangle*) payload;
-					rectangle selection = {GUINT32_FROM_BE(region_BE.x),
-										GUINT32_FROM_BE(region_BE.y),
-										GUINT32_FROM_BE(region_BE.w),
-										GUINT32_FROM_BE(region_BE.h)};
+					rectangle selection = {(region_BE.x),
+										(region_BE.y),
+										(region_BE.w),
+										(region_BE.h)};
 					g_rw_lock_reader_lock(&gfit->rwlock);
 					guint32 image_rx = gfit->rx;
 					guint32 image_ry = gfit->ry;
@@ -830,12 +827,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 channel_BE = *((guint32*) (payload + 16));
 			guint32 centred_BE = *((guint32*) (payload + 20));
 
-			guint32 x = GUINT32_FROM_BE(x_BE);
-			guint32 y = GUINT32_FROM_BE(y_BE);
-			guint32 w = GUINT32_FROM_BE(w_BE);
-			guint32 h = GUINT32_FROM_BE(h_BE);
-			guint32 channel_val = GUINT32_FROM_BE(channel_BE);
-			centred = GUINT32_FROM_BE(centred_BE) != 0;
+			guint32 x = (x_BE);
+			guint32 y = (y_BE);
+			guint32 w = (w_BE);
+			guint32 h = (h_BE);
+			guint32 channel_val = (channel_BE);
+			centred = (centred_BE) != 0;
 
 			// Check if shape was provided (not sentinel values)
 			gboolean shape_provided = (x != SENTINEL_VALUE && y != SENTINEL_VALUE &&
@@ -969,10 +966,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 16 || payload_length == 20) {
 				// Shape provided (with or without channel)
 				rectangle region_BE = *(rectangle*) payload;
-				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
-									GUINT32_FROM_BE(region_BE.y),
-									GUINT32_FROM_BE(region_BE.w),
-									GUINT32_FROM_BE(region_BE.h)};
+				selection = (rectangle) {(region_BE.x),
+									(region_BE.y),
+									(region_BE.w),
+									(region_BE.h)};
 				if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 					selection.y < 0 || selection.y  + selection.h > gfit->ry - 1) {
 					g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -988,10 +985,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Determine layer/channel
 			if (payload_length == 20) {
 				// Shape + channel provided
-				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+				layer = (*((int*) payload + 4));
 			} else if (payload_length == 4) {
 				// Only channel provided
-				layer = GUINT32_FROM_BE(*(int*) payload);
+				layer = (*(int*) payload);
 			} else {
 				// No channel specified, use default
 				layer = gui_iface.get_channel_for_vport();
@@ -1046,10 +1043,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				gboolean linked = (gboolean) (uint8_t) payload[1];
 				unsigned char* rectptr = (unsigned char*) payload + 2;
 				rectangle region_BE = *(rectangle*) rectptr;
-				rectangle region = {GUINT32_FROM_BE(region_BE.x),
-									GUINT32_FROM_BE(region_BE.y),
-									GUINT32_FROM_BE(region_BE.w),
-									GUINT32_FROM_BE(region_BE.h)};
+				rectangle region = {(region_BE.x),
+									(region_BE.y),
+									(region_BE.w),
+									(region_BE.h)};
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
 				g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -1087,19 +1084,19 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// but return the actual retval as the payload (this is handled
 			// by cmd() and results in exception raising for anything except
 			// CMD_OK or CMD_NO_WAIT)
-			int32_t be_retval = GINT32_TO_BE(retval);
+			int32_t be_retval = (retval);
 			success = send_response(conn, STATUS_OK, &be_retval, sizeof(int32_t));
 			break;
 		}
 
 		case CMD_GET_IS_IMAGE_LOADED: {
-			int32_t loaded = GINT32_TO_BE((int32_t) single_image_is_loaded());
+			int32_t loaded = ((int32_t) single_image_is_loaded());
 			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
 			break;
 		}
 
 		case CMD_GET_IS_SEQUENCE_LOADED: {
-			int32_t loaded = GINT32_TO_BE((int32_t) sequence_is_loaded());
+			int32_t loaded = ((int32_t) sequence_is_loaded());
 			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
 			break;
 		}
@@ -1314,7 +1311,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
+			int32_t index = (*(int32_t*)payload);
 			siril_log_debug("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
 			if (index < 0 || index >= com.seq.number) {
@@ -1380,7 +1377,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_plot_request(conn, info);
 			}
 			break;
@@ -1393,9 +1389,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
-				info->data_type = GUINT32_FROM_BE(info->data_type);
-				info->channels = GUINT32_FROM_BE(info->channels);
 				gboolean show_samples = (gboolean) info->data_type;
 				gboolean recalculate = (gboolean) info->channels;
 				success = handle_set_bgsamples_request(conn, info, show_samples, recalculate);
@@ -1423,7 +1416,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Get the channel number from payload (convert from network byte order)
 			uint32_t channel_BE = *(uint32_t*)payload;
-			uint32_t channel = GUINT32_FROM_BE(channel_BE);
+			uint32_t channel = (channel_BE);
 
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
@@ -1490,7 +1483,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			memcpy(progress_convert.bytes, payload, sizeof(float));
 
 			// Convert from network byte order to host byte order
-			progress_convert.i = GUINT32_FROM_BE(progress_convert.i);
 			float progress = progress_convert.f;
 
 			// Get the message string (remaining bytes)
@@ -1546,8 +1538,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int index, chan;
 			if (payload_length == 8) {
-				index = GUINT32_FROM_BE(*(int*) payload);
-				chan = GUINT32_FROM_BE(*((int*) payload + 1));
+				index = (*(int*) payload);
+				chan = (*((int*) payload + 1));
 			}
 			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
@@ -1591,7 +1583,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int index;
 			if (payload_length == 4) {
-				index = GUINT32_FROM_BE(*(int*) payload);
+				index = (*(int*) payload);
 			}
 			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command arguments");
@@ -1631,8 +1623,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int index, chan;
 			if (payload_length == 8) {
-				index = GUINT32_FROM_BE(*(int*) payload);
-				chan = GUINT32_FROM_BE(*((int*) payload + 1));
+				index = (*(int*) payload);
+				chan = (*((int*) payload + 1));
 			}
 			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
@@ -1678,7 +1670,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int index;
 			if (payload_length == 4) {
-				index = GUINT32_FROM_BE(*(int*) payload);
+				index = (*(int*) payload);
 			}
 			if (payload_length != 4 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
@@ -1717,7 +1709,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean as_preview = (uint8_t)payload[0] ? TRUE : FALSE;
 			gboolean linked = (uint8_t) payload[1] ? TRUE : FALSE;
 			const char *indexptr = payload + 2;
-			int index = GUINT32_FROM_BE(*(int*) indexptr);
+			int index = (*(int*) indexptr);
 			rectangle region = com.seq.is_variable ?
 						(rectangle) {0, 0, com.seq.imgparam[index].rx, com.seq.imgparam[index].ry} :
 						(rectangle) {0, 0, com.seq.rx, com.seq.ry};
@@ -1725,10 +1717,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Use the provided rectangle instead of the full image
 				const char *rectptr = payload + 6;
 				region = *(rectangle*) rectptr;
-				region.x = GUINT32_FROM_BE(region.x);
-				region.y = GUINT32_FROM_BE(region.y);
-				region.w = GUINT32_FROM_BE(region.w);
-				region.h = GUINT32_FROM_BE(region.h);
 			}
 			if(enforce_area_in_image(&region, &com.seq, index)) {
 				siril_log_message(_("Selection cropped to frame boundaries\n"));
@@ -1774,7 +1762,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean linked = FALSE;
 			int index;
 			if (payload_length == 7) {
-				index = GUINT32_FROM_BE(*(int*) payload);
+				index = (*(int*) payload);
 				const char* pixelbool = payload + 4;
 				const char* previewbool = payload + 5;
 				const char* linkedbool = payload + 6;
@@ -1848,10 +1836,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Convert the values to BE
 				/* native byte order: no conversion needed for pixel_info->size */
-				pixel_info->data_type = GUINT32_TO_BE(pixel_info->data_type);
-				pixel_info->width = GUINT32_TO_BE(pixel_info->width);
-				pixel_info->height = GUINT32_TO_BE(pixel_info->height);
-				pixel_info->channels = GUINT32_TO_BE(pixel_info->channels);
 				memcpy(ptr, pixel_info, sizeof(shared_memory_info_t));
 				free(pixel_info);
 				ptr += sizeof(shared_memory_info_t);
@@ -1869,10 +1853,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (header_info) {
 				// Convert the values to BE
 				/* native byte order: no conversion needed for header_info->size */
-				header_info->data_type = GUINT32_TO_BE(header_info->data_type);
-				header_info->width = GUINT32_TO_BE(header_info->width);
-				header_info->height = GUINT32_TO_BE(header_info->height);
-				header_info->channels = GUINT32_TO_BE(header_info->channels);
 				memcpy(ptr, header_info, sizeof(shared_memory_info_t));
 				free(header_info);
 			} else {
@@ -1893,10 +1873,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (icc_info) {
 				// Convert the values to BE
 				/* native byte order: no conversion needed for icc_info->size */
-				icc_info->data_type = GUINT32_TO_BE(icc_info->data_type);
-				icc_info->width = GUINT32_TO_BE(icc_info->width);
-				icc_info->height = GUINT32_TO_BE(icc_info->height);
-				icc_info->channels = GUINT32_TO_BE(icc_info->channels);
 				memcpy(ptr, icc_info, sizeof(shared_memory_info_t));
 				free(icc_info);
 			} else {
@@ -1947,7 +1923,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (payload_length == 4) {
 				guint32 channel_BE = *((guint32*) payload);
-				guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+				guint32 channel_val = (channel_BE);
 
 				if (channel_val != SENTINEL_VALUE) {
 					layer = channel_val;
@@ -2491,7 +2467,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_REQUEST_SHM: {
 			uint64_t total_size;
 			if (payload_length == 8) {
-				total_size = GUINT64_FROM_BE(*(uint64_t*) payload);
+				total_size = (*(uint64_t*) payload);
 				shared_memory_info_t *info = handle_rawdata_request(conn, NULL, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
@@ -2519,8 +2495,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			
 			uint32_t count;
 			memcpy(&count, payload, sizeof(uint32_t));
-			count = GUINT32_FROM_BE(count);
-
 			if (payload_length != 4 + (4 * count) + 4) {
 				const char* error_msg = _("Incorrect payload length: count mismatch");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2529,14 +2503,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			uint32_t incl_encoded;
 			memcpy(&incl_encoded, payload + 4 + (4 * count), sizeof(uint32_t));
-			incl_encoded = GUINT32_FROM_BE(incl_encoded);
 			gboolean incl = (gboolean)incl_encoded;
 			
 			// Process each index
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t index;
 				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
-				index = GUINT32_FROM_BE(index);
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2565,7 +2537,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int chan;
 			if (payload_length == 4) {
-				chan = GUINT32_FROM_BE(*(int*) payload);
+				chan = (*(int*) payload);
 			}
 			if (payload_length != 4 || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
@@ -2603,7 +2575,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -2619,7 +2590,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_add_user_polygon_request(conn, info);
 			}
 			break;
@@ -2627,7 +2597,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_DELETE_USER_POLYGON: {
 			if (payload_length == 4) {
-				int32_t id = GINT32_FROM_BE(*(int*) payload);
+				int32_t id = (*(int*) payload);
 				gboolean deleted = delete_user_polygon(id);
 				gui_iface.redraw_image_async(REDRAW_OVERLAY);
 				if (!deleted) {
@@ -2652,7 +2622,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_USER_POLYGON: {
 			if (payload_length == 4) {
-				int32_t id = GINT32_FROM_BE(*(int*) payload);
+				int32_t id = (*(int*) payload);
 				UserPolygon *polygon = find_polygon_by_id(id);
 				if (!polygon) {
 					siril_log_debug("Failed to find a user polygon with id %d\n", id);
@@ -2735,7 +2705,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			int index;
 			if (payload_length == 4) {
-				index = GUINT32_FROM_BE(*(int*) payload);
+				index = (*(int*) payload);
 			}
 			if (payload_length != 4 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
@@ -2787,7 +2757,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}*/
 			if (payload_length == 5) {
-				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
+				uint32_t color = (*(uint32_t*) payload);
 				gboolean fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
 				gui_iface.set_poly_drawing(color, fill);
 				success = send_response(conn, STATUS_OK, NULL, 0);
@@ -2918,10 +2888,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Convert the values to BE
 				/* native byte order: no conversion needed for info->size */
-				info->data_type = GUINT32_TO_BE(info->data_type);
-				info->width = GUINT32_TO_BE(info->width);
-				info->height = GUINT32_TO_BE(info->height);
-				info->channels = GUINT32_TO_BE(info->channels);
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
 				free(info);
 			}
@@ -2937,10 +2903,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Convert the values to BE
 			/* native byte order: no conversion needed for headerinfo->size */
-			headerinfo->data_type = GUINT32_TO_BE(headerinfo->data_type);
-			headerinfo->width = GUINT32_TO_BE(headerinfo->width);
-			headerinfo->height = GUINT32_TO_BE(headerinfo->height);
-			headerinfo->channels = GUINT32_TO_BE(headerinfo->channels);
 			memcpy(ptr, headerinfo, sizeof(shared_memory_info_t));
 			free(headerinfo);
 			ptr += sizeof(shared_memory_info_t);
@@ -2957,10 +2919,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Convert the values to BE
 				/* native byte order: no conversion needed for info->size */
-				info->data_type = GUINT32_TO_BE(info->data_type);
-				info->width = GUINT32_TO_BE(info->width);
-				info->height = GUINT32_TO_BE(info->height);
-				info->channels = GUINT32_TO_BE(info->channels);
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
 				free(info);
 			}
@@ -3125,7 +3083,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -3140,9 +3097,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Convert the integers to BE format for consistency across the UNIX socket
 			int ilo = 0, ihi = 0xFFFF;
 			gui_iface.get_display_lo_hi(&ilo, &ihi);
-			uint16_t lo_BE = GUINT16_TO_BE((guint16)ilo);
-			uint16_t hi_BE = GUINT16_TO_BE((guint16)ihi);
-			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_sliders_mode());
+			uint16_t lo_BE = ((guint16)ilo);
+			uint16_t hi_BE = ((guint16)ihi);
+			uint32_t mode_BE = ((guint32)gui_iface.get_sliders_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &lo_BE, sizeof(uint16_t));
@@ -3159,7 +3116,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_rendering_mode());
+			uint32_t mode_BE = ((guint32)gui_iface.get_rendering_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &mode_BE, sizeof(uint32_t));
@@ -3175,7 +3132,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Convert the integers to BE format for consistency across the UNIX socket
 			gboolean linked = gui_iface.get_channels_linked();
-			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+			uint32_t linked_BE = ((uint32_t) linked);
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &linked_BE, sizeof(uint32_t));
@@ -3194,7 +3151,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == 4) {
 					// Mode only
 					guint32 mode_BE = *(guint32*) payload;
-					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					guint32 mode = (mode_BE);
 					display_mode stf = (display_mode) mode;
 
 					if (mode > DISPLAY_MODE_MAX) {
@@ -3276,7 +3233,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == 4) {
 					// Mode only
 					guint32 mode_BE = *(guint32*) payload;
-					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					guint32 mode = (mode_BE);
 					sliders_mode sliders = (sliders_mode) mode;
 
 					if (mode > USER) {
@@ -3313,8 +3270,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == 8) {
 					// Mode only
 					guint32* values = (guint32*) payload;
-					guint32 lo = GUINT32_FROM_BE(values[0]);
-					guint32 hi = GUINT32_FROM_BE(values[1]);
+					guint32 lo = (values[0]);
+					guint32 hi = (values[1]);
 					if (lo >= hi || lo > 65535 || hi > 65535) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -3491,7 +3448,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -3541,7 +3497,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Convert the integers to BE format for consistency across the UNIX socket
 			gboolean linked = gfit->mask_active;
-			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+			uint32_t linked_BE = ((uint32_t) linked);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			// Copy the packed data into the response buffer
@@ -3560,7 +3516,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
-				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_mask_update_polygon_request(conn, info);
 			}
 			break;
@@ -3578,7 +3533,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			} else {
-				index = (DialogID) GUINT32_FROM_BE(*(int*) payload);
+				index = (DialogID) (*(int*) payload);
 				if (index < 0 || index >= gui_iface.number_of_dialogs()) {
 					const char* error_msg = _("Incorrect command arguments");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
