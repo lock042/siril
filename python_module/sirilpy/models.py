@@ -170,7 +170,9 @@ class FKeywords:
     FLEN_VALUE: ClassVar[int] = 71
 
     # Build keyword-format parts that mirror keywords_to_py() in C.
-    # This is the keyword block only (strings + numeric fields + timestamps + wcs + pltsolvd)
+    # Field widths match the native C struct widths (no widening): see
+    # `fkeywords` in core/siril.h and the COPY_FIELD calls in
+    # io/siril_pythoncommands.c::keywords_to_py.
     _KEYWORD_FORMAT_PARTS: ClassVar[List[str]] = [
         f'{FLEN_VALUE}s',  # program
         f'{FLEN_VALUE}s',  # filename
@@ -190,16 +192,16 @@ class FKeywords:
         f'{FLEN_VALUE}s',  # pltsolvd_comment
         'd',  # bscale
         'd',  # bzero
-        'Q',  # lo (uint64 padded)
-        'Q',  # hi (uint64 padded)
-        'd',  # flo
-        'd',  # fhi
+        'H',  # lo (WORD / uint16)
+        'H',  # hi (WORD / uint16)
+        'f',  # flo (float32)
+        'f',  # fhi (float32)
         'd',  # data_max
         'd',  # data_min
         'd',  # pixel_size_x
         'd',  # pixel_size_y
-        'Q',  # binning_x (uint64)
-        'Q',  # binning_y (uint64)
+        'I',  # binning_x (unsigned int / uint32)
+        'I',  # binning_y (unsigned int / uint32)
         'd',  # expstart
         'd',  # expend
         'd',  # centalt
@@ -207,8 +209,8 @@ class FKeywords:
         'd',  # sitelat
         'd',  # sitelong
         'd',  # siteelev
-        'q',  # bayer_xoffset (int64)
-        'q',  # bayer_yoffset (int64)
+        'i',  # bayer_xoffset (int / int32)
+        'i',  # bayer_yoffset (int / int32)
         'd',  # airmass
         'd',  # focal_length
         'd',  # flength
@@ -218,12 +220,12 @@ class FKeywords:
         'd',  # ccd_temp
         'd',  # set_temp
         'd',  # livetime
-        'Q',  # stackcnt (uint64)
+        'I',  # stackcnt (guint / uint32)
         'd',  # cvf
-        'q',  # key_gain (int64)
-        'q',  # key_offset (int64)
-        'q',  # focuspos (int64)
-        'q',  # focussz (int64)
+        'i',  # key_gain (int / int32)
+        'i',  # key_offset (int / int32)
+        'i',  # focuspos (int / int32)
+        'i',  # focussz (int / int32)
         'd',  # foctemp
         'q',  # date (int64 unix timestamp)
         'q',  # date_obs (int64 unix timestamp)
@@ -232,8 +234,10 @@ class FKeywords:
         '?',  # pltsolvd (bool 1 byte)
     ]
 
-    # Full struct format (network order)
-    KEYWORDS_FORMAT: ClassVar[str] = '!' + ''.join(_KEYWORD_FORMAT_PARTS)
+    # Full struct format. Native byte order, standard sizes, no
+    # alignment — mirrors the packed wire format that keywords_to_py
+    # writes via COPY_FIELD.
+    KEYWORDS_FORMAT: ClassVar[str] = '=' + ''.join(_KEYWORD_FORMAT_PARTS)
     KEYWORDS_SIZE: ClassVar[int] = struct.calcsize(KEYWORDS_FORMAT)
 
     @classmethod

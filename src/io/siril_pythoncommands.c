@@ -117,21 +117,20 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_FLEN_STRING(fit->keywords.wcsdata.objctra);
 	COPY_FLEN_STRING(fit->keywords.wcsdata.objctdec);
 	COPY_FLEN_STRING(fit->keywords.wcsdata.pltsolvd_comment);
-	// Copy numeric values with proper byte order conversion. All
-	// types shorter than 64bit are converted to 64bit types before
-	// endianness conversion and transmission, to simplify the data
+	// Copy numeric values at their native C widths (no widening, no
+	// byte swap — same-machine IPC, see plan §4.2bis).
 	COPY_FIELD(1.0, double); // aligned to the code in fits_keywords.c
 	COPY_FIELD(0.0, double); // aligned to the code in fits_keywords.c
-	COPY_FIELD((uint64_t) fit->keywords.lo, uint64_t);
-	COPY_FIELD((uint64_t) fit->keywords.hi, uint64_t);
-	COPY_FIELD((double) fit->keywords.flo, double);
-	COPY_FIELD((double) fit->keywords.fhi, double);
+	COPY_FIELD(fit->keywords.lo, WORD);                     // uint16
+	COPY_FIELD(fit->keywords.hi, WORD);                     // uint16
+	COPY_FIELD(fit->keywords.flo, float);                   // float32
+	COPY_FIELD(fit->keywords.fhi, float);                   // float32
 	COPY_FIELD(fit->keywords.data_max, double);
 	COPY_FIELD(fit->keywords.data_min, double);
 	COPY_FIELD(fit->keywords.pixel_size_x, double);
 	COPY_FIELD(fit->keywords.pixel_size_y, double);
-	COPY_FIELD((uint64_t) fit->keywords.binning_x, uint64_t);
-	COPY_FIELD((uint64_t) fit->keywords.binning_y, uint64_t);
+	COPY_FIELD(fit->keywords.binning_x, unsigned int);      // uint32
+	COPY_FIELD(fit->keywords.binning_y, unsigned int);      // uint32
 	COPY_FIELD(fit->keywords.expstart, double);
 	COPY_FIELD(fit->keywords.expend, double);
 	COPY_FIELD(fit->keywords.centalt, double);
@@ -139,8 +138,8 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_FIELD(fit->keywords.sitelat, double);
 	COPY_FIELD(fit->keywords.sitelong, double);
 	COPY_FIELD(fit->keywords.siteelev, double);
-	COPY_FIELD((int64_t) fit->keywords.bayer_xoffset, int64_t);
-	COPY_FIELD((int64_t) fit->keywords.bayer_yoffset, int64_t);
+	COPY_FIELD(fit->keywords.bayer_xoffset, int);           // int32
+	COPY_FIELD(fit->keywords.bayer_yoffset, int);           // int32
 	COPY_FIELD(fit->keywords.airmass, double);
 	COPY_FIELD(fit->keywords.focal_length, double);
 	COPY_FIELD(fit->keywords.flength, double);
@@ -150,14 +149,14 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_FIELD(fit->keywords.ccd_temp, double);
 	COPY_FIELD(fit->keywords.set_temp, double);
 	COPY_FIELD(fit->keywords.livetime, double);
-	COPY_FIELD((uint64_t) fit->keywords.stackcnt, uint64_t);
+	COPY_FIELD(fit->keywords.stackcnt, guint);              // uint32
 	COPY_FIELD(fit->keywords.cvf, double);
-	COPY_FIELD((int64_t) fit->keywords.key_gain, int64_t);
-	COPY_FIELD((int64_t) fit->keywords.key_offset, int64_t);
-	COPY_FIELD((int64_t) fit->keywords.focuspos, int64_t);
-	COPY_FIELD((int64_t) fit->keywords.focussz, int64_t);
+	COPY_FIELD(fit->keywords.key_gain, int);                // int32
+	COPY_FIELD(fit->keywords.key_offset, int);              // int32
+	COPY_FIELD(fit->keywords.focuspos, int);                // int32
+	COPY_FIELD(fit->keywords.focussz, int);                 // int32
 	COPY_FIELD(fit->keywords.foctemp, double);
-	COPY_FIELD(date_ts, int64_t);
+	COPY_FIELD(date_ts, int64_t);                           // unix ts: int64
 	COPY_FIELD(date_obs_ts, int64_t);
 	double ra = fit->keywords.wcsdata.ra;
 	double dec = fit->keywords.wcsdata.dec;
@@ -1511,8 +1510,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
+			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
+			// Numeric fields written by keywords_to_py at native widths
+			// (see plan §4.2bis): 26 doubles, 2 floats, 2 WORDs, 3 uint32,
+			// 6 int32, 2 int64, 1 uint8 = 273 bytes total.
+			size_t numeric_size = 26 * sizeof(double) + 2 * sizeof(float)
+				+ 2 * sizeof(WORD) + 3 * sizeof(uint32_t) + 6 * sizeof(int32_t)
+				+ 2 * sizeof(int64_t) + sizeof(uint8_t);
 
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
@@ -1786,7 +1790,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Calculate size needed for the response
 			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
 			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
+			// Numeric fields written by keywords_to_py at native widths
+			// (see plan §4.2bis): 26 doubles, 2 floats, 2 WORDs, 3 uint32,
+			// 6 int32, 2 int64, 1 uint8 = 273 bytes total.
+			size_t numeric_size = 26 * sizeof(double) + 2 * sizeof(float)
+				+ 2 * sizeof(WORD) + 3 * sizeof(uint32_t) + 6 * sizeof(int32_t)
+				+ 2 * sizeof(int64_t) + sizeof(uint8_t);
 			size_t total_size = ffit_size + strings_size + numeric_size;
 
 			// Always include space for header and ICC profile shared memory info
@@ -2814,8 +2823,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Calculate size needed for the response (same as sequence frame)
 			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1-byte bool
+			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
+			// Numeric fields written by keywords_to_py at native widths
+			// (see plan §4.2bis): 26 doubles, 2 floats, 2 WORDs, 3 uint32,
+			// 6 int32, 2 int64, 1 uint8 = 273 bytes total.
+			size_t numeric_size = 26 * sizeof(double) + 2 * sizeof(float)
+				+ 2 * sizeof(WORD) + 3 * sizeof(uint32_t) + 6 * sizeof(int32_t)
+				+ 2 * sizeof(int64_t) + sizeof(uint8_t);
 
 			// Add stats size - 14 doubles per channel, up to 3 channels
 			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
