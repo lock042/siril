@@ -2483,13 +2483,31 @@ static venv_ledger *get_venv_ledger(const gchar *project_path) {
 	return g_venv_ledger;
 }
 
+// Returns a deep copy of the ledger entry for `script_hash`, or NULL if no
+// such entry exists. Caller owns the result and must free with
+// venv_ledger_entry_free().
+//
+// Returning a copy rather than a borrowed pointer protects callers from
+// concurrent mutation: ledger_record / g_hash_table_remove may destroy
+// the underlying entry (via the table's destroy_func) between lookup and
+// field access, which previously caused a UAF window.
 static venv_ledger_entry *ledger_lookup(venv_ledger *ledger,
                                         const gchar *script_hash) {
 	if (!ledger || !script_hash) return NULL;
 	g_mutex_lock(&ledger->mutex);
-	venv_ledger_entry *e = g_hash_table_lookup(ledger->entries, script_hash);
+	venv_ledger_entry *src = g_hash_table_lookup(ledger->entries, script_hash);
+	venv_ledger_entry *copy = NULL;
+	if (src) {
+		copy = g_new0(venv_ledger_entry, 1);
+		copy->script_hash    = g_strdup(src->script_hash);
+		copy->script_path    = g_strdup(src->script_path);
+		copy->created_iso    = g_strdup(src->created_iso);
+		copy->last_used_iso  = g_strdup(src->last_used_iso);
+		copy->pep723_hash    = g_strdup(src->pep723_hash);
+		copy->sirilpy_version = g_strdup(src->sirilpy_version);
+	}
 	g_mutex_unlock(&ledger->mutex);
-	return e;
+	return copy;
 }
 
 // Insert or update an entry. The `created` timestamp is preserved when
@@ -2597,7 +2615,10 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	gchar *pep723_hash = pep723 ? pep723_canonical_hash(pep723) : NULL;
 	gchar *current_sirilpy = current_sirilpy_version_string();
 
-	// Check freshness against the ledger.
+	// Check freshness against the ledger. ledger_lookup returns a deep
+	// copy (the live entry may be mutated/destroyed by a concurrent
+	// ledger_record or prune); we must free `entry` below before
+	// returning regardless of outcome.
 	venv_ledger_entry *entry = ledger_lookup(ledger, script_hash);
 	gboolean fresh = FALSE;
 	if (entry && g_file_test(venv_path, G_FILE_TEST_IS_DIR)) {
@@ -2608,6 +2629,8 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 				&& g_strcmp0(entry->sirilpy_version, current_sirilpy) == 0;
 		fresh = pep_ok && sirilpy_ok;
 	}
+	venv_ledger_entry_free(entry);
+	entry = NULL;
 
 	if (fresh) {
 		// Touch last_used + persist.
@@ -3877,6 +3900,8 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	if (!success || exit_status != 0) {
 		siril_log_warning(_("Error checking python magic number: pyc files will not work"));
 		g_free(stdout_str);
+		g_free(python_path);
+		g_free(venv_path);
 		return FALSE;
 	}
 
@@ -4809,10 +4834,8 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		// Re-enable widgets
 		gui_iface.script_widgets_async(TRUE);
 
-		// Free the cleanup structure
-		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
-			siril_log_debug("g_unlink() failed in python_process_cleanup()\n");
-		}
+		// Free the cleanup structure. (The temp file, if any, was already
+		// unlinked above under the `cleanup->is_temp_file` guard.)
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
@@ -4919,11 +4942,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			siril_log_error(_("Error: python not ready yet. This may happen at first run "
 					"if the python venv and module setup has not yet completed. Please wait a short "
 					"time for a completion message in the log and try again.\n"));
-			// Clean up the temporary file if it's one
+			// Clean up the temporary file if it's one; always free
+			// script_name (the function owns it per the caller contract).
 			if (is_temp_file && script_name) {
 				g_unlink(script_name);
-				g_free(script_name);
 			}
+			g_free(script_name);
 			return;
 		}
 	}
@@ -4944,12 +4968,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	if (!commstate.python_conn) {
 		siril_log_error(_("Error: failed to create Python connection.\n"));
-		// Clean up the temporary file if it's one
+		// Clean up the temporary file if it's one; always free script_name.
 		if (is_temp_file && script_name) {
 			if (g_unlink(script_name))
 				siril_log_debug("g_unlink() failed in execute_python_script()\n");
-			g_free(script_name);
 		}
+		g_free(script_name);
 		g_free(connection_path);
 		return;
 	}
@@ -4962,11 +4986,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (!commstate.worker_thread) {
 		siril_log_error(_("Error: Python worker thread not available.\n"));
 		cleanup_connection(commstate.python_conn);
-		// Clean up the temporary file if it's one
+		// Clean up the temporary file if it's one; always free script_name.
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
-			g_free(script_name);
 		}
+		g_free(script_name);
 		g_free(connection_path);
 		return;
 	}
@@ -5174,6 +5198,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;
 	cleanup->python_conn = commstate.python_conn;
+	// Function owns script_name; the cleanup struct keeps its own copy
+	// when needed (temp_filename above). Free the original now that the
+	// spawn has consumed its argv references.
+	g_free(script_name);
+	script_name = NULL;
 
 	if (sync) {
 		// Cross-platform process waiting
