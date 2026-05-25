@@ -847,10 +847,10 @@ doesn't depend on torch so this is moot for the module proper.
 
 ### 6.3 Linux native packages and Flatpak
 
-- [ ] deb `Recommends: uv` added
-- [ ] rpm `Recommends: uv` added
-- [ ] Arch dependency note added
-- [ ] Flatpak manifest module added
+- [—] deb `Recommends: uv` added (out-of-tree: deb packaging is maintained downstream by Debian/Ubuntu — not in this repo)
+- [—] rpm `Recommends: uv` added (out-of-tree; downstream)
+- [—] Arch dependency note added (out-of-tree; downstream)
+- [x] Flatpak manifest module added (`build/flatpak/org.siril.Siril.json`: new `uv` module with x86_64 + aarch64 sources, sha256-verified)
 
 * Native packages (deb/rpm/Arch): add a `Recommends: uv` (deb) or
   the equivalent. If uv is missing at runtime we silently fall back
@@ -864,8 +864,8 @@ doesn't depend on torch so this is moot for the module proper.
 
 ### 6.4 AppImage (`build/appimage/`)
 
-- [ ] `wget`+verify+install step added to `build/appimage/generate.sh`
-- [ ] Bundled AppImage sanity-checked (`--appimage-extract` + `uv --version`)
+- [x] `wget`+verify+install step added to `build/appimage/generate.sh` (reads version from `build/UV_VERSION`, verifies sha256, installs uv + uvx into `appdir/usr/bin/`)
+- [ ] Bundled AppImage sanity-checked (`--appimage-extract` + `uv --version`) — needs to be done by the maintainer running a full CI build of the AppImage. Stand-alone simulation of the download+install step passed locally.
 
 The AppImage is the canonical Linux distribution channel for users
 who can't or don't want to install from a distro package. The
@@ -915,10 +915,10 @@ to confirm the binary is present and runs.
 
 ### 6.5 Build-image Docker recipes (`build/build-image/`)
 
-- [ ] `Dockerfile.debian-oldstable` updated
-- [ ] `Dockerfile.debian-latest` updated
-- [ ] `Dockerfile.win64-latest` updated
-- [ ] `build/UV_VERSION` file created and sourced by all recipes
+- [x] `Dockerfile.debian-oldstable` updated (ARG-based pin, sha256-verified, `uv --version` smoke at build time)
+- [x] `Dockerfile.debian-latest` updated (same pattern)
+- [—] `Dockerfile.win64-latest` updated (Windows out-of-scope — packaging done separately)
+- [x] `build/UV_VERSION` file created (single line: pinned version string). Used by the AppImage script via `cat`; Dockerfile `ARG UV_VERSION` defaults track it, with CI able to override via `--build-arg UV_VERSION=$(cat build/UV_VERSION)`
 
 Three Dockerfiles in this directory are used by the CI pipeline:
 
@@ -1174,15 +1174,15 @@ the change merges into the `uv` branch.
 | `[x]` | `python_module/sirilpy/gpuhelper.py`            | route all pip subprocesses through `_build_install_command`/`_build_uninstall_command`/`pip_list` |
 | `[x]` | `python_module/pyproject.toml`                  | version bump 1.1.12 → 1.1.20 (no `uv` dep — see §5.0/§5.4) |
 | `[x]` | `python_module/sirilpy/__init__.py`             | export `pip_show`, `pip_list`, `declare_dependencies` |
-| `[ ]` | `build/windows/native-gitlab-ci/siril-build.sh` | fetch+verify+place `uv.exe`                           |
-| `[ ]` | `build/windows/installer/siril64.iss`           | install `uv.exe`                                      |
-| `[ ]` | `build/macosx/*`                                | fetch+verify+place `uv` (universal or per-arch)       |
-| `[ ]` | `build/flatpak/org.siril.Siril.json`            | new module: download+install `uv` into `/app/bin`     |
-| `[ ]` | `build/appimage/generate.sh`                    | fetch+verify+place `uv` in `appdir/usr/bin/` (AppRun already prepends this to PATH) |
-| `[ ]` | `build/build-image/Dockerfile.debian-oldstable` | install pinned `uv` (gates the AppImage build and CI tests against the oldest supported Python) |
-| `[ ]` | `build/build-image/Dockerfile.debian-latest`    | install pinned `uv` (CI parity)                       |
-| `[ ]` | `build/build-image/Dockerfile.win64-latest`     | install pinned `uv` (build-agent parity with bundle)  |
-| `[ ]` | `build/UV_VERSION` (new file)                   | single pinned uv version tag sourced by every packaging recipe |
+| `[—]` | `build/windows/native-gitlab-ci/siril-build.sh` | (Windows packaging done separately by the platform maintainer) |
+| `[—]` | `build/windows/installer/siril64.iss`           | (Windows packaging done separately)                   |
+| `[—]` | `build/macosx/*`                                | (macOS packaging done separately by the platform maintainer) |
+| `[x]` | `build/flatpak/org.siril.Siril.json`            | new module: download+install `uv` into `/app/bin` (x86_64 + aarch64 sources, sha256-verified) |
+| `[x]` | `build/appimage/generate.sh`                    | fetch+verify+place `uv` in `appdir/usr/bin/` (AppRun already prepends this to PATH) |
+| `[x]` | `build/build-image/Dockerfile.debian-oldstable` | install pinned `uv` (gates the AppImage build and CI tests against the oldest supported Python) |
+| `[x]` | `build/build-image/Dockerfile.debian-latest`    | install pinned `uv` (CI parity)                       |
+| `[—]` | `build/build-image/Dockerfile.win64-latest`     | (Windows cross-build image — Windows packaging done separately) |
+| `[x]` | `build/UV_VERSION` (new file)                   | single pinned uv version tag: read by `generate.sh`, mirrored as the `ARG UV_VERSION=` default in each Dockerfile, embedded in Flatpak source URL+sha |
 | `[ ]` | `siril-scripts/core/GPU_Manager.py` (scripts repo, separate PR) | route `subprocess.run([sys.executable, '-m', 'pip', …])` calls through `sirilpy.utility.pip_*` helpers **behind a `check_module_version(">=1.1.20")` gate** with the existing subprocess path retained as the Siril 1.4 fallback (see §5.0) |
 
 End of plan.

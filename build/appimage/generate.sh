@@ -13,6 +13,10 @@ export DEBIAN_FRONTEND=noninteractive
 BUILDDIR=build/appimage/build
 PREFIX=/usr
 
+# Capture the project root before any cd, so steps below that operate
+# inside appdir/ can still reference build/UV_VERSION etc.
+PROJECT_ROOT="$PWD"
+
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
@@ -68,6 +72,27 @@ cp /usr/share/glib-2.0/schemas/*.gschema.xml usr/share/glib-2.0/schemas/
 if [ -d usr/share/glib-2.0/schemas/ ] ; then
   ( cd usr/share/glib-2.0/schemas/ ; glib-compile-schemas . )
 fi
+
+########################################################################
+# Bundle uv (Astral's standalone static binary; no shared-library deps).
+#
+# Required so the per-script venv path (src/io/siril_pythonmodule.c)
+# can find uv at runtime. AppRun:28 already prepends ${HERE}/usr/bin to
+# PATH, so g_find_program_in_path("uv") will pick it up automatically.
+#
+# Version pinned in build/UV_VERSION (single source of truth). Bump
+# both the version and the sha256 below in lockstep.
+########################################################################
+UV_VERSION=$(cat "${PROJECT_ROOT}/build/UV_VERSION")
+UV_SHA256_x86_64="74947fe2c03315cf07e82ab3acc703eddef01aba4d5232a98e4c6825ec116131"
+UV_URL="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+wget -c -nv "${UV_URL}" -O uv.tar.gz
+echo "${UV_SHA256_x86_64}  uv.tar.gz" | sha256sum -c -
+mkdir -p tmp-uv
+tar -xzf uv.tar.gz -C tmp-uv --strip-components=1
+install -m 0755 tmp-uv/uv usr/bin/uv
+install -m 0755 tmp-uv/uvx usr/bin/uvx
+rm -rf tmp-uv uv.tar.gz
 
 cd -
 

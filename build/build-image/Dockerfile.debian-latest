@@ -50,3 +50,19 @@ RUN apt-get update -qyy \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --break-system-packages meson!=1.10.0 ninja!=1.11.1
+
+# uv (Astral's static Rust binary). Pinned for reproducibility; the
+# default below must track build/UV_VERSION at the repo root. CI may
+# override via --build-arg UV_VERSION=... when building this image.
+# Required at runtime by the per-script Python venv flow (see
+# src/io/siril_pythonmodule.c).
+ARG UV_VERSION=0.11.16
+ARG UV_SHA256_X86_64=74947fe2c03315cf07e82ab3acc703eddef01aba4d5232a98e4c6825ec116131
+RUN wget -O /tmp/uv.tar.gz \
+        "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
+    && echo "${UV_SHA256_X86_64}  /tmp/uv.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/uv.tar.gz -C /tmp \
+    && install -m 0755 /tmp/uv-x86_64-unknown-linux-gnu/uv  /usr/local/bin/uv \
+    && install -m 0755 /tmp/uv-x86_64-unknown-linux-gnu/uvx /usr/local/bin/uvx \
+    && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
+    && uv --version
