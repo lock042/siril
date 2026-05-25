@@ -159,10 +159,9 @@ static void impl_on_stack_complete(void) {
 	clear_stars_list(TRUE);
 	initialize_display_mode();
 	sliders_mode_set_state(gui.sliders);
-	/* Reader lock guards set_cutoff_sliders_max_values() which reads
-	 * gfit->type/orig_bitpix.  The hi/lo assignment writes keyword fields
-	 * that were set on the worker thread by notify_gfit_data_modified(). */
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	/* Writer lock: set_cutoff_sliders_max_values() reads gfit->type/orig_bitpix
+	 * and we also write hi/lo keyword fields here, so we need exclusive access. */
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	display_filename();
 	gui_function(set_precision_switch, NULL);
 	set_cutoff_sliders_max_values();

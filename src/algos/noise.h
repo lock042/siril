@@ -9,6 +9,7 @@ struct noise_data {
 	gboolean display_start_end;
 	gboolean display_results;
 	gboolean use_idle; // will free this struct, display things and call stop_processing_thread()
+	gboolean lock_gfit; // worker should take gfit's reader lock for the duration of stats computation
 	fits *fit;
 
 	double bgnoise[3];
