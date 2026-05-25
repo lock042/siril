@@ -3889,33 +3889,246 @@ cleanup:
 // have been installed by scripts will require reinstallation.
 //***********************************************************************************
 
-void rebuild_venv() {
-	// Warn if initialization is still in progress
+// Wait for any in-flight python init thread to finish so the destructive
+// operations below don't race with it. Common preamble for all four §4.8
+// operations.
+static void wait_for_python_init(void) {
 	if (com.python_init_thread) {
-		siril_log_warning(_("Warning: Python initialization in progress. Waiting for it to complete...\n"));
+		siril_log_warning(_("Warning: Python initialization in progress. "
+				"Waiting for it to complete...\n"));
 		g_thread_join(com.python_init_thread);
 		com.python_init_thread = NULL;
 	}
-	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
-	GError *error = NULL, *error2 = NULL;
+}
+
+// §4.8.1: rebuild just the base venv. Per-script venvs and the uv cache
+// remain untouched. Caller is expected to have shown a confirm dialog.
+void rebuild_base_venv(void) {
+	wait_for_python_init();
 	kill_all_python_scripts();
-	delete_directory(venv_path, &error);
-	delete_directory(user_module_path, &error2);
-	g_free(venv_path);
-	g_free(user_module_path);
-	if (error) {
-		siril_log_error(error->message);
-		g_error_free(error);
-	}
-	if (error2) {
-		siril_log_error(error2->message);
-		g_error_free(error2);
+
+	const gchar *targets[] = { "venv", ".python_module", NULL };
+	for (int i = 0; targets[i]; i++) {
+		gchar *p = g_build_filename(g_get_user_data_dir(), "siril", targets[i], NULL);
+		if (g_file_test(p, G_FILE_TEST_IS_DIR)) {
+			GError *err = NULL;
+			if (!delete_directory(p, &err)) {
+				siril_log_error(_("Could not remove %s: %s\n"), p,
+						err ? err->message : "unknown");
+				g_clear_error(&err);
+			}
+		}
+		g_free(p);
 	}
 	// Force a re-probe on next init so uv install/uninstall on the side
 	// is picked up.
 	clear_uv_state();
 	initialize_python_venv_in_thread();
+}
+
+// §4.8.2: rebuild one per-script venv by script path. Hashes the path the
+// same way select_venv_for_script() does, looks up the ledger, removes the
+// directory + entry, persists. The script's per-script venv will be
+// recreated on its next launch (cheap because the uv cache survives).
+gboolean rebuild_script_venv_by_path(const gchar *script_path, GError **error) {
+	g_return_val_if_fail(script_path != NULL, FALSE);
+
+	gchar *script_hash = compute_script_hash(script_path, NULL);
+	if (!script_hash) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+				"could not derive a venv hash from path %s", script_path);
+		return FALSE;
+	}
+
+	gchar *project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	gchar *venv_path = per_script_venv_path(project_path, script_hash);
+	venv_ledger *ledger = get_venv_ledger(project_path);
+
+	gboolean had_ledger_entry = FALSE;
+	gboolean had_directory = g_file_test(venv_path, G_FILE_TEST_IS_DIR);
+
+	// Remove ledger entry (the lookup + delete must hold the ledger mutex)
+	g_mutex_lock(&ledger->mutex);
+	if (g_hash_table_remove(ledger->entries, script_hash))
+		had_ledger_entry = TRUE;
+	g_mutex_unlock(&ledger->mutex);
+
+	if (had_directory) {
+		GError *del_err = NULL;
+		if (!delete_directory(venv_path, &del_err)) {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"failed to delete %s: %s", venv_path,
+					del_err ? del_err->message : "unknown");
+			g_clear_error(&del_err);
+			g_free(venv_path);
+			g_free(project_path);
+			g_free(script_hash);
+			return FALSE;
+		}
+	}
+
+	if (had_ledger_entry) {
+		GError *save_err = NULL;
+		if (!ledger_save(ledger, project_path, &save_err)) {
+			siril_log_warning(_("Could not save script venv ledger: %s\n"),
+					save_err ? save_err->message : "unknown");
+			g_clear_error(&save_err);
+		}
+	}
+
+	g_free(venv_path);
+	g_free(project_path);
+	g_free(script_hash);
+
+	if (!had_directory && !had_ledger_entry) {
+		// Nothing existed for this script — not an error, but the caller
+		// may want to tell the user "no environment to rebuild."
+		return FALSE;
+	}
+	siril_log_message(_("Per-script Python environment for '%s' removed; "
+			"it will be rebuilt next time the script runs.\n"), script_path);
+	return TRUE;
+}
+
+// §4.8.3: nuclear. Wipes base venv, per-script venvs, ledger, and optionally
+// the uv cache itself. Re-runs init to recreate the base venv.
+void rebuild_all_python_state(gboolean clear_cache) {
+	wait_for_python_init();
+	kill_all_python_scripts();
+
+	gchar *project = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	const gchar *targets[] = {
+		"venv",
+		".python_module",
+		"script_venvs",
+		"script_venvs.json",
+		NULL,
+	};
+	for (int i = 0; targets[i]; i++) {
+		gchar *p = g_build_filename(project, targets[i], NULL);
+		if (g_file_test(p, G_FILE_TEST_EXISTS)) {
+			GError *err = NULL;
+			gboolean ok;
+			if (g_file_test(p, G_FILE_TEST_IS_DIR))
+				ok = delete_directory(p, &err);
+			else
+				ok = (g_unlink(p) == 0);
+			if (!ok) {
+				siril_log_error(_("Could not remove %s: %s\n"), p,
+						err ? err->message : "unknown");
+				g_clear_error(&err);
+			}
+		}
+		g_free(p);
+	}
+
+	if (clear_cache) {
+		gchar *cache = g_build_filename(project, "uv-cache", NULL);
+		if (g_file_test(cache, G_FILE_TEST_IS_DIR)) {
+			siril_log_message(_("Clearing uv wheel cache (this can free a "
+					"lot of disk but will force re-download of every "
+					"dependency on next use)...\n"));
+			GError *err = NULL;
+			if (!delete_directory(cache, &err)) {
+				siril_log_error(_("Could not clear uv cache: %s\n"),
+						err ? err->message : "unknown");
+				g_clear_error(&err);
+			}
+		}
+		g_free(cache);
+	}
+	g_free(project);
+
+	// Drop the in-memory ledger so the next access re-reads the (now absent)
+	// file. Without this, stale entries from the previous session would
+	// linger until process restart.
+	g_mutex_lock(&g_venv_ledger_init_mutex);
+	if (g_venv_ledger) {
+		ledger_free(g_venv_ledger);
+		g_venv_ledger = NULL;
+	}
+	g_mutex_unlock(&g_venv_ledger_init_mutex);
+
+	clear_uv_state();
+	initialize_python_venv_in_thread();
+}
+
+// §4.8.4: prune. Walk the ledger and delete venvs whose script_path is
+// gone OR whose last_used is older than max_age_days. The uv cache is
+// preserved — this is routine maintenance, not corruption recovery.
+guint prune_unused_script_venvs(gint max_age_days, GError **error) {
+	(void)error;  // Reserved for future error paths; currently only logs.
+
+	gchar *project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	venv_ledger *ledger = get_venv_ledger(project_path);
+
+	GDateTime *now = g_date_time_new_now_utc();
+	GDateTime *cutoff = max_age_days > 0
+			? g_date_time_add_days(now, -max_age_days)
+			: NULL;
+
+	// Collect victims under the ledger lock; do the disk work outside so
+	// we don't hold the lock across slow operations.
+	GPtrArray *victims = g_ptr_array_new_with_free_func(g_free);
+	g_mutex_lock(&ledger->mutex);
+	GHashTableIter iter;
+	gpointer key, val;
+	g_hash_table_iter_init(&iter, ledger->entries);
+	while (g_hash_table_iter_next(&iter, &key, &val)) {
+		venv_ledger_entry *e = val;
+		gboolean orphan = (e->script_path
+				&& !g_file_test(e->script_path, G_FILE_TEST_IS_REGULAR));
+		gboolean stale = FALSE;
+		if (cutoff && e->last_used_iso) {
+			GDateTime *t = g_date_time_new_from_iso8601(e->last_used_iso, NULL);
+			if (t) {
+				stale = (g_date_time_compare(t, cutoff) < 0);
+				g_date_time_unref(t);
+			}
+		}
+		if (orphan || stale)
+			g_ptr_array_add(victims, g_strdup(e->script_hash));
+	}
+	g_mutex_unlock(&ledger->mutex);
+
+	guint removed = 0;
+	for (guint i = 0; i < victims->len; i++) {
+		const gchar *hash = g_ptr_array_index(victims, i);
+		gchar *venv_path = per_script_venv_path(project_path, hash);
+
+		g_mutex_lock(&ledger->mutex);
+		g_hash_table_remove(ledger->entries, hash);
+		g_mutex_unlock(&ledger->mutex);
+
+		if (g_file_test(venv_path, G_FILE_TEST_IS_DIR)) {
+			GError *del_err = NULL;
+			if (!delete_directory(venv_path, &del_err)) {
+				siril_log_warning(_("prune: could not delete %s: %s\n"),
+						venv_path, del_err ? del_err->message : "unknown");
+				g_clear_error(&del_err);
+				g_free(venv_path);
+				continue;
+			}
+		}
+		removed++;
+		g_free(venv_path);
+	}
+
+	if (removed > 0) {
+		GError *save_err = NULL;
+		if (!ledger_save(ledger, project_path, &save_err)) {
+			siril_log_warning(_("Could not save script venv ledger after "
+					"prune: %s\n"),
+					save_err ? save_err->message : "unknown");
+			g_clear_error(&save_err);
+		}
+	}
+
+	g_ptr_array_free(victims, TRUE);
+	if (cutoff) g_date_time_unref(cutoff);
+	g_date_time_unref(now);
+	g_free(project_path);
+	return removed;
 }
 
 // Resolve the Python interpreter we will hand to `uv venv --python`.

@@ -300,7 +300,20 @@ void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
-void rebuild_venv();
+// §4.8.1: surgical — reset just the base venv (cache + per-script venvs preserved).
+void rebuild_base_venv(void);
+// §4.8.2: surgical — reset one per-script venv. Takes the script's *path*; the
+// hash is computed internally to match `select_venv_for_script`. Returns TRUE
+// when the venv was removed, FALSE if nothing to do (no ledger entry / no
+// directory). On hard failure returns FALSE with *error set.
+gboolean rebuild_script_venv_by_path(const gchar *script_path, GError **error);
+// §4.8.3: nuclear — wipe base venv, all per-script venvs, the ledger.
+// If clear_cache is TRUE, also wipe the uv cache (forces re-download).
+void rebuild_all_python_state(gboolean clear_cache);
+// §4.8.4: maintenance — remove venvs whose script_path no longer exists OR
+// whose last_used is older than max_age_days. Returns count removed.
+guint prune_unused_script_venvs(gint max_age_days, GError **error);
+
 gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic);
 
 #endif

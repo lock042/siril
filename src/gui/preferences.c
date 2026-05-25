@@ -1172,15 +1172,74 @@ gchar *get_swap_dir() {
 	return sw_dir;
 }
 
+/* §4.8.3: nuclear option. The historical "Reset python venv" button keeps
+ * the same UI handler name (so settings_window.ui doesn't need to change)
+ * but now drives rebuild_all_python_state() — wiping the base venv, every
+ * per-script venv, and the ledger. uv cache is preserved by default; the
+ * confirm dialog offers an explicit checkbox to wipe it too. */
 void on_button_python_reset_venv_clicked(gpointer user_data) {
-	if (siril_confirm_dialog(_("WARNING!"), _("This will kill all running python processes "
-			"and delete and reinstall the python venv directory. This is not normally "
-			"necessary for upgrades or similar as Siril will try to manage the venv "
-			"automatically. However the option is provided as a last resort bug mitigation "
-			"to reset the venv to a known good state. All modules installed by scripts "
-			"will be deleted and will require reinstallation."), _("Proceed"))) {
-		rebuild_venv();
+	gboolean clear_cache = FALSE;
+
+	GtkWidget *dialog = gtk_message_dialog_new(
+			GTK_WINDOW(lookup_widget("settings_window")),
+			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE,
+			"%s", _("Rebuild ALL Python environments?"));
+	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s",
+			_("This will kill any running Python scripts and delete the base "
+			"Python environment and ALL per-script environments. They will be "
+			"rebuilt automatically the next time each script runs, using "
+			"wheels already in the local cache (fast).\n\n"
+			"All modules installed at runtime by scripts will be lost."));
+	GtkWidget *content = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
+	GtkWidget *check = gtk_check_button_new_with_mnemonic(
+			_("Also _clear the uv wheel cache (slow; forces re-download of "
+			"every dependency on next use)"));
+	gtk_widget_set_margin_top(check, 8);
+	gtk_box_pack_start(GTK_BOX(content), check, FALSE, FALSE, 0);
+	gtk_widget_show(check);
+	gtk_dialog_add_buttons(GTK_DIALOG(dialog),
+			_("_Cancel"), GTK_RESPONSE_CANCEL,
+			_("_Rebuild"), GTK_RESPONSE_ACCEPT,
+			NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+
+	gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+	clear_cache = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check));
+	gtk_widget_destroy(dialog);
+
+	if (response == GTK_RESPONSE_ACCEPT)
+		rebuild_all_python_state(clear_cache);
+}
+
+/* §4.8.1: surgical — base venv only. Per-script venvs and uv cache survive. */
+void on_button_python_reset_base_venv_clicked(gpointer user_data) {
+	if (siril_confirm_dialog(_("Rebuild base Python environment?"),
+			_("This rebuilds the shared base Python environment. Per-script "
+			"environments and the uv wheel cache are preserved."),
+			_("_Rebuild"))) {
+		rebuild_base_venv();
 	}
+}
+
+/* §4.8.4: prune. Removes per-script venvs whose scripts no longer exist OR
+ * which haven't been used in N days (default 90). */
+void on_button_python_prune_unused_clicked(gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_python_prune_age_days"));
+	gint days = spin ? (gint)gtk_spin_button_get_value(spin) : 90;
+	GError *err = NULL;
+	guint removed = prune_unused_script_venvs(days, &err);
+	if (err) {
+		siril_log_error(_("Prune failed: %s\n"), err->message);
+		g_clear_error(&err);
+		return;
+	}
+	if (removed > 0)
+		siril_log_message(_("Pruned %u unused per-script Python "
+				"environments.\n"), removed);
+	else
+		siril_log_message(_("No unused per-script Python environments to "
+				"prune.\n"));
 }
 
 /* these one are not on the preference dialog */

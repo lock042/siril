@@ -14659,6 +14659,79 @@ int process_pyscript(int nb) {
 	}
 }
 
+// §4.8: maintenance operations on the Python venv state. Subcommands map
+// 1:1 to the four functions documented in uv-conversion-plan.md.
+//   pyenv_maint rebuild_base
+//   pyenv_maint rebuild_script <abs/path/to/script.py>
+//   pyenv_maint rebuild_all [-cache]
+//   pyenv_maint prune [-days=N]   (default 90)
+int process_pyenv_maint(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("pyenv_maint: subcommand required "
+				"(rebuild_base | rebuild_script <path> | "
+				"rebuild_all [-cache] | prune [-days=N])\n"));
+		return CMD_ARG_ERROR;
+	}
+	const gchar *sub = word[1];
+
+	if (g_strcmp0(sub, "rebuild_base") == 0) {
+		rebuild_base_venv();
+		return CMD_OK;
+	}
+
+	if (g_strcmp0(sub, "rebuild_script") == 0) {
+		if (nb < 3 || !word[2] || !*word[2]) {
+			siril_log_error(_("pyenv_maint rebuild_script: script path required\n"));
+			return CMD_ARG_ERROR;
+		}
+		GError *err = NULL;
+		gboolean removed = rebuild_script_venv_by_path(word[2], &err);
+		if (err) {
+			siril_log_error("%s\n", err->message);
+			g_clear_error(&err);
+			return CMD_GENERIC_ERROR;
+		}
+		if (!removed) {
+			siril_log_message(_("No per-script environment to rebuild for '%s'.\n"),
+					word[2]);
+		}
+		return CMD_OK;
+	}
+
+	if (g_strcmp0(sub, "rebuild_all") == 0) {
+		gboolean clear_cache = FALSE;
+		for (int i = 2; i < nb; i++) {
+			if (g_strcmp0(word[i], "-cache") == 0)
+				clear_cache = TRUE;
+		}
+		rebuild_all_python_state(clear_cache);
+		return CMD_OK;
+	}
+
+	if (g_strcmp0(sub, "prune") == 0) {
+		gint days = 90;
+		for (int i = 2; i < nb; i++) {
+			if (g_str_has_prefix(word[i], "-days=")) {
+				days = atoi(word[i] + 6);
+				if (days < 0) days = 0;
+			}
+		}
+		GError *err = NULL;
+		guint removed = prune_unused_script_venvs(days, &err);
+		if (err) {
+			siril_log_error("%s\n", err->message);
+			g_clear_error(&err);
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("Pruned %u per-script Python environments "
+				"(threshold %d days).\n"), removed, days);
+		return CMD_OK;
+	}
+
+	siril_log_error(_("pyenv_maint: unknown subcommand '%s'\n"), sub);
+	return CMD_ARG_ERROR;
+}
+
 int process_eqcrop(int nb) {
         int image_size;
 	if (!has_wcs(gfit)) {

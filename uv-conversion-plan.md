@@ -450,9 +450,9 @@ fourth is maintenance.
 
 #### 4.8.1 `rebuild_base_venv()` — surgical, base venv only
 
-- [ ] Existing `rebuild_venv()` renamed and scoped down
-- [ ] Preferences confirm-dialog text updated
-- [ ] Per-script venvs and uv cache explicitly preserved
+- [x] Existing `rebuild_venv()` renamed and scoped down
+- [x] Preferences confirm-dialog text updated
+- [x] Per-script venvs and uv cache explicitly preserved
 
 Scope:
 
@@ -472,11 +472,12 @@ assumption that there is only one venv to care about.
 
 #### 4.8.2 `rebuild_script_venv(script_hash)` — single per-script venv
 
-- [ ] C-side: function in `siril_pythonmodule.c` that wipes
+- [x] C-side: function in `siril_pythonmodule.c` that wipes
       `script_venvs/<hash>/` and removes the ledger entry under
-      a single ledger lock + ledger save
-- [ ] GUI integration via `treeview_scripts` context menu (see below)
-- [ ] Right-click handler refactored from direct-dialog to popup
+      a single ledger lock + ledger save (`rebuild_script_venv_by_path`
+      — takes path, hashes internally to match the selector)
+- [x] GUI integration via `treeview_scripts` context menu (see below)
+- [x] Right-click handler refactored from direct-dialog to popup
       menu so the existing "Select Revision" item and the new
       "Rebuild Python environment" item can coexist
 
@@ -525,10 +526,10 @@ clutter; keep behind a preference if implemented.
 
 #### 4.8.3 `rebuild_all_python_state()` — nuclear option
 
-- [ ] C-side function that wipes everything (with optional
+- [x] C-side function that wipes everything (with optional
       uv-cache-also flag)
-- [ ] Confirmation dialog rewritten with N-venv-rebuilt warning
-      and "Also clear uv cache" checkbox
+- [x] Confirmation dialog rewritten with the warning text and
+      "Also clear uv cache" checkbox (default off)
 
 Scope (cache preserved by default):
 
@@ -572,9 +573,11 @@ environments…".
 
 #### 4.8.4 `prune_unused_script_venvs(max_age_days)` — routine maintenance
 
-- [ ] Ledger eviction pass implemented
-- [ ] Preferences UI: "Clean up unused script environments" button
-      with an editable age threshold
+- [x] Ledger eviction pass implemented (orphans pruned regardless;
+      LRU only when `max_age_days > 0`, so passing `-days=0` from
+      the CLI prunes only orphans)
+- [x] Preferences UI: "Clean up unused script environments" button
+      with an editable age threshold (default 90 days)
 
 Scope:
 
@@ -1068,8 +1071,13 @@ the change merges into the `uv` branch.
 | `[ ]` | `src/gui/python_gui.c:1148–1192`                | pass `current_file` path + buffer text into the extended `execute_python_script`; PEP 723 extraction from buffer |
 | `[ ]` | `src/gui/script_menu.c:208`                     | pass canonical `script_file` for venv identity (one-line update) |
 | `[ ]` | `src/core/command.c:14572`                      | pass `data->script_name` for venv identity (one-line update) |
-| `[ ]` | `src/gui/preferences.c:1182`                    | rewire existing button to `rebuild_all_python_state()`, new confirm dialog with cache checkbox; add "Rebuild base venv" + "Clean up unused script envs" buttons |
-| `[ ]` | `src/gui/git_gui.c:378` (`on_treeview_scripts_button_press`) | refactor direct-dialog right-click to popup menu; add "Rebuild Python environment" item for §4.8.2 |
+| `[x]` | `src/gui/preferences.c:1175+`                   | rewired existing button to `rebuild_all_python_state()` with cache checkbox; added handlers for "Rebuild base" and "Prune" |
+| `[x]` | `src/gui/git_gui.c:378` (`on_treeview_scripts_button_press`) | refactored direct-dialog right-click to popup menu; "Rebuild Python environment" item added (greyed for non-Python rows) |
+| `[x]` | `src/gui/uifiles/settings_window.ui`            | expanded "Python Interface" grid from 1×2 to 2×2: added Rebuild base, Rebuild all, Prune buttons + spin button for max-age |
+| `[x]` | `src/core/command.c:14662`                      | new `pyenv_maint` CLI subcommand dispatching to all four §4.8 operations (rebuild_base, rebuild_script, rebuild_all [-cache], prune [-days=N]) |
+| `[x]` | `src/core/command.h:158`                        | `process_pyenv_maint` declaration |
+| `[x]` | `src/core/command_def.h:134`                    | `STR_PYENV_MAINT` definition |
+| `[x]` | `src/core/command_list.h:158`                   | `pyenv_maint` dispatch entry |
 | `[ ]` | `python_module/sirilpy/utility.py`              | `_install_package`, `uninstall_package`, new `pip_*` helpers |
 | `[ ]` | `python_module/sirilpy/gpuhelper.py`            | route all pip subprocesses through `_resolve_installer()` |
 | `[—]` | `python_module/pyproject.toml`                  | (no change — deliberately)                            |

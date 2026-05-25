@@ -34,6 +34,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_python_prune_age">
+    <property name="lower">0</property>
+    <property name="upper">3650</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">7</property>
+  </object>
   <object class="GtkAdjustment" id="adjGain">
     <property name="upper">100</property>
     <property name="value">2.2999999999999998</property>
@@ -5495,25 +5502,21 @@ Some python scripts can be selected to run at startup. These have toggles in the
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
-                                      <!-- n-columns=2 n-rows=1 -->
+                                      <!-- n-columns=2 n-rows=3 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="row-spacing">6</property>
                                         <property name="column-spacing">6</property>
-                                        <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
-                                          <object class="GtkButton" id="button_python_reset_venv">
-                                            <property name="label" translatable="yes">Reset python venv</property>
+                                          <object class="GtkButton" id="button_python_reset_base_venv">
+                                            <property name="label" translatable="yes">Rebuild base Python environment</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
-                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state. Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
-
-This is normally not necessary but is provided as a last resort to restore the venv to a pristine state as an aid to troubleshooting.</property>
-                                            <property name="double-buffered">False</property>
-                                            <signal name="clicked" handler="on_button_python_reset_venv_clicked" swapped="no"/>
+                                            <property name="tooltip-markup" translatable="yes">Rebuild the shared base Python environment only. Per-script environments and the uv wheel cache are preserved. Use this when sirilpy itself looks unhealthy but per-script setups are fine.</property>
+                                            <signal name="clicked" handler="on_button_python_reset_base_venv_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -5521,14 +5524,72 @@ This is normally not necessary but is provided as a last resort to restore the v
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkLabel">
+                                          <object class="GtkButton" id="button_python_reset_venv">
+                                            <property name="label" translatable="yes">Rebuild ALL Python environments…</property>
                                             <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes"> </property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;Kills all running Python scripts and wipes the base venv plus every per-script venv. They are rebuilt automatically on next use from the local wheel cache.&lt;/i&gt;
+
+Modules installed at runtime by scripts will be lost. A checkbox in the confirmation dialog offers to also clear the uv wheel cache (slow; forces re-download).</property>
+                                            <property name="double-buffered">False</property>
+                                            <signal name="clicked" handler="on_button_python_reset_venv_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
                                             <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_python_prune_unused">
+                                            <property name="label" translatable="yes">Prune unused script environments</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-markup" translatable="yes">Remove per-script Python environments whose script files no longer exist, or which have not been used for the configured number of days. The base venv and the uv wheel cache are preserved.</property>
+                                            <signal name="clicked" handler="on_button_python_prune_unused_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">horizontal</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="label" translatable="yes">Max age (days):</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkSpinButton" id="spin_python_prune_age_days">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="tooltip-text" translatable="yes">Per-script venvs not used within this many days are eligible for pruning. Set to 0 to prune only orphaned venvs (whose script files are gone).</property>
+                                                <property name="adjustment">adjustment_python_prune_age</property>
+                                                <property name="numeric">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
                                           </packing>
                                         </child>
                                       </object>
