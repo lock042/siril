@@ -25,7 +25,8 @@ import requests
 import numpy as np
 from .version import __version__
 from .utility import ensure_installed, _check_package_installed, _install_package, \
-                     SuppressedStderr
+                     SuppressedStderr, _build_install_command, _build_uninstall_command, \
+                     pip_list
 
 def _detect_cuda_version(system) -> Optional[str]:
     """
@@ -1398,25 +1399,15 @@ class ONNXHelper:
 
         self.providers = None
 
-        # Get all installed packages
+        # §5.2: pip_list goes through uv when available.
         try:
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "list"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            installed_packages = result.stdout.splitlines()
-        except subprocess.CalledProcessError as e:
+            installed_pairs = pip_list()
+        except Exception as e:
             print(f"Error getting installed packages: {e}")
             return []
 
-        # Find all packages that start with 'onnxruntime'
-        onnx_packages = []
-        for line in installed_packages:
-            parts = line.split()
-            if parts and parts[0].lower().startswith('onnxruntime'):
-                onnx_packages.append(parts[0])
+        onnx_packages = [name for (name, _ver) in installed_pairs
+                         if name.lower().startswith('onnxruntime')]
 
         # Uninstall found packages
         if not onnx_packages:
@@ -1428,11 +1419,9 @@ class ONNXHelper:
 
         for package in onnx_packages:
             print(f"Uninstalling {package}...")
+            argv, _backend = _build_uninstall_command(package)
             try:
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
-                    check=True
-                )
+                subprocess.run(argv, check=True)
                 uninstalled.append(package)
                 print(f"Successfully uninstalled {package}")
             except subprocess.CalledProcessError:
@@ -1605,10 +1594,19 @@ class TorchHelper:
         if packages is None:
             packages = ['torch', 'torchvision', 'torchaudio']
 
-        install_cmd = [sys.executable, '-m', 'pip', 'install'] + packages
-
-        if extra_index_url:
-            install_cmd.extend(['--index-url', extra_index_url])
+        # §5.2: Route through the shared install-command builder so that
+        # uv is used when available (cleaner resolver, faster, and dedup
+        # via the local wheel cache). The builder normally takes a single
+        # install_target; torch installs multiple packages in one go, so
+        # we build the prefix once and append the package list inline.
+        prefix, _backend = _build_install_command(
+            install_target=packages[0],
+            index_url=extra_index_url,
+        )
+        # Drop the trailing install_target appended by the builder and
+        # substitute the full package list.
+        prefix = prefix[:-1]
+        install_cmd = prefix + packages
 
         try:
             print(f"Installing: {' '.join(packages)}")
@@ -1969,25 +1967,16 @@ class TorchHelper:
             'fastai', 'transformers', 'accelerate', 'timm'
         ]
 
-        # Get all installed packages
+        # §5.2: Route through pip_list / _build_uninstall_command so that
+        # uv is used when available. pip_list returns (name, version)
+        # tuples already lower-cased on the names by pip's freeze format.
         try:
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "list"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            installed_packages = result.stdout.splitlines()
-        except subprocess.CalledProcessError as e:
+            installed_pairs = pip_list()
+        except Exception as e:
             print(f"Error getting installed packages: {e}")
             return []
 
-        # Extract package names from pip list output
-        installed_package_names = set()
-        for line in installed_packages:
-            parts = line.split()
-            if parts:
-                installed_package_names.add(parts[0].lower())
+        installed_package_names = {name.lower() for (name, _ver) in installed_pairs}
 
         # Find torch packages that are actually installed
         torch_packages = []
@@ -2004,11 +1993,9 @@ class TorchHelper:
         uninstalled = []
         for package in torch_packages:
             print(f"Uninstalling {package}...")
+            argv, _backend = _build_uninstall_command(package)
             try:
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
-                    check=True
-                )
+                subprocess.run(argv, check=True)
                 uninstalled.append(package)
                 print(f"Successfully uninstalled {package}")
             except subprocess.CalledProcessError:
@@ -2471,21 +2458,9 @@ class JaxHelper:
         ]
 
         try:
-            # Get list of installed packages
-            result = subprocess.run(
-                [sys.executable, '-m', 'pip', 'list', '--format=freeze'],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-
-            installed_packages = result.stdout.strip().split('\n')
-            installed_dict = {}
-
-            for package_line in installed_packages:
-                if '==' in package_line:
-                    name, version = package_line.split('==', 1)
-                    installed_dict[name.lower()] = version
+            # §5.2: pip_list goes through uv when available.
+            installed_dict = {name.lower(): version
+                              for (name, version) in pip_list()}
 
             # Find JAX-related packages
             detected = []
@@ -2532,8 +2507,9 @@ class JaxHelper:
 
                     try:
                         print(f"Uninstalling {pkg_name}...")
+                        argv, _backend = _build_uninstall_command(pkg_name)
                         subprocess.run(
-                            [sys.executable, '-m', 'pip', 'uninstall', pkg_name, '-y'],
+                            argv,
                             check=True,
                             capture_output=True,
                             text=True

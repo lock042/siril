@@ -118,6 +118,12 @@ from .utility import (
     needs_module_version,
     SuppressedStdout,
     SuppressedStderr,
+    # Introduced in sirilpy 1.1.20 — scripts wanting Siril 1.4 (sirilpy
+    # ≤ 1.1.12) compatibility must gate calls on
+    # `check_module_version(">=1.1.20")` or `hasattr(sirilpy.utility, X)`.
+    pip_show,
+    pip_list,
+    declare_dependencies,
 )
 from .gpuhelper import (
     ONNXHelper,
@@ -145,6 +151,10 @@ __all__ = [
     'ensure_installed',
     'check_module_version',
     'needs_module_version',
+    # New in 1.1.20 (§5.2, §5.3 of the uv conversion):
+    'pip_show',
+    'pip_list',
+    'declare_dependencies',
     'SirilInterface',
     'ImageStats',
     'FKeywords',

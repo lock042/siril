@@ -361,11 +361,11 @@ def uninstall_package(package_name: str):
 
     print(f"Uninstalling {package_name}...")
 
-    try:
-        # Build pip uninstall command with -y flag to auto-confirm
-        pip_command = [sys.executable, "-m", "pip", "uninstall", "-y", package_name]
+    # §5.1: Route through uv when available.
+    pip_command, _backend = _build_uninstall_command(package_name)
 
-        # Start pip uninstall process with pipe for stdout
+    try:
+        # Start uninstall process with pipe for stdout
         with subprocess.Popen(
             pip_command,
             stdout=subprocess.PIPE,
@@ -389,6 +389,170 @@ def uninstall_package(package_name: str):
     except subprocess.CalledProcessError as e:
         print(f"Failed to uninstall {package_name}")
         raise
+
+
+def pip_show(package_name: str) -> Optional[Dict[str, str]]:
+    """
+    Return metadata for an installed package as a dict, or None if the
+    package is not installed in the current venv.
+
+    The returned dict has the same keys that `pip show` produces (Name,
+    Version, Location, Summary, Author, License, Requires, Required-by,
+    …). Field names are kept verbatim from the underlying tool so
+    consumers can look up "Name", "Version", etc. directly.
+
+    Uses uv pip show when uv is available, falling back to pip. Scripts
+    that want to remain compatible with Siril 1.4 (sirilpy ≤ 1.1.12)
+    must gate this call with ``check_module_version(">=1.1.20")`` or
+    ``hasattr(sirilpy.utility, "pip_show")``.
+
+    Introduced in sirilpy 1.1.20.
+
+    Args:
+        package_name: Name of the package to inspect.
+
+    Returns:
+        Dict of metadata keys → values, or None if not installed.
+    """
+    uv = _resolve_uv_path()
+    if uv:
+        argv = [uv, "pip", "show", "--python", sys.executable, package_name]
+    else:
+        argv = [sys.executable, "-m", "pip", "show", package_name]
+
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True)
+    except OSError:
+        return None
+
+    # Both backends print "Package(s) not found" to stderr when the
+    # package is missing. uv exits non-zero in that case; pip exits zero
+    # but prints a warning. Treat any case where there is no useful
+    # stdout as "not installed".
+    if not result.stdout or not result.stdout.strip():
+        return None
+
+    info: Dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        if ":" in line:
+            key, _, value = line.partition(":")
+            info[key.strip()] = value.strip()
+    if not info.get("Name"):
+        return None
+    return info
+
+
+def pip_list() -> List[Tuple[str, str]]:
+    """
+    Return a list of (name, version) tuples for every package installed
+    in the current venv.
+
+    Uses uv pip list when uv is available, falling back to pip. Scripts
+    that want to remain compatible with Siril 1.4 (sirilpy ≤ 1.1.12)
+    must gate this call with ``check_module_version(">=1.1.20")`` or
+    ``hasattr(sirilpy.utility, "pip_list")``.
+
+    Introduced in sirilpy 1.1.20.
+
+    Returns:
+        List of (name, version) tuples. Empty if the listing fails.
+    """
+    uv = _resolve_uv_path()
+    if uv:
+        argv = [uv, "pip", "list", "--python", sys.executable, "--format", "freeze"]
+    else:
+        argv = [sys.executable, "-m", "pip", "list", "--format", "freeze"]
+
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    except OSError:
+        return []
+
+    out: List[Tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # `freeze` format is `name==version` or `name @ <url>` etc.
+        if "==" in line:
+            name, _, version = line.partition("==")
+            out.append((name.strip(), version.strip()))
+        elif " @ " in line:
+            # Editable / VCS install — keep the name, leave version empty
+            name, _, _ = line.partition(" @ ")
+            out.append((name.strip(), ""))
+    return out
+
+
+def declare_dependencies(deps, version_constraints=None):
+    """
+    Declare runtime dependencies for this script.
+
+    The intent: from Siril 1.5 onwards, scripts with a PEP 723 inline
+    metadata block have their declared dependencies installed up-front
+    by Siril into a per-script virtual environment. This function gives
+    new scripts a *single* declaration point that:
+
+      * On Siril 1.5 with a per-script venv already seeded from PEP 723
+        and the per-script feature gate on, does no extra pip work —
+        the packages are already installed (the underlying
+        ``ensure_installed`` short-circuits via the installed-version
+        check).
+      * On Siril 1.5 without the per-script gate, or where the user
+        ran the script outside the PEP 723 path, falls back to
+        ``ensure_installed`` to fetch the deps at runtime.
+
+    Scripts that want to remain compatible with Siril 1.4 (sirilpy ≤
+    1.1.12) must gate this call. The recommended idiom is:
+
+        if sirilpy.utility.check_module_version(">=1.1.20"):
+            sirilpy.declare_dependencies(["numpy>=1.20", "scipy"])
+        else:
+            sirilpy.ensure_installed("numpy", "scipy",
+                                     version_constraints=[">=1.20", None])
+
+    Introduced in sirilpy 1.1.20.
+
+    Args:
+        deps: A list of dependency strings in PEP 508 form
+              (e.g. ``["numpy>=1.20", "opencv-python"]``), or a single
+              string for a single dependency.
+        version_constraints: Optional explicit per-package constraint
+              list, only used when each entry of ``deps`` is a bare
+              package name (matches ``ensure_installed``'s signature).
+              If supplied, ``deps`` is taken literally and no PEP 508
+              parsing is performed.
+
+    Raises:
+        SirilError: If a package install fails.
+    """
+    if isinstance(deps, str):
+        deps = [deps]
+    if not deps:
+        return True
+
+    # If the caller has explicitly passed a constraints list, treat
+    # `deps` as bare package names and delegate straight to
+    # ensure_installed.
+    if version_constraints is not None:
+        return ensure_installed(*deps, version_constraints=version_constraints)
+
+    # Otherwise parse each entry as PEP 508 to split name from version
+    # specifier. We use packaging.requirements (already a sirilpy dep).
+    packages: List[str] = []
+    constraints: List[Optional[str]] = []
+    for d in deps:
+        try:
+            req = Requirement(d)
+            packages.append(req.name)
+            constraints.append(str(req.specifier) if str(req.specifier) else None)
+        except Exception:
+            # Not a parseable requirement string — pass through verbatim
+            # and let ensure_installed deal with it.
+            packages.append(d)
+            constraints.append(None)
+    return ensure_installed(*packages, version_constraints=constraints)
+
 
 def _check_package_installed(package_name: str, version_constraint: Optional[str] = None) -> bool:
     """
@@ -430,6 +594,90 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
+
+def _resolve_uv_path() -> Optional[str]:
+    """
+    Locate the uv executable for use as the pip backend.
+
+    Resolution order:
+      1. SIRIL_UV env var (full path; debug/override).
+      2. shutil.which("uv") on PATH (which includes the bundled bin dir
+         on Windows/macOS bundles, the AppImage prefix, and /app/bin
+         under Flatpak).
+    Returns None when uv is not available, in which case callers fall
+    back to plain pip.
+
+    Introduced in sirilpy 1.1.20.
+    """
+    import shutil
+    override = os.environ.get("SIRIL_UV")
+    if override and os.path.isfile(override) and os.access(override, os.X_OK):
+        return override
+    return shutil.which("uv")
+
+
+def _build_install_command(install_target: str,
+                           index_url: Optional[str] = None,
+                           from_url: Optional[str] = None,
+                           reinstall: bool = False,
+                           nodeps: bool = False) -> Tuple[List[str], str]:
+    """
+    Build the pip-or-uv install command for the current sys.executable
+    venv. Returns (argv, backend) where backend is "uv" or "pip" for
+    diagnostic logging.
+
+    The flag translations between pip and uv are:
+      - --force-reinstall (pip) ↔ --reinstall (uv)
+      - --index-url, -f, --no-deps: same on both backends.
+
+    uv pip install also takes --python <sys.executable> so the install
+    targets the current venv regardless of which interpreter happens to
+    be on PATH.
+
+    Introduced in sirilpy 1.1.20.
+    """
+    uv = _resolve_uv_path()
+    if uv:
+        cmd = [uv, "pip", "install", "--python", sys.executable]
+        if index_url:
+            cmd.extend(["--index-url", index_url])
+        if from_url:
+            cmd.extend(["-f", from_url])
+        if reinstall:
+            cmd.append("--reinstall")
+        if nodeps:
+            cmd.append("--no-deps")
+        cmd.append(install_target)
+        return cmd, "uv"
+    cmd = [sys.executable, "-m", "pip", "install"]
+    if index_url:
+        cmd.extend(["--index-url", index_url])
+    if from_url:
+        cmd.extend(["-f", from_url])
+    if reinstall:
+        cmd.append("--force-reinstall")
+    if nodeps:
+        cmd.append("--no-deps")
+    cmd.append(install_target)
+    return cmd, "pip"
+
+
+def _build_uninstall_command(package_name: str) -> Tuple[List[str], str]:
+    """
+    Build the pip-or-uv uninstall command for the current venv.
+
+    uv pip uninstall does not prompt (no -y needed); we pass --python
+    sys.executable for the same reason as install. Pip's -y suppresses
+    its prompt.
+
+    Introduced in sirilpy 1.1.20.
+    """
+    uv = _resolve_uv_path()
+    if uv:
+        return [uv, "pip", "uninstall", "--python", sys.executable, package_name], "uv"
+    return [sys.executable, "-m", "pip", "uninstall", "-y", package_name], "pip"
+
+
 def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None,
                      index_url: Optional[str] = None, reinstall: Optional[bool] = False, nodeps: Optional[bool] = False):
     """
@@ -457,28 +705,18 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     # Construct installation target
     install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
+    # §5.1: Route through uv when available, falling back to pip. The
+    # builder handles flag-name differences (e.g. --force-reinstall vs
+    # --reinstall) so the rest of this function is backend-agnostic.
+    pip_command, _backend = _build_install_command(
+        install_target,
+        index_url=index_url,
+        from_url=from_url,
+        reinstall=bool(reinstall),
+        nodeps=bool(nodeps),
+    )
+
     try:
-        # Build pip command
-        pip_command = [sys.executable, "-m", "pip", "install"]
-
-        # Add index-url option if index_url is provided
-        if index_url:
-            pip_command.extend(["--index-url", index_url])
-
-        # Add find-links option if from_url is provided
-        if from_url:
-            pip_command.extend(["-f", from_url])
-
-        # If required, add the --force-reinstall flag
-        if reinstall:
-            pip_command.append("--force-reinstall")
-
-        # If required, add the --no-deps flag
-        if nodeps:
-            pip_command.append("--no-deps")
-
-        # Add the package to install
-        pip_command.append(install_target)
 
         # Start pip install process with pipe for stdout
         with subprocess.Popen(
