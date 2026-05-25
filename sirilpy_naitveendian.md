@@ -279,19 +279,31 @@ field access — no helper needed.
 Rough groupings to tackle one at a time (helps reviewability — each
 group is a coherent batch of related lines):
 
-- [ ] `CMD_GET_CONFIG` value packing (lines 439, 446)
-- [ ] `CMD_PLOT` data parsing (lines 542, 587, 600)
-- [ ] `CMD_REQUEST_SHM` and SHM-info parsing (line 666)
-- [ ] `CMD_GET_DIMENSIONS` reply (lines 687–689)
-- [ ] `CMD_GET_SELECTION` / `CMD_SET_SELECTION` rectangles
+- [x] `CMD_GET_CONFIG` value packing (lines 439, 446)
+- [x] `CMD_PLOT` data parsing (lines 542, 587, 600)
+- [x] `CMD_REQUEST_SHM` and SHM-info parsing (line 666)
+- [x] `CMD_GET_DIMENSIONS` reply (lines 687–689)
+- [x] `CMD_GET_SELECTION` / `CMD_SET_SELECTION` rectangles
       (lines 723–726, 772–775, 978–981, 1055–1058)
-- [ ] `CMD_GET_ACTIVE_VPORT` reply (line 752)
-- [ ] `CMD_GET_STAR_IN_SELECTION` / `CMD_GET_STATS_FOR_SELECTION`
+- [x] `CMD_GET_ACTIVE_VPORT` reply (line 752)
+- [x] `CMD_GET_STAR_IN_SELECTION` / `CMD_GET_STATS_FOR_SELECTION`
       arguments (lines 839–844, 997, 1000)
-- [ ] Boolean / integer status returns (lines 1096, 1102, 1108)
-- [ ] Polygon ID encoding (line 1554)
-- [ ] All other remaining call sites — `grep` for the macro names
-      after each batch to confirm zero left
+- [x] Boolean / integer status returns (lines 1096, 1102, 1108)
+- [x] Polygon ID encoding (line 1554) — done in both
+      `siril_pythonmodule.c` and `gui/user_polygons.c`
+- [x] All other remaining call sites — `grep` confirms zero
+      `GUINT*_*_BE` / `GINT*_*_BE` calls left in
+      `siril_pythoncommands.c` and `siril_pythonmodule.c`
+- [x] `gui/user_polygons.c`: `g_htonl` / `g_ntohl` /
+      `FROM_BE64_INTO` for polygon header and per-point doubles
+      (added as part of this batch since polygon serialise is
+      naturally inline payload, not bulk struct)
+- [x] Python: 48 `struct.(pack|unpack)('!…')` sites in
+      `connection.py` flipped to `=`. Plus polygon serialise/
+      deserialise in `models.py` (8 sites) and `plot.py` (14
+      sites) — these are inline payload paths, not bulk struct,
+      so they belong here even though they live outside
+      `connection.py`.
 
 ### 4.3 C-side header send / receive
 
@@ -546,20 +558,23 @@ and can be smoke-tested independently:
    send/recv, and the two corresponding Python lines for
    `'!Bi'`/`'!BI'`. The header path is exercised by every
    roundtrip so this commit shakes out any base-level mistakes
-   immediately.
+   immediately. **[done — `384c6649d`]**
 2. **`incoming_image_info_t`** — drop the `FROM_BE` calls in the
    `handle_*_request` family. Python side already constructs
    these payloads with `!IIIIQ256s`-style packs that the §4.7(a)
-   batches will touch.
-3. **Per-command batch 1** — `CMD_GET_CONFIG`,
-   `CMD_GET_ACTIVE_VPORT`, `CMD_GET_DIMENSIONS`,
-   `is_image_loaded` / `is_sequence_loaded` returns. Small,
-   easy to verify.
-4. **Per-command batch 2** — selections, rectangles, regions,
-   `CMD_GET_STAR_IN_SELECTION`, `CMD_GET_STATS_FOR_SELECTION`. The
-   biggest batch by line count.
-5. **Per-command batch 3** — `CMD_PLOT` parsing, polygon IDs,
-   remaining inline-payload stragglers.
+   batches will touch. **[done — `ee832ba93`]**
+3-5. **Per-command batches 1-3 (combined)** — single mechanical
+   commit covering CMD_GET_CONFIG / CMD_GET_ACTIVE_VPORT /
+   CMD_GET_DIMENSIONS / is_image_loaded / is_sequence_loaded /
+   selections / rectangles / regions / CMD_GET_STAR_IN_SELECTION /
+   CMD_GET_STATS_FOR_SELECTION / CMD_PLOT / polygon IDs /
+   `gui/user_polygons.c` SHM payload / plot.py + models.py
+   inline-payload helpers / remaining stragglers. **[done — `f2d5b791a`]**
+   (Originally planned as 3 separate commits but the changes are
+   mechanical and symmetric enough that one diff is reviewable,
+   the smoke test exercises commands across all 3 categories, and
+   the split was costing more in churn than it bought in
+   reviewability.)
 
 6. **Bulk-struct: `keywords_to_py` ↔ `FKeywords`** — the
    largest single field-width audit. Rewrite the C-side casts to
