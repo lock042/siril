@@ -103,6 +103,8 @@ static void pep723_metadata_free(pep723_metadata *meta);
 static pep723_metadata *parse_pep723(const gchar *source);
 static gchar *pep723_canonical_hash(const pep723_metadata *meta);
 static gchar *resolve_system_python_for_uv(GError **error);
+static gchar *make_writable_module_copy(const gchar *src_module_path, GError **error);
+static void chmod_tree_writable(const gchar *root);
 
 // Cached uv path. NULL when uv is not in use (either the SIRIL_USE_UV gate is
 // off, uv was not found, or the discovered uv was too old). Set by
@@ -2692,11 +2694,28 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	}
 	gchar *module_path = g_build_filename(siril_get_system_data_dir(),
 			MODULE_DIR, NULL);
+	// Same writable-copy workaround as in uv_install_sirilpy: setuptools'
+	// egg_info step writes to the source directory during build, which
+	// fails on the read-only system data dir.
+	GError *copy_err = NULL;
+	gchar *build_path = make_writable_module_copy(module_path, &copy_err);
+	g_free(module_path);
+	if (!build_path) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Could not prepare sirilpy build dir: %s",
+				copy_err ? copy_err->message : "unknown");
+		g_clear_error(&copy_err);
+		g_free(venv_python);
+		g_free(venv_path);
+		g_free(pep723_hash);
+		g_free(current_sirilpy);
+		return NULL;
+	}
 	gchar *sirilpy_argv[] = {
 		(gchar *)uv_path, "pip", "install",
 		"--python", venv_python,
 		"--reinstall-package", "sirilpy",
-		module_path,
+		build_path,
 		NULL
 	};
 	env = g_get_environ();
@@ -2706,7 +2725,8 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	gboolean sirilpy_ok = g_spawn_sync(NULL, sirilpy_argv, env, G_SPAWN_DEFAULT,
 			NULL, NULL, NULL, &std_err, &sirilpy_status, &local_err);
 	g_strfreev(env);
-	g_free(module_path);
+	delete_directory(build_path, NULL);
+	g_free(build_path);
 	if (!sirilpy_ok || !g_spawn_check_wait_status(sirilpy_status, &local_err)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"uv pip install sirilpy (per-script) failed: %s%s%s",
@@ -3398,6 +3418,10 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			g_free(python_path);
 			return FALSE;
 		}
+		// Ensure the copy is writable — copy_directory_recursive preserves
+		// source modes, and setuptools needs to write egg_info into the
+		// source tree during build. Same fix as in make_writable_module_copy.
+		chmod_tree_writable(temp_install_path);
 
 		// RETRY LOGIC: Install with pip with timeout and retry
 		gboolean install_success = FALSE;
@@ -3532,6 +3556,69 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_free(python_path);
 	memcpy(&com.python_version, &module_version, sizeof(version_number));
 	return TRUE;
+}
+
+// Recursively add u+w (and u+x on directories) to every entry under
+// root. copy_directory_recursive() preserves source modes, so a copy
+// from a read-only system path inherits 0444/0555 and setuptools then
+// cannot write its egg_info there.
+static void chmod_tree_writable(const gchar *root) {
+	GStatBuf st;
+	if (g_stat(root, &st) != 0) return;
+	mode_t mode = st.st_mode | S_IWUSR;
+	if (S_ISDIR(st.st_mode)) mode |= S_IXUSR | S_IRUSR;
+	g_chmod(root, mode);
+
+	if (!S_ISDIR(st.st_mode)) return;
+	GDir *dir = g_dir_open(root, 0, NULL);
+	if (!dir) return;
+	const gchar *name;
+	while ((name = g_dir_read_name(dir)) != NULL) {
+		gchar *child = g_build_filename(root, name, NULL);
+		chmod_tree_writable(child);
+		g_free(child);
+	}
+	g_dir_close(dir);
+}
+
+// Make a writable copy of the on-disk sirilpy module directory in a
+// freshly-created tempdir. Returns the tempdir path; caller owns the
+// string AND must delete_directory() the tempdir after use. Returns NULL
+// with *error set on failure.
+//
+// Why this exists: setuptools' build_meta egg_info step writes to the
+// *source* directory during wheel build. When sirilpy ships from a
+// read-only system path (/usr/local/share/siril/python_module on
+// Linux, "Program Files\siril\python_module" on Windows, etc.) the
+// egg_info creation fails with EROFS / EACCES. The legacy
+// install_module_with_pip path copied the module to a writable user
+// path for the same reason; we preserve that workaround for the uv
+// path. Using a fresh tempdir per install avoids any race between
+// concurrent per-script-venv installs that all try to build sirilpy.
+//
+// copy_directory_recursive preserves source modes, so we follow up with
+// chmod_tree_writable to add u+w throughout — otherwise files copied
+// from a /usr/local install (0444) remain unwritable in the tmpdir and
+// the build still fails when setuptools tries to drop egg_info there.
+static gchar *make_writable_module_copy(const gchar *src_module_path,
+                                        GError **error) {
+	GError *mk_err = NULL;
+	gchar *tmpdir = g_dir_make_tmp("siril-sirilpy-build-XXXXXX", &mk_err);
+	if (!tmpdir) {
+		g_propagate_prefixed_error(error, mk_err,
+				"Could not create tempdir for sirilpy build: ");
+		return NULL;
+	}
+	GError *copy_err = NULL;
+	if (!copy_directory_recursive(src_module_path, tmpdir, &copy_err)) {
+		g_propagate_prefixed_error(error, copy_err,
+				"Could not copy sirilpy source to tempdir: ");
+		delete_directory(tmpdir, NULL);
+		g_free(tmpdir);
+		return NULL;
+	}
+	chmod_tree_writable(tmpdir);
+	return tmpdir;
 }
 
 // Query the installed sirilpy version via `uv pip show --python <venv_python>
@@ -3684,11 +3771,21 @@ static gboolean uv_install_sirilpy(const gchar *module_path,
 
 	siril_log_message(_("Installing / updating Siril python module with uv...\n"));
 
+	// Copy module to a writable tempdir before building — see
+	// make_writable_module_copy() comment for rationale.
+	GError *copy_err = NULL;
+	gchar *build_path = make_writable_module_copy(module_path, &copy_err);
+	if (!build_path) {
+		g_propagate_error(error, copy_err);
+		g_free(venv_python);
+		return FALSE;
+	}
+
 	gchar *argv[] = {
 		(gchar *)uv_path, "pip", "install",
 		"--python", venv_python,
 		"--reinstall-package", "sirilpy",
-		(gchar *)module_path,
+		build_path,
 		NULL
 	};
 
@@ -3705,6 +3802,10 @@ static gboolean uv_install_sirilpy(const gchar *module_path,
 			&exit_status, &spawn_err);
 	g_strfreev(env);
 	g_free(venv_python);
+
+	// build_path no longer needed regardless of outcome
+	delete_directory(build_path, NULL);
+	g_free(build_path);
 
 	if (!spawned) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
