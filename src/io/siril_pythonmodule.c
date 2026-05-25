@@ -2063,19 +2063,22 @@ static gboolean validate_uv_version(const gchar *uv_path,
 	return ok;
 }
 
-// Probe for uv and cache the result. Gated on SIRIL_USE_UV=1 so default
-// behaviour is unchanged until callers opt in. On success g_uv_path holds
-// the absolute path; on failure g_uv_path is NULL and the legacy pip path
-// is used.
+// Probe for uv and cache the result. uv is used by default when it is
+// present and ≥ UV_MINIMUM_VERSION; set SIRIL_USE_UV=0 to force the
+// legacy pip path (e.g. for debugging or to reproduce a 1.4-style
+// run). On success g_uv_path holds the absolute path; on failure
+// g_uv_path is NULL and the legacy pip path is used automatically.
 //
 // Safe to call repeatedly; each call resets state and re-probes (so that
-// rebuild_venv() picks up a freshly installed uv).
+// rebuild_*_venv() picks up a freshly installed uv).
 static void probe_uv_executable(void) {
 	clear_uv_state();
 
 	const gchar *gate = g_getenv("SIRIL_USE_UV");
-	if (!gate || g_strcmp0(gate, "1") != 0)
+	if (gate && g_strcmp0(gate, "0") == 0) {
+		siril_log_debug("SIRIL_USE_UV=0, skipping uv probe (legacy pip path forced)\n");
 		return;
+	}
 
 	GError *error = NULL;
 	gchar *uv = find_uv_executable(&error);
@@ -2517,14 +2520,14 @@ static void ledger_record(venv_ledger *ledger,
 
 // Per-script venv selection (§4.5 of the uv conversion plan).
 //
-// Gated by SIRIL_PER_SCRIPT_VENVS=1: when off, always returns the base
-// venv path so the existing behaviour is preserved. When on AND uv is
-// available AND the caller provided enough context (either an identity
-// path or a PEP 723 block), a per-script venv is created/reused.
+// Default-on when uv is in use AND the caller provided enough context
+// (either an identity path or a PEP 723 block). Set
+// SIRIL_PER_SCRIPT_VENVS=0 to force every script to share the base venv
+// (mimics pre-§4.5 behaviour for debugging).
 
 static gboolean per_script_venvs_enabled(void) {
 	const gchar *gate = g_getenv("SIRIL_PER_SCRIPT_VENVS");
-	return gate && g_strcmp0(gate, "1") == 0;
+	return !gate || g_strcmp0(gate, "0") != 0;
 }
 
 // Compute the venv identity hash. Returns a newly-allocated string the

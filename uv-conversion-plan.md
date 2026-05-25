@@ -1070,9 +1070,9 @@ TorchHelper().install_torch()      # picks the right backend
 
 | Done  | Phase | Scope                                                                                          | Risk   |
 | ----- | ----- | ---------------------------------------------------------------------------------------------- | ------ |
-| `[~]` | **0** | Wrap uv discovery behind a feature gate (`SIRIL_USE_UV=1`); ship uv in Win/macOS bundles only. | Low    |
-| `[ ]` | **1** | Default-on uv for venv/install when present; per-script venv still off. Shared `_base` venv.   | Medium |
-| `[ ]` | **2** | Default-on per-script venv with PEP 723 parsing. Legacy scripts keep using `_base`.            | Medium |
+| `[x]` | **0** | Wrap uv discovery behind a feature gate (`SIRIL_USE_UV=1`); ship uv in Win/macOS bundles only. | Low    |
+| `[x]` | **1** | Default-on uv for venv/install when present. Gate inverted to opt-out (`SIRIL_USE_UV=0`).      | Medium |
+| `[x]` | **2** | Default-on per-script venvs with PEP 723 parsing. Opt-out via `SIRIL_PER_SCRIPT_VENVS=0`.      | Medium |
 | `[ ]` | **3** | Migrate scripts repo: add PEP 723 to the most-installed scripts. Update docs.                  | Low    |
 | `[ ]` | **4** | (Optional) Default-on uv-managed Python.                                                       | Low    |
 
