@@ -3120,33 +3120,16 @@ class SirilInterface:
             raise NoImageError(_("Error in get_image(): no image currently loaded in Siril"))
 
         try:
-            # Build format string for struct unpacking
-            # Network byte order for all values
-            format_parts = [
-                'q',  # rx padded to 64bit
-                'q',  # ry padded to 64bit
-                'q',  # naxes[2] padded to 64bit
-                'q',  # bitpix padded to 64bit
-                'q',  # orig_bitpix padded to 64bit
-                'Q',  # gboolean checksum padded to 64bit
-                'd',  # mini
-                'd',  # maxi
-                'd',  # neg_ratio padded to 64bit
-                'Q',  # gboolean top_down (padded to uint64_t)
-                'Q',  # gboolean focalkey (padded to uint64_t)
-                'Q',  # gboolean pixelkey (padded to uint64_t)
-                'Q',  # gboolean color_managed (padded to uint64_t)
-            ]
-
-            format_string = '!' + ''.join(format_parts)
-
-            # Verify data size
-            expected_size = struct.calcsize(format_string)
-            if len(response) != expected_size:
-                raise ValueError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
-
-            # Unpack the binary data
-            values = struct.unpack(format_string, response)
+            # Unpack the FFit core block (mirrors fits_to_py(); 60 bytes
+            # at native widths via FFit.deserialize_core).
+            if len(response) != FFit._CORE_SIZE:
+                raise ValueError(
+                    f"Received image data size {len(response)} doesn't match expected size {FFit._CORE_SIZE}"
+                )
+            (rx, ry, naxes2, bitpix, orig_bitpix, checksum_flag,
+             mini, maxi, neg_ratio,
+             top_down_flag, focalkey_flag, pixelkey_flag,
+             color_managed_flag) = FFit.deserialize_core(response)
 
             # Create FFit object
             try:
@@ -3184,23 +3167,23 @@ class SirilInterface:
                     print(f"Error: failed to retrieve pixel data: {e}")
 
             return FFit(
-                _naxes = (values[0], values[1], values[2]),
-                naxis = 2 if values[2] == 1 else 3,
-                bitpix=values[3],
-                orig_bitpix=values[4],
-                checksum=bool(values[5]),
-                mini=values[6],
-                maxi=values[7],
-                neg_ratio=values[8],
-                top_down=bool(values[9]),
-                _focalkey=bool(values[10]),
-                _pixelkey=bool(values[11]),
-                color_managed=bool(values[12]),
+                _naxes = (rx, ry, naxes2),
+                naxis = 2 if naxes2 == 1 else 3,
+                bitpix=bitpix,
+                orig_bitpix=orig_bitpix,
+                checksum=checksum_flag,
+                mini=mini,
+                maxi=maxi,
+                neg_ratio=neg_ratio,
+                top_down=top_down_flag,
+                _focalkey=focalkey_flag,
+                _pixelkey=pixelkey_flag,
+                color_managed=color_managed_flag,
                 _data = img_pixeldata,
                 stats=[
                     self.get_image_stats(0),
-                    self.get_image_stats(1) if values[2] > 1 else None,
-                    self.get_image_stats(2) if values[2] > 1 else None,
+                    self.get_image_stats(1) if naxes2 > 1 else None,
+                    self.get_image_stats(2) if naxes2 > 1 else None,
                 ],
                 keywords = img_keywords,
                 _icc_profile = img_icc_profile,
@@ -3256,28 +3239,14 @@ class SirilInterface:
 
         try:
             # --- Unpack the core FFit (the fields before the keyword block) ---
-            core_format_parts = [
-                'q',  # rx
-                'q',  # ry
-                'q',  # naxes[2]
-                'q',  # bitpix
-                'q',  # orig_bitpix
-                'Q',  # checksum (padded boolean)
-                'd',  # mini
-                'd',  # maxi
-                'd',  # neg_ratio
-                'Q',  # top_down
-                'Q',  # focalkey
-                'Q',  # pixelkey
-                'Q',  # color_managed
-            ]
-            core_format = '!' + ''.join(core_format_parts)
-            core_size = struct.calcsize(core_format)
+            # Native widths via FFit.deserialize_core (mirrors fits_to_py).
+            core_size = FFit._CORE_SIZE
 
-            # Calculate expected size with shared memory info structs
-            # Header and ICC profile are always included, pixels only if requested
-            shminfo_size = 0
-            shminfo_format = '!Qiiii256s'  # One shm_info_t struct
+            # Calculate expected size with shared memory info structs.
+            # Header and ICC profile are always included; pixels only if requested.
+            # shminfo_format mirrors `shared_memory_info_t` in C: uint64 size,
+            # int data_type/width/height/channels, char shm_name[256].
+            shminfo_format = '=Qiiii256s'
             single_shminfo_size = struct.calcsize(shminfo_format)
 
             # Always include header and ICC profile shared memory info structs
@@ -3292,8 +3261,11 @@ class SirilInterface:
                     f"Received image data size {len(response)} doesn't match expected size {expected_total}"
                 )
 
-            # Unpack core part
-            core_vals = struct.unpack_from(core_format, response, 0)
+            # Unpack core part via the model classmethod
+            (rx, ry, naxes2, bitpix, orig_bitpix, checksum_flag,
+             mini, maxi, neg_ratio,
+             top_down_flag, focalkey_flag, pixelkey_flag,
+             color_managed_flag) = FFit.deserialize_core(response[:core_size])
 
             # Extract keyword block bytes and deserialize them
             kw_offset = core_size
@@ -3422,25 +3394,25 @@ class SirilInterface:
                 buffer = bytearray(shm_icc_profile.buf[:shm_icc_info.size])
                 icc_profile_data = bytes(buffer)  # Convert bytearray copy to immutable bytes
 
-            # Build FFit object using core_vals and fits_keywords
+            # Build FFit object using the core fields + fits_keywords
             fit = FFit(
-                _naxes = (core_vals[0], core_vals[1], core_vals[2]),
-                naxis = 2 if core_vals[2] == 1 else 3,
-                bitpix = core_vals[3],
-                orig_bitpix = core_vals[4],
-                checksum = bool(core_vals[5]),
-                mini = core_vals[6],
-                maxi = core_vals[7],
-                neg_ratio = core_vals[8],
-                top_down = bool(core_vals[9]),
-                _focalkey = bool(core_vals[10]),
-                _pixelkey = bool(core_vals[11]),
-                color_managed = bool(core_vals[12]),
+                _naxes = (rx, ry, naxes2),
+                naxis = 2 if naxes2 == 1 else 3,
+                bitpix = bitpix,
+                orig_bitpix = orig_bitpix,
+                checksum = checksum_flag,
+                mini = mini,
+                maxi = maxi,
+                neg_ratio = neg_ratio,
+                top_down = top_down_flag,
+                _focalkey = focalkey_flag,
+                _pixelkey = pixelkey_flag,
+                color_managed = color_managed_flag,
                 _data = pixeldata,
                 stats = [
                     self.get_seq_stats(frame, 0),
-                    self.get_seq_stats(frame, 1) if core_vals[2] > 1 else None,
-                    self.get_seq_stats(frame, 2) if core_vals[2] > 1 else None,
+                    self.get_seq_stats(frame, 1) if naxes2 > 1 else None,
+                    self.get_seq_stats(frame, 2) if naxes2 > 1 else None,
                 ],
                 keywords = fits_keywords,
                 _icc_profile = icc_profile_data,

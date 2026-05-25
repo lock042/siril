@@ -167,30 +167,38 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	return 0;
 }
 
+// Native widths (mirrors FFit.deserialize_core in models.py):
+// 5 uint32 (rx, ry, naxes[2], bitpix, orig_bitpix) + 1 int32
+// (checksum gboolean) + 2 doubles (mini, maxi) + 1 float (neg_ratio)
+// + 4 int32 (gboolean top_down/focalkey/pixelkey/color_managed)
+// = 20 + 4 + 16 + 4 + 16 = 60 bytes. Was 13 × 8 = 104.
 static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	if (!fit || !ptr)
 		return 1;
 
 	unsigned char *start_ptr = ptr;
 
-	// Copy numeric values with proper byte order conversion. All
-	// types shorter than 64bit are converted to 64bit types before
-	// endianness conversion and transmission, to simplify the data
-	COPY_FIELD((int64_t) fit->rx, int64_t);
-	COPY_FIELD((int64_t) fit->ry, int64_t);
-	COPY_FIELD((int64_t) fit->naxes[2], int64_t);
-	COPY_FIELD((int64_t) fit->bitpix, int64_t);
-	COPY_FIELD((int64_t) fit->orig_bitpix, int64_t);
-	COPY_FIELD((uint64_t) fit->checksum, uint64_t);
+	COPY_FIELD(fit->rx, unsigned int);                // uint32
+	COPY_FIELD(fit->ry, unsigned int);                // uint32
+	COPY_FIELD((int32_t) fit->naxes[2], int32_t);     // long → int32 (channels <= 3)
+	COPY_FIELD(fit->bitpix, int);                     // int32
+	COPY_FIELD(fit->orig_bitpix, int);                // int32
+	COPY_FIELD((int32_t) fit->checksum, int32_t);     // gboolean → int32
 	COPY_FIELD(fit->mini, double);
 	COPY_FIELD(fit->maxi, double);
-	COPY_FIELD((double) fit->neg_ratio, double);
-	COPY_FIELD((uint64_t) fit->top_down, uint64_t);
-	COPY_FIELD((uint64_t) fit->focalkey, uint64_t);
-	COPY_FIELD((uint64_t) fit->pixelkey, uint64_t);
-	COPY_FIELD((uint64_t) fit->color_managed, uint64_t);
+	COPY_FIELD(fit->neg_ratio, float);                // float32
+	COPY_FIELD((int32_t) fit->top_down, int32_t);     // gboolean → int32
+	COPY_FIELD((int32_t) fit->focalkey, int32_t);     // gboolean → int32
+	COPY_FIELD((int32_t) fit->pixelkey, int32_t);     // gboolean → int32
+	COPY_FIELD((int32_t) fit->color_managed, int32_t); // gboolean → int32
 	return 0;
 }
+
+// Wire size of one fits_to_py block. Use this rather than the magic
+// `sizeof(uint64_t) * 13` constant (= 104) that the pre-audit code
+// scattered across three call sites.
+#define FITS_TO_PY_SIZE (5 * sizeof(uint32_t) + sizeof(int32_t) \
+		+ 2 * sizeof(double) + sizeof(float) + 4 * sizeof(int32_t))
 
 // Serialise a Homography at native field widths: 9 doubles + 2 ints
 // = 80 bytes. Mirrors Homography.deserialize() in sirilpy/models.py.
@@ -1815,7 +1823,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
+			size_t ffit_size = FITS_TO_PY_SIZE;
 			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
 			// Numeric fields written by keywords_to_py at native widths
 			// (see plan §4.2bis): 26 doubles, 2 floats, 2 WORDs, 3 uint32,
@@ -2150,7 +2158,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
+			size_t total_size = FITS_TO_PY_SIZE;
 
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -2851,7 +2859,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(filepath);
 
 			// Calculate size needed for the response (same as sequence frame)
-			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
+			size_t ffit_size = FITS_TO_PY_SIZE;
 			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
 			// Numeric fields written by keywords_to_py at native widths
 			// (see plan §4.2bis): 26 doubles, 2 floats, 2 WORDs, 3 uint32,

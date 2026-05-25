@@ -387,6 +387,41 @@ class FFit:
     color_managed: bool = False #: Specifies whether the image is color managed or not.
     _icc_profile: Optional[bytes] = None #: Holds the ICC profile for the image as Bytes. This can be used by some modules including pillow.
 
+    # Wire format mirrors fits_to_py() in C at native widths (plan §4.2bis):
+    # 5 uint32 (rx, ry, naxes[2], bitpix, orig_bitpix) + 1 int32 checksum
+    # (gboolean) + 2 doubles (mini, maxi) + 1 float (neg_ratio) + 4 int32
+    # gbooleans (top_down, focalkey, pixelkey, color_managed)
+    # = 20 + 4 + 16 + 4 + 16 = 60 bytes.
+    _CORE_FORMAT: ClassVar[str] = '=IIIii i dd f iiii'.replace(' ', '')
+    _CORE_SIZE: ClassVar[int] = struct.calcsize(_CORE_FORMAT)
+
+    @classmethod
+    def deserialize_core(cls, data: bytes) -> Tuple[int, int, int, int, int, bool,
+                                                     float, float, float,
+                                                     bool, bool, bool, bool]:
+        """
+        Decode the 60-byte fits_to_py core block (the ffit fields before
+        the embedded keyword struct). Returns a 13-tuple in field order:
+        (rx, ry, naxes2, bitpix, orig_bitpix, checksum,
+         mini, maxi, neg_ratio,
+         top_down, focalkey, pixelkey, color_managed)
+
+        Callers compose the rest of an FFit themselves (keywords / stats /
+        pixeldata are fetched via separate calls or come from following
+        bytes in the response buffer).
+        """
+        if len(data) < cls._CORE_SIZE:
+            raise ValueError(
+                f"FFit core wire size {len(data)} smaller than expected {cls._CORE_SIZE}"
+            )
+        v = struct.unpack(cls._CORE_FORMAT, data[:cls._CORE_SIZE])
+        return (
+            v[0], v[1], v[2], v[3], v[4],     # rx, ry, naxes[2], bitpix, orig_bitpix
+            bool(v[5]),                        # checksum
+            v[6], v[7], v[8],                  # mini, maxi, neg_ratio
+            bool(v[9]), bool(v[10]), bool(v[11]), bool(v[12]),  # gbooleans
+        )
+
     def __post_init__(self):
         """Initialize after creation"""
         if self.history is None:
