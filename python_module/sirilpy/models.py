@@ -52,7 +52,12 @@ class ImageStats:
         Raises: SirilError: If received data size is incorrect
                 struct.error: If unpacking fails
         """
-        format_string = '!2q12d'  # '!' ensures network byte order
+        # Native byte order, standard sizes, no alignment — same-machine
+        # IPC, matches `COPY_FIELD(stats->total, int64_t)` etc. in
+        # imstats_to_py(). The C side keeps the explicit int64_t cast
+        # for total/ngoodpix because `long` is 4 bytes on Windows; the
+        # wire is always 8 bytes per int64.
+        format_string = '=2q12d'
 
         # Calculate expected size
         expected_size = struct.calcsize(format_string)
