@@ -129,6 +129,16 @@ from .gpuhelper import (
     ONNXHelper,
     TorchHelper,
     JaxHelper,
+    # Introduced in sirilpy 1.1.21 — authoritative GPU preference config.
+    # See docstrings in gpuhelper.py. Scripts wanting Siril 1.4 compat
+    # must gate calls on check_module_version(">=1.1.21") (or hasattr).
+    load_gpu_preferences,
+    record_torch_preference,
+    record_onnxruntime_preference,
+    record_jax_preference,
+    clear_torch_preference,
+    clear_onnxruntime_preference,
+    clear_jax_preference,
 )
 from .exceptions import (
     SirilError,
@@ -188,6 +198,14 @@ __all__ = [
     'ONNXHelper',
     'TorchHelper',
     'JaxHelper',
+    # New in 1.1.21 — GPU prefs config (see gpuhelper.py docstrings):
+    'load_gpu_preferences',
+    'record_torch_preference',
+    'record_onnxruntime_preference',
+    'record_jax_preference',
+    'clear_torch_preference',
+    'clear_onnxruntime_preference',
+    'clear_jax_preference',
     'human_readable_size',
     'download_with_progress',
     'LogColor',

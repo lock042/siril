@@ -5193,6 +5193,18 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (debug_mode)
 		env = g_environ_setenv(env, "SIRIL_PYTHON_DEBUG", "1", TRUE);
 
+	// Tell the child process where Siril's user data dir is so sirilpy
+	// (and any other Python helper) can find sibling files like
+	// gpu-prefs.json (set by sirilpy.gpuhelper.record_*_preference()) and
+	// script_venvs.json without duplicating GLib's user-data-dir
+	// resolution logic in Python.
+	{
+		gchar *siril_data_dir = g_build_filename(g_get_user_data_dir(),
+				"siril", NULL);
+		env = g_environ_setenv(env, "SIRIL_DATA_DIR", siril_data_dir, TRUE);
+		g_free(siril_data_dir);
+	}
+
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
 
