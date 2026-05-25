@@ -192,25 +192,32 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	return 0;
 }
 
+// Serialise a Homography at native field widths: 9 doubles + 2 ints
+// = 80 bytes. Mirrors Homography.deserialize() in sirilpy/models.py.
 static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxlen) {
 	if (!H || !ptr)
 		return 1;
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_FIELD((double) H->h00, double);
-	COPY_FIELD((double) H->h01, double);
-	COPY_FIELD((double) H->h02, double);
-	COPY_FIELD((double) H->h10, double);
-	COPY_FIELD((double) H->h11, double);
-	COPY_FIELD((double) H->h12, double);
-	COPY_FIELD((double) H->h20, double);
-	COPY_FIELD((double) H->h21, double);
-	COPY_FIELD((double) H->h22, double);
-	COPY_FIELD((int64_t) H->pair_matched, int64_t);
-	COPY_FIELD((int64_t) H->Inliers, int64_t);
+	COPY_FIELD(H->h00, double);
+	COPY_FIELD(H->h01, double);
+	COPY_FIELD(H->h02, double);
+	COPY_FIELD(H->h10, double);
+	COPY_FIELD(H->h11, double);
+	COPY_FIELD(H->h12, double);
+	COPY_FIELD(H->h20, double);
+	COPY_FIELD(H->h21, double);
+	COPY_FIELD(H->h22, double);
+	COPY_FIELD(H->pair_matched, int);  // int32
+	COPY_FIELD(H->Inliers, int);       // int32
 	return 0;
 }
+
+// Serialised wire size of a Homography (mirrors homography_to_py
+// above and Homography.deserialize() / serialize() in
+// sirilpy/models.py). Use this instead of `11 * sizeof(double)`.
+#define HOMOGRAPHY_WIRE_SIZE (9 * sizeof(double) + 2 * sizeof(int32_t))
 
 static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
 						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
@@ -259,13 +266,16 @@ static int regdata_to_py(const regdata *regparam, unsigned char *ptr, size_t max
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_FIELD((double) regparam->fwhm, double);
-	COPY_FIELD((double) regparam->weighted_fwhm, double);
-	COPY_FIELD((double) regparam->roundness, double);
+	// Native widths: 3 floats + 1 double + 1 float + 1 int32 + Homography
+	// = 28 + 80 = 108 bytes. Mirrors RegData.deserialize() in
+	// sirilpy/models.py.
+	COPY_FIELD(regparam->fwhm, float);
+	COPY_FIELD(regparam->weighted_fwhm, float);
+	COPY_FIELD(regparam->roundness, float);
 	COPY_FIELD(regparam->quality, double);
-	COPY_FIELD((double) regparam->background_lvl, double);
-	COPY_FIELD((int64_t) regparam->number_of_stars, int64_t);
-	homography_to_py(&regparam->H, ptr, 11 * sizeof(double));
+	COPY_FIELD(regparam->background_lvl, float);
+	COPY_FIELD(regparam->number_of_stars, int);  // int32
+	homography_to_py(&regparam->H, ptr, HOMOGRAPHY_WIRE_SIZE);
 	return 0;
 }
 
@@ -1552,8 +1562,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for response
-			size_t total_size = 6 * sizeof(double) + 11 * sizeof(double);
-				// The representation of Homography is 11 x 64-bit vars
+			// RegData payload at native widths (see regdata_to_py): 3 floats
+			// + 1 double + 1 float + 1 int32 + Homography (80 bytes) =
+			// 108 bytes total.
+			size_t total_size = 3 * sizeof(float) + sizeof(double)
+				+ sizeof(float) + sizeof(int32_t) + HOMOGRAPHY_WIRE_SIZE;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");

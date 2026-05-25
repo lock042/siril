@@ -759,6 +759,35 @@ class Homography:
     pair_matched: int = 0 #: number of pairs matched
     Inliers: int = 0 #: number of inliers kept after RANSAC step
 
+    # Wire format mirrors homography_to_py() in C: 9 doubles + 2 int32 = 80 bytes.
+    _FORMAT: ClassVar[str] = '=9d2i'
+    _SIZE: ClassVar[int] = struct.calcsize('=9d2i')
+
+    def serialize(self) -> bytes:
+        """Pack into the 80-byte wire format used by homography_to_py()."""
+        return struct.pack(
+            self._FORMAT,
+            self.h00, self.h01, self.h02,
+            self.h10, self.h11, self.h12,
+            self.h20, self.h21, self.h22,
+            self.pair_matched, self.Inliers,
+        )
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'Homography':
+        """Decode 80 bytes (homography_to_py) into a Homography object."""
+        if len(data) != cls._SIZE:
+            raise ValueError(
+                f"Homography wire size {len(data)} doesn't match expected {cls._SIZE}"
+            )
+        v = struct.unpack(cls._FORMAT, data)
+        return cls(
+            h00=v[0], h01=v[1], h02=v[2],
+            h10=v[3], h11=v[4], h12=v[5],
+            h20=v[6], h21=v[7], h22=v[8],
+            pair_matched=v[9], Inliers=v[10],
+        )
+
 @dataclass
 class BGSample:
     """
@@ -976,36 +1005,28 @@ class RegData:
             SirilError: If the received data doesn't match the expected size.
             struct.error: If unpacking fails.
         """
-        # Calculate expected size
-        format_string = '!5dQ9d2Q'
-        expected_size = struct.calcsize(format_string)
+        # RegData payload at native widths (mirrors regdata_to_py in C):
+        # 3 floats + 1 double + 1 float + 1 int32, followed by an
+        # embedded Homography (80 bytes). 28 + 80 = 108 bytes total.
+        head_fmt = '=fffdfi'
+        head_size = struct.calcsize(head_fmt)
+        expected_size = head_size + Homography._SIZE
 
-        # Verify we got the expected amount of data
         if len(data) != expected_size:
-            raise SirilError(f"Received stats data size {len(data)} doesn't match expected size {expected_size}")
+            raise SirilError(
+                f"Received regdata size {len(data)} doesn't match expected {expected_size}"
+            )
 
         try:
-            values = struct.unpack(format_string, data)
+            head = struct.unpack(head_fmt, data[:head_size])
             return cls(
-                fwhm=values[0],
-                weighted_fwhm=values[1],
-                roundness=values[2],
-                quality=values[3],
-                background_lvl=values[4],
-                number_of_stars=values[5],
-                H=Homography(
-                    h00=values[6],
-                    h01=values[7],
-                    h02=values[8],
-                    h10=values[9],
-                    h11=values[10],
-                    h12=values[11],
-                    h20=values[12],
-                    h21=values[13],
-                    h22=values[14],
-                    pair_matched=values[15],
-                    Inliers=values[16]
-                )
+                fwhm=head[0],
+                weighted_fwhm=head[1],
+                roundness=head[2],
+                quality=head[3],
+                background_lvl=head[4],
+                number_of_stars=head[5],
+                H=Homography.deserialize(data[head_size:]),
             )
         except struct.error as e:
             raise SirilError(f"Deserialization error: {e}") from e
