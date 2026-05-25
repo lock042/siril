@@ -1242,6 +1242,22 @@ void on_button_python_prune_unused_clicked(gpointer user_data) {
 				"prune.\n"));
 }
 
+/* §4.8.4 cont.: reclaim disk by pruning the uv wheel cache. Removes wheel
+ * entries not referenced by any tracked venv. Pairs naturally with the
+ * "Prune unused script environments" button: prune venvs first to release
+ * references, then click this to collect the orphans. */
+void on_button_python_prune_uv_cache_clicked(gpointer user_data) {
+	GError *err = NULL;
+	if (!prune_uv_cache(&err)) {
+		if (err) {
+			siril_log_error(_("Prune uv cache failed: %s\n"), err->message);
+			g_clear_error(&err);
+		}
+		return;
+	}
+	/* prune_uv_cache() already logs uv's stdout/stderr summary. */
+}
+
 /* these one are not on the preference dialog */
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {

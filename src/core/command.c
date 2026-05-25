@@ -14728,6 +14728,18 @@ int process_pyenv_maint(int nb) {
 		return CMD_OK;
 	}
 
+	if (g_strcmp0(sub, "prune_cache") == 0) {
+		GError *err = NULL;
+		if (!prune_uv_cache(&err)) {
+			if (err) {
+				siril_log_error("%s\n", err->message);
+				g_clear_error(&err);
+			}
+			return CMD_GENERIC_ERROR;
+		}
+		return CMD_OK;
+	}
+
 	siril_log_error(_("pyenv_maint: unknown subcommand '%s'\n"), sub);
 	return CMD_ARG_ERROR;
 }

@@ -5502,7 +5502,7 @@ Some python scripts can be selected to run at startup. These have toggles in the
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
-                                      <!-- n-columns=2 n-rows=3 -->
+                                      <!-- n-columns=2 n-rows=3 (Python maintenance) -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -5590,6 +5590,22 @@ Modules installed at runtime by scripts will be lost. A checkbox in the confirma
                                           <packing>
                                             <property name="left-attach">1</property>
                                             <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="button_python_prune_uv_cache">
+                                            <property name="label" translatable="yes">Prune uv wheel cache</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-markup" translatable="yes">Reclaim disk by deleting cached wheels that are not referenced by any Python environment Siril is tracking. Wheels still in use by another script's environment are kept untouched.
+
+Compose with "Prune unused script environments" for maximum effect: pruning unused environments releases references, then this button collects the now-orphan wheels.</property>
+                                            <signal name="clicked" handler="on_button_python_prune_uv_cache_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">2</property>
                                           </packing>
                                         </child>
                                       </object>

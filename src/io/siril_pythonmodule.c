@@ -4337,6 +4337,92 @@ guint prune_unused_script_venvs(gint max_age_days, GError **error) {
 	return removed;
 }
 
+// Reclaim disk by running `uv cache prune`. This removes wheel cache
+// entries that are not referenced by any of uv's tracked venvs — so
+// torch wheels still in use by another script's venv stay, while
+// genuinely-orphan entries get reclaimed.
+//
+// Composes naturally with prune_unused_script_venvs(): pruning script
+// venvs first releases references; then this call collects the now-
+// unreferenced cache entries.
+//
+// Captures uv's stdout/stderr and forwards both via siril_log_message
+// so the user sees how much was freed.
+//
+// Returns TRUE on success (including the "nothing to prune" case),
+// FALSE on failure (uv not in use, spawn failure, non-zero exit) with
+// *error set when applicable.
+gboolean prune_uv_cache(GError **error) {
+	// uv discovery happens inside the python init thread (via
+	// probe_uv_executable). For CLI-driven invocations the script
+	// dispatcher can fire before that thread has finished, in which case
+	// get_uv_executable_path() would return NULL and we'd report "uv is
+	// not in use" even when uv is installed. Wait first.
+	wait_for_python_init();
+
+	const gchar *uv_path = get_uv_executable_path();
+	if (!uv_path) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+				"uv is not in use; nothing to prune");
+		siril_log_message(_("uv is not in use; nothing to prune.\n"));
+		return FALSE;
+	}
+
+	gchar *project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	gchar *argv[] = {
+		(gchar *)uv_path, "cache", "prune", NULL
+	};
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);
+
+	gchar *std_out = NULL;
+	gchar *std_err = NULL;
+	gint exit_status = 0;
+	GError *spawn_err = NULL;
+	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
+			NULL, NULL, &std_out, &std_err, &exit_status, &spawn_err);
+	g_strfreev(env);
+	g_free(project_path);
+
+	if (!spawned) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to spawn uv: %s",
+				spawn_err ? spawn_err->message : "unknown");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"uv cache prune failed: %s%s%s",
+				spawn_err ? spawn_err->message : "non-zero exit",
+				std_err && *std_err ? "\n" : "",
+				std_err ? std_err : "");
+		g_clear_error(&spawn_err);
+		g_free(std_out);
+		g_free(std_err);
+		return FALSE;
+	}
+
+	// uv writes its progress / summary to stderr ("DEBUG Removed N
+	// files, ..." or "Removed N entries from the cache.") and an
+	// occasional informational message to stdout. Surface both so the
+	// user sees how much was reclaimed.
+	if (std_out && *std_out) {
+		g_strstrip(std_out);
+		siril_log_message("%s\n", std_out);
+	}
+	if (std_err && *std_err) {
+		g_strstrip(std_err);
+		siril_log_message("%s\n", std_err);
+	}
+	g_free(std_out);
+	g_free(std_err);
+	return TRUE;
+}
+
 // Resolve the Python interpreter we will hand to `uv venv --python`.
 //
 // Order of preference:

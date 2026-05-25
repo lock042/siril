@@ -329,6 +329,10 @@ void rebuild_all_python_state(gboolean clear_cache);
 // §4.8.4: maintenance — remove venvs whose script_path no longer exists OR
 // whose last_used is older than max_age_days. Returns count removed.
 guint prune_unused_script_venvs(gint max_age_days, GError **error);
+// §4.8.4 cont.: reclaim disk by pruning unreachable uv cache entries.
+// Wheels still referenced by another venv stay; only orphans go.
+// Returns FALSE on failure (uv not in use, spawn fail, non-zero exit).
+gboolean prune_uv_cache(GError **error);
 
 gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic);
 

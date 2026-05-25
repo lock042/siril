@@ -579,6 +579,16 @@ environments…".
 - [x] Preferences UI: "Clean up unused script environments" button
       with an editable age threshold (default 90 days)
 
+##### Bonus: `prune_uv_cache()` — reclaim disk from wheel cache
+
+- [x] C-side function that shells out to `uv cache prune`
+- [x] `pyenv_maint prune_cache` CLI subcommand
+- [x] Preferences UI: "Prune uv wheel cache" button in the same grid
+- [x] Pairs with `prune_unused_script_venvs`: prune venvs first to
+      release wheel references, then prune the cache to collect the
+      now-orphaned wheels. Both buttons live next to each other in
+      Preferences → Python Interface for that reason.
+
 Scope:
 
 * Walk the ledger.
