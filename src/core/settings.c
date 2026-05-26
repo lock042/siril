@@ -71,6 +71,17 @@ preferences pref_init = {
 	.auto_script_update = TRUE,
 	.drizz_weight_match_bitpix = FALSE,
 	.default_mask_bitpix = 8,
+	.python = {
+		// uv ships with Siril on all binary builds (Windows / macOS /
+		// AppImage / Flatpak), so the default-on case is the common one.
+		// Self-builders without uv fall through to system Python via
+		// resolve_system_python_for_uv() with a log warning.
+		.uv_managed = TRUE,
+		// Default to 3.13 — current `.0.x` series, well-tested, all the
+		// pinned-dep wheels we care about (numpy, scipy, astropy, torch,
+		// opencv) ship cp313 wheels.
+		.uv_python_version = NULL,  // resolved to "3.13" by initialize_default_settings
+	},
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -313,6 +324,8 @@ void free_preferences(preferences *pref) {
 	pref->fftw_conf.wisdom_file = NULL;
 	g_free(pref->astrometry.default_obscode);
 	pref->astrometry.default_obscode = NULL;
+	g_free(pref->python.uv_python_version);
+	pref->python.uv_python_version = NULL;
 }
 
 void set_wisdom_file() {
@@ -339,6 +352,7 @@ void initialize_default_settings() {
 	com.pref.ext = g_strdup(".fit");
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
+	com.pref.python.uv_python_version = g_strdup("3.13");
 	initialize_local_catalogues_paths();
 	initialize_configurable_colors();
 }
@@ -506,6 +520,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
 	{ "gui", "startup_scripts", STYPE_STRLIST, N_("list of scripts selected to run at startup"), &com.pref.startup_scripts },
+	{ "python", "uv_managed", STYPE_BOOL, N_("use a uv-managed Python interpreter for the base venv"), &com.pref.python.uv_managed },
+	{ "python", "uv_python_version", STYPE_STR, N_("Python minor version to ask uv to install (e.g. \"3.13\")"), &com.pref.python.uv_python_version },
 	{ "gui", "warn_scripts_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_scripts_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },

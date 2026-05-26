@@ -381,6 +381,21 @@ struct spcc_favourites {
 	double blue_bw;
 };
 
+struct python_config {
+	// Whether the base venv (and per-script venvs that inherit from
+	// it) use a uv-managed Python interpreter rather than the system
+	// Python on PATH / in the Siril bundle. Defaults to TRUE — uv is
+	// bundled in the Windows / macOS / AppImage / Flatpak builds, so
+	// only self-builders without uv installed see the legacy
+	// fallback path.
+	gboolean uv_managed;
+	// Minor Python version string ("3.11", "3.12", "3.13", "3.14")
+	// to ask uv to install. Updated at release time when CPython
+	// publishes a new minor and an older one falls off the supported
+	// list — see the comment on the version combo in settings_window.ui.
+	gchar *uv_python_version;
+};
+
 /**
  * This is the preference structure.
  * WARNING!!
@@ -443,6 +458,8 @@ struct pref_struct {
 	gboolean auto_script_update; // automatically update scripts repository at startup
 	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
 	int default_mask_bitpix; // Default bit depth for masks. 8, 16 or 32; -1 = same as image. Default: 8
+
+	struct python_config python; // uv-managed Python interpreter prefs (Scripts tab)
 };
 
 typedef struct pref_struct preferences;

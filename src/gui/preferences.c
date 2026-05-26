@@ -94,6 +94,15 @@ static gchar *sw_dir = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
 static gboolean update_custom_gamut = FALSE;
+
+// Re-entry guards for the Python interpreter widgets. When the user
+// cancels the confirmation dialog we revert the widget programmatically;
+// the guard prevents the resulting "toggled" / "changed" signal from
+// re-opening the dialog.
+static gboolean python_uv_widget_reverting = FALSE;
+// Remembers the version that was either loaded from prefs at dialog-open
+// time or last confirmed by the user, so we can revert to it on cancel.
+static gchar *python_uv_version_confirmed = NULL;
 void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
@@ -286,6 +295,16 @@ static void update_scripts_preferences() {
 	com.pref.use_scripts_repository = FALSE;
 	com.pref.spcc.use_spcc_repository = FALSE;
 #endif
+	// Python interpreter section. Confirmation already happened at widget-
+	// change time (see on_checkbutton_python_uv_managed_toggled /
+	// on_combo_python_uv_version_changed); here we just snapshot the
+	// current widget state into the pref struct.
+	com.pref.python.uv_managed = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_python_uv_managed")));
+	const gchar *combo_id = gtk_combo_box_get_active_id(
+			GTK_COMBO_BOX(lookup_widget("combo_python_uv_version")));
+	g_free(com.pref.python.uv_python_version);
+	com.pref.python.uv_python_version = g_strdup(combo_id ? combo_id : "3.13");
 }
 
 static void update_user_interface_preferences() {
@@ -939,6 +958,35 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")), pref->spcc.use_spcc_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")), pref->spcc.auto_spcc_update);
 
+	/* Scripts tab — Python interpreter section. Guard against re-entry so the
+	 * programmatic widget set doesn't trigger our confirmation dialog. */
+	python_uv_widget_reverting = TRUE;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_python_uv_managed")),
+			pref->python.uv_managed);
+	const gchar *want_version = (pref->python.uv_python_version && *pref->python.uv_python_version)
+			? pref->python.uv_python_version : "3.13";
+	if (!gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combo_python_uv_version")),
+			want_version)) {
+		// Pref holds a version not in our hardcoded list (e.g. user
+		// edited the ini directly, or an older build wrote "3.10").
+		// Fall back to the default rather than leaving the combo
+		// blank, which would confuse the next save.
+		gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combo_python_uv_version")),
+				"3.13");
+	}
+	g_free(python_uv_version_confirmed);
+	python_uv_version_confirmed = g_strdup(
+			gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combo_python_uv_version"))));
+	python_uv_widget_reverting = FALSE;
+
+	// Greyed-out controls + warning label when uv isn't available. The
+	// pref values still get saved as the user set them; they just won't
+	// take effect until uv is installed.
+	gboolean uv_present = uv_executable_available();
+	gtk_widget_set_sensitive(lookup_widget("checkbutton_python_uv_managed"), uv_present);
+	gtk_widget_set_sensitive(lookup_widget("box_python_version_row"), uv_present && pref->python.uv_managed);
+	gtk_widget_set_visible(lookup_widget("label_python_uv_missing_warn"), !uv_present);
+
 	/* tab Performances */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);
@@ -1170,6 +1218,67 @@ gchar *get_swap_dir() {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
 	return sw_dir;
+}
+
+/* Scripts tab — uv-managed Python checkbox. Toggling the box rebuilds the
+ * interpreter on the next venv-init, so warn the user and offer an undo.
+ * On Cancel we revert the widget; the re-entry guard prevents the revert
+ * from re-firing this same handler. */
+void on_checkbutton_python_uv_managed_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (python_uv_widget_reverting)
+		return;
+	gboolean now_on = gtk_toggle_button_get_active(button);
+	gboolean was_on = com.pref.python.uv_managed;
+	if (now_on == was_on)
+		return;  // nothing to do (e.g. opened-then-closed without changing)
+
+	int confirm = siril_confirm_dialog(
+			_("Change Python interpreter source?"),
+			_("Are you sure you want to do this? You will need to rebuild "
+			  "Python environments to enact the change, which may involve "
+			  "significant dependency downloads."),
+			_("Change"));
+	if (!confirm) {
+		python_uv_widget_reverting = TRUE;
+		gtk_toggle_button_set_active(button, was_on);
+		python_uv_widget_reverting = FALSE;
+		return;
+	}
+
+	// Combo sensitivity follows the new state. (Visibility of the warning
+	// label is uv-availability driven and doesn't change here.)
+	gtk_widget_set_sensitive(lookup_widget("box_python_version_row"),
+			now_on && uv_executable_available());
+}
+
+/* Scripts tab — Python version combo. Same confirmation flow as the
+ * checkbox above. We track the previously-confirmed version in
+ * python_uv_version_confirmed so we can revert correctly on cancel. */
+void on_combo_python_uv_version_changed(GtkComboBox *combo, gpointer user_data) {
+	if (python_uv_widget_reverting)
+		return;
+	const gchar *new_id = gtk_combo_box_get_active_id(combo);
+	if (!new_id)
+		return;
+	if (python_uv_version_confirmed
+			&& g_strcmp0(new_id, python_uv_version_confirmed) == 0)
+		return;
+
+	int confirm = siril_confirm_dialog(
+			_("Change Python version?"),
+			_("Are you sure you want to do this? You will need to rebuild "
+			  "Python environments to enact the change, which may involve "
+			  "significant dependency downloads."),
+			_("Change"));
+	if (!confirm) {
+		python_uv_widget_reverting = TRUE;
+		gtk_combo_box_set_active_id(combo,
+				python_uv_version_confirmed ? python_uv_version_confirmed : "3.13");
+		python_uv_widget_reverting = FALSE;
+		return;
+	}
+	g_free(python_uv_version_confirmed);
+	python_uv_version_confirmed = g_strdup(new_id);
 }
 
 /* §4.8.3: nuclear option. The historical "Reset python venv" button keeps

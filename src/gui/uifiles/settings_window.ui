@@ -5502,6 +5502,114 @@ Some python scripts can be selected to run at startup. These have toggles in the
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">12</property>
+                                        <!-- Interpreter section -->
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkCheckButton" id="checkbutton_python_uv_managed">
+                                                <property name="label" translatable="yes">Use uv-managed Python interpreter</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">False</property>
+                                                <property name="tooltip-markup" translatable="yes">When enabled, Siril asks &lt;b&gt;uv&lt;/b&gt; to download and manage the Python interpreter used for scripts, isolated from system Python. Disable to use the Python installed on your system. Bundled Siril builds (Windows, macOS, AppImage, Flatpak) ship uv; only self-builders need to install it separately.</property>
+                                                <property name="draw-indicator">True</property>
+                                                <signal name="toggled" handler="on_checkbutton_python_uv_managed_toggled" swapped="no"/>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox" id="box_python_version_row">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="orientation">horizontal</property>
+                                                <property name="spacing">6</property>
+                                                <property name="margin-start">24</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">Python version:</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <!-- Combo entries are hardcoded to the four most-recent CPython
+                                                       minors (3.14, 3.13, 3.12, 3.11). Refresh this list at each
+                                                       CPython.org release when a new minor ships and an older one
+                                                       falls off the supported list. Live-fetching uv python list
+                                                       was considered but the cost (subprocess + JSON parse on
+                                                       every settings-dialog open) outweighed the benefit given
+                                                       the yearly cadence. -->
+                                                  <object class="GtkComboBoxText" id="combo_python_uv_version">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Python minor version that uv will install and use. Changing this requires rebuilding the Python environments.</property>
+                                                    <items>
+                                                      <item id="3.14" translatable="no">3.14</item>
+                                                      <item id="3.13" translatable="no">3.13</item>
+                                                      <item id="3.12" translatable="no">3.12</item>
+                                                      <item id="3.11" translatable="no">3.11</item>
+                                                    </items>
+                                                    <signal name="changed" handler="on_combo_python_uv_version_changed" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <!-- Shown only when uv-managed Python is enabled but uv is not
+                                                   installed (resolve_uv_path() returns NULL). The
+                                                   preferences.c init code calls gtk_widget_set_visible() based
+                                                   on that. -->
+                                              <object class="GtkLabel" id="label_python_uv_missing_warn">
+                                                <property name="visible">False</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="margin-start">24</property>
+                                                <property name="label" translatable="yes">⚠ uv was not found on this system. The interpreter setting will be ignored and Siril will fall back to the system Python. Install uv (https://docs.astral.sh/uv/) or use a bundled Siril build to enable uv-managed Python.</property>
+                                                <property name="wrap">True</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <!-- Existing maintenance grid -->
+                                        <child>
                                       <!-- n-columns=2 n-rows=3 (Python maintenance) -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
@@ -5606,6 +5714,13 @@ Compose with "Prune unused script environments" for maximum effect: pruning unus
                                           <packing>
                                             <property name="left-attach">0</property>
                                             <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
                                           </packing>
                                         </child>
                                       </object>

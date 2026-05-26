@@ -318,6 +318,12 @@ void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
 // §4.8.1: surgical — reset just the base venv (cache + per-script venvs preserved).
 void rebuild_base_venv(void);
+
+// Returns TRUE if a uv executable can currently be located (PATH lookup
+// or SIRIL_UV override). Used by the Scripts preferences pane to show /
+// hide the "uv not found" warning next to the uv-managed-Python toggle.
+// Cheap (no subprocess); does NOT validate the version.
+gboolean uv_executable_available(void);
 // §4.8.2: surgical — reset one per-script venv. Takes the script's *path*; the
 // hash is computed internally to match `select_venv_for_script`. Returns TRUE
 // when the venv was removed, FALSE if nothing to do (no ledger entry / no

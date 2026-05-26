@@ -93,6 +93,8 @@ static const gchar *get_uv_executable_path(void);
 static void clear_uv_state(void);
 static gchar *get_uv_managed_python_token(void);
 static void inject_uv_env(gchar ***env, const gchar *project_path);
+static gboolean managed_python_already_installed(const gchar *project_path,
+		const gchar *version_token);
 static gboolean install_or_update_sirilpy_module(const gchar *module_path,
                                                  const gchar *user_module_path,
                                                  const gchar *venv_path,
@@ -2004,6 +2006,16 @@ static gchar *find_uv_executable(GError **error) {
 	return NULL;
 }
 
+// Public counterpart used by the preferences UI (see header). Just calls
+// find_uv_executable() and discards the error; the actual probe + version
+// check happens later in probe_uv_executable() at python-venv-init time.
+gboolean uv_executable_available(void) {
+	gchar *uv = find_uv_executable(NULL);
+	if (!uv) return FALSE;
+	g_free(uv);
+	return TRUE;
+}
+
 // Run `uv --version` and confirm the parsed version is >= min_version.
 // On success returns TRUE; on failure returns FALSE with *error set.
 static gboolean validate_uv_version(const gchar *uv_path,
@@ -2089,8 +2101,9 @@ static void probe_uv_executable(void) {
 	GError *error = NULL;
 	gchar *uv = find_uv_executable(&error);
 	if (!uv) {
-		siril_log_message(_("SIRIL_USE_UV is set but uv was not found: %s. "
-				"Legacy pip path will be used.\n"),
+		siril_log_message(_("uv was not found (%s). Legacy pip path will "
+				"be used; install uv to enable the uv-managed Python "
+				"interpreter and faster venv setup.\n"),
 				error ? error->message : "unknown");
 		g_clear_error(&error);
 		return;
@@ -2140,13 +2153,50 @@ static void clear_uv_state(void) {
 //
 // Phase 0 wiring: env-var gated, no preference UI yet (§4.4 plan checklist:
 // "Preference added" remains unticked until the prefs panel work lands).
+// Resolve "do we want uv to manage the interpreter, and if so which minor
+// version?" from env-var override + preferences. Returns NULL when we
+// should fall through to system Python (PATH / bundle); otherwise a
+// freshly-g_strdup'd version token like "3.13" that uv accepts as
+// `--python <token>`.
+//
+// Precedence:
+//   1. SIRIL_UV_MANAGED_PYTHON env var — useful for CI and the
+//      AppImage/Flatpak builders. Values:
+//        "0" / "off" / "false"  → force off (overrides pref-on)
+//        "1" / "on" / "true"    → force on with the pref-selected
+//                                  version
+//        "3.13" / "3.12" / …    → force on with the given version
+//        unset / empty          → fall through to pref
+//   2. com.pref.python.uv_managed + com.pref.python.uv_python_version.
+//
+// Caller frees the returned string.
 static gchar *get_uv_managed_python_token(void) {
 	const gchar *gate = g_getenv("SIRIL_UV_MANAGED_PYTHON");
-	if (!gate || g_strcmp0(gate, "1") != 0)
+	if (gate && *gate) {
+		// Explicit off: "0", "off", "false" (case-insensitive).
+		if (g_strcmp0(gate, "0") == 0
+				|| g_ascii_strcasecmp(gate, "off") == 0
+				|| g_ascii_strcasecmp(gate, "false") == 0)
+			return NULL;
+		// Explicit on with a specific version: anything that doesn't
+		// match the "boolean true" tokens is taken as a version string.
+		if (g_strcmp0(gate, "1") != 0
+				&& g_ascii_strcasecmp(gate, "on") != 0
+				&& g_ascii_strcasecmp(gate, "true") != 0)
+			return g_strdup(gate);
+		// Boolean true: fall through to the pref-selected version.
+	}
+
+	if (!com.pref.python.uv_managed)
 		return NULL;
-	// Pin to a known-good Python series. Bump in lock-step with our minimum
-	// supported sirilpy interpreter (currently 3.9 per pyproject.toml).
-	return g_strdup("3.12");
+
+	// pref.python.uv_python_version is initialised to "3.13" in
+	// initialize_default_settings(); be defensive against an ini that
+	// somehow blanked it out.
+	const gchar *ver = com.pref.python.uv_python_version;
+	if (!ver || !*ver)
+		ver = "3.13";
+	return g_strdup(ver);
 }
 
 // PEP 723 inline script metadata. We only care about the `dependencies`
@@ -2775,6 +2825,18 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	};
 	gchar **env = g_get_environ();
 	inject_uv_env(&env, project_path);
+	// Same heads-up as the base-venv path: spawn is silent until completion,
+	// so a first-time interpreter download looks like a hang otherwise.
+	// (Base venv normally runs first and primes the cache, so this branch
+	// only fires when the user just changed Python versions in prefs.)
+	gchar *managed_for_script = get_uv_managed_python_token();
+	if (managed_for_script && !managed_python_already_installed(project_path, managed_for_script)) {
+		siril_log_message(_("Downloading Python %s interpreter for per-script "
+				"venv (first-time setup may take up to a minute)…\n"),
+				managed_for_script);
+	}
+	g_free(managed_for_script);
+	siril_log_message(_("Creating per-script Python venv with uv: %s\n"), venv_path);
 	gchar *std_err = NULL;
 	gint exit_status = 0;
 	gboolean ok = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
@@ -2956,20 +3018,56 @@ static gchar *select_venv_for_script(const gchar *venv_identity_path,
 // Pins UV_CACHE_DIR to project_path/uv-cache so that hardlink dedup stays on
 // the same volume as the venvs (critical on Windows multi-drive layouts).
 // Sets UV_PYTHON_INSTALL_DIR when managed Python is on so the downloaded
-// toolchain lives next to the rest of the Siril Python data.
+// toolchain lives next to the rest of the Siril Python data. The
+// "managed Python is on" check matches get_uv_managed_python_token()
+// (env var override → pref toggle), so the install-dir override is
+// consistent with whether uv will actually fetch its own interpreter.
 static void inject_uv_env(gchar ***env, const gchar *project_path) {
 	gchar *cache_dir = g_build_filename(project_path, "uv-cache", NULL);
 	*env = g_environ_setenv(*env, "UV_CACHE_DIR", cache_dir, TRUE);
 	*env = g_environ_setenv(*env, "UV_NO_PROGRESS", "1", TRUE);
 	g_free(cache_dir);
 
-	const gchar *managed_gate = g_getenv("SIRIL_UV_MANAGED_PYTHON");
-	if (managed_gate && g_strcmp0(managed_gate, "1") == 0) {
+	gchar *managed = get_uv_managed_python_token();
+	if (managed) {
 		gchar *python_install_dir = g_build_filename(project_path, "python", NULL);
 		*env = g_environ_setenv(*env, "UV_PYTHON_INSTALL_DIR",
 				python_install_dir, TRUE);
 		g_free(python_install_dir);
+		g_free(managed);
 	}
+}
+
+// Returns TRUE if uv's managed Python install dir already contains an
+// interpreter for the requested minor version (e.g. "3.13" matches
+// `<install_dir>/cpython-3.13.0-linux-x86_64-gnu/`). Used to decide
+// whether the next `uv venv` is going to trigger a multi-minute
+// interpreter download or just reuse the cached one. Best-effort: a
+// FALSE return means "we couldn't see it"; the spawn may still complete
+// quickly if uv finds it via some other mechanism.
+static gboolean managed_python_already_installed(const gchar *project_path,
+		const gchar *version_token) {
+	if (!project_path || !version_token || !*version_token)
+		return FALSE;
+	gchar *install_dir = g_build_filename(project_path, "python", NULL);
+	GDir *dir = g_dir_open(install_dir, 0, NULL);
+	g_free(install_dir);
+	if (!dir)
+		return FALSE;
+	// uv names entries `cpython-<full version>-<platform>`; match on the
+	// minor prefix so "3.13" finds "cpython-3.13.0-linux-…".
+	gchar *prefix = g_strdup_printf("cpython-%s.", version_token);
+	gboolean found = FALSE;
+	const gchar *name;
+	while ((name = g_dir_read_name(dir)) != NULL) {
+		if (g_str_has_prefix(name, prefix)) {
+			found = TRUE;
+			break;
+		}
+	}
+	g_free(prefix);
+	g_dir_close(dir);
+	return found;
 }
 
 static gchar* get_setup_path(const gchar* module_dir) {
@@ -4523,6 +4621,16 @@ static gboolean uv_create_or_check_base_venv(const gchar *project_path,
 	gchar **env = g_get_environ();
 	inject_uv_env(&env, project_path);
 
+	// Heads-up for the user before the (possibly slow) spawn. uv prints
+	// download progress to stderr, but g_spawn_sync captures it all and
+	// only surfaces it on failure, so a first-time interpreter download
+	// looks like Siril hung. Logging here is the cheap fix.
+	gchar *managed = get_uv_managed_python_token();
+	if (managed && !managed_python_already_installed(project_path, managed)) {
+		siril_log_message(_("Downloading Python %s interpreter (first-time "
+				"setup may take up to a minute)…\n"), managed);
+	}
+	g_free(managed);
 	siril_log_message(_("Creating Python virtual environment with uv: %s\n"),
 			venv_path);
 	siril_log_debug("uv venv command: %s venv --python %s --seed %s\n",
@@ -4821,8 +4929,10 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
-	// Phase 0: probe for uv (no-op unless SIRIL_USE_UV=1). Logs only;
-	// venv setup below still uses the legacy pip path.
+	// Phase 0: probe for uv. uv is used by default (com.pref.python.uv_managed
+	// = TRUE) and the binary distributions all bundle it; SIRIL_USE_UV=0
+	// or the prefs toggle can force the legacy pip path. Logs only; venv
+	// setup below decides whether to call uv or fall back.
 	probe_uv_executable();
 
 	// Check/create venv
