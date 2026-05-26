@@ -14,7 +14,16 @@ struct banding_data {
 	sequence *seq;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void apply_banding_to_sequence(struct banding_data *banding_args);
 gpointer BandingEngineThreaded(gpointer p);
+int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_FILTERS_BANDING_H_ */

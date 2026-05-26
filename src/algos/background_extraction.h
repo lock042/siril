@@ -48,6 +48,9 @@ typedef struct sample {
 	gboolean valid;
 } background_sample;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
 GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads);
@@ -65,6 +68,9 @@ point background_sample_get_position(background_sample *sample);
 void sample_mutex_lock();
 void sample_mutex_unlock();
 void apply_background_cancel();
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */
 

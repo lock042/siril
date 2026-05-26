@@ -41,7 +41,6 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
-static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
 
 /*****************************************************************************
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
