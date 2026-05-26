@@ -616,22 +616,29 @@ def _resolve_uv_path() -> Optional[str]:
     return shutil.which("uv")
 
 
-def _uv_subprocess_env() -> dict:
+def _uv_subprocess_env_gpu() -> dict:
     """
-    Return a copy of `os.environ` with uv tuning vars set for our
-    install / uninstall subprocess invocations.
+    Return a copy of `os.environ` with uv tuning vars set for the
+    GPU-library install / uninstall paths in gpuhelper.py
+    (`install_torch`, `install_jax`, the onnxruntime helpers, and
+    their matching uninstall sweeps).
 
     Rationale: large CUDA / cuDNN wheels are served from
     `pypi.nvidia.com`, which occasionally drops mid-download
-    connections. uv's defaults (50 concurrent streams, 30 s per-request
-    timeout) hit the wall fast on flaky CDN paths — a single stalled
-    chunk during a 600 MB transfer can fail the whole `uv pip install`
-    and the user has to re-run the script. Throttling concurrency and
-    extending the per-request timeout gives the CDN room to recover
-    without giving up the entire transaction.
+    connections. uv's defaults (50 concurrent streams, 30 s
+    per-request timeout) hit the wall fast on flaky CDN paths — a
+    single stalled chunk during a 600 MB transfer can fail the
+    whole `uv pip install` and the user has to re-run the script.
 
-    Caller does not need to gate on backend == "uv"; these variables are
-    harmless to pip and any other process that doesn't recognise them.
+    This tuning is deliberately scoped to GPU libs only. The general
+    `ensure_installed()` / `_install_package()` path stays on uv's
+    own defaults because those workloads (many small pure-Python
+    wheels) actually benefit from high concurrency — see the
+    discussion in the commit that added this helper.
+
+    Caller does not need to gate on backend == "uv"; these variables
+    are harmless to pip and any other process that doesn't recognise
+    them.
 
     Introduced in sirilpy 1.1.22.
     """
@@ -750,7 +757,6 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
             stderr=subprocess.PIPE,
             bufsize=-1,
             universal_newlines=False,
-            env=_uv_subprocess_env(),
         ) as process:
             # Create and start output streaming thread
             output_thread = threading.Thread(target=_stream_output, args=(process,))
