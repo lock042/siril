@@ -1104,7 +1104,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 /** Apply for sequence **/
 
-static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
 
