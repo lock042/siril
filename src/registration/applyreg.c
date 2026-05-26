@@ -337,7 +337,13 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 
 	if (regargs->use_external_ref) {
-		siril_log_message(_("Using external reference image for registration\n"));
+		if (readfits(regargs->external_ref_path, &fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		siril_log_info(_("Using external Reference Image %s for registration\n"), regargs->external_ref_path);
 	} else {
 		siril_log_message(_("Using reference image #%d for registration\n"), regargs->reference_image + 1);
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
@@ -356,7 +362,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 
 		// We prepare the distortion structure maps if required
-	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
+	if (regargs->undistort && init_disto_map(regargs->seq->rx, regargs->seq->ry, regargs->disto)) {
 		siril_log_error(
 				_("Could not init distortion mapping\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -1214,6 +1220,7 @@ int register_apply_reg(struct registration_args *regargs) {
 				regargs->external_ref_rx = ext_fit.rx;
 				regargs->external_ref_ry = ext_fit.ry;
 				regargs->use_external_ref = TRUE;
+				regargs->external_ref_path = g_strdup(regargs->seq->ext_ref_path);
 				// H matrices are absolute (relative to external ref): use identity so they are applied as-is
 				cvGetEye(&regargs->framingd.Htransf);
 				clearfits(&ext_fit);
