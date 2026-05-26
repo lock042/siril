@@ -1,20 +1,41 @@
 /*
- * Phase 4: per-AP local shifts.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
- * Ports PSS's alignment_points.compute_shift_alignment_point for the default
- * MultiLevelCorrelation method (alignment_points.py:716). The two-phase
- * cross-correlation kernel itself is shared with Phase 2's global aligner
- * via mpp::multilevel_correlation (mpp_align_priv.hpp / mpp_align.cpp).
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
+ * Phase 4: per-AP local shifts via the default MultiLevelCorrelation
+ * method. The two-phase cross-correlation kernel itself is shared with
+ * Phase 2's global aligner via mpp::multilevel_correlation.
  *
  * Pipeline per (frame, AP):
- *   1. Pre-built reference boxes (PSS set_reference_boxes_correlation):
+ *   1. Pre-built reference boxes:
  *        second_phase = mean_frame[box_y_low:box_y_high, box_x_low:box_x_high]
  *                       .astype(float32)
  *        first_phase  = second_phase[::2, ::2]
  *      `mean_frame` here is the post-blur version used by Phase 3.
- *   2. Per-frame offset: align with PSS align_frames.dy / dx, which folds in
- *      both the intersection-vs-original-frame offset *and* the per-frame
- *      global shift from Phase 2. So the box bounds for the search become
+ *   2. Per-frame offset folds in both the intersection-vs-original-frame
+ *      offset *and* the per-frame global shift from Phase 2. So the box
+ *      bounds for the search become
  *        (y_low + dy, y_high + dy, x_low + dx, x_high + dx)
  *      in the frame's own coordinates.
  *   3. multilevel_correlation with alignment_points_search_width (14 by
@@ -114,9 +135,9 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_blurred,
 
 	for (int f = 0; f < N; ++f) {
 		/* See the long sign-trace comment in
-		 * stack_compute_shifts_streamed (mpp_stack.cpp) — per-AP shift
-		 * stored = r.dy + sub_y so that drizzle's gdy + weighted_ap
-		 * equals the full sub-pixel alignment correction. */
+		 * stack_compute_shifts_streamed — per-AP shift stored =
+		 * r.dy + sub_y so that drizzle's gdy + weighted_ap equals
+		 * the full sub-pixel alignment correction. */
 		const double dy_full = offsets[f].dy;
 		const double dx_full = offsets[f].dx;
 		const int dy = (int) std::lround(dy_full);

@@ -1,9 +1,29 @@
 /*
- * Phase 3: alignment-point grid placement.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
- * Ports PSS alignment_points.create_ap_grid (alignment_points.py:135) plus
- * its helpers ap_locations and new_alignment_point, and
- * Miscellaneous.quality_measure (miscellaneous.py:50).
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
+ * Phase 3: alignment-point grid placement.
  *
  * Pipeline:
  *   1. Compute staggered y/x grid locations via ap_locations.
@@ -58,10 +78,10 @@ std::vector<int> ap_locations(int num_pixels, int min_boundary_distance,
 }
 
 double ap_quality_measure(const cv::Mat &box) {
-	/* PSS: dx = box[:, 1:] - box[:, :-1]; dy = box[1:, :] - box[:-1, :];
-	 *      return min(mean(|dx|), mean(|dy|))
-	 * Input is the mean-frame patch, typically CV_32S; PSS treats negative
-	 * differences correctly because the dtype is signed. */
+	/* dx = box[:, 1:] - box[:, :-1]; dy = box[1:, :] - box[:-1, :];
+	 *  return min(mean(|dx|), mean(|dy|))
+	 * Input is the mean-frame patch, typically CV_32S; signed dtype is
+	 * required so the per-axis differences don't wrap on dim pixels. */
 	double sum_dx = 0.0, sum_dy = 0.0;
 	const int H = box.rows, W = box.cols;
 	if (H < 2 || W < 2) return 0.0;
@@ -114,8 +134,8 @@ std::pair<int, int> ap_center_of_mass(const cv::Mat &box) {
 
 namespace {
 
-/* Populate a single AP record. Equivalent to PSS's new_alignment_point but
- * returns success/failure inline. */
+/* Populate a single AP record. Returns false when the (y, x) candidate
+ * sits too close to the frame border to fit a search box. */
 bool fill_ap_record(mpp_ap_record_t &ap, int y, int x,
                     bool extend_x_low, bool extend_x_high,
                     bool extend_y_low, bool extend_y_high,
@@ -148,9 +168,8 @@ bool fill_ap_record(mpp_ap_record_t &ap, int y, int x,
 }  // namespace
 
 cv::Mat blur_mean_frame_for_ap(const cv::Mat &mean_frame_raw, const mpp_config_t &cfg) {
-	/* PSS AlignmentPoints.__init__ (alignment_points.py:76):
-	 *   mean_frame = GaussianBlur(align.mean_frame.astype(uint16),
-	 *                             (frames_gauss_width,)*2, 0).astype(int32) */
+	/* mean_frame = GaussianBlur(align.mean_frame.astype(uint16),
+	 *                           (frames_gauss_width,)*2, 0).astype(int32) */
 	cv::Mat u16;
 	mean_frame_raw.convertTo(u16, CV_16U);
 	cv::Mat blurred;
@@ -212,8 +231,9 @@ mpp_aps_t *ap_create_grid(const cv::Mat &mean_frame, const mpp_config_t &cfg) {
 				continue;
 			}
 
-			/* PSS condition is `fraction > threshold` where fraction is the
-			 * proportion of pixels BELOW the brightness threshold. */
+			/* Re-centre the AP when too many pixels in the box sit
+			 * below the brightness threshold (fraction of dim pixels
+			 * exceeds the configured threshold). */
 			cv::Mat dim_mask;
 			cv::compare(box, brightness_thresh, dim_mask, cv::CMP_LT);
 			const double dim_fraction = (double) cv::countNonZero(dim_mask)

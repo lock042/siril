@@ -12,7 +12,7 @@
 
 namespace mpp {
 
-/* Score a single mono frame with PSS's Laplace pipeline:
+/* Score a single mono frame with the Laplace pipeline:
  *   GaussianBlur(7x7, sigma=0)
  *   → stride-`align_frames_sampling_stride` sub-sample
  *   → Laplacian → convertScaleAbs(alpha=1/256)
@@ -29,19 +29,19 @@ double rank_average_brightness(const cv::Mat &mono, const mpp_config_t &cfg);
 /* σ / brightness if cfg.frames_normalization, otherwise just σ. */
 double rank_score_normalized(const cv::Mat &mono, const mpp_config_t &cfg);
 
-/* PSS frames.frames_mono_blurred_laplacian: upscale 8-bit→16-bit-range
- * (× 256), GaussianBlur(7×7) → stride-2 sub-sample → cv::Laplacian(CV_32F)
+/* Blurred Laplacian as uint8: upscale 8-bit→16-bit-range (× 256),
+ * GaussianBlur(7×7) → stride-2 sub-sample → cv::Laplacian(CV_32F)
  * → cv::convertScaleAbs(α=1/256). Returns CV_8U.
  *
  * The upscale step is critical for 8-bit data — without it, blurred-frame
- * Laplacian magnitudes are < 256 and convertScaleAbs(α=1/256) zeroes the
- * entire image. PSS does it at frames.py:1505-1506. */
+ * Laplacian magnitudes are < 256 and convertScaleAbs(α=1/256) zeroes
+ * the entire image. */
 cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg);
 
-/* PSS frames.frames_mono_blurred. For 8-bit mono: upcast to CV_16U with
- * × 256 scaling so the blurred output (and everything derived from it —
- * Laplacian for ranking, the per-AP correlation kernel) lives in the same
- * 0..65535 range PSS uses internally. For 16-bit mono: passes through. */
+/* Blur the mono frame. For 8-bit mono: upcast to CV_16U with × 256
+ * scaling so the blurred output (and everything derived from it —
+ * Laplacian for ranking, the per-AP correlation kernel) lives in the
+ * common 0..65535 internal range. For 16-bit mono: passes through. */
 cv::Mat blur_mono_for_align(const cv::Mat &mono, const mpp_config_t &cfg);
 
 }  // namespace mpp

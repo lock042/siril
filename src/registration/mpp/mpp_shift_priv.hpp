@@ -20,14 +20,14 @@ struct APRefBoxes {
 	cv::Mat first_phase;    /* CV_32F, stride-2 view of second_phase */
 };
 
-/* Build per-AP reference boxes. PSS's set_reference_boxes_correlation
- * (alignment_points.py:506) reads from the *unblurred* `align_frames.mean_frame`
- * — NOT the blurred mean frame used for AP placement. Pass the raw output of
- * mpp::align_average_frame, not blur_mean_frame_for_ap's output. */
+/* Build per-AP reference boxes. Reference boxes for correlation are
+ * built from the *unblurred* mean frame — NOT the blurred mean frame
+ * used for AP placement. Pass the raw output of mpp::align_average_frame,
+ * not blur_mean_frame_for_ap's output. */
 std::vector<APRefBoxes> shift_prepare_ref_boxes(const cv::Mat &mean_frame_raw,
                                                 const mpp_aps_t &aps);
 
-/* Per-frame offsets from PSS align_frames.dy / dx:
+/* Per-frame offsets:
  *   dy = intersection_y_low - global_shifts[idx].dy
  * Used to translate AP box bounds (mean-frame coords) into each frame's
  * native coordinates. Sub-pixel since the global align pass switched to

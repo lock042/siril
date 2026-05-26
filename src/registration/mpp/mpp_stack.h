@@ -10,9 +10,9 @@ extern "C" {
 
 /* Pluggable per-frame resample backend; see mpp_drizzle.h for STScI variants. */
 typedef enum {
-	MPP_RESAMPLE_BICUBIC = 0,   /* Phase 5a — PSS-faithful (cv::resize INTER_LINEAR
-	                              actually, despite the kind's name — PSS uses
-	                              INTER_LINEAR for its drizzle resize, not cubic) */
+	MPP_RESAMPLE_BICUBIC = 0,   /* Phase 5a — cv::resize INTER_LINEAR
+	                              (the enum name is historical; the
+	                              implementation uses INTER_LINEAR) */
 	MPP_RESAMPLE_STSCI,         /* Phase 5b — debayered + dobox() */
 	MPP_RESAMPLE_BAYER_STSCI    /* Phase 5b — raw Bayer + dobox() */
 } mpp_resample_kind_t;

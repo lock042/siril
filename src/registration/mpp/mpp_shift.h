@@ -16,7 +16,7 @@ extern "C" {
  *   dx = shifts[2 * (frame * num_aps + ap) + 1];
  *   ok = success[frame * num_aps + ap];
  *
- * dy / dx are doubles to admit PSS's optional phase-2 sub-pixel parabolic
+ * dy / dx are doubles to admit the optional phase-2 sub-pixel parabolic
  * fit; in the default integer mode they're integer-valued doubles. The
  * sign convention matches Phase 2: positive (dy, dx) means the *frame*
  * needs that shift to align with the reference (post-global-alignment). */

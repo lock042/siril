@@ -1,9 +1,33 @@
 /*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
  * Phase 2: global frame alignment.
  *
- * Ports PSS's compute_alignment_rect (patch picker, align_frames.py:85),
- * multilevel_correlation (miscellaneous.py:202), and the
- * backward-then-forward cumulative-shift loop in align_frames.align_frames.
+ * Picks the best-structured patch on the best frame, then aligns every
+ * other frame to it via two-phase cross-correlation and a backward-then-
+ * forward cumulative-shift loop.
  *
  * MultiLevelCorrelation summary:
  *   reference_window               = best_frame.mono_blurred[patch].astype(f32)
@@ -16,7 +40,7 @@
  *   Either phase is regarded as failed if the optimum lies on the search
  *     boundary, signalling that the true optimum is likely outside the box.
  *
- * Sign convention (matches PSS frame_shifts):
+ * Sign convention:
  *   shift_y, shift_x are what we need to apply to the *frame* so that it
  *   aligns with the reference frame.
  */
@@ -60,10 +84,11 @@ cv::Mat stride_subsample(const cv::Mat &src, int s) {
 	return out;
 }
 
-/* PSS uses NumPy's `abs(frame[:, s2:] - frame[:, :-s2])` on uint16 inputs,
- * which underflows on negative differences (becomes huge positive). To match
- * its quality_measure_threshold_weighted bit-exact we replicate the modular
- * arithmetic. For float inputs we use signed math (no underflow). */
+/* The reference algorithm uses NumPy's
+ * `abs(frame[:, s2:] - frame[:, :-s2])` on uint16 inputs, which underflows
+ * on negative differences (becomes huge positive). To stay bit-exact
+ * with the reference we replicate the modular arithmetic here. For
+ * float inputs we use signed math (no underflow). */
 template <typename T>
 double quality_sum_one_axis(const cv::Mat &frame, int axis_h_diff, int stride,
                             const cv::Mat &mask) {
@@ -108,7 +133,7 @@ double align_quality_measure_threshold_weighted(const cv::Mat &frame, int stride
 	const int H = frame.rows, W = frame.cols;
 	const double frame_size = (double) H * (double) W;
 
-	/* PSS: mask = frame > black_threshold; mask_fraction = mask.sum() / frame.size */
+	/* mask = frame > black_threshold; mask_fraction = mask.sum() / frame.size */
 	cv::Mat mask;
 	cv::compare(frame, black_threshold, mask, cv::CMP_GT);  /* CV_8U, 0 or 255 */
 	const int mask_nonzero = cv::countNonZero(mask);
@@ -123,7 +148,7 @@ double align_quality_measure_threshold_weighted(const cv::Mat &frame, int stride
 		sum_h = quality_sum_one_axis<uint8_t>(frame, 1, stride, mask);
 		sum_v = quality_sum_one_axis<uint8_t>(frame, 0, stride, mask);
 	} else if (frame.type() == CV_32F) {
-		/* For float, PSS's NumPy abs() is correct; use signed math + abs. */
+		/* For float, NumPy's abs() is well-defined; use signed math + abs. */
 		const int s2 = 2 * stride;
 		for (int y = 0; y < H; ++y) {
 			const float *row = frame.ptr<float>(y);
@@ -141,7 +166,7 @@ double align_quality_measure_threshold_weighted(const cv::Mat &frame, int stride
 					sum_v += std::abs(row_bot[x] - row_top[x]);
 		}
 	} else {
-		return 0.0;  /* Unsupported input type for this PSS pathway. */
+		return 0.0;  /* Unsupported input type for this pathway. */
 	}
 
 	if (mask_fraction > min_fraction) {
@@ -176,10 +201,9 @@ cv::Vec4i align_pick_patch(const cv::Mat &best, const mpp_config_t &cfg) {
 			    patch, cfg.align_frames_rectangle_stride,
 			    (double) cfg.align_frames_rectangle_black_threshold,
 			    cfg.align_frames_rectangle_min_fraction);
-			/* PSS uses a stable Python sorted(); std::stable_sort would give the
-			 * same answer, but here we just need argmax with a strict-greater
-			 * tiebreak that picks the *first* candidate seen (matching Python's
-			 * "reverse=True" sort on a list built in the loop order below). */
+			/* argmax with a strict-greater tiebreak picks the *first*
+			 * candidate seen, matching a stable descending sort on a
+			 * list built in the loop order below. */
 			if (q > best_quality) {
 				best_quality = q;
 				best_bounds = cv::Vec4i(y_low, y_low + rect_y, x_low, x_low + rect_x);
@@ -191,10 +215,10 @@ cv::Vec4i align_pick_patch(const cv::Mat &best, const mpp_config_t &cfg) {
 	return best_bounds;
 }
 
-/* PSS sub_pixel_solve_matrix from miscellaneous.py:464 — precomputed
- * pseudo-inverse `(AᵀA)⁻¹ Aᵀ` for fitting f(x,y) = a x² + b y² + c xy + d x + e y + g
- * to 9 correlation values on a 3×3 grid (indexed row-major y=0..2, x=0..2 with
- * the grid centred at (0,0)). */
+/* Precomputed pseudo-inverse `(AᵀA)⁻¹ Aᵀ` for fitting
+ * f(x,y) = a x² + b y² + c xy + d x + e y + g to 9 correlation values
+ * on a 3×3 grid (indexed row-major y=0..2, x=0..2 with the grid centred
+ * at (0,0)). */
 static const double SUB_PIXEL_SOLVE[6][9] = {
 	{ 0.16666667, -0.33333333,  0.16666667,  0.16666667, -0.33333333,  0.16666667,  0.16666667, -0.33333333,  0.16666667},
 	{ 0.16666667,  0.16666667,  0.16666667, -0.33333333, -0.33333333, -0.33333333,  0.16666667,  0.16666667,  0.16666667},
@@ -208,7 +232,7 @@ namespace {
 
 /* Fit a quadratic surface to a 3×3 patch of correlation values and return
  * the (y_corr, x_corr) offset to the peak. Returns false on a near-singular
- * solve. Mirrors PSS Miscellaneous.sub_pixel_solve. */
+ * solve. */
 bool sub_pixel_solve(const float vals[9], double *y_corr, double *x_corr) {
 	double coeffs[6] = {0, 0, 0, 0, 0, 0};
 	for (int i = 0; i < 6; ++i)
@@ -429,8 +453,8 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 				dy_store = (double) dy_int_cum + (r.dy - (double) dy_int);
 				dx_store = (double) dx_int_cum + (r.dx - (double) dx_int);
 			}
-			/* PSS raises InternalError on failure; we leave the chain
-			 * frozen at the last successful cum and store that. */
+			/* On failure we leave the cumulative shift chain frozen
+			 * at the last successful step and store that. */
 			out.shifts[idx] = cv::Vec2d(dy_store, dx_store);
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
@@ -594,18 +618,19 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 		if (progress) progress((double) done / (double) total, progress_user);
 	}
 
-	/* PSS scales by 256/N for uint8 inputs and 1/N for uint16. Siril stores
-	 * 8-bit SER data as WORD without upscaling (values 0..255), so we look
-	 * at cfg.bitdepth — NOT cv::Mat::depth() — to decide. Output mean_frame
-	 * always lands in the 0..65535 range, matching PSS so downstream AP
+	/* Scale by 256/N for 8-bit inputs and 1/N for 16-bit. Siril stores
+	 * 8-bit SER data as WORD without upscaling (values 0..255), so we
+	 * look at cfg.bitdepth — NOT cv::Mat::depth() — to decide. Output
+	 * mean_frame always lands in the 0..65535 range, so downstream AP
 	 * code can use a single `× 256` threshold scale. */
 	const double scale = (cfg.bitdepth == 8 ? 256.0 : 1.0) / (double) indices.size();
 	accum *= scale;
-	/* PSS does `.astype(int32)`, which truncates toward zero (Python/NumPy
-	 * convention). OpenCV's convertTo(CV_32S) uses cvRound (round half to
-	 * even on x86), so we'd get off-by-one diffs at half-pixel values and
-	 * those propagate into the per-AP correlation peaks downstream. Do the
-	 * truncation manually to keep bit-equivalence. */
+	/* Use NumPy-style `.astype(int32)` truncation toward zero. OpenCV's
+	 * convertTo(CV_32S) uses cvRound (round half to even on x86), so a
+	 * naive cast would produce off-by-one diffs at half-pixel values and
+	 * those propagate into the per-AP correlation peaks downstream. Do
+	 * the truncation manually to keep bit-equivalence with the reference
+	 * algorithm. */
 	out.mean_frame.create(accum.size(), CV_32S);
 	for (int y = 0; y < accum.rows; ++y) {
 		const float *src = accum.ptr<float>(y);

@@ -1,9 +1,32 @@
 /*
- * Phase 5a: PSS-faithful multipoint stacking.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
+ * Phase 5a: multipoint stacking.
  *
  * Builds the final stacked image by:
- *   1) Compute per-AP per-frame qualities; keep top-N per AP (PSS
- *      alignment_points.compute_frame_qualities).
+ *   1) Compute per-AP per-frame qualities; keep top-N per AP.
  *   2) Pre-compute per-AP weights_yx and the global sum_single_frame_weights
  *      buffer (prepare_for_stack_blending).
  *   3) For each frame: brightness-equalise to the per-frame brightness
@@ -15,7 +38,7 @@
  *      shift-induced borders, scale + clip to uint16.
  *
  * Each piece lives behind a small C++ entry point in mpp_stack_priv.hpp
- * with its own oracle equivalence test. See pss_port_plan.md §5a.
+ * with its own oracle equivalence test.
  */
 
 #include <algorithm>
@@ -50,7 +73,7 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
 	if (extend_low) {
 		for (int i = 0; i < center_offset; ++i) w[i] = 1.0f;
 	} else {
-		/* PSS: arange(1, c+1) / float32(c+1) → [1/(c+1), 2/(c+1), …, c/(c+1)]. */
+		/* arange(1, c+1) / float32(c+1) → [1/(c+1), 2/(c+1), …, c/(c+1)]. */
 		const float denom = (float) (center_offset + 1);
 		for (int i = 0; i < center_offset; ++i)
 			w[i] = (float) (i + 1) / denom;
@@ -60,7 +83,7 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
 	if (extend_high) {
 		for (int i = 0; i < high_len; ++i) w[center_offset + i] = 1.0f;
 	} else {
-		/* PSS: arange(N, 0, -1) / float32(N) → [N/N, (N-1)/N, …, 1/N]. */
+		/* arange(N, 0, -1) / float32(N) → [N/N, (N-1)/N, …, 1/N]. */
 		const float denom = (float) high_len;
 		for (int i = 0; i < high_len; ++i)
 			w[center_offset + i] = (float) (high_len - i) / denom;
@@ -89,8 +112,9 @@ void stack_remap_rigid(const cv::Mat &frame, cv::Mat &buffer,
                        int shift_y, int shift_x,
                        int y_low, int y_high, int x_low, int x_high,
                        RemapBorder &border) {
-	/* Mirrors PSS stack_frames.remap_rigid. Tracks the maximum clipped
-	 * extent on each border so the final trim step can remove artifacts. */
+	/* Rigid remap of the AP's patch into its stacking buffer. Tracks the
+	 * maximum clipped extent on each border so the final trim step can
+	 * remove the resulting artefact ring. */
 	const int frame_h = frame.rows, frame_w = frame.cols;
 	int y_low_src  = y_low  + shift_y;
 	int y_high_src = y_high + shift_y;
@@ -146,7 +170,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	 || (int) offsets.size() != N || stride <= 0)
 		return out;
 
-	/* PSS stack_size: explicit override, else %% of N (PSS rounds up). */
+	/* stack_size: explicit override, else %% of N (rounded up). */
 	if (cfg.alignment_points_frame_number > 0)
 		out.stack_size = cfg.alignment_points_frame_number;
 	else
@@ -176,9 +200,8 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		if (progress) progress((double)(f + 1) / (double) N, progress_user);
 		for (int a = 0; a < M; ++a) {
 			const auto &ap = aps.records[a];
-			/* PSS:
-			 *   y_low  = int(max(0, patch_y_low  + dy) / stride);
-			 *   y_high = int(min(frame_h, patch_y_high + dy) / stride);
+			/* y_low  = int(max(0, patch_y_low  + dy) / stride);
+			 * y_high = int(min(frame_h, patch_y_high + dy) / stride);
 			 * Python `int()` truncates toward zero. C integer division
 			 * does the same for non-negatives, so / stride matches. */
 			const int yl_raw = ap.patch_y_low  + dy;
@@ -201,8 +224,8 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		}
 	}
 
-	/* Per-AP: pick top-N frame indices (PSS sorts in descending quality
-	 * order and slices [:stack_size]). */
+	/* Per-AP: pick top-N frame indices (descending quality, sliced to
+	 * [:stack_size]). */
 	out.best_frame_indices.assign(M, {});
 	out.used_alignment_points.assign(N, {});
 	for (int a = 0; a < M; ++a) {
@@ -304,10 +327,10 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	/* Background buffer (pre-drizzle). */
 	s.averaged_background = cv::Mat::zeros(s.dim_y, s.dim_x, buf_type);
 
-	/* PSS stack_frames.py:233-277. Count pixels where sum_weights <
-	 * background_blend_threshold * stack_size; if a small fraction, subdivide
-	 * the intersection into background_patch_size patches and keep only those
-	 * patches that contain at least one such pixel. */
+	/* Count pixels where sum_weights < background_blend_threshold *
+	 * stack_size; if a small fraction, subdivide the intersection into
+	 * background_patch_size patches and keep only those patches that
+	 * contain at least one such pixel. */
 	const float blend_t = (float) cfg.stack_frames_background_blend_threshold;
 	cv::Mat needed_mask;
 	cv::compare(s.sum_single_frame_weights, blend_t * stack_size_f, needed_mask, cv::CMP_LT);
@@ -317,7 +340,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	    < cfg.stack_frames_background_fraction) {
 		const int patch_size = cfg.stack_frames_background_patch_size;
 		for (int py = 0; py < s.dim_y; py += patch_size) {
-			/* PSS uses `dim_y - 1` as the cap — replicate. */
+			/* Use `dim_y - 1` as the cap to match the reference algorithm. */
 			const int py_hi = std::min(py + patch_size, s.dim_y - 1);
 			if (py == py_hi) continue;
 			for (int px = 0; px < s.dim_x; px += patch_size) {
@@ -388,8 +411,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		 *   sub_y          = +0.3.
 		 *   Search box at frame_y = ap.box_y_low + 0.
 		 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
-		 *     at +0.3 from search centre → r.dy = -0.3 (PSS sign
-		 *     convention).
+		 *     at +0.3 from search centre → r.dy = -0.3 (matches the
+		 *     algorithm's sign convention).
 		 *   We want stored per-AP shift = 0 so that drizzle's
 		 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
 		 *     alignment correction). That means r.dy + sub_y = 0. ✓
@@ -656,12 +679,12 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		dst += weighted;
 	}
 
-	/* buf /= sum_single_frame_weights. PSS guards by initialising
-	 * sum_weights to 1e-30, so we never divide by zero. */
+	/* buf /= sum_single_frame_weights. sum_weights was initialised to
+	 * 1e-30, so we never divide by zero. */
 	const cv::Mat sw = broadcast_channels(state.sum_single_frame_weights, C);
 	cv::divide(buf, sw, buf);
 
-	/* Background blend. PSS computes a foreground_weight ramp and lerps. */
+	/* Background blend: compute a foreground_weight ramp and lerp. */
 	if (state.number_stacking_holes > 0) {
 		const float denom = (float) (cfg.stack_frames_background_blend_threshold
 		                            * (double) state.stack_size);

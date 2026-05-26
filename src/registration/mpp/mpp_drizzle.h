@@ -16,8 +16,8 @@ extern "C" {
  * anything about APs — the pixmap is the only place that knows.
  *
  * One buffer is allocated for the whole stack run and overwritten in
- * place by every frame; see Phase 5b in pss_port_plan.md for the
- * lifetime / parallelism rationale.
+ * place by every frame; lifetime / parallelism rationale documented in
+ * the Phase 5b commit history.
  */
 
 /* Allocate xmap/ymap as rx*ry float arrays and set out->rx, out->ry.
@@ -50,7 +50,7 @@ void mpp_imgmap_free(imgmap_t *m);
  *     sx = global_shifts[frame_idx].dx + ap_local_dx(i, j, frame_idx)
  *     sy = global_shifts[frame_idx].dy + ap_local_dy(i, j, frame_idx)
  * and ap_local_{dy, dx} is the weighted average of the per-AP shifts at
- * (i, j), with weights from PSS's `one_dim_weight` ramp on each axis,
+ * (i, j), with weights from the `one_dim_weight` ramp on each axis,
  * combined with `min(wy, wx)` (the same convention Phase 5a uses for
  * per-AP buffer weighting). Pixels outside every AP's patch fall back
  * to the global shift only.

@@ -1,4 +1,28 @@
 /*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
  * mpp_drizzle — Phase 5b STScI drizzle backend for MPP stacking.
  *
  * Slice 5b.1 (the pixmap builder): encodes the full MPP warp as a per-
@@ -724,9 +748,9 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 
 	/* Scale to 16-bit uint range. For 8-bit input, output_data values
 	 * are still in [0, 255] (the raw input range we fed dobox) so we
-	 * multiply by 256 here — mirrors PSS's "mean_frame in 16-bit
-	 * equivalent regardless of bitdepth" convention. For 16-bit input
-	 * the scale is 1.0 and values pass through unchanged.
+	 * multiply by 256 here — mean_frame is always carried in the 16-bit
+	 * equivalent regardless of input bitdepth. For 16-bit input the
+	 * scale is 1.0 and values pass through unchanged.
 	 * NB: mpp_cfg_threshold_scale is the INVERSE direction (scales
 	 * thresholds down to match input units), so we compute the output
 	 * scale inline rather than reusing it. */

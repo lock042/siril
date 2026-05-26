@@ -1,3 +1,27 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
 #include "registration/mpp/mpp_config.h"
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
@@ -51,7 +75,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	 * sweep: same wall-clock as bicubic-2x on test-big.ser (174.6 s vs
 	 * 177.1 s) and 2.8x faster than square with no measurable quality
 	 * difference (SSIM avg 0.9686 vs 0.9701, span across all four kernels
-	 * < 0.15 %). See pss_port_plan.md "Drizzle-kernel sweep" section. */
+	 * < 0.15 %). */
 	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
 	cfg->drizzle_pixfrac = 0.7;
 	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;

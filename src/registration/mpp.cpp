@@ -1,6 +1,29 @@
 /*
- * Multipoint registration & stacking — PlanetarySystemStacker port.
- * Orchestrator. See pss_port_plan.md Phase 6 for the full design.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
+ * Multipoint registration & stacking — orchestrator.
  *
  * Public entry points (C-callable, declared in mpp.h):
  *   - mpp_run_alloc / mpp_run_free
@@ -151,9 +174,8 @@ bool avi_bayer_to_cfa(int avi_pattern, int rows, unsigned char cfa[4]) {
 namespace {
 
 /* Helper: read a frame and return a mono analysis Mat (cloned, owns its
- * memory after the fits is cleared). For RGB input, mirrors PSS's
- * frames_mono default (`frames_mono_channel = 'panchromatic'` →
- * `color_index = 3` → `cv::cvtColor(RGB, GRAY)`). Mono input passes
+ * memory after the fits is cleared). RGB input is converted to a
+ * panchromatic luminance via cv::cvtColor(RGB, GRAY); mono input passes
  * through.
  *
  * For SEQ_AVI sequences with `avi_pattern` set to a Bayer value, the
@@ -168,11 +190,10 @@ namespace {
  * datasets where N · rx · ry · 2B exceeds the user's memory budget
  * but the CV_8U equivalent fits). The downstream pipeline already
  * handles CV_8U: blur_mono_for_align upscales 8-bit input internally
- * (cfg.bitdepth gate, mpp_rank.cpp:65), align_average_frame's
- * accumulator runs through CV_32F regardless of input depth, and
- * rank_average_brightness's threshold scales by cfg.bitdepth too.
- * read_full_frame keeps CV_16U so Stage C's stack accumulator retains
- * the full dynamic range. */
+ * (cfg.bitdepth gate), align_average_frame's accumulator runs through
+ * CV_32F regardless of input depth, and rank_average_brightness's
+ * threshold scales by cfg.bitdepth too. read_full_frame keeps CV_16U
+ * so Stage C's stack accumulator retains the full dynamic range. */
 cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdepth) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
@@ -259,9 +280,9 @@ namespace {   /* reopen anonymous namespace for the remaining helpers */
 
 /* Per-AP target stack size from cfg (number override wins, else
  * round-up % of N), clamped to [1, N]. Mirrors the formula in
- * ap_compute_frame_qualities_streamed (mpp_stack.cpp:149-156) so
- * Stage C entry can honour Stack-tab overrides against the value
- * Stage A baked at Analyze time. */
+ * ap_compute_frame_qualities_streamed so Stage C entry can honour
+ * Stack-tab overrides against the value Stage A baked at Analyze
+ * time. */
 int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
 	if (N <= 0) return 0;
 	int s;
@@ -424,11 +445,11 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 	const uint64_t per_frame = (uint64_t) rx * (uint64_t) ry
 	                         * (uint64_t) channels * (uint64_t) bytes_per_sample;
 	/* Blurred slot size: blur_mono_for_align upscales 8-bit input to
-	 * CV_16U before the GaussianBlur (mpp_rank.cpp:66), so the cached
-	 * blurred frame is always 2 bytes/sample regardless of source
-	 * bitdepth. For 16-bit input this equals per_frame; for 8-bit it
-	 * is 2× per_frame, which is why the blur top-up must size against
-	 * blurred_per_frame rather than per_frame. */
+	 * CV_16U before the GaussianBlur, so the cached blurred frame is
+	 * always 2 bytes/sample regardless of source bitdepth. For 16-bit
+	 * input this equals per_frame; for 8-bit it is 2× per_frame, which
+	 * is why the blur top-up must size against blurred_per_frame rather
+	 * than per_frame. */
 	const uint64_t blurred_per_frame = (uint64_t) rx * (uint64_t) ry
 	                                 * (uint64_t) channels * 2;
 	const uint64_t budget    = (uint64_t) get_max_memory_in_MB()
@@ -1489,8 +1510,8 @@ extern "C" void mpp_ap_clear_all(mpp_run_t *run) {
 	run->best_frame_indices = nullptr;
 }
 
-/* Fill the box/patch bounds for an AP at (x, y) from cfg. Mirrors PSS's
- * extend-to-border logic at the frame edges. */
+/* Fill the box/patch bounds for an AP at (x, y) from cfg, extending the
+ * patch out to the frame border for edge APs. */
 static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
                            const mpp_config_t *cfg,
                            int frame_rows, int frame_cols) {
@@ -1630,12 +1651,12 @@ extern "C" mpp_run_t *mpp_get_cached_run(void) {
 /* -------------------- Siril register-framework entry point -------------------- */
 
 /* Populate seq->regparam[layer][i].quality from a completed Stage-A run so
- * Siril's existing frame selector / quality plot displays PSS Laplace-σ.
- * Public via mpp.h so the CLI (process_pss, process_register_mpp) and the
- * GUI register_mpp(args) entry can all wire it in. The layer choice is
- * caller-supplied; PSS's quality is panchromatic (same score on every
- * channel), but we only populate one layer to mirror Siril's per-layer
- * regdata model — the existing frame selector reads one layer at a time. */
+ * Siril's existing frame selector / quality plot displays the per-frame
+ * Laplace-σ. Public via mpp.h so the CLI and the GUI register entry can
+ * all wire it in. The layer choice is caller-supplied; mpp quality is
+ * panchromatic (same score on every channel), but we only populate one
+ * layer to mirror Siril's per-layer regdata model — the existing frame
+ * selector reads one layer at a time. */
 extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
                                              const mpp_run_t *run) {
 	if (!seq || !run || seq->nb_layers <= 0) return;

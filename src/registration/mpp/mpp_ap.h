@@ -9,9 +9,9 @@ extern "C" {
 
 
 /* One alignment point. Coordinates are pixel-space on the reference (mean)
- * frame. The patch bounds are extended to the frame border for edge APs
- * (PSS new_alignment_point extend_*_low/high logic). `structure` is the
- * post-normalisation Laplace/gradient measure used to filter weak APs. */
+ * frame. The patch bounds are extended to the frame border for edge APs.
+ * `structure` is the post-normalisation Laplace/gradient measure used to
+ * filter weak APs. */
 typedef struct mpp_ap_record {
 	int y, x;
 	int box_y_low, box_y_high, box_x_low, box_x_high;
@@ -26,7 +26,7 @@ struct mpp_aps {
 	mpp_ap_record_t *records; /* malloc'd, length = count */
 };
 
-/* Place a staggered AP grid on the reference (mean) frame and apply PSS's
+/* Place a staggered AP grid on the reference (mean) frame and apply the
  * brightness, contrast, dim-fraction COM re-centring, and structure
  * filters. On success the caller owns the result and frees via mpp_ap_free. */
 mpp_status_t mpp_ap_place(const fits *ref, const mpp_config_t *cfg,

@@ -1,8 +1,31 @@
 /*
- * Phase 1: frame quality ranking.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
- * Ports PSS's "Laplace" ranking path (rank_frames.frame_score + the helper
- * Frames.frames_mono_blurred_laplacian). The algorithm is exactly:
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This implementation of multipoint registration & stacking is based on
+ * PlanetarySystemStacker by Rolf Hempel:
+ *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
+ */
+
+/*
+ * Phase 1: frame quality ranking via Laplace-σ.
+ *
+ * The algorithm is exactly:
  *
  *   blurred = cv::GaussianBlur(mono, (gauss_width, gauss_width), 0)
  *   strided = blurred[::sampling_stride, ::sampling_stride]    // NumPy slicing
@@ -55,9 +78,9 @@ double brightness_threshold(const mpp_config_t &cfg) {
 }  // namespace
 
 cv::Mat blur_mono_for_align(const cv::Mat &mono, const mpp_config_t &cfg) {
-	/* PSS frames.frames_mono_blurred (frames.py:1505-1511): upscales 8-bit
-	 * inputs to 16-bit range before the blur so downstream operations have
-	 * useful Laplacian magnitude after the α=1/256 convertScaleAbs.
+	/* Upscale 8-bit inputs to the 16-bit range before the blur so
+	 * downstream operations have useful Laplacian magnitude after the
+	 * α=1/256 convertScaleAbs.
 	 *
 	 * The decision keys on cfg.bitdepth alone, NOT mono.depth(). Siril
 	 * stores 8-bit SER data as WORD (CV_16U) with values still in 0..255;
