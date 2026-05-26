@@ -68,6 +68,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_detect_streaks(int nb);
 int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
@@ -238,14 +239,16 @@ int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
-int	process_subsky(int nb);
 int	process_spcc(int nb);
 int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
+int simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf);
+int	process_ssr(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stackone(int nb);
+int	process_subsky(int nb);
 int	process_synthstar(int nb);
 
 int	process_thresh(int nb);

@@ -105,6 +105,7 @@ psf_star *new_psf_star();
 void psf_star_init(psf_star *s);
 psf_star *duplicate_psf(psf_star *);
 void free_psf(psf_star *psf);
+double psf_get_star_radius(psf_star *psf, double noise_level, double bgthreshold);
 
 /* Stars list management (defined in algos/PSF.c, displayed by gui/PSF_list.c) */
 void clear_stars_list(gboolean refresh_GUI);

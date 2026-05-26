@@ -43,6 +43,7 @@ static command commands[] = {
 
 	{"ddp", 3, "ddp level coef sigma [-mask]", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep] [-mask]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"detect_streaks", 0, "detect_streaks [-out=csv_file] [length]", process_detect_streaks, STR_DETECT_STREAKS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
@@ -257,6 +258,7 @@ static command commands[] = {
 	{"spcc_list", 1, "spcc_list { oscsensor | monosensor | redfilter | greenfilter | bluefilter | oscfilter | osclpf | whiteref }", process_spcc_list, STR_SPCC_LIST, TRUE, REQ_CMD_NONE },
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
+	{"ssr", 0, "ssr", process_ssr, STR_SSR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"stack", 1, "stack seqfilename\n"
 			"stack seqfilename { sum | min | max } [-output_norm] [-out=filename] [-maximize] [-upscale] [-32b]\n"
 			"stack seqfilename { med | median } [-nonorm, -norm=] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename] [-32b]\n"

@@ -99,6 +99,10 @@ gdouble date_time_to_Julian(GDateTime *dt) {
 	}
 }
 
+double julian_date_difference_sec(double end, double start) {
+	return (end - start) * 86400.0;
+}
+
 /**
  * Converts a Julian date to GDateTime format
  * (inverse of date_time_to_Julian function)

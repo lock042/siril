@@ -110,6 +110,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/comparison_stars.h"
+#include "algos/streaks.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
@@ -15526,3 +15527,103 @@ int process_mask_from_color(int nb) {
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
+
+int process_detect_streaks(int nb) {
+	// detect_streaks [-out=csv_file] [length]
+	/*if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}*/
+
+	int startnb = 1;
+	gboolean bright_target = FALSE;
+	int initial_segment_length = 0;
+
+	for (int i = startnb; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-bright")) bright_target = TRUE;
+		else if (word[i][0] != '-') {
+			gchar *end;
+			initial_segment_length = g_ascii_strtoull(word[i], &end, 10);
+			if (word[i] == end) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	clear_stars_list(FALSE);
+	fits *fit = calloc(1, sizeof(fits));
+	int layer = (gfit->naxes[2] == 3) ? 1 : 0;
+	extract_fits(gfit, fit, layer, FALSE);	// also makes a copy we can alter
+	copy_fits_metadata(gfit, fit);
+
+	float fwhm = 3.0f;
+	if (simple_star_removal(fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf))
+		siril_log_debug("did not find any star, using an arbitrary FWHM for magnitude estimation\n");
+
+	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
+	arg->fit = fit;
+	arg->free_fit = TRUE;
+	arg->im_idx = com.uniq ? 0 : com.seq.current;
+	//arg->filename = get_image_filename(NULL, -1); // TODO: added in the GPS MR
+	arg->layer = 0;
+	arg->initial_segment_length = initial_segment_length;
+	arg->minimum_segment_length = initial_segment_length / 2;
+	arg->bright_target = bright_target;
+	arg->display_streaks = !com.script;
+	arg->use_idle = TRUE;
+	arg->nb_threads = com.max_thread;
+	arg->results = alloc_results(1);
+	arg->fwhm = fwhm;
+	start_in_new_thread(streak_detection_worker, arg);
+	return CMD_OK;
+}
+
+int simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
+	imstats *stats = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, MULTI_THREADED);
+	double median = stats->median;
+	double bgnoise = stats->bgnoise;
+	double pixvalue = stats->median + knoise * stats->bgnoise;
+	//double alpha = stats->bgnoise;// * 0.1;
+	free_stats(stats);
+	siril_log_debug("Star pixel replacement value will be %f\n", pixvalue);
+
+	int nb_stars = 0;
+	image im = { .from_seq = NULL, .index_in_seq = -1, .fit = fit };
+	psf_star **stars = peaker(&im, layer, sf, &nb_stars, NULL, FALSE, FALSE, -1, sf->profile, com.max_thread);
+
+	if (!stars || nb_stars <= 0) {
+		siril_log_warning(_("No star found\n"));
+		return 0;
+	}
+
+	ssr_internal(fit, layer, median, bgnoise, pixvalue, stars, nb_stars);
+
+	if (fwhm) {
+		double sum = 0.0;
+		for (int i = 0; i < nb_stars; i++)
+			sum += stars[i]->fwhmx;
+		*fwhm = sum / nb_stars;
+	}
+	free_fitted_stars(stars);
+	invalidate_stats_from_fit(fit);
+	return 0;
+}
+
+int process_ssr(int nb) {
+	double knoise = -0.1;
+	if (nb == 2)
+		knoise = g_ascii_strtod(word[1], NULL);
+
+	clear_stars_list(FALSE);
+	int layer = (gfit->naxes[2] == 3) ? 1 : 0;
+	int retval = simple_star_removal(gfit, layer, knoise, NULL, &com.pref.starfinder_conf);
+
+	notify_gfit_data_modified();
+	return retval;
+}
+

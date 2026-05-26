@@ -33,6 +33,7 @@ src_files = [
   'algos/fix_xtrans_af.c',
   'algos/geometry.c',
   'algos/io_wave.c',
+  'algos/line_detection.c',
   'algos/median_fast.c',
   'algos/noise.c',
   'algos/pave.c',
@@ -50,6 +51,7 @@ src_files = [
   'algos/star_finder.c',
   'algos/statistics.c',
   'algos/statistics_float.c',
+  'algos/streaks.c',
   'algos/transform.c',
   'algos/search_objects.c',
   'algos/lcms_acceleration/fast_16_tethra.c',
@@ -204,11 +206,9 @@ src_files = [
   'livestacking/livestacking.c',
 
   'opencv/opencv.cpp',
-  'opencv/opencv.h',
   'opencv/guidedfilter.cpp',
-  'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
-  'opencv/kombat/kombat.h',
+  'opencv/tracks.cpp',
 
   'pixelMath/pixel_math_runner.c',
   'pixelMath/tinyexpr.c',

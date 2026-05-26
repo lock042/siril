@@ -16,6 +16,9 @@ struct photometry_struct {
 	double SNR;	// SNR estimation
 };
 
+double getMagnitude(double intensity);
+double getMagErr(double intensity, double area, int nsky, double skysig, double cvf, double *SNR);
+
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
 photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,

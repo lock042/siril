@@ -77,6 +77,7 @@ src/algos/extraction.c
 src/algos/fitting.c
 src/algos/fix_xtrans_af.c
 src/algos/geometry.c
+src/algos/line_detection.c
 src/algos/noise.c
 src/algos/photometric_cc.c
 src/algos/photometry.c
@@ -87,6 +88,7 @@ src/algos/spcc.c
 src/algos/star_finder.c
 src/algos/statistics.c
 src/algos/statistics_float.c
+src/algos/streaks.c
 src/algos/transform.c
 src/compositing/align_rgb.c
 src/core/OS_utils.c
@@ -246,6 +248,7 @@ src/livestacking/livestacking.c
 src/main-cli.c
 src/main.c
 src/opencv/opencv.cpp
+src/opencv/tracks.cpp
 src/pixelMath/pixel_math_runner.c
 src/registration/3stars.c
 src/registration/applyreg.c

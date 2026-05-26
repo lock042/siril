@@ -1154,3 +1154,38 @@ gboolean clear_stars_list_as_idle(gpointer user_data) {
 	clear_stars_list(refresh);
 	return FALSE;
 }
+
+/* compute apparent star radius in image, from the fit and the noise level */
+double psf_get_star_radius(psf_star *psf, double noise_level, double bgthreshold) {
+	double radius = 0.0;
+	double A_on_alpha = psf->A / noise_level;
+	if (psf->profile == PSF_GAUSSIAN) {
+		if (A_on_alpha <= 1.0)
+			radius = psf->fwhmx;
+		else radius = psf->fwhmx * 0.75 * sqrt(log2(A_on_alpha));
+		if (psf->has_saturated) {
+			double ratio = 1.35 + 0.5 * psf->A / psf->sat;
+			radius *= ratio;
+		}
+		if (psf->B > bgthreshold) {
+			siril_log_debug("Background threshold reached\n");
+			// not saturated but looking like one
+			radius *= 1.0 + 0.5 * psf->B / bgthreshold;
+			radius += 1.0;  // for oversampled images
+		}
+	} else { /* Moffat */
+		siril_log_debug("moffat\n");
+		if (psf->beta == 0.0) {
+			g_warning("Moffat beta is nil!\n");
+			return psf->fwhmx * 2.0;
+		}
+		if (A_on_alpha <= 1.0)
+			radius = psf->fwhmx;
+		else {
+			double invbeta = 1.0 / psf->beta;
+			radius = psf->fwhmx * 0.5 * sqrt((pow(A_on_alpha, invbeta) - 1.0) / (pow(2.0, invbeta) - 1));
+		}
+	}
+	return radius;
+}
+
