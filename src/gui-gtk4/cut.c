@@ -907,10 +907,18 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
-	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-	GtkToggleButton *toolbutton = (GtkToggleButton*) lookup_widget("cut_button");
-	siril_toggle_set_active(GTK_WIDGET(toolbutton), FALSE);
-	siril_close_dialog("cut_dialog");
+	/* Drive the win.cut stateful action to FALSE so the toolbar toggle
+	 * tracks the dialog being dismissed.  cut_state handles the close
+	 * and the mouse_status reset, and the GtkToggleButton bound to
+	 * action-name="win.cut" follows the state automatically.  Setting
+	 * the state explicitly (rather than activating) avoids opening the
+	 * dialog if the action ever got out of sync with the toggle. */
+	GtkRoot *root = gtk_widget_get_root(GTK_WIDGET(button));
+	if (root && G_IS_ACTION_GROUP(root))
+		g_action_group_change_action_state(G_ACTION_GROUP(root), "cut",
+			g_variant_new_boolean(FALSE));
+	else
+		siril_close_dialog("cut_dialog");
 }
 
 void match_adjustments_to_gfit() {

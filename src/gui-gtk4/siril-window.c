@@ -76,7 +76,7 @@ static GActionEntry image_entries[] = {
 	{ "show-disto", show_disto_activate, NULL, "false", show_disto_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
-	{ "cut", cut_activate },
+	{ "cut", cut_activate, NULL, "false", cut_state },
 	{ "image-information", image_information_activate },
 	{ "dyn-psf", dyn_psf_activate },
 	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },

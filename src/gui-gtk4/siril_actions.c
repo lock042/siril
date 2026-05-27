@@ -1015,9 +1015,16 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	siril_open_dialog("icc_dialog");
 }
 
-void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkToggleButton *button = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_button"));
-	if (siril_toggle_get_active(GTK_WIDGET(button))) {
+/* Stateful boolean action backing the bottom-toolbar intensity profile
+ * toggle.  The old non-stateful handler read the GtkToggleButton's
+ * active property to decide whether to open the dialog, but in GTK4 a
+ * non-stateful action doesn't drive the button's active state — the
+ * read returned FALSE on every click and the dialog never opened.
+ * Following the photometry_state / photometry_activate pattern keeps
+ * the button and the dialog in sync. */
+void cut_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	if (g_variant_get_boolean(state)) {
 		mouse_status = MOUSE_ACTION_CUT_SELECT;
 		siril_open_dialog("cut_dialog");
 	} else {
@@ -1026,6 +1033,13 @@ void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		siril_close_dialog("cut_spectroscopy_dialog");
 		siril_close_dialog("cut_dialog");
 	}
+}
+
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action),
+		g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
 }
 
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
