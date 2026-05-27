@@ -114,7 +114,7 @@
               </object>
             </child>
             <child>
-              <object class="GtkButton" id="SCNR_roi_preview">
+              <object class="GtkToggleButton" id="SCNR_roi_preview">
                 <property name="label" translatable="1">ROI Preview</property>
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
