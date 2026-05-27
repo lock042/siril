@@ -69,6 +69,7 @@ struct _SirilFileBrowser {
 	GtkSearchBar           *search_bar;
 	GtkSearchEntry         *search_entry;
 	gchar                  *search_text;       /* lower-cased substring, NULL/"" disables */
+	gboolean                show_hidden_files; /* honors org.gtk.Settings.FileChooser show-hidden; toggle with Ctrl+H */
 
 	/* Owned model objects.  Kept in fields so callbacks (filter, set_file,
 	 * selection-changed) can reach them; references are taken via
@@ -140,8 +141,10 @@ static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 	SirilFileBrowser *fb = user_data;
 	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
 	/* Hide hidden files (but always allow hidden directories through —
-	 * still rare, and tidy if the user navigates to ~/.config etc.). */
-	if (!is_dir && g_file_info_get_is_hidden(info))
+	 * still rare, and tidy if the user navigates to ~/.config etc.).
+	 * Honors fb->show_hidden_files (initialised from GSettings
+	 * org.gtk.Settings.FileChooser show-hidden, toggled with Ctrl+H). */
+	if (!is_dir && g_file_info_get_is_hidden(info) && !fb->show_hidden_files)
 		return FALSE;
 	/* Search substring (case-insensitive).  Applies to both dirs and files
 	 * when active — when the user is searching, an unmatched dir would be
@@ -1993,6 +1996,42 @@ void siril_file_browser_set_show_debayer_toggle(SirilFileBrowser *fb, gboolean s
 
 /* ── construction / API ────────────────────────────────────────────── */
 
+/* Read the system-wide "show hidden files" setting from
+ * org.gtk.Settings.FileChooser (the same key GTK's own GtkFileDialog
+ * honors).  Returns FALSE when the schema is unavailable (typical on
+ * macOS / Windows where there's no dconf backend), preserving the
+ * historical hide-dotfiles behavior. */
+static gboolean browser_initial_show_hidden(void) {
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	if (!src) return FALSE;
+	GSettingsSchema *schema = g_settings_schema_source_lookup(src,
+		"org.gtk.Settings.FileChooser", TRUE);
+	if (!schema) return FALSE;
+	gboolean has_key = g_settings_schema_has_key(schema, "show-hidden");
+	g_settings_schema_unref(schema);
+	if (!has_key) return FALSE;
+	GSettings *gs = g_settings_new("org.gtk.Settings.FileChooser");
+	gboolean v = g_settings_get_boolean(gs, "show-hidden");
+	g_object_unref(gs);
+	return v;
+}
+
+/* Ctrl+H toggles hidden-file visibility, matching every other GTK file
+ * chooser.  We refilter the model so the change is immediate. */
+static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyval,
+                                           guint keycode, GdkModifierType state,
+                                           gpointer ud) {
+	(void)kc; (void)keycode;
+	SirilFileBrowser *fb = ud;
+	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
+		fb->show_hidden_files = !fb->show_hidden_files;
+		if (fb->file_filter)
+			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) {
 	SirilFileBrowser *fb = g_new0(SirilFileBrowser, 1);
 	fb->parent  = parent;
@@ -2001,12 +2040,19 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	fb->forward_history = g_ptr_array_new_with_free_func(g_object_unref);
 	fb->active_filter_idx = -1;
 	fb->response = GTK_RESPONSE_NONE;
+	fb->show_hidden_files = browser_initial_show_hidden();
 
 	fb->window = GTK_WINDOW(gtk_window_new());
 	gtk_window_set_title(fb->window, title ? title : _("Open File"));
 	gtk_window_set_modal(fb->window, TRUE);
 	if (parent) gtk_window_set_transient_for(fb->window, parent);
 	gtk_window_set_default_size(fb->window, 1000, 620);
+	{
+		GtkEventController *kc = gtk_event_controller_key_new();
+		g_signal_connect(kc, "key-pressed",
+		                 G_CALLBACK(browser_window_key_pressed), fb);
+		gtk_widget_add_controller(GTK_WIDGET(fb->window), kc);
+	}
 	/* Hard minimum on the dialog: sidebar (180) + file list (320) +
 	 * preview (300) + paned handles ≈ 820 px wide.  Round up to 880 to
 	 * leave breathing room for the toolbar's cancel/back/path/open
