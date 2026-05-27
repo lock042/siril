@@ -853,10 +853,19 @@ static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointe
 	GtkWidget *icon = gtk_widget_get_first_child(box);
 	GtkWidget *label = gtk_widget_get_next_sibling(icon);
 
-	const char *icon_name =
-		(g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY)
-			? "folder-symbolic" : "text-x-generic-symbolic";
-	gtk_image_set_from_icon_name(GTK_IMAGE(icon), icon_name);
+	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
+		gtk_image_set_from_icon_name(GTK_IMAGE(icon), "folder-symbolic");
+	} else {
+		/* Use the file's mime-type-derived GIcon if available so different
+		 * file kinds get distinguishable icons (image-jpeg, text-plain,
+		 * application-pdf, etc.).  Falls back to the generic glyph if GIO
+		 * couldn't resolve one. */
+		GIcon *gicon = g_file_info_get_icon(info);
+		if (gicon)
+			gtk_image_set_from_gicon(GTK_IMAGE(icon), gicon);
+		else
+			gtk_image_set_from_icon_name(GTK_IMAGE(icon), "text-x-generic-symbolic");
+	}
 	gtk_label_set_text(GTK_LABEL(label), g_file_info_get_display_name(info));
 }
 
