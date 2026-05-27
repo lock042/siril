@@ -48,9 +48,11 @@ drawingarea.iso12646-bg {
 /* Submenu navigation buttons inside our processing/tools popovers.
  * They are GtkButtons (so they don't auto-dismiss the popover) but we
  * want them to render like menu rows: full-width, flat, slightly padded,
- * arrow indicator hugging the edge. */
+ * arrow indicator hugging the edge.  Vertical padding matches the
+ * GtkPopoverMenu modelbutton default (~3px) so custom popovers don't
+ * look loose next to the GMenu-driven Scripts / script-editor menus. */
 button.menu-nav {
-   padding: 4px 8px;
+   padding: 3px 8px;
    border-radius: 4px;
 }
 button.menu-nav image {
@@ -74,7 +76,11 @@ popover:not(#popover_catalogs) checkbutton {
    border: none;
    box-shadow: none;
    border-radius: 4px;
-   padding: 6px 10px;
+   /* Vertical padding tightened from 6px so the Image Processing,
+    * Tools and hamburger popovers (GtkPopover + GtkBox + GtkButton
+    * rows) match the line-height of the GMenu-driven Scripts and
+    * script-editor menus. */
+   padding: 3px 10px;
    margin: 0;
    font-weight: normal;
    outline: none;
