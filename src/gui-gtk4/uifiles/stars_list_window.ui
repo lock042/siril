@@ -295,7 +295,7 @@
                         <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no" />
                         <child>
                           <object class="GtkImage">
-                            <property name="icon-name">view-refresh</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
                           </object>
                         </child>
                         <layout>
@@ -459,7 +459,7 @@
                       <object class="GtkButton" id="add_button">
                         <property name="tooltip-text" translatable="1">Add star to list from selection</property>
                         <property name="use-underline">1</property>
-                        <property name="icon-name">list-add</property>
+                        <property name="icon-name">list-add-symbolic</property>
                         <signal name="clicked" handler="on_add_button_clicked" swapped="no" />
                       </object>
                     </child>
@@ -467,7 +467,7 @@
                       <object class="GtkButton" id="remove_button">
                         <property name="tooltip-text" translatable="1">Remove selected star from the list</property>
                         <property name="use-underline">1</property>
-                        <property name="icon-name">list-remove</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                         <signal name="clicked" handler="on_remove_button_clicked" swapped="no" />
                       </object>
                     </child>
@@ -475,7 +475,7 @@
                       <object class="GtkButton" id="remove_all_button">
                         <property name="tooltip-text" translatable="1">Remove all stars from the list and clears the tilt overlay, if displayed</property>
                         <property name="use-underline">1</property>
-                        <property name="icon-name">edit-clear</property>
+                        <property name="icon-name">edit-clear-symbolic</property>
                         <signal name="clicked" handler="on_remove_all_button_clicked" swapped="no" />
                       </object>
                     </child>

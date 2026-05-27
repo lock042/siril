@@ -1528,7 +1528,7 @@
                         <property name="action-name">win.dyn-psf</property>
                         <child>
                           <object class="GtkImage">
-                            <property name="icon-name">applications-system</property>
+                            <property name="icon-name">applications-system-symbolic</property>
                           </object>
                         </child>
                       </object>
@@ -2336,7 +2336,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">go-home</property>
+                <property name="icon-name">go-home-symbolic</property>
               </object>
             </child>
             <style>
@@ -2354,7 +2354,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">media-record</property>
+                <property name="icon-name">media-record-symbolic</property>
               </object>
             </child>
             <style>
@@ -2370,7 +2370,7 @@
             <property name="action-name">win.undo</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">edit-undo</property>
+                <property name="icon-name">edit-undo-symbolic</property>
               </object>
             </child>
             <style>
@@ -2387,7 +2387,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">edit-redo</property>
+                <property name="icon-name">edit-redo-symbolic</property>
               </object>
             </child>
             <style>
@@ -2485,7 +2485,7 @@
             <property name="popover">main_menu</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">open-menu</property>
+                <property name="icon-name">open-menu-symbolic</property>
               </object>
             </child>
             <style>
@@ -2534,7 +2534,7 @@
               <object class="GtkBox" id="snapshot_button_box">
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">camera-photo</property>
+                    <property name="icon-name">camera-photo-symbolic</property>
                   </object>
                 </child>
                 <child>
@@ -2556,7 +2556,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">document-save-as</property>
+                <property name="icon-name">document-save-as-symbolic</property>
               </object>
             </child>
             <style>
@@ -3178,7 +3178,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Add</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">list-add</property>
+                                                                    <property name="icon-name">list-add-symbolic</property>
                                                                     <signal name="clicked" handler="on_select_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -3188,7 +3188,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Remove</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">list-remove</property>
+                                                                    <property name="icon-name">list-remove-symbolic</property>
                                                                     <signal name="clicked" handler="on_remove_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -3198,7 +3198,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Clear</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">edit-clear</property>
+                                                                    <property name="icon-name">edit-clear-symbolic</property>
                                                                     <signal name="clicked" handler="on_clear_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -7302,7 +7302,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                           <object class="GtkButton" id="export_log_button">
                                                             <property name="tooltip-text" translatable="1">Export the log</property>
                                                             <property name="use-underline">1</property>
-                                                            <property name="icon-name">document-save-as</property>
+                                                            <property name="icon-name">document-save-as-symbolic</property>
                                                             <signal name="clicked" handler="on_export_log_button_clicked" swapped="no" />
                                                           </object>
                                                         </child>
@@ -7310,7 +7310,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                           <object class="GtkButton" id="clear_log_button">
                                                             <property name="tooltip-text" translatable="1">Clear the log</property>
                                                             <property name="use-underline">1</property>
-                                                            <property name="icon-name">edit-clear</property>
+                                                            <property name="icon-name">edit-clear-symbolic</property>
                                                             <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no" />
                                                           </object>
                                                         </child>
@@ -7362,7 +7362,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                         <signal name="clicked" handler="on_GtkCommandHelper_clicked" object="command" swapped="no" />
                                         <child>
                                           <object class="GtkImage" id="imageHelp">
-                                            <property name="icon-name">help-browser</property>
+                                            <property name="icon-name">help-browser-symbolic</property>
                                           </object>
                                         </child>
                                       </object>
@@ -7794,7 +7794,7 @@ Current state: linked.</property>
                     <property name="tooltip-text" translatable="1">Shrink the image</property>
                     <property name="action-name">win.zoom-out</property>
                     <property name="use-underline">1</property>
-                    <property name="icon-name">zoom-out</property>
+                    <property name="icon-name">zoom-out-symbolic</property>
                   </object>
                 </child>
                 <child>
@@ -7802,7 +7802,7 @@ Current state: linked.</property>
                     <property name="tooltip-text" translatable="1">Enlarge the image</property>
                     <property name="action-name">win.zoom-in</property>
                     <property name="use-underline">1</property>
-                    <property name="icon-name">zoom-in</property>
+                    <property name="icon-name">zoom-in-symbolic</property>
                   </object>
                 </child>
                 <child>

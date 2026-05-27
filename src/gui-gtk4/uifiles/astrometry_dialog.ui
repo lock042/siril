@@ -53,7 +53,7 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkImage" id="image1">
-    <property name="icon-name">edit-find</property>
+    <property name="icon-name">edit-find-symbolic</property>
   </object>
   <object class="GtkWindow" id="astrometry_dialog">
     <property name="title" translatable="1">Image Plate Solver</property>

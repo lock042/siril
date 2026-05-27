@@ -147,7 +147,7 @@
                                 <signal name="clicked" handler="on_annotate_save_as_button_clicked" swapped="no" />
                                 <child>
                                   <object class="GtkImage">
-                                    <property name="icon-name">document-save-as</property>
+                                    <property name="icon-name">document-save-as-symbolic</property>
                                   </object>
                                 </child>
                                 <layout>

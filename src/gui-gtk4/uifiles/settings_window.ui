@@ -3889,7 +3889,7 @@
                                         <signal name="clicked" handler="on_reload_script_button_clicked" swapped="no" />
                                         <child>
                                           <object class="GtkImage">
-                                            <property name="icon-name">view-refresh</property>
+                                            <property name="icon-name">view-refresh-symbolic</property>
                                           </object>
                                         </child>
                                       </object>

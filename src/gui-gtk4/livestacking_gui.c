@@ -11,7 +11,7 @@
 #include "core/preprocess.h"
 #include "core/siril_log.h"
 
-static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
+static gchar *pause_play_button[] = {"media-playback-pause-symbolic", "media-playback-start-symbolic" };
 
 /* for fullscreen and window management on activation,
  * see livestacking_action_activate() in gui/siril_actions.c */

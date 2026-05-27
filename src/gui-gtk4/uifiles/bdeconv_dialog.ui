@@ -374,7 +374,7 @@
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="tooltip-text" translatable="1">Save PSF to a file</property>
-                                                    <property name="icon-name">document-save</property>
+                                                    <property name="icon-name">document-save-symbolic</property>
                                                   </object>
                                                 </child>
                                               </object>

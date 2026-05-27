@@ -49,7 +49,7 @@
                                 <signal name="clicked" handler="on_add_keyword_button_clicked" swapped="no" />
                                 <child>
                                   <object class="GtkImage">
-                                    <property name="icon-name">list-add</property>
+                                    <property name="icon-name">list-add-symbolic</property>
                                   </object>
                                 </child>
                               </object>
@@ -62,7 +62,7 @@
                                 <signal name="clicked" handler="on_delete_keyword_button_clicked" swapped="no" />
                                 <child>
                                   <object class="GtkImage">
-                                    <property name="icon-name">list-remove</property>
+                                    <property name="icon-name">list-remove-symbolic</property>
                                   </object>
                                 </child>
                               </object>

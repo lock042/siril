@@ -27,14 +27,14 @@
                 <child>
                   <object class="GtkButton" id="livestacking_playpause">
                     <property name="use-underline">1</property>
-                    <property name="icon-name">media-playback-start</property>
+                    <property name="icon-name">media-playback-start-symbolic</property>
                     <signal name="clicked" handler="on_livestacking_playpause_clicked" swapped="no" />
                   </object>
                 </child>
                 <child>
                   <object class="GtkButton" id="livestacking_stop">
                     <property name="use-underline">1</property>
-                    <property name="icon-name">media-playback-stop</property>
+                    <property name="icon-name">media-playback-stop-symbolic</property>
                     <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no" />
                   </object>
                 </child>

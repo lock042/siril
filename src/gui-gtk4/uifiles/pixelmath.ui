@@ -48,7 +48,7 @@
                     <signal name="clicked" handler="on_pm_expr1_bt_clicked" swapped="no" />
                     <child>
                       <object class="GtkImage">
-                        <property name="icon-name">document-save</property>
+                        <property name="icon-name">document-save-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -88,7 +88,7 @@
                     <signal name="clicked" handler="on_pm_expr2_bt_clicked" swapped="no" />
                     <child>
                       <object class="GtkImage">
-                        <property name="icon-name">document-save</property>
+                        <property name="icon-name">document-save-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -128,7 +128,7 @@
                     <signal name="clicked" handler="on_pm_expr3_bt_clicked" swapped="no" />
                     <child>
                       <object class="GtkImage">
-                        <property name="icon-name">document-save</property>
+                        <property name="icon-name">document-save-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -371,7 +371,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <signal name="clicked" handler="on_pixel_math_add_var_button_clicked" swapped="no" />
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">list-add</property>
+                    <property name="icon-name">list-add-symbolic</property>
                   </object>
                 </child>
               </object>
@@ -384,7 +384,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <signal name="clicked" handler="on_pixel_math_remove_var_button_clicked" swapped="no" />
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">list-remove</property>
+                    <property name="icon-name">list-remove-symbolic</property>
                   </object>
                 </child>
               </object>
