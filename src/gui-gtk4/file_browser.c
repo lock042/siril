@@ -1243,7 +1243,13 @@ static GtkWidget *sidebar_make_row(const char *icon_name, const char *label,
 	gtk_widget_set_margin_top(hbox, 4);
 	gtk_widget_set_margin_bottom(hbox, 4);
 	GtkWidget *icon = gtk_image_new_from_icon_name(icon_name);
+	gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
 	GtkWidget *labels = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	/* Vertically centre the label stack against the icon — default
+	 * valign=fill stretches the VBox to the row height, leaving the
+	 * single label flush with the top of the row instead of in line
+	 * with the icon. */
+	gtk_widget_set_valign(labels, GTK_ALIGN_CENTER);
 	GtkWidget *lbl = gtk_label_new(label);
 	gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
 	gtk_label_set_ellipsize(GTK_LABEL(lbl), PANGO_ELLIPSIZE_END);
