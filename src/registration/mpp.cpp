@@ -888,8 +888,11 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) { mpp_ap_free(aps); return MPP_ENOMEM; }
+	/* Attach aps to the run immediately so every subsequent OOM path
+	 * below (which calls mpp_run_free) reclaims it too. */
+	run->aps = aps;
 	run->cfg = (mpp_config_t *) std::malloc(sizeof(mpp_config_t));
-	if (!run->cfg) { mpp_ap_free(aps); mpp_run_free(run); return MPP_ENOMEM; }
+	if (!run->cfg) { mpp_run_free(run); return MPP_ENOMEM; }
 	*run->cfg = *cfg;
 	run->num_frames = N;
 	run->frame_rows = frame_rows;
@@ -927,7 +930,6 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	if (!run->mean_frame_data) { mpp_run_free(run); return MPP_ENOMEM; }
 	std::memcpy(run->mean_frame_data, avg.mean_frame.data, mean_bytes);
 
-	run->aps = aps;
 	run->stack_size = apq.stack_size;
 	run->best_frame_indices = (int *) std::malloc((size_t) aps->count
 	                                              * run->stack_size * sizeof(int));

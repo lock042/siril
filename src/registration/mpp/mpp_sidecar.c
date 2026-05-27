@@ -167,6 +167,17 @@ err:
 	return MPP_EIO;
 }
 
+/* Sanity bounds on sizes read from the sidecar. The reader is supposed
+ * to be fed a Siril-written file, but a truncated / hand-edited / cross-
+ * platform-mangled sidecar can produce huge size fields that would
+ * either silently overflow the multiplications below or trigger
+ * absurd allocations. Caps are generous (way past any realistic
+ * planetary sequence) — they exist to catch corruption, not to
+ * constrain real usage. */
+#define MPP_SIDECAR_MAX_FRAMES  10000000   /* 10 M frames per sequence */
+#define MPP_SIDECAR_MAX_DIM     200000     /* per axis (rows / cols) */
+#define MPP_SIDECAR_MAX_APS     10000000   /* APs per run */
+
 mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	if (!path || !run_out) return MPP_EINVAL;
 	*run_out = NULL;
@@ -210,13 +221,24 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	const int aps_dropped_dim     = h[i++];
 	const int aps_dropped_structure = h[i++];
 
+	/* Bounds-check sizes before any allocation. Reject negative values
+	 * (corrupted file) and absurdly large ones that would overflow size_t
+	 * in the multiplications below. */
+	if (run->num_frames < 1 || run->num_frames > MPP_SIDECAR_MAX_FRAMES
+	 || run->mean_frame_rows < 1 || run->mean_frame_rows > MPP_SIDECAR_MAX_DIM
+	 || run->mean_frame_cols < 1 || run->mean_frame_cols > MPP_SIDECAR_MAX_DIM
+	 || aps_count < 0 || aps_count > MPP_SIDECAR_MAX_APS
+	 || run->stack_size < 0 || run->stack_size > run->num_frames) {
+		mpp_run_free(run); goto err;
+	}
+
 	uint8_t has_shifts;
 	if (read_all(f, &has_shifts, 1) != 0) { mpp_run_free(run); goto err; }
 
 	const int N = run->num_frames;
 	run->quality          = (double *)  malloc(N * sizeof(double));
 	run->frame_brightness = (double *)  malloc(N * sizeof(double));
-	run->included         = (int *)     malloc(N * sizeof(int32_t));
+	run->included         = (int *)     malloc(N * sizeof(int));
 	run->global_shifts    = (double *)  malloc(2 * N * sizeof(double));
 	if (!run->quality || !run->frame_brightness
 	 || !run->included || !run->global_shifts) { mpp_run_free(run); goto err; }
@@ -262,12 +284,14 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	}
 	run->aps = aps;
 
-	run->best_frame_indices = (int *) malloc((size_t) aps_count * run->stack_size
-	                                         * sizeof(int32_t));
-	if (!run->best_frame_indices) { mpp_run_free(run); goto err; }
-	if (read_all(f, run->best_frame_indices,
-	             (size_t) aps_count * run->stack_size * sizeof(int32_t)) != 0) {
-		mpp_run_free(run); goto err;
+	const size_t bfi_count = (size_t) aps_count * (size_t) run->stack_size;
+	if (bfi_count > 0) {
+		run->best_frame_indices = (int *) malloc(bfi_count * sizeof(int32_t));
+		if (!run->best_frame_indices) { mpp_run_free(run); goto err; }
+		if (read_all(f, run->best_frame_indices,
+		             bfi_count * sizeof(int32_t)) != 0) {
+			mpp_run_free(run); goto err;
+		}
 	}
 
 	if (has_shifts) {
@@ -277,13 +301,28 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 		if (read_all(f, &snf, 4) != 0 || read_all(f, &sna, 4) != 0) {
 			free(s); mpp_run_free(run); goto err;
 		}
+		/* The shifts section's snf/sna are encoded only for cross-check;
+		 * they must agree with the run header. Anything else is a corrupt
+		 * sidecar — reject before allocating. */
+		if (snf != run->num_frames || sna != aps_count || snf < 0 || sna < 0) {
+			free(s); mpp_run_free(run); goto err;
+		}
 		s->num_frames = snf;
 		s->num_aps    = sna;
-		s->shifts  = (double *)  malloc((size_t) 2 * snf * sna * sizeof(double));
-		s->success = (uint8_t *) malloc((size_t)     snf * sna * sizeof(uint8_t));
-		if (!s->shifts || !s->success) { mpp_shift_free(s); mpp_run_free(run); goto err; }
-		if (read_all(f, s->shifts,  (size_t) 2 * snf * sna * sizeof(double)) != 0
-		 || read_all(f, s->success, (size_t)     snf * sna * sizeof(uint8_t)) != 0) {
+		const size_t shifts_count  = (size_t) 2 * (size_t) snf * (size_t) sna;
+		const size_t success_count = (size_t)     (size_t) snf * (size_t) sna;
+		if (shifts_count > 0) {
+			s->shifts = (double *) malloc(shifts_count * sizeof(double));
+			if (!s->shifts) { mpp_shift_free(s); mpp_run_free(run); goto err; }
+		}
+		if (success_count > 0) {
+			s->success = (uint8_t *) malloc(success_count * sizeof(uint8_t));
+			if (!s->success) { mpp_shift_free(s); mpp_run_free(run); goto err; }
+		}
+		if ((shifts_count > 0
+		     && read_all(f, s->shifts,  shifts_count  * sizeof(double))  != 0)
+		 || (success_count > 0
+		     && read_all(f, s->success, success_count * sizeof(uint8_t)) != 0)) {
 			mpp_shift_free(s); mpp_run_free(run); goto err;
 		}
 		int32_t failures;

@@ -572,21 +572,41 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 
 		if (out.state.number_stacking_holes > 0
 		 && top_for_bg.find(f) != top_for_bg.end()) {
+			/* Clamp helper: an off-by-one in lround(intersection[0] -
+			 * shifts[f][0]) vs lround(shifts[f][0]) can push the source
+			 * slice one row/col past the frame edge when a shift sits on
+			 * a rounding tie (e.g. exactly 0.5). Compute the valid
+			 * frame-side window and the matching destination window;
+			 * pixels outside the frame stay unwritten in the
+			 * accumulator. */
+			auto clamped_blit = [](const cv::Mat &src, cv::Mat &dst,
+			                       int src_y, int src_x, int len_y, int len_x) {
+				const int src_y_lo = std::max(0, src_y);
+				const int src_y_hi = std::min(src.rows, src_y + len_y);
+				const int src_x_lo = std::max(0, src_x);
+				const int src_x_hi = std::min(src.cols, src_x + len_x);
+				if (src_y_hi <= src_y_lo || src_x_hi <= src_x_lo) return;
+				const int dst_y_lo = src_y_lo - src_y;
+				const int dst_x_lo = src_x_lo - src_x;
+				cv::Mat dst_view = dst(
+				    cv::Range(dst_y_lo, dst_y_lo + (src_y_hi - src_y_lo)),
+				    cv::Range(dst_x_lo, dst_x_lo + (src_x_hi - src_x_lo)));
+				dst_view += src(cv::Range(src_y_lo, src_y_hi),
+				                cv::Range(src_x_lo, src_x_hi));
+			};
 			if (!out.state.background_patches.empty()) {
 				for (const auto &bp : out.state.background_patches) {
-					const cv::Mat src = frame_f32(
-					    cv::Range(bp.y_low + dy, bp.y_high + dy),
-					    cv::Range(bp.x_low + dx, bp.x_high + dx));
 					cv::Mat dst = out.state.averaged_background(
 					    cv::Range(bp.y_low, bp.y_high),
 					    cv::Range(bp.x_low, bp.x_high));
-					dst += src;
+					clamped_blit(frame_f32, dst,
+					             bp.y_low + dy, bp.x_low + dx,
+					             bp.y_high - bp.y_low,
+					             bp.x_high - bp.x_low);
 				}
 			} else {
-				const cv::Mat src = frame_f32(
-				    cv::Range(dy, out.state.dim_y + dy),
-				    cv::Range(dx, out.state.dim_x + dx));
-				out.state.averaged_background += src;
+				clamped_blit(frame_f32, out.state.averaged_background,
+				             dy, dx, out.state.dim_y, out.state.dim_x);
 			}
 		}
 		g_atomic_int_inc(&cur_nb);

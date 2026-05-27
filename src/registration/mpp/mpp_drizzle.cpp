@@ -1170,11 +1170,24 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	 * AVI doesn't need this dance — film_read_frame already returns
 	 * a 1-layer mosaic, so we just call read_full_frame with no
 	 * pattern hint (avi_pattern=AUTO suppresses the cv::cvtColor
-	 * debayer step that the bicubic path uses). */
-	ser_color saved_debayer_type = SER_MONO;
+	 * debayer step that the bicubic path uses).
+	 *
+	 * RAII so an exception escaping stack_apply_bayer_streamed (cv::
+	 * Exception, std::bad_alloc, …) still restores the SER state. */
+	struct SerRawGuard {
+		sequence *seq = nullptr;
+		ser_color saved = SER_MONO;
+		bool active = false;
+		~SerRawGuard() {
+			if (active && seq && seq->ser_file)
+				seq->ser_file->debayer_type_ser = saved;
+		}
+	} ser_raw_guard;
 	const bool is_ser = (seq->type == SEQ_SER);
 	if (is_ser) {
-		saved_debayer_type = seq->ser_file->debayer_type_ser;
+		ser_raw_guard.seq = seq;
+		ser_raw_guard.saved = seq->ser_file->debayer_type_ser;
+		ser_raw_guard.active = true;
 		seq->ser_file->debayer_type_ser = SER_MONO;
 	}
 
@@ -1195,11 +1208,6 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 		 * AUTO → no cv::cvtColor debayer). */
 		return mpp::read_full_frame(seq, i, MPP_AVI_BAYER_AUTO);
 	};
-	const mpp_status_t rc = mpp::stack_apply_bayer_streamed(
+	return mpp::stack_apply_bayer_streamed(
 	    provider, N, included, brightness, run, cfg, cfa, /*cfadim=*/2, out);
-
-	if (is_ser) {
-		seq->ser_file->debayer_type_ser = saved_debayer_type;
-	}
-	return rc;
 }
