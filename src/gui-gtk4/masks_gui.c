@@ -687,27 +687,36 @@ void on_button_pick_from_image_clicked(GtkButton *button, gpointer user_data) {
  *
  * Draw callback for the color display area.
  */
-gboolean on_color_display_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
-	int alloc_w = gtk_widget_get_width(widget);
-	int alloc_h = gtk_widget_get_height(widget);
-	/* Set the color */
+/* GtkDrawingAreaDrawFunc — was the GTK3 "draw" signal handler bound
+ * from mask_from_chromaticity.ui.  GTK4 dropped that signal; the new
+ * way is gtk_drawing_area_set_draw_func() with this 5-arg signature.
+ * Wired in on_mask_from_color_dialog_show below. */
+static void on_color_display_draw(GtkDrawingArea *area, cairo_t *cr,
+                                  int width, int height, gpointer user_data) {
+	(void)area; (void)user_data;
+	/* Fill */
 	cairo_set_source_rgb(cr, selected_color_r, selected_color_g, selected_color_b);
-
-	/* Fill the entire area */
-	cairo_rectangle(cr, 0, 0, alloc_w, alloc_h);
+	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_fill(cr);
-
-	/* Draw a border */
+	/* Border */
 	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 	cairo_set_line_width(cr, 1.0);
-	cairo_rectangle(cr, 0.5, 0.5, alloc_w - 1, alloc_h - 1);
+	cairo_rectangle(cr, 0.5, 0.5, width - 1, height - 1);
 	cairo_stroke(cr);
-
-	return FALSE;
 }
 
 void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
 	masks_gui_init_statics();
+	if (drawing_area_color_display) {
+		/* Idempotent wiring (the dialog can be reopened multiple times). */
+		if (!g_object_get_data(G_OBJECT(drawing_area_color_display),
+		                       "siril-color-display-wired")) {
+			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(drawing_area_color_display),
+			                               on_color_display_draw, NULL, NULL);
+			g_object_set_data(G_OBJECT(drawing_area_color_display),
+			                  "siril-color-display-wired", GINT_TO_POINTER(1));
+		}
+	}
 
 	/* Trigger initial draw */
 	if (drawing_area_color_display) {

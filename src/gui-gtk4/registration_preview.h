@@ -4,6 +4,8 @@
 #include <gtk/gtk.h>
 
 gboolean redraw_previews(gpointer user_data);
+void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
+                    int width, int height, gpointer data);
 void clear_previews();
 void set_preview_area(int preview_area, int centerX, int centerY);
 void adjust_reginfo();

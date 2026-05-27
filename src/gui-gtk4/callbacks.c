@@ -2210,6 +2210,15 @@ void initialize_all_GUI(gchar *supported_files) {
 	install_drawarea_draw_funcs();
 	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
+	/* GTK4: the "draw" signal was removed.  Wire redraw_preview via
+	 * gtk_drawing_area_set_draw_func now that the preview_area pointers
+	 * are populated — replaces the <signal name="draw" handler=
+	 * "redraw_preview"> binding that used to live in siril.ui. */
+	for (int i = 0; i < 2; i++) {
+		if (gui.preview_area[i])
+			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(gui.preview_area[i]),
+			                               redraw_preview, NULL, NULL);
+	}
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
