@@ -1,5 +1,5 @@
 /* don't change this first line without updating siril_css.c */
-* { font-size: 1.0em; -gtk-icon-style: regular; }
+* { -gtk-icon-style: regular; } window, popover { font-size: 1.0em; }
 
 /* The X11 drop-fallback in single_image.c swallows GDK_DROP_START so
  * the underlying GtkDropTarget never clears its :drop(active) state,
@@ -302,13 +302,13 @@ columnview.siril-dense-rows listview > row > cell {
  * buttons (Open, Save, Image Processing, …) don't end up taller than
  * icon-only buttons (Recent, hamburger, Undo, Redo, Save-As, …).
  *
- * 24 px is chosen to sit just BELOW the label widget's natural height
- * on Adwaita + the system font.  With `line-height: 1` clamping the
- * label to font-size only (see the rule below), the label fits inside
- * the 24 px floor, so the button doesn't grow past it.  Menubuttons
- * wrap an inner button with the same constraints and render at the
- * same 24 px — so a standalone GtkButton and a GtkMenuButton inner
- * `button` come out matching height. */
+ * 24 px matches the natural height of a label at the default Adwaita font
+ * size, so label-bearing and icon-only buttons share the same row height.
+ * Font scaling is applied once at the `window` / `popover` root (see
+ * siril_css.c), so the font shrinks or grows uniformly and the 24 px floor
+ * remains an appropriate common baseline. Menubuttons wrap an inner button
+ * with the same constraints and render at the same 24 px — so a standalone
+ * GtkButton and a GtkMenuButton inner `button` match height. */
 #siril-headerbar button,
 #siril-headerbar menubutton,
 #siril-headerbar menubutton > button,

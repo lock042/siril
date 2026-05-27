@@ -545,6 +545,15 @@ static void siril_app_activate(GApplication *application) {
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
 
+#if defined(USE_GTK4) && defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+		/* Enable macOS-native traffic-light window controls on the headerbar.
+		 * Available since GTK 4.18; renders the close/minimise/maximise buttons
+		 * as native Cocoa widgets in the top-left corner instead of GTK-drawn
+		 * ones on the right. */
+		GtkHeaderBar *bar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "headerbar"));
+		gtk_header_bar_set_use_native_controls(bar, TRUE);
+#endif
+
 		/* Load state of the main windows (position and maximized) */
 		update_splash_progress(_("Restoring window state..."), 0.75);
 		gui_function(load_main_window_state, NULL);
