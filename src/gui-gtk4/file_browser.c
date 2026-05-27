@@ -2058,8 +2058,25 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 
 	fb->window = GTK_WINDOW(gtk_window_new());
 	gtk_window_set_title(fb->window, title ? title : _("Open File"));
-	gtk_window_set_modal(fb->window, TRUE);
-	if (parent) gtk_window_set_transient_for(fb->window, parent);
+	/* Plan C: do NOT mark the window modal.  The macOS GDK Quartz
+	 * backend turns gtk_window_set_modal(TRUE) into an NSApp modal
+	 * session keyed to the NSWindow, and tearing that down leaves
+	 * AppKit's NSView event routing in a state where the parent
+	 * window's content area drops mouse-down/keyboard events until
+	 * app-deactivate-then-reactivate forces a recheck.  Three earlier
+	 * fixes targeting the teardown timing (drain, clear modal+
+	 * transient before destroy, defer the load) all failed on macOS,
+	 * confirming the modal pathway itself is the cause.  Block parent
+	 * input via gtk_widget_set_sensitive(parent, FALSE) instead — the
+	 * nested g_main_loop_run in siril_file_browser_run still gives us
+	 * synchronous behaviour, and the parent ignoring input fills the
+	 * same UX role as visual modality (the inner dialog has focus and
+	 * the user can't interact with the outer window) without involving
+	 * the NSApp modal-session machinery. */
+	if (parent) {
+		gtk_window_set_transient_for(fb->window, parent);
+		gtk_widget_set_sensitive(GTK_WIDGET(parent), FALSE);
+	}
 	gtk_window_set_default_size(fb->window, 1000, 620);
 	{
 		GtkEventController *kc = gtk_event_controller_key_new();
@@ -2728,6 +2745,13 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 		gtk_window_destroy(fb->window);
 		fb->window = NULL;
 	}
+	/* Re-enable the parent that we made insensitive in
+	 * siril_file_browser_new (Plan C: our substitute for the modal
+	 * flag).  Done after gtk_window_destroy so the visual transition
+	 * is "browser closes → parent regains input" rather than the other
+	 * way around. */
+	if (fb->parent)
+		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
 	g_clear_object(&fb->current_folder);
 	g_clear_object(&fb->initial_file);
 	g_clear_object(&fb->breadcrumb_deepest);
