@@ -227,6 +227,14 @@ static void init_widgets() {
 	g_assert(liststore_convert);
 }
 
+/* Called once from the main-window startup path so the empty Convert
+ * tree view is present from the start.  Previously ensure_convert_view
+ * only ran when the user added a file, leaving the scrolled window
+ * with no child until then. */
+void conversion_tab_setup(void) {
+	ensure_convert_view();
+}
+
 static void format_index_convert(GtkEntry *entry) {
 	int idx = g_ascii_strtoull(gtk_editable_get_text(GTK_EDITABLE(entry)), NULL, 10);
 	gchar *str = NULL;

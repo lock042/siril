@@ -36,6 +36,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "compositing/compositing.h"
+#include "gui-gtk4/conversion.h"
 #include "gui-gtk4/cut.h"
 #include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/icc_profile.h"
@@ -2358,6 +2359,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
+	conversion_tab_setup();  /* materialise the (initially empty) Convert tree view */
 
 	// init the Plot tab
 	drawPlot();

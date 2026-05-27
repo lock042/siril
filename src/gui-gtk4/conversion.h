@@ -14,5 +14,6 @@ enum {
 };
 
 void fill_convert_list(GSList *list);
+void conversion_tab_setup(void);
 
 #endif
