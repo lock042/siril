@@ -980,7 +980,17 @@ static void overlay_motion_cb(GtkEventControllerMotion *controller,
 
 /* Draw histogram overlay */
 /* GTK4: paint helper called from the per-viewport draw_func in image_display.c
- * after the base image draw, replacing the GTK3 connect_after("draw") chain. */
+ * after the base image draw, replacing the GTK3 connect_after("draw") chain.
+ *
+ * The cairo context passed in has had `gui.display_matrix` applied (so all
+ * the other overlay helpers can draw in image-space).  We reset that to
+ * the identity so the histogram overlay lives in widget coordinates —
+ * its `histo_state.x/y/width/height` must match the (widget-relative)
+ * coordinates the GtkGesture* event controllers report, otherwise:
+ *   - the overlay renders at `zoom * width` screen pixels (≈ 50% at
+ *     typical zooms), and
+ *   - mouse hits against the overlay rectangle never match, breaking
+ *     every button / drag / resize interaction. */
 void histogram_overlay_paint(GtkWidget *widget, cairo_t *cr) {
 	if (!histo_state.show_histo)
 		return;
@@ -1008,6 +1018,7 @@ void histogram_overlay_paint(GtkWidget *widget, cairo_t *cr) {
 	double header_height = histo_state.header_height;
 
 	cairo_save(cr);
+	cairo_identity_matrix(cr);  /* paint in widget coords, see header comment */
 
 	/* Draw outer frame with rounded corners */
 	double corner_radius = 8.0;
