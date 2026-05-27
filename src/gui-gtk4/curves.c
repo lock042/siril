@@ -82,8 +82,8 @@ static void curves_da_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
 static void curves_da_released(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
-static void curves_da_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data);
+static void curves_da_drag_update(GtkGestureDrag *gesture,
+		double offset_x, double offset_y, gpointer user_data);
 static void curves_prev_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
 static void curves_next_pressed(GtkGestureClick *gesture, int n_press,
@@ -126,17 +126,24 @@ void curves_dialog_init_statics() {
 			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(curves_drawingarea),
 			                               curves_draw_cb, NULL, NULL);
 
-			/* GTK4 event-controllers: replace the GTK3 button-press /
-			 * release / motion-notify signals on curves_drawingarea. */
+			/* GTK4 event-controllers: GtkGestureClick for press/release
+			 * (point selection, insert, delete) and GtkGestureDrag for
+			 * moving a selected point.  Replaces GTK3's button-press /
+			 * release / motion-notify.  Motion controller dropped: the
+			 * curves area only uses motion during a drag (no hover
+			 * feedback), and on macOS the motion controller doesn't
+			 * fire during press anyway. */
 			GtkGesture *click = gtk_gesture_click_new();
 			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0);
 			g_signal_connect(click, "pressed",  G_CALLBACK(curves_da_pressed),  NULL);
 			g_signal_connect(click, "released", G_CALLBACK(curves_da_released), NULL);
 			gtk_widget_add_controller(curves_drawingarea, GTK_EVENT_CONTROLLER(click));
 
-			GtkEventController *motion = gtk_event_controller_motion_new();
-			g_signal_connect(motion, "motion", G_CALLBACK(curves_da_motion), NULL);
-			gtk_widget_add_controller(curves_drawingarea, motion);
+			GtkGesture *drag = gtk_gesture_drag_new();
+			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag), GDK_BUTTON_PRIMARY);
+			g_signal_connect(drag, "drag-update",
+			                 G_CALLBACK(curves_da_drag_update), NULL);
+			gtk_widget_add_controller(curves_drawingarea, GTK_EVENT_CONTROLLER(drag));
 		}
 
 		/* GTK3 wired prev/next via "button-press-event" on the parent
@@ -839,11 +846,20 @@ void toggle_curves_window_visibility() {
 /* GTK4 motion: drag the selected control point.  Replaces the GTK3
  * "motion-notify-event"; coordinates come straight from the
  * GtkEventControllerMotion. */
-static void curves_da_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data) {
+/* GtkGestureDrag drag-update — fires for each motion event while a
+ * button is held, including on macOS (where GtkEventControllerMotion
+ * does not).  Computes the absolute widget-local position from the
+ * drag start point plus the delivered offset, then drags the selected
+ * curve point in normalised [0,1] coordinates. */
+static void curves_da_drag_update(GtkGestureDrag *gesture,
+		double offset_x, double offset_y, gpointer user_data) {
 	(void)user_data;
 	if (!is_drawingarea_pressed || !selected_point) return;
-	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(gesture, &sx, &sy);
+	double x = sx + offset_x;
+	double y = sy + offset_y;
 	gdouble xpos = x / (gdouble) gtk_widget_get_width(curves_drawingarea);
 	/* y position is inverted (top-left origin -> bottom-up curve). */
 	gdouble ypos = 1 - y / (gdouble) gtk_widget_get_height(curves_drawingarea);
