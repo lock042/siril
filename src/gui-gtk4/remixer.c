@@ -745,8 +745,11 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 	invocation = _invocation;
 	/* The .ui doesn't wire a "show" signal on the dialog, so make sure the
 	 * remix_filechooser_{left,right} buttons get their click handlers
-	 * connected on first use. */
+	 * connected — and the two remix_histo_{left,right} drawing areas
+	 * get their GTK4 draw funcs registered — on first use.  Both calls
+	 * are idempotent. */
 	wire_remix_filechooser_buttons();
+	wire_remix_drawing_areas();
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
