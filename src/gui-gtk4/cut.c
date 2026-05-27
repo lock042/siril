@@ -962,9 +962,13 @@ void update_spectro_labels() {
 	GtkWidget* pixels = lookup_widget("cut_dist_pref_px");
 	GtkWidget* arcsec = lookup_widget("cut_dist_pref_as");
 	if (spectroscopy_selections_are_valid(&gui.cut)) {
-		gtk_button_set_label(GTK_BUTTON(monobutton), _("Spectroscopic"));
+		/* cut_radio_mono and cut_tri_cut are GtkCheckButton in cut_dialog.ui.
+		 * In GTK4 GtkCheckButton no longer derives from GtkButton (unlike
+		 * GTK3) so GTK_BUTTON() asserts and gtk_button_set_label crashes.
+		 * Use the GtkCheckButton API instead. */
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(monobutton), _("Spectroscopic"));
 		gtk_widget_set_tooltip_text(monobutton, _("Reduces a spectrum without background removal. This is suitable when the entire image represents a calibrated spectrum"));
-		gtk_button_set_label(GTK_BUTTON(tributton), _("Spectro w/ bg removal"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(tributton), _("Spectro w/ bg removal"));
 		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Spectro bg offset (px)"));
 		gtk_widget_set_tooltip_text(tributton, _("Reduces a spectrum with background removal. This is suitable when background removal is required: the background is computed along parallel lines equidistant from the central spectral profile line"));
 		gtk_widget_set_visible(colorbutton, FALSE);
@@ -972,9 +976,9 @@ void update_spectro_labels() {
 		gtk_widget_set_visible(pixels, FALSE);
 		gtk_widget_set_visible(arcsec, FALSE);
 	} else {
-		gtk_button_set_label(GTK_BUTTON(monobutton), _("Mono"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(monobutton), _("Mono"));
 		gtk_widget_set_tooltip_text(monobutton, _("Generates a single luminance profile along the profile line"));
-		gtk_button_set_label(GTK_BUTTON(tributton), _("Tri-profile (mono)"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(tributton), _("Tri-profile (mono)"));
 		gtk_widget_set_tooltip_text(tributton, _("Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile"));
 		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Tri-profile offset (px)"));
 		gtk_widget_set_visible(colorbutton, TRUE);
