@@ -114,9 +114,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">clahe_Apply</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox">
             <property name="margin-start">6</property>

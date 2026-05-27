@@ -138,9 +138,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">rgradient_Apply</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox">
             <property name="margin-start">6</property>

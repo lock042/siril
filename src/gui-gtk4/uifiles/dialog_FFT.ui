@@ -184,10 +184,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">button_fft_close</action-widget>
-          <action-widget response="0">button_fft_apply</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox" id="dialog-action_area22">
             <property name="margin-start">6</property>

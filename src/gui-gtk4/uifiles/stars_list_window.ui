@@ -485,9 +485,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">button_stars_list_ok</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox" id="dialog-action_area13">
             <property name="margin-start">6</property>

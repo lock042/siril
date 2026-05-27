@@ -141,10 +141,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">Median_roi_preview</action-widget>
-          <action-widget response="0">Median_Apply</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox" id="dialog-action_area29">
             <property name="margin-start">6</property>

@@ -600,10 +600,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">button_cancelpopup</action-widget>
-          <action-widget response="0">button_savepopup</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox" id="dialog-action_area11">
             <property name="margin-start">6</property>

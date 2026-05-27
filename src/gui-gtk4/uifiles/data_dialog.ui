@@ -37,9 +37,6 @@
             </child>
           </object>
         </child>
-        <action-widgets>
-          <action-widget response="0">button_data_ok</action-widget>
-        </action-widgets>
         <child>
           <object class="GtkBox" id="dialog-action_area12">
             <property name="margin-start">6</property>
