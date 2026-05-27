@@ -37,7 +37,11 @@ static GtkCheckButton *banding_protect_highlights = NULL, *banding_vertical = NU
 static GtkEntry *banding_seq_entry = NULL;
 static GtkWidget *banding_spin_invsigma = NULL;
 
-static void banding_dialog_init_statics(void) {
+/* Exposed so the activate handler can cache the widget pointers before
+ * the dialog is shown — previously init only ran from Apply/processing
+ * handlers. */
+void banding_dialog_init_statics(void);
+void banding_dialog_init_statics(void) {
 	if (banding_scale_amount) return;
 	banding_scale_amount = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_amount"));
 	banding_scale_invsigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_invsigma"));

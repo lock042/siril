@@ -41,7 +41,12 @@ static GtkCheckButton *fft_centered = NULL;
 static GtkEntry *fft_mag_entry = NULL, *fft_phase_entry = NULL;
 static GtkWidget *fft_filechooser_mag = NULL, *fft_filechooser_phase = NULL;
 
-static void fft_dialog_init_statics(void) {
+/* Exposed so the activate handler can wire the file-chooser buttons
+ * before the dialog is shown.  Without this the magnitude/phase buttons
+ * have no click handler attached until the user hits Apply, by which
+ * point they're useless. */
+void fft_dialog_init_statics(void);
+void fft_dialog_init_statics(void) {
 	if (fft_notebook) return;
 	fft_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_fft"));
 	fft_centered = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "fft_centered"));

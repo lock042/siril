@@ -38,7 +38,12 @@ static GtkDropDown *split_haoiii_scaling_combo = NULL;
 static GtkWidget *split_label10 = NULL;
 static GtkWidget *split_labelhaoiiiname = NULL;
 
-static void split_cfa_init_statics(void) {
+/* Exposed so the activate handler can cache the widget pointers before
+ * the dialog is shown — previously init only ran from the close handler
+ * and Apply, so widget pointers were NULL until the user touched the
+ * dialog. */
+void split_cfa_init_statics(void);
+void split_cfa_init_statics(void) {
 	if (split_cfa_seq_btn) return;
 	split_cfa_seq_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkSplitCFASeq"));
 	split_cfa_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entrySplitCFA"));

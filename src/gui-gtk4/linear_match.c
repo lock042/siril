@@ -38,7 +38,11 @@ static GtkWidget *lm_ref_chooser = NULL;
 static GtkSpinButton *lm_high_spin = NULL;
 static GtkSpinButton *lm_low_spin = NULL;
 
-static void linear_match_init_statics(void) {
+/* Exposed so the activate handler can wire the reference file-chooser
+ * button before the dialog is shown.  Otherwise the button has no click
+ * handler attached until the user clicks Apply. */
+void linear_match_init_statics(void);
+void linear_match_init_statics(void) {
 	if (lm_ref_chooser) return;
 	lm_ref_chooser = GTK_WIDGET(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
 	lm_high_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_high"));
