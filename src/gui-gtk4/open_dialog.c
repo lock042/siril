@@ -41,7 +41,6 @@
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/message_dialog.h"
-#include "gui-gtk4/dialog_preview.h"
 #include "gui-gtk4/conversion.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/file_browser.h"
@@ -563,9 +562,12 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	g_free(path_copy);
 }
 
-static int recent_info_cmp_visited_desc(gconstpointer a, gconstpointer b) {
-	GDateTime *ta = gtk_recent_info_get_visited((GtkRecentInfo *) a);
-	GDateTime *tb = gtk_recent_info_get_visited((GtkRecentInfo *) b);
+static int recent_info_cmp_modified_desc(gconstpointer a, gconstpointer b) {
+	/* Sort by "modified" time, not "visited" - gtk_recent_manager_add_full()
+	 * stamps modified but leaves visited NULL, so sorting by visited would
+	 * push freshly-added entries to the bottom of the 1000-item list. */
+	GDateTime *ta = gtk_recent_info_get_modified((GtkRecentInfo *) a);
+	GDateTime *tb = gtk_recent_info_get_modified((GtkRecentInfo *) b);
 	if (!ta && !tb) return 0;
 	if (!ta) return 1;
 	if (!tb) return -1;
@@ -595,8 +597,7 @@ void populate_recent_files_menu(void) {
 		                 G_CALLBACK(recent_manager_changed_cb), NULL);
 	}
 	GList *items = g_list_sort(gtk_recent_manager_get_items(mgr),
-	                           recent_info_cmp_visited_desc);
-
+	                           recent_info_cmp_modified_desc);
 	GMenu *menu = g_menu_new();
 	int count = 0;
 	const int max_items = 12;
@@ -610,10 +611,10 @@ void populate_recent_files_menu(void) {
 			g_free(path);
 			continue;
 		}
-		/* Restrict to siril-openable image / sequence types so the menu
-		 * doesn't fill with unrelated recent files (PDFs, scripts, etc.)
-		 * tracked by GtkRecentManager from other apps. */
-		if (get_type_from_filename(path) == TYPEUNDEF) {
+		/* Restrict to FITS and TIFF only — the formats users actually want
+		 * to reopen quickly, and the ones Siril adds via add_full(). */
+		image_type t = get_type_from_filename(path);
+		if (t != TYPEFITS && t != TYPETIFF) {
 			g_free(path);
 			continue;
 		}

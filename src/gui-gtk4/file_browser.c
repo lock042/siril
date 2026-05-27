@@ -140,11 +140,10 @@ static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 	GFileInfo *info = G_FILE_INFO(item);
 	SirilFileBrowser *fb = user_data;
 	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
-	/* Hide hidden files (but always allow hidden directories through —
-	 * still rare, and tidy if the user navigates to ~/.config etc.).
+	/* Hide hidden entries (dotfiles, dotdirs) when show_hidden_files is off.
 	 * Honors fb->show_hidden_files (initialised from GSettings
 	 * org.gtk.Settings.FileChooser show-hidden, toggled with Ctrl+H). */
-	if (!is_dir && g_file_info_get_is_hidden(info) && !fb->show_hidden_files)
+	if (g_file_info_get_is_hidden(info) && !fb->show_hidden_files)
 		return FALSE;
 	/* Search substring (case-insensitive).  Applies to both dirs and files
 	 * when active — when the user is searching, an unmatched dir would be
@@ -2058,6 +2057,10 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_window_set_default_size(fb->window, 1000, 620);
 	{
 		GtkEventController *kc = gtk_event_controller_key_new();
+		/* CAPTURE phase: intercept Ctrl+H before GtkColumnView consumes it.
+		 * In GTK4 the default BUBBLE phase never reaches the window because
+		 * the focused column view handles (and drops) the key event first. */
+		gtk_event_controller_set_propagation_phase(kc, GTK_PHASE_CAPTURE);
 		g_signal_connect(kc, "key-pressed",
 		                 G_CALLBACK(browser_window_key_pressed), fb);
 		gtk_widget_add_controller(GTK_WIDGET(fb->window), kc);
