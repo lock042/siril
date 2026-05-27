@@ -29,181 +29,186 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkDialog" id="cut_coords_dialog">
+  <object class="GtkWindow" id="cut_coords_dialog">
     <property name="title" translatable="1">Coordinates</property>
     <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <signal name="hide" handler="on_cut_coords_dialog_hide" swapped="no" />
-    <child internal-child="content_area">
+    <property name="child">
       <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
         <child>
-          <object class="GtkGrid" id="cut_controls_manualcoords">
-            <property name="row-spacing">10</property>
-            <property name="column-spacing">10</property>
+          <object class="GtkBox">
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">2</property>
             <child>
-              <object class="GtkSpinButton" id="cut_xstart_spin">
-                <property name="focusable">1</property>
-                <property name="text" translatable="1">-1</property>
-                <property name="adjustment">adj_cut_xstart</property>
-                <property name="value">-1</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="cut_yfinish_spin">
-                <property name="focusable">1</property>
-                <property name="text" translatable="1">-1</property>
-                <property name="adjustment">adj_cut_yfinish</property>
-                <property name="value">-1</property>
-                <layout>
-                  <property name="column">2</property>
-                  <property name="row">2</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cut_finishlabel">
-                <property name="halign">start</property>
-                <property name="label" translatable="1">End</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">2</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cut_ylabel">
-                <property name="label" translatable="1">y</property>
-                <layout>
-                  <property name="column">2</property>
-                  <property name="row">0</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cut_startlabel">
-                <property name="halign">start</property>
-                <property name="label" translatable="1">Start</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cut_xlabel">
-                <property name="label" translatable="1">x</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">0</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="cut_ystart_spin">
-                <property name="focusable">1</property>
-                <property name="text" translatable="1">-1</property>
-                <property name="adjustment">adj_cut_ystart</property>
-                <property name="value">-1</property>
-                <layout>
-                  <property name="column">2</property>
-                  <property name="row">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="cut_xfinish_spin">
-                <property name="focusable">1</property>
-                <property name="text" translatable="1">-1</property>
-                <property name="adjustment">adj_cut_xfinish</property>
-                <property name="value">-1</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">2</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="css-classes">toolbar</property>
+              <object class="GtkGrid" id="cut_controls_manualcoords">
+                <property name="row-spacing">10</property>
+                <property name="column-spacing">10</property>
                 <child>
-                  <object class="GtkButton" id="start_select_from_star">
-                    <property name="tooltip-text" translatable="1">Find a star in the current selection and set the start point to its location</property>
-                    <property name="label" translatable="1">*</property>
-                    <property name="use-underline">1</property>
-                    <signal name="clicked" handler="on_select_from_star_clicked" swapped="no" />
+                  <object class="GtkSpinButton" id="cut_xstart_spin">
+                    <property name="focusable">1</property>
+                    <property name="text" translatable="1">-1</property>
+                    <property name="adjustment">adj_cut_xstart</property>
+                    <property name="value">-1</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
                   </object>
                 </child>
-                <layout>
-                  <property name="column">3</property>
-                  <property name="row">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="css-classes">toolbar</property>
                 <child>
-                  <object class="GtkButton" id="end_select_from_star">
-                    <property name="tooltip-text" translatable="1">Find a star in the current selection and set the end point to its location</property>
-                    <property name="label" translatable="1">*</property>
-                    <property name="use-underline">1</property>
-                    <signal name="clicked" handler="on_select_from_star_clicked" swapped="no" />
+                  <object class="GtkSpinButton" id="cut_yfinish_spin">
+                    <property name="focusable">1</property>
+                    <property name="text" translatable="1">-1</property>
+                    <property name="adjustment">adj_cut_yfinish</property>
+                    <property name="value">-1</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">2</property>
+                    </layout>
                   </object>
                 </child>
-                <layout>
-                  <property name="column">3</property>
-                  <property name="row">2</property>
-                </layout>
+                <child>
+                  <object class="GtkLabel" id="cut_finishlabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">End</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="cut_ylabel">
+                    <property name="label" translatable="1">y</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="cut_startlabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Start</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="cut_xlabel">
+                    <property name="label" translatable="1">x</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="cut_ystart_spin">
+                    <property name="focusable">1</property>
+                    <property name="text" translatable="1">-1</property>
+                    <property name="adjustment">adj_cut_ystart</property>
+                    <property name="value">-1</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="cut_xfinish_spin">
+                    <property name="focusable">1</property>
+                    <property name="text" translatable="1">-1</property>
+                    <property name="adjustment">adj_cut_xfinish</property>
+                    <property name="value">-1</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="css-classes">toolbar</property>
+                    <child>
+                      <object class="GtkButton" id="start_select_from_star">
+                        <property name="tooltip-text" translatable="1">Find a star in the current selection and set the start point to its location</property>
+                        <property name="label" translatable="1">*</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_select_from_star_clicked" swapped="no" />
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">3</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="css-classes">toolbar</property>
+                    <child>
+                      <object class="GtkButton" id="end_select_from_star">
+                        <property name="tooltip-text" translatable="1">Find a star in the current selection and set the end point to its location</property>
+                        <property name="label" translatable="1">*</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_select_from_star_clicked" swapped="no" />
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">3</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="spacing">6</property>
+            <property name="halign">end</property>
+            <property name="orientation">horizontal</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkButton" id="cut_coords_cancel_button">
+                <property name="label" translatable="1">Close</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_cut_coords_cancel_button_clicked" swapped="no" />
               </object>
             </child>
             <child>
-              <placeholder />
-            </child>
-            <child>
-              <placeholder />
+              <object class="GtkButton" id="cut_coords_apply_button">
+                <property name="label" translatable="1">Apply</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_cut_coords_apply_button_clicked" swapped="no" />
+                <style>
+                  <class name="suggested-action" />
+                </style>
+              </object>
             </child>
           </object>
         </child>
       </object>
-    </child>
-    <child internal-child="action_area">
-      <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-bottom">6</property>
-        <property name="spacing">6</property>
-        <property name="halign">end</property>
-        <property name="orientation">horizontal</property>
-        <property name="valign">center</property>
-        <child>
-          <object class="GtkButton" id="cut_coords_cancel_button">
-            <property name="label" translatable="1">Close</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_cut_coords_cancel_button_clicked" swapped="no" />
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="cut_coords_apply_button">
-            <property name="label" translatable="1">Apply</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_cut_coords_apply_button_clicked" swapped="no" />
-            <style>
-              <class name="suggested-action" />
-            </style>
-          </object>
-        </child>
-      </object>
-    </child>
+    </property>
   </object>
 </interface>

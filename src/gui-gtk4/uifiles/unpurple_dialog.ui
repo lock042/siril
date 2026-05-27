@@ -24,7 +24,7 @@
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
-  <object class="GtkDialog" id="unpurple_dialog">
+  <object class="GtkWindow" id="unpurple_dialog">
     <property name="width-request">400</property>
     <property name="height-request">200</property>
     <property name="title" translatable="1">Unpurple Filter</property>
@@ -32,27 +32,80 @@
     <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <signal name="hide" handler="apply_unpurple_cancel" swapped="no" />
     <signal name="show" handler="on_unpurple_dialog_show" swapped="no" />
-    <child internal-child="content_area">
+    <property name="child">
       <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">10</property>
         <child>
           <object class="GtkBox">
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
             <property name="orientation">vertical</property>
-            <property name="spacing">6</property>
+            <property name="spacing">10</property>
             <child>
-              <object class="GtkGrid" id="settings_unpurple_mod_b">
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkGrid" id="settings_unpurple_mod_b">
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
+                    <property name="column-homogeneous">1</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="1">Blue Adjustment</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_unpurple_mod_b">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Amount of blue channel adjustment set in the [0, 1] range.
+    When this parameter is equal to 1, no reduction is applied.
+    Reduce this value for stronger effect.</property>
+                        <property name="adjustment">adjustment_spin_unpurple_mod_b</property>
+                        <property name="digits">2</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_unpurple_mod_b_value_changed" swapped="no" />
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Amount of blue channel adjustment set in the [0, 1] range.
+    When this parameter is equal to 1, no modulation is applied.
+    Reduce this value for stronger effect.</property>
+                        <property name="adjustment">adjustment_spin_unpurple_mod_b</property>
+                        <property name="round-digits">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="settings_unpurple_thresh">
                 <property name="row-spacing">6</property>
                 <property name="column-spacing">6</property>
                 <property name="column-homogeneous">1</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Blue Adjustment</property>
+                    <property name="label" translatable="1">Threshold</property>
                     <layout>
                       <property name="column">0</property>
                       <property name="row">0</property>
@@ -60,15 +113,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="spin_unpurple_mod_b">
+                  <object class="GtkSpinButton" id="spin_unpurple_thresh">
                     <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Amount of blue channel adjustment set in the [0, 1] range.
-When this parameter is equal to 1, no reduction is applied.
-Reduce this value for stronger effect.</property>
-                    <property name="adjustment">adjustment_spin_unpurple_mod_b</property>
+                    <property name="tooltip-text" translatable="1">When "Use starmask" is turned on, this affects the size of each star
+    in the star mask. When it's turned off, it affects the
+    background luminance level for pixels to be selected
+    Threshold for purple reduction set in the [0, 1] range.</property>
+                    <property name="adjustment">adjustment_spin_unpurple_thresh</property>
                     <property name="digits">2</property>
                     <property name="value">1</property>
-                    <signal name="value-changed" handler="on_spin_unpurple_mod_b_value_changed" swapped="no" />
+                    <signal name="value-changed" handler="on_spin_unpurple_thresh_value_changed" swapped="no" />
                     <layout>
                       <property name="column">1</property>
                       <property name="row">0</property>
@@ -76,12 +130,13 @@ Reduce this value for stronger effect.</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkScale">
+                  <object class="GtkScale" id="scale_unpurple_thresh">
                     <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Amount of blue channel adjustment set in the [0, 1] range.
-When this parameter is equal to 1, no modulation is applied.
-Reduce this value for stronger effect.</property>
-                    <property name="adjustment">adjustment_spin_unpurple_mod_b</property>
+                    <property name="tooltip-text" translatable="1">When "Use starmask" is turned on, this affects the size of each star
+    in the star mask. When it's turned off, it affects the
+    background luminance level for pixels to be selected
+    Threshold for purple reduction set in the [0, 1] range.</property>
+                    <property name="adjustment">adjustment_spin_unpurple_thresh</property>
                     <property name="round-digits">1</property>
                     <layout>
                       <property name="column">0</property>
@@ -92,116 +147,66 @@ Reduce this value for stronger effect.</property>
                 </child>
               </object>
             </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkGrid" id="settings_unpurple_thresh">
-            <property name="row-spacing">6</property>
-            <property name="column-spacing">6</property>
-            <property name="column-homogeneous">1</property>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkCheckButton" id="unpurple_stars">
+                <property name="label" translatable="1">Use Starmask</property>
+                <property name="focusable">1</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="1">Threshold</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">0</property>
-                </layout>
+                <signal name="toggled" handler="on_unpurple_stars_toggled" swapped="no" />
               </object>
             </child>
             <child>
-              <object class="GtkSpinButton" id="spin_unpurple_thresh">
+              <object class="GtkCheckButton" id="unpurple_preview">
+                <property name="label" translatable="1">Preview</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">When "Use starmask" is turned on, this affects the size of each star
-in the star mask. When it's turned off, it affects the
-background luminance level for pixels to be selected
-Threshold for purple reduction set in the [0, 1] range.</property>
-                <property name="adjustment">adjustment_spin_unpurple_thresh</property>
-                <property name="digits">2</property>
-                <property name="value">1</property>
-                <signal name="value-changed" handler="on_spin_unpurple_thresh_value_changed" swapped="no" />
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">0</property>
-                </layout>
+                <property name="halign">start</property>
+                <property name="active">1</property>
+                <signal name="toggled" handler="on_unpurple_preview_toggled" swapped="no" />
+              </object>
+            </child>
+          </object>
+        </child>
+        <action-widgets>
+          <action-widget response="0">unpurple_apply</action-widget>
+        </action-widgets>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="spacing">6</property>
+            <property name="halign">end</property>
+            <property name="orientation">horizontal</property>
+            <child>
+              <object class="GtkButton" id="unpurple_undo">
+                <property name="label" translatable="1">Reset</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_unpurple_undo_clicked" swapped="no" />
               </object>
             </child>
             <child>
-              <object class="GtkScale" id="scale_unpurple_thresh">
+              <object class="GtkButton" id="unpurple_cancel">
+                <property name="label" translatable="1">Cancel</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">When "Use starmask" is turned on, this affects the size of each star
-in the star mask. When it's turned off, it affects the
-background luminance level for pixels to be selected
-Threshold for purple reduction set in the [0, 1] range.</property>
-                <property name="adjustment">adjustment_spin_unpurple_thresh</property>
-                <property name="round-digits">1</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">1</property>
-                  <property name="column-span">2</property>
-                </layout>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_unpurple_cancel_clicked" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="unpurple_apply">
+                <property name="label" translatable="1">Apply</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_unpurple_apply_clicked" swapped="no" />
+                <style>
+                  <class name="suggested-action" />
+                </style>
               </object>
             </child>
           </object>
         </child>
-        <child>
-          <object class="GtkCheckButton" id="unpurple_stars">
-            <property name="label" translatable="1">Use Starmask</property>
-            <property name="focusable">1</property>
-            <property name="halign">start</property>
-            <signal name="toggled" handler="on_unpurple_stars_toggled" swapped="no" />
-          </object>
-        </child>
-        <child>
-          <object class="GtkCheckButton" id="unpurple_preview">
-            <property name="label" translatable="1">Preview</property>
-            <property name="focusable">1</property>
-            <property name="halign">start</property>
-            <property name="active">1</property>
-            <signal name="toggled" handler="on_unpurple_preview_toggled" swapped="no" />
-          </object>
-        </child>
       </object>
-    </child>
-    <action-widgets>
-      <action-widget response="0">unpurple_apply</action-widget>
-    </action-widgets>
-    <child internal-child="action_area">
-      <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-bottom">6</property>
-        <property name="spacing">6</property>
-        <property name="halign">end</property>
-        <property name="orientation">horizontal</property>
-        <child>
-          <object class="GtkButton" id="unpurple_undo">
-            <property name="label" translatable="1">Reset</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_unpurple_undo_clicked" swapped="no" />
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="unpurple_cancel">
-            <property name="label" translatable="1">Cancel</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_unpurple_cancel_clicked" swapped="no" />
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="unpurple_apply">
-            <property name="label" translatable="1">Apply</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_unpurple_apply_clicked" swapped="no" />
-            <style>
-              <class name="suggested-action" />
-            </style>
-          </object>
-        </child>
-      </object>
-    </child>
+    </property>
   </object>
 </interface>

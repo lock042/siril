@@ -229,7 +229,8 @@ void on_unpurple_apply_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("unpurple_dialog");
 }
 
-void on_unpurple_dialog_close(GtkDialog *dialog, gpointer user_data) {
+void on_unpurple_dialog_close(GtkWindow *dialog, gpointer user_data) {
+	(void)dialog; (void)user_data;
 	apply_unpurple_changes();
 }
 

@@ -128,7 +128,7 @@ enum {
 	CTRLSHIFT = 3
 };
 
-void on_config_mouse_buttons_clicked(GtkDialog *dialog, gpointer user_data) {
+void on_config_mouse_buttons_clicked(GtkButton *dialog, gpointer user_data) {
 	if (siril_confirm_dialog(_("Mouse Configuration"), _("Warning: this dialog allows you to reconfigure mouse behaviour so that it may no longer match the documentation. If you forget what settings you have changed, the dialog can also be used to view current mouse action assignments and also provides a button to reset them to default settings."), _("Proceed"))) {
 		siril_open_dialog("mouse_actions_dialog");
 	}
@@ -870,7 +870,7 @@ void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 	writeinitfile();
 }
 
-void on_mouse_actions_dialog_show(GtkDialog *dialog, gpointer user_data) {
+void on_mouse_actions_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	(void)dialog; (void)user_data;
 	mouse_action_prefs_init_statics();
 
@@ -885,7 +885,7 @@ void on_mouse_actions_dialog_show(GtkDialog *dialog, gpointer user_data) {
 	fill_scroll_actions_list(FALSE);
 }
 
-void on_mouse_actions_dialog_hide(GtkDialog *dialog, gpointer user_data) {
+void on_mouse_actions_dialog_hide(GtkWidget *dialog, gpointer user_data) {
 	(void)dialog; (void)user_data;
 	siril_close_dialog("mouse_actions_dialog");
 }
