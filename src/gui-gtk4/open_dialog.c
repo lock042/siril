@@ -560,14 +560,28 @@ static int recent_info_cmp_visited_desc(gconstpointer a, gconstpointer b) {
 	return g_date_time_compare(tb, ta);  /* descending */
 }
 
+static void recent_manager_changed_cb(GtkRecentManager *mgr, gpointer user_data) {
+	(void)mgr; (void)user_data;
+	populate_recent_files_menu();
+}
+
 /* Build (or rebuild) the recent-files GMenuModel and attach it to the
- * recent_menu_button.  Call once at startup; GtkRecentManager auto-
- * updates its store but we don't subscribe to "changed" yet, so the
- * menu reflects the state at startup. */
+ * recent_menu_button.  First call subscribes to GtkRecentManager's
+ * "changed" signal so subsequent updates (including the async flush
+ * after gtk_recent_manager_add_item) auto-refresh the dropdown — the
+ * direct populate call from impl_on_image_loaded runs before the store
+ * has flushed, so the just-opened file would otherwise not appear until
+ * the next manual rebuild. */
 void populate_recent_files_menu(void) {
 	GtkMenuButton *btn = GTK_MENU_BUTTON(lookup_widget("recent_menu_button"));
 	if (!btn) return;
 	GtkRecentManager *mgr = gtk_recent_manager_get_default();
+	static gboolean changed_subscribed = FALSE;
+	if (!changed_subscribed) {
+		changed_subscribed = TRUE;
+		g_signal_connect(mgr, "changed",
+		                 G_CALLBACK(recent_manager_changed_cb), NULL);
+	}
 	GList *items = g_list_sort(gtk_recent_manager_get_items(mgr),
 	                           recent_info_cmp_visited_desc);
 
