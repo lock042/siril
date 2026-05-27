@@ -344,46 +344,6 @@ static gchar *pick_non_image(int whichdial, GtkWindow *parent) {
 	return picked;
 }
 
-static void opendial(int whichdial);
-
-/* Plan B for the macOS-only freeze-after-file-open:  schedule the
- * synchronous load as an idle so opendial returns to the main loop
- * before any heavy work starts.  The runloop fully unwinds back to its
- * outermost iteration (which on macOS *is* the CFRunLoop), giving
- * AppKit a clean iteration to flush any state pending from the modal
- * SirilFileBrowser teardown — queued NSEvents, deferred view
- * cleanup, anything that survives the in-place modal/transient drop
- * applied in siril_file_browser_destroy.  The previous direct fix
- * (clearing modal+transient before destroy) didn't take on macOS;
- * deferral is the catch-all that doesn't depend on which AppKit state
- * is wedged.  No behavioral change on Linux/Windows beyond one extra
- * main-loop pass between dialog dismissal and load. */
-struct open_after_dialog {
-	gchar *filename;  /* owned */
-};
-
-static gboolean idle_reopen_open_dialog(gpointer ud) {
-	(void)ud;
-	opendial(OD_OPEN);
-	return G_SOURCE_REMOVE;
-}
-
-static gboolean idle_open_single_image_after_dialog(gpointer ud) {
-	struct open_after_dialog *d = ud;
-	set_cursor_waiting(TRUE);
-	int retval = open_single_image(d->filename);
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
-	set_cursor_waiting(FALSE);
-	if (retval == OPEN_IMAGE_CANCEL) {
-		/* HEIF multi-image picker was cancelled — restart the file
-		 * dialog from the next idle so opendial doesn't recurse here. */
-		g_idle_add(idle_reopen_open_dialog, NULL);
-	}
-	g_free(d->filename);
-	g_free(d);
-	return G_SOURCE_REMOVE;
-}
-
 static void opendial(int whichdial) {
 	open_dialog_init_statics();
 	GtkWindow *control_window = od_control_window;
@@ -452,6 +412,7 @@ static void opendial(int whichdial) {
 
 		gchar *err = NULL;
 		gboolean anything_loaded = sequence_is_loaded() || single_image_is_loaded();
+		int retval;
 
 		switch (whichdial) {
 		case OD_FLAT:
@@ -491,16 +452,13 @@ static void opendial(int whichdial) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}
 			break;
-		case OD_OPEN: {
-			/* Defer to idle (see comment on idle_open_single_image_after_dialog).
-			 * Transfer ownership of filename to the idle data so opendial's
-			 * own g_free(filename) below doesn't double-free. */
-			struct open_after_dialog *d = g_new0(struct open_after_dialog, 1);
-			d->filename = filename;
-			filename = NULL;
-			g_idle_add(idle_open_single_image_after_dialog, d);
+		case OD_OPEN:
+			set_cursor_waiting(TRUE);
+			retval = open_single_image(filename);
+			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+			set_cursor_waiting(FALSE);
+			if (retval == OPEN_IMAGE_CANCEL) continue;  /* re-prompt */
 			break;
-		}
 		case OD_CONVERT:
 			multi = g_slist_sort(multi, (GCompareFunc) strcompare);
 			fill_convert_list(multi);  /* frees each entry's gchar*; we just free the spine */
