@@ -24,7 +24,6 @@ typedef struct {
 
 
 int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data);
-void on_pythondebug_toggled(GtkCheckButton *item, gpointer user_data);
 void set_code_view_theme();
 gboolean code_view_exists();
 void new_script(const gchar *content, gint length, const char *ext);
