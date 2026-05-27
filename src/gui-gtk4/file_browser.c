@@ -2719,8 +2719,28 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	g_clear_object(&fb->dir_list);
 	g_clear_object(&fb->recent_store);
 	if (fb->window) {
+		/* macOS fix: clear the modal flag and the transient-for link
+		 * BEFORE destroy, then re-present the parent.  The browser is
+		 * created with gtk_window_set_modal(TRUE) + transient-for=parent,
+		 * which the GDK Quartz backend translates into an NSApp modal
+		 * session.  Destroying the window with both still set leaves
+		 * AppKit's modal-session bookkeeping in a half-released state —
+		 * mouse-motion events keep flowing (they bypass modal routing)
+		 * but mouse-down events go to the dead modal target, so the UI
+		 * looks responsive (X/Y/RGB labels update) but no click
+		 * registers until something forces AppKit to re-evaluate its
+		 * modal stack.  Switching to another macOS app and back fixes
+		 * it because applicationDidBecomeActive: makes AppKit walk the
+		 * modal-session list and drop dead sessions.  Re-presenting
+		 * the parent here is the equivalent nudge that doesn't require
+		 * the user to switch apps.  No-op on Linux/Windows where modal
+		 * teardown is synchronous. */
+		gtk_window_set_modal(fb->window, FALSE);
+		gtk_window_set_transient_for(fb->window, NULL);
+		GtkWindow *parent = fb->parent;
 		gtk_window_destroy(fb->window);
 		fb->window = NULL;
+		if (parent) gtk_window_present(parent);
 	}
 	g_clear_object(&fb->current_folder);
 	g_clear_object(&fb->initial_file);
