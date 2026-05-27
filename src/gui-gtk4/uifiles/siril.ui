@@ -4970,7 +4970,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image1">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">0</property>
@@ -4979,7 +4979,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image2">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">1</property>
@@ -4988,7 +4988,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image3">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">2</property>
@@ -7279,7 +7279,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                     <property name="name">box_console_bar</property>
                                                     <child>
                                                       <object class="GtkImage" id="image_log">
-                                                        <property name="icon-name">gtk-no</property>
+                                                        <property name="icon-name">process-stop-symbolic</property>
                                                       </object>
                                                     </child>
                                                     <child>
@@ -7384,7 +7384,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="valign">center</property>
                                             <child>
                                               <object class="GtkImage" id="imagestop">
-                                                <property name="icon-name">gtk-cancel</property>
+                                                <property name="icon-name">process-stop-symbolic</property>
                                               </object>
                                             </child>
                                             <child>

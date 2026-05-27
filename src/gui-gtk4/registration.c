@@ -168,7 +168,7 @@ static void reg_update_label(const gchar *str) {
 static void reg_update_icons(int idx, gboolean OK) {
 	registration_init_statics();
 	gtk_image_set_from_icon_name(image_3stars[idx],
-			OK ? "gtk-yes" : "gtk-no");
+			OK ? "emblem-ok-symbolic" : "process-stop-symbolic");
 }
 
 static void reg_reset_icons(void) {

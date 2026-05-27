@@ -47,9 +47,9 @@
 static void update_log_icon(gboolean is_running) {
 	GtkImage *image = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "image_log")));
 	if (is_running)
-		gtk_image_set_from_icon_name(image, "gtk-yes");
+		gtk_image_set_from_icon_name(image, "emblem-ok-symbolic");
 	else
-		gtk_image_set_from_icon_name(image, "gtk-no");
+		gtk_image_set_from_icon_name(image, "process-stop-symbolic");
 }
 
 struct log_status_bar_idle_data {

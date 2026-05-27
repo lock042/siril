@@ -441,7 +441,7 @@ layer *create_layer(int index) {
 	siril_toggle_set_active(GTK_WIDGET(ret->centerbutton), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->centerbutton), FALSE);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->centerbutton), _("Set rotation center for this layer"));
-	gtk_button_set_icon_name(GTK_BUTTON(ret->centerbutton), "gtk-cdrom");
+	gtk_button_set_icon_name(GTK_BUTTON(ret->centerbutton), "mark-location-symbolic");
 	g_signal_connect(ret->centerbutton, "toggled", G_CALLBACK(on_centerbutton_toggled), NULL);
 	g_object_ref(G_OBJECT(ret->centerbutton)); // don't destroy it on removal from grid
 

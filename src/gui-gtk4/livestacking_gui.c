@@ -73,9 +73,9 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 static void update_icon(const gchar *name, gboolean is_loaded) {
 	GtkImage *image = GTK_IMAGE(gtk_builder_get_object(gui.builder, name));
 	if (is_loaded)
-		gtk_image_set_from_icon_name(image, "gtk-yes");
+		gtk_image_set_from_icon_name(image, "emblem-ok-symbolic");
 	else
-		gtk_image_set_from_icon_name(image, "gtk-no");
+		gtk_image_set_from_icon_name(image, "process-stop-symbolic");
 }
 
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
