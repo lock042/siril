@@ -37,6 +37,7 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/fix_xtrans_af.h"
 #include "gui-gtk4/PSF_list.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/python_gui.h"
@@ -829,24 +830,11 @@ void update_preferences_from_model() {
 		siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("check_button_pref_stack"))), FALSE);
 	}
 
-	gchar tmp[256];
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_af.x);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_af_x")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_af.y);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_af_y")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_af.w);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_af_w")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_af.h);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_af_h")), tmp);
-
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_sample.x);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_sample_x")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_sample.y);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_sample_y")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_sample.w);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_sample_w")), tmp);
-	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_sample.h);
-	gtk_editable_set_text(GTK_EDITABLE(lookup_widget("xtrans_sample_h")), tmp);
+	/* X-Trans AF / sample geometry entries — populated by the dedicated
+	 * helper in fix_xtrans_af.c so the cached widget statics there get
+	 * used, and so unconfigured (w==0, h==0) prefs leave the entries
+	 * blank rather than displaying "0". */
+	init_xtrans_ui_pixels();
 
 	/* tab Photometry */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
