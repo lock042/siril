@@ -302,6 +302,18 @@ static gchar *pick_image(int whichdial, GtkWindow *parent,
 		picked = siril_file_browser_get_path(fb);
 	}
 	siril_file_browser_destroy(fb);
+	/* Drain pending main-loop events so the NSWindow teardown for the
+	 * (modal) browser completes before opendial blocks on the synchronous
+	 * load.  On macOS the AppKit run loop defers NSWindow destruction
+	 * (and the modal-session release) to the next loop iteration; if we
+	 * dive into open_single_image immediately, the dead browser's modal
+	 * session stays alive across the whole load and mouse-down events
+	 * vanish into nowhere — motion still flows, so X/Y/RGB labels keep
+	 * updating, but the rest of the UI looks frozen until opendial
+	 * returns.  Linux is unaffected (no CFRunLoop bridge) but the drain
+	 * is harmless there. */
+	while (g_main_context_pending(NULL))
+		g_main_context_iteration(NULL, FALSE);
 	return picked;
 }
 
