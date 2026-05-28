@@ -209,45 +209,55 @@ void display_remix_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width
 	cairo_stroke(cr);
 }
 
-gboolean redraw_remix_histo_left(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int i, width, height;
-
-	width = gtk_widget_get_width(lookup_widget("remix_histo_left"));
-	height = gtk_widget_get_height(lookup_widget("remix_histo_left"));
-
-	if (height == 1)
-		return FALSE;
+/* GTK4 GtkDrawingAreaDrawFunc — wired in wire_remix_drawing_areas().
+ * The previous (GtkWidget*, cairo_t*, gpointer) signature was the GTK3
+ * "draw" signal shape and was connected from the .ui via <signal
+ * name="draw"/>.  GTK4 dropped that signal entirely; the new way is
+ * gtk_drawing_area_set_draw_func(area, fn, …) with this signature. */
+static void redraw_remix_histo_left(GtkDrawingArea *area, cairo_t *cr,
+                                    int width, int height, gpointer data) {
+	(void)area; (void)data;
+	if (height == 1) return;
 	fill_histo_background(cr, width, height);
 	draw_grid(cr, width, height);
-		for (i = 0; i < RGB_VPORT; i++) {
+	for (int i = 0; i < RGB_VPORT; i++) {
 		if (remix_histlayers_left[i]) {
 			display_remix_histo(remix_histlayers_backup_left[i], cr, i, width, height, 1.0, 1.0, TRUE);
 			display_remix_histo(remix_histlayers_left[i], cr, i, width, height, 1.0, 1.0, FALSE);
 		}
-	draw_remix_curve(cr, width, height, &params_histo_left, &cp_histo_left);
+		draw_remix_curve(cr, width, height, &params_histo_left, &cp_histo_left);
 	}
-	return TRUE;
 }
 
-gboolean redraw_remix_histo_right(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int i, width, height;
-
-	width = gtk_widget_get_width(lookup_widget("remix_histo_right"));
-	height = gtk_widget_get_height(lookup_widget("remix_histo_right"));
-
-	if (height == 1)
-		return FALSE;
+static void redraw_remix_histo_right(GtkDrawingArea *area, cairo_t *cr,
+                                     int width, int height, gpointer data) {
+	(void)area; (void)data;
+	if (height == 1) return;
 	fill_histo_background(cr, width, height);
 	draw_grid(cr, width, height);
-
-	for (i = 0; i < RGB_VPORT; i++) {
+	for (int i = 0; i < RGB_VPORT; i++) {
 		if (remix_histlayers_right[i]) {
 			display_remix_histo(remix_histlayers_backup_right[i], cr, i, width, height, 1.0, 1.0, TRUE);
 			display_remix_histo(remix_histlayers_right[i], cr, i, width, height, 1.0, 1.0, FALSE);
 		}
 		draw_remix_curve(cr, width, height, &params_histo_right, &cp_histo_right);
 	}
-	return TRUE;
+}
+
+/* Idempotent wiring (matches wire_remix_filechooser_buttons' pattern). */
+static void wire_remix_drawing_areas(void) {
+	GtkWidget *left  = lookup_widget("remix_histo_left");
+	GtkWidget *right = lookup_widget("remix_histo_right");
+	if (left && !g_object_get_data(G_OBJECT(left), "siril-remix-draw-wired")) {
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(left),
+		                               redraw_remix_histo_left, NULL, NULL);
+		g_object_set_data(G_OBJECT(left), "siril-remix-draw-wired", GINT_TO_POINTER(1));
+	}
+	if (right && !g_object_get_data(G_OBJECT(right), "siril-remix-draw-wired")) {
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(right),
+		                               redraw_remix_histo_right, NULL, NULL);
+		g_object_set_data(G_OBJECT(right), "siril-remix-draw-wired", GINT_TO_POINTER(1));
+	}
 }
 
 static void update_remix_histo_left() {
@@ -719,6 +729,7 @@ static void wire_remix_filechooser_buttons(void) {
 
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	wire_remix_filechooser_buttons();
+	wire_remix_drawing_areas();
 	remixer_startup();
 	reset_controls_and_values();
 	remixer_show_preview = TRUE;
@@ -734,8 +745,11 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 	invocation = _invocation;
 	/* The .ui doesn't wire a "show" signal on the dialog, so make sure the
 	 * remix_filechooser_{left,right} buttons get their click handlers
-	 * connected on first use. */
+	 * connected — and the two remix_histo_{left,right} drawing areas
+	 * get their GTK4 draw funcs registered — on first use.  Both calls
+	 * are idempotent. */
 	wire_remix_filechooser_buttons();
+	wire_remix_drawing_areas();
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();

@@ -469,16 +469,16 @@ static gboolean end_update_preview_cb(gpointer p) {
 		                              GDK_PAINTABLE(args->texture));
 		info_str = args->description;
 	} else if (type == G_FILE_TYPE_DIRECTORY) {
-		gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "folder");
+		gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "folder-symbolic");
 		gtk_image_set_pixel_size(GTK_IMAGE(preview->image), com.pref.gui.thumbnail_size);
 		info_str = g_strdup(_("Folder"));
 	} else {
 		image_type im_type = get_type_from_filename(args->filename);
 		if (im_type == TYPEAVI || im_type == TYPESER ||
 				(im_type == TYPEFITS && fitseq_is_fitseq(args->filename, NULL)))
-			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "video");
+			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "video-x-generic-symbolic");
 		else {
-			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image");
+			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image-x-generic-symbolic");
 			if (args->description)
 				info_str = args->description;
 		}

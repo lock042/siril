@@ -58,7 +58,7 @@
                 <signal name="clicked" handler="on_seqexcludeall_button_clicked" swapped="no" />
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">list-remove-all</property>
+                    <property name="icon-name">list-remove-all-symbolic</property>
                   </object>
                 </child>
               </object>
@@ -71,7 +71,7 @@
                 <signal name="clicked" handler="on_seqselectall_button_clicked" swapped="no" />
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">edit-select-all</property>
+                    <property name="icon-name">edit-select-all-symbolic</property>
                   </object>
                 </child>
               </object>
@@ -84,7 +84,7 @@
                 <signal name="clicked" handler="on_selected_frames_select" swapped="no" />
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">emblem-ok</property>
+                    <property name="icon-name">emblem-ok-symbolic</property>
                   </object>
                 </child>
               </object>

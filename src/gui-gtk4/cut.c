@@ -907,10 +907,18 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
-	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-	GtkToggleButton *toolbutton = (GtkToggleButton*) lookup_widget("cut_button");
-	siril_toggle_set_active(GTK_WIDGET(toolbutton), FALSE);
-	siril_close_dialog("cut_dialog");
+	/* Drive the win.cut stateful action to FALSE so the toolbar toggle
+	 * tracks the dialog being dismissed.  cut_state handles the close
+	 * and the mouse_status reset, and the GtkToggleButton bound to
+	 * action-name="win.cut" follows the state automatically.  Setting
+	 * the state explicitly (rather than activating) avoids opening the
+	 * dialog if the action ever got out of sync with the toggle. */
+	GtkRoot *root = gtk_widget_get_root(GTK_WIDGET(button));
+	if (root && G_IS_ACTION_GROUP(root))
+		g_action_group_change_action_state(G_ACTION_GROUP(root), "cut",
+			g_variant_new_boolean(FALSE));
+	else
+		siril_close_dialog("cut_dialog");
 }
 
 void match_adjustments_to_gfit() {
@@ -954,9 +962,13 @@ void update_spectro_labels() {
 	GtkWidget* pixels = lookup_widget("cut_dist_pref_px");
 	GtkWidget* arcsec = lookup_widget("cut_dist_pref_as");
 	if (spectroscopy_selections_are_valid(&gui.cut)) {
-		gtk_button_set_label(GTK_BUTTON(monobutton), _("Spectroscopic"));
+		/* cut_radio_mono and cut_tri_cut are GtkCheckButton in cut_dialog.ui.
+		 * In GTK4 GtkCheckButton no longer derives from GtkButton (unlike
+		 * GTK3) so GTK_BUTTON() asserts and gtk_button_set_label crashes.
+		 * Use the GtkCheckButton API instead. */
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(monobutton), _("Spectroscopic"));
 		gtk_widget_set_tooltip_text(monobutton, _("Reduces a spectrum without background removal. This is suitable when the entire image represents a calibrated spectrum"));
-		gtk_button_set_label(GTK_BUTTON(tributton), _("Spectro w/ bg removal"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(tributton), _("Spectro w/ bg removal"));
 		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Spectro bg offset (px)"));
 		gtk_widget_set_tooltip_text(tributton, _("Reduces a spectrum with background removal. This is suitable when background removal is required: the background is computed along parallel lines equidistant from the central spectral profile line"));
 		gtk_widget_set_visible(colorbutton, FALSE);
@@ -964,9 +976,9 @@ void update_spectro_labels() {
 		gtk_widget_set_visible(pixels, FALSE);
 		gtk_widget_set_visible(arcsec, FALSE);
 	} else {
-		gtk_button_set_label(GTK_BUTTON(monobutton), _("Mono"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(monobutton), _("Mono"));
 		gtk_widget_set_tooltip_text(monobutton, _("Generates a single luminance profile along the profile line"));
-		gtk_button_set_label(GTK_BUTTON(tributton), _("Tri-profile (mono)"));
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(tributton), _("Tri-profile (mono)"));
 		gtk_widget_set_tooltip_text(tributton, _("Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile"));
 		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Tri-profile offset (px)"));
 		gtk_widget_set_visible(colorbutton, TRUE);

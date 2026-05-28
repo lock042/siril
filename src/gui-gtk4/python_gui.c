@@ -45,22 +45,13 @@ static GtkSourceStyleScheme *scheme = NULL;
 static GFile *current_file = NULL;
 static GtkWindow *editor_window = NULL;
 static GtkWindow *main_window = NULL;
-static GtkCheckButton *radio_py = NULL;
-static GtkCheckButton *radio_ssf = NULL;
-static GtkCheckButton *syncheck = NULL;
-static GtkCheckButton *bracketcheck = NULL;
-static GtkCheckButton *rmargincheck = NULL;
-static GtkCheckButton *linenumcheck = NULL;
-static GtkCheckButton *linemarkcheck = NULL;
-static GtkCheckButton *currentlinecheck = NULL;
-static GtkCheckButton *autoindentcheck = NULL;
-static GtkCheckButton *indenttabcheck = NULL;
-static GtkCheckButton *smartbscheck = NULL;
-static GtkCheckButton *homeendcheck = NULL;
-static GtkCheckButton *showspaces = NULL;
-static GtkCheckButton *shownewlines = NULL;
-static GtkCheckButton *minimap = NULL;
-static GtkCheckButton *useargs = NULL;
+static GtkPopoverMenuBar *pyeditor_menubar = NULL;
+/* Recent Files: rebuilt each time the editor opens; owned by the menubar
+ * model and referenced from inside the File submenu. */
+static GMenu *pyeditor_recent_menu_model = NULL;
+/* Editor action group; GTK4 has no gtk_widget_get_action_group(), so we
+ * retain a reference to set states from outside on_open_pythonpad. */
+static GSimpleActionGroup *editor_action_group = NULL;
 static GtkSourceSpaceDrawer* space_drawer = NULL;
 static GtkBox *codeviewbox = NULL;
 static GtkBox *args_box = NULL;
@@ -102,6 +93,8 @@ gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint ke
                               GdkModifierType state, gpointer user_data);
 
 static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void on_toggle_change_state(GSimpleAction *action, GVariant *value, gpointer user_data);
+static void on_language_change_state(GSimpleAction *action, GVariant *value, gpointer user_data);
 
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
@@ -120,7 +113,31 @@ static GActionEntry editor_actions[] = {
 	{ "paste", on_paste, NULL, NULL, NULL },
 	{ "find", on_find, NULL, NULL, NULL },
 	{ "reload", on_action_file_reload, NULL, NULL, NULL },
-	{ "open_recent", on_action_open_recent, "s", NULL, NULL }
+	{ "open_recent", on_action_open_recent, "s", NULL, NULL },
+
+	/* Boolean stateful actions: rendered as check items in the menu.
+	 * Activation with no parameter flips the state via GIO's default,
+	 * which delegates to change_state — our handler updates the source
+	 * view, the saved pref, and writes the new state back. */
+	{ "syntax",               NULL, NULL, "true",  on_toggle_change_state },
+	{ "rmargin",              NULL, NULL, "true",  on_toggle_change_state },
+	{ "bracketmatch",         NULL, NULL, "true",  on_toggle_change_state },
+	{ "linenums",             NULL, NULL, "true",  on_toggle_change_state },
+	{ "linemarks",            NULL, NULL, "true",  on_toggle_change_state },
+	{ "highlightcurrentline", NULL, NULL, "true",  on_toggle_change_state },
+	{ "autoindent",           NULL, NULL, "true",  on_toggle_change_state },
+	{ "indentontab",          NULL, NULL, "true",  on_toggle_change_state },
+	{ "smartbs",              NULL, NULL, "true",  on_toggle_change_state },
+	{ "smarthomeend",         NULL, NULL, "true",  on_toggle_change_state },
+	{ "showspaces",           NULL, NULL, "false", on_toggle_change_state },
+	{ "shownewlines",         NULL, NULL, "false", on_toggle_change_state },
+	{ "minimap",              NULL, NULL, "false", on_toggle_change_state },
+	{ "useargs",              NULL, NULL, "false", on_toggle_change_state },
+	{ "pythondebug",          NULL, NULL, "false", on_toggle_change_state },
+
+	/* String stateful action: rendered as a radio group when multiple
+	 * menu items share the action name with different `target` values. */
+	{ "language",             NULL, "s",  "'py'",  on_language_change_state },
 };
 
 void set_code_view_theme() {
@@ -137,23 +154,287 @@ gboolean code_view_exists() {
 	return (code_view != NULL);
 }
 
+/* Append a labelled action item to `menu` with an optional GTK accelerator
+ * string (e.g. "<Control>c").  When `accel` is non-NULL, the popover
+ * renders it on the right of the item, matching the GTK3 menubar look.
+ * The accelerator only triggers the action because we install matching
+ * shortcuts on the editor window via install_editor_shortcuts(). */
+static void pyeditor_menu_append(GMenu *menu, const gchar *label,
+                                 const gchar *action, const gchar *accel) {
+	GMenuItem *item = g_menu_item_new(label, action);
+	if (accel)
+		g_menu_item_set_attribute_value(item, "accel", g_variant_new_string(accel));
+	g_menu_append_item(menu, item);
+	g_object_unref(item);
+}
+
+/* Build the GMenuModel that backs the script editor's PopoverMenuBar.
+ * The Recent Files submenu links to `pyeditor_recent_menu_model`, which
+ * is repopulated each time the editor is opened.  Labels carry GTK-style
+ * mnemonics (underscore-prefixed letter) so Alt+<key> navigation matches
+ * the GTK3 menu bar. */
+static GMenuModel *build_pyeditor_menubar_model(void) {
+	if (!pyeditor_recent_menu_model)
+		pyeditor_recent_menu_model = g_menu_new();
+
+	GMenu *bar = g_menu_new();
+
+	/* File */
+	GMenu *file = g_menu_new();
+	GMenu *file_top = g_menu_new();
+	pyeditor_menu_append(file_top, _("_New"),  "editor.new",  "<Control>n");
+	pyeditor_menu_append(file_top, _("_Open"), "editor.open", "<Control>o");
+	GMenuItem *recent_item = g_menu_item_new(_("_Recent Files"), NULL);
+	g_menu_item_set_submenu(recent_item, G_MENU_MODEL(pyeditor_recent_menu_model));
+	g_menu_append_item(file_top, recent_item);
+	g_object_unref(recent_item);
+	g_menu_append_section(file, NULL, G_MENU_MODEL(file_top));
+	g_object_unref(file_top);
+	GMenu *file_save = g_menu_new();
+	pyeditor_menu_append(file_save, _("_Save"),    "editor.save",    "<Control>s");
+	pyeditor_menu_append(file_save, _("Save _As"), "editor.save_as", "<Control><Shift>s");
+	g_menu_append_section(file, NULL, G_MENU_MODEL(file_save));
+	g_object_unref(file_save);
+	GMenu *file_close = g_menu_new();
+	pyeditor_menu_append(file_close, _("_Close"), "editor.close", "<Control>q");
+	g_menu_append_section(file, NULL, G_MENU_MODEL(file_close));
+	g_object_unref(file_close);
+	g_menu_append_submenu(bar, _("_File"), G_MENU_MODEL(file));
+	g_object_unref(file);
+
+	/* Edit */
+	GMenu *edit = g_menu_new();
+	GMenu *edit_undo = g_menu_new();
+	pyeditor_menu_append(edit_undo, _("_Undo"), "editor.undo", "<Control>z");
+	pyeditor_menu_append(edit_undo, _("_Redo"), "editor.redo", "<Control>y");
+	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_undo));
+	g_object_unref(edit_undo);
+	GMenu *edit_cp = g_menu_new();
+	pyeditor_menu_append(edit_cp, _("Cu_t"),   "editor.cut",   "<Control>x");
+	pyeditor_menu_append(edit_cp, _("_Copy"),  "editor.copy",  "<Control>c");
+	pyeditor_menu_append(edit_cp, _("_Paste"), "editor.paste", "<Control>v");
+	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_cp));
+	g_object_unref(edit_cp);
+	GMenu *edit_find = g_menu_new();
+	pyeditor_menu_append(edit_find, _("_Find"), "editor.find", "<Control>f");
+	g_menu_append_section(edit, NULL, G_MENU_MODEL(edit_find));
+	g_object_unref(edit_find);
+	g_menu_append_submenu(bar, _("_Edit"), G_MENU_MODEL(edit));
+	g_object_unref(edit);
+
+	/* Script */
+	GMenu *script = g_menu_new();
+	GMenu *script_run = g_menu_new();
+	pyeditor_menu_append(script_run, _("_Run"), "editor.execute", "F5");
+	g_menu_append_section(script, NULL, G_MENU_MODEL(script_run));
+	g_object_unref(script_run);
+	GMenu *script_lang = g_menu_new();
+	GMenuItem *lang_py = g_menu_item_new(_("_Python scripts"), NULL);
+	g_menu_item_set_action_and_target_value(lang_py, "editor.language",
+		g_variant_new_string("py"));
+	g_menu_append_item(script_lang, lang_py);
+	g_object_unref(lang_py);
+	GMenuItem *lang_ssf = g_menu_item_new(_("_Siril Script Files"), NULL);
+	g_menu_item_set_action_and_target_value(lang_ssf, "editor.language",
+		g_variant_new_string("ssf"));
+	g_menu_append_item(script_lang, lang_ssf);
+	g_object_unref(lang_ssf);
+	g_menu_append_section(script, NULL, G_MENU_MODEL(script_lang));
+	g_object_unref(script_lang);
+	GMenu *script_opts = g_menu_new();
+	g_menu_append(script_opts, _("Enable test _arguments"),  "editor.useargs");
+	g_menu_append(script_opts, _("Enable python _debug mode"), "editor.pythondebug");
+	g_menu_append_section(script, NULL, G_MENU_MODEL(script_opts));
+	g_object_unref(script_opts);
+	g_menu_append_submenu(bar, _("_Script"), G_MENU_MODEL(script));
+	g_object_unref(script);
+
+	/* Preferences */
+	GMenu *prefs = g_menu_new();
+	g_menu_append(prefs, _("_Highlight syntax"),             "editor.syntax");
+	g_menu_append(prefs, _("Enable right _margin indicator"), "editor.rmargin");
+	g_menu_append(prefs, _("Set right margin _position"),    "editor.set_rmarginpos");
+	g_menu_append(prefs, _("Enable _bracket matching"),      "editor.bracketmatch");
+	g_menu_append(prefs, _("Show _line numbers"),            "editor.linenums");
+	g_menu_append(prefs, _("Show line ma_rks"),              "editor.linemarks");
+	g_menu_append(prefs, _("Highlight c_urrent line"),       "editor.highlightcurrentline");
+	g_menu_append(prefs, _("Enable _auto-indentation"),      "editor.autoindent");
+	g_menu_append(prefs, _("_Indent on tab"),                "editor.indentontab");
+	g_menu_append(prefs, _("Enable smart _backspace"),       "editor.smartbs");
+	g_menu_append(prefs, _("Smart H_ome / End"),             "editor.smarthomeend");
+	g_menu_append(prefs, _("Show spaces and _tabs"),         "editor.showspaces");
+	g_menu_append(prefs, _("Show _newlines"),                "editor.shownewlines");
+	g_menu_append(prefs, _("Show mi_nimap"),                 "editor.minimap");
+	g_menu_append_submenu(bar, _("_Preferences"), G_MENU_MODEL(prefs));
+	g_object_unref(prefs);
+
+	/* Help */
+	GMenu *help = g_menu_new();
+	g_menu_append(help, _("Python _API reference"),     "editor.python_doc");
+	g_menu_append(help, _("Siril _Command Reference"),  "editor.command_doc");
+	g_menu_append_submenu(bar, _("_Help"), G_MENU_MODEL(help));
+	g_object_unref(help);
+
+	return G_MENU_MODEL(bar);
+}
+
+/* Set a stateful editor action's state directly, bypassing the
+ * change_state handler.  Used during initialization so the menu's check
+ * marks reflect the saved prefs without re-running the side-effects that
+ * we apply explicitly in apply_editor_setting (avoids double-application
+ * and any timing edge case where the handler doesn't fire). */
+static void editor_action_set_state(const gchar *name, GVariant *value) {
+	if (!editor_action_group) {
+		g_variant_unref(g_variant_ref_sink(value));
+		return;
+	}
+	GAction *act = g_action_map_lookup_action(G_ACTION_MAP(editor_action_group), name);
+	if (act)
+		g_simple_action_set_state(G_SIMPLE_ACTION(act), value);
+	else
+		g_variant_unref(g_variant_ref_sink(value));
+}
+
+/* Request a state change on an editor action (fires the change_state
+ * handler).  Used when external code wants the handler's side-effect to
+ * run — e.g. switching the language radio when loading a .py / .ssf
+ * file needs set_language() to rebind syntax highlighting. */
+static void editor_action_change_state(const gchar *name, GVariant *value) {
+	if (!editor_action_group) {
+		g_variant_unref(g_variant_ref_sink(value));
+		return;
+	}
+	g_action_group_change_action_state(G_ACTION_GROUP(editor_action_group), name, value);
+}
+
+/* Apply a boolean editor setting to the source view / wrapper widgets and
+ * persist it in com.pref.gui.editor_cfg.  Centralises the side-effect of
+ * each toggle so both the change_state handler (when the user clicks a
+ * menu item) and the init path (when the editor opens) reach the same
+ * code with no duplication. */
+static void apply_editor_setting(const gchar *name, gboolean v) {
+	if (g_strcmp0(name, "syntax") == 0) {
+		gtk_source_buffer_set_highlight_syntax(sourcebuffer, v);
+		com.pref.gui.editor_cfg.highlight_syntax = v;
+	} else if (g_strcmp0(name, "bracketmatch") == 0) {
+		gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, v);
+		com.pref.gui.editor_cfg.highlight_bracketmatch = v;
+	} else if (g_strcmp0(name, "rmargin") == 0) {
+		gtk_source_view_set_show_right_margin(code_view, v);
+		com.pref.gui.editor_cfg.rmargin = v;
+		gtk_widget_queue_draw(GTK_WIDGET(code_view));
+	} else if (g_strcmp0(name, "linenums") == 0) {
+		gtk_source_view_set_show_line_numbers(code_view, v);
+		com.pref.gui.editor_cfg.show_linenums = v;
+	} else if (g_strcmp0(name, "linemarks") == 0) {
+		gtk_source_view_set_show_line_marks(code_view, v);
+		com.pref.gui.editor_cfg.show_linemarks = v;
+	} else if (g_strcmp0(name, "highlightcurrentline") == 0) {
+		gtk_source_view_set_highlight_current_line(code_view, v);
+		com.pref.gui.editor_cfg.highlight_currentline = v;
+	} else if (g_strcmp0(name, "autoindent") == 0) {
+		gtk_source_view_set_auto_indent(code_view, v);
+		com.pref.gui.editor_cfg.autoindent = v;
+	} else if (g_strcmp0(name, "indentontab") == 0) {
+		gtk_source_view_set_indent_on_tab(code_view, v);
+		com.pref.gui.editor_cfg.indentontab = v;
+	} else if (g_strcmp0(name, "smartbs") == 0) {
+		gtk_source_view_set_smart_backspace(code_view, v);
+		com.pref.gui.editor_cfg.smartbs = v;
+	} else if (g_strcmp0(name, "smarthomeend") == 0) {
+		gtk_source_view_set_smart_home_end(code_view, v ?
+			GTK_SOURCE_SMART_HOME_END_AFTER : GTK_SOURCE_SMART_HOME_END_DISABLED);
+		com.pref.gui.editor_cfg.smarthomeend = v;
+	} else if (g_strcmp0(name, "showspaces") == 0 ||
+	           g_strcmp0(name, "shownewlines") == 0) {
+		GtkSourceSpaceLocationFlags loc = GTK_SOURCE_SPACE_LOCATION_ALL;
+		GtkSourceSpaceTypeFlags types = gtk_source_space_drawer_get_types_for_locations(space_drawer, loc);
+		GtkSourceSpaceTypeFlags mask = g_strcmp0(name, "showspaces") == 0
+			? (GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB)
+			: GTK_SOURCE_SPACE_TYPE_NEWLINE;
+		types = v ? (types | mask) : (types & ~mask);
+		gtk_source_space_drawer_set_types_for_locations(space_drawer, loc, types);
+		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+		if (g_strcmp0(name, "showspaces") == 0)
+			com.pref.gui.editor_cfg.showspaces = v;
+		else
+			com.pref.gui.editor_cfg.shownewlines = v;
+	} else if (g_strcmp0(name, "minimap") == 0) {
+		if (map_wrapper)
+			gtk_widget_set_visible(map_wrapper, v);
+		com.pref.gui.editor_cfg.minimap = v;
+	} else if (g_strcmp0(name, "useargs") == 0) {
+		if (args_box)
+			gtk_widget_set_visible(GTK_WIDGET(args_box), v);
+		from_cli = v;
+	} else if (g_strcmp0(name, "pythondebug") == 0) {
+		python_debug = v;
+	}
+}
+
+/* Install keyboard shortcuts that target the editor window's GAction
+ * group.  Run once per window: a GTK_PHASE_CAPTURE controller would
+ * intercept GtkSourceView's built-in editing keys, so we attach to the
+ * window (default bubble phase) — that way the source view still handles
+ * Ctrl+C / Ctrl+X / Ctrl+V / Ctrl+Z internally, while shortcuts like
+ * Ctrl+S, Ctrl+O, F5 reach the editor's GAction handler. */
+static void install_editor_shortcuts(GtkWindow *window) {
+	static const struct { const gchar *trigger; const gchar *action; } accels[] = {
+		{ "<Control>n",          "editor.new" },
+		{ "<Control>o",          "editor.open" },
+		{ "<Control>s",          "editor.save" },
+		{ "<Control><Shift>s",   "editor.save_as" },
+		{ "<Control>q",          "editor.close" },
+		{ "<Control>z",          "editor.undo" },
+		{ "<Control>y",          "editor.redo" },
+		{ "<Control>x",          "editor.cut" },
+		{ "<Control>c",          "editor.copy" },
+		{ "<Control>v",          "editor.paste" },
+		{ "<Control>f",          "editor.find" },
+		{ "F5",                  "editor.execute" },
+		{ "<Control>r",          "editor.execute" },
+	};
+	/* MANAGED scope: the shortcut fires when any widget in the editor
+	 * window's focus chain is focused (typically the GtkSourceView),
+	 * not just when the window itself has focus.  Default LOCAL scope
+	 * would never trigger since focus is on a child widget. */
+	GtkShortcutController *ctrl = GTK_SHORTCUT_CONTROLLER(gtk_shortcut_controller_new());
+	gtk_shortcut_controller_set_scope(ctrl, GTK_SHORTCUT_SCOPE_MANAGED);
+	for (size_t i = 0; i < G_N_ELEMENTS(accels); i++) {
+		GtkShortcutTrigger *trigger = gtk_shortcut_trigger_parse_string(accels[i].trigger);
+		GtkShortcutAction *act = gtk_named_action_new(accels[i].action);
+		GtkShortcut *sc = gtk_shortcut_new(trigger, act);
+		gtk_shortcut_controller_add_shortcut(ctrl, sc);
+	}
+	gtk_widget_add_controller(GTK_WIDGET(window), GTK_EVENT_CONTROLLER(ctrl));
+}
+
 // Add this function to initialize the actions
 static void setup_editor_actions(GtkWindow *window) {
-	GSimpleActionGroup *action_group;
-	action_group = g_simple_action_group_new();
+	/* The action group is built once and reused: rebuilding it would
+	 * reset every check item to its declared initial state on each
+	 * re-open, undoing in-session edits. */
+	if (!editor_action_group) {
+		editor_action_group = g_simple_action_group_new();
+		g_action_map_add_action_entries(G_ACTION_MAP(editor_action_group),
+		                                editor_actions,
+		                                G_N_ELEMENTS(editor_actions),
+		                                window);
+	}
 
-	g_action_map_add_action_entries(G_ACTION_MAP(action_group),
-								editor_actions,
-								G_N_ELEMENTS(editor_actions),
-								window);
+	gtk_widget_insert_action_group(GTK_WIDGET(window), "editor",
+	                               G_ACTION_GROUP(editor_action_group));
 
-	// Insert the action group into the window's action map
-	gtk_widget_insert_action_group(GTK_WIDGET(window),
-								"editor",  // prefix for all actions
-								G_ACTION_GROUP(action_group));
-
-	// The action group can be unreferenced here as the window now owns it
-	g_object_unref(action_group);
+	/* Attach the menu model and shortcut controller on first setup;
+	 * both reference actions in the group we just installed.  The
+	 * menu model itself is static — only the Recent Files submenu's
+	 * contents change. */
+	if (pyeditor_menubar && !gtk_popover_menu_bar_get_menu_model(pyeditor_menubar)) {
+		GMenuModel *model = build_pyeditor_menubar_model();
+		gtk_popover_menu_bar_set_menu_model(pyeditor_menubar, model);
+		g_object_unref(model);
+		install_editor_shortcuts(window);
+	}
 }
 
 gboolean script_editor_has_unsaved_changes() {
@@ -566,23 +847,9 @@ void python_scratchpad_init_statics() {
 		// GtkSourceView
 		code_view = GTK_SOURCE_VIEW(gtk_builder_get_object(gui.builder, "code_view"));
 		sourcebuffer = GTK_SOURCE_BUFFER(gtk_builder_get_object(gui.builder, "sourcebuffer"));
-		// GtkCheckMenuItem
-		radio_py = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "radio_py"));
-		radio_ssf = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "radio_ssf"));
-		syncheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_syntax"));
-		bracketcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_bracketmatch"));
-		rmargincheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_rmargin"));
-		linenumcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_linenums"));
-		linemarkcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_linemarks"));
-		currentlinecheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_highlightcurrentline"));
-		autoindentcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_autoindent"));
-		indenttabcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_indentontab"));
-		smartbscheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_smartbs"));
-		homeendcheck = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_smarthomeend"));
-		showspaces = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_showspaces"));
-		shownewlines = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_shownewlines"));
-		minimap = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_minimap"));
-		useargs = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_useargs"));
+		// GtkPopoverMenuBar (toggle/radio state lives in the editor action
+		// group; menu items are built from a GMenuModel in setup_editor_actions).
+		pyeditor_menubar = GTK_POPOVER_MENU_BAR(gtk_builder_get_object(gui.builder, "pyeditor_menubar"));
 		// GtkDropDown
 		combo_language = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
@@ -651,9 +918,9 @@ static void update_title(GFile *file) {
 		char *suffix = strrchr(basename, '.');
 		if (suffix != NULL) {
 			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
-				siril_toggle_set_active(GTK_WIDGET(radio_py), TRUE);
+				editor_action_change_state("language", g_variant_new_string("py"));
 			} else if (g_ascii_strcasecmp(suffix, ".ssf") == 0) {
-				siril_toggle_set_active(GTK_WIDGET(radio_ssf), TRUE);
+				editor_action_change_state("language", g_variant_new_string("ssf"));
 			}
 		}
 
@@ -786,10 +1053,10 @@ void new_script(const gchar *contents, gint length, const char *ext) {
 		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		if (!g_ascii_strcasecmp(ext, "ssf")) {
 			active_language = LANG_SSF;
-			siril_toggle_set_active(GTK_WIDGET(radio_ssf), TRUE);
+			editor_action_change_state("language", g_variant_new_string("ssf"));
 		} else {
 			active_language = LANG_PYTHON;
-			siril_toggle_set_active(GTK_WIDGET(radio_py), TRUE);
+			editor_action_change_state("language", g_variant_new_string("py"));
 		}
 		gtk_window_present(editor_window);
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
@@ -890,19 +1157,13 @@ static int pyeditor_recent_cmp_visited_desc(gconstpointer a, gconstpointer b) {
 
 /* Build (or rebuild) the Recent submenu inside the script editor's File
  * menu.  Filters to script extensions (.py, .ssf).  Called each time the
- * editor opens so it picks up new recent entries. */
+ * editor opens so it picks up new recent entries.  The menubar
+ * references this GMenu by pointer; clearing/appending here updates the
+ * popover contents automatically. */
 static void populate_pyeditor_recent_menu(void) {
-	GtkWidget *box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pyeditor_recent_box"));
-	GtkMenuButton *btn = GTK_MENU_BUTTON(
-		gtk_builder_get_object(gui.builder, "pyeditor_recent_button"));
-	if (!box) return;
-	/* Drop any previously appended children. */
-	GtkWidget *c = gtk_widget_get_first_child(box);
-	while (c) {
-		GtkWidget *next = gtk_widget_get_next_sibling(c);
-		gtk_box_remove(GTK_BOX(box), c);
-		c = next;
-	}
+	if (!pyeditor_recent_menu_model)
+		pyeditor_recent_menu_model = g_menu_new();
+	g_menu_remove_all(pyeditor_recent_menu_model);
 
 	GtkRecentManager *mgr = gtk_recent_manager_get_default();
 	GList *items = mgr ? g_list_sort(gtk_recent_manager_get_items(mgr),
@@ -919,7 +1180,6 @@ static void populate_pyeditor_recent_menu(void) {
 			g_free(path);
 			continue;
 		}
-		/* Restrict to script types. */
 		gchar *lower = g_ascii_strdown(path, -1);
 		gboolean is_script = g_str_has_suffix(lower, ".py") ||
 		                     g_str_has_suffix(lower, ".ssf");
@@ -929,24 +1189,24 @@ static void populate_pyeditor_recent_menu(void) {
 			continue;
 		}
 		gchar *basename = g_path_get_basename(path);
-		GtkWidget *row = gtk_button_new_with_label(basename);
-		gtk_widget_set_tooltip_text(row, path);
-		gtk_actionable_set_action_name(GTK_ACTIONABLE(row), "editor.open_recent");
-		gtk_actionable_set_action_target_value(GTK_ACTIONABLE(row),
+		GMenuItem *mi = g_menu_item_new(basename, NULL);
+		g_menu_item_set_action_and_target_value(mi, "editor.open_recent",
 			g_variant_new_string(path));
-		gtk_box_append(GTK_BOX(box), row);
+		g_menu_append_item(pyeditor_recent_menu_model, mi);
+		g_object_unref(mi);
 		g_free(basename);
 		g_free(path);
 		count++;
 	}
 	if (items) g_list_free_full(items, (GDestroyNotify) gtk_recent_info_unref);
 
-	if (btn)
-		gtk_widget_set_sensitive(GTK_WIDGET(btn), count > 0);
 	if (count == 0) {
-		GtkWidget *empty = gtk_label_new(_("(no recent scripts)"));
-		gtk_widget_add_css_class(empty, "dim-label");
-		gtk_box_append(GTK_BOX(box), empty);
+		/* Empty placeholder so the submenu still opens but conveys
+		 * there's nothing to pick.  Disabled by targeting a no-op
+		 * action name that isn't registered. */
+		GMenuItem *empty = g_menu_item_new(_("(no recent scripts)"), "editor.noop_disabled");
+		g_menu_append_item(pyeditor_recent_menu_model, empty);
+		g_object_unref(empty);
 	}
 }
 
@@ -1053,6 +1313,9 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 	g_signal_connect(editor_window, "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
 	setup_editor_actions(editor_window);
+	/* The menu bar references this submenu by pointer, so populate it
+	 * before showing the window — first open builds the bar, subsequent
+	 * opens just refresh the existing one. */
 	populate_pyeditor_recent_menu();
 
 	/* Phase 17.5: gtk_window_get_position / gtk_window_get_size /
@@ -1063,80 +1326,47 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 
 	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 
+	/* Right-margin position is a numeric pref (not a toggle), so it
+	 * has no action; apply directly. */
+	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+
+	/* Apply every editor toggle from com.pref.gui.editor_cfg directly
+	 * to the source view and helper widgets BEFORE presenting the
+	 * window, so the first paint is correct.  We then sync the GAction
+	 * states so the menu's check marks match — without re-running the
+	 * change_state handler, which would just redo the same work. */
+	struct { const gchar *name; gboolean v; } setup[] = {
+		{ "syntax",               com.pref.gui.editor_cfg.highlight_syntax },
+		{ "bracketmatch",         com.pref.gui.editor_cfg.highlight_bracketmatch },
+		{ "rmargin",              com.pref.gui.editor_cfg.rmargin },
+		{ "linenums",             com.pref.gui.editor_cfg.show_linenums },
+		{ "linemarks",            com.pref.gui.editor_cfg.show_linemarks },
+		{ "highlightcurrentline", com.pref.gui.editor_cfg.highlight_currentline },
+		{ "autoindent",           com.pref.gui.editor_cfg.autoindent },
+		{ "indentontab",          com.pref.gui.editor_cfg.indentontab },
+		{ "smartbs",              com.pref.gui.editor_cfg.smartbs },
+		{ "smarthomeend",         com.pref.gui.editor_cfg.smarthomeend },
+		{ "showspaces",           com.pref.gui.editor_cfg.showspaces },
+		{ "shownewlines",         com.pref.gui.editor_cfg.shownewlines },
+		{ "minimap",              com.pref.gui.editor_cfg.minimap },
+		/* useargs / pythondebug keep their session values rather than
+		 * being read from the pref (they're not persisted). */
+		{ "useargs",              from_cli },
+		{ "pythondebug",          python_debug },
+	};
+	for (size_t i = 0; i < G_N_ELEMENTS(setup); i++) {
+		apply_editor_setting(setup[i].name, setup[i].v);
+		editor_action_set_state(setup[i].name, g_variant_new_boolean(setup[i].v));
+	}
+	editor_action_set_state("language",
+		g_variant_new_string(active_language == LANG_PYTHON ? "py" : "ssf"));
+
 	// Show the window and bring it to front
 	gtk_window_present(editor_window);
-
-	// Set the correct check menu item active
-	siril_toggle_set_active(GTK_WIDGET(radio_py), active_language == LANG_PYTHON);
-	siril_toggle_set_active(GTK_WIDGET(radio_ssf), active_language == LANG_SSF);
-
-	// Set the right margin position
-	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
 
 	// Focus the SourceView
 	gtk_widget_grab_focus(GTK_WIDGET(code_view));
 
-	/* Initialize the View menu based on com.pref.gui.editor_cfg.
-	 *
-	 * Set the toggle states AND apply each property to the source view
-	 * directly.  Relying on the toggled handlers fires only when the
-	 * toggle's state actually changes — if the .ui-default matches the
-	 * saved preference, the handler doesn't run and the source view ends
-	 * up in its default state instead of the user's preferred state. */
-	const gboolean cfg_syntax        = com.pref.gui.editor_cfg.highlight_syntax;
-	const gboolean cfg_bracket       = com.pref.gui.editor_cfg.highlight_bracketmatch;
-	const gboolean cfg_rmargin       = com.pref.gui.editor_cfg.rmargin;
-	const gboolean cfg_linenums      = com.pref.gui.editor_cfg.show_linenums;
-	const gboolean cfg_linemarks     = com.pref.gui.editor_cfg.show_linemarks;
-	const gboolean cfg_currentline   = com.pref.gui.editor_cfg.highlight_currentline;
-	const gboolean cfg_autoindent    = com.pref.gui.editor_cfg.autoindent;
-	const gboolean cfg_indentontab   = com.pref.gui.editor_cfg.indentontab;
-	const gboolean cfg_smartbs       = com.pref.gui.editor_cfg.smartbs;
-	const gboolean cfg_smarthomeend  = com.pref.gui.editor_cfg.smarthomeend;
-	const gboolean cfg_showspaces    = com.pref.gui.editor_cfg.showspaces;
-	const gboolean cfg_shownewlines  = com.pref.gui.editor_cfg.shownewlines;
-	const gboolean cfg_minimap       = com.pref.gui.editor_cfg.minimap;
-
-	siril_toggle_set_active(GTK_WIDGET(syncheck),         cfg_syntax);
-	siril_toggle_set_active(GTK_WIDGET(bracketcheck),     cfg_bracket);
-	siril_toggle_set_active(GTK_WIDGET(rmargincheck),     cfg_rmargin);
-	siril_toggle_set_active(GTK_WIDGET(linenumcheck),     cfg_linenums);
-	siril_toggle_set_active(GTK_WIDGET(linemarkcheck),    cfg_linemarks);
-	siril_toggle_set_active(GTK_WIDGET(currentlinecheck), cfg_currentline);
-	siril_toggle_set_active(GTK_WIDGET(autoindentcheck),  cfg_autoindent);
-	siril_toggle_set_active(GTK_WIDGET(indenttabcheck),   cfg_indentontab);
-	siril_toggle_set_active(GTK_WIDGET(smartbscheck),     cfg_smartbs);
-	siril_toggle_set_active(GTK_WIDGET(homeendcheck),     cfg_smarthomeend);
-	siril_toggle_set_active(GTK_WIDGET(showspaces),       cfg_showspaces);
-	siril_toggle_set_active(GTK_WIDGET(shownewlines),     cfg_shownewlines);
-	siril_toggle_set_active(GTK_WIDGET(minimap),          cfg_minimap);
-
-	gtk_source_buffer_set_highlight_syntax(sourcebuffer,            cfg_syntax);
-	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, cfg_bracket);
-	gtk_source_view_set_show_right_margin(code_view,                cfg_rmargin);
-	gtk_source_view_set_show_line_numbers(code_view,                cfg_linenums);
-	gtk_source_view_set_show_line_marks(code_view,                  cfg_linemarks);
-	gtk_source_view_set_highlight_current_line(code_view,           cfg_currentline);
-	gtk_source_view_set_auto_indent(code_view,                      cfg_autoindent);
-	gtk_source_view_set_indent_on_tab(code_view,                    cfg_indentontab);
-	gtk_source_view_set_smart_backspace(code_view,                  cfg_smartbs);
-	gtk_source_view_set_smart_home_end(code_view, cfg_smarthomeend ?
-		GTK_SOURCE_SMART_HOME_END_AFTER : GTK_SOURCE_SMART_HOME_END_DISABLED);
-	{
-		GtkSourceSpaceTypeFlags flags = gtk_source_space_drawer_get_types_for_locations(
-			space_drawer, GTK_SOURCE_SPACE_LOCATION_ALL);
-		const GtkSourceSpaceTypeFlags spaces_and_tabs =
-			GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
-		flags = cfg_showspaces   ? (flags | spaces_and_tabs)
-		                         : (flags & ~spaces_and_tabs);
-		flags = cfg_shownewlines ? (flags | GTK_SOURCE_SPACE_TYPE_NEWLINE)
-		                         : (flags & ~GTK_SOURCE_SPACE_TYPE_NEWLINE);
-		gtk_source_space_drawer_set_types_for_locations(space_drawer,
-			GTK_SOURCE_SPACE_LOCATION_ALL, flags);
-	}
-	gtk_widget_set_visible(map_wrapper, cfg_minimap);
-
-	gtk_widget_set_visible(GTK_WIDGET(args_box), siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(useargs))));
 	return 0;
 }
 
@@ -1319,11 +1549,17 @@ void set_language() {
 	}
 }
 
-void on_language_set(GtkCheckButton *item, gpointer user_data) {
-	if (siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(radio_py)))) {
-		active_language = LANG_PYTHON;
-	} else {
+/* String-state action for the language radio.  Activating an item with a
+ * different target string changes the state through here, which records
+ * the language and rebinds the SourceView's syntax definition. */
+static void on_language_change_state(GSimpleAction *action, GVariant *value, gpointer user_data) {
+	(void)user_data;
+	g_simple_action_set_state(action, value);
+	const gchar *v = g_variant_get_string(value, NULL);
+	if (g_strcmp0(v, "ssf") == 0) {
 		active_language = LANG_SSF;
+	} else {
+		active_language = LANG_PYTHON;
 	}
 	set_language();
 }
@@ -1374,10 +1610,9 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			}
 			close(fd);
 			// Add args if we need to
-			if (siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(useargs)))) {
+			if (from_cli) {
 				const gchar *args_string = gtk_editable_get_text(GTK_EDITABLE(args_entry));
 				script_args = g_strsplit(args_string, " ", -1);
-				from_cli = TRUE;
 			}
 
 			// Execute the script with the path to the temp file instead of the text content
@@ -1424,165 +1659,23 @@ void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer 
 	siril_get_documentation("Commands.html");
 }
 
-void on_editor_syntax_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_buffer_set_highlight_syntax(sourcebuffer, status);
-	com.pref.gui.editor_cfg.highlight_syntax = status;
-}
-
-void on_editor_bracketmatch_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, status);
-	com.pref.gui.editor_cfg.highlight_bracketmatch = status;
-}
-
-void on_editor_rmargin_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_show_right_margin(code_view, status);
-	com.pref.gui.editor_cfg.rmargin = status;
-}
-
-void on_editor_linenums_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_show_line_numbers(code_view, status);
-	com.pref.gui.editor_cfg.show_linenums = status;
-}
-
-void on_editor_linemarks_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_show_line_marks(code_view, status);
-	com.pref.gui.editor_cfg.show_linemarks = status;
-}
-
-void on_editor_highlightcurrentline_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_highlight_current_line(code_view, status);
-	com.pref.gui.editor_cfg.highlight_currentline = status;
-}
-
-void on_editor_autoindent_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_auto_indent(code_view, status);
-	com.pref.gui.editor_cfg.autoindent = status;
-}
-
-void on_editor_indentontab_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_indent_on_tab(code_view, status);
-	com.pref.gui.editor_cfg.indentontab = status;
-}
-
-void on_editor_smartbs_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_smart_backspace(code_view, status);
-	com.pref.gui.editor_cfg.smartbs = status;
-}
-
-void on_editor_smarthomeend_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_source_view_set_smart_home_end(code_view, status);
-	com.pref.gui.editor_cfg.smarthomeend = status;
-}
-
-void on_editor_showspaces_toggled(GtkCheckButton *item, gpointer user_data) {
-	// Define where spaces should be displayed (e.g., everywhere)
-	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-
-	// Get the current space types for the specified locations
-	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-
-	// Determine the new status (enabled or disabled)
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-
-	// Define the space types to toggle (spaces and tabs)
-	GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
-
-	// Update the space types based on the status
-	if (status) {
-		space_types |= spaces_and_tabs; // Enable spaces and tabs
-	} else {
-		space_types &= ~spaces_and_tabs; // Disable spaces and tabs
-	}
-
-	// Apply the updated space types to the drawer
-	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
-
-	// Redraw the editor window to reflect the changes
-	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-
-	// Update the configuration
-	com.pref.gui.editor_cfg.showspaces = status;
-}
-
-void on_editor_shownewlines_toggled(GtkCheckButton *item, gpointer user_data) {
-	// Define where spaces should be displayed (e.g., everywhere)
-	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-
-	// Get the current space types for the specified locations
-	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-
-	// Determine the new status (enabled or disabled)
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-
-	// Update the space types based on the status
-	if (status) {
-		space_types |= GTK_SOURCE_SPACE_TYPE_NEWLINE; // Enable newlines
-	} else {
-		space_types &= ~GTK_SOURCE_SPACE_TYPE_NEWLINE; // Disable newlines
-	}
-
-	// Apply the updated space types to the drawer
-	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
-
-	// Redraw the editor window to reflect the changes
-	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-
-	// Update the configuration
-	com.pref.gui.editor_cfg.shownewlines = status;
-}
-
-void on_editor_minimap_toggled(GtkCheckButton *item, gpointer user_data) {
-	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_widget_set_visible(map_wrapper, status);
-	com.pref.gui.editor_cfg.minimap = status;
-}
-
-void on_editor_useargs_toggled(GtkCheckButton *item, gpointer user_data) {
-	gtk_widget_set_visible(GTK_WIDGET(args_box), siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item))));
-	if (siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)))) {
-		from_cli = TRUE;
-	} else {
-		from_cli = FALSE;
-	}
+/* change_state dispatcher invoked when the user clicks a check item.
+ * The default activate behavior for a stateful boolean action inverts
+ * the state via change_state, so this is the single funnel for in-menu
+ * toggles — it just records the new state and delegates the widget
+ * side-effects to apply_editor_setting. */
+static void on_toggle_change_state(GSimpleAction *action, GVariant *value, gpointer user_data) {
+	(void)user_data;
+	const gboolean v = g_variant_get_boolean(value);
+	const gchar *name = g_action_get_name(G_ACTION(action));
+	g_simple_action_set_state(action, value);
+	apply_editor_setting(name, v);
 }
 
 void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(args_entry);
 	gtk_entry_buffer_set_text(buffer, "", 0);
 	gtk_widget_grab_focus(GTK_WIDGET(args_entry));
-}
-
-void on_pythondebug_toggled(GtkCheckButton *item, gpointer user_data) {
-    gboolean state = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	static GtkCheckButton *editorwidget = NULL, *scriptmenuwidget = NULL;
-	if (!editorwidget) {
-		editorwidget = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "editor_toggledebug"));
-		scriptmenuwidget = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "pythondebugtoggle"));
-	}
-
-	// Synchronize the two checkbuttons
-	g_signal_handlers_block_by_func(editorwidget, on_pythondebug_toggled, NULL);
-	g_signal_handlers_block_by_func(scriptmenuwidget, on_pythondebug_toggled, NULL);
-	siril_toggle_set_active(GTK_WIDGET(editorwidget), state);
-	siril_toggle_set_active(GTK_WIDGET(scriptmenuwidget), state);
-	g_signal_handlers_unblock_by_func(editorwidget, on_pythondebug_toggled, NULL);
-	g_signal_handlers_unblock_by_func(scriptmenuwidget, on_pythondebug_toggled, NULL);
-
-	if (state) {
-		python_debug = TRUE;  // TRUE to overwrite if it exists
-	} else {
-		python_debug = FALSE;
-	}
 }
 
 gboolean get_python_debug_mode() {

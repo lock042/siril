@@ -42,7 +42,7 @@
 // Statics declarations
 GtkButton *epf_undo = NULL, *epf_cancel = NULL, *epf_apply = NULL;
 GtkDropDown *ep_filter_type = NULL;
-GtkDialog *epf_dialog = NULL;
+GtkWindow *epf_dialog = NULL;
 GtkFileChooser *guided_filter_guideimage = NULL;
 GtkGrid *guide_image_widgets = NULL, *epf_sigma_spatial_settings = NULL, *epf_mod_settings = NULL;
 GtkLabel *label176 = NULL, *label1 = NULL, *label177 = NULL;
@@ -65,7 +65,7 @@ void epf_dialog_init_statics() {
 		// GtkDropDown
 		ep_filter_type = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "ep_filter_type"));
 		// GtkDialog
-		epf_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "epf_dialog"));
+		epf_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "epf_dialog"));
 		// Picker button for the guide image.
 		guided_filter_guideimage = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "guided_filter_guideimage"));
 		siril_image_button_init(GTK_WIDGET(guided_filter_guideimage),
@@ -264,7 +264,7 @@ void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("epf_dialog");
 }
 
-void on_epf_dialog_close(GtkDialog *dialog, gpointer user_data) {
+void on_epf_dialog_close(GtkWindow *dialog, gpointer user_data) {
 	apply_epf_changes();
 }
 

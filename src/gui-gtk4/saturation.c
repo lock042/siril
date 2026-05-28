@@ -162,8 +162,12 @@ void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("satu_dialog");
 }
 
-void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
+/* close-request handler: return FALSE so the window proceeds to close
+ * after we've committed any pending changes. */
+gboolean on_satu_dialog_close(GtkWindow *dialog, gpointer user_data) {
+	(void)dialog; (void)user_data;
 	apply_satu_changes();
+	return FALSE;
 }
 
 void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {

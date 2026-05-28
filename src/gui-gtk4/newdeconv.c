@@ -55,7 +55,7 @@ extern int sequence_is_running;
 // Static widget pointers
 static GtkButton *bdeconv_close = NULL, *bdeconv_roi_preview = NULL, *bdeconv_apply = NULL, *bdeconv_estimate = NULL, *bdeconv_savekernel = NULL, *bdeconv_advice_button = NULL;
 static GtkDropDown *bdeconv_blindtype = NULL, *bdeconv_profile = NULL, *bdeconv_nonblindtype = NULL, *bdeconv_rl_regularization = NULL, *bdeconv_rl_method = NULL;
-static GtkDialog *bdeconv_dialog = NULL;
+static GtkWindow *bdeconv_dialog = NULL;
 static GtkDrawingArea *bdeconv_drawingarea = NULL;
 static void on_PSFkernel_draw_cb(GtkDrawingArea *area, cairo_t *cr,
                                  int width, int height, gpointer data);
@@ -86,8 +86,8 @@ void bdeconv_dialog_init_statics() {
 		bdeconv_nonblindtype = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bdeconv_nonblindtype"));
 		bdeconv_rl_regularization = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bdeconv_rl_regularization"));
 		bdeconv_rl_method = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bdeconv_rl_method"));
-		// GtkDialog
-		bdeconv_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "bdeconv_dialog"));
+		// GtkWindow (was GtkDialog before the deprecation pass)
+		bdeconv_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "bdeconv_dialog"));
 		// GtkDrawingArea
 		bdeconv_drawingarea = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "bdeconv_drawingarea"));
 		/* GTK4: GtkDrawingArea no longer has a "draw" signal — wire the

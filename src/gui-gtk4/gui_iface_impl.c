@@ -39,7 +39,6 @@
 #include "algos/ccd-inspector.h"
 #include "gui-gtk4/ccd-inspector.h"
 #include "gui-gtk4/cut.h"
-#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/keywords_tree.h"
@@ -497,16 +496,33 @@ static void impl_on_image_loaded(void) {
 
 	/* Register the freshly-opened single image with GtkRecentManager and
 	 * rebuild the header recent-files menu so the new entry appears
-	 * immediately.  Skip the sequence case (com.uniq is NULL there) —
-	 * sequences aren't "recent files" in the GtkRecentManager sense. */
+	 * immediately.  Only FITS and TIFF are added — other formats are not
+	 * shown in the recent-files menu.  Use add_full() with an explicit MIME
+	 * type so the entry is stored reliably even when application/fits is not
+	 * registered in the system MIME database (which is common on Linux). */
 	if (com.uniq && com.uniq->filename && *com.uniq->filename) {
-		gchar *uri = g_filename_to_uri(com.uniq->filename, NULL, NULL);
-		if (uri) {
-			gtk_recent_manager_add_item(
-				gtk_recent_manager_get_default(), uri);
-			g_free(uri);
+		image_type t = get_type_from_filename(com.uniq->filename);
+		const gchar *mime = NULL;
+		if (t == TYPEFITS)       mime = "application/fits";
+		else if (t == TYPETIFF)  mime = "image/tiff";
+		if (mime) {
+			gchar *uri = g_filename_to_uri(com.uniq->filename, NULL, NULL);
+			if (uri) {
+				GtkRecentData rd = {
+					.display_name = NULL,
+					.description  = NULL,
+					.mime_type    = (gchar *) mime,
+					.app_name     = (gchar *) g_get_application_name(),
+					.app_exec     = (gchar *) "siril %u",
+					.groups       = NULL,
+					.is_private   = FALSE,
+				};
+				gtk_recent_manager_add_full(
+					gtk_recent_manager_get_default(), uri, &rd);
+				g_free(uri);
+			}
+			populate_recent_files_menu();
 		}
-		populate_recent_files_menu();
 	}
 }
 

@@ -286,7 +286,8 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("asinh_dialog");
 }
 
-gboolean on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
+gboolean on_asinh_dialog_close(GtkWindow *dialog, gpointer user_data) {
+	(void)dialog; (void)user_data;
 	apply_asinh_changes();
 	return FALSE;
 }

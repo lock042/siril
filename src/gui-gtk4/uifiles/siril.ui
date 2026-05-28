@@ -1528,7 +1528,7 @@
                         <property name="action-name">win.dyn-psf</property>
                         <child>
                           <object class="GtkImage">
-                            <property name="icon-name">applications-system</property>
+                            <property name="icon-name">applications-system-symbolic</property>
                           </object>
                         </child>
                       </object>
@@ -2346,7 +2346,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">go-home</property>
+                <property name="icon-name">go-home-symbolic</property>
               </object>
             </child>
             <style>
@@ -2364,7 +2364,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">media-record</property>
+                <property name="icon-name">media-record-symbolic</property>
               </object>
             </child>
             <style>
@@ -2380,7 +2380,7 @@
             <property name="action-name">win.undo</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">edit-undo</property>
+                <property name="icon-name">edit-undo-symbolic</property>
               </object>
             </child>
             <style>
@@ -2397,7 +2397,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">edit-redo</property>
+                <property name="icon-name">edit-redo-symbolic</property>
               </object>
             </child>
             <style>
@@ -2495,7 +2495,7 @@
             <property name="popover">main_menu</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">open-menu</property>
+                <property name="icon-name">open-menu-symbolic</property>
               </object>
             </child>
             <style>
@@ -2544,7 +2544,7 @@
               <object class="GtkBox" id="snapshot_button_box">
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">camera-photo</property>
+                    <property name="icon-name">camera-photo-symbolic</property>
                   </object>
                 </child>
                 <child>
@@ -2566,7 +2566,7 @@
             <property name="use-underline">1</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">document-save-as</property>
+                <property name="icon-name">document-save-as-symbolic</property>
               </object>
             </child>
             <style>
@@ -3188,7 +3188,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Add</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">list-add</property>
+                                                                    <property name="icon-name">list-add-symbolic</property>
                                                                     <signal name="clicked" handler="on_select_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -3198,7 +3198,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Remove</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">list-remove</property>
+                                                                    <property name="icon-name">list-remove-symbolic</property>
                                                                     <signal name="clicked" handler="on_remove_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -3208,7 +3208,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                                                     <property name="valign">center</property>
                                                                     <property name="label" translatable="1">Clear</property>
                                                                     <property name="use-underline">1</property>
-                                                                    <property name="icon-name">edit-clear</property>
+                                                                    <property name="icon-name">edit-clear-symbolic</property>
                                                                     <signal name="clicked" handler="on_clear_convert_button_clicked" swapped="no" />
                                                                   </object>
                                                                 </child>
@@ -4980,7 +4980,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image1">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">0</property>
@@ -4989,7 +4989,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image2">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">1</property>
@@ -4998,7 +4998,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                                                     </child>
                                                                                     <child>
                                                                                       <object class="GtkImage" id="3stars-image3">
-                                                                                        <property name="icon-name">gtk-no</property>
+                                                                                        <property name="icon-name">process-stop-symbolic</property>
                                                                                         <layout>
                                                                                           <property name="column">1</property>
                                                                                           <property name="row">2</property>
@@ -5516,6 +5516,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                       <object class="GtkImage" id="framing-image">
                                                                         <property name="halign">end</property>
                                                                         <property name="hexpand">1</property>
+                                                                        <property name="pixel-size">96</property>
                                                                         <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                                         <layout>
                                                                           <property name="column">2</property>
@@ -5831,7 +5832,7 @@ The master flat must be set in the Calibration tab.</property>
                                                         </child>
                                                         <child>
                                                           <object class="GtkButton" id="goregister_button">
-                                                            <property name="vexpand">1</property>
+                                                            <property name="valign">center</property>
                                                             <property name="label" translatable="1">Go register</property>
                                                             <property name="sensitive">0</property>
                                                             <property name="focusable">1</property>
@@ -7289,7 +7290,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                     <property name="name">box_console_bar</property>
                                                     <child>
                                                       <object class="GtkImage" id="image_log">
-                                                        <property name="icon-name">gtk-no</property>
+                                                        <property name="icon-name">process-stop-symbolic</property>
                                                       </object>
                                                     </child>
                                                     <child>
@@ -7312,7 +7313,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                           <object class="GtkButton" id="export_log_button">
                                                             <property name="tooltip-text" translatable="1">Export the log</property>
                                                             <property name="use-underline">1</property>
-                                                            <property name="icon-name">document-save-as</property>
+                                                            <property name="icon-name">document-save-as-symbolic</property>
                                                             <signal name="clicked" handler="on_export_log_button_clicked" swapped="no" />
                                                           </object>
                                                         </child>
@@ -7320,7 +7321,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                           <object class="GtkButton" id="clear_log_button">
                                                             <property name="tooltip-text" translatable="1">Clear the log</property>
                                                             <property name="use-underline">1</property>
-                                                            <property name="icon-name">edit-clear</property>
+                                                            <property name="icon-name">edit-clear-symbolic</property>
                                                             <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no" />
                                                           </object>
                                                         </child>
@@ -7372,7 +7373,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                         <signal name="clicked" handler="on_GtkCommandHelper_clicked" object="command" swapped="no" />
                                         <child>
                                           <object class="GtkImage" id="imageHelp">
-                                            <property name="icon-name">help-browser</property>
+                                            <property name="icon-name">help-browser-symbolic</property>
                                           </object>
                                         </child>
                                       </object>
@@ -7394,7 +7395,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="valign">center</property>
                                             <child>
                                               <object class="GtkImage" id="imagestop">
-                                                <property name="icon-name">gtk-cancel</property>
+                                                <property name="icon-name">process-stop-symbolic</property>
                                               </object>
                                             </child>
                                             <child>
@@ -7804,7 +7805,7 @@ Current state: linked.</property>
                     <property name="tooltip-text" translatable="1">Shrink the image</property>
                     <property name="action-name">win.zoom-out</property>
                     <property name="use-underline">1</property>
-                    <property name="icon-name">zoom-out</property>
+                    <property name="icon-name">zoom-out-symbolic</property>
                   </object>
                 </child>
                 <child>
@@ -7812,7 +7813,7 @@ Current state: linked.</property>
                     <property name="tooltip-text" translatable="1">Enlarge the image</property>
                     <property name="action-name">win.zoom-in</property>
                     <property name="use-underline">1</property>
-                    <property name="icon-name">zoom-in</property>
+                    <property name="icon-name">zoom-in-symbolic</property>
                   </object>
                 </child>
                 <child>

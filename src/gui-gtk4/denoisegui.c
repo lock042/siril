@@ -37,7 +37,7 @@
 // Widgets
 GtkAdjustment *denoise_modulation_adjustment = NULL, *denoise_rho_adjustment = NULL, *denoise_sos_adjustment = NULL;
 GtkButton *denoise_cancel = NULL, *denoise_roi_preview = NULL, *denoise_apply = NULL;
-GtkDialog *denoise_dialog = NULL;
+GtkWindow *denoise_dialog = NULL;
 GtkFrame *denoise_artefact_control = NULL, *sos_advanced_options = NULL;
 GtkCheckButton *radio_denoise_nosecondary = NULL, *radio_denoise_vst = NULL, *radio_denoise_da3d = NULL, *radio_denoise_sos = NULL;
 GtkScale *slide_denoise_modulation = NULL;
@@ -56,8 +56,8 @@ static void denoise_dialog_init_statics() {
 		denoise_cancel = GTK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_cancel"));
 		denoise_roi_preview = GTK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_roi_preview"));
 		denoise_apply = GTK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_apply"));
-		// GtkDialog
-		denoise_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "denoise_dialog"));
+		// GtkWindow (was GtkDialog before the deprecation pass)
+		denoise_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "denoise_dialog"));
 		// GtkFrame
 		denoise_artefact_control = GTK_FRAME(gtk_builder_get_object(gui.builder, "denoise_artefact_control"));
 		sos_advanced_options = GTK_FRAME(gtk_builder_get_object(gui.builder, "sos_advanced_options"));

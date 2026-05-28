@@ -51,10 +51,17 @@ static void registration_preview_init_statics(void) {
 	regprev_seq_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
 }
 
-gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
+/* GtkDrawingAreaDrawFunc — was the GTK3 "draw" signal handler bound
+ * from siril.ui on drawingarea_reg_manual_preview1/2.  GTK4 dropped
+ * that signal; the new way is gtk_drawing_area_set_draw_func() with
+ * this 5-arg signature.  Wired from callbacks.c after the
+ * gui.preview_area[] pointers are populated. */
+void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
+                    int width, int height, gpointer data) {
+	GtkWidget *widget = GTK_WIDGET(area);
 	int current_preview, shiftx = 0, shifty = 0;
-	guint area_width = gtk_widget_get_width (widget);
-	guint area_height = gtk_widget_get_height (widget);
+	guint area_width = (guint) width;
+	guint area_height = (guint) height;
 	gboolean display_ref_image;
 
 	registration_preview_init_statics();
@@ -66,7 +73,7 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	else if (widget == gui.preview_area[1]) current_preview = 1;
 	else {
 		fprintf(stderr, "Uninitialized com.preview_area or unknown drawing area!\n");
-		return TRUE;
+		return;
 	}
 	// update previewW and previewH in case the drawing area was resized
 	com.seq.previewW[current_preview] = area_width;
@@ -113,7 +120,7 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		pango_cairo_show_layout(cr, layout);
 
 		g_object_unref(layout);
-		return TRUE;
+		return;
 	}
 	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
 			area_height/2.0-com.seq.previewY[current_preview]);
@@ -147,8 +154,6 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 		cairo_paint_with_alpha(cr, 0.5);
 	}
-
-	return FALSE;
 }
 
 /* vport can be -1 if the correct viewport should be tested */

@@ -38,7 +38,6 @@
 #include "algos/ccd-inspector.h"
 #include "gui/ccd-inspector.h"
 #include "gui/cut.h"
-#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
 #include "gui/keywords_tree.h"

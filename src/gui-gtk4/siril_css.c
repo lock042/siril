@@ -39,10 +39,19 @@ void load_css_style_sheet () {
 		GString *string = g_string_new_len(NULL, 0);
 		string = g_string_append_len(string, g_bytes_get_data(css_buffer, NULL), g_bytes_get_size(css_buffer));
 
-		gchar *first_line = g_strdup_printf("* { font-size: %lfem; -gtk-icon-style: %s; }",
-				1.0 + (com.pref.gui.font_scale - 100.0) / 1000.0, com.pref.gui.icon_symbolic ? "symbolic" : "regular");
+		/* Apply font_scale to the root CSS nodes only (window + popover),
+		 * not to `*`.  Using `*` with `em` cascades the factor at every
+		 * nesting level (0.9^n per depth), making deeply-nested labels far
+		 * smaller than intended and requiring an artificially small divisor
+		 * to compensate.  Applying the scale once to `window` and `popover`
+		 * lets all children inherit the correctly-scaled value without
+		 * further multiplication.  The formula is therefore the direct
+		 * percentage: font_scale=90 → 0.90em (genuine 90 % of system font). */
+		gchar *first_line = g_strdup_printf("* { -gtk-icon-style: %s; } window, popover { font-size: %.4gem; }",
+				com.pref.gui.icon_symbolic ? "symbolic" : "regular",
+				com.pref.gui.font_scale / 100.0);
 
-		g_string_replace(string, "* { font-size: 1.0em; -gtk-icon-style: regular; }", first_line, 1);
+		g_string_replace(string, "* { -gtk-icon-style: regular; } window, popover { font-size: 1.0em; }", first_line, 1);
 		gchar *updated_css = g_string_free(string, FALSE);
 
 		GtkCssProvider *css_provider = gtk_css_provider_new();

@@ -896,14 +896,58 @@ static void overlay_release_cb(GtkGestureClick *gesture, int n_press,
 	histo_state.resize_edge = RESIZE_NONE;
 }
 
+/* Hover-only handler.  Early-returns when any mouse button is held so
+ * overlay_drag_update_cb is the single source of truth for motion-
+ * while-pressed on every platform — without the filter, on Linux this
+ * handler would still fire during drag and the cursor_state.active
+ * setting here would race the drag-update path which forces it FALSE. */
 static void overlay_motion_cb(GtkEventControllerMotion *controller,
                               double x, double y, gpointer data) {
 	(void)data;
+	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(controller));
+	if (state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK))
+		return;
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 	if (!histo_state.show_histo) {
 		cursor_state.active = FALSE;
 		return;
 	}
+
+	cursor_state.mouse_x = x;
+	cursor_state.mouse_y = y;
+
+	/* Interactive cursor / pointer-shape adjustment. */
+	double hx = histo_state.x;
+	double hy = histo_state.y + histo_state.header_height;
+	double hw = histo_state.width;
+	double hh = histo_state.height - histo_state.header_height - 25;
+	if (x >= hx && x <= hx + hw && y >= hy && y <= hy + hh) {
+		cursor_state.active = TRUE;
+		gtk_widget_queue_draw(widget);
+	} else {
+		if (cursor_state.active) {
+			cursor_state.active = FALSE;
+			gtk_widget_queue_draw(widget);
+		}
+		update_cursor(widget, (gint)x, (gint)y);
+	}
+}
+
+/* GtkGestureDrag drag-update — handles overlay move (is_dragging) and
+ * resize (is_resizing).  Both states are set up by overlay_press_cb.
+ * Receives an offset from drag-begin; computes the absolute widget-
+ * local position the same way the old motion handler did. */
+static void overlay_drag_update_cb(GtkGestureDrag *gesture,
+                                   double offset_x, double offset_y,
+                                   gpointer data) {
+	(void)data;
+	if (!histo_state.show_histo) return;
+	if (!histo_state.is_dragging && !histo_state.is_resizing) return;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(gesture, &sx, &sy);
+	double x = sx + offset_x;
+	double y = sy + offset_y;
 
 	cursor_state.mouse_x = x;
 	cursor_state.mouse_y = y;
@@ -921,66 +965,58 @@ static void overlay_motion_cb(GtkEventControllerMotion *controller,
 		gtk_widget_queue_draw(widget);
 		return;
 	}
-	if (histo_state.is_resizing) {
-		cursor_state.active = FALSE;
-		gint dx = x - histo_state.resize_start_x;
-		gint dy = y - histo_state.resize_start_y;
-		gint new_w = histo_state.resize_start_width;
-		gint new_h = histo_state.resize_start_height;
-		gint new_x = histo_state.resize_start_pos_x;
-		gint new_y = histo_state.resize_start_pos_y;
-		if (histo_state.resize_edge & RESIZE_LEFT)        { new_w -= dx; new_x += dx; }
-		else if (histo_state.resize_edge & RESIZE_RIGHT)  { new_w += dx; }
-		if (histo_state.resize_edge & RESIZE_TOP)         { new_h -= dy; new_y += dy; }
-		else if (histo_state.resize_edge & RESIZE_BOTTOM) { new_h += dy; }
-		if (new_w < histo_state.min_width) {
-			if (histo_state.resize_edge & RESIZE_LEFT)
-				new_x = histo_state.resize_start_pos_x + histo_state.resize_start_width - histo_state.min_width;
-			new_w = histo_state.min_width;
-		}
-		if (new_w > histo_state.max_width) {
-			if (histo_state.resize_edge & RESIZE_LEFT)
-				new_x = histo_state.resize_start_pos_x + histo_state.resize_start_width - histo_state.max_width;
-			new_w = histo_state.max_width;
-		}
-		if (new_h < histo_state.min_height) {
-			if (histo_state.resize_edge & RESIZE_TOP)
-				new_y = histo_state.resize_start_pos_y + histo_state.resize_start_height - histo_state.min_height;
-			new_h = histo_state.min_height;
-		}
-		if (new_h > histo_state.max_height) {
-			if (histo_state.resize_edge & RESIZE_TOP)
-				new_y = histo_state.resize_start_pos_y + histo_state.resize_start_height - histo_state.max_height;
-			new_h = histo_state.max_height;
-		}
-		histo_state.width  = new_w;
-		histo_state.height = new_h;
-		histo_state.x = new_x;
-		histo_state.y = new_y;
-		gtk_widget_queue_draw(widget);
-		return;
+	/* is_resizing */
+	cursor_state.active = FALSE;
+	gint dx = x - histo_state.resize_start_x;
+	gint dy = y - histo_state.resize_start_y;
+	gint new_w = histo_state.resize_start_width;
+	gint new_h = histo_state.resize_start_height;
+	gint new_x = histo_state.resize_start_pos_x;
+	gint new_y = histo_state.resize_start_pos_y;
+	if (histo_state.resize_edge & RESIZE_LEFT)        { new_w -= dx; new_x += dx; }
+	else if (histo_state.resize_edge & RESIZE_RIGHT)  { new_w += dx; }
+	if (histo_state.resize_edge & RESIZE_TOP)         { new_h -= dy; new_y += dy; }
+	else if (histo_state.resize_edge & RESIZE_BOTTOM) { new_h += dy; }
+	if (new_w < histo_state.min_width) {
+		if (histo_state.resize_edge & RESIZE_LEFT)
+			new_x = histo_state.resize_start_pos_x + histo_state.resize_start_width - histo_state.min_width;
+		new_w = histo_state.min_width;
 	}
-
-	/* Not dragging — show interactive cursor + adjust pointer shape. */
-	double hx = histo_state.x;
-	double hy = histo_state.y + histo_state.header_height;
-	double hw = histo_state.width;
-	double hh = histo_state.height - histo_state.header_height - 25;
-	if (x >= hx && x <= hx + hw && y >= hy && y <= hy + hh) {
-		cursor_state.active = TRUE;
-		gtk_widget_queue_draw(widget);
-	} else {
-		if (cursor_state.active) {
-			cursor_state.active = FALSE;
-			gtk_widget_queue_draw(widget);
-		}
-		update_cursor(widget, (gint)x, (gint)y);
+	if (new_w > histo_state.max_width) {
+		if (histo_state.resize_edge & RESIZE_LEFT)
+			new_x = histo_state.resize_start_pos_x + histo_state.resize_start_width - histo_state.max_width;
+		new_w = histo_state.max_width;
 	}
+	if (new_h < histo_state.min_height) {
+		if (histo_state.resize_edge & RESIZE_TOP)
+			new_y = histo_state.resize_start_pos_y + histo_state.resize_start_height - histo_state.min_height;
+		new_h = histo_state.min_height;
+	}
+	if (new_h > histo_state.max_height) {
+		if (histo_state.resize_edge & RESIZE_TOP)
+			new_y = histo_state.resize_start_pos_y + histo_state.resize_start_height - histo_state.max_height;
+		new_h = histo_state.max_height;
+	}
+	histo_state.width  = new_w;
+	histo_state.height = new_h;
+	histo_state.x = new_x;
+	histo_state.y = new_y;
+	gtk_widget_queue_draw(widget);
 }
 
 /* Draw histogram overlay */
 /* GTK4: paint helper called from the per-viewport draw_func in image_display.c
- * after the base image draw, replacing the GTK3 connect_after("draw") chain. */
+ * after the base image draw, replacing the GTK3 connect_after("draw") chain.
+ *
+ * The cairo context passed in has had `gui.display_matrix` applied (so all
+ * the other overlay helpers can draw in image-space).  We reset that to
+ * the identity so the histogram overlay lives in widget coordinates —
+ * its `histo_state.x/y/width/height` must match the (widget-relative)
+ * coordinates the GtkGesture* event controllers report, otherwise:
+ *   - the overlay renders at `zoom * width` screen pixels (≈ 50% at
+ *     typical zooms), and
+ *   - mouse hits against the overlay rectangle never match, breaking
+ *     every button / drag / resize interaction. */
 void histogram_overlay_paint(GtkWidget *widget, cairo_t *cr) {
 	if (!histo_state.show_histo)
 		return;
@@ -1008,6 +1044,7 @@ void histogram_overlay_paint(GtkWidget *widget, cairo_t *cr) {
 	double header_height = histo_state.header_height;
 
 	cairo_save(cr);
+	cairo_identity_matrix(cr);  /* paint in widget coords, see header comment */
 
 	/* Draw outer frame with rounded corners */
 	double corner_radius = 8.0;
@@ -1312,11 +1349,18 @@ void init_histogram_overlay(void) {
 
 	/* GTK4 event-controller wiring.  The overlay paints on top of every
 	 * gray viewport drawing area via histogram_overlay_paint(); to make
-	 * its buttons / drag header / resize edges interactive we also attach
-	 * a click+motion controller per drawingarea at CAPTURE phase, so any
-	 * click that lands on the overlay rectangle is handled here and
+	 * its buttons / drag header / resize edges interactive we attach
+	 * three controllers per drawingarea at CAPTURE phase, so any
+	 * sequence that lands on the overlay rectangle is handled here and
 	 * claimed (gtk_gesture_set_state CLAIMED) before it reaches the
-	 * image-interaction gestures wired in image_interactions.c. */
+	 * image-interaction gestures wired in image_interactions.c.
+	 *
+	 *   click  — press/release; sets up is_dragging / is_resizing in
+	 *            overlay_press_cb based on what was hit.
+	 *   drag   — drag-update for moving / resizing the overlay; the
+	 *            macOS-portable channel for motion-while-pressed.
+	 *   motion — hover only: interactive cursor + pointer shape over
+	 *            the overlay rectangle. */
 	GtkWidget *areas[] = { histo_state.rgb_area, histo_state.r_area,
 	                       histo_state.g_area, histo_state.b_area };
 	for (size_t i = 0; i < G_N_ELEMENTS(areas); i++) {
@@ -1329,6 +1373,23 @@ void init_histogram_overlay(void) {
 		g_signal_connect(click, "pressed",  G_CALLBACK(overlay_press_cb),  NULL);
 		g_signal_connect(click, "released", G_CALLBACK(overlay_release_cb), NULL);
 		gtk_widget_add_controller(areas[i], GTK_EVENT_CONTROLLER(click));
+
+		GtkGesture *drag = gtk_gesture_drag_new();
+		gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag),
+		                              GDK_BUTTON_PRIMARY);
+		gtk_event_controller_set_propagation_phase(
+		    GTK_EVENT_CONTROLLER(drag), GTK_PHASE_CAPTURE);
+		g_signal_connect(drag, "drag-update",
+		                 G_CALLBACK(overlay_drag_update_cb), NULL);
+		gtk_widget_add_controller(areas[i], GTK_EVENT_CONTROLLER(drag));
+
+		/* Group click + drag so they share sequence state.  Without
+		 * this, overlay_press_cb's gtk_gesture_set_state(click,
+		 * CLAIMED) leaves drag (in its own default group) in the
+		 * inverse DENIED state — and DENIED gestures stop processing
+		 * subsequent events, so drag-update never fires.  Grouping
+		 * keeps both controllers alive on the same sequence. */
+		gtk_gesture_group(click, drag);
 
 		GtkEventController *motion = gtk_event_controller_motion_new();
 		gtk_event_controller_set_propagation_phase(

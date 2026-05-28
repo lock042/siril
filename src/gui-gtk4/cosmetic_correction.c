@@ -38,7 +38,12 @@ static GtkCheckButton *cosme_cfa = NULL, *cosme_seq = NULL;
 static GtkSpinButton *cosme_sigma_cold = NULL, *cosme_sigma_hot = NULL;
 static GtkEntry *cosme_seq_entry = NULL;
 
-static void cosmetic_dialog_init_statics(void) {
+/* Exposed so the activate handler can cache the widget pointers before
+ * the dialog is shown — previously init only ran from the toggle and
+ * Apply handlers, so widget pointers were NULL until the user touched
+ * the dialog. */
+void cosmetic_dialog_init_statics(void);
+void cosmetic_dialog_init_statics(void) {
 	if (cosme_apply_btn) return;
 	cosme_apply_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_cosmetic_ok"));
 	cosme_check_cold = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkSigColdBox"));

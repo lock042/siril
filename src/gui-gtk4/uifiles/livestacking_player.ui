@@ -27,14 +27,14 @@
                 <child>
                   <object class="GtkButton" id="livestacking_playpause">
                     <property name="use-underline">1</property>
-                    <property name="icon-name">media-playback-start</property>
+                    <property name="icon-name">media-playback-start-symbolic</property>
                     <signal name="clicked" handler="on_livestacking_playpause_clicked" swapped="no" />
                   </object>
                 </child>
                 <child>
                   <object class="GtkButton" id="livestacking_stop">
                     <property name="use-underline">1</property>
-                    <property name="icon-name">media-playback-stop</property>
+                    <property name="icon-name">media-playback-stop-symbolic</property>
                     <signal name="clicked" handler="on_livestacking_stop_clicked" object="livestacking_player" swapped="no" />
                   </object>
                 </child>
@@ -181,7 +181,7 @@
                     <child>
                       <object class="GtkImage" id="ls_masterdark">
                         <property name="name">ls_masterdark</property>
-                        <property name="icon-name">gtk-no</property>
+                        <property name="icon-name">process-stop-symbolic</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">0</property>
@@ -191,7 +191,7 @@
                     <child>
                       <object class="GtkImage" id="ls_masterflat">
                         <property name="name">ls_masterflat</property>
-                        <property name="icon-name">gtk-no</property>
+                        <property name="icon-name">process-stop-symbolic</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">1</property>
@@ -231,7 +231,7 @@
                     <child>
                       <object class="GtkImage" id="ls_weighted_mean">
                         <property name="name">ls_masterflat</property>
-                        <property name="icon-name">gtk-yes</property>
+                        <property name="icon-name">emblem-ok-symbolic</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">3</property>
@@ -241,7 +241,7 @@
                     <child>
                       <object class="GtkImage" id="ls_reg_config">
                         <property name="name">ls_masterflat</property>
-                        <property name="icon-name">gtk-no</property>
+                        <property name="icon-name">process-stop-symbolic</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">2</property>

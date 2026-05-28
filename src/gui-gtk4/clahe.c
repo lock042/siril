@@ -119,8 +119,12 @@ gboolean on_clahe_cancel_clicked(GtkWidget *menuitem, gpointer user_data) {
 	return FALSE;
 }
 
-void on_CLAHE_dialog_close(GtkDialog *dialog, gpointer user_data) {
+/* close-request handler: return FALSE so the window proceeds to close
+ * after we've committed pending changes. */
+gboolean on_CLAHE_dialog_close(GtkWindow *dialog, gpointer user_data) {
+	(void)dialog; (void)user_data;
 	clahe_close(TRUE);
+	return FALSE;
 }
 
 void on_clahe_undo_clicked(GtkButton *button, gpointer user_data) {

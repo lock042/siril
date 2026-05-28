@@ -800,11 +800,25 @@ void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_d
 		toggle_curves_window_visibility();
 }
 
+/* Forward declarations for per-dialog init_statics functions that cache
+ * widget pointers / attach handlers.  Each must run before its dialog
+ * is shown — previously they only ran from the dialog's Apply path,
+ * leaving widget pointers NULL and (for fft / linear_match) the file
+ * chooser buttons inert until the user clicked Apply. */
+extern void linear_match_init_statics(void);
+extern void fft_dialog_init_statics(void);
+extern void banding_dialog_init_statics(void);
+extern void cosmetic_dialog_init_statics(void);
+extern void rgradient_dialog_init_statics(void);
+extern void split_cfa_init_statics(void);
+
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	banding_dialog_init_statics();
 	siril_open_dialog("canon_fixbanding_dialog");
 }
 
 void cosmetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	cosmetic_dialog_init_statics();
 	siril_open_dialog("cosmetic_dialog");
 }
 
@@ -889,6 +903,7 @@ void medianfilter_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void rgradient_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	rgradient_dialog_init_statics();
 	siril_open_dialog("rgradient_dialog");
 }
 
@@ -897,17 +912,14 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	/* The reference_filechooser_linearmatch button's filter is installed
-	 * by linear_match_init_statics() via siril_image_button_init.  No
-	 * extra filter wiring needed here. */
+	linear_match_init_statics();
 	siril_open_dialog("linearmatch_dialog");
 }
 
 void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	/* Path buttons (filechooser_mag/_phase) are initialised in
-	 * fft_dialog_init_statics() with their filter; we just seed the
-	 * "initial folder" hint that the dialog will use when the button is
-	 * clicked without a prior selection. */
+	fft_dialog_init_statics();
+	/* Seed the "initial folder" hint that the dialog will use when the
+	 * button is clicked without a prior selection. */
 	GtkWidget *magbutton = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag"));
 	GtkWidget *phasebutton = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase"));
 	siril_file_chooser_set_current_folder_path(magbutton, com.wd);
@@ -936,6 +948,7 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	split_cfa_init_statics();
 	siril_open_dialog("split_cfa_dialog");
 }
 
@@ -1021,9 +1034,16 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	siril_open_dialog("icc_dialog");
 }
 
-void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkToggleButton *button = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_button"));
-	if (siril_toggle_get_active(GTK_WIDGET(button))) {
+/* Stateful boolean action backing the bottom-toolbar intensity profile
+ * toggle.  The old non-stateful handler read the GtkToggleButton's
+ * active property to decide whether to open the dialog, but in GTK4 a
+ * non-stateful action doesn't drive the button's active state — the
+ * read returned FALSE on every click and the dialog never opened.
+ * Following the photometry_state / photometry_activate pattern keeps
+ * the button and the dialog in sync. */
+void cut_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	if (g_variant_get_boolean(state)) {
 		mouse_status = MOUSE_ACTION_CUT_SELECT;
 		siril_open_dialog("cut_dialog");
 	} else {
@@ -1032,6 +1052,13 @@ void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		siril_close_dialog("cut_spectroscopy_dialog");
 		siril_close_dialog("cut_dialog");
 	}
+}
+
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action),
+		g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
 }
 
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

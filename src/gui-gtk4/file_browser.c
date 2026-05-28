@@ -69,6 +69,7 @@ struct _SirilFileBrowser {
 	GtkSearchBar           *search_bar;
 	GtkSearchEntry         *search_entry;
 	gchar                  *search_text;       /* lower-cased substring, NULL/"" disables */
+	gboolean                show_hidden_files; /* honors org.gtk.Settings.FileChooser show-hidden; toggle with Ctrl+H */
 
 	/* Owned model objects.  Kept in fields so callbacks (filter, set_file,
 	 * selection-changed) can reach them; references are taken via
@@ -139,9 +140,10 @@ static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 	GFileInfo *info = G_FILE_INFO(item);
 	SirilFileBrowser *fb = user_data;
 	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
-	/* Hide hidden files (but always allow hidden directories through —
-	 * still rare, and tidy if the user navigates to ~/.config etc.). */
-	if (!is_dir && g_file_info_get_is_hidden(info))
+	/* Hide hidden entries (dotfiles, dotdirs) when show_hidden_files is off.
+	 * Honors fb->show_hidden_files (initialised from GSettings
+	 * org.gtk.Settings.FileChooser show-hidden, toggled with Ctrl+H). */
+	if (g_file_info_get_is_hidden(info) && !fb->show_hidden_files)
 		return FALSE;
 	/* Search substring (case-insensitive).  Applies to both dirs and files
 	 * when active — when the user is searching, an unmatched dir would be
@@ -850,10 +852,19 @@ static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointe
 	GtkWidget *icon = gtk_widget_get_first_child(box);
 	GtkWidget *label = gtk_widget_get_next_sibling(icon);
 
-	const char *icon_name =
-		(g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY)
-			? "folder-symbolic" : "text-x-generic-symbolic";
-	gtk_image_set_from_icon_name(GTK_IMAGE(icon), icon_name);
+	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
+		gtk_image_set_from_icon_name(GTK_IMAGE(icon), "folder-symbolic");
+	} else {
+		/* Use the file's mime-type-derived GIcon if available so different
+		 * file kinds get distinguishable icons (image-jpeg, text-plain,
+		 * application-pdf, etc.).  Falls back to the generic glyph if GIO
+		 * couldn't resolve one. */
+		GIcon *gicon = g_file_info_get_icon(info);
+		if (gicon)
+			gtk_image_set_from_gicon(GTK_IMAGE(icon), gicon);
+		else
+			gtk_image_set_from_icon_name(GTK_IMAGE(icon), "text-x-generic-symbolic");
+	}
 	gtk_label_set_text(GTK_LABEL(label), g_file_info_get_display_name(info));
 }
 
@@ -1232,7 +1243,13 @@ static GtkWidget *sidebar_make_row(const char *icon_name, const char *label,
 	gtk_widget_set_margin_top(hbox, 4);
 	gtk_widget_set_margin_bottom(hbox, 4);
 	GtkWidget *icon = gtk_image_new_from_icon_name(icon_name);
+	gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
 	GtkWidget *labels = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	/* Vertically centre the label stack against the icon — default
+	 * valign=fill stretches the VBox to the row height, leaving the
+	 * single label flush with the top of the row instead of in line
+	 * with the icon. */
+	gtk_widget_set_valign(labels, GTK_ALIGN_CENTER);
 	GtkWidget *lbl = gtk_label_new(label);
 	gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
 	gtk_label_set_ellipsize(GTK_LABEL(lbl), PANGO_ELLIPSIZE_END);
@@ -1993,6 +2010,42 @@ void siril_file_browser_set_show_debayer_toggle(SirilFileBrowser *fb, gboolean s
 
 /* ── construction / API ────────────────────────────────────────────── */
 
+/* Read the system-wide "show hidden files" setting from
+ * org.gtk.Settings.FileChooser (the same key GTK's own GtkFileDialog
+ * honors).  Returns FALSE when the schema is unavailable (typical on
+ * macOS / Windows where there's no dconf backend), preserving the
+ * historical hide-dotfiles behavior. */
+static gboolean browser_initial_show_hidden(void) {
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	if (!src) return FALSE;
+	GSettingsSchema *schema = g_settings_schema_source_lookup(src,
+		"org.gtk.Settings.FileChooser", TRUE);
+	if (!schema) return FALSE;
+	gboolean has_key = g_settings_schema_has_key(schema, "show-hidden");
+	g_settings_schema_unref(schema);
+	if (!has_key) return FALSE;
+	GSettings *gs = g_settings_new("org.gtk.Settings.FileChooser");
+	gboolean v = g_settings_get_boolean(gs, "show-hidden");
+	g_object_unref(gs);
+	return v;
+}
+
+/* Ctrl+H toggles hidden-file visibility, matching every other GTK file
+ * chooser.  We refilter the model so the change is immediate. */
+static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyval,
+                                           guint keycode, GdkModifierType state,
+                                           gpointer ud) {
+	(void)kc; (void)keycode;
+	SirilFileBrowser *fb = ud;
+	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
+		fb->show_hidden_files = !fb->show_hidden_files;
+		if (fb->file_filter)
+			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) {
 	SirilFileBrowser *fb = g_new0(SirilFileBrowser, 1);
 	fb->parent  = parent;
@@ -2001,12 +2054,40 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	fb->forward_history = g_ptr_array_new_with_free_func(g_object_unref);
 	fb->active_filter_idx = -1;
 	fb->response = GTK_RESPONSE_NONE;
+	fb->show_hidden_files = browser_initial_show_hidden();
 
 	fb->window = GTK_WINDOW(gtk_window_new());
 	gtk_window_set_title(fb->window, title ? title : _("Open File"));
-	gtk_window_set_modal(fb->window, TRUE);
-	if (parent) gtk_window_set_transient_for(fb->window, parent);
+	/* Plan C: do NOT mark the window modal.  The macOS GDK Quartz
+	 * backend turns gtk_window_set_modal(TRUE) into an NSApp modal
+	 * session keyed to the NSWindow, and tearing that down leaves
+	 * AppKit's NSView event routing in a state where the parent
+	 * window's content area drops mouse-down/keyboard events until
+	 * app-deactivate-then-reactivate forces a recheck.  Three earlier
+	 * fixes targeting the teardown timing (drain, clear modal+
+	 * transient before destroy, defer the load) all failed on macOS,
+	 * confirming the modal pathway itself is the cause.  Block parent
+	 * input via gtk_widget_set_sensitive(parent, FALSE) instead — the
+	 * nested g_main_loop_run in siril_file_browser_run still gives us
+	 * synchronous behaviour, and the parent ignoring input fills the
+	 * same UX role as visual modality (the inner dialog has focus and
+	 * the user can't interact with the outer window) without involving
+	 * the NSApp modal-session machinery. */
+	if (parent) {
+		gtk_window_set_transient_for(fb->window, parent);
+		gtk_widget_set_sensitive(GTK_WIDGET(parent), FALSE);
+	}
 	gtk_window_set_default_size(fb->window, 1000, 620);
+	{
+		GtkEventController *kc = gtk_event_controller_key_new();
+		/* CAPTURE phase: intercept Ctrl+H before GtkColumnView consumes it.
+		 * In GTK4 the default BUBBLE phase never reaches the window because
+		 * the focused column view handles (and drops) the key event first. */
+		gtk_event_controller_set_propagation_phase(kc, GTK_PHASE_CAPTURE);
+		g_signal_connect(kc, "key-pressed",
+		                 G_CALLBACK(browser_window_key_pressed), fb);
+		gtk_widget_add_controller(GTK_WIDGET(fb->window), kc);
+	}
 	/* Hard minimum on the dialog: sidebar (180) + file list (320) +
 	 * preview (300) + paned handles ≈ 820 px wide.  Round up to 880 to
 	 * leave breathing room for the toolbar's cancel/back/path/open
@@ -2664,6 +2745,13 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 		gtk_window_destroy(fb->window);
 		fb->window = NULL;
 	}
+	/* Re-enable the parent that we made insensitive in
+	 * siril_file_browser_new (Plan C: our substitute for the modal
+	 * flag).  Done after gtk_window_destroy so the visual transition
+	 * is "browser closes → parent regains input" rather than the other
+	 * way around. */
+	if (fb->parent)
+		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
 	g_clear_object(&fb->current_folder);
 	g_clear_object(&fb->initial_file);
 	g_clear_object(&fb->breadcrumb_deepest);

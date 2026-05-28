@@ -36,7 +36,11 @@
 static GtkEntry *rgradient_xc = NULL, *rgradient_yc = NULL;
 static GtkRange *rgradient_scale_radial = NULL, *rgradient_scale_rot = NULL;
 
-static void rgradient_dialog_init_statics(void) {
+/* Exposed so the activate handler can cache the widget pointers before
+ * the dialog is shown — previously init only ran from Apply / the
+ * "use selection" button handler. */
+void rgradient_dialog_init_statics(void);
+void rgradient_dialog_init_statics(void) {
 	if (rgradient_xc) return;
 	rgradient_xc = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_rgradient_xc"));
 	rgradient_yc = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_rgradient_yc"));

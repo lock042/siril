@@ -197,8 +197,8 @@ static void on_color_tile_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
 static void on_color_tile_released(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
-static void on_color_tile_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data);
+static void on_color_tile_drag_update(GtkGestureDrag *gesture,
+		double offset_x, double offset_y, gpointer user_data);
 
 void draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, int w, int h, gpointer data);
 
@@ -345,7 +345,10 @@ layer *create_layer(int index) {
 
 	/* GTK4: left-click opens the color chooser; right-click+drag does the
 	 * quick hue/value edit.  Replaces three GTK3 signals via two
-	 * controllers (click + motion). */
+	 * controllers (click + drag).  Drag fires drag-update for motion
+	 * while a button is held — the macOS-portable channel
+	 * (GtkEventControllerMotion does not fire during press there).
+	 * No hover-only work on the color tile, so no motion controller. */
 	GtkGesture *click = gtk_gesture_click_new();
 	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); /* any button */
 	g_signal_connect(click, "pressed",  G_CALLBACK(on_color_tile_pressed),  NULL);
@@ -353,9 +356,19 @@ layer *create_layer(int index) {
 	gtk_widget_add_controller(GTK_WIDGET(ret->color_w),
 	                          GTK_EVENT_CONTROLLER(click));
 
-	GtkEventController *motion = gtk_event_controller_motion_new();
-	g_signal_connect(motion, "motion", G_CALLBACK(on_color_tile_motion), NULL);
-	gtk_widget_add_controller(GTK_WIDGET(ret->color_w), motion);
+	GtkGesture *drag = gtk_gesture_drag_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag), GDK_BUTTON_SECONDARY);
+	g_signal_connect(drag, "drag-update",
+	                 G_CALLBACK(on_color_tile_drag_update), NULL);
+	gtk_widget_add_controller(GTK_WIDGET(ret->color_w),
+	                          GTK_EVENT_CONTROLLER(drag));
+
+	/* Group click + drag so they share sequence state.  Without this
+	 * the right-click claim in on_color_tile_pressed leaves drag
+	 * (in its own default group) in the inverse DENIED state, so
+	 * drag-update never fires.  Grouping keeps both alive on the
+	 * same sequence. */
+	gtk_gesture_group(click, drag);
 
 	/* Phase 17: Replace GtkFileChooserButton with a plain GtkButton.
 	 * GTK4 dropped gtk_button_set_image / set_image_position / etc.;
@@ -428,7 +441,7 @@ layer *create_layer(int index) {
 	siril_toggle_set_active(GTK_WIDGET(ret->centerbutton), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->centerbutton), FALSE);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->centerbutton), _("Set rotation center for this layer"));
-	gtk_button_set_icon_name(GTK_BUTTON(ret->centerbutton), "gtk-cdrom");
+	gtk_button_set_icon_name(GTK_BUTTON(ret->centerbutton), "mark-location-symbolic");
 	g_signal_connect(ret->centerbutton, "toggled", G_CALLBACK(on_centerbutton_toggled), NULL);
 	g_object_ref(G_OBJECT(ret->centerbutton)); // don't destroy it on removal from grid
 
@@ -1804,13 +1817,21 @@ static void on_color_tile_released(GtkGestureClick *gesture, int n_press,
 	color_quick_edit = 0;
 }
 
-/* GTK4 motion: while right-button drag is active (quick-edit armed in
- * the press handler) translate cursor offsets into hue/value deltas
- * relative to the reference colour. */
-static void on_color_tile_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data) {
-	(void)controller; (void)user_data;
+/* GTK4 drag-update: while right-button drag is active (quick-edit
+ * armed in the press handler) translate cursor offsets into hue/value
+ * deltas relative to the reference colour.  Reconstruct the absolute
+ * widget-local cursor position from the drag start point + offset so
+ * we preserve the original semantics (h/v computed against widget
+ * origin, not the drag start).  Switched from GtkEventControllerMotion
+ * because motion does not fire during press on macOS. */
+static void on_color_tile_drag_update(GtkGestureDrag *gesture,
+		double offset_x, double offset_y, gpointer user_data) {
+	(void)user_data;
 	if (!color_quick_edit) return;
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(gesture, &sx, &sy);
+	double x = sx + offset_x;
+	double y = sy + offset_y;
 	double h, s, v;
 	rgb_to_hsv(qe_ref_color.red, qe_ref_color.green,
 	           qe_ref_color.blue, &h, &s, &v);
@@ -1828,6 +1849,15 @@ static void on_color_tile_motion(GtkEventControllerMotion *controller,
 	col->red   = (float)r;
 	col->green = (float)g;
 	col->blue  = (float)b;
+	/* The colour tile draws display_color, not color (see
+	 * draw_layer_color).  display_color normally holds the monitor-
+	 * space picked colour and color is its ICC-transformed image-space
+	 * version.  During a quick-edit drag we're computing in image
+	 * space and want the patch to reflect the live change, so mirror
+	 * color into display_color.  Skipping the ICC transform is fine
+	 * for a transient preview; the actual image composition still
+	 * uses color (image space) as intended. */
+	layers[current_layer_color_choosing]->display_color = *col;
 	color_has_been_updated(current_layer_color_choosing);
 	gtk_widget_queue_draw(GTK_WIDGET(layers[current_layer_color_choosing]->color_w));
 }

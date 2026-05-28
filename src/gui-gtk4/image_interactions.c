@@ -520,10 +520,20 @@ static void on_drawingarea_released_cb(GtkGestureClick *gesture, int n_press,
 }
 
 
-/* GTK4-native motion handler.  Bound to GtkEventControllerMotion "motion".
- * The body still uses the legacy event->x / event->y / event->state syntax
- * — `event` is a local stack struct populated from controller state. */
-typedef struct { double x; double y; GdkModifierType state; } siril_motion_compat;
+/* Per-event context shared between the hover (GtkEventControllerMotion)
+ * and drag (GtkGestureDrag) handlers.  Both need the same coordinate
+ * transforms; computing it once keeps the two handlers in sync without
+ * duplicating the body. */
+typedef struct {
+	GtkWidget       *widget;
+	double           x, y;          /* widget-local cursor position */
+	GdkModifierType  state;
+	double           zoom;
+	point            evpos;         /* image-coord cursor position (float) */
+	pointi           zoomed;        /* image-coord cursor position, int + clamped */
+	gboolean         inside;        /* TRUE if the cursor is over the image */
+	gboolean         valid;         /* FALSE if no image is loaded; caller should bail */
+} drawingarea_ctx;
 
 /* Last cursor position in drawingarea-local coords, written by the motion
  * controller and read by the scroll controller as the zoom anchor.  GTK4's
@@ -531,49 +541,42 @@ typedef struct { double x; double y; GdkModifierType state; } siril_motion_compa
 static double last_motion_widget_x = 0.0;
 static double last_motion_widget_y = 0.0;
 
-static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
-                                     double x, double y, gpointer user_data) {
-	GdkModifierType _state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(ctrl));
-	siril_motion_compat _ev = { x, y, _state };
-	siril_motion_compat *event = &_ev;
-	last_motion_widget_x = x;
-	last_motion_widget_y = y;
-
+static drawingarea_ctx compute_drawingarea_ctx(GtkWidget *widget,
+                                               double x, double y,
+                                               GdkModifierType state) {
+	drawingarea_ctx ctx = {
+		.widget = widget, .x = x, .y = y, .state = state, .valid = FALSE,
+	};
 	cache_widgets();
-	if ((!single_image_is_loaded() && !sequence_is_loaded())
-			|| gfit->type == DATA_UNSUPPORTED) {
-		return;
-	}
+	if ((!single_image_is_loaded() && !sequence_is_loaded()) ||
+	    gfit->type == DATA_UNSUPPORTED)
+		return ctx;
+	ctx.zoom = get_zoom_val();
+	ctx.evpos = (point){ x, y };
+	cairo_matrix_transform_point(&gui.image_matrix, &ctx.evpos.x, &ctx.evpos.y);
+	ctx.zoomed = (pointi){ (int)ctx.evpos.x, (int)ctx.evpos.y };
+	ctx.inside = clamp2image(&ctx.zoomed);
+	ctx.valid = TRUE;
+	return ctx;
+}
 
-	double zoom = get_zoom_val();
-
-	// evpos.x/evpos.y = cursor position in image coordinate
-	point evpos = { event->x, event->y };
-	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
-
-	// same as evpos but rounded to integer and clamped to image bounds
-	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
-	gboolean inside = clamp2image(&zoomed);
-	//siril_log_debug("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
-	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
-	if (inside) {
-		histogram_update_cursor_value(zoomed.x, zoomed.y);
+/* Hover-feedback work shared between the motion controller (Linux) and
+ * the drag gesture (macOS, where the motion controller doesn't fire while
+ * a button is held).  Reads pixel values, formats labels, and updates the
+ * histogram-overlay cursor.  Pure-feedback; touches no drag state. */
+static void update_pointer_feedback(const drawingarea_ctx *c) {
+	if (c->inside) {
+		histogram_update_cursor_value(c->zoomed.x, c->zoomed.y);
 	} else {
-		/* Curseur hors de l'image, effacer la barre */
 		histogram_clear_cursor_value();
 	}
-
 
 	image_interactions_init_statics();
 	gboolean blank_density_cvport = TRUE, blank_wcs_cvport = TRUE;
 	gtk_label_set_text(imgint_label_rgb, "");
 
-	if (inside) {
-		if (gui.measure_start.x != -1) {
-			gui.measure_end.x = zoomed.x;
-			gui.measure_end.y = zoomed.y;
-			redraw(REDRAW_OVERLAY);
-		}
+	if (c->inside) {
+		const pointi zoomed = c->zoomed;
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
 			if (gfit->type == DATA_USHORT) {
@@ -697,6 +700,66 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 	if (blank_density_cvport && gtk_label_get_text(imgint_labels_density[gui.cvport])[0] != '\0')
 		gtk_label_set_text(imgint_labels_density[gui.cvport], " ");
 
+}
+
+/* Cursor-shape update.  Runs only on hover (motion controller); during
+ * a drag the cursor stays whatever was set when the drag started.
+ * Skipped while a background job is running so we don't fight the
+ * "progress" cursor set by set_cursor_waiting. */
+static void update_drawingarea_cursor(const drawingarea_ctx *c) {
+	if (processing_is_job_active() || processing_is_reserved_for_python())
+		return;
+	if (!c->inside) {
+		set_cursor("default");
+		return;
+	}
+	if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
+		set_cursor("cell");
+		return;
+	}
+	const pointi zoomed = c->zoomed;
+	const double zoom = c->zoom;
+	/* Order matters when the selection is small enough that edge
+	 * detection overlaps — must match on_drawingarea_pressed_cb. */
+	gboolean right  = is_over_the_right_side_of_sel(zoomed, zoom);
+	gboolean left   = is_over_the_left_side_of_sel(zoomed, zoom);
+	gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
+	gboolean top    = is_over_the_top_of_sel(zoomed, zoom);
+
+	if (!gui.drawing && !gui.translating) {
+		if      (bottom && right)             set_cursor("se-resize");
+		else if (top && right)                set_cursor("ne-resize");
+		else if (right)                       set_cursor("e-resize");
+		else if (bottom && left)              set_cursor("sw-resize");
+		else if (top && left)                 set_cursor("nw-resize");
+		else if (left)                        set_cursor("w-resize");
+		else if (bottom)                      set_cursor("s-resize");
+		else if (top)                         set_cursor("n-resize");
+		else if (is_inside_of_sel(zoomed, zoom)) set_cursor("all-scroll");
+		else                                  set_cursor("crosshair");
+	} else {
+		if ((c->state & get_primary()) || is_inside_of_sel(zoomed, zoom))
+			set_cursor("all-scroll");
+		else
+			set_cursor("crosshair");
+	}
+}
+
+/* Drag-state updates.  Driven exclusively by the GtkGestureDrag's
+ * drag-update — the press handler set one of {gui.drawing_polygon,
+ * gui.translating, cutting, gui.drawing, gui.measure_start.x != -1}
+ * and this routine carries that drag forward.  Decoupled from the
+ * hover-path motion controller so macOS works (where AppKit only
+ * delivers motion-while-pressed to the drag gesture). */
+static void apply_drag_motion(const drawingarea_ctx *c) {
+	const pointi zoomed = c->zoomed;
+
+	if (c->inside && gui.measure_start.x != -1) {
+		gui.measure_end.x = zoomed.x;
+		gui.measure_end.y = zoomed.y;
+		redraw(REDRAW_OVERLAY);
+	}
+
 	if (gui.drawing_polygon) {
 		point *ev = malloc(sizeof(point));
 		ev->x = zoomed.x;
@@ -705,9 +768,8 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.translating) {
 		update_zoom_fit_button();
-
-		pointi ev = { (int)(event->x), (int)(event->y) };
-		point delta = { ev.x - gui.start.x , ev.y - gui.start.y };
+		pointi ev = { (int)c->x, (int)c->y };
+		point delta = { ev.x - gui.start.x, ev.y - gui.start.y };
 		gui.start = ev;
 		gui.display_offset.x += delta.x;
 		gui.display_offset.y += delta.y;
@@ -720,8 +782,8 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 			 * positions (sparse layers per the spec). */
 			flis_layer_t *_lay = flis_layer_get_by_id(gui.flis_drag_layer_id);
 			if (_lay) {
-				const int _dx = (int)(evpos.x - gui.flis_drag_start_image.x);
-				const int _dy = (int)(evpos.y - gui.flis_drag_start_image.y);
+				const int _dx = (int)(c->evpos.x - gui.flis_drag_start_image.x);
+				const int _dy = (int)(c->evpos.y - gui.flis_drag_start_image.y);
 				_lay->position_x = gui.flis_drag_start_layer.x + _dx;
 				_lay->position_y = gui.flis_drag_start_layer.y + _dy;
 				gui_iface.flis_display_invalidate(FLIS_INV_STACK, _lay->item_id);
@@ -729,19 +791,16 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 				redraw(REMAP_ALL);
 			}
 	} else if (cutting) {	// button 1 down, dragging a line for the pixel profile cut
-		if (event->state & GDK_SHIFT_MASK)
+		if (c->state & GDK_SHIFT_MASK)
 			cutting = CUT_VERT_OR_HORIZ;
 		else
 			cutting = CUT_UNCONSTRAINED;
-		pointi tmp;
-		tmp.x = zoomed.x;
-		tmp.y = zoomed.y;
+		pointi tmp = { zoomed.x, zoomed.y };
 		if (cutting == CUT_VERT_OR_HORIZ) {
-			if (fabs(tmp.y - gui.cut.cut_start.y) > fabs(tmp.x - gui.cut.cut_start.x)) {
+			if (fabs(tmp.y - gui.cut.cut_start.y) > fabs(tmp.x - gui.cut.cut_start.x))
 				tmp.x = gui.cut.cut_start.x;
-			} else {
+			else
 				tmp.y = gui.cut.cut_start.y;
-			}
 		}
 		gui.cut.cut_end.x = tmp.x;
 		gui.cut.cut_end.y = tmp.y;
@@ -765,68 +824,80 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 				com.selection.h = gui.start.y - zoomed.y;
 			}
 		}
-
-		if (gui.freezeX && gui.freezeY) { // Move selection
+		if (gui.freezeX && gui.freezeY) {  // Move selection
 			com.selection.x = (zoomed.x - gui.start.x) + gui.origin.x;
 			com.selection.y = (zoomed.y - gui.start.y) + gui.origin.y;
 		}
-
-		// Enforce a ratio and clamp selection to the image
 		enforce_ratio_and_clamp();
-
-		// Display the dimensions of the selection while drawing it
 		update_display_selection();
 		redraw(REDRAW_OVERLAY);
 	}
+}
 
-	/* don't change cursor if thread is running or if Python
-	 claims the thread */
-	if (processing_is_job_active() || processing_is_reserved_for_python()) return;
+/* Hover-only handler.  Early-returns when any mouse button is held so
+ * the drag gesture's drag-update is the single source of truth for
+ * motion-while-pressed on every platform.  On macOS the motion
+ * controller already wouldn't fire during press (AppKit routes
+ * NSEventTypeMouseDragged exclusively to drag gestures); the filter
+ * makes Linux match, which both eliminates the previously-redundant
+ * feedback call during drag and keeps the cursor-shape logic from
+ * fighting whatever drag-update sets. */
+static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
+                                     double x, double y, gpointer user_data) {
+	(void)user_data;
+	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(ctrl));
+	if (state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK))
+		return;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(ctrl));
+	last_motion_widget_x = x;
+	last_motion_widget_y = y;
+	drawingarea_ctx ctx = compute_drawingarea_ctx(widget, x, y, state);
+	if (!ctx.valid) return;
+	update_pointer_feedback(&ctx);
+	update_drawingarea_cursor(&ctx);
+}
 
-	if (inside) {
-		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
-			set_cursor("cell");
-		} else {
-			// The order matters if the selection is so small that edge detection overlaps
-			// and need to be the same as in the on_drawingarea_button_press_event()
-			gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-			gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-			gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-			gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+/* Drag controllers.  GtkGestureDrag.drag-update is the only event
+ * source for motion-while-pressed on macOS (AppKit fires
+ * NSEventTypeMouseDragged, which GDK Quartz routes to drag gestures
+ * exclusively, not to GtkEventControllerMotion).  On Linux it also
+ * fires, redundantly with the motion controller, but the work is
+ * idempotent so the duplicate is harmless.
+ *
+ * drag-begin / drag-end are no-ops: the press handler (running through
+ * GtkGestureClick.pressed) already set up the drag flags via the
+ * mouse_action dispatch, and the release handler clears them.  We
+ * could wire drag-end as a fallback in case GtkGestureClick.released
+ * is suppressed by drag claiming the sequence, but that hasn't been
+ * observed and would risk double-firing the release callback. */
+static void on_drawingarea_drag_begin_cb(GtkGestureDrag *g,
+                                         double x, double y,
+                                         gpointer user_data) {
+	(void)g; (void)x; (void)y; (void)user_data;
+}
 
-			if (!gui.drawing && !gui.translating) {
-				if (bottom && right) {
-					set_cursor("se-resize");
-				} else if (top && right) {
-					set_cursor("ne-resize");
-				} else if (right) {
-					set_cursor("e-resize");
-				} else if (bottom && left) {
-					set_cursor("sw-resize");
-				} else if (top && left) {
-					set_cursor("nw-resize");
-				} else if (left) {
-					set_cursor("w-resize");
-				} else if (bottom) {
-					set_cursor("s-resize");
-				} else if (top) {
-					set_cursor("n-resize");
-				} else if (is_inside_of_sel(zoomed, zoom)) {
-					set_cursor("all-scroll");
-				} else {
-					set_cursor("crosshair");
-				}
-			} else {
-				if ((event->state & get_primary()) || (is_inside_of_sel(zoomed, zoom))) {
-					set_cursor("all-scroll");
-				} else {
-					set_cursor("crosshair");
-				}
-			}
-		}
-	} else {
-		set_cursor("default");
-	}
+static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
+                                          double offset_x, double offset_y,
+                                          gpointer user_data) {
+	(void)user_data;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
+	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(g));
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(g, &sx, &sy);
+	double abs_x = sx + offset_x;
+	double abs_y = sy + offset_y;
+	last_motion_widget_x = abs_x;
+	last_motion_widget_y = abs_y;
+	drawingarea_ctx ctx = compute_drawingarea_ctx(widget, abs_x, abs_y, state);
+	if (!ctx.valid) return;
+	update_pointer_feedback(&ctx);
+	apply_drag_motion(&ctx);
+}
+
+static void on_drawingarea_drag_end_cb(GtkGestureDrag *g,
+                                       double offset_x, double offset_y,
+                                       gpointer user_data) {
+	(void)g; (void)offset_x; (void)offset_y; (void)user_data;
 }
 
 
@@ -971,9 +1042,9 @@ static gboolean on_drawingarea_scroll_cb(GtkEventControllerScroll *ctrl,
 	return TRUE;
 }
 
-/* Public entry point: attach all four GTK4 event controllers (click, motion,
- * enter/leave, scroll) onto a drawingarea so the legacy mouse_action /
- * scroll_action dispatchers run again under GTK4. */
+/* Public entry point: attach the GTK4 event controllers (click, drag,
+ * motion, enter/leave, scroll) onto a drawingarea so the legacy
+ * mouse_action / scroll_action dispatchers run again under GTK4. */
 void attach_drawingarea_event_controllers(GtkWidget *area) {
 	if (!area) return;
 
@@ -986,7 +1057,24 @@ void attach_drawingarea_event_controllers(GtkWidget *area) {
 	g_signal_connect(click, "released", G_CALLBACK(on_drawingarea_released_cb), NULL);
 	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(click));
 
-	/* Motion + enter/leave — one controller, three signals. */
+	/* Drag — fires drag-update for every motion event while a button
+	 * is held.  This is the single source of truth for motion-while-
+	 * pressed on every platform; the motion controller below filters
+	 * itself out when a button mask is set so the two paths don't
+	 * both run on Linux.  On macOS the motion controller already
+	 * wouldn't have fired during press (AppKit routes
+	 * NSEventTypeMouseDragged exclusively to drag gestures), so the
+	 * filter is a no-op there but makes the two platforms behave
+	 * identically. */
+	GtkGesture *drag = gtk_gesture_drag_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag), 0);
+	g_signal_connect(drag, "drag-begin",  G_CALLBACK(on_drawingarea_drag_begin_cb),  NULL);
+	g_signal_connect(drag, "drag-update", G_CALLBACK(on_drawingarea_drag_update_cb), NULL);
+	g_signal_connect(drag, "drag-end",    G_CALLBACK(on_drawingarea_drag_end_cb),    NULL);
+	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(drag));
+
+	/* Motion + enter/leave.  Motion handles hover (label updates, cursor
+	 * shape).  Drag updates moved to the drag controller. */
 	GtkEventController *motion = gtk_event_controller_motion_new();
 	g_signal_connect(motion, "motion", G_CALLBACK(on_drawingarea_motion_cb), NULL);
 	g_signal_connect(motion, "enter",  G_CALLBACK(on_drawingarea_enter_cb),  NULL);

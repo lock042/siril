@@ -11,7 +11,7 @@
 #include "core/preprocess.h"
 #include "core/siril_log.h"
 
-static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
+static gchar *pause_play_button[] = {"media-playback-pause-symbolic", "media-playback-start-symbolic" };
 
 /* for fullscreen and window management on activation,
  * see livestacking_action_activate() in gui/siril_actions.c */
@@ -73,9 +73,9 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 static void update_icon(const gchar *name, gboolean is_loaded) {
 	GtkImage *image = GTK_IMAGE(gtk_builder_get_object(gui.builder, name));
 	if (is_loaded)
-		gtk_image_set_from_icon_name(image, "gtk-yes");
+		gtk_image_set_from_icon_name(image, "emblem-ok-symbolic");
 	else
-		gtk_image_set_from_icon_name(image, "gtk-no");
+		gtk_image_set_from_icon_name(image, "process-stop-symbolic");
 }
 
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {

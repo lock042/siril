@@ -114,12 +114,17 @@ static gchar **x11_fetch_uri_list(GtkWidget *widget, guint32 time) {
 	if (!surface || !GDK_IS_X11_SURFACE(surface)) return NULL;
 
 	GdkDisplay *display = gdk_surface_get_display(surface);
+	/* GDK_DISPLAY_XDISPLAY / GDK_SURFACE_XID are deprecated in GTK 4.18
+	 * with no replacement: GTK is moving away from X11 specifics, but this
+	 * workaround requires direct Xlib access and there is no GTK4 equivalent. */
 	Display *xdpy = GDK_DISPLAY_XDISPLAY(display);
 	Window xwin = GDK_SURFACE_XID(surface);
 
-	Atom xdnd_sel = gdk_x11_get_xatom_by_name_for_display(display, "XdndSelection");
-	Atom uri_list = gdk_x11_get_xatom_by_name_for_display(display, "text/uri-list");
-	Atom property = gdk_x11_get_xatom_by_name_for_display(display, "SIRIL_XDND_DATA");
+	/* Use XInternAtom directly instead of the deprecated
+	 * gdk_x11_get_xatom_by_name_for_display() wrapper. */
+	Atom xdnd_sel = XInternAtom(xdpy, "XdndSelection", False);
+	Atom uri_list = XInternAtom(xdpy, "text/uri-list", False);
+	Atom property = XInternAtom(xdpy, "SIRIL_XDND_DATA", False);
 
 	XConvertSelection(xdpy, xdnd_sel, uri_list, property, xwin, time);
 	XFlush(xdpy);

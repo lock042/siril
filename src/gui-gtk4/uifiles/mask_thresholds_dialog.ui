@@ -49,125 +49,131 @@
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
-  <object class="GtkDialog" id="mask_thresholds_dialog">
+  <object class="GtkWindow" id="mask_thresholds_dialog">
     <property name="title" translatable="1">Image Mask Intensity Thresholds</property>
     <property name="resizable">0</property>
     <property name="modal">1</property>
     <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <signal name="hide" handler="on_threshold_mask_close_clicked" swapped="no" />
     <signal name="show" handler="on_threshold_mask_show" swapped="no" />
-    <child internal-child="content_area">
+    <property name="child">
       <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">8</property>
         <child>
-          <object class="GtkGrid">
-            <property name="row-spacing">8</property>
-            <property name="column-spacing">12</property>
+          <object class="GtkBox">
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">8</property>
             <child>
-              <object class="GtkLabel">
-                <property name="halign">end</property>
-                <property name="label" translatable="1">Intensity feather range:</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">2</property>
-                </layout>
+              <object class="GtkGrid">
+                <property name="row-spacing">8</property>
+                <property name="column-spacing">12</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">end</property>
+                    <property name="label" translatable="1">Intensity feather range:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_threshold_range">
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Feather range in intensity units (0-1 for float masks, 0-255 for 8-bit masks, 0-65535 for 16-bit masks)</property>
+                    <property name="text" translatable="1">1</property>
+                    <property name="adjustment">adj_thresh_feather_float</property>
+                    <property name="digits">3</property>
+                    <property name="numeric">1</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Minimum</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Maximum</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_threshold_min">
+                    <property name="focusable">1</property>
+                    <property name="adjustment">adj_mask_thresh_min_float</property>
+                    <property name="digits">3</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_mask_threshold_max">
+                    <property name="focusable">1</property>
+                    <property name="text" translatable="1">0</property>
+                    <property name="adjustment">adj_mask_thresh_max_float</property>
+                    <property name="digits">3</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
               </object>
             </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-top">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-bottom">12</property>
+            <property name="spacing">6</property>
+            <property name="halign">end</property>
+            <property name="orientation">horizontal</property>
+            <property name="valign">center</property>
             <child>
-              <object class="GtkSpinButton" id="spin_mask_threshold_range">
+              <object class="GtkButton" id="threshold_mask_close">
+                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">Feather range in intensity units (0-1 for float masks, 0-255 for 8-bit masks, 0-65535 for 16-bit masks)</property>
-                <property name="text" translatable="1">1</property>
-                <property name="adjustment">adj_thresh_feather_float</property>
-                <property name="digits">3</property>
-                <property name="numeric">1</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">2</property>
-                </layout>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_threshold_mask_close_clicked" swapped="no" />
               </object>
             </child>
             <child>
-              <object class="GtkLabel">
-                <property name="halign">start</property>
-                <property name="label" translatable="1">Minimum</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">0</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="halign">start</property>
-                <property name="label" translatable="1">Maximum</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_mask_threshold_min">
+              <object class="GtkButton" id="threshold_mask_apply">
+                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
-                <property name="adjustment">adj_mask_thresh_min_float</property>
-                <property name="digits">3</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">0</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_mask_threshold_max">
-                <property name="focusable">1</property>
-                <property name="text" translatable="1">0</property>
-                <property name="adjustment">adj_mask_thresh_max_float</property>
-                <property name="digits">3</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">1</property>
-                </layout>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_threshold_mask_apply_clicked" swapped="no" />
+                <style>
+                  <class name="suggested-action" />
+                </style>
               </object>
             </child>
           </object>
         </child>
       </object>
-    </child>
-    <child internal-child="action_area">
-      <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-bottom">6</property>
-        <property name="spacing">6</property>
-        <property name="halign">end</property>
-        <property name="orientation">horizontal</property>
-        <property name="valign">center</property>
-        <child>
-          <object class="GtkButton" id="threshold_mask_close">
-            <property name="label" translatable="1">Close</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_threshold_mask_close_clicked" swapped="no" />
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="threshold_mask_apply">
-            <property name="label" translatable="1">Apply</property>
-            <property name="focusable">1</property>
-            <property name="receives-default">1</property>
-            <signal name="clicked" handler="on_threshold_mask_apply_clicked" swapped="no" />
-            <style>
-              <class name="suggested-action" />
-            </style>
-          </object>
-        </child>
-      </object>
-    </child>
+    </property>
   </object>
 </interface>
