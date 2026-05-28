@@ -1337,6 +1337,19 @@ static void update_roi_from_selection() {
 		on_set_roi();
 	else
 		on_clear_roi();
+	/* The steps above modify gfit pixels (restore_roi+copy_roi_into_gfit
+	 * write the OLD-ROI restoration; on_set_roi's copy_backup_to_gfit and
+	 * any registered ROI callback restore further state).  None of that
+	 * by itself re-remaps the Cairo display buffers — the call chain
+	 * gfit_modified_update_gui → end_gfit_operation → redraw_image_async
+	 * only queues a GTK paint, which then renders from whatever's already
+	 * cached in the per-vport buffers (still showing the previous preview
+	 * at the OLD ROI position).  notify_gfit_data_modified() is the one
+	 * that calls remap_all_vports() — mirror what siril_preview_hide()
+	 * does at siril_preview.c:189.  Cheap enough to call on every ROI
+	 * change; populate_roi/etc. above already touched gfit. */
+	if (!com.script && !com.python_command && !com.headless)
+		notify_gfit_data_modified();
 }
 
 void update_roi_config() {
