@@ -1244,33 +1244,48 @@ void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
 
 #ifdef OS_OSX
 /* GTK4's GdkMacosView does not override performKeyEquivalent:, unlike GTK3's
- * GdkQuartzView which forwarded all Cmd+key events directly to GDK.  As a
- * result, Command+key shortcuts never reach GTK4's shortcut controller.
+ * GdkQuartzView which forwarded Cmd+key events directly to GDK.  As a result,
+ * Command+key shortcuts never reach GTK4's shortcut controller.
  *
- * Fix: install a local NSEvent monitor that intercepts NSEventMaskKeyDown
- * events carrying the Command modifier while a GTK/GDK window is focused,
- * and re-routes them via keyDown: so GDK processes them normally.  Native
- * macOS panels (NSOpenPanel, NSAlert ...) are left untouched because their
+ * Additionally, GTK4 maps <Primary> to GDK_CONTROL_MASK (Ctrl), but macOS
+ * Command generates GDK_META_MASK — so we must swap the modifier flag before
+ * forwarding so GDK sees the Ctrl modifier that matches <Primary> shortcuts.
+ *
+ * Native macOS panels (NSOpenPanel, NSAlert …) are left untouched: their
  * content views do not carry the "Gdk" class-name prefix. */
 void siril_macos_fix_keyboard_shortcuts(void) {
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
-                                         handler:^NSEvent *(NSEvent *event) {
-        if (!([event modifierFlags] & NSEventModifierFlagCommand))
-            return event;
+	[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+	                                      handler:^NSEvent *(NSEvent *event) {
+		if (!([event modifierFlags] & NSEventModifierFlagCommand))
+			return event;
 
-        NSWindow *win = [NSApp keyWindow];
-        if (!win)
-            return event;
+		NSWindow *win = [NSApp keyWindow];
+		if (!win)
+			return event;
 
-        /* Identify GTK windows by their GDK content-view class prefix. */
-        NSString *cls = NSStringFromClass([win.contentView class]);
-        if (![cls hasPrefix:@"Gdk"])
-            return event;
+		/* Only intercept GTK/GDK windows. */
+		NSString *cls = NSStringFromClass([win.contentView class]);
+		if (![cls hasPrefix:@"Gdk"])
+			return event;
 
-        /* Forward as a regular keyDown: so GTK4's shortcut controller fires. */
-        [win.contentView keyDown:event];
-        return nil;
-    }];
+		/* Swap Command → Control so GDK_META_MASK becomes GDK_CONTROL_MASK,
+		 * matching the <Primary> modifier used in GTK4 accel strings. */
+		NSEventModifierFlags flags =
+			([event modifierFlags] & ~NSEventModifierFlagCommand)
+			| NSEventModifierFlagControl;
+		NSEvent *ev = [NSEvent keyEventWithType:[event type]
+		                               location:[event locationInWindow]
+		                          modifierFlags:flags
+		                              timestamp:[event timestamp]
+		                           windowNumber:[event windowNumber]
+		                                context:nil
+		                             characters:[event characters]
+		            charactersIgnoringModifiers:[event charactersIgnoringModifiers]
+		                              isARepeat:[event isARepeat]
+		                                keyCode:[event keyCode]];
+		[win.contentView keyDown:ev];
+		return nil;
+	}];
 }
 #endif /* OS_OSX */
 
