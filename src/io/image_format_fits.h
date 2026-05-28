@@ -100,6 +100,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 int fits_swap_image_data(fits *a, fits *b);
+int fits_swap_all_except_rwlock(fits *a, fits *b);
 
 int save_wcs_fits(fits *f, const gchar *filename);
 int save_mask_fits(int rx, int ry, float *buffer, const gchar *name);
