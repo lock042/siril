@@ -686,7 +686,6 @@ static gchar *remix_run_browser(GtkButton *button, const gchar *title,
 	gchar *picked = NULL;
 	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
 		picked = siril_file_browser_get_path(fb);
-	siril_file_browser_destroy(fb);
 	return picked;
 }
 

@@ -767,8 +767,8 @@ static gboolean rebuild_breadcrumb_idle(gpointer ud) {
  *
  * Coalesces multiple rapid calls: if an idle is already pending, the
  * existing one will pick up the latest fb->current_folder when it fires.
- * The pending source id is cancelled in siril_file_browser_destroy so a
- * dialog closed mid-navigation doesn't fire the idle on freed memory. */
+ * The pending source id is cancelled in reset_browser_state so a dialog
+ * reopened mid-navigation doesn't fire the idle against a wiped state. */
 static void rebuild_breadcrumb(SirilFileBrowser *fb) {
 	if (!fb) return;
 	if (fb->pending_breadcrumb_idle) return;
@@ -2046,38 +2046,55 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
 	return FALSE;
 }
 
-SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) {
-	SirilFileBrowser *fb = g_new0(SirilFileBrowser, 1);
-	fb->parent  = parent;
-	fb->filters = g_ptr_array_new_with_free_func((GDestroyNotify)browser_filter_free);
-	fb->back_history    = g_ptr_array_new_with_free_func(g_object_unref);
-	fb->forward_history = g_ptr_array_new_with_free_func(g_object_unref);
-	fb->active_filter_idx = -1;
-	fb->response = GTK_RESPONSE_NONE;
-	fb->show_hidden_files = browser_initial_show_hidden();
+/* The file browser is a process-wide singleton.  We never destroy it —
+ * the window is built once on first use and hidden on close (see
+ * gtk_window_set_hide_on_close + siril_file_browser_run's set_visible).
+ * Each siril_file_browser_new() call resets per-open state on the same
+ * instance and reconfigures title + transient-for.  This sidesteps the
+ * macOS AppKit teardown problems (multiple earlier "fix the destroy
+ * lifecycle" attempts all failed: drain, modal/transient toggling,
+ * defer-load, drop-modal) by removing the destroy step entirely. */
+static SirilFileBrowser *g_singleton = NULL;
 
-	fb->window = GTK_WINDOW(gtk_window_new());
+static void build_browser_widgets(SirilFileBrowser *fb);
+static void reset_browser_state(SirilFileBrowser *fb);
+
+SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) {
+	if (!g_singleton) {
+		SirilFileBrowser *fb = g_new0(SirilFileBrowser, 1);
+		fb->filters = g_ptr_array_new_with_free_func((GDestroyNotify)browser_filter_free);
+		fb->back_history    = g_ptr_array_new_with_free_func(g_object_unref);
+		fb->forward_history = g_ptr_array_new_with_free_func(g_object_unref);
+		fb->active_filter_idx = -1;
+		fb->response = GTK_RESPONSE_NONE;
+		fb->show_hidden_files = browser_initial_show_hidden();
+
+		fb->window = GTK_WINDOW(gtk_window_new());
+		/* Hide on close, never destroy — see comment on g_singleton above. */
+		gtk_window_set_hide_on_close(fb->window, TRUE);
+		gtk_window_set_default_size(fb->window, 1000, 620);
+		build_browser_widgets(fb);
+		g_singleton = fb;
+	} else {
+		reset_browser_state(g_singleton);
+	}
+
+	SirilFileBrowser *fb = g_singleton;
+	fb->parent = parent;
 	gtk_window_set_title(fb->window, title ? title : _("Open File"));
-	/* Plan C: do NOT mark the window modal.  The macOS GDK Quartz
-	 * backend turns gtk_window_set_modal(TRUE) into an NSApp modal
-	 * session keyed to the NSWindow, and tearing that down leaves
-	 * AppKit's NSView event routing in a state where the parent
-	 * window's content area drops mouse-down/keyboard events until
-	 * app-deactivate-then-reactivate forces a recheck.  Three earlier
-	 * fixes targeting the teardown timing (drain, clear modal+
-	 * transient before destroy, defer the load) all failed on macOS,
-	 * confirming the modal pathway itself is the cause.  Block parent
-	 * input via gtk_widget_set_sensitive(parent, FALSE) instead — the
-	 * nested g_main_loop_run in siril_file_browser_run still gives us
-	 * synchronous behaviour, and the parent ignoring input fills the
-	 * same UX role as visual modality (the inner dialog has focus and
-	 * the user can't interact with the outer window) without involving
-	 * the NSApp modal-session machinery. */
 	if (parent) {
 		gtk_window_set_transient_for(fb->window, parent);
+		/* Plan C lives on: block parent input via insensitive instead
+		 * of gtk_window_set_modal(TRUE).  See g_singleton comment above
+		 * for the long history of attempts at the modal path on macOS. */
 		gtk_widget_set_sensitive(GTK_WIDGET(parent), FALSE);
+	} else {
+		gtk_window_set_transient_for(fb->window, NULL);
 	}
-	gtk_window_set_default_size(fb->window, 1000, 620);
+	return fb;
+}
+
+static void build_browser_widgets(SirilFileBrowser *fb) {
 	{
 		GtkEventController *kc = gtk_event_controller_key_new();
 		/* CAPTURE phase: intercept Ctrl+H before GtkColumnView consumes it.
@@ -2508,7 +2525,88 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	                 G_CALLBACK(on_close_request), fb);
 
 	update_nav_sensitivity(fb);
-	return fb;
+}
+
+/* Clear all per-open state on the long-lived singleton.  Called on
+ * every siril_file_browser_new() after the first to make the next open
+ * indistinguishable from a fresh dialog.  Whatever the previous caller
+ * configured (filters, initial location, multi-select, debayer toggle,
+ * search, sort, selection, navigation history) is wiped here. */
+static void reset_browser_state(SirilFileBrowser *fb) {
+	if (!fb) return;
+
+	/* Cancel any in-flight breadcrumb-rebuild idle from the previous run. */
+	if (fb->pending_breadcrumb_idle) {
+		g_source_remove(fb->pending_breadcrumb_idle);
+		fb->pending_breadcrumb_idle = 0;
+	}
+
+	/* Drop the per-open external-demosaic toggle wiring.  The Convert tab
+	 * button is owned by the main UI builder so we just disconnect our
+	 * handler; the next caller that wants it will rewire via
+	 * siril_file_browser_set_show_debayer_toggle. */
+	if (fb->external_demosaic_btn && fb->external_demosaic_handler) {
+		g_signal_handler_disconnect(fb->external_demosaic_btn,
+		                            fb->external_demosaic_handler);
+		fb->external_demosaic_handler = 0;
+	}
+	fb->external_demosaic_btn = NULL;
+	fb->show_debayer_toggle = FALSE;
+	if (fb->debayer_check)
+		gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
+
+	/* Revert multi-select back to single — set_select_multiple() rebuilds
+	 * the selection model and rewires the columnview for us. */
+	if (fb->select_multiple)
+		siril_file_browser_set_select_multiple(fb, FALSE);
+	else if (fb->selection)
+		gtk_selection_model_unselect_all(fb->selection);
+
+	/* Filters: drop all, hide the dropdown until a new caller adds some. */
+	if (fb->filters) g_ptr_array_set_size(fb->filters, 0);
+	fb->active_filter_idx = -1;
+	if (fb->filter_combo) {
+		gtk_drop_down_set_model(fb->filter_combo, NULL);
+		gtk_widget_set_visible(GTK_WIDGET(fb->filter_combo), FALSE);
+	}
+	if (fb->file_filter)
+		gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+
+	/* Result + response. */
+	g_clear_pointer(&fb->result_path, g_free);
+	g_slist_free_full(fb->result_paths, g_free);
+	fb->result_paths = NULL;
+	fb->response = GTK_RESPONSE_NONE;
+
+	/* Navigation: drop current folder, history, breadcrumb trail.
+	 * The caller will set initial_folder/initial_file before run(),
+	 * or run() itself will fall back to com.wd. */
+	g_clear_object(&fb->current_folder);
+	g_clear_object(&fb->initial_file);
+	g_clear_object(&fb->breadcrumb_deepest);
+	if (fb->back_history)    g_ptr_array_set_size(fb->back_history, 0);
+	if (fb->forward_history) g_ptr_array_set_size(fb->forward_history, 0);
+
+	/* Search: clear text and collapse the bar. */
+	g_clear_pointer(&fb->search_text, g_free);
+	if (fb->search_entry)
+		gtk_editable_set_text(GTK_EDITABLE(fb->search_entry), "");
+	if (fb->search_bar)
+		gtk_search_bar_set_search_mode(fb->search_bar, FALSE);
+
+	/* Recent-files list: drop the cached store (will be rebuilt on demand). */
+	g_clear_object(&fb->recent_store);
+	fb->in_recent_mode = FALSE;
+
+	/* Pref-driven settings: re-read in case the user changed them between
+	 * dialog runs. */
+	fb->show_hidden_files = browser_initial_show_hidden();
+
+	/* Open button starts insensitive until a selection lands. */
+	if (fb->open_button)
+		gtk_widget_set_sensitive(fb->open_button, FALSE);
+
+	update_nav_sensitivity(fb);
 }
 
 void siril_file_browser_set_initial_folder(SirilFileBrowser *fb, const gchar *path) {
@@ -2623,6 +2721,14 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 	g_main_loop_unref(fb->loop);
 	fb->loop = NULL;
 	gtk_widget_set_visible(GTK_WIDGET(fb->window), FALSE);
+	/* Re-enable the parent we disabled in _new (Plan C: substitute for
+	 * the modal flag).  Done after hiding so the visual transition is
+	 * "dialog disappears → parent regains input".  parent is cleared so
+	 * the next _new call can rebind to whatever new parent it gets. */
+	if (fb->parent) {
+		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
+		fb->parent = NULL;
+	}
 	return fb->response;
 }
 
@@ -2691,7 +2797,6 @@ static void on_image_button_clicked(GtkButton *btn, gpointer user_data) {
 			g_free(path);
 		}
 	}
-	siril_file_browser_destroy(fb);
 }
 
 void siril_image_button_init(GtkWidget               *button,
@@ -2714,52 +2819,7 @@ void siril_image_button_init(GtkWidget               *button,
 	                 G_CALLBACK(on_image_button_clicked), spec);
 }
 
-void siril_file_browser_destroy(SirilFileBrowser *fb) {
-	if (!fb) return;
-	/* Cancel any pending breadcrumb-rebuild idle so it can't fire on freed
-	 * memory after we're done.  The rebuild trampoline reads fb fields
-	 * directly so a stale idle would be a use-after-free. */
-	if (fb->pending_breadcrumb_idle) {
-		g_source_remove(fb->pending_breadcrumb_idle);
-		fb->pending_breadcrumb_idle = 0;
-	}
-	/* Drop the external-button signal (the button itself is owned by the
-	 * main UI builder, not by us, so we must not unref it). */
-	if (fb->external_demosaic_btn && fb->external_demosaic_handler) {
-		g_signal_handler_disconnect(fb->external_demosaic_btn,
-		                            fb->external_demosaic_handler);
-		fb->external_demosaic_handler = 0;
-	}
-	fb->external_demosaic_btn = NULL;
-	/* Drop our refs on model objects FIRST, while the widget tree still
-	 * holds its own refs.  Then destroy the window — which finalizes the
-	 * widget tree, which drops the widget-owned refs. */
-	g_clear_object(&fb->selection);
-	g_clear_object(&fb->sort_model);
-	g_clear_object(&fb->combined_sorter);
-	g_clear_object(&fb->filter_model);
-	g_clear_object(&fb->file_filter);
-	g_clear_object(&fb->dir_list);
-	g_clear_object(&fb->recent_store);
-	if (fb->window) {
-		gtk_window_destroy(fb->window);
-		fb->window = NULL;
-	}
-	/* Re-enable the parent that we made insensitive in
-	 * siril_file_browser_new (Plan C: our substitute for the modal
-	 * flag).  Done after gtk_window_destroy so the visual transition
-	 * is "browser closes → parent regains input" rather than the other
-	 * way around. */
-	if (fb->parent)
-		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
-	g_clear_object(&fb->current_folder);
-	g_clear_object(&fb->initial_file);
-	g_clear_object(&fb->breadcrumb_deepest);
-	if (fb->back_history)    g_ptr_array_unref(fb->back_history);
-	if (fb->forward_history) g_ptr_array_unref(fb->forward_history);
-	if (fb->filters)         g_ptr_array_unref(fb->filters);
-	g_slist_free_full(fb->result_paths, g_free);
-	g_free(fb->result_path);
-	g_free(fb->search_text);
-	g_free(fb);
-}
+/* siril_file_browser_destroy was removed in the singleton conversion —
+ * the browser is now a long-lived process-singleton (see g_singleton
+ * above), and per-open state is wiped by reset_browser_state() on each
+ * subsequent _new() call.  Callers no longer pair _new with _destroy. */

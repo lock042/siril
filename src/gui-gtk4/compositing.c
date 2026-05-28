@@ -1070,7 +1070,6 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 			on_filechooser_file_set_internal(l->selected_filename, l);
 		}
 	}
-	siril_file_browser_destroy(fb);
 }
 
 gboolean valid_rgbcomp_seq() {

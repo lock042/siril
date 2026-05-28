@@ -73,7 +73,10 @@ gint     siril_file_browser_run      (SirilFileBrowser *fb);
 gchar   *siril_file_browser_get_path (SirilFileBrowser *fb);
 /* Multi-select result.  Caller g_free's each entry and frees the list. */
 GSList  *siril_file_browser_get_paths(SirilFileBrowser *fb);
-void     siril_file_browser_destroy  (SirilFileBrowser *fb);
+
+/* No siril_file_browser_destroy: the browser is a process-wide singleton,
+ * hidden on close and reset on next _new().  See file_browser.c for the
+ * background — this design sidesteps the macOS AppKit teardown bug. */
 
 /* Inline image-picker button helper.
  *
