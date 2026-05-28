@@ -618,6 +618,11 @@ static void emit_layer_tiles(GtkSnapshot *snap,
 	 * the layer's canonical area. */
 	graphene_rect_t layer_clip;
 	layer_dst_rect(lay, canvas_w, canvas_h, canvas_dst, &layer_clip);
+	/* A layer can extend past the canvas (sparse / dragged beyond bounds).
+	 * The canvas is the document's visible region, so clamp the clip to
+	 * the canvas rect — anything outside must not paint. */
+	if (!graphene_rect_intersection(&layer_clip, canvas_dst, &layer_clip))
+		return;  /* layer wholly outside canvas — nothing to draw */
 	gtk_snapshot_push_clip(snap, &layer_clip);
 
 	for (int ty = 0; ty < slot->tile_rows; ty++) {
