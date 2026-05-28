@@ -237,7 +237,6 @@ static void set_description_in_TIFF() {
 }
 
 static void prepare_savepopup() {
-	save_dialog_init_statics();
 	GtkWidget *savepopup = sd_savepopup;
 	GtkWidget *savetxt = sd_filenameframe;
 	GtkWidget *button_savepopup = sd_button_savepopup;
@@ -287,11 +286,21 @@ static void prepare_savepopup() {
 }
 
 static void init_dialog() {
+	/* The savepopup statics back both the parameters dialog and the
+	 * GtkEntry that save_dialog() writes the chosen path into. Populate
+	 * them up-front so callers that read sd_* before prepare_savepopup()
+	 * (e.g. save_dialog() at the gtk_editable_set_text() call site, and
+	 * on_header_save_as_button_clicked() that latches sd_savepopup) see
+	 * non-NULL widgets. */
+	save_dialog_init_statics();
 	if (saveDialog == NULL) {
 		GtkWindow *parent = siril_get_active_window();
 		saveDialog = siril_fc_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
 		set_filters_save_dialog(saveDialog);
 	}
+	/* Refresh every time: com.wd can change between save-as invocations. */
+	if (com.wd)
+		siril_fc_set_current_folder_path(saveDialog, com.wd);
 }
 
 static void close_dialog() {
@@ -837,9 +846,8 @@ void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		GtkWidget *savepopup = sd_savepopup;
-
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
+			GtkWidget *savepopup = sd_savepopup;
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));

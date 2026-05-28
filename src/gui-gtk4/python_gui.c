@@ -1230,6 +1230,12 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 		g_object_unref(filter);
 		g_object_unref(filters);
 
+		if (com.wd) {
+			GFile *initial = g_file_new_for_path(com.wd);
+			gtk_file_dialog_set_initial_folder(fd, initial);
+			g_object_unref(initial);
+		}
+
 		gtk_file_dialog_open(fd,
 			GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),
 			NULL, on_file_open_done, NULL);
@@ -1273,8 +1279,13 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 	g_object_unref(filter);
 	g_object_unref(filters);
 
-	if (G_IS_OBJECT(current_file))
+	if (G_IS_OBJECT(current_file)) {
 		gtk_file_dialog_set_initial_file(fd, current_file);
+	} else if (com.wd) {
+		GFile *initial = g_file_new_for_path(com.wd);
+		gtk_file_dialog_set_initial_folder(fd, initial);
+		g_object_unref(initial);
+	}
 
 	gtk_file_dialog_save(fd,
 		GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),

@@ -302,6 +302,12 @@ void on_mask_file_chooser_clicked(GtkButton *button, gpointer user_data) {
 	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(store));
 	g_object_unref(store);
 
+	if (com.wd) {
+		GFile *initial = g_file_new_for_path(com.wd);
+		gtk_file_dialog_set_initial_folder(fd, initial);
+		g_object_unref(initial);
+	}
+
 	gtk_file_dialog_open(fd, masks_dialog_window, NULL, on_mask_file_chosen, NULL);
 	g_object_unref(fd);
 }
