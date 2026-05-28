@@ -21,6 +21,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
@@ -463,6 +464,9 @@ static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
 	                  : (n_press == 2) ? GDK_DOUBLE_BUTTON_PRESS
 	                  :                  GDK_BUTTON_PRESS;
 
+	siril_log_message("[INPUT-DIAG] pressed_cb: widget=%p n_press=%d button=%u state=0x%x x=%.1f y=%.1f mouse_status=%d\n",
+	                  (void*)widget, n_press, button, (unsigned)state, x, y, (int)mouse_status);
+
 	cache_widgets();
 	if (!gui.mouse_actions)
 		load_or_initialize_mouse_actions();
@@ -480,12 +484,21 @@ static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
 		.mouse_status = &mouse_status, .cutting = &cutting,
 	};
 
+	gboolean matched = FALSE;
 	for (GSList *iter = gui.mouse_actions; iter != NULL; iter = g_slist_next(iter)) {
 		mouse_action* action = (mouse_action*) iter->data;
 		if (mouse_action_match(button, type, state, action)) {
+			siril_log_message("[INPUT-DIAG] pressed_cb: dispatched action '%s' (inside=%d zoomed=%d,%d)\n",
+			                  action->data->name ? action->data->name : "?",
+			                  inside, zoomed.x, zoomed.y);
+			matched = TRUE;
 			action->data->function(&data);
 			break;
 		}
+	}
+	if (!matched) {
+		siril_log_message("[INPUT-DIAG] pressed_cb: NO action matched (type=%d state=0x%x eventmask=0x%x)\n",
+		                  (int)type, (unsigned)state, (unsigned)(state & eventmask));
 	}
 }
 
@@ -496,6 +509,9 @@ static void on_drawingarea_released_cb(GtkGestureClick *gesture, int n_press,
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
 	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
 	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
+
+	siril_log_message("[INPUT-DIAG] released_cb: widget=%p n_press=%d button=%u state=0x%x x=%.1f y=%.1f registered_release_button=%u\n",
+	                  (void*)widget, n_press, button, (unsigned)state, x, y, button_release.button);
 
 	if (button_release.button == button) {
 		double zoom = get_zoom_val();
@@ -854,10 +870,20 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
  * could wire drag-end as a fallback in case GtkGestureClick.released
  * is suppressed by drag claiming the sequence, but that hasn't been
  * observed and would risk double-firing the release callback. */
+/* TRUE while we've already logged the first drag-update of the current
+ * sequence — keeps the log readable while still confirming that motion-
+ * while-pressed is being delivered.  Reset on drag-begin/drag-end. */
+static gboolean drag_update_logged_this_sequence = FALSE;
+
 static void on_drawingarea_drag_begin_cb(GtkGestureDrag *g,
                                          double x, double y,
                                          gpointer user_data) {
-	(void)g; (void)x; (void)y; (void)user_data;
+	(void)user_data;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
+	siril_log_message("[INPUT-DIAG] drag_begin_cb: widget=%p start=%.1f,%.1f drawing=%d translating=%d cutting=%d measure_started=%d\n",
+	                  (void*)widget, x, y, gui.drawing, gui.translating, (int)cutting,
+	                  gui.measure_start.x != -1);
+	drag_update_logged_this_sequence = FALSE;
 }
 
 static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
@@ -870,6 +896,11 @@ static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
 	gtk_gesture_drag_get_start_point(g, &sx, &sy);
 	double abs_x = sx + offset_x;
 	double abs_y = sy + offset_y;
+	if (!drag_update_logged_this_sequence) {
+		siril_log_message("[INPUT-DIAG] drag_update_cb: FIRST update widget=%p offset=%.1f,%.1f abs=%.1f,%.1f state=0x%x\n",
+		                  (void*)widget, offset_x, offset_y, abs_x, abs_y, (unsigned)state);
+		drag_update_logged_this_sequence = TRUE;
+	}
 	last_motion_widget_x = abs_x;
 	last_motion_widget_y = abs_y;
 	drawingarea_ctx ctx = compute_drawingarea_ctx(widget, abs_x, abs_y, state);
@@ -881,7 +912,11 @@ static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
 static void on_drawingarea_drag_end_cb(GtkGestureDrag *g,
                                        double offset_x, double offset_y,
                                        gpointer user_data) {
-	(void)g; (void)offset_x; (void)offset_y; (void)user_data;
+	(void)user_data;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
+	siril_log_message("[INPUT-DIAG] drag_end_cb: widget=%p offset=%.1f,%.1f had_drag_update=%d\n",
+	                  (void*)widget, offset_x, offset_y, drag_update_logged_this_sequence);
+	drag_update_logged_this_sequence = FALSE;
 }
 
 

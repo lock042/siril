@@ -658,6 +658,8 @@ mouse_function_metadata main_action = { main_action_click, NAME_MAIN_ACTION,
 	TRUE, MOUSE_REF_MAIN_ACTION};
 
 gboolean main_action_click(mouse_data *data) {
+	siril_log_message("[INPUT-DIAG] main_action_click: entered, inside=%d mouse_status=%d zoomed=%d,%d\n",
+	                  data->inside, (int)*data->mouse_status, data->zoomed.x, data->zoomed.y);
 	if (data->inside) {
 		point pt;
 		int radius, s;
@@ -752,6 +754,8 @@ gboolean main_action_click(mouse_data *data) {
 				area.y = data->zoomed.y - s;
 				area.w = s * 2;
 				area.h = s * 2;
+				siril_log_message("[INPUT-DIAG] main_action_click PHOTOMETRY: reached, inside=%d zoomed=%d,%d s=%d gfit_size=%dx%d\n",
+				                  data->inside, data->zoomed.x, data->zoomed.y, s, gfit->rx, gfit->ry);
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit->rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit->ry) {
 					ps = phot_set_adjusted_for_image(gfit);
