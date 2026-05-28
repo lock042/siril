@@ -94,7 +94,6 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->mask_aware = TRUE;
 	if (!for_preview) {
 		args->log_hook = satu_log_hook;
-		args->populate_roi_on_complete = TRUE;
 	}
 
 	if (for_preview)

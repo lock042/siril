@@ -1629,19 +1629,21 @@ the_end:;
 	/* Capture mask state while writer lock is held and before idles are posted. */
 	args->has_mask = (argfit->mask != NULL);
 
-	/* populate_roi() reads gfit pixel data; call it here, while we still hold
-	 * the writer lock, rather than from the idle function on the GTK thread.
-	 * When args->fit is &gui.roi.fit the worker's lock is on that structure, not
-	 * on gfit, so we must acquire a reader lock on gfit explicitly.  When
-	 * args->fit IS gfit we already hold its writer lock, which covers reads. */
-	if (args->populate_roi_on_complete && !com.script && !com.python_command && !com.headless) {
-		if (argfit != gfit) {
-			g_rw_lock_reader_lock(&gfit->rwlock);
-			gui_iface.populate_roi();
-			g_rw_lock_reader_unlock(&gfit->rwlock);
-		} else {
-			gui_iface.populate_roi();
-		}
+	/* populate_roi() refreshes gui.roi.fit from the (now-updated) gfit so
+	 * the ROI preview reflects the result of this op.  It only makes sense
+	 * when the worker just modified gfit — when args->fit == &gui.roi.fit
+	 * we were working on the ROI surface directly and re-populating from
+	 * gfit would overwrite the result.  populate_roi itself short-circuits
+	 * if no ROI is selected, so this is safe to call unconditionally on
+	 * the gfit branch.
+	 *
+	 * Universal handling here means image_hooks no longer carry their own
+	 * `if (fit == gfit) populate_roi()` blocks — the worker is the sole
+	 * arbiter of this housekeeping.  The legacy args->populate_roi_on_complete
+	 * flag is ignored; the field is retained on the struct so out-of-tree
+	 * callers don't break, but it has no effect. */
+	if (argfit == gfit && !com.script && !com.python_command && !com.headless) {
+		gui_iface.populate_roi();
 	}
 
 	/* Fallback HISTORY card update — only used when undo_save_state() won't
