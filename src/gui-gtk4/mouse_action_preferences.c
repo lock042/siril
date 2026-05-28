@@ -18,6 +18,8 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+
 #include "core/initfile.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/image_interactions.h"
@@ -609,7 +611,9 @@ static gboolean fill_mouse_actions_list_idle(gpointer data) {
 
 	gtk_scrolled_window_set_child(scrolled_window, GTK_WIDGET(cv));
 	mouse_action_columnview = cv;
-	g_object_unref(sel);
+	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full for
+	 * the model, so cv consumed the ref we passed.  Unreffing here would
+	 * destroy sel out from under cv and crash on the next rebuild. */
 
 	return G_SOURCE_REMOVE;
 }
@@ -751,7 +755,7 @@ static gboolean fill_scroll_actions_list_idle(gpointer data) {
 
 	gtk_scrolled_window_set_child(scrolled_window, GTK_WIDGET(cv));
 	scroll_action_columnview = cv;
-	g_object_unref(sel);
+	/* No g_object_unref(sel): transferred to cv (see mouse list above). */
 
 	return G_SOURCE_REMOVE;
 }
@@ -931,6 +935,11 @@ static void on_mouse_test_pressed(GtkGestureClick *gesture, int n_press,
 static void on_mouse_test_drag_update(GtkGestureDrag *gesture,
                                       double offset_x, double offset_y, gpointer user_data) {
 	(void)user_data;
+	/* GtkGestureDrag fires drag-update even before the drag threshold
+	 * is crossed (its threshold only gates drag-begin).  Ignore sub-
+	 * pixel movement so a tap-and-release reads as "Button N" rather
+	 * than "Drag (button N, +0, +0)". */
+	if (fabs(offset_x) < 1.0 && fabs(offset_y) < 1.0) return;
 	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
 	gchar *text = g_strdup_printf(_("Drag (button %u, %+.0f, %+.0f)"),
 	                              button, offset_x, offset_y);

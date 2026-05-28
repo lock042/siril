@@ -3259,7 +3259,8 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		}
 	}
 
-	g_object_unref(sel);
+	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full
+	 * for the model, so cv consumed the ref. */
 	g_object_unref(store);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 

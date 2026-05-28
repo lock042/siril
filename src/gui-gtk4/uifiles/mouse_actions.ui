@@ -50,7 +50,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="mouse_actions_add">
-                        <property name="label">gtk-add</property>
+                        <property name="icon-name">list-add-symbolic</property>
                         <property name="focusable">1</property>
                         <property name="receives-default">1</property>
                         <property name="tooltip-text" translatable="1">Add an extra mouse action</property>
@@ -63,7 +63,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="mouse_actions_remove">
-                        <property name="label">gtk-remove</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="focusable">1</property>
                         <property name="receives-default">1</property>
                         <property name="tooltip-text" translatable="1">Remove the selected mouse action</property>
@@ -136,7 +136,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="scroll_actions_add">
-                        <property name="label">gtk-add</property>
+                        <property name="icon-name">list-add-symbolic</property>
                         <property name="focusable">1</property>
                         <property name="receives-default">1</property>
                         <property name="tooltip-text" translatable="1">Add a scroll action</property>
@@ -149,7 +149,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="scroll_actions_remove">
-                        <property name="label">gtk-remove</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="focusable">1</property>
                         <property name="receives-default">1</property>
                         <property name="tooltip-text" translatable="1">Remove a scroll action</property>

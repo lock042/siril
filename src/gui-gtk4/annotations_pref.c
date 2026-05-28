@@ -173,7 +173,8 @@ static GtkWidget *build_catalogue_columnview(gboolean trigger_refresh) {
 	gtk_column_view_append_column(cv, cn);
 	g_object_unref(cn);
 
-	g_object_unref(sel);
+	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full for
+	 * the model, so cv consumed the ref returned by single_selection_new. */
 	return GTK_WIDGET(cv);
 }
 
