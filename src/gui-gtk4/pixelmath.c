@@ -1299,6 +1299,14 @@ gboolean query_tooltip_op_tree_view_cb(GtkWidget *widget, gint x, gint y,
 }
 
 void on_pixel_math_dialog_show(GtkWidget *w, gpointer user_data) {
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+	static gboolean native_controls_set = FALSE;
+	if (!native_controls_set) {
+		GtkHeaderBar *bar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "pixel_math_header"));
+		if (bar) gtk_header_bar_set_use_native_controls(bar, TRUE);
+		native_controls_set = TRUE;
+	}
+#endif
 	if (!get_pixel_math_functions_number_of_rows())
 		add_functions_to_list();
 	if (!get_pixel_math_operators_number_of_rows())

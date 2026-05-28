@@ -71,6 +71,9 @@ static void sequence_list_init_statics(void) {
 	if (seq_columnview) return;
 	seqlist_dialog_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
 	seqlist_headerbar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "seqlistbar"));
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+	gtk_header_bar_set_use_native_controls(seqlist_headerbar, TRUE);
+#endif
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
 	seqlist_search_entry = GTK_EDITABLE(gtk_builder_get_object(gui.builder, "seqlistsearch"));
