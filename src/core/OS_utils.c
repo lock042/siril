@@ -1242,6 +1242,40 @@ void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
 
 #endif /* OS_OSX / _WIN32 / Linux */
 
+#ifdef OS_OSX
+/* GTK4's GdkMacosView does not override performKeyEquivalent:, unlike GTK3's
+ * GdkQuartzView which forwarded Cmd+key events directly to GDK.  As a result,
+ * Command+key shortcuts never reach GTK4's shortcut controller.
+ *
+ * Fix: local NSEvent monitor that catches Cmd+key in GDK windows and forwards
+ * them via keyDown: so GDK processes them.  Accel strings are registered with
+ * <Meta> on macOS (see set_accel_map) so GDK_META_MASK (Command) matches.
+ *
+ * Native macOS panels (NSOpenPanel, NSAlert …) are left untouched: their
+ * content views do not carry the "Gdk" class-name prefix. */
+void siril_macos_fix_keyboard_shortcuts(void) {
+	[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+	                                      handler:^NSEvent *(NSEvent *event) {
+		if (!([event modifierFlags] & NSEventModifierFlagCommand))
+			return event;
+
+		NSWindow *win = [NSApp keyWindow];
+		if (!win)
+			return event;
+
+		/* Only intercept GTK/GDK windows. */
+		NSString *cls = NSStringFromClass([win.contentView class]);
+		if (![cls hasPrefix:@"Gdk"])
+			return event;
+
+		/* Forward as-is: accels are registered with <Meta> on macOS so
+		 * GDK_META_MASK (Command) already matches without any modifier swap. */
+		[win.contentView keyDown:event];
+		return nil;
+	}];
+}
+#endif /* OS_OSX */
+
 gchar *get_siril_version_string() {
 #ifdef _WIN32
 #ifdef SIRIL_UNSTABLE

@@ -401,6 +401,13 @@ static void siril_app_startup(GApplication *application) {
 #ifndef USE_GTK4
 	gtk_source_init();
 #endif
+
+#if defined(USE_GTK4) && defined(OS_OSX)
+	/* GTK4's macOS backend dropped the GTK3 quartz workaround that forwarded
+	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
+	 * reach GTK4's shortcut controller without requiring a native menu bar. */
+	siril_macos_fix_keyboard_shortcuts();
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
