@@ -465,7 +465,7 @@ static void set_histo_toggles_names() {
 	if (fit->naxis == 2) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Toggles whether to apply the stretch to the monochrome channel"));
 		GtkWidget *w;
-		if (com.pref.gui.combo_theme == 0) {
+		if (siril_current_theme_is_dark()) {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
 		} else {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");
@@ -1645,7 +1645,7 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), (gfit->naxes[2] == 3));
 			GtkWidget *w;
-			if (com.pref.gui.combo_theme == 0) {
+			if (siril_current_theme_is_dark()) {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 			} else {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");

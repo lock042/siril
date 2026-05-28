@@ -19,6 +19,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
 #include "io/siril_pythonmodule.h"
 
 #include "python_gui.h"
@@ -145,7 +146,7 @@ void set_code_view_theme() {
 	// The core "Classic" and "Oblivion" themes are used: these should always be available
 	stylemanager = gtk_source_style_scheme_manager_get_default();
 	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
-										com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
+										siril_current_theme_is_dark() ? "oblivion" : "classic");
 	if (scheme)
 		gtk_source_buffer_set_style_scheme(sourcebuffer, scheme);
 }

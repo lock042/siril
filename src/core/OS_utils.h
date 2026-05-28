@@ -64,6 +64,9 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
 
 gchar *get_siril_version_string();
 
+gboolean siril_system_is_dark_mode(void);
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark));
+
 #ifdef __cplusplus
 }
 #endif

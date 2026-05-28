@@ -256,11 +256,38 @@ static void update_icons_to_theme(gboolean is_dark) {
 	}
 }
 
+/* Called by the system appearance observer when the OS switches dark/light
+ * while "Follow system" (index 0) is the active preference. */
+static void on_system_appearance_changed(gboolean dark) {
+	if (com.pref.gui.combo_theme != 0)
+		return;
+	GtkSettings *settings = gtk_settings_get_default();
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	update_icons_to_theme(dark);
+	update_icons_sequence_list(dark);
+}
+
+/* 0 = Follow system, 1 = Dark, 2 = Light */
 void siril_set_theme(int active) {
 	GtkSettings *settings = gtk_settings_get_default();
-	g_object_set(settings, "gtk-application-prefer-dark-theme", active == 0, NULL);
-	update_icons_to_theme(active == 0);
-	update_icons_sequence_list(active == 0);
+	if (active == 0) {
+		/* "Follow system": resolve to the current OS appearance. */
+		gboolean dark = siril_system_is_dark_mode();
+		g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+		update_icons_to_theme(dark);
+		update_icons_sequence_list(dark);
+		return;
+	}
+	gboolean dark = (active == 1);
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	update_icons_to_theme(dark);
+	update_icons_sequence_list(dark);
+}
+
+gboolean siril_current_theme_is_dark(void) {
+	if (com.pref.gui.combo_theme == 0)
+		return siril_system_is_dark_mode();
+	return com.pref.gui.combo_theme == 1;
 }
 
 void on_combo_theme_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -502,23 +529,37 @@ gpointer on_clear_roi() {
 }
 
 static void initialize_theme_GUI() {
-	GtkDropDown *box;
+	GtkDropDown *box = GTK_DROP_DOWN(lookup_widget("combo_theme"));
 
-	box = GTK_DROP_DOWN(lookup_widget("combo_theme"));
+	/* Insert "Follow system" at position 0.  Done once; the static flag
+	 * prevents a duplicate entry if this function is re-called.
+	 * Final order: 0=Follow system, 1=Dark, 2=Light. */
+	static gboolean system_option_added = FALSE;
+	if (!system_option_added) {
+		GtkStringList *model = GTK_STRING_LIST(gtk_drop_down_get_model(box));
+		const char *additions[] = { _("Follow system"), NULL };
+		gtk_string_list_splice(model, 0, 0, additions);
+		system_option_added = TRUE;
+		siril_watch_system_appearance_changes(on_system_appearance_changed);
+	}
 
 	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
 	gtk_drop_down_set_selected(box, com.pref.gui.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
-	update_icons_to_theme(com.pref.gui.combo_theme == 0);
-	update_icons_sequence_list(com.pref.gui.combo_theme == 0);
+	gboolean dark = (com.pref.gui.combo_theme == 0) ? siril_system_is_dark_mode()
+	                                                 : (com.pref.gui.combo_theme == 1);
+	update_icons_to_theme(dark);
+	update_icons_sequence_list(dark);
 }
 
 void load_prefered_theme(gint theme) {
-	GtkSettings *settings;
-
-	settings = gtk_settings_get_default();
-
-	g_object_set(settings, "gtk-application-prefer-dark-theme", com.pref.gui.combo_theme == 0, NULL);
+	GtkSettings *settings = gtk_settings_get_default();
+	if (theme == 0) {
+		gboolean dark = siril_system_is_dark_mode();
+		g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+		return;
+	}
+	g_object_set(settings, "gtk-application-prefer-dark-theme", theme == 1, NULL);
 }
 
 void set_sliders_value_to_gfit() {
