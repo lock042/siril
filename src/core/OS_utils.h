@@ -67,6 +67,10 @@ gchar *get_siril_version_string();
 gboolean siril_system_is_dark_mode(void);
 void siril_watch_system_appearance_changes(void (*callback)(gboolean dark));
 
+#ifdef OS_OSX
+void siril_macos_fix_keyboard_shortcuts(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

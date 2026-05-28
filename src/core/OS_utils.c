@@ -1242,6 +1242,38 @@ void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
 
 #endif /* OS_OSX / _WIN32 / Linux */
 
+#ifdef OS_OSX
+/* GTK4's GdkMacosView does not override performKeyEquivalent:, unlike GTK3's
+ * GdkQuartzView which forwarded all Cmd+key events directly to GDK.  As a
+ * result, Command+key shortcuts never reach GTK4's shortcut controller.
+ *
+ * Fix: install a local NSEvent monitor that intercepts NSEventMaskKeyDown
+ * events carrying the Command modifier while a GTK/GDK window is focused,
+ * and re-routes them via keyDown: so GDK processes them normally.  Native
+ * macOS panels (NSOpenPanel, NSAlert ...) are left untouched because their
+ * content views do not carry the "Gdk" class-name prefix. */
+void siril_macos_fix_keyboard_shortcuts(void) {
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                         handler:^NSEvent *(NSEvent *event) {
+        if (!([event modifierFlags] & NSEventModifierFlagCommand))
+            return event;
+
+        NSWindow *win = [NSApp keyWindow];
+        if (!win)
+            return event;
+
+        /* Identify GTK windows by their GDK content-view class prefix. */
+        NSString *cls = NSStringFromClass([win.contentView class]);
+        if (![cls hasPrefix:@"Gdk"])
+            return event;
+
+        /* Forward as a regular keyDown: so GTK4's shortcut controller fires. */
+        [win.contentView keyDown:event];
+        return nil;
+    }];
+}
+#endif /* OS_OSX */
+
 gchar *get_siril_version_string() {
 #ifdef _WIN32
 #ifdef SIRIL_UNSTABLE
