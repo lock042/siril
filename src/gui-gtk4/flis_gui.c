@@ -211,6 +211,8 @@ void flis_gui_present_if_flis(void) {
 	gtk_window_present(GTK_WINDOW(g_panel->window));
 }
 
+static void canvas_dialog_refresh_external(void);
+
 static gboolean refresh_idle_cb(gpointer p) {
 	(void)p;
 	/* Title bar reflects FLIS active-layer state independently of the panel.
@@ -222,6 +224,10 @@ static gboolean refresh_idle_cb(gpointer p) {
 		if (gtk_widget_get_visible(g_panel->window))
 			refresh_panel();
 	}
+	/* Same idle path repaints the canvas-properties dialog so it
+	 * reflects any FLIS state change that happened underneath it
+	 * (e.g. an undo / redo of a canvas op). */
+	canvas_dialog_refresh_external();
 	return G_SOURCE_REMOVE;
 }
 
@@ -2988,6 +2994,12 @@ struct canvas_dialog {
 
 static void canvas_dialog_reset_pending(struct canvas_dialog *cd);
 
+/* Singleton pointer to the currently-open canvas dialog (NULL when
+ * the dialog isn't on screen).  Used by canvas_dialog_refresh_external
+ * to repaint the preview when FLIS state changes underneath the dialog
+ * — most importantly an undo / redo that reverts a canvas op. */
+static struct canvas_dialog *g_canvas_dialog;
+
 static void canvas_dialog_refresh_current(struct canvas_dialog *cd) {
 	if (!cd || !cd->current_label) return;
 	gchar *txt = g_strdup_printf(_("Current canvas: %u × %u"),
@@ -3598,8 +3610,46 @@ static void on_canvas_mirrory_click(GtkButton *btn, gpointer ud) {
 static void on_canvas_dialog_close(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
+	/* cd ownership transfers to the window's "destroy" signal handler
+	 * (canvas_dialog_window_destroyed), which clears the global pointer
+	 * and frees the struct.  Just trigger the destroy here so X-button
+	 * close and Close-button close take the same path. */
 	gtk_window_destroy(GTK_WINDOW(cd->window));
+}
+
+/* Window-destroy hook.  Fires for any reason the dialog window goes
+ * away (Close button, title-bar X, programmatic destroy).  Clears the
+ * singleton pointer so future external refreshes know there's no
+ * dialog to repaint, and frees the struct. */
+static void canvas_dialog_window_destroyed(GtkWidget *win, gpointer ud) {
+	(void)win;
+	struct canvas_dialog *cd = ud;
+	if (g_canvas_dialog == cd) g_canvas_dialog = NULL;
 	g_free(cd);
+}
+
+/* External refresh entry point.  When FLIS state changes underneath
+ * the dialog (e.g. undo / redo reverts a canvas op), reset the pending
+ * preview to match the now-current canvas dims, resync the spinners,
+ * and queue a redraw of the preview drawing area.  No-op when the
+ * dialog isn't open. */
+static void canvas_dialog_refresh_external(void) {
+	struct canvas_dialog *cd = g_canvas_dialog;
+	if (!cd || !is_current_image_flis()) return;
+	canvas_dialog_reset_pending(cd);
+	cd->syncing_spins = TRUE;
+	if (cd->spin_w)
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w),
+		                          (double)cd->pending_cw);
+	if (cd->spin_h)
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h),
+		                          (double)cd->pending_ch);
+	if (cd->spin_angle)
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_angle), 0.0);
+	cd->syncing_spins = FALSE;
+	canvas_dialog_refresh_current(cd);
+	if (cd->preview_da)
+		gtk_widget_queue_draw(cd->preview_da);
 }
 
 /* Small helper to wrap a labelled section in a frame.  Keeps the
@@ -3621,9 +3671,18 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 		siril_log_message(_("FLIS: Canvas properties — current image is not a FLIS\n"));
 		return;
 	}
+	if (g_canvas_dialog) {
+		/* Already open — bring it forward instead of opening a second
+		 * one (which would race against the singleton refresh path). */
+		gtk_window_present(GTK_WINDOW(g_canvas_dialog->window));
+		return;
+	}
 
 	struct canvas_dialog *cd = g_new0(struct canvas_dialog, 1);
+	g_canvas_dialog = cd;
 	cd->window = gtk_window_new();
+	g_signal_connect(cd->window, "destroy",
+	                 G_CALLBACK(canvas_dialog_window_destroyed), cd);
 	gtk_window_set_title(GTK_WINDOW(cd->window), _("Canvas properties"));
 	gtk_window_set_transient_for(GTK_WINDOW(cd->window),
 	                             GTK_WINDOW(g_panel->window));

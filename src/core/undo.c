@@ -1137,6 +1137,10 @@ int undo_display_data(int dir) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
+			/* FLIS panel + canvas-properties dialog snapshot layer
+			 * geometry on draw; an undo that restored layer positions
+			 * or dims needs them to repaint. */
+			gui_iface.flis_gui_update();
 		}
 		break;
 
@@ -1204,6 +1208,9 @@ int undo_display_data(int dir) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
+			/* See UNDO case — mirror the notification so the FLIS panel
+			 * and canvas dialog repaint after a redo. */
+			gui_iface.flis_gui_update();
 		}
 		break;
 
