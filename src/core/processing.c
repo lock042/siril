@@ -1611,8 +1611,12 @@ gpointer generic_image_worker(gpointer p) {
 			blend_fits_with_mask(args->fit, orig);
 		}
 
-		// Carry out data updates (statistics, histograms, update Cairo buffers in GUI mode)
-		notify_gfit_data_modified();
+		/* notify_gfit_data_modified() / populate_roi() moved out of this
+		 * branch — see the post-unlock block in `the_end`.  They must run
+		 * with no gfit writer lock held because notify→copy_roi_into_gfit
+		 * acquires gfit->rwlock as a writer; doing that while we still
+		 * hold it triggers pthread EDEADLK ("Resource deadlock avoided")
+		 * on glibc and silent self-deadlock on other implementations. */
 
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
@@ -1628,6 +1632,49 @@ the_end:;
 	int retval = args->retval;
 	/* Capture mask state while writer lock is held and before idles are posted. */
 	args->has_mask = (argfit->mask != NULL);
+
+	/* Fallback HISTORY card update — only used when undo_save_state() won't
+	 * be called (it records on the `orig` backup, not on gfit).  Done here,
+	 * under the writer lock that's about to be released, using the local
+	 * `argfit` / `history` copies so it stays correct after `args` is freed
+	 * by the idle below. */
+	gboolean append_history_fallback =
+	    !retval && !(undo_state && orig) && !arg_custom_undo && arg_update_gfit;
+	if (append_history_fallback) {
+		argfit->history = g_slist_append(argfit->history, g_strdup(history));
+		// argfit->history now owns the allocated memory, we must not free it if this codepath is taken
+		update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
+	}
+
+	/* Release locks BEFORE the post-write housekeeping below.  Two reasons:
+	 *
+	 *  1. notify_gfit_data_modified() reaches copy_roi_into_gfit() which
+	 *     acquires gfit->rwlock as a writer.  Holding the writer lock here
+	 *     would make that a recursive acquisition — pthread reports it as
+	 *     EDEADLK on glibc ("Resource deadlock avoided") and deadlocks
+	 *     silently on other implementations.
+	 *
+	 *  2. The execute_idle_sync() below blocks until the main thread runs
+	 *     its idle.  The main thread takes gfit->rwlock as a reader from
+	 *     mouse-motion handlers (histogram_update_cursor_value et al.)
+	 *     while delivering events.  If the main loop is parked on that
+	 *     reader-lock acquisition it never reaches the idle, the worker
+	 *     waits forever, and the app appears hung.
+	 *
+	 * Once the image hook has returned and the history/HISTORY mutations
+	 * above are done, gfit's data is consistent and the remaining work
+	 * (notify, populate_roi, the completion idle) only needs to read it.
+	 * The processing thread is single-threaded so no other worker can
+	 * write gfit before our cleanup finishes. */
+	g_rw_lock_writer_unlock(&argfit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	/* Carry out data updates (statistics, histograms, update Cairo buffers
+	 * in GUI mode) — must run with no gfit writer lock held, see above.
+	 * Only invoke on success; on failure, gfit was not validly modified. */
+	if (!retval) {
+		notify_gfit_data_modified();
+	}
 
 	/* populate_roi() refreshes gui.roi.fit from the (now-updated) gfit so
 	 * the ROI preview reflects the result of this op.  It only makes sense
@@ -1645,34 +1692,6 @@ the_end:;
 	if (argfit == gfit && !com.script && !com.python_command && !com.headless) {
 		gui_iface.populate_roi();
 	}
-
-	/* Fallback HISTORY card update — only used when undo_save_state() won't
-	 * be called (it records on the `orig` backup, not on gfit).  Done here,
-	 * under the writer lock that's about to be released, using the local
-	 * `argfit` / `history` copies so it stays correct after `args` is freed
-	 * by the idle below. */
-	gboolean append_history_fallback =
-	    !retval && !(undo_state && orig) && !arg_custom_undo && arg_update_gfit;
-	if (append_history_fallback) {
-		argfit->history = g_slist_append(argfit->history, g_strdup(history));
-		// argfit->history now owns the allocated memory, we must not free it if this codepath is taken
-		update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
-	}
-
-	/* Release locks BEFORE blocking on the sync-idle below.  Holding
-	 * argfit->rwlock as a writer across execute_idle_sync() deadlocks the
-	 * GUI: the GTK main thread takes the same lock as a reader from
-	 * mouse-motion handlers (histogram_update_cursor_value et al.) while
-	 * delivering events.  If the main loop is parked on that reader-lock
-	 * acquisition it never reaches the idle we just queued, the worker
-	 * waits on the idle forever, and the app appears hung.  Once the
-	 * image hook has returned and the history/HISTORY mutations above are
-	 * done, the worker no longer needs the lock — gfit data is consistent,
-	 * the idle only schedules redraw/cleanup work, and the only other
-	 * thread that could write gfit is the worker itself (the processing
-	 * thread is single-threaded). */
-	g_rw_lock_writer_unlock(&argfit->rwlock);
-	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
 	 * completion idle paints the updated image. */
