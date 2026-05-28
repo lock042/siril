@@ -3475,10 +3475,14 @@ static void canvas_dialog_reset_pending(struct canvas_dialog *cd) {
  * rotation.
  *
  * Sign convention: pending_angle (canvas rotate, +CW visually as the
- * handle traces) = layer rotate by -pending_angle in our standard-
- * matrix y-down convention.  verbose_rotate_image's @angle parameter
- * is in Siril's "+ = CCW" convention which is the same physical
- * direction as our -pending_angle, hence pos_angle_deg negation below.
+ * handle traces) means layers must move and re-render at -pending_angle
+ * visually (i.e. CCW for +pending_angle).  In both Siril's
+ * verbose_rotate_image API (+ = CW visually, matching the menu's
+ * "Rotate 90° clockwise" wired to angle = 90) AND our standard y-down
+ * rotation matrix (+ = CW visually), the value we want to pass for the
+ * direction "CCW visually" is therefore -pending_angle.  Both pixel
+ * and position rotation use the same -pending_angle, keeping them in
+ * lock-step.
  *
  * Returns 0 on success, non-zero (with an error logged) on any pixel-
  * rotation failure (e.g. OOM); the caller's undo step lets the user
@@ -3487,8 +3491,9 @@ static int canvas_dialog_rotate_layers_pixels(double pivot_x, double pivot_y,
                                                 double pending_angle_deg) {
 	if (fabs(pending_angle_deg) < 1e-9 || !com.uniq || !com.uniq->layers)
 		return 0;
-	double pos_rad = -pending_angle_deg * M_PI / 180.0;
-	double c = cos(pos_rad), s = sin(pos_rad);
+	double rot_angle_deg = -pending_angle_deg;
+	double rot_rad = rot_angle_deg * M_PI / 180.0;
+	double c = cos(rot_rad), s = sin(rot_rad);
 	for (GSList *l = com.uniq->layers; l; l = l->next) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
@@ -3497,7 +3502,7 @@ static int canvas_dialog_rotate_layers_pixels(double pivot_x, double pivot_y,
 		rectangle area = { 0, 0, (int)lay->fit->rx, (int)lay->fit->ry };
 		/* uncropped (= 0) so the layer expands to the rotated bbox;
 		 * clamp on so float layers don't wrap on overshoot. */
-		if (verbose_rotate_image(lay->fit, area, pending_angle_deg,
+		if (verbose_rotate_image(lay->fit, area, rot_angle_deg,
 		                         OPENCV_LANCZOS4, 0, TRUE) != 0) {
 			siril_log_error(_("Canvas rotate: failed to rotate layer pixels.\n"));
 			return 1;
