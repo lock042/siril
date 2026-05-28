@@ -2933,13 +2933,44 @@ static void on_ctx_register_layers(GSimpleAction *a, GVariant *v, gpointer u) {
  * deferred).
  * ========================================================================= */
 
+/* Drag modes for the resize-preview drawingarea.  RESIZE_* corresponds
+ * to a canvas-frame handle (compass directions).  MOVE drags the whole
+ * canvas frame; NONE means no drag in progress / pointer landed outside
+ * any actionable region. */
+enum canvas_drag_mode {
+	CDRAG_NONE = 0,
+	CDRAG_MOVE,
+	CDRAG_RESIZE_N, CDRAG_RESIZE_S, CDRAG_RESIZE_E, CDRAG_RESIZE_W,
+	CDRAG_RESIZE_NE, CDRAG_RESIZE_NW, CDRAG_RESIZE_SE, CDRAG_RESIZE_SW,
+};
+
 struct canvas_dialog {
 	GtkWidget *window;
 	GtkWidget *current_label;
-	GtkWidget *spin_w, *spin_h, *spin_dx, *spin_dy;
+	GtkWidget *spin_w, *spin_h;
 	GtkWidget *include_invisible;
 	GtkWidget *spin_angle;
+
+	/* Interactive resize preview ------------------------------------- */
+	GtkWidget *preview_da;          /* GtkDrawingArea */
+
+	/* Pending canvas geometry, in image coords.  The canvas top-left
+	 * starts at (0,0) (same as the FLIS document); dragging the canvas
+	 * frame shifts (cx,cy) so layers visually stay put.  Resize handles
+	 * change (cw,ch) and possibly (cx,cy) when a top/left edge moves. */
+	gint pending_cx, pending_cy;
+	gint pending_cw, pending_ch;
+
+	/* Drag state ----------------------------------------------------- */
+	enum canvas_drag_mode drag_mode;
+	double drag_anchor_x, drag_anchor_y;     /* widget-space drag origin */
+	gint   drag_start_cx, drag_start_cy;
+	gint   drag_start_cw, drag_start_ch;
+
+	gboolean syncing_spins;          /* re-entrancy guard for value-changed */
 };
+
+static void canvas_dialog_reset_pending(struct canvas_dialog *cd);
 
 static void canvas_dialog_refresh_current(struct canvas_dialog *cd) {
 	if (!cd || !cd->current_label) return;
@@ -2961,27 +2992,323 @@ static void canvas_dialog_after_op(struct canvas_dialog *cd) {
 	gui_iface.redraw_image(REMAP_ALL);
 	canvas_dialog_refresh_current(cd);
 	/* Resync the spin defaults to the new canvas dims so a follow-up
-	 * resize starts from the just-applied state. */
+	 * resize starts from the just-applied state.  Also reset the
+	 * preview state (canvas back at (0,0), no pending drag). */
+	canvas_dialog_reset_pending(cd);
+	cd->syncing_spins = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w),
-	                          (double)flis_canvas_rx());
+	                          (double)cd->pending_cw);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h),
-	                          (double)flis_canvas_ry());
+	                          (double)cd->pending_ch);
+	cd->syncing_spins = FALSE;
+	if (cd->preview_da)
+		gtk_widget_queue_draw(cd->preview_da);
+}
+
+/* ---- Preview-area helpers --------------------------------------------
+ *
+ * Coordinate model: the document is laid out in image-space pixels.
+ * Layers sit at (lay->position_x, lay->position_y) with size
+ * (lay->fit->rx, lay->fit->ry).  The pending canvas sits at
+ * (cd->pending_cx, cd->pending_cy) with size (cd->pending_cw,
+ * cd->pending_ch).  The drawingarea fits the union of all those rects
+ * (plus a margin) into its widget rect; widget→image and image→widget
+ * conversions both use the same uniform scale + offset.
+ * --------------------------------------------------------------------- */
+
+/* Union of canvas and every layer.  Returns FALSE if there's nothing to
+ * show (no layers — shouldn't happen for a FLIS, but be defensive). */
+static gboolean canvas_dialog_scene_bbox(const struct canvas_dialog *cd,
+                                          double *x0, double *y0,
+                                          double *x1, double *y1) {
+	if (!is_current_image_flis()) return FALSE;
+	double bx0 = (double)cd->pending_cx;
+	double by0 = (double)cd->pending_cy;
+	double bx1 = bx0 + (double)cd->pending_cw;
+	double by1 = by0 + (double)cd->pending_ch;
+	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
+		const flis_layer_t *lay = (const flis_layer_t *)l->data;
+		if (!lay || !lay->fit) continue;
+		double lx0 = (double)lay->position_x;
+		double ly0 = (double)lay->position_y;
+		double lx1 = lx0 + (double)lay->fit->rx;
+		double ly1 = ly0 + (double)lay->fit->ry;
+		if (lx0 < bx0) bx0 = lx0;
+		if (ly0 < by0) by0 = ly0;
+		if (lx1 > bx1) bx1 = lx1;
+		if (ly1 > by1) by1 = ly1;
+	}
+	*x0 = bx0; *y0 = by0; *x1 = bx1; *y1 = by1;
+	return (bx1 > bx0) && (by1 > by0);
+}
+
+/* Uniform image→widget transform fitting the scene bbox into the widget
+ * with a small margin.  Returned via out params; (sx,sy) is the offset
+ * of image-origin in widget coords, scale is widget-pixels per image-px.
+ *
+ * Computes scale from the more constrained axis so aspect is preserved
+ * and centres the scene in the unused axis. */
+static void canvas_dialog_compute_transform(const struct canvas_dialog *cd,
+                                             int da_w, int da_h,
+                                             double *out_scale,
+                                             double *out_ox, double *out_oy) {
+	const double margin = 12.0;
+	double sx0, sy0, sx1, sy1;
+	if (!canvas_dialog_scene_bbox(cd, &sx0, &sy0, &sx1, &sy1) ||
+	    da_w <= 2 * margin || da_h <= 2 * margin) {
+		*out_scale = 1.0; *out_ox = 0.0; *out_oy = 0.0;
+		return;
+	}
+	double scene_w = sx1 - sx0;
+	double scene_h = sy1 - sy0;
+	double avail_w = (double)da_w - 2.0 * margin;
+	double avail_h = (double)da_h - 2.0 * margin;
+	double s = MIN(avail_w / scene_w, avail_h / scene_h);
+	if (s <= 0.0) s = 1.0;
+	/* Centre. */
+	double used_w = scene_w * s;
+	double used_h = scene_h * s;
+	*out_scale = s;
+	*out_ox = margin + 0.5 * (avail_w - used_w) - sx0 * s;
+	*out_oy = margin + 0.5 * (avail_h - used_h) - sy0 * s;
+}
+
+/* Convert a widget-space delta to an integer image-space delta given
+ * the current transform.  Rounds to nearest. */
+static gint widget_delta_to_image(double dpx, double scale) {
+	if (scale <= 0.0) return 0;
+	double v = dpx / scale;
+	return (gint)(v >= 0.0 ? v + 0.5 : v - 0.5);
+}
+
+#define CDRAG_HANDLE_PX 7.0   /* widget-space hit radius for edge / corner handles */
+
+/* Hit-test the pending canvas frame.  (wx,wy) are widget-space.  Returns
+ * the corresponding drag mode (which handle was hit), CDRAG_MOVE for
+ * inside-the-frame, or CDRAG_NONE if the pointer landed outside. */
+static enum canvas_drag_mode
+canvas_dialog_hit_test(const struct canvas_dialog *cd,
+                       double wx, double wy,
+                       double scale, double ox, double oy) {
+	double cx0 = ox + (double)cd->pending_cx * scale;
+	double cy0 = oy + (double)cd->pending_cy * scale;
+	double cx1 = cx0 + (double)cd->pending_cw  * scale;
+	double cy1 = cy0 + (double)cd->pending_ch  * scale;
+	const double r = CDRAG_HANDLE_PX;
+
+	gboolean near_l = fabs(wx - cx0) <= r && wy >= cy0 - r && wy <= cy1 + r;
+	gboolean near_r = fabs(wx - cx1) <= r && wy >= cy0 - r && wy <= cy1 + r;
+	gboolean near_t = fabs(wy - cy0) <= r && wx >= cx0 - r && wx <= cx1 + r;
+	gboolean near_b = fabs(wy - cy1) <= r && wx >= cx0 - r && wx <= cx1 + r;
+	if (near_t && near_l) return CDRAG_RESIZE_NW;
+	if (near_t && near_r) return CDRAG_RESIZE_NE;
+	if (near_b && near_l) return CDRAG_RESIZE_SW;
+	if (near_b && near_r) return CDRAG_RESIZE_SE;
+	if (near_l) return CDRAG_RESIZE_W;
+	if (near_r) return CDRAG_RESIZE_E;
+	if (near_t) return CDRAG_RESIZE_N;
+	if (near_b) return CDRAG_RESIZE_S;
+	if (wx >= cx0 && wx <= cx1 && wy >= cy0 && wy <= cy1) return CDRAG_MOVE;
+	return CDRAG_NONE;
+}
+
+/* Draw callback: paint the layer outlines (light grey, with thin fill
+ * so overlapping layers are visible) and the pending canvas frame
+ * (yellow).  Resize handles are rendered as small filled squares at the
+ * four corners and four edge midpoints.  Coordinates come from
+ * canvas_dialog_compute_transform — uniform scale + offset. */
+static void on_canvas_preview_draw(GtkDrawingArea *area, cairo_t *cr,
+                                    int width, int height, gpointer user_data) {
+	(void)area;
+	const struct canvas_dialog *cd = user_data;
+	double scale, ox, oy;
+	canvas_dialog_compute_transform(cd, width, height, &scale, &ox, &oy);
+
+	/* Background. */
+	cairo_set_source_rgb(cr, 0.12, 0.12, 0.13);
+	cairo_rectangle(cr, 0, 0, width, height);
+	cairo_fill(cr);
+
+	/* Layers in light grey. */
+	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
+		const flis_layer_t *lay = (const flis_layer_t *)l->data;
+		if (!lay || !lay->fit) continue;
+		double x = ox + (double)lay->position_x * scale;
+		double y = oy + (double)lay->position_y * scale;
+		double w = (double)lay->fit->rx * scale;
+		double h = (double)lay->fit->ry * scale;
+		cairo_set_source_rgba(cr, 0.78, 0.78, 0.78, 0.18);
+		cairo_rectangle(cr, x, y, w, h);
+		cairo_fill_preserve(cr);
+		cairo_set_source_rgba(cr, 0.85, 0.85, 0.85, 0.85);
+		cairo_set_line_width(cr, 1.0);
+		cairo_stroke(cr);
+	}
+
+	/* Canvas frame in yellow. */
+	double cx = ox + (double)cd->pending_cx * scale;
+	double cy = oy + (double)cd->pending_cy * scale;
+	double cw = (double)cd->pending_cw * scale;
+	double ch = (double)cd->pending_ch * scale;
+	cairo_set_source_rgba(cr, 1.0, 0.85, 0.10, 1.0);
+	cairo_set_line_width(cr, 2.0);
+	cairo_rectangle(cr, cx, cy, cw, ch);
+	cairo_stroke(cr);
+
+	/* Handles: corners + edge midpoints. */
+	const double hs = 4.0;  /* handle half-size */
+	const double mids_x[] = { cx, cx + cw * 0.5, cx + cw };
+	const double mids_y[] = { cy, cy + ch * 0.5, cy + ch };
+	cairo_set_source_rgb(cr, 1.0, 0.85, 0.10);
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			if (i == 1 && j == 1) continue;  /* skip centre */
+			cairo_rectangle(cr, mids_x[i] - hs, mids_y[j] - hs, 2 * hs, 2 * hs);
+			cairo_fill(cr);
+		}
+	}
+}
+
+/* Push the pending (cw,ch) into the width/height spinbuttons without
+ * triggering their value-changed handlers. */
+static void canvas_dialog_sync_spins_from_pending(struct canvas_dialog *cd) {
+	if (!cd->spin_w || !cd->spin_h) return;
+	cd->syncing_spins = TRUE;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w), (double)cd->pending_cw);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h), (double)cd->pending_ch);
+	cd->syncing_spins = FALSE;
+}
+
+/* Spinbutton value-changed handler.  Pulls the new width/height into the
+ * pending state and redraws the preview.  Width/height adjustments via
+ * the spinners hold the canvas's top-left fixed (pending_cx/cy unchanged) —
+ * this matches the "drag the SE handle" convention. */
+static void on_canvas_size_spin_changed(GtkSpinButton *sb, gpointer ud) {
+	struct canvas_dialog *cd = ud;
+	if (cd->syncing_spins) return;
+	cd->pending_cw = (gint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_w));
+	cd->pending_ch = (gint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_h));
+	if (cd->pending_cw < 1) cd->pending_cw = 1;
+	if (cd->pending_ch < 1) cd->pending_ch = 1;
+	(void)sb;
+	if (cd->preview_da) gtk_widget_queue_draw(cd->preview_da);
+}
+
+/* Gesture drag callbacks ------------------------------------------------ */
+
+static void on_canvas_preview_drag_begin(GtkGestureDrag *g,
+                                          double start_x, double start_y,
+                                          gpointer ud) {
+	struct canvas_dialog *cd = ud;
+	int da_w = gtk_widget_get_width (cd->preview_da);
+	int da_h = gtk_widget_get_height(cd->preview_da);
+	double scale, ox, oy;
+	canvas_dialog_compute_transform(cd, da_w, da_h, &scale, &ox, &oy);
+	cd->drag_mode = canvas_dialog_hit_test(cd, start_x, start_y, scale, ox, oy);
+	cd->drag_anchor_x = start_x;
+	cd->drag_anchor_y = start_y;
+	cd->drag_start_cx = cd->pending_cx;
+	cd->drag_start_cy = cd->pending_cy;
+	cd->drag_start_cw = cd->pending_cw;
+	cd->drag_start_ch = cd->pending_ch;
+	if (cd->drag_mode == CDRAG_NONE)
+		gtk_gesture_set_state(GTK_GESTURE(g), GTK_EVENT_SEQUENCE_DENIED);
+}
+
+static void on_canvas_preview_drag_update(GtkGestureDrag *g,
+                                           double offx, double offy,
+                                           gpointer ud) {
+	(void)g;
+	struct canvas_dialog *cd = ud;
+	if (cd->drag_mode == CDRAG_NONE) return;
+	int da_w = gtk_widget_get_width (cd->preview_da);
+	int da_h = gtk_widget_get_height(cd->preview_da);
+	double scale, ox, oy;
+	canvas_dialog_compute_transform(cd, da_w, da_h, &scale, &ox, &oy);
+	gint dxi = widget_delta_to_image(offx, scale);
+	gint dyi = widget_delta_to_image(offy, scale);
+
+	gint nx = cd->drag_start_cx;
+	gint ny = cd->drag_start_cy;
+	gint nw = cd->drag_start_cw;
+	gint nh = cd->drag_start_ch;
+
+	switch (cd->drag_mode) {
+	case CDRAG_MOVE:
+		nx += dxi; ny += dyi;
+		break;
+	/* Edge / corner drags: a north or west edge shifts the origin AND
+	 * adjusts the dimension by the opposite amount; south / east just
+	 * change the dimension. */
+	case CDRAG_RESIZE_N:  ny += dyi; nh -= dyi; break;
+	case CDRAG_RESIZE_S:  nh += dyi;            break;
+	case CDRAG_RESIZE_W:  nx += dxi; nw -= dxi; break;
+	case CDRAG_RESIZE_E:  nw += dxi;            break;
+	case CDRAG_RESIZE_NW: nx += dxi; nw -= dxi; ny += dyi; nh -= dyi; break;
+	case CDRAG_RESIZE_NE: nw += dxi;            ny += dyi; nh -= dyi; break;
+	case CDRAG_RESIZE_SW: nx += dxi; nw -= dxi; nh += dyi;            break;
+	case CDRAG_RESIZE_SE: nw += dxi;            nh += dyi;            break;
+	default: return;
+	}
+	/* Clamp dimensions; an edge drag that would invert the rect pins
+	 * that edge at the opposite side instead of producing a 0/negative
+	 * extent (which would also confuse subsequent hit-tests). */
+	if (nw < 1) {
+		if (cd->drag_mode == CDRAG_RESIZE_W || cd->drag_mode == CDRAG_RESIZE_NW ||
+		    cd->drag_mode == CDRAG_RESIZE_SW)
+			nx = cd->drag_start_cx + cd->drag_start_cw - 1;
+		nw = 1;
+	}
+	if (nh < 1) {
+		if (cd->drag_mode == CDRAG_RESIZE_N || cd->drag_mode == CDRAG_RESIZE_NW ||
+		    cd->drag_mode == CDRAG_RESIZE_NE)
+			ny = cd->drag_start_cy + cd->drag_start_ch - 1;
+		nh = 1;
+	}
+	cd->pending_cx = nx;
+	cd->pending_cy = ny;
+	cd->pending_cw = nw;
+	cd->pending_ch = nh;
+	canvas_dialog_sync_spins_from_pending(cd);
+	gtk_widget_queue_draw(cd->preview_da);
+}
+
+static void on_canvas_preview_drag_end(GtkGestureDrag *g,
+                                        double offx, double offy,
+                                        gpointer ud) {
+	(void)g; (void)offx; (void)offy;
+	struct canvas_dialog *cd = ud;
+	cd->drag_mode = CDRAG_NONE;
+}
+
+/* Reset the pending resize state to match the current canvas.  Called
+ * on dialog open and after every successful canvas op so the preview
+ * starts from a clean slate (canvas at (0,0), layers unmoved). */
+static void canvas_dialog_reset_pending(struct canvas_dialog *cd) {
+	cd->pending_cx = 0;
+	cd->pending_cy = 0;
+	cd->pending_cw = (gint)flis_canvas_rx();
+	cd->pending_ch = (gint)flis_canvas_ry();
+	cd->drag_mode = CDRAG_NONE;
 }
 
 static void on_canvas_resize_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
 	if (!is_current_image_flis()) return;
-	guint w  = (guint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_w));
-	guint h  = (guint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_h));
-	gint  dx = (gint) gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_dx));
-	gint  dy = (gint) gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_dy));
-	if (w == 0 || h == 0) {
-		siril_log_error(_("Canvas dims must be positive (got %ux%u)\n"), w, h);
+	if (cd->pending_cw <= 0 || cd->pending_ch <= 0) {
+		siril_log_error(_("Canvas dims must be positive (got %dx%d)\n"),
+		                cd->pending_cw, cd->pending_ch);
 		return;
 	}
+	/* Layer-shift convention: when the user drags the canvas by
+	 * (pending_cx, pending_cy) in document space (canvas moves, layers
+	 * visually stay put), every layer's position relative to the new
+	 * canvas origin decreases by the same amount.  flis_canvas_resize
+	 * ADDS its dx/dy to each position_x/y, so we negate. */
 	undo_save_flis_multi_layer_props(com.uniq->layers, _("Resize canvas"));
-	if (flis_canvas_resize(w, h, dx, dy) == 0)
+	if (flis_canvas_resize((guint)cd->pending_cw, (guint)cd->pending_ch,
+	                       -cd->pending_cx, -cd->pending_cy) == 0)
 		canvas_dialog_after_op(cd);
 }
 
@@ -3074,32 +3401,55 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 	canvas_dialog_refresh_current(cd);
 	gtk_box_append(GTK_BOX(vbox), cd->current_label);
 
-	/* Resize section */
+	/* Resize section: interactive preview + numeric controls.  The
+	 * drawingarea shows the canvas frame (yellow) over light-grey layer
+	 * outlines; drag inside the frame to reposition the canvas relative
+	 * to the layers, drag a handle to resize.  Numeric W/H spinners
+	 * mirror the frame.  Layers visually stay put; the net shift is
+	 * applied to every layer's position when Apply is pressed. */
+	canvas_dialog_reset_pending(cd);
 	{
-		GtkWidget *grid = gtk_grid_new();
-		gtk_grid_set_row_spacing   (GTK_GRID(grid), 4);
-		gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
-		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Width")),  0, 0, 1, 1);
-		cd->spin_w  = gtk_spin_button_new_with_range(1, 100000, 1);
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w),  (double)flis_canvas_rx());
-		gtk_grid_attach(GTK_GRID(grid), cd->spin_w,           1, 0, 1, 1);
-		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Height")), 2, 0, 1, 1);
-		cd->spin_h  = gtk_spin_button_new_with_range(1, 100000, 1);
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h),  (double)flis_canvas_ry());
-		gtk_grid_attach(GTK_GRID(grid), cd->spin_h,           3, 0, 1, 1);
-		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Δx")),     0, 1, 1, 1);
-		cd->spin_dx = gtk_spin_button_new_with_range(-100000, 100000, 1);
-		gtk_grid_attach(GTK_GRID(grid), cd->spin_dx,          1, 1, 1, 1);
-		gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Δy")),     2, 1, 1, 1);
-		cd->spin_dy = gtk_spin_button_new_with_range(-100000, 100000, 1);
-		gtk_grid_attach(GTK_GRID(grid), cd->spin_dy,          3, 1, 1, 1);
-		GtkWidget *btn_resize = gtk_button_new_with_label(_("Resize"));
+		GtkWidget *vb = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+
+		cd->preview_da = gtk_drawing_area_new();
+		gtk_widget_set_size_request(cd->preview_da, 320, 200);
+		gtk_widget_set_hexpand(cd->preview_da, TRUE);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(cd->preview_da),
+		    on_canvas_preview_draw, cd, NULL);
+		GtkGesture *drag = gtk_gesture_drag_new();
+		gtk_widget_add_controller(cd->preview_da, GTK_EVENT_CONTROLLER(drag));
+		g_signal_connect(drag, "drag-begin",
+		                 G_CALLBACK(on_canvas_preview_drag_begin),  cd);
+		g_signal_connect(drag, "drag-update",
+		                 G_CALLBACK(on_canvas_preview_drag_update), cd);
+		g_signal_connect(drag, "drag-end",
+		                 G_CALLBACK(on_canvas_preview_drag_end),    cd);
+		gtk_box_append(GTK_BOX(vb), cd->preview_da);
+
+		GtkWidget *row = gtk_grid_new();
+		gtk_grid_set_row_spacing   (GTK_GRID(row), 4);
+		gtk_grid_set_column_spacing(GTK_GRID(row), 6);
+		gtk_grid_attach(GTK_GRID(row), gtk_label_new(_("Width")),  0, 0, 1, 1);
+		cd->spin_w = gtk_spin_button_new_with_range(1, 100000, 1);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_w), (double)cd->pending_cw);
+		gtk_grid_attach(GTK_GRID(row), cd->spin_w,                 1, 0, 1, 1);
+		gtk_grid_attach(GTK_GRID(row), gtk_label_new(_("Height")), 2, 0, 1, 1);
+		cd->spin_h = gtk_spin_button_new_with_range(1, 100000, 1);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h), (double)cd->pending_ch);
+		gtk_grid_attach(GTK_GRID(row), cd->spin_h,                 3, 0, 1, 1);
+		GtkWidget *btn_resize = gtk_button_new_with_label(_("Apply"));
 		gtk_widget_set_halign(btn_resize, GTK_ALIGN_END);
-		gtk_grid_attach(GTK_GRID(grid), btn_resize, 0, 2, 4, 1);
+		gtk_grid_attach(GTK_GRID(row), btn_resize, 0, 1, 4, 1);
+		g_signal_connect(cd->spin_w, "value-changed",
+		                 G_CALLBACK(on_canvas_size_spin_changed), cd);
+		g_signal_connect(cd->spin_h, "value-changed",
+		                 G_CALLBACK(on_canvas_size_spin_changed), cd);
 		g_signal_connect(btn_resize, "clicked",
 		                 G_CALLBACK(on_canvas_resize_click), cd);
+		gtk_box_append(GTK_BOX(vb), row);
+
 		gtk_box_append(GTK_BOX(vbox),
-		    canvas_section(_("Canvas size"), grid));
+		    canvas_section(_("Canvas size & position"), vb));
 	}
 
 	/* Fit-to-layers section */
