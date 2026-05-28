@@ -3037,10 +3037,9 @@ static void canvas_dialog_after_op(struct canvas_dialog *cd) {
 #define CROT_HANDLE_PX   8.0   /* widget-space hit radius for rotation handle */
 #define CROT_OFFSET_PX  26.0   /* widget-space gap from top-centre of canvas to handle */
 
-/* Image-space rotation of (*px,*py) around (cx,cy) by angle_rad.  Sign
- * convention matches flis_canvas_rotate (positive = CW in image y-down
- * coordinates), so the preview rotates in the same direction the
- * underlying op will produce. */
+/* Image-space rotation of (*px,*py) around (cx,cy) by angle_rad.
+ * Standard 2D rotation matrix — in image (y-down) coords, positive
+ * angle = CW visually. */
 static inline void rotate_pt(double cx, double cy, double angle_rad,
                               double *px, double *py) {
 	double dx = *px - cx, dy = *py - cy;
@@ -3049,57 +3048,58 @@ static inline void rotate_pt(double cx, double cy, double angle_rad,
 	*py = cy + dx * s + dy * c;
 }
 
-/* Centre of the pending canvas in image coords — also the pivot for
- * pending_angle (matches flis_canvas_rotate, which pivots around the
- * canvas centre when computing new layer positions). */
+/* Centre of the pending canvas in image coords — also the pivot used
+ * when applying the staged rotation to layer positions.  Conceptual
+ * model: the canvas is the user's viewport, fixed and axis-aligned;
+ * rotating the canvas by +θ is the same as rotating every layer's
+ * position by -θ around this pivot.  Layer pixel content itself
+ * never rotates (per the dialog's note). */
 static inline void canvas_dialog_pivot(const struct canvas_dialog *cd,
                                         double *px, double *py) {
 	*px = (double)cd->pending_cx + 0.5 * (double)cd->pending_cw;
 	*py = (double)cd->pending_cy + 0.5 * (double)cd->pending_ch;
 }
 
-/* Accumulate the bbox of an image-space rect's 4 corners after the
- * dialog's pending rotation has been applied around the canvas pivot. */
-static void accumulate_rotated_rect(const struct canvas_dialog *cd,
-                                     double rx, double ry,
-                                     double rw, double rh,
-                                     double *bx0, double *by0,
-                                     double *bx1, double *by1) {
+/* Where a layer's centre ends up in image coords after the pending
+ * rotation has been applied (canvas-rotates-by-+θ ⇒ layer-centre-
+ * rotates-by-−θ around the pivot). */
+static void canvas_dialog_rotated_layer_origin(const struct canvas_dialog *cd,
+                                                const flis_layer_t *lay,
+                                                double *out_x, double *out_y) {
 	double pcx, pcy;
 	canvas_dialog_pivot(cd, &pcx, &pcy);
-	double rad = cd->pending_angle * M_PI / 180.0;
-	double xs[4] = { rx,      rx + rw, rx + rw, rx      };
-	double ys[4] = { ry,      ry,      ry + rh, ry + rh };
-	for (int i = 0; i < 4; i++) {
-		rotate_pt(pcx, pcy, rad, &xs[i], &ys[i]);
-		if (xs[i] < *bx0) *bx0 = xs[i];
-		if (ys[i] < *by0) *by0 = ys[i];
-		if (xs[i] > *bx1) *bx1 = xs[i];
-		if (ys[i] > *by1) *by1 = ys[i];
-	}
+	double lcx = (double)lay->position_x + 0.5 * (double)lay->fit->rx;
+	double lcy = (double)lay->position_y + 0.5 * (double)lay->fit->ry;
+	double rad = -cd->pending_angle * M_PI / 180.0;
+	rotate_pt(pcx, pcy, rad, &lcx, &lcy);
+	*out_x = lcx - 0.5 * (double)lay->fit->rx;
+	*out_y = lcy - 0.5 * (double)lay->fit->ry;
 }
 
-/* Union of (rotated) canvas + (rotated) layers.  Returns FALSE if there's
- * nothing to show (no layers — shouldn't happen for a FLIS, but be
- * defensive).  Rotation is applied per-corner before unioning so the
- * fitted view tracks the pending rotation. */
+/* Union of the (axis-aligned) canvas frame and every layer's
+ * axis-aligned outline at its post-rotation position.  Returns FALSE
+ * if the scene is empty.  Layer outlines stay axis-aligned because
+ * the rotation only moves their centre; the layer's pixel content is
+ * never tilted. */
 static gboolean canvas_dialog_scene_bbox(const struct canvas_dialog *cd,
                                           double *x0, double *y0,
                                           double *x1, double *y1) {
 	if (!is_current_image_flis()) return FALSE;
-	double bx0 =  DBL_MAX, by0 =  DBL_MAX;
-	double bx1 = -DBL_MAX, by1 = -DBL_MAX;
-	accumulate_rotated_rect(cd,
-	    (double)cd->pending_cx, (double)cd->pending_cy,
-	    (double)cd->pending_cw, (double)cd->pending_ch,
-	    &bx0, &by0, &bx1, &by1);
+	double bx0 = (double)cd->pending_cx;
+	double by0 = (double)cd->pending_cy;
+	double bx1 = bx0 + (double)cd->pending_cw;
+	double by1 = by0 + (double)cd->pending_ch;
 	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
 		const flis_layer_t *lay = (const flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
-		accumulate_rotated_rect(cd,
-		    (double)lay->position_x, (double)lay->position_y,
-		    (double)lay->fit->rx,    (double)lay->fit->ry,
-		    &bx0, &by0, &bx1, &by1);
+		double lx0, ly0;
+		canvas_dialog_rotated_layer_origin(cd, lay, &lx0, &ly0);
+		double lx1 = lx0 + (double)lay->fit->rx;
+		double ly1 = ly0 + (double)lay->fit->ry;
+		if (lx0 < bx0) bx0 = lx0;
+		if (ly0 < by0) by0 = ly0;
+		if (lx1 > bx1) bx1 = lx1;
+		if (ly1 > by1) by1 = ly1;
 	}
 	*x0 = bx0; *y0 = by0; *x1 = bx1; *y1 = by1;
 	return (bx1 > bx0) && (by1 > by0);
@@ -3166,34 +3166,18 @@ static void canvas_dialog_rot_handle_pos(const struct canvas_dialog *cd,
 	*hy = pcy_w - cos(rad) * r_w;
 }
 
-/* Hit-test the pending canvas frame.  (wx,wy) are widget-space.  Returns
- * the corresponding drag mode (which handle was hit), CDRAG_MOVE for
- * inside-the-frame, or CDRAG_NONE if the pointer landed outside.
- *
- * With pending rotation: undo the rotation around the pivot in widget
- * coords first, then perform axis-aligned tests against the unrotated
- * canvas rect.  This is equivalent to testing against the rotated rect
- * directly but avoids the polygon point-in-shape arithmetic. */
+/* Hit-test the pending canvas frame.  (wx,wy) are widget-space.  The
+ * canvas frame is axis-aligned in the preview (it represents the
+ * viewport, which never tilts), so the tests are straight axis-aligned
+ * bounds.  The rotation handle takes priority because it can sit close
+ * to the top edge at small canvases. */
 static enum canvas_drag_mode
 canvas_dialog_hit_test(const struct canvas_dialog *cd,
                        double wx, double wy,
                        double scale, double ox, double oy) {
-	/* Rotation handle takes priority — it can overlap the canvas frame
-	 * (e.g. at extreme zooms) and the user's expectation when grabbing
-	 * the dedicated rotate dot is unambiguous. */
 	double hx, hy;
 	canvas_dialog_rot_handle_pos(cd, scale, ox, oy, &hx, &hy);
 	if (hypot(wx - hx, wy - hy) <= CROT_HANDLE_PX) return CDRAG_ROTATE;
-
-	/* Map the widget-space pointer into the unrotated canvas frame by
-	 * rotating it back around the pivot. */
-	double pcx_img, pcy_img;
-	canvas_dialog_pivot(cd, &pcx_img, &pcy_img);
-	double pcx_w = ox + pcx_img * scale;
-	double pcy_w = oy + pcy_img * scale;
-	double rad   = -cd->pending_angle * M_PI / 180.0;  /* inverse */
-	double tx = wx, ty = wy;
-	rotate_pt(pcx_w, pcy_w, rad, &tx, &ty);
 
 	double cx0 = ox + (double)cd->pending_cx * scale;
 	double cy0 = oy + (double)cd->pending_cy * scale;
@@ -3201,10 +3185,10 @@ canvas_dialog_hit_test(const struct canvas_dialog *cd,
 	double cy1 = cy0 + (double)cd->pending_ch  * scale;
 	const double r = CDRAG_HANDLE_PX;
 
-	gboolean near_l = fabs(tx - cx0) <= r && ty >= cy0 - r && ty <= cy1 + r;
-	gboolean near_r = fabs(tx - cx1) <= r && ty >= cy0 - r && ty <= cy1 + r;
-	gboolean near_t = fabs(ty - cy0) <= r && tx >= cx0 - r && tx <= cx1 + r;
-	gboolean near_b = fabs(ty - cy1) <= r && tx >= cx0 - r && tx <= cx1 + r;
+	gboolean near_l = fabs(wx - cx0) <= r && wy >= cy0 - r && wy <= cy1 + r;
+	gboolean near_r = fabs(wx - cx1) <= r && wy >= cy0 - r && wy <= cy1 + r;
+	gboolean near_t = fabs(wy - cy0) <= r && wx >= cx0 - r && wx <= cx1 + r;
+	gboolean near_b = fabs(wy - cy1) <= r && wx >= cx0 - r && wx <= cx1 + r;
 	if (near_t && near_l) return CDRAG_RESIZE_NW;
 	if (near_t && near_r) return CDRAG_RESIZE_NE;
 	if (near_b && near_l) return CDRAG_RESIZE_SW;
@@ -3213,39 +3197,18 @@ canvas_dialog_hit_test(const struct canvas_dialog *cd,
 	if (near_r) return CDRAG_RESIZE_E;
 	if (near_t) return CDRAG_RESIZE_N;
 	if (near_b) return CDRAG_RESIZE_S;
-	if (tx >= cx0 && tx <= cx1 && ty >= cy0 && ty <= cy1) return CDRAG_MOVE;
+	if (wx >= cx0 && wx <= cx1 && wy >= cy0 && wy <= cy1) return CDRAG_MOVE;
 	return CDRAG_NONE;
 }
 
-/* Trace an image-space rect as a (possibly rotated) cairo subpath in
- * widget coords.  Caller still owns the cairo state — apply stroke /
- * fill / set_source as needed before/after. */
-static void canvas_dialog_path_rect(cairo_t *cr,
-                                     const struct canvas_dialog *cd,
-                                     double scale, double ox, double oy,
-                                     double rx, double ry,
-                                     double rw, double rh) {
-	double pcx, pcy;
-	canvas_dialog_pivot(cd, &pcx, &pcy);
-	double rad = cd->pending_angle * M_PI / 180.0;
-	double xs[4] = { rx,      rx + rw, rx + rw, rx      };
-	double ys[4] = { ry,      ry,      ry + rh, ry + rh };
-	for (int i = 0; i < 4; i++) {
-		rotate_pt(pcx, pcy, rad, &xs[i], &ys[i]);
-		xs[i] = ox + xs[i] * scale;
-		ys[i] = oy + ys[i] * scale;
-	}
-	cairo_move_to(cr, xs[0], ys[0]);
-	for (int i = 1; i < 4; i++) cairo_line_to(cr, xs[i], ys[i]);
-	cairo_close_path(cr);
-}
-
-/* Draw callback: paint the layer outlines (light grey, with thin fill
- * so overlapping layers are visible) and the pending canvas frame
- * (yellow).  Everything rotates around the canvas centre by
- * pending_angle.  Resize handles are filled squares at the (rotated)
- * canvas corners + edge midpoints; the rotation handle is a circle
- * tethered above the rotated top edge. */
+/* Draw callback.  The canvas is the user's viewport — always axis-
+ * aligned — so the yellow frame, its resize handles, and the layer
+ * outlines (which never tilt because layer pixels stay axis-aligned)
+ * are all drawn as axis-aligned rectangles.  The rotation only moves
+ * each layer's centre by −pending_angle around the canvas pivot,
+ * showing the user where the layers will end up relative to the
+ * fixed canvas frame.  The rotation handle is a blue dot tethered
+ * from the canvas centre out into the rotation direction. */
 static void on_canvas_preview_draw(GtkDrawingArea *area, cairo_t *cr,
                                     int width, int height, gpointer user_data) {
 	(void)area;
@@ -3254,20 +3217,23 @@ static void on_canvas_preview_draw(GtkDrawingArea *area, cairo_t *cr,
 	canvas_dialog_compute_transform(cd, width, height, &scale, &ox, &oy);
 	double pcx_img, pcy_img;
 	canvas_dialog_pivot(cd, &pcx_img, &pcy_img);
-	double rad = cd->pending_angle * M_PI / 180.0;
 
 	/* Background. */
 	cairo_set_source_rgb(cr, 0.12, 0.12, 0.13);
 	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_fill(cr);
 
-	/* Layers in light grey. */
+	/* Layers in light grey, at their post-rotation positions. */
 	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
 		const flis_layer_t *lay = (const flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
-		canvas_dialog_path_rect(cr, cd, scale, ox, oy,
-		    (double)lay->position_x, (double)lay->position_y,
-		    (double)lay->fit->rx,    (double)lay->fit->ry);
+		double lx0_img, ly0_img;
+		canvas_dialog_rotated_layer_origin(cd, lay, &lx0_img, &ly0_img);
+		double x = ox + lx0_img * scale;
+		double y = oy + ly0_img * scale;
+		double w = (double)lay->fit->rx * scale;
+		double h = (double)lay->fit->ry * scale;
+		cairo_rectangle(cr, x, y, w, h);
 		cairo_set_source_rgba(cr, 0.78, 0.78, 0.78, 0.18);
 		cairo_fill_preserve(cr);
 		cairo_set_source_rgba(cr, 0.85, 0.85, 0.85, 0.85);
@@ -3275,58 +3241,44 @@ static void on_canvas_preview_draw(GtkDrawingArea *area, cairo_t *cr,
 		cairo_stroke(cr);
 	}
 
-	/* Canvas frame in yellow. */
-	canvas_dialog_path_rect(cr, cd, scale, ox, oy,
-	    (double)cd->pending_cx, (double)cd->pending_cy,
-	    (double)cd->pending_cw, (double)cd->pending_ch);
+	/* Canvas frame in yellow, axis-aligned. */
+	double cx = ox + (double)cd->pending_cx * scale;
+	double cy = oy + (double)cd->pending_cy * scale;
+	double cw = (double)cd->pending_cw * scale;
+	double ch = (double)cd->pending_ch * scale;
 	cairo_set_source_rgba(cr, 1.0, 0.85, 0.10, 1.0);
 	cairo_set_line_width(cr, 2.0);
+	cairo_rectangle(cr, cx, cy, cw, ch);
 	cairo_stroke(cr);
 
-	/* Resize handles: 8 around the rotated canvas frame.  Compute each
-	 * handle's image-space anchor on the unrotated frame, rotate, and
-	 * map to widget. */
-	const double hs = 4.0;  /* handle half-size in widget px */
-	const double cx0 = (double)cd->pending_cx;
-	const double cy0 = (double)cd->pending_cy;
-	const double cw  = (double)cd->pending_cw;
-	const double ch  = (double)cd->pending_ch;
-	const double mids_x[] = { cx0, cx0 + cw * 0.5, cx0 + cw };
-	const double mids_y[] = { cy0, cy0 + ch * 0.5, cy0 + ch };
+	/* Resize handles: 8 small filled squares on the axis-aligned frame
+	 * (corners + edge midpoints). */
+	const double hs = 4.0;
+	const double mids_x[] = { cx, cx + cw * 0.5, cx + cw };
+	const double mids_y[] = { cy, cy + ch * 0.5, cy + ch };
 	cairo_set_source_rgb(cr, 1.0, 0.85, 0.10);
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			if (i == 1 && j == 1) continue;  /* skip centre */
-			double hx_img = mids_x[i], hy_img = mids_y[j];
-			rotate_pt(pcx_img, pcy_img, rad, &hx_img, &hy_img);
-			double hx_w = ox + hx_img * scale;
-			double hy_w = oy + hy_img * scale;
-			cairo_rectangle(cr, hx_w - hs, hy_w - hs, 2 * hs, 2 * hs);
+			cairo_rectangle(cr, mids_x[i] - hs, mids_y[j] - hs, 2 * hs, 2 * hs);
 			cairo_fill(cr);
 		}
 	}
 
-	/* Rotation handle: tether line from canvas top-centre, dot on top.
-	 * Position is computed in widget space so the gap is constant
-	 * regardless of zoom. */
+	/* Rotation handle: tether from canvas centre out to the angle
+	 * indicator.  At pending_angle = 0 the handle sits straight above
+	 * the top edge; positive angles swing it CW around the centre. */
 	double pcx_w = ox + pcx_img * scale;
 	double pcy_w = oy + pcy_img * scale;
-	/* Anchor on the top edge (rotated), where the tether meets it. */
-	double top_img_x = cx0 + cw * 0.5;
-	double top_img_y = cy0;
-	rotate_pt(pcx_img, pcy_img, rad, &top_img_x, &top_img_y);
-	double top_w_x = ox + top_img_x * scale;
-	double top_w_y = oy + top_img_y * scale;
 	double rh_x, rh_y;
 	canvas_dialog_rot_handle_pos(cd, scale, ox, oy, &rh_x, &rh_y);
 	cairo_set_source_rgba(cr, 0.55, 0.85, 1.0, 0.85);
 	cairo_set_line_width(cr, 1.5);
-	cairo_move_to(cr, top_w_x, top_w_y);
+	cairo_move_to(cr, pcx_w, pcy_w);
 	cairo_line_to(cr, rh_x, rh_y);
 	cairo_stroke(cr);
 	cairo_arc(cr, rh_x, rh_y, 5.0, 0.0, 2.0 * M_PI);
 	cairo_fill(cr);
-	(void)pcx_w; (void)pcy_w;
 }
 
 /* Push the pending (cw,ch) into the width/height spinbuttons without
@@ -3425,20 +3377,10 @@ static void on_canvas_preview_drag_update(GtkGestureDrag *g,
 		return;
 	}
 
-	/* Move / resize: the user drags in widget space along the (rotated)
-	 * canvas frame's visual axes.  The hit-test inverse-rotated the
-	 * grab point to identify which image-space handle is being moved;
-	 * for the operation to feel right, the drag DELTA must be rotated
-	 * back into image space too — otherwise grabbing the visual SE of
-	 * a 90°-rotated canvas and dragging right would move what's
-	 * actually the image NE corner straight along image-x, producing
-	 * weird off-axis behaviour. */
-	double rad_inv = -cd->pending_angle * M_PI / 180.0;
-	double ca = cos(rad_inv), sa = sin(rad_inv);
-	double rot_offx = offx * ca - offy * sa;
-	double rot_offy = offx * sa + offy * ca;
-	gint dxi = widget_delta_to_image(rot_offx, scale);
-	gint dyi = widget_delta_to_image(rot_offy, scale);
+	/* Move / resize: canvas frame is axis-aligned in the preview, so
+	 * widget-space deltas map straight to image-space deltas. */
+	gint dxi = widget_delta_to_image(offx, scale);
+	gint dyi = widget_delta_to_image(offy, scale);
 
 	gint nx = cd->drag_start_cx;
 	gint ny = cd->drag_start_cy;
@@ -3505,7 +3447,36 @@ static void canvas_dialog_reset_pending(struct canvas_dialog *cd) {
 	cd->drag_mode = CDRAG_NONE;
 }
 
-static void on_canvas_resize_click(GtkButton *btn, gpointer ud) {
+/* Rotate every layer's centre by angle_deg around (pivot_x, pivot_y),
+ * both in the CURRENT image coord system.  Layer pixel content stays
+ * axis-aligned, only positions move.  Used by the combined Apply: the
+ * pivot it passes is the centre of the NEW canvas (i.e. after the
+ * resize step has translated everything), so the layers settle around
+ * the new canvas centre exactly as the preview showed them. */
+static void canvas_dialog_rotate_layers(double pivot_x, double pivot_y,
+                                         double angle_deg) {
+	if (fabs(angle_deg) < 1e-9 || !com.uniq) return;
+	double rad = angle_deg * M_PI / 180.0;
+	double c = cos(rad), s = sin(rad);
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay || !lay->fit) continue;
+		double lcx = (double)lay->position_x + 0.5 * (double)lay->fit->rx;
+		double lcy = (double)lay->position_y + 0.5 * (double)lay->fit->ry;
+		double dx = lcx - pivot_x;
+		double dy = lcy - pivot_y;
+		double new_lcx = pivot_x + dx * c - dy * s;
+		double new_lcy = pivot_y + dx * s + dy * c;
+		lay->position_x = (gint)lround(new_lcx - 0.5 * (double)lay->fit->rx);
+		lay->position_y = (gint)lround(new_lcy - 0.5 * (double)lay->fit->ry);
+		flis_layer_touch_modified(lay);
+	}
+}
+
+/* Combined apply: resize (move + dim change) then rotate the layers
+ * by -pending_angle around the NEW canvas centre, in a single undo
+ * entry so the preview-equivalent result lands atomically. */
+static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
 	if (!is_current_image_flis()) return;
@@ -3514,15 +3485,31 @@ static void on_canvas_resize_click(GtkButton *btn, gpointer ud) {
 		                cd->pending_cw, cd->pending_ch);
 		return;
 	}
-	/* Layer-shift convention: when the user drags the canvas by
-	 * (pending_cx, pending_cy) in document space (canvas moves, layers
-	 * visually stay put), every layer's position relative to the new
-	 * canvas origin decreases by the same amount.  flis_canvas_resize
-	 * ADDS its dx/dy to each position_x/y, so we negate. */
-	undo_save_flis_multi_layer_props(com.uniq->layers, _("Resize canvas"));
-	if (flis_canvas_resize((guint)cd->pending_cw, (guint)cd->pending_ch,
-	                       -cd->pending_cx, -cd->pending_cy) == 0)
-		canvas_dialog_after_op(cd);
+	gboolean want_resize = (cd->pending_cx != 0 || cd->pending_cy != 0 ||
+	                         cd->pending_cw != (gint)flis_canvas_rx() ||
+	                         cd->pending_ch != (gint)flis_canvas_ry());
+	gboolean want_rotate = (fabs(cd->pending_angle) >= 1e-9);
+	if (!want_resize && !want_rotate) return;
+
+	undo_save_flis_multi_layer_props(com.uniq->layers, _("Adjust canvas"));
+
+	if (want_resize) {
+		/* Canvas-moves-by-(pending_cx,cy) ⇒ layer-shifts-by-the-
+		 * opposite, so layers visually stay put.  flis_canvas_resize
+		 * adds its dx/dy to each position. */
+		if (flis_canvas_resize((guint)cd->pending_cw, (guint)cd->pending_ch,
+		                       -cd->pending_cx, -cd->pending_cy) != 0)
+			return;
+	}
+	if (want_rotate) {
+		/* Pivot is the NEW canvas centre (in image coords).  Layers
+		 * rotate by -pending_angle so a +θ "canvas rotation" appears
+		 * as a -θ shift of every layer position. */
+		double pivot_x = 0.5 * (double)flis_canvas_rx();
+		double pivot_y = 0.5 * (double)flis_canvas_ry();
+		canvas_dialog_rotate_layers(pivot_x, pivot_y, -cd->pending_angle);
+	}
+	canvas_dialog_after_op(cd);
 }
 
 static void on_canvas_fit_click(GtkButton *btn, gpointer ud) {
@@ -3557,16 +3544,6 @@ static void on_canvas_angle_spin_changed(GtkSpinButton *sb, gpointer ud) {
 	if (cd->syncing_spins) return;
 	cd->pending_angle = gtk_spin_button_get_value(GTK_SPIN_BUTTON(cd->spin_angle));
 	if (cd->preview_da) gtk_widget_queue_draw(cd->preview_da);
-}
-
-static void on_canvas_rotate_apply_click(GtkButton *btn, gpointer ud) {
-	(void)btn;
-	struct canvas_dialog *cd = ud;
-	if (!is_current_image_flis()) return;
-	if (fabs(cd->pending_angle) < 1e-9) return;  /* no-op */
-	undo_save_flis_multi_layer_props(com.uniq->layers, _("Rotate canvas"));
-	if (flis_canvas_rotate(cd->pending_angle) == 0)
-		canvas_dialog_after_op(cd);
 }
 
 static void on_canvas_mirrorx_click(GtkButton *btn, gpointer ud) {
@@ -3667,15 +3644,10 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 		cd->spin_h = gtk_spin_button_new_with_range(1, 100000, 1);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_h), (double)cd->pending_ch);
 		gtk_grid_attach(GTK_GRID(row), cd->spin_h,                 3, 0, 1, 1);
-		GtkWidget *btn_resize = gtk_button_new_with_label(_("Apply"));
-		gtk_widget_set_halign(btn_resize, GTK_ALIGN_END);
-		gtk_grid_attach(GTK_GRID(row), btn_resize, 0, 1, 4, 1);
 		g_signal_connect(cd->spin_w, "value-changed",
 		                 G_CALLBACK(on_canvas_size_spin_changed), cd);
 		g_signal_connect(cd->spin_h, "value-changed",
 		                 G_CALLBACK(on_canvas_size_spin_changed), cd);
-		g_signal_connect(btn_resize, "clicked",
-		                 G_CALLBACK(on_canvas_resize_click), cd);
 		gtk_box_append(GTK_BOX(vb), row);
 
 		gtk_box_append(GTK_BOX(vbox),
@@ -3717,17 +3689,13 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(cd->spin_angle), 0.0);
 		gtk_widget_set_hexpand(cd->spin_angle, TRUE);
 		gtk_box_append(GTK_BOX(free_row), cd->spin_angle);
-		GtkWidget *btn_rot = gtk_button_new_with_label(_("Apply"));
-		gtk_box_append(GTK_BOX(free_row), btn_rot);
 		gtk_box_append(GTK_BOX(vb), free_row);
 
-		g_signal_connect(b_m90,   "clicked", G_CALLBACK(on_canvas_rotate_minus_90), cd);
-		g_signal_connect(b_180,   "clicked", G_CALLBACK(on_canvas_rotate_180),      cd);
-		g_signal_connect(b_p90,   "clicked", G_CALLBACK(on_canvas_rotate_plus_90),  cd);
+		g_signal_connect(b_m90, "clicked", G_CALLBACK(on_canvas_rotate_minus_90), cd);
+		g_signal_connect(b_180, "clicked", G_CALLBACK(on_canvas_rotate_180),      cd);
+		g_signal_connect(b_p90, "clicked", G_CALLBACK(on_canvas_rotate_plus_90),  cd);
 		g_signal_connect(cd->spin_angle, "value-changed",
 		                 G_CALLBACK(on_canvas_angle_spin_changed), cd);
-		g_signal_connect(btn_rot, "clicked",
-		                 G_CALLBACK(on_canvas_rotate_apply_click), cd);
 		gtk_box_append(GTK_BOX(vbox),
 		    canvas_section(_("Rotate canvas"), vb));
 	}
@@ -3745,21 +3713,30 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 		    canvas_section(_("Mirror canvas"), row));
 	}
 
-	/* Note + Close */
+	/* Note + Apply + Close.  Apply commits the staged resize and the
+	 * staged rotation together as one undo entry; Close is destructive
+	 * for whatever's still in the preview. */
 	GtkWidget *note = gtk_label_new(_(
 	    "Canvas ops update layer positions but never modify layer pixel "
 	    "data — text and image content within each layer stays axis-"
-	    "aligned.  Rotate / flip rebalances the layout around the new "
-	    "canvas centre; rotate individual layers separately if you want "
-	    "their content to follow."));
+	    "aligned.  Rotation moves layers around the canvas centre so the "
+	    "canvas appears to turn in front of fixed-orientation layers; "
+	    "rotate individual layers separately if you want their content "
+	    "to follow."));
 	gtk_label_set_wrap(GTK_LABEL(note), TRUE);
 	gtk_label_set_max_width_chars(GTK_LABEL(note), 50);
 	gtk_widget_add_css_class(note, "dim-label");
 	gtk_box_append(GTK_BOX(vbox), note);
 
+	GtkWidget *action_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(action_row, GTK_ALIGN_END);
+	GtkWidget *apply_btn = gtk_button_new_with_label(_("Apply"));
 	GtkWidget *close_btn = gtk_button_new_with_label(_("Close"));
-	gtk_widget_set_halign(close_btn, GTK_ALIGN_END);
-	gtk_box_append(GTK_BOX(vbox), close_btn);
+	gtk_box_append(GTK_BOX(action_row), apply_btn);
+	gtk_box_append(GTK_BOX(action_row), close_btn);
+	gtk_box_append(GTK_BOX(vbox), action_row);
+	g_signal_connect(apply_btn, "clicked",
+	                 G_CALLBACK(on_canvas_apply_click), cd);
 	g_signal_connect(close_btn, "clicked",
 	                 G_CALLBACK(on_canvas_dialog_close), cd);
 
