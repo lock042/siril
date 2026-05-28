@@ -57,6 +57,7 @@
 #include "gui-gtk4/message_dialog.h"       /* siril_confirm_dialog */
 #include "gui-gtk4/utils.h"                /* siril_toggle_*, siril_drop_down_* */
 #include "registration/flis_register.h"    /* flis_register_layers primitive */
+#include "algos/geometry.h"                /* verbose_rotate_image for canvas dialog */
 
 extern GtkWidget *lookup_widget(const gchar *widget_name);
 extern gboolean is_current_image_flis(void);
@@ -3060,27 +3061,30 @@ static inline void canvas_dialog_pivot(const struct canvas_dialog *cd,
 	*py = (double)cd->pending_cy + 0.5 * (double)cd->pending_ch;
 }
 
-/* Where a layer's centre ends up in image coords after the pending
- * rotation has been applied (canvas-rotates-by-+θ ⇒ layer-centre-
- * rotates-by-−θ around the pivot). */
-static void canvas_dialog_rotated_layer_origin(const struct canvas_dialog *cd,
-                                                const flis_layer_t *lay,
-                                                double *out_x, double *out_y) {
+/* The 4 corners of a layer's outline in image coords, after the pending
+ * canvas rotation has been applied.  Canvas-rotates-+θ is realised by
+ * rotating every layer (position + pixel content) by -θ around the
+ * canvas centre, so the corners of the original axis-aligned rect get
+ * rotated together — producing a tilted quadrilateral the dialog can
+ * draw as the layer's preview outline. */
+static void canvas_dialog_rotated_layer_corners(const struct canvas_dialog *cd,
+                                                 const flis_layer_t *lay,
+                                                 double xs[4], double ys[4]) {
 	double pcx, pcy;
 	canvas_dialog_pivot(cd, &pcx, &pcy);
-	double lcx = (double)lay->position_x + 0.5 * (double)lay->fit->rx;
-	double lcy = (double)lay->position_y + 0.5 * (double)lay->fit->ry;
 	double rad = -cd->pending_angle * M_PI / 180.0;
-	rotate_pt(pcx, pcy, rad, &lcx, &lcy);
-	*out_x = lcx - 0.5 * (double)lay->fit->rx;
-	*out_y = lcy - 0.5 * (double)lay->fit->ry;
+	double lx = lay->position_x, ly = lay->position_y;
+	double lw = lay->fit->rx,    lh = lay->fit->ry;
+	xs[0] = lx;        ys[0] = ly;
+	xs[1] = lx + lw;   ys[1] = ly;
+	xs[2] = lx + lw;   ys[2] = ly + lh;
+	xs[3] = lx;        ys[3] = ly + lh;
+	for (int i = 0; i < 4; i++)
+		rotate_pt(pcx, pcy, rad, &xs[i], &ys[i]);
 }
 
-/* Union of the (axis-aligned) canvas frame and every layer's
- * axis-aligned outline at its post-rotation position.  Returns FALSE
- * if the scene is empty.  Layer outlines stay axis-aligned because
- * the rotation only moves their centre; the layer's pixel content is
- * never tilted. */
+/* Union of the (axis-aligned) canvas frame and every layer's rotated
+ * polygon corners.  Returns FALSE if the scene is empty. */
 static gboolean canvas_dialog_scene_bbox(const struct canvas_dialog *cd,
                                           double *x0, double *y0,
                                           double *x1, double *y1) {
@@ -3092,14 +3096,14 @@ static gboolean canvas_dialog_scene_bbox(const struct canvas_dialog *cd,
 	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
 		const flis_layer_t *lay = (const flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
-		double lx0, ly0;
-		canvas_dialog_rotated_layer_origin(cd, lay, &lx0, &ly0);
-		double lx1 = lx0 + (double)lay->fit->rx;
-		double ly1 = ly0 + (double)lay->fit->ry;
-		if (lx0 < bx0) bx0 = lx0;
-		if (ly0 < by0) by0 = ly0;
-		if (lx1 > bx1) bx1 = lx1;
-		if (ly1 > by1) by1 = ly1;
+		double xs[4], ys[4];
+		canvas_dialog_rotated_layer_corners(cd, lay, xs, ys);
+		for (int i = 0; i < 4; i++) {
+			if (xs[i] < bx0) bx0 = xs[i];
+			if (ys[i] < by0) by0 = ys[i];
+			if (xs[i] > bx1) bx1 = xs[i];
+			if (ys[i] > by1) by1 = ys[i];
+		}
 	}
 	*x0 = bx0; *y0 = by0; *x1 = bx1; *y1 = by1;
 	return (bx1 > bx0) && (by1 > by0);
@@ -3223,17 +3227,20 @@ static void on_canvas_preview_draw(GtkDrawingArea *area, cairo_t *cr,
 	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_fill(cr);
 
-	/* Layers in light grey, at their post-rotation positions. */
+	/* Layers in light grey: each drawn as the 4-corner polygon you get
+	 * from rotating the layer's axis-aligned rect by -pending_angle
+	 * around the canvas centre.  This mirrors what Apply will produce
+	 * (pixel content rotated, layer dims = rotated bbox, centre moved
+	 * to the rotated position). */
 	for (GSList *l = com.uniq ? com.uniq->layers : NULL; l; l = l->next) {
 		const flis_layer_t *lay = (const flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
-		double lx0_img, ly0_img;
-		canvas_dialog_rotated_layer_origin(cd, lay, &lx0_img, &ly0_img);
-		double x = ox + lx0_img * scale;
-		double y = oy + ly0_img * scale;
-		double w = (double)lay->fit->rx * scale;
-		double h = (double)lay->fit->ry * scale;
-		cairo_rectangle(cr, x, y, w, h);
+		double xs[4], ys[4];
+		canvas_dialog_rotated_layer_corners(cd, lay, xs, ys);
+		cairo_move_to(cr, ox + xs[0] * scale, oy + ys[0] * scale);
+		for (int i = 1; i < 4; i++)
+			cairo_line_to(cr, ox + xs[i] * scale, oy + ys[i] * scale);
+		cairo_close_path(cr);
 		cairo_set_source_rgba(cr, 0.78, 0.78, 0.78, 0.18);
 		cairo_fill_preserve(cr);
 		cairo_set_source_rgba(cr, 0.85, 0.85, 0.85, 0.85);
@@ -3447,35 +3454,58 @@ static void canvas_dialog_reset_pending(struct canvas_dialog *cd) {
 	cd->drag_mode = CDRAG_NONE;
 }
 
-/* Rotate every layer's centre by angle_deg around (pivot_x, pivot_y),
- * both in the CURRENT image coord system.  Layer pixel content stays
- * axis-aligned, only positions move.  Used by the combined Apply: the
- * pivot it passes is the centre of the NEW canvas (i.e. after the
- * resize step has translated everything), so the layers settle around
- * the new canvas centre exactly as the preview showed them. */
-static void canvas_dialog_rotate_layers(double pivot_x, double pivot_y,
-                                         double angle_deg) {
-	if (fabs(angle_deg) < 1e-9 || !com.uniq) return;
-	double rad = angle_deg * M_PI / 180.0;
-	double c = cos(rad), s = sin(rad);
+/* For every layer: resample its pixel data by -pending_angle around the
+ * layer's own centre, then reposition the (now larger) layer so its
+ * centre sits at the original-centre rotated around the canvas centre
+ * by -pending_angle.  Net effect: each layer is rigidly rotated by
+ * -pending_angle around the canvas centre — pixel content and position
+ * stay in sync, so layers that previously tiled still tile after the
+ * rotation.
+ *
+ * Sign convention: pending_angle (canvas rotate, +CW visually as the
+ * handle traces) = layer rotate by -pending_angle in our standard-
+ * matrix y-down convention.  verbose_rotate_image's @angle parameter
+ * is in Siril's "+ = CCW" convention which is the same physical
+ * direction as our -pending_angle, hence pos_angle_deg negation below.
+ *
+ * Returns 0 on success, non-zero (with an error logged) on any pixel-
+ * rotation failure (e.g. OOM); the caller's undo step lets the user
+ * revert. */
+static int canvas_dialog_rotate_layers_pixels(double pivot_x, double pivot_y,
+                                                double pending_angle_deg) {
+	if (fabs(pending_angle_deg) < 1e-9 || !com.uniq || !com.uniq->layers)
+		return 0;
+	double pos_rad = -pending_angle_deg * M_PI / 180.0;
+	double c = cos(pos_rad), s = sin(pos_rad);
 	for (GSList *l = com.uniq->layers; l; l = l->next) {
 		flis_layer_t *lay = (flis_layer_t *)l->data;
 		if (!lay || !lay->fit) continue;
-		double lcx = (double)lay->position_x + 0.5 * (double)lay->fit->rx;
-		double lcy = (double)lay->position_y + 0.5 * (double)lay->fit->ry;
-		double dx = lcx - pivot_x;
-		double dy = lcy - pivot_y;
+		double old_lcx = (double)lay->position_x + 0.5 * (double)lay->fit->rx;
+		double old_lcy = (double)lay->position_y + 0.5 * (double)lay->fit->ry;
+		rectangle area = { 0, 0, (int)lay->fit->rx, (int)lay->fit->ry };
+		/* uncropped (= 0) so the layer expands to the rotated bbox;
+		 * clamp on so float layers don't wrap on overshoot. */
+		if (verbose_rotate_image(lay->fit, area, pending_angle_deg,
+		                         OPENCV_LANCZOS4, 0, TRUE) != 0) {
+			siril_log_error(_("Canvas rotate: failed to rotate layer pixels.\n"));
+			return 1;
+		}
+		double dx = old_lcx - pivot_x;
+		double dy = old_lcy - pivot_y;
 		double new_lcx = pivot_x + dx * c - dy * s;
 		double new_lcy = pivot_y + dx * s + dy * c;
 		lay->position_x = (gint)lround(new_lcx - 0.5 * (double)lay->fit->rx);
 		lay->position_y = (gint)lround(new_lcy - 0.5 * (double)lay->fit->ry);
 		flis_layer_touch_modified(lay);
 	}
+	gui_iface.flis_invalidate_composite();
+	return 0;
 }
 
-/* Combined apply: resize (move + dim change) then rotate the layers
- * by -pending_angle around the NEW canvas centre, in a single undo
- * entry so the preview-equivalent result lands atomically. */
+/* Combined apply: resize (move + dim change) then resample each layer's
+ * pixel data + reposition it around the NEW canvas centre, all under
+ * one full-pixel undo entry so the user can undo back to the pre-Apply
+ * state in a single step. */
 static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 	(void)btn;
 	struct canvas_dialog *cd = ud;
@@ -3491,7 +3521,12 @@ static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 	gboolean want_rotate = (fabs(cd->pending_angle) >= 1e-9);
 	if (!want_resize && !want_rotate) return;
 
-	undo_save_flis_multi_layer_props(com.uniq->layers, _("Adjust canvas"));
+	/* Full pixel undo when rotation is involved (each layer's pixel
+	 * data changes); props-only is enough for resize alone. */
+	if (want_rotate)
+		undo_save_flis_multi_layer(com.uniq->layers, _("Adjust canvas"));
+	else
+		undo_save_flis_multi_layer_props(com.uniq->layers, _("Adjust canvas"));
 
 	if (want_resize) {
 		/* Canvas-moves-by-(pending_cx,cy) ⇒ layer-shifts-by-the-
@@ -3502,12 +3537,11 @@ static void on_canvas_apply_click(GtkButton *btn, gpointer ud) {
 			return;
 	}
 	if (want_rotate) {
-		/* Pivot is the NEW canvas centre (in image coords).  Layers
-		 * rotate by -pending_angle so a +θ "canvas rotation" appears
-		 * as a -θ shift of every layer position. */
 		double pivot_x = 0.5 * (double)flis_canvas_rx();
 		double pivot_y = 0.5 * (double)flis_canvas_ry();
-		canvas_dialog_rotate_layers(pivot_x, pivot_y, -cd->pending_angle);
+		if (canvas_dialog_rotate_layers_pixels(pivot_x, pivot_y,
+		                                        cd->pending_angle) != 0)
+			return;
 	}
 	canvas_dialog_after_op(cd);
 }
@@ -3717,12 +3751,11 @@ static void on_canvas_clicked(GtkButton *b, gpointer u) {
 	 * staged rotation together as one undo entry; Close is destructive
 	 * for whatever's still in the preview. */
 	GtkWidget *note = gtk_label_new(_(
-	    "Canvas ops update layer positions but never modify layer pixel "
-	    "data — text and image content within each layer stays axis-"
-	    "aligned.  Rotation moves layers around the canvas centre so the "
-	    "canvas appears to turn in front of fixed-orientation layers; "
-	    "rotate individual layers separately if you want their content "
-	    "to follow."));
+	    "Resize / position changes update layer offsets only.  Rotation "
+	    "is a full-pixel operation: every layer's pixel data is "
+	    "resampled and its position updated together so the composition "
+	    "stays coherent.  Repeated rotations are lossy due to "
+	    "resampling — undo to revert."));
 	gtk_label_set_wrap(GTK_LABEL(note), TRUE);
 	gtk_label_set_max_width_chars(GTK_LABEL(note), 50);
 	gtk_widget_add_css_class(note, "dim-label");
