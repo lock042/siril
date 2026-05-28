@@ -17,7 +17,6 @@
  */
 
 #include "core/siril.h"
-#include "core/siril_log.h"
 #include "core/proto.h"
 #include "gui-gtk4/utils.h"
 #include "histo_display.h"
@@ -835,11 +834,7 @@ static gboolean overlay_hit_test(double x, double y) {
  * that land on the overlay. */
 static void overlay_press_cb(GtkGestureClick *gesture, int n_press,
                              double x, double y, gpointer data) {
-	(void)data;
-	GtkWidget *_diag_widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
-	siril_log_message("[INPUT-DIAG] overlay_press_cb: widget=%p n_press=%d x=%.1f y=%.1f show_histo=%d overlay_rect=%dx%d@%d,%d\n",
-	                  (void*)_diag_widget, n_press, x, y, histo_state.show_histo,
-	                  histo_state.width, histo_state.height, histo_state.x, histo_state.y);
+	(void)n_press; (void)data;
 	if (!histo_state.show_histo) return;
 
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
@@ -887,8 +882,6 @@ static void overlay_press_cb(GtkGestureClick *gesture, int n_press,
 			}
 		}
 	}
-	siril_log_message("[INPUT-DIAG] overlay_press_cb: handled=%d -> %s\n",
-	                  handled, handled ? "CLAIMING sequence" : "letting it bubble");
 	if (handled) {
 		gtk_widget_queue_draw(widget);
 		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);

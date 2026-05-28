@@ -581,10 +581,10 @@ static gboolean fill_mouse_actions_list_idle(gpointer data) {
 	GListStore *store = g_list_store_new(SIRIL_TYPE_MOUSE_ACTION_ITEM);
 	for (GSList *iterator = gui.mouse_actions; iterator; iterator = iterator->next) {
 		mouse_action *action = (mouse_action *)iterator->data;
-		const gchar *state_string = action->state & get_primary() && action->state & GDK_SHIFT_MASK ? CTRL_SHIFT_TEXT
-				: action->state & get_primary() ? CTRL_TEXT
-				: action->state & GDK_SHIFT_MASK ? SHIFT_TEXT : NO_MODIFIER_TEXT;
-		const gchar *action_string = (action->type == GDK_BUTTON_PRESS) ? CLICK_TEXT : DOUBLE_CLICK_TEXT;
+		const gchar *state_string = (action->state & SIRIL_MOD_PRIMARY) && (action->state & SIRIL_MOD_SHIFT) ? CTRL_SHIFT_TEXT
+				: (action->state & SIRIL_MOD_PRIMARY) ? CTRL_TEXT
+				: (action->state & SIRIL_MOD_SHIFT)   ? SHIFT_TEXT : NO_MODIFIER_TEXT;
+		const gchar *action_string = (action->type == SIRIL_EVENT_BUTTON_PRESS) ? CLICK_TEXT : DOUBLE_CLICK_TEXT;
 		SirilMouseActionItem *row = siril_mouse_action_item_new(
 				action->data->name, action->button, action_string, state_string,
 				action->data->tooltip, action->data->reference);
@@ -637,8 +637,8 @@ static gboolean validate_mouse_actions(GSList *list) {
 				duplicate_found = TRUE;
 				siril_log_error(_("Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"), outer_action->type, outer_action->state, outer_action->button);
 			}
-			if (outer_action->type == GDK_BUTTON_PRESS && !outer_action->data->doubleclick_compatible
-			    && inner_action->type == GDK_DOUBLE_BUTTON_PRESS
+			if (outer_action->type == SIRIL_EVENT_BUTTON_PRESS && !outer_action->data->doubleclick_compatible
+			    && inner_action->type == SIRIL_EVENT_2BUTTON_PRESS
 			    && outer_action->button == inner_action->button
 			    && outer_action->state == inner_action->state) {
 				doubleclick_conflict = TRUE;
@@ -668,12 +668,12 @@ static void update_mouse_actions_from_store(GListStore *store) {
 			g_object_unref(row);
 			continue;
 		}
-		GdkEventType type = GDK_BUTTON_PRESS;
+		SirilEventType type = SIRIL_EVENT_BUTTON_PRESS;
 		if (!g_strcmp0(row->action, DOUBLE_CLICK_TEXT))
-			type = GDK_DOUBLE_BUTTON_PRESS;
-		GdkModifierType state = 0;
-		if (g_strrstr(row->modifier, CTRL_TEXT))  state |= get_primary();
-		if (g_strrstr(row->modifier, SHIFT_TEXT)) state |= GDK_SHIFT_MASK;
+			type = SIRIL_EVENT_2BUTTON_PRESS;
+		SirilModifierMask state = 0;
+		if (g_strrstr(row->modifier, CTRL_TEXT))  state |= SIRIL_MOD_PRIMARY;
+		if (g_strrstr(row->modifier, SHIFT_TEXT)) state |= SIRIL_MOD_SHIFT;
 		const mouse_function_metadata *metadata = map_ref_to_metadata(row->reference);
 		mouse_action *action = create_mouse_action(row->button, type, state, metadata);
 		siril_log_debug("New action created: %s, ref %u, modifier %u, action %u\n",
@@ -728,9 +728,9 @@ static gboolean fill_scroll_actions_list_idle(gpointer data) {
 	GListStore *store = g_list_store_new(SIRIL_TYPE_SCROLL_ACTION_ITEM);
 	for (GSList *iterator = gui.scroll_actions; iterator; iterator = iterator->next) {
 		scroll_action *action = (scroll_action *)iterator->data;
-		const gchar *state_string = action->state & get_primary() && action->state & GDK_SHIFT_MASK ? CTRL_SHIFT_TEXT
-				: action->state & get_primary() ? CTRL_TEXT
-				: action->state & GDK_SHIFT_MASK ? SHIFT_TEXT : NO_MODIFIER_TEXT;
+		const gchar *state_string = (action->state & SIRIL_MOD_PRIMARY) && (action->state & SIRIL_MOD_SHIFT) ? CTRL_SHIFT_TEXT
+				: (action->state & SIRIL_MOD_PRIMARY) ? CTRL_TEXT
+				: (action->state & SIRIL_MOD_SHIFT)   ? SHIFT_TEXT : NO_MODIFIER_TEXT;
 		const gchar *direction_string = action->direction == MOUSE_HORIZ_SCROLL ? SCROLL_HORIZ_TEXT : SCROLL_VERTICAL_TEXT;
 		SirilScrollActionItem *row = siril_scroll_action_item_new(
 				action->data->name, direction_string, state_string,
@@ -800,9 +800,9 @@ static void update_scroll_actions_from_store(GListStore *store) {
 		SirilScrollDirection dir = MOUSE_HORIZ_SCROLL;
 		if (!g_strcmp0(row->direction, SCROLL_VERTICAL_TEXT))
 			dir = MOUSE_VERTICAL_SCROLL;
-		GdkModifierType state = 0;
-		if (g_strrstr(row->modifier, CTRL_TEXT))  state |= get_primary();
-		if (g_strrstr(row->modifier, SHIFT_TEXT)) state |= GDK_SHIFT_MASK;
+		SirilModifierMask state = 0;
+		if (g_strrstr(row->modifier, CTRL_TEXT))  state |= SIRIL_MOD_PRIMARY;
+		if (g_strrstr(row->modifier, SHIFT_TEXT)) state |= SIRIL_MOD_SHIFT;
 		const scroll_function_metadata *metadata = map_scroll_ref_to_metadata(row->reference);
 		scroll_action *action = create_scroll_action(state, metadata, dir);
 		siril_log_debug("New action created: %s, reference %u, modifier %u, action %u\n",
@@ -1035,6 +1035,20 @@ GSList *mouse_actions_list_to_config(GSList *actions) {
 	return descriptions;
 }
 
+#ifdef OS_OSX
+/* GTK3 on macOS saved the Cmd (primary) modifier as GDK_META_MASK (1<<28)
+ * rather than the GDK_CONTROL_MASK bit (1<<2) that SIRIL_MOD_PRIMARY now
+ * uses.  Rewrite META→SIRIL_MOD_PRIMARY at parse time so a Siril 1.4
+ * macOS config still loads without a Restore-defaults trip.  Linux and
+ * Windows 1.4 configs store CONTROL=4, which already equals
+ * SIRIL_MOD_PRIMARY, so this path is macOS-only by construction. */
+static inline SirilModifierMask migrate_macos_modifier_state(guint64 raw) {
+	if (raw & GDK_META_MASK)
+		return (SirilModifierMask)((raw & ~(guint64)GDK_META_MASK) | SIRIL_MOD_PRIMARY);
+	return (SirilModifierMask)raw;
+}
+#endif
+
 GSList *mouse_actions_config_to_list(GSList *config) {
 	GSList *actions = NULL;
 	GSList *current = config;
@@ -1044,8 +1058,13 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 		mouse_action *action = (mouse_action*) malloc(sizeof(mouse_action));
 		if (tokens[0] && tokens[1] && tokens[2] && tokens[3]) {
 			action->button = g_ascii_strtoull(tokens[0], NULL, 10);
-			action->type   = g_ascii_strtoull(tokens[1], NULL, 10);
-			action->state  = g_ascii_strtoull(tokens[2], NULL, 10);
+			action->type   = (SirilEventType)g_ascii_strtoull(tokens[1], NULL, 10);
+			guint64 raw_state = g_ascii_strtoull(tokens[2], NULL, 10);
+#ifdef OS_OSX
+			action->state = migrate_macos_modifier_state(raw_state);
+#else
+			action->state = (SirilModifierMask)raw_state;
+#endif
 			mouse_function_ref reference = (mouse_function_ref) g_ascii_strtoull(tokens[3], NULL, 10);
 			if (reference == MOUSE_REF_NULL || reference >= MOUSE_REF_MAX || map_ref_to_metadata(reference) == &null_action) {
 				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
@@ -1105,7 +1124,12 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 		scroll_action *action = (scroll_action*) malloc(sizeof(scroll_action));
 		if (tokens[0] && tokens[1] && tokens[2]) {
 			action->direction = g_ascii_strtoull(tokens[0], NULL, 10);
-			action->state     = g_ascii_strtoull(tokens[1], NULL, 10);
+			guint64 raw_state = g_ascii_strtoull(tokens[1], NULL, 10);
+#ifdef OS_OSX
+			action->state = migrate_macos_modifier_state(raw_state);
+#else
+			action->state = (SirilModifierMask)raw_state;
+#endif
 			scroll_function_ref reference = (scroll_function_ref) g_ascii_strtoull(tokens[2], NULL, 10);
 			if (reference == SCROLL_REF_NULL || reference >= SCROLL_REF_MAX || map_scroll_ref_to_metadata(reference) == &scroll_null_action) {
 				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);

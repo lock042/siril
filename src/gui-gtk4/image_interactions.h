@@ -14,7 +14,6 @@ void update_zoom_fit_button();
 void register_selection_update_callback(selection_update_callback f);
 void unregister_selection_update_callback(const selection_update_callback f);
 
-void set_mouse_event_mask();
 void attach_drawingarea_event_controllers(GtkWidget *area);
 gboolean new_selection_zone(gpointer user_data);
 void delete_selected_area();
@@ -98,6 +97,59 @@ typedef enum _SirilScrollDirection {
 	MOUSE_SMOOTH_SCROLL
 } SirilScrollDirection;
 
+/* Siril-owned event-type and modifier-mask enums used in saved configs
+ * and in the mouse_action / scroll_action match path.  GdkEventType
+ * was renumbered between GTK3 and GTK4 (BUTTON_PRESS went 4→2) and the
+ * multi-press types were removed from the public API; binding the
+ * on-disk format to either GDK vintage is fragile.  Instead, registered
+ * actions store SIRIL_* values that are translated from live GDK input
+ * at event-handler entry.
+ *
+ * Values are pinned to the GTK3 GdkEventType / GdkModifierType numbers
+ * (BUTTON_PRESS=4, 2BUTTON_PRESS=5, …; SHIFT=1, CONTROL=4, MOD1=8).
+ * That choice means a Siril 1.4 config.1.4.ini — which serialised raw
+ * GdkEventType / GdkModifierType integers under GTK3 — loads directly
+ * with no value translation, on Linux and Windows.  A 1.4 macOS install
+ * needs one tiny fix-up because the primary modifier was saved there as
+ * GDK_META_MASK (0x10000000) rather than CONTROL=4; see the OS_OSX
+ * branch in mouse_actions_config_to_list / scroll_actions_config_to_list.
+ *
+ * NEVER renumber these — they are written to disk. */
+typedef enum _SirilEventType {
+	SIRIL_EVENT_BUTTON_PRESS   = 4,
+	SIRIL_EVENT_2BUTTON_PRESS  = 5,
+	SIRIL_EVENT_3BUTTON_PRESS  = 6,
+	SIRIL_EVENT_BUTTON_RELEASE = 7,
+} SirilEventType;
+
+typedef enum _SirilModifierMask {
+	SIRIL_MOD_SHIFT   = 1u << 0,  /* matches GDK_SHIFT_MASK */
+	SIRIL_MOD_PRIMARY = 1u << 2,  /* matches GDK_CONTROL_MASK (Linux/Windows primary) */
+	SIRIL_MOD_ALT     = 1u << 3,  /* matches GDK_MOD1_MASK / GDK_ALT_MASK */
+} SirilModifierMask;
+
+static inline SirilEventType siril_event_type_from_n_press(int n_press) {
+	return (n_press >= 3) ? SIRIL_EVENT_3BUTTON_PRESS
+	     : (n_press == 2) ? SIRIL_EVENT_2BUTTON_PRESS
+	     :                  SIRIL_EVENT_BUTTON_PRESS;
+}
+
+/* Translate a live GdkModifierType bitmask (from the event controller)
+ * into the SIRIL_MOD_* bits the action store uses.  Filters out modifiers
+ * we don't care about (NumLock, CapsLock, button-state bits, …) — replaces
+ * the historical static `eventmask` AND filter at the comparison site. */
+static inline SirilModifierMask siril_mods_from_gdk(GdkModifierType gdk_state) {
+	SirilModifierMask m = 0;
+	if (gdk_state & GDK_SHIFT_MASK)   m |= SIRIL_MOD_SHIFT;
+#ifdef OS_OSX
+	if (gdk_state & GDK_META_MASK)    m |= SIRIL_MOD_PRIMARY;
+#else
+	if (gdk_state & GDK_CONTROL_MASK) m |= SIRIL_MOD_PRIMARY;
+#endif
+	if (gdk_state & GDK_ALT_MASK)     m |= SIRIL_MOD_ALT;
+	return m;
+}
+
 typedef struct _mouse_data {
 	GtkWidget *widget;
 	GdkEventButton *event;       /* legacy; opaque under GTK4 */
@@ -160,8 +212,8 @@ typedef struct _scroll_function_metadata {
  */
 typedef struct _mouse_action {
 	guint button;
-	GdkEventType type;
-	GdkModifierType state;
+	SirilEventType type;
+	SirilModifierMask state;
 	const mouse_function_metadata *data;
 } mouse_action;
 
@@ -171,7 +223,7 @@ typedef struct _mouse_action {
  */
 typedef struct _scroll_action {
 	SirilScrollDirection direction;
-	GdkModifierType state;
+	SirilModifierMask state;
 	const scroll_function_metadata *data;
 } scroll_action;
 
@@ -193,8 +245,8 @@ void init_clear_poly_from_mask();
 void initialize_scroll_actions();
 void load_or_initialize_mouse_actions();
 void load_or_initialize_scroll_actions();
-mouse_action* create_mouse_action(guint button, GdkEventType type, GdkModifierType state, const mouse_function_metadata *metadata);
-scroll_action* create_scroll_action(GdkModifierType state, const scroll_function_metadata *metadata, SirilScrollDirection direction);
+mouse_action* create_mouse_action(guint button, SirilEventType type, SirilModifierMask state, const mouse_function_metadata *metadata);
+scroll_action* create_scroll_action(SirilModifierMask state, const scroll_function_metadata *metadata, SirilScrollDirection direction);
 extern mouse_status_enum mouse_status;	// defined in registration_preview.c
 void register_release_callback(mouse_function function, guint button);
 void clear_release_callback();

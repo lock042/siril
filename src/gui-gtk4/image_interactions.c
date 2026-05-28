@@ -21,7 +21,6 @@
 #include <math.h>
 
 #include "core/siril.h"
-#include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
@@ -42,12 +41,6 @@
 
 //#define DEBUG_SCROLL
 
-/* This filters the modifier keys that are checked (to avoid things like checks
- * failing because NumLock is pressed). If we want to support additional modifiers
- * in future (Alt perhaps) they must be added to eventmask. This variable should
- * not be modified except using set_mouse_event_mask() at GUI startup.
- */
-static GdkModifierType eventmask;
 static GtkApplicationWindow *imgint_app_win = NULL;
 static GtkToggleButton *imgint_zoom_fit_btn = NULL;
 static GtkLabel *imgint_label_rgb = NULL;
@@ -70,10 +63,6 @@ static void image_interactions_init_statics(void) {
 	}
 }
 
-void set_mouse_event_mask() {
-	eventmask = GDK_SHIFT_MASK | get_primary();
-}
-
 mouse_status_enum mouse_status;
 cut_method cutting;
 static double margin_size = 10;
@@ -88,7 +77,7 @@ mouse_status_enum get_mouse_status() {
 static selection_update_callback _registered_selection_callbacks[MAX_CALLBACKS_PER_EVENT];
 static int _nb_selection_callbacks = 0;
 
-mouse_action* create_mouse_action(guint button, GdkEventType type, GdkModifierType state, const mouse_function_metadata *metadata) {
+mouse_action* create_mouse_action(guint button, SirilEventType type, SirilModifierMask state, const mouse_function_metadata *metadata) {
 	mouse_action* action = (mouse_action*) malloc(sizeof(mouse_action));
 	action->button = button;
 	action->type = type;
@@ -97,7 +86,7 @@ mouse_action* create_mouse_action(guint button, GdkEventType type, GdkModifierTy
 	return action;
 }
 
-scroll_action* create_scroll_action(GdkModifierType state, const scroll_function_metadata *metadata, SirilScrollDirection direction) {
+scroll_action* create_scroll_action(SirilModifierMask state, const scroll_function_metadata *metadata, SirilScrollDirection direction) {
 	scroll_action* action = (scroll_action*)malloc(sizeof(scroll_action));
 	action->direction = direction;
 	action->state = state;
@@ -106,14 +95,14 @@ scroll_action* create_scroll_action(GdkModifierType state, const scroll_function
 }
 
 void initialize_mouse_actions() {
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, GDK_BUTTON_PRESS, 0, &main_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, GDK_BUTTON_PRESS, get_primary(), &drag_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, GDK_BUTTON_PRESS, get_primary() | GDK_SHIFT_MASK, &measure_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, GDK_DOUBLE_BUTTON_PRESS, 0, &open_if_unloaded_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, GDK_BUTTON_PRESS, 0, &drag_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, GDK_BUTTON_PRESS, get_primary(), &photometry_box_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, GDK_DOUBLE_BUTTON_PRESS, 0, &zoom_action));
-	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_SECONDARY, GDK_BUTTON_PRESS, 0, &second_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, SIRIL_EVENT_BUTTON_PRESS, 0, &main_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, SIRIL_EVENT_BUTTON_PRESS, SIRIL_MOD_PRIMARY, &drag_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, SIRIL_EVENT_BUTTON_PRESS, SIRIL_MOD_PRIMARY | SIRIL_MOD_SHIFT, &measure_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_PRIMARY, SIRIL_EVENT_2BUTTON_PRESS, 0, &open_if_unloaded_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, SIRIL_EVENT_BUTTON_PRESS, 0, &drag_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, SIRIL_EVENT_BUTTON_PRESS, SIRIL_MOD_PRIMARY, &photometry_box_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_MIDDLE, SIRIL_EVENT_2BUTTON_PRESS, 0, &zoom_action));
+	gui.mouse_actions = g_slist_prepend(gui.mouse_actions, create_mouse_action(GDK_BUTTON_SECONDARY, SIRIL_EVENT_BUTTON_PRESS, 0, &second_action));
 	gui.mouse_actions = g_slist_reverse(gui.mouse_actions);
 }
 
@@ -127,7 +116,7 @@ void load_or_initialize_mouse_actions() {
 
 void initialize_scroll_actions() {
 	gui.scroll_actions = g_slist_prepend(gui.scroll_actions, create_scroll_action(0, &scroll_zooms_action, MOUSE_VERTICAL_SCROLL));
-	gui.scroll_actions = g_slist_prepend(gui.scroll_actions, create_scroll_action(GDK_SHIFT_MASK, &scroll_traverses_seq_action, MOUSE_VERTICAL_SCROLL));
+	gui.scroll_actions = g_slist_prepend(gui.scroll_actions, create_scroll_action(SIRIL_MOD_SHIFT, &scroll_traverses_seq_action, MOUSE_VERTICAL_SCROLL));
 	gui.scroll_actions = g_slist_reverse(gui.scroll_actions);
 }
 
@@ -139,20 +128,24 @@ void load_or_initialize_scroll_actions() {
 	}
 }
 
-/* GTK4-native helpers used by the EventController-based handlers below. */
-static inline gboolean mouse_action_match(guint button, GdkEventType type,
-                                          GdkModifierType state,
+/* GTK4-native helpers used by the EventController-based handlers below.
+ * Callers pass the SIRIL_*-namespaced event type and modifier mask;
+ * the GDK→SIRIL translation happens once at handler entry via
+ * siril_event_type_from_n_press / siril_mods_from_gdk, which implicitly
+ * filters NumLock/CapsLock/button-state bits — no eventmask AND needed
+ * here. */
+static inline gboolean mouse_action_match(guint button, SirilEventType type,
+                                          SirilModifierMask state,
                                           mouse_action *action) {
 	return (action->button == button
 	     && action->type   == type
-	     && action->state  == (state & eventmask));
+	     && action->state  == state);
 }
 
 static gboolean scroll_action_match(GdkScrollDirection direction_raw,
-                                    GdkModifierType state,
+                                    SirilModifierMask state,
                                     double dx, double dy,
                                     scroll_action *action) {
-	GdkModifierType filtered = state & eventmask;
 	SirilScrollDirection event_dir;
 	if (direction_raw == GDK_SCROLL_DOWN || direction_raw == GDK_SCROLL_UP)
 		event_dir = MOUSE_VERTICAL_SCROLL;
@@ -167,9 +160,9 @@ static gboolean scroll_action_match(GdkScrollDirection direction_raw,
 	siril_log_debug("Action drection: %u, modifiers: %u\n", action->direction, action->state);
 #endif
 
-	if (action->state == filtered && action->direction == event_dir) {
+	if (action->state == state && action->direction == event_dir) {
 		return TRUE;
-	} else if (action->state == filtered && direction_raw == GDK_SCROLL_SMOOTH) {
+	} else if (action->state == state && direction_raw == GDK_SCROLL_SMOOTH) {
 		if (action->direction == MOUSE_HORIZ_SCROLL && dx != 0.0)
 			return TRUE;
 		if (action->direction == MOUSE_VERTICAL_SCROLL && dy != 0.0)
@@ -453,19 +446,17 @@ void enforce_ratio_and_clamp() {
 }
 
 /* GTK4-native press handler.  Bound to a GtkGestureClick "pressed" signal
- * by attach_drawingarea_event_controllers().  n_press == 2 maps to the
- * legacy GDK_DOUBLE_BUTTON_PRESS sentinel still used in mouse_action.type. */
+ * by attach_drawingarea_event_controllers().  GDK-namespaced inputs
+ * (n_press, GdkModifierType) are translated into the SIRIL_EVENT_* /
+ * SIRIL_MOD_* namespaces here so the matcher and the on-disk config
+ * format stay decoupled from GDK enum churn. */
 static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
                                       double x, double y, gpointer user_data) {
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
 	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
-	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
-	GdkEventType type = (n_press >= 3) ? GDK_TRIPLE_BUTTON_PRESS
-	                  : (n_press == 2) ? GDK_DOUBLE_BUTTON_PRESS
-	                  :                  GDK_BUTTON_PRESS;
-
-	siril_log_message("[INPUT-DIAG] pressed_cb: widget=%p n_press=%d button=%u state=0x%x x=%.1f y=%.1f mouse_status=%d\n",
-	                  (void*)widget, n_press, button, (unsigned)state, x, y, (int)mouse_status);
+	GdkModifierType gdk_state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
+	SirilEventType type = siril_event_type_from_n_press(n_press);
+	SirilModifierMask mods = siril_mods_from_gdk(gdk_state);
 
 	cache_widgets();
 	if (!gui.mouse_actions)
@@ -476,29 +467,22 @@ static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
 	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
+	/* mouse_data carries raw GDK state for the action body — handlers
+	 * test it with GDK_SHIFT_MASK / get_primary() against the live event. */
 	mouse_data data = {
 		.widget = widget, .event = NULL,
-		.button = button, .state = state, .type = type,
+		.button = button, .state = gdk_state, .type = GDK_BUTTON_PRESS,
 		.x = x, .y = y,
 		.zoom = zoom, .evpos = evpos, .zoomed = zoomed, .inside = inside,
 		.mouse_status = &mouse_status, .cutting = &cutting,
 	};
 
-	gboolean matched = FALSE;
 	for (GSList *iter = gui.mouse_actions; iter != NULL; iter = g_slist_next(iter)) {
 		mouse_action* action = (mouse_action*) iter->data;
-		if (mouse_action_match(button, type, state, action)) {
-			siril_log_message("[INPUT-DIAG] pressed_cb: dispatched action '%s' (inside=%d zoomed=%d,%d)\n",
-			                  action->data->name ? action->data->name : "?",
-			                  inside, zoomed.x, zoomed.y);
-			matched = TRUE;
+		if (mouse_action_match(button, type, mods, action)) {
 			action->data->function(&data);
 			break;
 		}
-	}
-	if (!matched) {
-		siril_log_message("[INPUT-DIAG] pressed_cb: NO action matched (type=%d state=0x%x eventmask=0x%x)\n",
-		                  (int)type, (unsigned)state, (unsigned)(state & eventmask));
 	}
 }
 
@@ -509,9 +493,6 @@ static void on_drawingarea_released_cb(GtkGestureClick *gesture, int n_press,
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
 	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
 	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
-
-	siril_log_message("[INPUT-DIAG] released_cb: widget=%p n_press=%d button=%u state=0x%x x=%.1f y=%.1f registered_release_button=%u\n",
-	                  (void*)widget, n_press, button, (unsigned)state, x, y, button_release.button);
 
 	if (button_release.button == button) {
 		double zoom = get_zoom_val();
@@ -870,20 +851,10 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
  * could wire drag-end as a fallback in case GtkGestureClick.released
  * is suppressed by drag claiming the sequence, but that hasn't been
  * observed and would risk double-firing the release callback. */
-/* TRUE while we've already logged the first drag-update of the current
- * sequence — keeps the log readable while still confirming that motion-
- * while-pressed is being delivered.  Reset on drag-begin/drag-end. */
-static gboolean drag_update_logged_this_sequence = FALSE;
-
 static void on_drawingarea_drag_begin_cb(GtkGestureDrag *g,
                                          double x, double y,
                                          gpointer user_data) {
-	(void)user_data;
-	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
-	siril_log_message("[INPUT-DIAG] drag_begin_cb: widget=%p start=%.1f,%.1f drawing=%d translating=%d cutting=%d measure_started=%d\n",
-	                  (void*)widget, x, y, gui.drawing, gui.translating, (int)cutting,
-	                  gui.measure_start.x != -1);
-	drag_update_logged_this_sequence = FALSE;
+	(void)g; (void)x; (void)y; (void)user_data;
 }
 
 static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
@@ -896,11 +867,6 @@ static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
 	gtk_gesture_drag_get_start_point(g, &sx, &sy);
 	double abs_x = sx + offset_x;
 	double abs_y = sy + offset_y;
-	if (!drag_update_logged_this_sequence) {
-		siril_log_message("[INPUT-DIAG] drag_update_cb: FIRST update widget=%p offset=%.1f,%.1f abs=%.1f,%.1f state=0x%x\n",
-		                  (void*)widget, offset_x, offset_y, abs_x, abs_y, (unsigned)state);
-		drag_update_logged_this_sequence = TRUE;
-	}
 	last_motion_widget_x = abs_x;
 	last_motion_widget_y = abs_y;
 	drawingarea_ctx ctx = compute_drawingarea_ctx(widget, abs_x, abs_y, state);
@@ -912,11 +878,7 @@ static void on_drawingarea_drag_update_cb(GtkGestureDrag *g,
 static void on_drawingarea_drag_end_cb(GtkGestureDrag *g,
                                        double offset_x, double offset_y,
                                        gpointer user_data) {
-	(void)user_data;
-	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
-	siril_log_message("[INPUT-DIAG] drag_end_cb: widget=%p offset=%.1f,%.1f had_drag_update=%d\n",
-	                  (void*)widget, offset_x, offset_y, drag_update_logged_this_sequence);
-	drag_update_logged_this_sequence = FALSE;
+	(void)g; (void)offset_x; (void)offset_y; (void)user_data;
 }
 
 
@@ -1032,7 +994,8 @@ static gboolean on_drawingarea_scroll_cb(GtkEventControllerScroll *ctrl,
 
 	GdkEvent *evt = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(ctrl));
 	GdkScrollDirection direction_raw = evt ? gdk_scroll_event_get_direction(evt) : GDK_SCROLL_SMOOTH;
-	GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(ctrl));
+	GdkModifierType gdk_state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(ctrl));
+	SirilModifierMask mods = siril_mods_from_gdk(gdk_state);
 
 	/* Zoom anchor: GTK4's scroll signal does not deliver pointer x/y, and
 	 * gdk_event_get_position() returns surface-relative coordinates that
@@ -1045,11 +1008,11 @@ static gboolean on_drawingarea_scroll_cb(GtkEventControllerScroll *ctrl,
 
 	for (GSList *iter = gui.scroll_actions; iter; iter = g_slist_next(iter)) {
 		scroll_action *action = (scroll_action*) iter->data;
-		if (scroll_action_match(direction_raw, state, dx, dy, action)) {
+		if (scroll_action_match(direction_raw, mods, dx, dy, action)) {
 			scroll_data data = {
 				.event = evt,
 				.direction_raw = direction_raw,
-				.state = state,
+				.state = gdk_state,
 				.x = x_pos, .y = y_pos,
 				.dx = dx, .dy = dy,
 				.direction = action->direction,

@@ -2242,9 +2242,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Keybord Shortcuts */
 	load_accels();
 
-	/* Mouse event mask */
-	set_mouse_event_mask();
-
 	/* Wire up the menu-page actions for the Image Processing and Tools
 	 * popover menus.  Each popover holds a GtkStack whose pages are the
 	 * root menu and the various submenus; clicking a submenu trigger or
