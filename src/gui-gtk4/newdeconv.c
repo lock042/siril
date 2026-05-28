@@ -62,7 +62,7 @@ static void on_PSFkernel_draw_cb(GtkDrawingArea *area, cairo_t *cr,
 static void on_bdeconv_kernel_picked(GtkWidget *button, const gchar *path, gpointer user_data);
 static GtkEntry *bdeconv_seq_prefix = NULL;
 static GtkExpander *bdeconv_expander = NULL;
-static GtkFileChooser *bdeconv_filechooser = NULL;
+static GtkWidget *bdeconv_filechooser = NULL;
 static GtkFrame *bdeconv_psfcontrols = NULL, *bdeconv_blindcontrols = NULL, *bdeconv_l0controls = NULL, *bdeconv_gfcontrols = NULL, *bdeconv_starpsf_details = NULL;
 static GtkGrid *bdeconv_manual_stars = NULL, *bdeconv_manual_airy = NULL;
 static GtkLabel *bdeconv_starprofile_text = NULL, *bdeconv_starfwhm_text = NULL, *bdeconv_starratio_text = NULL, *bdeconv_starangle_text = NULL, *bdeconv_starbeta_text = NULL, *bdeconv_iterlabel = NULL, *regul_label = NULL, *bdeconv_steplabel = NULL, *algo_method_label = NULL;
@@ -101,8 +101,8 @@ void bdeconv_dialog_init_statics() {
 		// GtkExpander
 		bdeconv_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "bdeconv_expander"));
 		// Picker button for an external PSF/kernel image.
-		bdeconv_filechooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "bdeconv_filechooser"));
-		siril_image_button_init(GTK_WIDGET(bdeconv_filechooser),
+		bdeconv_filechooser = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bdeconv_filechooser"));
+		siril_image_button_init(bdeconv_filechooser,
 			_("Select PSF kernel image"), _("FITS files"),
 			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz",
 			on_bdeconv_kernel_picked, NULL);
