@@ -571,7 +571,14 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 	gboolean blank_density_cvport = TRUE, blank_wcs_cvport = TRUE;
 	gtk_label_set_text(imgint_label_rgb, "");
 
-	if (c->inside) {
+	/* The remaining feedback body reads gfit->pdata / fpdata / mask /
+	 * dimensions / wcs.  Take a reader trylock so a concurrent writer
+	 * (image processing) can't tear the read, and skip the feedback if
+	 * we can't grab the lock right now — keeps the GUI thread responsive
+	 * during long-running ops.  The histogram_update_cursor_value call
+	 * above acquired-and-released its own lock, so we're not nesting. */
+	gboolean feedback_locked = c->inside && g_rw_lock_reader_trylock(&gfit->rwlock);
+	if (c->inside && feedback_locked) {
 		const pointi zoomed = c->zoomed;
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
@@ -690,6 +697,9 @@ static void update_pointer_feedback(const drawingarea_ctx *c) {
 			}
 		}
 	}
+
+	if (feedback_locked)
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (blank_wcs_cvport && gtk_label_get_text(imgint_labels_wcs[gui.cvport])[0] != '\0')
 		gtk_label_set_text(imgint_labels_wcs[gui.cvport], " ");

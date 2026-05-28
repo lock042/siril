@@ -1644,6 +1644,34 @@ the_end:;
 		}
 	}
 
+	/* Fallback HISTORY card update — only used when undo_save_state() won't
+	 * be called (it records on the `orig` backup, not on gfit).  Done here,
+	 * under the writer lock that's about to be released, using the local
+	 * `argfit` / `history` copies so it stays correct after `args` is freed
+	 * by the idle below. */
+	gboolean append_history_fallback =
+	    !retval && !(undo_state && orig) && !arg_custom_undo && arg_update_gfit;
+	if (append_history_fallback) {
+		argfit->history = g_slist_append(argfit->history, g_strdup(history));
+		// argfit->history now owns the allocated memory, we must not free it if this codepath is taken
+		update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
+	}
+
+	/* Release locks BEFORE blocking on the sync-idle below.  Holding
+	 * argfit->rwlock as a writer across execute_idle_sync() deadlocks the
+	 * GUI: the GTK main thread takes the same lock as a reader from
+	 * mouse-motion handlers (histogram_update_cursor_value et al.) while
+	 * delivering events.  If the main loop is parked on that reader-lock
+	 * acquisition it never reaches the idle we just queued, the worker
+	 * waits on the idle forever, and the app appears hung.  Once the
+	 * image hook has returned and the history/HISTORY mutations above are
+	 * done, the worker no longer needs the lock — gfit data is consistent,
+	 * the idle only schedules redraw/cleanup work, and the only other
+	 * thread that could write gfit is the worker itself (the processing
+	 * thread is single-threaded). */
+	g_rw_lock_writer_unlock(&argfit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
 	 * completion idle paints the updated image. */
 	gui_iface.set_suppress_redraws(FALSE);
@@ -1679,20 +1707,9 @@ the_end:;
 	if (!argpreview && !retval)
 		siril_log_message("%s\n", history); // Log the full detailed description
 
-	if (!retval) {
-		if (undo_state && orig) {
-			undo_save_state(orig, summary); // We just use the short description for the undo state
-		} else {
-			// Update the HISTORY card if it wasn't updated by undo_save_state'
-			if (!arg_custom_undo && arg_update_gfit) {
-				argfit->history = g_slist_append(argfit->history, g_strdup(history));
-				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
-				update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
-			}
-		}
+	if (!retval && undo_state && orig) {
+		undo_save_state(orig, summary); // We just use the short description for the undo state
 	}
-	g_rw_lock_writer_unlock(&argfit->rwlock);
-	g_rw_lock_reader_unlock(&com.pref_rwlock);
 	if (verbose) {
 		siril_log_info(_("%s %s.\n"), desc, retval ? _("failed") : _("succeeded"));
 		gettimeofday(&t_end, NULL);
