@@ -243,10 +243,7 @@ static void on_siril_plot_leave(GtkEventControllerMotion *controller,
 
 /* GTK4 motion: track cursor + drive selection/pan drag.  Replaces
  * "motion-notify-event"; (x, y) come straight from the controller. */
-static void on_siril_plot_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data) {
-	(void)controller;
-	GtkWidget *window = (GtkWidget *) user_data;
+static void siril_plot_handle_pointer(GtkWidget *window, double x, double y) {
 	if (!window) return;
 	siril_plot_data *spl_data = (siril_plot_data *) g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *label = (GtkWidget *) g_object_get_data(G_OBJECT(window), "display_label_handle");
@@ -277,6 +274,28 @@ static void on_siril_plot_motion(GtkEventControllerMotion *controller,
 		spl_data->pdd.start = (point){x, y};
 		gtk_widget_queue_draw(da);
 	}
+}
+
+/* Hover motion: bail out while any button is held so the drag gesture
+ * is the single source of truth for motion-while-pressed (drag-to-select
+ * and pan rely on motion-while-pressed, which macOS routes exclusively
+ * to GtkGestureDrag — the motion controller never fires there during a
+ * press). */
+static void on_siril_plot_motion(GtkEventControllerMotion *controller,
+		double x, double y, gpointer user_data) {
+	GdkModifierType state = gtk_event_controller_get_current_event_state(
+	    GTK_EVENT_CONTROLLER(controller));
+	if (state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK))
+		return;
+	siril_plot_handle_pointer((GtkWidget *)user_data, x, y);
+}
+
+/* Drag-update: only path that fires on macOS while the button is held. */
+static void on_siril_plot_drag_update(GtkGestureDrag *g,
+		double offset_x, double offset_y, gpointer user_data) {
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(g, &sx, &sy);
+	siril_plot_handle_pointer((GtkWidget *)user_data, sx + offset_x, sy + offset_y);
 }
 
 /* GTK4 scroll: Cmd/Ctrl + scroll zooms in/out around the cursor.
@@ -521,6 +540,18 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	g_signal_connect(click_gst, "pressed",  G_CALLBACK(on_siril_plot_pressed),  window);
 	g_signal_connect(click_gst, "released", G_CALLBACK(on_siril_plot_released), window);
 	gtk_widget_add_controller(da, GTK_EVENT_CONTROLLER(click_gst));
+
+	/* Drag: primary-only (selection rectangle, pan); see also the
+	 * motion controller above for hover-only label updates. */
+	GtkGesture *drag_gst = gtk_gesture_drag_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag_gst),
+	                              GDK_BUTTON_PRIMARY);
+	g_signal_connect(drag_gst, "drag-update",
+	                 G_CALLBACK(on_siril_plot_drag_update), window);
+	gtk_widget_add_controller(da, GTK_EVENT_CONTROLLER(drag_gst));
+
+	/* Group click + drag so neither claim denies the other. */
+	gtk_gesture_group(click_gst, drag_gst);
 
 	GtkEventController *scroll_ctl = gtk_event_controller_scroll_new(
 	    GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);

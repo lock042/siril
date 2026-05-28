@@ -922,6 +922,31 @@ static void on_mouse_test_pressed(GtkGestureClick *gesture, int n_press,
 	g_free(text);
 }
 
+/* Report a drag (button + distance) so the user can verify that
+ * motion-while-pressed is wired correctly on their platform — the
+ * macOS gesture-routing bug fixed in the histo/plot/canvas areas
+ * went unnoticed because there was no way to test drag delivery
+ * here.  drag-begin fires once when the threshold is crossed and
+ * drag-end fires on release. */
+static void on_mouse_test_drag_begin(GtkGestureDrag *gesture,
+                                     double x, double y, gpointer user_data) {
+	(void)x; (void)y; (void)user_data;
+	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+	gchar *text = g_strdup_printf(_("Drag begin (button %u)"), button);
+	update_test_label(text);
+	g_free(text);
+}
+
+static void on_mouse_test_drag_end(GtkGestureDrag *gesture,
+                                   double offset_x, double offset_y, gpointer user_data) {
+	(void)user_data;
+	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+	gchar *text = g_strdup_printf(_("Drag end (button %u, %+.0f, %+.0f)"),
+	                              button, offset_x, offset_y);
+	update_test_label(text);
+	g_free(text);
+}
+
 static gboolean on_mouse_test_scroll(GtkEventControllerScroll *ctrl,
                                      double dx, double dy, gpointer user_data) {
 	(void)ctrl; (void)user_data;
@@ -959,6 +984,17 @@ static void install_mouse_test_controllers(GtkWidget *area) {
 	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); /* any button */
 	g_signal_connect(click, "pressed", G_CALLBACK(on_mouse_test_pressed), NULL);
 	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(click));
+
+	/* Drag too, so the user can verify motion-while-pressed delivery —
+	 * grouped with click so neither claim denies the other. */
+	GtkGesture *drag = gtk_gesture_drag_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag), 0); /* any button */
+	g_signal_connect(drag, "drag-begin",
+	                 G_CALLBACK(on_mouse_test_drag_begin), NULL);
+	g_signal_connect(drag, "drag-end",
+	                 G_CALLBACK(on_mouse_test_drag_end),   NULL);
+	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(drag));
+	gtk_gesture_group(click, drag);
 
 	GtkEventController *scroll = gtk_event_controller_scroll_new(
 		GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
