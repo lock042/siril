@@ -119,6 +119,11 @@ static void convert_setup_cb(GtkSignalListItemFactory *f, GtkListItem *li, gpoin
 	(void)f; (void)u;
 	GtkWidget *lbl = gtk_label_new(NULL);
 	gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+	/* Zero vertical margins on the cell child so the row hugs the text
+	 * baseline; combined with the .siril-dense-rows CSS class on the
+	 * columnview this matches the compactness of the file-open dialog. */
+	gtk_widget_set_margin_top(lbl, 0);
+	gtk_widget_set_margin_bottom(lbl, 0);
 	gtk_list_item_set_child(li, lbl);
 }
 
@@ -184,6 +189,8 @@ static void ensure_convert_view(void) {
 	g_signal_connect(selection_convert, "selection-changed", G_CALLBACK(on_selection_changed), NULL);
 
 	columnview_convert = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(selection_convert))));
+	/* Match the file-open dialog's tight row spacing (see siril.css). */
+	gtk_widget_add_css_class(GTK_WIDGET(columnview_convert), "siril-dense-rows");
 
 	GtkColumnViewColumn *cn = gtk_column_view_column_new(N_("Name"), make_convert_factory(CONV_COL_NAME));
 	gtk_column_view_column_set_resizable(cn, TRUE);

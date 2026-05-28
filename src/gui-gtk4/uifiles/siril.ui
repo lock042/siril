@@ -5506,6 +5506,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                       <object class="GtkImage" id="framing-image">
                                                                         <property name="halign">end</property>
                                                                         <property name="hexpand">1</property>
+                                                                        <property name="pixel-size">96</property>
                                                                         <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                                         <layout>
                                                                           <property name="column">2</property>
@@ -5821,7 +5822,7 @@ The master flat must be set in the Calibration tab.</property>
                                                         </child>
                                                         <child>
                                                           <object class="GtkButton" id="goregister_button">
-                                                            <property name="vexpand">1</property>
+                                                            <property name="valign">center</property>
                                                             <property name="label" translatable="1">Go register</property>
                                                             <property name="sensitive">0</property>
                                                             <property name="focusable">1</property>
