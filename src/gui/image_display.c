@@ -2806,7 +2806,7 @@ void redraw(remap_type doremap) {
 		case REDRAW_IMAGE:
 			invalidate_image_render_cache(-1);
 			break;
-		case REMAP_ALL:
+		case REDRAW_ALL:
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
 			break;
@@ -2844,7 +2844,7 @@ gboolean redraw_mask_idle(gpointer p) {
 		/* Reader lock released before this call: notify_gfit_data_modified()
 		 * may call copy_roi_into_gfit() which acquires the writer lock. */
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
+		redraw(REDRAW_ALL); // need to remap all to tint the image vports correctly
 	}
 	return FALSE;
 }

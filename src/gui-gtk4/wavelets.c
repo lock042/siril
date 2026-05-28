@@ -98,7 +98,7 @@ static int update_wavelets() {
 		g_free(dir[i]);
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	return 0;
 }
 

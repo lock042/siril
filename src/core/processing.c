@@ -1807,6 +1807,15 @@ the_end:;
 	return GINT_TO_POINTER(retval);
 }
 
+/* TODO: apply the same swap-on-completion treatment to generic_mask_worker
+ * that generic_image_worker now uses (commit 28ea0b5c7).  Today this worker
+ * holds args->fit->rwlock as a writer for the entire duration of the
+ * mask_hook — usually fast, but long-running mask ops would block GUI
+ * readers the same way image-hook ops used to.  The fix would mirror
+ * generic_image_worker: snapshot the fit (or just mask) into a private
+ * buffer, run the hook lock-free, briefly take the writer lock for a
+ * fits_swap_all_except_rwlock at the end.  Low priority while mask ops
+ * stay short. */
 gpointer generic_mask_worker(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args *)p;
 	struct timeval t_start, t_end;

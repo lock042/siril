@@ -244,7 +244,7 @@ void on_satu_preview_toggled(GtkCheckButton *button, gpointer user_data) {
 		cancel_and_wait_for_preview();
 		copy_backup_to_gfit();
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	} else {
 		copy_gfit_to_backup();
 		update_image *param = malloc(sizeof(update_image));

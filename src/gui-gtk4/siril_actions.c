@@ -415,7 +415,7 @@ void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_d
 	g_simple_action_set_state(action, state);
 	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	gui_iface.set_busy(FALSE);
 }
@@ -448,7 +448,7 @@ void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 	g_simple_action_set_state(action, state);
 	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	gui_iface.set_busy(FALSE);
 }
@@ -494,7 +494,7 @@ static void update_chain_channels_ui(gboolean linked) {
 	 * preview-mode dropdown changes. */
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
