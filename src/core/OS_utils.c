@@ -1247,9 +1247,9 @@ void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
  * GdkQuartzView which forwarded Cmd+key events directly to GDK.  As a result,
  * Command+key shortcuts never reach GTK4's shortcut controller.
  *
- * Additionally, GTK4 maps <Primary> to GDK_CONTROL_MASK (Ctrl), but macOS
- * Command generates GDK_META_MASK — so we must swap the modifier flag before
- * forwarding so GDK sees the Ctrl modifier that matches <Primary> shortcuts.
+ * Fix: local NSEvent monitor that catches Cmd+key in GDK windows and forwards
+ * them via keyDown: so GDK processes them.  Accel strings are registered with
+ * <Meta> on macOS (see set_accel_map) so GDK_META_MASK (Command) matches.
  *
  * Native macOS panels (NSOpenPanel, NSAlert …) are left untouched: their
  * content views do not carry the "Gdk" class-name prefix. */
@@ -1268,22 +1268,9 @@ void siril_macos_fix_keyboard_shortcuts(void) {
 		if (![cls hasPrefix:@"Gdk"])
 			return event;
 
-		/* Swap Command → Control so GDK_META_MASK becomes GDK_CONTROL_MASK,
-		 * matching the <Primary> modifier used in GTK4 accel strings. */
-		NSEventModifierFlags flags =
-			([event modifierFlags] & ~NSEventModifierFlagCommand)
-			| NSEventModifierFlagControl;
-		NSEvent *ev = [NSEvent keyEventWithType:[event type]
-		                               location:[event locationInWindow]
-		                          modifierFlags:flags
-		                              timestamp:[event timestamp]
-		                           windowNumber:[event windowNumber]
-		                                context:nil
-		                             characters:[event characters]
-		            charactersIgnoringModifiers:[event charactersIgnoringModifiers]
-		                              isARepeat:[event isARepeat]
-		                                keyCode:[event keyCode]];
-		[win.contentView keyDown:ev];
+		/* Forward as-is: accels are registered with <Meta> on macOS so
+		 * GDK_META_MASK (Command) already matches without any modifier swap. */
+		[win.contentView keyDown:event];
 		return nil;
 	}];
 }

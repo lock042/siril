@@ -1950,11 +1950,35 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+#ifdef OS_OSX
+/* On macOS, GTK4 maps <Primary> to GDK_CONTROL_MASK (Ctrl), but the Command
+ * key generates GDK_META_MASK.  Replace <Primary> with <Meta> in every accel
+ * string so that Cmd+key shortcuts match what the user actually presses. */
+static gchar *macos_remap_accel(const gchar *accel) {
+	if (!strstr(accel, "<Primary>"))
+		return g_strdup(accel);
+	gchar **parts = g_strsplit(accel, "<Primary>", -1);
+	gchar  *result = g_strjoinv("<Meta>", parts);
+	g_strfreev(parts);
+	return result;
+}
+#endif
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
 
 	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
+#ifdef OS_OSX
+		int n = g_strv_length((gchar **)(it + 1));
+		gchar **remapped = g_new0(gchar *, n + 1);
+		for (int i = 0; i < n; i++)
+			remapped[i] = macos_remap_accel(it[1 + i]);
+		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0],
+		                                      (const gchar * const *) remapped);
+		g_strfreev(remapped);
+#else
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+#endif
 	}
 }
 
