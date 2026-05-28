@@ -7279,8 +7279,9 @@ WARNING: This option should not be checked for master stacking.</property>
                                                   <object class="GtkBox" id="box_log">
                                                     <property name="name">box_console_bar</property>
                                                     <child>
-                                                      <object class="GtkImage" id="image_log">
-                                                        <property name="icon-name">process-stop-symbolic</property>
+                                                      <object class="GtkLabel" id="image_log">
+                                                        <property name="name">image_log</property>
+                                                        <property name="label">●</property>
                                                       </object>
                                                     </child>
                                                     <child>

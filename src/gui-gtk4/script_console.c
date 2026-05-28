@@ -44,12 +44,16 @@
 
 /* ── Status-bar logging ──────────────────────────────────────────────────── */
 
+/* Traffic-light status indicator: the GtkImage is always
+ * media-record-symbolic (a filled circle), tinted red while idle and
+ * green while a script is running.  Colours live in siril.css under
+ * #image_log / #image_log.script-running. */
 static void update_log_icon(gboolean is_running) {
-	GtkImage *image = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "image_log")));
+	GtkWidget *image = GTK_WIDGET(gtk_builder_get_object(gui.builder, "image_log"));
 	if (is_running)
-		gtk_image_set_from_icon_name(image, "emblem-ok-symbolic");
+		gtk_widget_add_css_class(image, "script-running");
 	else
-		gtk_image_set_from_icon_name(image, "process-stop-symbolic");
+		gtk_widget_remove_css_class(image, "script-running");
 }
 
 struct log_status_bar_idle_data {
