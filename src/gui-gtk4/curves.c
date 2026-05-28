@@ -233,7 +233,7 @@ void set_curves_toggles_names() {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(curves_red_toggle),
 									_("Toggles whether to apply the curve to the monochrome channel"));
 		GtkWidget *w;
-		if (com.pref.gui.combo_theme == 0) {
+		if (siril_current_theme_is_dark()) {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
 		} else {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");

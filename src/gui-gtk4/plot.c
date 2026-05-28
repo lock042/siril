@@ -35,6 +35,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -365,7 +366,7 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 }
 
 static void plot_draw_all_sliders(cairo_t *cr) {
-	double color = (com.pref.gui.combo_theme == 0) ? 1.0 : 0.0;
+	double color = (siril_current_theme_is_dark()) ? 1.0 : 0.0;
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, color, color, color);
 	// x-slider
@@ -425,7 +426,7 @@ static void plot_draw_all_markers(cairo_t *cr) {
 static void plot_draw_selection(cairo_t *cr){
 	if (pdd.selection.h == 0. || pdd.selection.w == 0.) return;
 	double dash_format[] = { 4.0, 2.0 };
-	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	double color = (siril_current_theme_is_dark()) ? 0.8 : 0.2;
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_set_dash(cr, dash_format, 2, 0);
 	cairo_set_line_width(cr, 1.);
@@ -1510,7 +1511,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 		return;
 	pldata *plot = plot_data;
 
-	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
+	double color = (siril_current_theme_is_dark()) ? 0.0 : 1.0;
 
 	kplotcfg_defaults(&cfgplot);
 	kdatacfg_defaults(&cfgdata);

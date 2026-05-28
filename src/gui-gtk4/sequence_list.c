@@ -563,7 +563,7 @@ static SirilSeqRow *build_seq_row(sequence *seq, int index, int layer) {
 		}
 	}
 
-	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
+	color = (siril_current_theme_is_dark()) ? 1 : 0;
 	basename = g_path_get_basename(seq_get_image_filename(seq, index, imname));
 	SirilSeqRow *row = g_object_new(SIRIL_TYPE_SEQ_ROW, NULL);
 	row->imname   = basename;     /* takes ownership */
@@ -1037,7 +1037,7 @@ void sequence_list_change_current() {
 }
 
 void sequence_list_change_reference() {
-	int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
+	int color = (siril_current_theme_is_dark()) ? 1 : 0;
 	get_list_store();
 	if (!seq_store) return;
 	guint n = g_list_model_get_n_items(G_LIST_MODEL(seq_store));
