@@ -1057,6 +1057,18 @@ void attach_drawingarea_event_controllers(GtkWidget *area) {
 	g_signal_connect(drag, "drag-end",    G_CALLBACK(on_drawingarea_drag_end_cb),    NULL);
 	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(drag));
 
+	/* Group click + drag so they share sequence state.  Without this,
+	 * whichever gesture claims the button sequence first puts the other
+	 * into the DENIED state for the rest of the sequence — and DENIED
+	 * gestures stop processing subsequent events.  On Linux GtkGestureClick
+	 * defers its claim long enough that the drag fires anyway, but on
+	 * macOS the Quartz backend pushes click into CLAIMED earlier and
+	 * drag-update never fires (selection rectangle, pan and measure all
+	 * stop responding).  Grouping keeps both controllers alive on the
+	 * same sequence.  Same fix the histogram overlay needed; see
+	 * histo_display.c:1392. */
+	gtk_gesture_group(click, drag);
+
 	/* Motion + enter/leave.  Motion handles hover (label updates, cursor
 	 * shape).  Drag updates moved to the drag controller. */
 	GtkEventController *motion = gtk_event_controller_motion_new();
