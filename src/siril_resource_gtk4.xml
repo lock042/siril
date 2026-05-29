@@ -84,6 +84,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="seqlist_dialog.ui">gui-gtk4/uifiles/seqlist_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui-gtk4/uifiles/settings_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui-gtk4/uifiles/siril.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="siril_calibration.ui">gui-gtk4/uifiles/siril_calibration.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="siril_registration.ui">gui-gtk4/uifiles/siril_registration.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="siril_stacking.ui">gui-gtk4/uifiles/siril_stacking.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="spcc_details.ui">gui-gtk4/uifiles/spcc_details.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="split_cfa_dialog.ui">gui-gtk4/uifiles/split_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="starnet_dialog.ui">gui-gtk4/uifiles/starnet_dialog.ui</file>

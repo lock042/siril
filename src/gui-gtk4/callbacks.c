@@ -2292,7 +2292,38 @@ void register_toolkit_app_actions(GApplication *app) {
 			G_N_ELEMENTS(entries), app);
 }
 
+/* The Calibration, Registration and Stacking tabs of notebook_center_box live
+ * in separate .ui files (siril_calibration/registration/stacking.ui) because
+ * the combined siril.ui exceeds the UI-file size a design tool (Cambalache) can
+ * open. All files load into the same gui.builder; re-insert the three tabs here
+ * at their original indices so the tab order — which other code addresses by
+ * index — is identical to a single-file siril.ui. Insert in ascending index. */
+static void reassemble_center_notebook(void) {
+	GtkNotebook *nb = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	if (!nb) {
+		g_warning("reassemble_center_notebook: notebook_center_box not found");
+		return;
+	}
+	const struct { const char *content; const char *tab; int pos; } pages[] = {
+		{ "calibration_tab",  "label19", 2 },
+		{ "registration_tab", "label28", 3 },
+		{ "stacking_tab",     "label29", 5 },
+	};
+	for (int i = 0; i < (int) G_N_ELEMENTS(pages); i++) {
+		GtkWidget *content = GTK_WIDGET(gtk_builder_get_object(gui.builder, pages[i].content));
+		GtkWidget *tab     = GTK_WIDGET(gtk_builder_get_object(gui.builder, pages[i].tab));
+		if (!content || !tab) {
+			g_warning("reassemble_center_notebook: missing page '%s'", pages[i].content);
+			continue;
+		}
+		gtk_notebook_insert_page(nb, content, tab, pages[i].pos);
+	}
+}
+
 void initialize_all_GUI(gchar *supported_files) {
+	/* Re-attach the notebook tabs that were split into separate .ui files
+	 * before anything inspects notebook_center_box. */
+	reassemble_center_notebook();
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
