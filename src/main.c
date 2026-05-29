@@ -561,6 +561,17 @@ static void siril_app_activate(GApplication *application) {
 		gtk_header_bar_set_use_native_controls(bar, TRUE);
 #endif
 
+#if defined(USE_GTK4) && defined(OS_OSX)
+		/* GTK4's macOS backend automatically adds app.preferences and app.about
+		 * to the native Application menu, so hide them from the hamburger menu
+		 * to avoid duplicates. The separator between Preferences and the help
+		 * items is also hidden since it would otherwise appear at the top of the
+		 * menu with nothing above it. */
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_preferences")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_separator")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_about")), FALSE);
+#endif
+
 		/* Load state of the main windows (position and maximized) */
 		update_splash_progress(_("Restoring window state..."), 0.75);
 		gui_function(load_main_window_state, NULL);
