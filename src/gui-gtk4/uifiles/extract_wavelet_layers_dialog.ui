@@ -1,28 +1,25 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name extract_wavelet_layers_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_extract_w">
     <property name="lower">2</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">9</property>
     <property name="value">2</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkWindow" id="extract_wavelets_layers_dialog">
-    <property name="width-request">400</property>
-    <property name="height-request">200</property>
-    <property name="title" translatable="1">Wavelets Layers Extraction</property>
-    <property name="resizable">0</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="dialog-vbox32">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
@@ -30,14 +27,14 @@
                 <property name="row-spacing">10</property>
                 <child>
                   <object class="GtkSpinButton" id="spinbutton_extract_w">
-                    <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Number of wavelet layers. You can choose up to 9 layers for wavelets computing.</property>
-                    <property name="hexpand">1</property>
-                    <property name="max-width-chars">7</property>
-                    <property name="text">2</property>
                     <property name="adjustment">adj_extract_w</property>
                     <property name="climb-rate">1</property>
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="max-width-chars">7</property>
                     <property name="numeric">1</property>
+                    <property name="text">2</property>
+                    <property name="tooltip-text" translatable="yes">Number of wavelet layers. You can choose up to 9 layers for wavelets computing.</property>
                     <property name="value">2</property>
                     <layout>
                       <property name="column">1</property>
@@ -47,6 +44,7 @@
                 </child>
                 <child>
                   <object class="GtkDropDown" id="combo_interpolation_extract_w">
+                    <property name="hexpand">1</property>
                     <property name="model">
                       <object class="GtkStringList">
                         <items>
@@ -55,10 +53,9 @@
                         </items>
                       </object>
                     </property>
-                    <property name="tooltip-text" translatable="1">Type of algorithm</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">1</property>
                     <property name="selected">1</property>
+                    <property name="tooltip-text" translatable="yes">Type of algorithm</property>
+                    <property name="valign">center</property>
                     <layout>
                       <property name="column">1</property>
                       <property name="row">1</property>
@@ -68,7 +65,7 @@
                 <child>
                   <object class="GtkLabel" id="label153">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Nb. of Layers: </property>
+                    <property name="label" translatable="yes">Nb. of Layers: </property>
                     <layout>
                       <property name="column">0</property>
                       <property name="row">0</property>
@@ -78,7 +75,7 @@
                 <child>
                   <object class="GtkLabel" id="label155">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Interpolation: </property>
+                    <property name="label" translatable="yes">Interpolation: </property>
                     <layout>
                       <property name="column">0</property>
                       <property name="row">1</property>
@@ -91,31 +88,31 @@
         </child>
         <child>
           <object class="GtkBox" id="dialog-action_area34">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkButton" id="button_extract_w_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Close</property>
-                <signal name="clicked" handler="on_button_extract_w_close_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Close</property>
+                <signal name="clicked" handler="on_button_extract_w_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="button_extract_w_ok">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Apply wavelet extraction.</property>
-                <signal name="clicked" handler="on_button_extract_w_ok_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Apply wavelet extraction.</property>
+                <signal name="clicked" handler="on_button_extract_w_ok_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -123,5 +120,10 @@
         </child>
       </object>
     </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Wavelets Layers Extraction</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
   </object>
 </interface>

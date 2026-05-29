@@ -1,27 +1,24 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name rotation_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="rotation_angle">
     <property name="lower">-180</property>
-    <property name="upper">180</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">180</property>
   </object>
   <object class="GtkWindow" id="rotation_dialog">
-    <property name="width-request">400</property>
-    <property name="height-request">200</property>
-    <property name="title" translatable="1">Rotate&amp;Crop</property>
-    <property name="resizable">0</property>
-    <signal name="close-request" handler="rotation_hide_on_delete" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="dialog-vbox22">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
@@ -29,42 +26,42 @@
                 <child>
                   <object class="GtkLabel" id="label90">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Angle (°)</property>
+                    <property name="label" translatable="yes">Angle (°)</property>
                   </object>
                 </child>
                 <child>
                   <object class="GtkSpinButton" id="spinbutton_rotation">
-                    <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Angle in degrees. Rotation center is the center of the image.</property>
-                    <property name="halign">end</property>
-                    <property name="hexpand">1</property>
-                    <property name="width-chars">6</property>
-                    <property name="max-width-chars">7</property>
-                    <property name="text">0.00</property>
                     <property name="adjustment">rotation_angle</property>
                     <property name="climb-rate">0.01</property>
                     <property name="digits">2</property>
+                    <property name="focusable">1</property>
+                    <property name="halign">end</property>
+                    <property name="hexpand">1</property>
+                    <property name="max-width-chars">7</property>
                     <property name="numeric">1</property>
-                    <signal name="value-changed" handler="on_spin_rotation_value_changed" swapped="no" />
+                    <property name="text">0.00</property>
+                    <property name="tooltip-text" translatable="yes">Angle in degrees. Rotation center is the center of the image.</property>
+                    <property name="width-chars">6</property>
+                    <signal name="value-changed" handler="on_spin_rotation_value_changed"/>
                   </object>
                 </child>
               </object>
             </child>
             <child>
               <object class="GtkScale">
-                <property name="focusable">1</property>
                 <property name="adjustment">rotation_angle</property>
+                <property name="focusable">1</property>
                 <property name="round-digits">1</property>
               </object>
             </child>
             <child>
               <object class="GtkCheckButton" id="checkbutton_rotation_crop">
-                <property name="label" translatable="1">Crop</property>
-                <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">Checking this box will crop the output image.</property>
-                <property name="halign">end</property>
                 <property name="active">1</property>
-                <signal name="toggled" handler="on_checkbutton_rotation_crop_toggled" swapped="no" />
+                <property name="focusable">1</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Crop</property>
+                <property name="tooltip-text" translatable="yes">Checking this box will crop the output image.</property>
+                <signal name="toggled" handler="on_checkbutton_rotation_crop_toggled"/>
               </object>
             </child>
             <child>
@@ -72,11 +69,13 @@
                 <child>
                   <object class="GtkLabel" id="label93">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Interpolation: </property>
+                    <property name="label" translatable="yes">Interpolation: </property>
                   </object>
                 </child>
                 <child>
                   <object class="GtkDropDown" id="combo_interpolation_rotation">
+                    <property name="halign">end</property>
+                    <property name="hexpand">1</property>
                     <property name="model">
                       <object class="GtkStringList">
                         <items>
@@ -88,51 +87,49 @@
                         </items>
                       </object>
                     </property>
-                    <property name="tooltip-text" translatable="1">Type of algorithm used for rotation</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">1</property>
                     <property name="selected">4</property>
-                    <signal name="notify::selected" handler="on_combo_interpolation_rotation_changed" swapped="no" />
+                    <property name="tooltip-text" translatable="yes">Type of algorithm used for rotation</property>
+                    <property name="valign">center</property>
+                    <signal name="notify::selected" handler="on_combo_interpolation_rotation_changed"/>
                   </object>
                 </child>
               </object>
             </child>
             <child>
               <object class="GtkCheckButton" id="toggle_rot_clamp">
-                <property name="label" translatable="1">Interpolation clamping</property>
-                <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
                 <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Interpolation clamping</property>
+                <property name="tooltip-text" translatable="yes">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
               </object>
             </child>
           </object>
         </child>
         <child>
           <object class="GtkBox" id="dialog-action_area24">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkButton" id="button_rotation_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_button_rotation_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_button_rotation_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="button_rotation_ok">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_button_rotation_ok_clicked" swapped="no" />
+                <signal name="clicked" handler="on_button_rotation_ok_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -140,5 +137,10 @@
         </child>
       </object>
     </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Rotate&amp;Crop</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="rotation_hide_on_delete"/>
   </object>
 </interface>

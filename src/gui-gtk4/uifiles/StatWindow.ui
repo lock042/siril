@@ -1,96 +1,95 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name StatWindow.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkWindow" id="StatWindow">
-    <property name="width-request">450</property>
-    <property name="title" translatable="1">Statistics</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="dialog-vbox30">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">2</property>
             <child>
               <object class="GtkBox">
                 <child>
                   <object class="GtkCheckButton" id="statCheckButton">
-                    <property name="label" translatable="1">Normalized Real [0, 1]</property>
                     <property name="focusable">1</property>
-                    <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no" />
+                    <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+                    <signal name="toggled" handler="on_statCheckButton_toggled"/>
                   </object>
                 </child>
                 <child>
                   <object class="GtkCheckButton" id="cfastatsCheckButton">
-                    <property name="label" translatable="1">Per CFA channel</property>
-                    <property name="sensitive">0</property>
-                    <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
                     <property name="active">1</property>
-                    <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no" />
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Per CFA channel</property>
+                    <property name="sensitive">0</property>
+                    <property name="tooltip-text" translatable="yes">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
+                    <signal name="toggled" handler="on_statCheckButton_toggled"/>
                   </object>
                 </child>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="statNameLabel">
-                <property name="label" translatable="1">Name</property>
                 <property name="ellipsize">start</property>
+                <property name="label" translatable="yes">Name</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="statSelecLabel">
-                <property name="label" translatable="1">No Selection</property>
+                <property name="label" translatable="yes">No Selection</property>
               </object>
             </child>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow2">
-                <property name="vexpand">1</property>
-                <property name="height-request">250</property>
                 <property name="focusable">1</property>
-                <child>
-                  <placeholder />
-                </child>
+                <property name="height-request">250</property>
+                <property name="vexpand">1</property>
               </object>
             </child>
           </object>
         </child>
         <child>
           <object class="GtkBox" id="dialog-action_area32">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="statButtonRun">
-                <property name="label" translatable="1">Execute</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Execute</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Run statistic calculation</property>
-                <signal name="clicked" handler="on_statButtonRun_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Run statistic calculation</property>
+                <signal name="clicked" handler="on_statButtonRun_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="statButtonClose">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Close the window</property>
-                <signal name="clicked" handler="on_statButtonClose_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Close the window</property>
+                <signal name="clicked" handler="on_statButtonClose_clicked"/>
               </object>
             </child>
           </object>
         </child>
       </object>
     </property>
+    <property name="title" translatable="yes">Statistics</property>
+    <property name="width-request">450</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
   </object>
 </interface>

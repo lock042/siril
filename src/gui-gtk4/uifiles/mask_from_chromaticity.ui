@@ -1,55 +1,50 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name mask_from_chromaticity.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_color_mask_feather">
-    <property name="upper">100</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">5</property>
+    <property name="step-increment">1</property>
+    <property name="upper">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_color_mask_lum_max">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
     <property name="upper">1</property>
     <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adj_color_mask_lum_min">
-    <property name="upper">1</property>
-    <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
   </object>
   <object class="GtkAdjustment" id="adj_color_mask_tolerance">
+    <property name="page-increment">0.05</property>
+    <property name="step-increment">0.01</property>
     <property name="upper">1</property>
     <property name="value">0.14999999999999999</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.05</property>
   </object>
   <object class="GtkWindow" id="mask_from_color_dialog">
-    <property name="width-request">600</property>
-    <property name="height-request">500</property>
-    <property name="title" translatable="1">Create Color Mask</property>
-    <property name="resizable">0</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_mask_color_close_clicked" swapped="no" />
-    <signal name="show" handler="on_mask_from_color_dialog_show" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
               <object class="GtkGrid">
-                <property name="row-spacing">10</property>
                 <property name="column-spacing">10</property>
+                <property name="row-spacing">10</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Bit Depth</property>
+                    <property name="label" translatable="yes">Bit Depth</property>
                     <layout>
                       <property name="column">0</property>
                       <property name="row">0</property>
@@ -83,7 +78,7 @@
                 <child>
                   <object class="GtkLabel">
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">&lt;b&gt;Target Chromaticity (Pure Color)&lt;/b&gt;</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Target Chromaticity (Pure Color)&lt;/b&gt;</property>
                     <property name="use-markup">1</property>
                   </object>
                 </child>
@@ -94,14 +89,14 @@
                       <object class="GtkFrame">
                         <property name="child">
                           <object class="GtkDrawingArea" id="drawing_area_color_display">
-                            <property name="width-request">100</property>
                             <property name="height-request">100</property>
-                            <property name="tooltip-text" translatable="1">Selected color preview</property>
+                            <property name="tooltip-text" translatable="yes">Selected color preview</property>
+                            <property name="width-request">100</property>
                           </object>
                         </property>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Selected Color</property>
+                            <property name="label" translatable="yes">Selected Color</property>
                           </object>
                         </child>
                       </object>
@@ -113,22 +108,22 @@
                         <child>
                           <object class="GtkLabel">
                             <property name="halign">start</property>
-                            <property name="label" translatable="1">&lt;i&gt;Click "Pick Color from Image" to select
+                            <property name="label" translatable="yes">&lt;i&gt;Click "Pick Color from Image" to select
     a pixel from the image. The chromaticity
     (pure color ratio) will be extracted
     automatically, independent of brightness.&lt;/i&gt;</property>
+                            <property name="max-width-chars">30</property>
                             <property name="use-markup">1</property>
                             <property name="wrap">1</property>
-                            <property name="max-width-chars">30</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkButton" id="button_pick_from_image">
-                            <property name="label" translatable="1">Pick Color from Image</property>
                             <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Pick Color from Image</property>
                             <property name="receives-default">1</property>
-                            <property name="tooltip-text" translatable="1">Click to select a pixel from the image to use its color</property>
-                            <signal name="clicked" handler="on_button_pick_from_image_clicked" swapped="no" />
+                            <property name="tooltip-text" translatable="yes">Click to select a pixel from the image to use its color</property>
+                            <signal name="clicked" handler="on_button_pick_from_image_clicked"/>
                           </object>
                         </child>
                       </object>
@@ -137,14 +132,14 @@
                 </child>
                 <child>
                   <object class="GtkGrid">
-                    <property name="vexpand">1</property>
-                    <property name="row-spacing">10</property>
                     <property name="column-spacing">10</property>
+                    <property name="row-spacing">10</property>
+                    <property name="vexpand">1</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="tooltip-text" translatable="1">How far from the target color to accept (0.0 = exact match, 1.0 = very broad)</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Color Tolerance</property>
+                        <property name="label" translatable="yes">Color Tolerance</property>
+                        <property name="tooltip-text" translatable="yes">How far from the target color to accept (0.0 = exact match, 1.0 = very broad)</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">0</property>
@@ -153,11 +148,11 @@
                     </child>
                     <child>
                       <object class="GtkScale" id="scale_color_tolerance">
+                        <property name="adjustment">adj_color_mask_tolerance</property>
+                        <property name="digits">2</property>
                         <property name="draw-value">1</property>
                         <property name="focusable">1</property>
                         <property name="hexpand">1</property>
-                        <property name="adjustment">adj_color_mask_tolerance</property>
-                        <property name="digits">2</property>
                         <property name="value-pos">right</property>
                         <layout>
                           <property name="column">1</property>
@@ -167,9 +162,9 @@
                     </child>
                     <child>
                       <object class="GtkLabel">
-                        <property name="tooltip-text" translatable="1">Minimum brightness (0.0 = black, 1.0 = white)</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Luminance Min</property>
+                        <property name="label" translatable="yes">Luminance Min</property>
+                        <property name="tooltip-text" translatable="yes">Minimum brightness (0.0 = black, 1.0 = white)</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -178,11 +173,11 @@
                     </child>
                     <child>
                       <object class="GtkScale" id="scale_lum_min">
+                        <property name="adjustment">adj_color_mask_lum_min</property>
+                        <property name="digits">2</property>
                         <property name="draw-value">1</property>
                         <property name="focusable">1</property>
                         <property name="hexpand">1</property>
-                        <property name="adjustment">adj_color_mask_lum_min</property>
-                        <property name="digits">2</property>
                         <property name="value-pos">right</property>
                         <layout>
                           <property name="column">1</property>
@@ -192,9 +187,9 @@
                     </child>
                     <child>
                       <object class="GtkLabel">
-                        <property name="tooltip-text" translatable="1">Maximum brightness (0.0 = black, 1.0 = white)</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Luminance Max</property>
+                        <property name="label" translatable="yes">Luminance Max</property>
+                        <property name="tooltip-text" translatable="yes">Maximum brightness (0.0 = black, 1.0 = white)</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">2</property>
@@ -203,11 +198,11 @@
                     </child>
                     <child>
                       <object class="GtkScale" id="scale_lum_max">
+                        <property name="adjustment">adj_color_mask_lum_max</property>
+                        <property name="digits">2</property>
                         <property name="draw-value">1</property>
                         <property name="focusable">1</property>
                         <property name="hexpand">1</property>
-                        <property name="adjustment">adj_color_mask_lum_max</property>
-                        <property name="digits">2</property>
                         <property name="value-pos">right</property>
                         <layout>
                           <property name="column">1</property>
@@ -220,17 +215,17 @@
               </object>
             </child>
             <child>
-              <object class="GtkSeparator" />
+              <object class="GtkSeparator"/>
             </child>
             <child>
               <object class="GtkGrid">
-                <property name="row-spacing">10</property>
                 <property name="column-spacing">10</property>
+                <property name="row-spacing">10</property>
                 <child>
                   <object class="GtkLabel">
-                    <property name="tooltip-text" translatable="1">Smooths mask edges. 0 = hard edges, higher = softer transitions</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="1">Feather Radius (px)</property>
+                    <property name="label" translatable="yes">Feather Radius (px)</property>
+                    <property name="tooltip-text" translatable="yes">Smooths mask edges. 0 = hard edges, higher = softer transitions</property>
                     <layout>
                       <property name="column">0</property>
                       <property name="row">0</property>
@@ -239,8 +234,8 @@
                 </child>
                 <child>
                   <object class="GtkSpinButton" id="spin_color_feather">
-                    <property name="focusable">1</property>
                     <property name="adjustment">adj_color_mask_feather</property>
+                    <property name="focusable">1</property>
                     <layout>
                       <property name="column">1</property>
                       <property name="row">0</property>
@@ -251,45 +246,45 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="toggle_color_mask_invert">
-                <property name="label" translatable="1">Invert mask</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">If checked, the mask will be inverted</property>
+                <property name="label" translatable="yes">Invert mask</property>
+                <property name="tooltip-text" translatable="yes">If checked, the mask will be inverted</property>
               </object>
             </child>
             <child>
               <object class="GtkCheckButton" id="toggle_color_mask_cleanup">
-                <property name="label" translatable="1">Clean up mask</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="1">If checked, morphological operations are carried out to clean up the mask to remove isolated noise and small holes in the mask. This is slower to compute but may give a nicer mask</property>
+                <property name="label" translatable="yes">Clean up mask</property>
+                <property name="tooltip-text" translatable="yes">If checked, morphological operations are carried out to clean up the mask to remove isolated noise and small holes in the mask. This is slower to compute but may give a nicer mask</property>
               </object>
             </child>
           </object>
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkButton" id="mask_color_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mask_color_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mask_color_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="mask_color_apply">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mask_color_apply_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mask_color_apply_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -297,5 +292,12 @@
         </child>
       </object>
     </property>
+    <property name="height-request">500</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Create Color Mask</property>
+    <property name="width-request">600</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_mask_color_close_clicked"/>
+    <signal name="show" handler="on_mask_from_color_dialog_show"/>
   </object>
 </interface>

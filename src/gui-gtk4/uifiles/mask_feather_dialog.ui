@@ -1,46 +1,43 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name mask_feather_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_feather_distance">
     <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">2000</property>
     <property name="value">10</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkWindow" id="mask_feather_dialog">
-    <property name="title" translatable="1">Feather Image Mask</property>
-    <property name="resizable">0</property>
-    <property name="modal">1</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_feather_mask_close_clicked" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">8</property>
             <child>
               <object class="GtkBox">
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
-                <property name="margin-top">6</property>
                 <property name="margin-bottom">6</property>
+                <property name="margin-end">6</property>
+                <property name="margin-start">6</property>
+                <property name="margin-top">6</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkGrid">
-                    <property name="row-spacing">8</property>
                     <property name="column-spacing">12</property>
+                    <property name="row-spacing">8</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Feather distance (pixels):</property>
+                        <property name="label" translatable="yes">Feather distance (pixels):</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">0</property>
@@ -49,10 +46,10 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spin_mask_feather_distance">
-                        <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Feather distance in pixels. A linear feather is applied to soften the mask edge.</property>
                         <property name="adjustment">adj_feather_distance</property>
+                        <property name="focusable">1</property>
                         <property name="numeric">1</property>
+                        <property name="tooltip-text" translatable="yes">Feather distance in pixels. A linear feather is applied to soften the mask edge.</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">0</property>
@@ -62,7 +59,7 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Feather type:</property>
+                        <property name="label" translatable="yes">Feather type:</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -80,8 +77,8 @@
                             </items>
                           </object>
                         </property>
-                        <property name="tooltip-text" translatable="1">Select the type of feathering. "Inner" feathers inside the "mask active" boundaries; "Outer" feathers outside the "mask active" boundaries, and "Edge" feathers equally either side of the boundary.</property>
                         <property name="selected">1</property>
+                        <property name="tooltip-text" translatable="yes">Select the type of feathering. "Inner" feathers inside the "mask active" boundaries; "Outer" feathers outside the "mask active" boundaries, and "Edge" feathers equally either side of the boundary.</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">1</property>
@@ -96,30 +93,30 @@
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="feather_mask_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_feather_mask_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_feather_mask_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="feather_mask_apply">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_feather_mask_apply_clicked" swapped="no" />
+                <signal name="clicked" handler="on_feather_mask_apply_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -127,5 +124,10 @@
         </child>
       </object>
     </property>
+    <property name="modal">1</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Feather Image Mask</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_feather_mask_close_clicked"/>
   </object>
 </interface>

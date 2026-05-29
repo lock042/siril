@@ -1,60 +1,50 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name mouse_actions.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="mouse_speed_limit_adjustment">
-    <property name="upper">5</property>
-    <property name="step-increment">0.10</property>
     <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">5</property>
   </object>
   <object class="GtkWindow" id="mouse_actions_dialog">
-    <property name="width-request">800</property>
-    <property name="height-request">600</property>
-    <property name="title" translatable="1">Mouse Action Preferences</property>
-    <property name="resizable">0</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_mouse_actions_dialog_hide" swapped="no" />
-    <signal name="show" handler="on_mouse_actions_dialog_show" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">2</property>
             <child>
               <object class="GtkFrame">
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
                 <property name="child">
                   <object class="GtkGrid">
-                    <property name="row-spacing">6</property>
-                    <property name="column-spacing">6</property>
                     <property name="column-homogeneous">1</property>
+                    <property name="column-spacing">6</property>
+                    <property name="row-spacing">6</property>
                     <child>
                       <object class="GtkScrolledWindow" id="mouse_treeview_scrolled_window">
-                        <property name="height-request">256</property>
                         <property name="focusable">1</property>
-                        <child>
-                          <placeholder />
-                        </child>
+                        <property name="height-request">256</property>
                         <layout>
                           <property name="column">0</property>
-                          <property name="row">0</property>
                           <property name="column-span">2</property>
+                          <property name="row">0</property>
                         </layout>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="mouse_actions_add">
-                        <property name="icon-name">list-add-symbolic</property>
                         <property name="focusable">1</property>
+                        <property name="icon-name">list-add-symbolic</property>
                         <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Add an extra mouse action</property>
-                        <signal name="clicked" handler="on_mouse_actions_add_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Add an extra mouse action</property>
+                        <signal name="clicked" handler="on_mouse_actions_add_clicked"/>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -63,11 +53,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="mouse_actions_remove">
-                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="focusable">1</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Remove the selected mouse action</property>
-                        <signal name="clicked" handler="on_mouse_actions_remove_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Remove the selected mouse action</property>
+                        <signal name="clicked" handler="on_mouse_actions_remove_clicked"/>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">1</property>
@@ -76,7 +66,7 @@
                     </child>
                     <child>
                       <object class="GtkLabel" id="mouse_test_area_label">
-                        <property name="label" translatable="1">Mouse button / scroll check</property>
+                        <property name="label" translatable="yes">Mouse button / scroll check</property>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">1</property>
@@ -87,12 +77,9 @@
                       <object class="GtkFrame" id="mouse_test_frame">
                         <property name="child">
                           <object class="GtkDrawingArea" id="mouse_test_drawingarea">
-                            <property name="tooltip-text" translatable="1">Click this area to check mouse button numbering and scroll direction, to ensure you set the correct number for mouse actions</property>
+                            <property name="tooltip-text" translatable="yes">Click this area to check mouse button numbering and scroll direction, to ensure you set the correct number for mouse actions</property>
                           </object>
                         </property>
-                        <child type="label_item">
-                          <placeholder />
-                        </child>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">0</property>
@@ -101,11 +88,13 @@
                     </child>
                   </object>
                 </property>
+                <property name="margin-end">6</property>
+                <property name="margin-start">6</property>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Mouse Click Actions</property>
+                    <property name="label" translatable="yes">Mouse Click Actions</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -113,34 +102,29 @@
             </child>
             <child>
               <object class="GtkFrame">
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
                 <property name="child">
                   <object class="GtkGrid">
-                    <property name="row-spacing">6</property>
-                    <property name="column-spacing">6</property>
                     <property name="column-homogeneous">1</property>
+                    <property name="column-spacing">6</property>
+                    <property name="row-spacing">6</property>
                     <child>
                       <object class="GtkScrolledWindow" id="scroll_treeview_scrolled_window">
-                        <property name="height-request">192</property>
                         <property name="focusable">1</property>
-                        <child>
-                          <placeholder />
-                        </child>
+                        <property name="height-request">192</property>
                         <layout>
                           <property name="column">0</property>
-                          <property name="row">0</property>
                           <property name="column-span">2</property>
+                          <property name="row">0</property>
                         </layout>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="scroll_actions_add">
-                        <property name="icon-name">list-add-symbolic</property>
                         <property name="focusable">1</property>
+                        <property name="icon-name">list-add-symbolic</property>
                         <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Add a scroll action</property>
-                        <signal name="clicked" handler="on_scroll_actions_add_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Add a scroll action</property>
+                        <signal name="clicked" handler="on_scroll_actions_add_clicked"/>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -149,11 +133,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="scroll_actions_remove">
-                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="focusable">1</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                         <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Remove a scroll action</property>
-                        <signal name="clicked" handler="on_scroll_actions_remove_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Remove a scroll action</property>
+                        <signal name="clicked" handler="on_scroll_actions_remove_clicked"/>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">1</property>
@@ -162,7 +146,7 @@
                     </child>
                     <child>
                       <object class="GtkLabel">
-                        <property name="label" translatable="1"> </property>
+                        <property name="label" translatable="yes"> </property>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">1</property>
@@ -175,18 +159,18 @@
                         <child>
                           <object class="GtkLabel">
                             <property name="halign">start</property>
-                            <property name="label" translatable="1">Scroll speed limit</property>
+                            <property name="label" translatable="yes">Scroll speed limit</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
                         <child>
                           <object class="GtkSpinButton" id="spin_mouse_speed_limit">
-                            <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">Set a scroll speed limit. Not required for most mice, but if you have an issue where the scroll wheel carries out its action (eg zoom) far too fast, you can limit the action step size using this control. Try starting with 1.0 and working down from there. 0.0 means unlimited.</property>
                             <property name="adjustment">mouse_speed_limit_adjustment</property>
                             <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="yes">Set a scroll speed limit. Not required for most mice, but if you have an issue where the scroll wheel carries out its action (eg zoom) far too fast, you can limit the action step size using this control. Try starting with 1.0 and working down from there. 0.0 means unlimited.</property>
                           </object>
                         </child>
                         <layout>
@@ -197,11 +181,13 @@
                     </child>
                   </object>
                 </property>
+                <property name="margin-end">6</property>
+                <property name="margin-start">6</property>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Scroll Actions</property>
+                    <property name="label" translatable="yes">Scroll Actions</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -211,41 +197,48 @@
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="mouse_actions_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mouse_actions_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mouse_actions_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="mouse_actions_reset">
-                <property name="label" translatable="1">Reset</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reset</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mouse_actions_reset_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mouse_actions_reset_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="mouse_actions_apply">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mouse_actions_apply_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mouse_actions_apply_clicked"/>
               </object>
             </child>
           </object>
         </child>
       </object>
     </property>
+    <property name="height-request">600</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Mouse Action Preferences</property>
+    <property name="width-request">800</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_mouse_actions_dialog_hide"/>
+    <signal name="show" handler="on_mouse_actions_dialog_show"/>
   </object>
 </interface>

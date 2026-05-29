@@ -1,50 +1,46 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name resample_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_resample_X_pixels">
     <property name="lower">10</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100000</property>
     <property name="value">2048</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_resample_Y_pixels">
     <property name="lower">10</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100000</property>
     <property name="value">2048</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="resample_X">
     <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">999</property>
     <property name="value">100</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="resample_Y">
     <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">999.89999999999998</property>
     <property name="value">100</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkWindow" id="resample_dialog">
-    <property name="width-request">400</property>
-    <property name="height-request">200</property>
-    <property name="title" translatable="1">Resample</property>
-    <property name="resizable">0</property>
-    <signal name="close-request" handler="resample_hide_on_delete" swapped="no" />
-    <signal name="show" handler="on_resample_dialog_show" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="dialog-vbox15">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
@@ -57,7 +53,7 @@
                     <child>
                       <object class="GtkLabel" id="label87">
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">X scale</property>
+                        <property name="label" translatable="yes">X scale</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -67,7 +63,7 @@
                     <child>
                       <object class="GtkLabel" id="label88">
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Y scale</property>
+                        <property name="label" translatable="yes">Y scale</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">2</property>
@@ -76,22 +72,22 @@
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="button_sample_ratio">
-                        <property name="label" translatable="1">Preserve Aspect Ratio</property>
+                        <property name="active">1</property>
                         <property name="focusable">1</property>
                         <property name="halign">end</property>
-                        <property name="active">1</property>
-                        <signal name="toggled" handler="on_button_sample_ratio_toggled" swapped="no" />
+                        <property name="label" translatable="yes">Preserve Aspect Ratio</property>
+                        <signal name="toggled" handler="on_button_sample_ratio_toggled"/>
                         <layout>
                           <property name="column">0</property>
-                          <property name="row">3</property>
                           <property name="column-span">3</property>
+                          <property name="row">3</property>
                         </layout>
                       </object>
                     </child>
                     <child>
                       <object class="GtkLabel" id="label89">
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Interpolation: </property>
+                        <property name="label" translatable="yes">Interpolation: </property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">4</property>
@@ -100,6 +96,8 @@
                     </child>
                     <child>
                       <object class="GtkDropDown" id="combo_interpolation">
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
                         <property name="model">
                           <object class="GtkStringList">
                             <items>
@@ -111,31 +109,29 @@
                             </items>
                           </object>
                         </property>
-                        <property name="tooltip-text" translatable="1">Type of algorithm used for resampling</property>
-                        <property name="halign">end</property>
-                        <property name="valign">center</property>
-                        <property name="hexpand">1</property>
                         <property name="selected">4</property>
-                        <signal name="notify::selected" handler="on_combo_interpolation_changed" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Type of algorithm used for resampling</property>
+                        <property name="valign">center</property>
+                        <signal name="notify::selected" handler="on_combo_interpolation_changed"/>
                         <layout>
                           <property name="column">1</property>
-                          <property name="row">4</property>
                           <property name="column-span">2</property>
+                          <property name="row">4</property>
                         </layout>
                       </object>
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spinbutton_resample_Y">
-                        <property name="focusable">1</property>
-                        <property name="halign">start</property>
-                        <property name="width-chars">9</property>
-                        <property name="text">100,00</property>
                         <property name="adjustment">resample_Y</property>
                         <property name="climb-rate">0.01</property>
                         <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
                         <property name="numeric">1</property>
+                        <property name="text">100,00</property>
                         <property name="value">100</property>
-                        <signal name="value-changed" handler="on_spinbutton_resample_Y_value_changed" swapped="no" />
+                        <property name="width-chars">9</property>
+                        <signal name="value-changed" handler="on_spinbutton_resample_Y_value_changed"/>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">2</property>
@@ -144,16 +140,16 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spinbutton_resample_X">
-                        <property name="focusable">1</property>
-                        <property name="halign">start</property>
-                        <property name="width-chars">9</property>
-                        <property name="text">100,00</property>
                         <property name="adjustment">resample_X</property>
                         <property name="climb-rate">0.01</property>
                         <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
                         <property name="numeric">1</property>
+                        <property name="text">100,00</property>
                         <property name="value">100</property>
-                        <signal name="value-changed" handler="on_spinbutton_resample_X_value_changed" swapped="no" />
+                        <property name="width-chars">9</property>
+                        <signal name="value-changed" handler="on_spinbutton_resample_X_value_changed"/>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">1</property>
@@ -162,9 +158,9 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spinbutton_resample_X_px">
-                        <property name="focusable">1</property>
                         <property name="adjustment">adj_resample_X_pixels</property>
-                        <signal name="value-changed" handler="on_spinbutton_resample_X_px_value_changed" swapped="no" />
+                        <property name="focusable">1</property>
+                        <signal name="value-changed" handler="on_spinbutton_resample_X_px_value_changed"/>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">1</property>
@@ -173,9 +169,9 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spinbutton_resample_Y_px">
-                        <property name="focusable">1</property>
                         <property name="adjustment">adj_resample_Y_pixels</property>
-                        <signal name="value-changed" handler="on_spinbutton_resample_Y_px_value_changed" swapped="no" />
+                        <property name="focusable">1</property>
+                        <signal name="value-changed" handler="on_spinbutton_resample_Y_px_value_changed"/>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">2</property>
@@ -184,7 +180,7 @@
                     </child>
                     <child>
                       <object class="GtkLabel">
-                        <property name="label" translatable="1">%</property>
+                        <property name="label" translatable="yes">%</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">0</property>
@@ -193,24 +189,21 @@
                     </child>
                     <child>
                       <object class="GtkLabel">
-                        <property name="label" translatable="1">pixels</property>
+                        <property name="label" translatable="yes">pixels</property>
                         <layout>
                           <property name="column">2</property>
                           <property name="row">0</property>
                         </layout>
                       </object>
                     </child>
-                    <child>
-                      <placeholder />
-                    </child>
                   </object>
                 </child>
                 <child>
                   <object class="GtkCheckButton" id="toggle_scale_clamp">
-                    <property name="label" translatable="1">Interpolation clamping</property>
-                    <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
                     <property name="active">1</property>
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Interpolation clamping</property>
+                    <property name="tooltip-text" translatable="yes">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
                   </object>
                 </child>
               </object>
@@ -219,29 +212,29 @@
         </child>
         <child>
           <object class="GtkBox" id="dialog-action_area16">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkButton" id="button_resample_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_button_resample_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_button_resample_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="button_resample_ok">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_button_resample_ok_clicked" swapped="no" />
+                <signal name="clicked" handler="on_button_resample_ok_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -249,5 +242,11 @@
         </child>
       </object>
     </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Resample</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="resample_hide_on_delete"/>
+    <signal name="show" handler="on_resample_dialog_show"/>
   </object>
 </interface>

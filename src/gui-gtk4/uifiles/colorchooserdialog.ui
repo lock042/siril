@@ -1,58 +1,55 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name colorchooserdialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkWindow" id="colorchooserdialog">
-    <property name="title" translatable="1">Composition Layer Colour</property>
-    <property name="modal">1</property>
-    <property name="hide-on-close">1</property>
-    <property name="default-width">420</property>
     <property name="child">
       <object class="GtkBox">
+        <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">12</property>
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
         <child>
           <object class="GtkLabel">
-                <property name="label" translatable="1">Pick a colour for the current composition layer.</property>
-            <property name="xalign">0</property>
+            <property name="label" translatable="yes">Pick a colour for the current composition layer.</property>
             <property name="wrap">1</property>
+            <property name="xalign">0</property>
           </object>
         </child>
         <child>
           <object class="GtkColorDialogButton" id="colordialog_button">
-                <property name="halign">center</property>
-            <property name="hexpand">0</property>
             <property name="dialog">
               <object class="GtkColorDialog">
-                <property name="title" translatable="1">Pick Colour</property>
+                <property name="title" translatable="yes">Pick Colour</property>
                 <property name="with-alpha">0</property>
               </object>
             </property>
-            <signal name="notify::rgba" handler="on_colordialog_rgba_notify" swapped="no" />
+            <property name="halign">center</property>
+            <property name="hexpand">0</property>
+            <signal name="notify::rgba" handler="on_colordialog_rgba_notify"/>
           </object>
         </child>
         <child>
-          <object class="GtkSeparator">
-              </object>
+          <object class="GtkSeparator"/>
         </child>
         <child>
           <object class="GtkLabel" id="label_colsel">
-                <property name="label" translatable="1">Alternatively, for true colour rendering, select a filter from the list or enter a visible wavelength in nm.</property>
             <property name="justify">center</property>
+            <property name="label" translatable="yes">Alternatively, for true colour rendering, select a filter from the list or enter a visible wavelength in nm.</property>
             <property name="wrap">1</property>
           </object>
         </child>
         <child>
           <object class="GtkGrid" id="grid10">
-                <property name="row-spacing">6</property>
             <property name="column-spacing">12</property>
             <property name="halign">center</property>
+            <property name="row-spacing">6</property>
             <child>
               <object class="GtkLabel">
-                        <property name="label" translatable="1">Filter</property>
+                <property name="label" translatable="yes">Filter</property>
                 <property name="xalign">1</property>
                 <layout>
                   <property name="column">0</property>
@@ -62,7 +59,7 @@
             </child>
             <child>
               <object class="GtkDropDown" id="comboboxtext_filters">
-                        <signal name="notify::selected" handler="on_filter_changed" swapped="no" />
+                <signal name="notify::selected" handler="on_filter_changed"/>
                 <layout>
                   <property name="column">1</property>
                   <property name="row">0</property>
@@ -71,7 +68,7 @@
             </child>
             <child>
               <object class="GtkLabel">
-                        <property name="label" translatable="1">Wavelength (nm)</property>
+                <property name="label" translatable="yes">Wavelength (nm)</property>
                 <property name="xalign">1</property>
                 <layout>
                   <property name="column">0</property>
@@ -81,10 +78,10 @@
             </child>
             <child>
               <object class="GtkEntry" id="entry_wavelength">
-                        <property name="tooltip-text" translatable="1">Enter a wavelength value in nanometers, between 380 and 780, decimals are accepted.</property>
-                <property name="width-chars">8</property>
                 <property name="input-hints">no-emoji</property>
-                <signal name="changed" handler="on_wavelength_changed" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Enter a wavelength value in nanometers, between 380 and 780, decimals are accepted.</property>
+                <property name="width-chars">8</property>
+                <signal name="changed" handler="on_wavelength_changed"/>
                 <layout>
                   <property name="column">1</property>
                   <property name="row">1</property>
@@ -95,25 +92,29 @@
         </child>
         <child>
           <object class="GtkBox">
-                <property name="halign">end</property>
+            <property name="halign">end</property>
             <property name="spacing">6</property>
             <child>
               <object class="GtkButton" id="colordialog_cancel_btn">
-                        <property name="label" translatable="1">_Cancel</property>
+                <property name="label" translatable="yes">_Cancel</property>
                 <property name="use-underline">1</property>
-                <signal name="clicked" handler="on_colordialog_cancel_clicked" swapped="no" />
+                <signal name="clicked" handler="on_colordialog_cancel_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="colordialog_ok_btn">
-                        <property name="label" translatable="1">_OK</property>
+                <property name="label" translatable="yes">_OK</property>
                 <property name="use-underline">1</property>
-                <signal name="clicked" handler="on_colordialog_ok_clicked" swapped="no" />
+                <signal name="clicked" handler="on_colordialog_ok_clicked"/>
               </object>
             </child>
           </object>
         </child>
       </object>
     </property>
+    <property name="default-width">420</property>
+    <property name="hide-on-close">1</property>
+    <property name="modal">1</property>
+    <property name="title" translatable="yes">Composition Layer Colour</property>
   </object>
 </interface>
