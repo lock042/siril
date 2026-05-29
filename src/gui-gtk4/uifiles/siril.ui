@@ -229,16 +229,18 @@
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkModelButton" id="clearAllPhotometry">
+          <object class="GtkButton" id="clearAllPhotometry">
             <property name="tooltip-text" translatable="1">Clear all curves displayed in photometry.</property>
-            <property name="text" translatable="1">Clear all</property>
+            <property name="label" translatable="1">Clear all</property>
+            <property name="has-frame">0</property>
             <signal name="clicked" handler="on_clearAllPhotometry_clicked" swapped="no" />
           </object>
         </child>
         <child>
-          <object class="GtkModelButton" id="clearLastPhotometry">
+          <object class="GtkButton" id="clearLastPhotometry">
             <property name="tooltip-text" translatable="1">Clear the last curve added in photometry.</property>
-            <property name="text" translatable="1">Clear latest</property>
+            <property name="label" translatable="1">Clear latest</property>
+            <property name="has-frame">0</property>
             <signal name="clicked" handler="on_clearLatestPhotometry_clicked" swapped="no" />
           </object>
         </child>
@@ -904,18 +906,20 @@
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkModelButton" id="ButtonSwitch_Siril_plot">
+          <object class="GtkButton" id="ButtonSwitch_Siril_plot">
             <property name="tooltip-markup" translatable="1">Open a new Siril Plot window to show data.
 
 &lt;b&gt;WARNING&lt;/b&gt;: if the data do not have a valid photometry, they will not be displayed, contrary of what you can see in the plot tab.</property>
-            <property name="text" translatable="1">Show valid data in Siril Plot</property>
+            <property name="label" translatable="1">Show valid data in Siril Plot</property>
+            <property name="has-frame">0</property>
             <signal name="clicked" handler="on_ButtonSwitch_Siril_plot_clicked" swapped="no" />
           </object>
         </child>
         <child>
-          <object class="GtkModelButton" id="ButtonSaveCSV">
+          <object class="GtkButton" id="ButtonSaveCSV">
             <property name="tooltip-text" translatable="1">Export displayed plot to a CSV file.</property>
-            <property name="text" translatable="1">Export to CSV</property>
+            <property name="label" translatable="1">Export to CSV</property>
+            <property name="has-frame">0</property>
             <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no" />
           </object>
         </child>
@@ -2278,16 +2282,18 @@
                 </object>
                 </child>
                 <child>
-                  <object class="GtkModelButton" id="varCurvePhotometry">
+                  <object class="GtkButton" id="varCurvePhotometry">
                     <property name="tooltip-text" translatable="1">Build a light curve in the ETD text format</property>
-                    <property name="text" translatable="1">Light Curve (ETD format)</property>
+                    <property name="label" translatable="1">Light Curve (ETD format)</property>
+                    <property name="has-frame">0</property>
                     <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no" />
                   </object>
                 </child>
                 <child>
-                  <object class="GtkModelButton" id="exportAAVSO_button">
+                  <object class="GtkButton" id="exportAAVSO_button">
                     <property name="tooltip-text" translatable="1">Build an output file in the AAVSO format</property>
-                    <property name="text" translatable="1">AAVSO file format</property>
+                    <property name="label" translatable="1">AAVSO file format</property>
+                    <property name="has-frame">0</property>
                     <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no" />
                   </object>
                 </child>
