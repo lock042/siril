@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "algos/siril_wcs.h"
+#include "io/sequence.h"
 #include "io/siril_catalogues.h"
 
 #include "annotation_catalogues.h"
@@ -59,22 +60,9 @@ static const gchar *get_cat_filename_by_index(siril_cat_index cat_index) {
 	return cat[cat_index - CAT_AN_INDEX_OFFSET];
 }
 
-struct _CatalogObjects {
-	gchar *code;	// displayed name
-	gchar *pretty_code;	// name with greek characters
-	double x;	// in fits_display coords
-	double y;	// in fits_display coords
-	double x1;	// in fits_display coords
-	double y1;	// in fits_display coords
-	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
-			// negative for no accurate size
-	gchar *alias;
-	siril_cat_index catalogue; // index from the list of catalogues above
-};
-
 static CatalogObjects* new_catalog_object(const gchar *name, double x,
 		double y, double x1,
-		double y1, double radius, const gchar *alias,
+		double y1, double x2, double y2, double radius, const gchar *alias,
 		siril_cat_index catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
 
@@ -84,6 +72,8 @@ static CatalogObjects* new_catalog_object(const gchar *name, double x,
 	object->y = y;
 	object->x1 = x1;
 	object->y1 = y1;
+	object->x2 = x2;
+	object->y2 = y2;
 	object->radius = radius;
 	object->alias = (alias) ? g_strdup(alias) : NULL;
 	object->catalogue = catalogue;
@@ -411,6 +401,16 @@ GSList *find_objects_in_field(fits *fit) {
 	gdouble starradius = get_wcs_image_resolution(fit) * 6. * 60.0;
 	GSList *list = get_siril_annot_catalogue_list();
 	double tref = date_time_to_Julian(fit->keywords.date_obs);
+	double tstart = 0., tend = 0.;
+	gboolean is_seq_with_dates = sequence_is_loaded();
+	if (is_seq_with_dates) {
+		int status = seq_read_frame_date(&com.seq, 0, NULL, &tstart);
+		status |= seq_read_frame_date(&com.seq, com.seq.number - 1, NULL, &tend);
+		if (status) {
+			siril_log_debug("Could not read the dates of the first and last frames of the sequence\n");
+			is_seq_with_dates = FALSE;
+		}
+	}
 	for (GSList *l = list; l; l = l->next) {
 		annotations_catalogue_t *curcat = l->data;
 		if (!curcat->show) // the catalog show member is set at read-out
@@ -430,15 +430,39 @@ GSList *find_objects_in_field(fits *fit) {
 			}
 
 			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
-				double x = 0., y = 0., x1 = 0., y1 = 0.;
+				double radius = (is_star_cat) ? starradius : .5 * siril_cat->cat_items[i].diameter;
+				double x = 0., y = 0., x1 = 0., y1 = 0., x2 = DBL_MAX, y2 = DBL_MAX;
 				// we write directly in display coordinates to avoid the flip at every redraw
 				siril_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
-				x = siril_cat->cat_items[i].x;
-				y = fit->ry - siril_cat->cat_items[i].y;
 				if (siril_cat->cat_index == CAT_AN_CONST) {
 					siril_to_display(siril_cat->cat_items[i].x1, siril_cat->cat_items[i].y1, &x1, &y1, fit->ry);
-					x1 = siril_cat->cat_items[i].x1;
-					y1 = fit->ry - siril_cat->cat_items[i].y1;
+				}
+				if (fabs(siril_cat->cat_items[i].vra) > 1.e-10 || fabs(siril_cat->cat_items[i].vdec) > 1.e-10) { // the object has a velocity
+					double tobs = siril_cat->dateobs ? date_time_to_Julian(siril_cat->dateobs) : siril_cat->cat_items[i].dateobs;
+					if (tobs == 0.) {
+							continue;
+					}
+					double conv = 1./ cos(siril_cat->cat_items[i].dec * M_PI / 180.); // vra is actually vra*cos(dec) in the files, so we need to convert it back to vra before applying the velocity correction in RA, then we will convert back to degrees at the end
+					if (is_seq_with_dates) { // we can display its (linear) trajectory throughout the sequence
+						double dt_start = (tstart - tobs) * 24.;
+						double dt_end = (tend - tobs) * 24.;
+						double ra_start = siril_cat->cat_items[i].ra + siril_cat->cat_items[i].vra * conv * dt_start * 2.77777778e-4;
+						double dec_start = siril_cat->cat_items[i].dec + siril_cat->cat_items[i].vdec * dt_start  * 2.77777778e-4;
+						double ra_end = siril_cat->cat_items[i].ra + siril_cat->cat_items[i].vra * conv * dt_end * 2.77777778e-4;
+						double dec_end = siril_cat->cat_items[i].dec + siril_cat->cat_items[i].vdec * dt_end  * 2.77777778e-4;
+						wcs2pix(fit, ra_start, dec_start, &x1, &y1);
+						wcs2pix(fit, ra_end, dec_end, &x2, &y2);
+						siril_to_display(x1, y1, &x1, &y1, fit->ry);
+						siril_to_display(x2, y2, &x2, &y2, fit->ry);
+					} else { // we just display a velocity vector, length is the distance travelled over next hour
+						double conv = 1./ cos(siril_cat->cat_items[i].dec * M_PI / 180.); // vra is actually vra*cos(dec) in the files, so we need to convert it back to vra before applying the velocity correction in RA, then we will convert back to degrees at the end
+						double dt_1hr = (tref - tobs) * 24. + 1.; // we need to compute the time shift accounting for the image date, which is not necessarily the catalogue date
+						double ra_end = siril_cat->cat_items[i].ra + siril_cat->cat_items[i].vra * conv * dt_1hr * 2.77777778e-4;
+						double dec_end = siril_cat->cat_items[i].dec + siril_cat->cat_items[i].vdec * dt_1hr * 2.77777778e-4;
+						wcs2pix(fit, ra_end, dec_end, &x1, &y1);
+						siril_to_display(x1, y1, &x1, &y1, fit->ry);
+					}
+					radius = starradius;
 				}
 				CatalogObjects *cur = new_catalog_object(
 					siril_cat->cat_items[i].name,
@@ -446,7 +470,9 @@ GSList *find_objects_in_field(fits *fit) {
 					y,
 					x1,
 					y1,
-					(is_star_cat) ? starradius : .5 * siril_cat->cat_items[i].diameter,
+					x2,
+					y2,
+					radius,
 					siril_cat->cat_items[i].alias,
 					siril_cat->cat_index
 				);
@@ -675,35 +701,6 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	siril_catalog_free_item(ref_item);
 	free(ref_item);
 	return NULL;
-}
-
-
-gchar *get_catalogue_object_code(const CatalogObjects *object) {
-	return object->code;
-}
-
-siril_cat_index get_catalogue_object_cat(const CatalogObjects *object) {
-	return object->catalogue;
-}
-
-gdouble get_catalogue_object_x(const CatalogObjects *object) {
-	return object->x;
-}
-
-gdouble get_catalogue_object_y(const CatalogObjects *object) {
-	return object->y;
-}
-
-gdouble get_catalogue_object_x1(const CatalogObjects *object) {
-	return object->x1;
-}
-
-gdouble get_catalogue_object_y1(const CatalogObjects *object) {
-	return object->y1;
-}
-
-gdouble get_catalogue_object_radius(const CatalogObjects *object) {
-	return object->radius;
 }
 
 void refresh_found_objects() {

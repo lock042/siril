@@ -1301,6 +1301,9 @@ gpointer conesearch_worker(gpointer p) {
 			retval = 1;
 			goto exit_conesearch;
 		}
+		if (siril_cat->dateobs) {
+			temp_cat->dateobs = g_date_time_ref(siril_cat->dateobs);
+		}
 	}
 
 	// Allocate memory for compare mode if needed

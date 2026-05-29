@@ -2415,13 +2415,15 @@ static void draw_annotates(const draw_data_t* dd) {
 
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
-		gdouble radius = get_catalogue_object_radius(object);
-		gdouble x = get_catalogue_object_x(object);
-		gdouble y = get_catalogue_object_y(object);
-		gdouble x1 = get_catalogue_object_x1(object);
-		gdouble y1 = get_catalogue_object_y1(object);
-		gchar *code = get_catalogue_object_code_pretty(object);
-		guint catalog = get_catalogue_object_cat(object);
+		gdouble radius = object->radius;
+		gdouble x = object->x;
+		gdouble y = object->y;
+		gdouble x1 = object->x1;
+		gdouble y1 = object->y1;
+		gdouble x2 = object->x2;
+		gdouble y2 = object->y2;
+		gchar *code = object->pretty_code;
+		guint catalog = object->catalogue;
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;
 		double addoffset = 0.;
@@ -2460,6 +2462,23 @@ static void draw_annotates(const draw_data_t* dd) {
 		if (catalog == CAT_AN_CONST) { // constellation line
 			cairo_move_to(cr, x, y);
 			cairo_line_to(cr, x1, y1);
+			cairo_stroke(cr);
+		} else if ((catalog == CAT_AN_USER_TEMP || catalog == CAT_AN_USER_SSO) && (x1 != 0 || y1 != 0)) {
+			// Handle sso moving
+			if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
+				cairo_move_to(cr, x1, y1);
+				cairo_line_to(cr, x2, y2);
+				cairo_stroke(cr);
+				cairo_arc(cr, x2, y2, radius * 0.5 , 0., 2. * M_PI);
+				cairo_stroke(cr);
+			} else {
+				cairo_move_to(cr, x, y);
+				cairo_line_to(cr, x1, y1);
+				cairo_stroke(cr);
+				cairo_arc(cr, x1, y1, radius * 0.5 , 0., 2. * M_PI);
+				cairo_stroke(cr);
+			}
+			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 			cairo_stroke(cr);
 		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)

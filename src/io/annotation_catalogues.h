@@ -23,7 +23,20 @@
 #include "core/siril_world_cs.h"
 #include "io/siril_catalogues.h"
 
-typedef struct _CatalogObjects CatalogObjects;
+typedef struct {
+	gchar *code;	// displayed name
+	gchar *pretty_code;	// name with greek characters
+	double x;	// in fits_display coords
+	double y;	// in fits_display coords
+	double x1;	// in fits_display coords
+	double y1;	// in fits_display coords
+	double x2;	// in fits_display coords
+	double y2;	// in fits_display coords
+	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
+			// negative for no accurate size
+	gchar *alias;
+	siril_cat_index catalogue; // index from the list of catalogues above
+} CatalogObjects;
 
 typedef struct annotations_catalogue {
 	siril_catalogue *cat;
@@ -41,14 +54,7 @@ void refresh_annotation_to_temp();
 void cleanup_annotation_catalogues(gboolean purge_temp);
 void refresh_annotations(gboolean purge_temp);
 
-gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
-siril_cat_index get_catalogue_object_cat(const CatalogObjects *object);
-gdouble get_catalogue_object_x(const CatalogObjects *object);
-gdouble get_catalogue_object_y(const CatalogObjects *object);
-gdouble get_catalogue_object_x1(const CatalogObjects *object);
-gdouble get_catalogue_object_y1(const CatalogObjects *object);
-gdouble get_catalogue_object_radius(const CatalogObjects *object);
 
 void refresh_found_objects();
 void purge_user_catalogue(siril_cat_index cat_index);
