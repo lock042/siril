@@ -272,15 +272,9 @@ void siril_set_theme(int active) {
 	GtkSettings *settings = gtk_settings_get_default();
 	gboolean dark;
 	switch ((siril_theme_t) active) {
-	case SIRIL_THEME_SYSTEM:
-		dark = siril_system_is_dark_mode();
-		break;
-	case SIRIL_THEME_DARK:
-		dark = TRUE;
-		break;
-	default: /* SIRIL_THEME_LIGHT */
-		dark = FALSE;
-		break;
+	case SIRIL_THEME_DARK:   dark = TRUE;  break;
+	case SIRIL_THEME_LIGHT:  dark = FALSE; break;
+	default:                 dark = siril_system_is_dark_mode(); break;
 	}
 	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
 	update_icons_to_theme(dark);
@@ -536,6 +530,11 @@ gpointer on_clear_roi() {
 static void initialize_theme_GUI() {
 	GtkDropDown *box = GTK_DROP_DOWN(lookup_widget("combo_theme"));
 
+	/* Block before any model change: gtk_string_list_splice at position 0
+	 * shifts the current selection and fires notify::selected, which would
+	 * call siril_set_theme(0) and override the saved preference. */
+	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
+
 	/* Insert "Follow system" at position 0.  Done once; the static flag
 	 * prevents a duplicate entry if this function is re-called.
 	 * Final order: 0=Follow system, 1=Dark, 2=Light. */
@@ -548,7 +547,6 @@ static void initialize_theme_GUI() {
 		siril_watch_system_appearance_changes(on_system_appearance_changed);
 	}
 
-	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
 	gtk_drop_down_set_selected(box, com.pref.gui.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
 	update_icons_to_theme(siril_current_theme_is_dark());
