@@ -897,13 +897,19 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 
 /* Build a self-contained notification popover.
  *
- * Parented to control_window (the main app window), not to the snapshot
- * menubutton.  GtkMenuButton owns its own popover machinery, and calling
- * gtk_widget_set_parent on a second popover with the menu button as
- * parent crashes inside realize because the menu button's surface isn't
- * a valid popup parent.  This mirrors the workaround already documented
- * in popover_new_with_image (utils.c).  The popover still visually
- * anchors under the snapshot button via gtk_popover_set_pointing_to. */
+ * Parented to the headerbar (the only ancestor that reliably makes the
+ * popover surface appear in GTK4 for this caller — control_window
+ * parenting silently fails to popup, and parenting directly to the
+ * snapshot GtkMenuButton crashes inside realize because GtkMenuButton
+ * already owns its own popover machinery).
+ *
+ * For the pointing_to anchor we use `snapshot_button_box` — the plain
+ * GtkBox inside the menubutton.  Its bounds are equivalent to the
+ * menubutton's for positioning purposes, and as a regular widget it
+ * doesn't have any of the menubutton-specific gotchas that the earlier
+ * compute_bounds(menubutton, headerbar) call appeared to trip on
+ * (which silently produced wrong coordinates → popover anchored at
+ * the centre of the headerbar instead of under the button). */
 static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *filename, GdkPaintable *paintable) {
 	gchar *text;
 	if (filename)
@@ -916,28 +922,37 @@ static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *file
 	 * dismiss when the user clicks elsewhere in the app. */
 	gtk_popover_set_autohide(GTK_POPOVER(popover), FALSE);
 
+	/* Walk up from the snapshot button to its containing headerbar. */
 	GtkWidget *parent = NULL;
-	if (gui.builder) {
-		GObject *obj = gtk_builder_get_object(gui.builder, "control_window");
-		if (GTK_IS_WIDGET(obj))
-			parent = GTK_WIDGET(obj);
+	if (anchor_btn) {
+		for (GtkWidget *p = gtk_widget_get_parent(anchor_btn); p; p = gtk_widget_get_parent(p)) {
+			if (GTK_IS_HEADER_BAR(p)) { parent = p; break; }
+		}
 	}
-	if (!parent && anchor_btn) {
-		GtkRoot *r = gtk_widget_get_root(anchor_btn);
-		if (r && GTK_IS_WIDGET(r)) parent = GTK_WIDGET(r);
+	if (!parent && gui.builder) {
+		GObject *obj = gtk_builder_get_object(gui.builder, "headerbar");
+		if (GTK_IS_WIDGET(obj)) parent = GTK_WIDGET(obj);
 	}
-	if (parent)
+	if (parent) {
 		gtk_widget_set_parent(popover, parent);
-	if (anchor_btn && parent && parent != anchor_btn) {
-		graphene_rect_t bounds;
-		if (gtk_widget_compute_bounds(anchor_btn, parent, &bounds)) {
-			GdkRectangle rect = {
-				(int) bounds.origin.x,
-				(int) bounds.origin.y,
-				(int) bounds.size.width,
-				(int) bounds.size.height,
-			};
-			gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
+		/* Anchor on the menubutton's inner GtkBox rather than the
+		 * menubutton itself.  Inner-widget bounds compute reliably,
+		 * the menubutton's apparently don't. */
+		GtkWidget *anchor_widget = NULL;
+		if (gui.builder) {
+			GObject *box_obj = gtk_builder_get_object(gui.builder, "snapshot_button_box");
+			if (GTK_IS_WIDGET(box_obj)) anchor_widget = GTK_WIDGET(box_obj);
+		}
+		if (!anchor_widget) anchor_widget = anchor_btn;
+		if (anchor_widget && anchor_widget != parent) {
+			graphene_rect_t bounds;
+			if (gtk_widget_compute_bounds(anchor_widget, parent, &bounds)) {
+				GdkRectangle rect = {
+					(int) bounds.origin.x, (int) bounds.origin.y,
+					(int) bounds.size.width, (int) bounds.size.height,
+				};
+				gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
+			}
 		}
 	}
 
