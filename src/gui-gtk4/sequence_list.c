@@ -921,10 +921,10 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected
-				GtkToggleButton *refframebutton = GTK_TOGGLE_BUTTON(seqlist_refframe2); // invalidate toggle button, only effective if the frame is the first one in the selection
-				g_signal_handlers_block_by_func(refframebutton, on_ref_frame_toggled, NULL);
-				siril_toggle_set_active(GTK_WIDGET(refframebutton), FALSE);
-				g_signal_handlers_unblock_by_func(refframebutton, on_ref_frame_toggled, NULL);
+				// refframe2 is a GtkCheckButton in GTK4; clear it via the type-safe helper (only effective if the frame is the first one in the selection)
+				g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, NULL);
+				siril_toggle_set_active(seqlist_refframe2, FALSE);
+				g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, NULL);
 			}
 		}
 	} else {

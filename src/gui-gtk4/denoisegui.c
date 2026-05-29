@@ -43,7 +43,6 @@ GtkCheckButton *radio_denoise_nosecondary = NULL, *radio_denoise_vst = NULL, *ra
 GtkScale *slide_denoise_modulation = NULL;
 GtkSpinButton *spin_sos_iters = NULL, *spin_rho = NULL, *spin_denoise_modulation = NULL;
 GtkCheckButton *check_denoise_cosmetic = NULL, *check_denoise_suppress_artefacts = NULL;
-GtkToggleButton *denoise_preview_toggle = NULL;
 
 // Statics init
 static void denoise_dialog_init_statics() {
@@ -75,7 +74,6 @@ static void denoise_dialog_init_statics() {
 		// GtkToggleButton
 		check_denoise_cosmetic = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_denoise_cosmetic"));
 		check_denoise_suppress_artefacts = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_denoise_suppress_artefacts"));
-		denoise_preview_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "denoise_preview"));
 	}
 }
 
@@ -182,15 +180,6 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	return 0;
 }
 
-/* Update preview using the worker */
-static int denoise_update_preview() {
-	if (denoise_preview_toggle && siril_toggle_get_active(GTK_WIDGET(denoise_preview_toggle))) {
-		copy_backup_to_gfit();
-		return denoise_process_with_worker(TRUE, gui.roi.active);
-	}
-	return 0;
-}
-
 void denoise_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
@@ -262,14 +251,6 @@ void update_sos(GtkCheckButton *button, gpointer user_data) {
 		gtk_widget_set_visible(GTK_WIDGET(sos_advanced_options), TRUE);
 	else
 		gtk_widget_set_visible(GTK_WIDGET(sos_advanced_options), FALSE);
-
-	// Update preview if active
-	if (denoise_preview_toggle) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = denoise_update_preview;
-		param->show_preview = siril_toggle_get_active(GTK_WIDGET(denoise_preview_toggle));
-		notify_update((gpointer) param);
-	}
 }
 
 /*****************************************************************************
@@ -339,28 +320,3 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
-void on_denoise_parameter_changed(GtkWidget *widget, gpointer user_data) {
-	if (denoise_preview_toggle) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = denoise_update_preview;
-		param->show_preview = siril_toggle_get_active(GTK_WIDGET(denoise_preview_toggle));
-		notify_update((gpointer) param);
-	}
-}
-
-void on_denoise_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	cancel_pending_update();
-	if (!siril_toggle_get_active(GTK_WIDGET(button))) {
-		/* if user click very fast */
-		cancel_and_wait_for_preview();
-		siril_preview_hide();
-		copy_backup_to_gfit();
-		gfit_modified_update_gui();
-	} else {
-		copy_gfit_to_backup();
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = denoise_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
-	}
-}
