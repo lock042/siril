@@ -5,10 +5,11 @@
      usual cmb-catalog-gen (GIR -> catalog) route is not available.
 
      Install so Cambalache can discover it:
-         cp siril-1.0.xml ~/.cambalache/catalogs/
+         cp SirilImageView-1.0.xml ~/.cambalache/catalogs/
      (or any $XDG_DATA_DIRS/cambalache/catalogs/ directory)
 
-     The project file (siril.cmb) enables this catalog via depends="siril-1.0".
+     The project file (siril.cmb) enables this catalog via
+     depends="SirilImageView-1.0" (the catalog's name-version, not its filename).
 
      Each child element is named after a Cambalache DB table; its text is a
      comma-separated list of Python tuples inserted positionally into that
@@ -17,8 +18,8 @@
          abstract, derivable, layout, category, workspace_type
      workspace_type is set to GtkDrawingArea so the canvas can render a
      placeholder without needing a Siril runtime library. -->
-<cambalache-catalog name="siril" version="1.0" namespace="Siril" prefix="siril" targets="1.0" depends="gtk-4.0">
+<cambalache-catalog name="SirilImageView" version="1.0" namespace="Siril" prefix="siril" targets="1.0" depends="gtk-4.0">
   <type>
-    ('SirilImageView', 'GtkWidget', 'siril', None, None, False, False, None, 'display', 'GtkDrawingArea')
+    ('SirilImageView', 'GtkWidget', 'SirilImageView', None, None, False, False, None, 'display', 'GtkDrawingArea')
   </type>
 </cambalache-catalog>
