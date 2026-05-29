@@ -6,7 +6,6 @@ int auto_update_gitscripts(gboolean sync);
 int auto_update_gitspcc(gboolean sync);
 void on_disable_gitscripts();
 void fill_script_repo_tree(gboolean as_idle);
-void script_repo_set_loading(gboolean loading);
 int reset_repository(const gchar *local_path);
 gboolean is_scripts_repo_cloned();
 gboolean is_spcc_repo_cloned();

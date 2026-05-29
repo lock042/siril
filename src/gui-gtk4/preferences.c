@@ -1037,8 +1037,7 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
 #else
-	script_repo_set_loading(TRUE);
-	fill_script_repo_tree(TRUE);
+	fill_script_repo_tree(FALSE);
 #endif
 #ifndef HAVE_SQLITE
 	// Hide UI for cache if we don't have SQLite

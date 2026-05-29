@@ -67,8 +67,6 @@ static void on_git_columnview_pressed(GtkGestureClick *gesture, int n_press,
 static GtkCustomFilter  *script_filter      = NULL;
 static GtkColumnView    *git_columnview     = NULL;
 static GtkScrolledWindow *git_scrolled      = NULL;
-static GtkWidget        *script_loading_box = NULL;
-static GtkWidget        *script_repo_spinner = NULL;
 static gchar            *current_search_text = NULL;
 static gboolean          filter_enabled      = FALSE;
 static GtkWindow        *git_control_window  = NULL;
@@ -80,23 +78,11 @@ static GtkWidget        *git_spcc_manual_sync = NULL;
 static void git_gui_init_statics(void) {
 	if (git_scrolled) return;
 	git_scrolled        = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolled_script_repo"));
-	script_loading_box  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "script_loading_box"));
-	script_repo_spinner = GTK_WIDGET(gtk_builder_get_object(gui.builder, "script_repo_spinner"));
 	git_control_window  = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 	git_pref_auto_updates = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_script_automatic_updates"));
 	git_manual_sync_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "manual_script_sync_button"));
 	git_spcc_sync_startup = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spcc_repo_sync_at_startup"));
 	git_spcc_manual_sync = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spcc_repo_manual_sync"));
-}
-
-void script_repo_set_loading(gboolean loading) {
-	git_gui_init_statics();
-	if (script_loading_box)
-		gtk_widget_set_visible(script_loading_box, loading);
-	if (script_repo_spinner)
-		gtk_spinner_set_spinning(GTK_SPINNER(script_repo_spinner), loading);
-	if (git_scrolled)
-		gtk_widget_set_sensitive(GTK_WIDGET(git_scrolled), !loading);
 }
 
 static gboolean script_is_startup_capable(const gchar *path) {
@@ -520,8 +506,6 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 		}
 	}
 	gui_repo_scripts_mutex_unlock();
-
-	script_repo_set_loading(FALSE);
 
 	return G_SOURCE_REMOVE;
 }
