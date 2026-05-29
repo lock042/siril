@@ -15,6 +15,12 @@
 
 
 /* first, types used here but that cannot be defined in siril.h because of the loop dependency */
+
+typedef enum {
+	SIRIL_THEME_SYSTEM = 0,  /* Follow system appearance */
+	SIRIL_THEME_DARK   = 1,
+	SIRIL_THEME_LIGHT  = 2,
+} siril_theme_t;
 typedef struct {
 	int x, y, w, h;
 } rectangle;
@@ -232,7 +238,7 @@ struct gui_config {
 	gboolean is_extended;
 	gboolean is_maximized;
 
-	gint combo_theme;	// index of the combobox theme
+	siril_theme_t combo_theme;
 	gdouble font_scale;	// font scale
 	gboolean icon_symbolic;	// icon style
 

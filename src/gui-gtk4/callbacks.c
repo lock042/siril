@@ -267,27 +267,32 @@ static void on_system_appearance_changed(gboolean dark) {
 	update_icons_sequence_list(dark);
 }
 
-/* 0 = Follow system, 1 = Dark, 2 = Light */
+
 void siril_set_theme(int active) {
 	GtkSettings *settings = gtk_settings_get_default();
-	if (active == 0) {
-		/* "Follow system": resolve to the current OS appearance. */
-		gboolean dark = siril_system_is_dark_mode();
-		g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
-		update_icons_to_theme(dark);
-		update_icons_sequence_list(dark);
-		return;
+	gboolean dark;
+	switch ((siril_theme_t) active) {
+	case SIRIL_THEME_SYSTEM:
+		dark = siril_system_is_dark_mode();
+		break;
+	case SIRIL_THEME_DARK:
+		dark = TRUE;
+		break;
+	default: /* SIRIL_THEME_LIGHT */
+		dark = FALSE;
+		break;
 	}
-	gboolean dark = (active == 1);
 	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
 	update_icons_to_theme(dark);
 	update_icons_sequence_list(dark);
 }
 
 gboolean siril_current_theme_is_dark(void) {
-	if (com.pref.gui.combo_theme == 0)
-		return siril_system_is_dark_mode();
-	return com.pref.gui.combo_theme == 1;
+	switch (com.pref.gui.combo_theme) {
+	case SIRIL_THEME_DARK:   return TRUE;
+	case SIRIL_THEME_LIGHT:  return FALSE;
+	default:                 return siril_system_is_dark_mode();
+	}
 }
 
 void on_combo_theme_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -546,20 +551,19 @@ static void initialize_theme_GUI() {
 	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
 	gtk_drop_down_set_selected(box, com.pref.gui.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
-	gboolean dark = (com.pref.gui.combo_theme == 0) ? siril_system_is_dark_mode()
-	                                                 : (com.pref.gui.combo_theme == 1);
-	update_icons_to_theme(dark);
-	update_icons_sequence_list(dark);
+	update_icons_to_theme(siril_current_theme_is_dark());
+	update_icons_sequence_list(siril_current_theme_is_dark());
 }
 
 void load_prefered_theme(gint theme) {
 	GtkSettings *settings = gtk_settings_get_default();
-	if (theme == 0) {
-		gboolean dark = siril_system_is_dark_mode();
-		g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
-		return;
+	gboolean dark;
+	switch ((siril_theme_t) theme) {
+	case SIRIL_THEME_DARK:   dark = TRUE;  break;
+	case SIRIL_THEME_LIGHT:  dark = FALSE; break;
+	default:                 dark = siril_system_is_dark_mode(); break;
 	}
-	g_object_set(settings, "gtk-application-prefer-dark-theme", theme == 1, NULL);
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
 }
 
 void set_sliders_value_to_gfit() {
