@@ -2330,7 +2330,6 @@ static void draw_vport(const draw_data_t* dd) {
 	struct image_view *view = &gui.view[dd->vport];
 	const int img_w = view->buf_stride > 0 ? view->buf_stride / 4 : 0;
 	const int img_h = view->buf_height;
-	const int tile_dim = view->tile_dim;
 	const int tile_cols = view->tile_cols;
 	const int tile_rows = view->tile_rows;
 	const int buf_stride = view->buf_stride;
@@ -2358,11 +2357,23 @@ static void draw_vport(const draw_data_t* dd) {
 	 * fill, so the LRU eviction policy is free to reclaim them. */
 	for (int ty = 0; ty < tile_rows; ty++) {
 		for (int tx = 0; tx < tile_cols; tx++) {
-			const int x0 = tx * tile_dim;
-			const int y0 = ty * tile_dim;
-			const int tw = MIN(tile_dim, img_w - x0);
-			const int th = MIN(tile_dim, img_h - y0);
-			if (tw <= 0 || th <= 0) continue;
+			/* Use the PADDED dims (tex_w × tex_h, which include up to
+			 * SIRIL_TILE_GUARD pixels of overlap with the right /
+			 * bottom neighbour) as both the source-surface size and
+			 * the destination rectangle.  Adjacent tiles then overlap
+			 * by `guard` pixels, and the filter at each tile's edge
+			 * has real data to sample instead of transparent black
+			 * past the surface bounds — the on-screen path uses the
+			 * same trick at snapshot_image_view():2129–2137.  The
+			 * overlap pixels are duplicates of the next tile's data so
+			 * later-drawn tiles overpaint earlier ones with identical
+			 * values; visually a no-op, but the filter sees continuous
+			 * source data and no grid lines appear at boundaries. */
+			int x0, y0, tw_unused, th_unused, tex_w, tex_h;
+			tile_dims_padded(view, tx, ty, &x0, &y0,
+			                 &tw_unused, &th_unused, &tex_w, &tex_h);
+			(void) tw_unused; (void) th_unused;
+			if (tex_w <= 0 || tex_h <= 0) continue;
 
 			guchar *p = NULL;
 			int stride;
@@ -2374,22 +2385,27 @@ static void draw_vport(const draw_data_t* dd) {
 				 * materialise vs the snapshot mip is not on the hot path. */
 				if (!materialise_tile(view, dd->vport, tx, ty, 0)) continue;
 				p = view->tiles[ty * tile_cols + tx].data;
-				stride = tw * 4;
+				/* Lazy tiles are laid out at the padded width. */
+				stride = tex_w * 4;
 			} else {
+				/* Eager mode shares a single buffer for the whole
+				 * image; the guard region is naturally available
+				 * because it's just the next tile's leftmost pixels
+				 * in the same buffer. */
 				p = view->buf + (size_t)y0 * buf_stride + (size_t)x0 * 4;
 				stride = buf_stride;
 			}
 			if (!p) continue;
 
 			cairo_surface_t *tile_surf = cairo_image_surface_create_for_data(
-				p, CAIRO_FORMAT_RGB24, tw, th, stride);
+				p, CAIRO_FORMAT_RGB24, tex_w, tex_h, stride);
 			if (cairo_surface_status(tile_surf) != CAIRO_STATUS_SUCCESS) {
 				cairo_surface_destroy(tile_surf);
 				continue;
 			}
 			cairo_set_source_surface(dd->cr, tile_surf, x0, y0);
 			cairo_pattern_set_filter(cairo_get_source(dd->cr), dd->filter);
-			cairo_rectangle(dd->cr, x0, y0, tw, th);
+			cairo_rectangle(dd->cr, x0, y0, tex_w, tex_h);
 			cairo_fill(dd->cr);
 			cairo_surface_destroy(tile_surf);
 		}

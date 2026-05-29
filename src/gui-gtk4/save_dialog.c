@@ -897,14 +897,13 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 
 /* Build a self-contained notification popover.
  *
- * popover_new_with_image() parents every popover to `control_window`
- * (the top-level GtkApplicationWindow).  Parenting a GtkPopover
- * directly to a GtkWindow is unreliable in GTK4 — the popup surface
- * never becomes visible for this notification, even though the popover
- * widget is created and gtk_popover_popup() is called.  Parent the
- * notification to the snapshot button's containing headerbar instead:
- * a plain GtkHeaderBar accepts a popover child via gtk_widget_set_parent
- * and the popup surface renders correctly. */
+ * Parented to control_window (the main app window), not to the snapshot
+ * menubutton.  GtkMenuButton owns its own popover machinery, and calling
+ * gtk_widget_set_parent on a second popover with the menu button as
+ * parent crashes inside realize because the menu button's surface isn't
+ * a valid popup parent.  This mirrors the workaround already documented
+ * in popover_new_with_image (utils.c).  The popover still visually
+ * anchors under the snapshot button via gtk_popover_set_pointing_to. */
 static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *filename, GdkPaintable *paintable) {
 	gchar *text;
 	if (filename)
@@ -917,31 +916,28 @@ static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *file
 	 * dismiss when the user clicks elsewhere in the app. */
 	gtk_popover_set_autohide(GTK_POPOVER(popover), FALSE);
 
-	/* Walk up from the snapshot button until we find a non-popover
-	 * ancestor — the headerbar.  This avoids parenting the popover
-	 * to the snapshot menubutton (whose own popover machinery would
-	 * conflict) or to the snapshot_menu popover (which is mid-popdown). */
 	GtkWidget *parent = NULL;
-	if (anchor_btn) {
-		for (GtkWidget *p = gtk_widget_get_parent(anchor_btn); p; p = gtk_widget_get_parent(p)) {
-			if (GTK_IS_HEADER_BAR(p)) { parent = p; break; }
-		}
+	if (gui.builder) {
+		GObject *obj = gtk_builder_get_object(gui.builder, "control_window");
+		if (GTK_IS_WIDGET(obj))
+			parent = GTK_WIDGET(obj);
 	}
-	if (!parent && gui.builder) {
-		GObject *obj = gtk_builder_get_object(gui.builder, "headerbar");
-		if (GTK_IS_WIDGET(obj)) parent = GTK_WIDGET(obj);
+	if (!parent && anchor_btn) {
+		GtkRoot *r = gtk_widget_get_root(anchor_btn);
+		if (r && GTK_IS_WIDGET(r)) parent = GTK_WIDGET(r);
 	}
-	if (parent) {
+	if (parent)
 		gtk_widget_set_parent(popover, parent);
-		if (anchor_btn && anchor_btn != parent) {
-			graphene_rect_t bounds;
-			if (gtk_widget_compute_bounds(anchor_btn, parent, &bounds)) {
-				GdkRectangle rect = {
-					(int) bounds.origin.x, (int) bounds.origin.y,
-					(int) bounds.size.width, (int) bounds.size.height,
-				};
-				gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
-			}
+	if (anchor_btn && parent && parent != anchor_btn) {
+		graphene_rect_t bounds;
+		if (gtk_widget_compute_bounds(anchor_btn, parent, &bounds)) {
+			GdkRectangle rect = {
+				(int) bounds.origin.x,
+				(int) bounds.origin.y,
+				(int) bounds.size.width,
+				(int) bounds.size.height,
+			};
+			gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
 		}
 	}
 
