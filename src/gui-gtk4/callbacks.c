@@ -2292,22 +2292,26 @@ void register_toolkit_app_actions(GApplication *app) {
 			G_N_ELEMENTS(entries), app);
 }
 
-/* The Calibration, Registration and Stacking tabs of notebook_center_box live
- * in separate .ui files (siril_calibration/registration/stacking.ui) because
- * the combined siril.ui exceeds the UI-file size a design tool (Cambalache) can
- * open. All files load into the same gui.builder; re-insert the three tabs here
- * at their original indices so the tab order — which other code addresses by
- * index — is identical to a single-file siril.ui. Insert in ascending index. */
+/* Every tab of notebook_center_box lives in its own .ui file (siril_<tab>.ui)
+ * so each stays well under the UI-file size a design tool (Cambalache) can
+ * open; siril.ui only carries the empty notebook. All files load into the same
+ * gui.builder, so here we populate the notebook by inserting each tab in order.
+ * This array is the single source of truth for the centre-notebook tab order,
+ * which other code addresses by index — keep it in sync if tabs are added. */
 static void reassemble_center_notebook(void) {
 	GtkNotebook *nb = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
 	if (!nb) {
 		g_warning("reassemble_center_notebook: notebook_center_box not found");
 		return;
 	}
-	const struct { const char *content; const char *tab; int pos; } pages[] = {
-		{ "calibration_tab",  "label19", 2 },
-		{ "registration_tab", "label28", 3 },
-		{ "stacking_tab",     "label29", 5 },
+	const struct { const char *content; const char *tab; } pages[] = {
+		{ "conversion_tab",   "label22"  },  /* 0 Conversion  */
+		{ "sequence_tab",     "label20"  },  /* 1 Sequence    */
+		{ "calibration_tab",  "label19"  },  /* 2 Calibration */
+		{ "registration_tab", "label28"  },  /* 3 Registration*/
+		{ "plot_tab",         "labelPlot"},  /* 4 Plot        */
+		{ "stacking_tab",     "label29"  },  /* 5 Stacking    */
+		{ "console_tab",      "label21"  },  /* 6 Console     */
 	};
 	for (int i = 0; i < (int) G_N_ELEMENTS(pages); i++) {
 		GtkWidget *content = GTK_WIDGET(gtk_builder_get_object(gui.builder, pages[i].content));
@@ -2316,7 +2320,7 @@ static void reassemble_center_notebook(void) {
 			g_warning("reassemble_center_notebook: missing page '%s'", pages[i].content);
 			continue;
 		}
-		gtk_notebook_insert_page(nb, content, tab, pages[i].pos);
+		gtk_notebook_insert_page(nb, content, tab, i);
 	}
 }
 

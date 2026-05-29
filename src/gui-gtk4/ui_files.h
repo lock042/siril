@@ -83,14 +83,17 @@ const char* ui_files[] = {
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
 	"/org/siril/ui/siril.ui",
-// The Calibration/Registration/Stacking tabs of the main window's centre
-// notebook were split into their own files so each stays under the UI-file
-// size a design tool can open. They reference GtkAdjustments defined in
-// siril.ui, so they must load after it, and are re-inserted into the notebook
-// at runtime by reassemble_center_notebook() in callbacks.c.
+// Every tab of the main window's centre notebook lives in its own file so each
+// stays well under the UI-file size a design tool can open; siril.ui carries
+// only the empty notebook. These load after siril.ui and are inserted into the
+// notebook in order at runtime by reassemble_center_notebook() in callbacks.c.
+	"/org/siril/ui/siril_conversion.ui",
+	"/org/siril/ui/siril_sequence.ui",
 	"/org/siril/ui/siril_calibration.ui",
 	"/org/siril/ui/siril_registration.ui",
+	"/org/siril/ui/siril_plot.ui",
 	"/org/siril/ui/siril_stacking.ui",
+	"/org/siril/ui/siril_console.ui",
 	"/org/siril/ui/spcc_details.ui",
 	"/org/siril/ui/split_cfa_dialog.ui",
 	"/org/siril/ui/starnet_dialog.ui",
