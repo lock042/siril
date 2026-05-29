@@ -191,7 +191,16 @@ static void initialize_title() {
 	gtk_widget_set_sensitive(seqlist_buttonbar, sequence_is_loaded());
 	gtk_widget_set_sensitive(GTK_WIDGET(seqlist_dialog_combo), sequence_is_loaded());
 	gtk_widget_set_sensitive(seqlist_refframe2, sequence_is_loaded());
-	gtk_widget_set_visible(seqlist_ext_ref_label, sequence_is_loaded() && com.seq.ext_ref);
+	gboolean has_ext_ref = sequence_is_loaded() && com.seq.ext_ref && com.seq.ext_ref_path;
+	gtk_widget_set_visible(seqlist_ext_ref_label, has_ext_ref);
+	if (has_ext_ref) {
+		gchar *basename = g_path_get_basename(com.seq.ext_ref_path);
+		gchar *label_text = g_strdup_printf(_("External Reference: %s"), basename);
+		gtk_label_set_text(GTK_LABEL(seqlist_ext_ref_label), label_text);
+		gtk_widget_set_tooltip_text(seqlist_ext_ref_label, com.seq.ext_ref_path);
+		g_free(basename);
+		g_free(label_text);
+	}
 
 	g_free(seq_basename);
 }
