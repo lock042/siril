@@ -1207,6 +1207,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 				free(sf_ext);
 			}
 			clearfits(&ext_fit);
+			if (retval)
+				goto free_all;
 		}
 	}
 
