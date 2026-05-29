@@ -1019,7 +1019,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	regargs->seq->reference_image = best_index;
 	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
-	siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), 1, reffilenum);
+	if (!regargs->use_external_ref)
+		siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), 1, reffilenum);
 
 	// 3. compute the transforms and store them in regparams
 	// we will check that we have registered enough meaningful frames to the new ref before going to distance checking (step 4.)
@@ -1053,7 +1054,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 			trials++;
 			if (trials < max_trials) {
-				siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
+				if (!regargs->use_external_ref)
+					siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
 				best_indexes[trials] = best_index;
 			}
 		} else { // not necessary but a simple to have print_alignment_results
@@ -1085,7 +1087,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 		best_index = best_indexes[best_try];
 		regargs->seq->reference_image = best_index;
 		reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
-		siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+		if (!regargs->use_external_ref)
+			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
 		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
 		compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
@@ -1112,7 +1115,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 		if (new_best_index != best_index && new_best_index > -1) { // do not recompute if none or same is found (same should not happen)
 			regargs->seq->reference_image = new_best_index;
 			reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
-			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+			if (!regargs->use_external_ref)
+				siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
 			// back to 3. compute the transforms and store them in regparams
 			compute_transform(regargs, sfargs, included, &failed, fwhm, roundness, B, TRUE);
 		} else {
@@ -1126,7 +1130,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 	if (!retval && regargs->use_external_ref) {
 		fits ext_fit = { 0 };
 		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
-			siril_log_error(_("Could not load external reference image, ignoring external reference\n"));
+			siril_log_error(_("Could not load external reference image, aborting\n"));
+			retval = 1;
+			goto free_all;
 		} else {
 			siril_log_info(_("Aligning sequence to external reference image...\n"));
 			// Use local sfargs parameters but store stars locally (keep_stars path)
@@ -1187,10 +1193,12 @@ int register_multi_step_global(struct registration_args *regargs) {
 					regargs->seq->ext_ref_ry = ext_fit.ry;
 					siril_log_message(_("All registration transforms composed with external reference alignment\n"));
 				} else {
-					siril_log_error(_("Could not match external reference to sequence reference image, ignoring external reference\n"));
+					siril_log_error(_("Could not match external reference to sequence reference image, aborting\n"));
+					retval = 1;
 				}
 			} else {
-				siril_log_error(_("Not enough stars found in external reference image, ignoring external reference\n"));
+				siril_log_error(_("Not enough stars found in external reference image, aborting\n"));
+				retval = 1;
 			}
 			if (sf_ext) {
 				free_fitted_stars(*sf_ext->stars);
