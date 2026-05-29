@@ -2422,7 +2422,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble y1 = object->y1;
 		gdouble x2 = object->x2;
 		gdouble y2 = object->y2;
-		gchar *code = object->pretty_code;
+		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = object->catalogue;
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;

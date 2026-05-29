@@ -1099,9 +1099,6 @@ int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt) {
 	if (jdt && dtread) {
 		*jdt = g_date_time_to_unix(dtread) / 86400.0 + 2440587.5;
 		testjdt = date_time_to_Julian(dtread);
-		if (fabs(testjdt - *jdt) > 1e-6) {
-			siril_log_warning(_("Warning: conversion of date to Julian Day is inconsistent. testjdt: %f, jdt: %f\n"), testjdt, *jdt);
-		}
 	}
 	return 0;
 }

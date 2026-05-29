@@ -44,6 +44,7 @@ static gchar* g_date_time_format_timestamp(GDateTime *datetime) {
  * @return the Julian date
  */
 gdouble date_time_to_Julian(GDateTime *dt) {
+	// TODO: investigate possible replacement with much simpler g_date_time_to_unix(dtread) / 86400.0 + 2440587.5;
 	gdouble jd1;
 	gboolean before;
 	gint d1, d2;
