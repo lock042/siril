@@ -556,7 +556,14 @@ static void initialize_theme_GUI() {
 }
 
 void load_prefered_theme(gint theme) {
-	siril_set_theme(theme);
+	GtkSettings *settings = gtk_settings_get_default();
+	gboolean dark;
+	switch ((siril_theme_t) theme) {
+	case SIRIL_THEME_DARK:   dark = TRUE;  break;
+	case SIRIL_THEME_LIGHT:  dark = FALSE; break;
+	default:                 dark = siril_system_is_dark_mode(); break;
+	}
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
 }
 
 void set_sliders_value_to_gfit() {
