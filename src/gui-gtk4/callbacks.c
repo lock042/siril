@@ -705,6 +705,21 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 		gtk_popover_popdown(GTK_POPOVER(popover));
 }
 
+/* Generic "clicked" handler for buttons inside a GtkPopover used as a
+ * menu (the hamburger main_menu, etc.).  Dismisses the containing
+ * popover after the button's action-name has fired.  GtkPopoverMenu
+ * with a GMenu auto-popdowns on activation, but a hand-built
+ * GtkPopover-with-GtkButtons doesn't — leaving the menu hanging open
+ * after the user picks something.  Attach this as the "clicked" signal
+ * handler in the .ui (in addition to action-name) on each menu item. */
+void on_popover_menu_item_clicked(GtkButton *button, gpointer user_data) {
+	(void) user_data;
+	GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(button),
+	                                              GTK_TYPE_POPOVER);
+	if (popover)
+		gtk_popover_popdown(GTK_POPOVER(popover));
+}
+
 void on_mask_enable_toggled(GtkCheckButton *button, gpointer user_data) {
 	gboolean state = siril_toggle_get_active(GTK_WIDGET(button));
 	gfit->mask_active = state;

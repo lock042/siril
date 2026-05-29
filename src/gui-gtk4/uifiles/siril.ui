@@ -285,6 +285,7 @@
           <object class="GtkButton" id="main_menu_preferences">
             <property name="label" translatable="1">Preferences</property>
             <property name="action-name">app.preferences</property>
+            <signal name="clicked" handler="on_popover_menu_item_clicked" swapped="no" />
           </object>
         </child>
         <child>
@@ -294,24 +295,28 @@
           <object class="GtkButton" id="main_menu_doc">
             <property name="label" translatable="1">Siril Manual</property>
             <property name="action-name">win.documentation</property>
+            <signal name="clicked" handler="on_popover_menu_item_clicked" swapped="no" />
           </object>
         </child>
         <child>
           <object class="GtkButton" id="main_menu_updates">
             <property name="label" translatable="1">Check For Updates</property>
             <property name="action-name">win.updates</property>
+            <signal name="clicked" handler="on_popover_menu_item_clicked" swapped="no" />
           </object>
         </child>
         <child>
           <object class="GtkButton" id="main_menu_shortcuts">
             <property name="label" translatable="1">Keyboard Shortcuts</property>
             <property name="action-name">win.shortcuts</property>
+            <signal name="clicked" handler="on_popover_menu_item_clicked" swapped="no" />
           </object>
         </child>
         <child>
           <object class="GtkButton" id="main_menu_about">
             <property name="label" translatable="1">About Siril</property>
             <property name="action-name">app.about</property>
+            <signal name="clicked" handler="on_popover_menu_item_clicked" swapped="no" />
           </object>
         </child>
       </object>
