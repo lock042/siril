@@ -267,8 +267,38 @@ static void on_system_appearance_changed(gboolean dark) {
 	update_icons_sequence_list(dark);
 }
 
+
+/* Tracks the user's current theme choice (live, not just saved pref).
+ * 0 = Follow system, 1 = Dark, 2 = Light. Updated by both
+ * load_prefered_theme() and siril_set_theme() so the guard callback
+ * always sees the right value even during unsaved live preview. */
+static int current_user_theme = 0;
+
+/* GTK4's platform backend (macOS, GNOME) can override gtk-application-prefer-dark-theme
+ * at init time or on system appearance changes.  When the user has chosen
+ * Dark or Light explicitly we re-apply their choice. */
+static void on_gtk_prefer_dark_changed(GObject *settings, GParamSpec *pspec, gpointer user_data) {
+	if (current_user_theme == 0)
+		return; /* Follow system – let the platform decide */
+	gboolean want_dark = (current_user_theme == 1);
+	gboolean actual_dark;
+	g_object_get(settings, "gtk-application-prefer-dark-theme", &actual_dark, NULL);
+	if (actual_dark != want_dark) {
+		g_signal_handlers_block_by_func(settings, on_gtk_prefer_dark_changed, NULL);
+		g_object_set(settings, "gtk-application-prefer-dark-theme", want_dark, NULL);
+		g_signal_handlers_unblock_by_func(settings, on_gtk_prefer_dark_changed, NULL);
+	}
+}
+
+void install_theme_override_guard(void) {
+	GtkSettings *settings = gtk_settings_get_default();
+	g_signal_connect(settings, "notify::gtk-application-prefer-dark-theme",
+	                 G_CALLBACK(on_gtk_prefer_dark_changed), NULL);
+}
+
 /* 0 = Follow system, 1 = Dark, 2 = Light */
 void siril_set_theme(int active) {
+	current_user_theme = active;
 	GtkSettings *settings = gtk_settings_get_default();
 	if (active == 0) {
 		/* "Follow system": resolve to the current OS appearance. */
@@ -553,6 +583,7 @@ static void initialize_theme_GUI() {
 }
 
 void load_prefered_theme(gint theme) {
+	current_user_theme = theme;
 	GtkSettings *settings = gtk_settings_get_default();
 	if (theme == 0) {
 		gboolean dark = siril_system_is_dark_mode();

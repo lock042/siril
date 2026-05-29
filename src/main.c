@@ -529,6 +529,7 @@ static void siril_app_activate(GApplication *application) {
 		/* Load preferred theme */
 		update_splash_progress(_("Loading theme..."), 0.55);
 		load_prefered_theme(com.pref.gui.combo_theme);
+		install_theme_override_guard();
 
 		/* Load the css sheet for general style */
 		update_splash_progress(_("Loading styles..."), 0.60);
