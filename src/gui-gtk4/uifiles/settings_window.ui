@@ -3922,16 +3922,38 @@
                                                   </object>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkScrolledWindow" id="scrolled_script_repo">
-                                                    <property name="focusable">1</property>
-                                                    <property name="margin-end">10</property>
-                                                    <property name="margin-start">10</property>
-                                                    <property name="max-content-height">350</property>
-                                                    <property name="min-content-height">200</property>
-                                                    <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
+                                                  <object class="GtkOverlay" id="script_repo_overlay">
+                                                    <property name="vexpand">1</property>
+                                                    <child>
+                                                      <object class="GtkScrolledWindow" id="scrolled_script_repo">
+                                                        <property name="focusable">1</property>
+                                                        <property name="margin-end">10</property>
+                                                        <property name="margin-start">10</property>
+                                                        <property name="max-content-height">350</property>
+                                                        <property name="min-content-height">200</property>
+                                                        <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
     To open an older revision (e.g. to get an older version after a bad script update) right click on a row.
     Some python scripts can be selected to run at startup. These have toggles in the "At startup" column: scripts that are not designated for running at startup do not show a toggle.</property>
-                                                    <property name="vexpand">1</property>
+                                                        <property name="vexpand">1</property>
+                                                      </object>
+                                                    </child>
+                                                    <child type="overlay">
+                                                      <object class="GtkBox" id="script_loading_box">
+                                                        <property name="visible">0</property>
+                                                        <property name="halign">center</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="spacing">8</property>
+                                                        <child>
+                                                          <object class="GtkSpinner" id="script_repo_spinner" />
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkLabel">
+                                                            <property name="label" translatable="yes">Loading scripts…</property>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                 </child>
                                               </object>
