@@ -3,7 +3,7 @@
 <interface>
   <!-- interface-name settings_window.ui -->
   <requires lib="gtk" version="4.0"/>
-  <object class="GtkAdjustment" id="adjFlux">
+<object class="GtkAdjustment" id="adjFlux">
     <property name="lower">3</property>
     <property name="page-increment">10</property>
     <property name="step-increment">1</property>
@@ -1704,208 +1704,217 @@
                             <child>
                               <object class="GtkFrame" id="frame21">
                                 <property name="child">
-                                  <object class="GtkBox">
+                                  <object class="GtkGrid">
+                                    <property name="column-homogeneous">1</property>
+                                    <property name="column-spacing">6</property>
                                     <property name="margin-start">6</property>
-                                    <property name="orientation">vertical</property>
-                                    <property name="spacing">10</property>
+                                    <property name="row-spacing">10</property>
                                     <child>
-                                      <object class="GtkBox">
-                                        <property name="spacing">6</property>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="valign">start</property>
+                                        <property name="label" translatable="yes">AF pixels:</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <property name="row-spacing">6</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">AF pixels:</property>
+                                            <property name="label" translatable="yes">x:</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
                                           </object>
                                         </child>
                                         <child>
-                                          <object class="GtkGrid">
-                                            <property name="column-spacing">6</property>
-                                            <property name="row-spacing">6</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">x:</property>
-                                                <layout>
-                                                  <property name="column">0</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">w:</property>
-                                                <layout>
-                                                  <property name="column">2</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">h:</property>
-                                                <layout>
-                                                  <property name="column">2</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">y:</property>
-                                                <layout>
-                                                  <property name="column">0</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_af_h">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">3</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_af_w">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">3</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_af_y">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">1</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_af_x">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">1</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">w:</property>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">y:</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">h:</property>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_af_x">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_af_w">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">3</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_af_y">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_af_h">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">3</property>
+                                              <property name="row">1</property>
+                                            </layout>
                                           </object>
                                         </child>
                                       </object>
                                     </child>
                                     <child>
-                                      <object class="GtkBox">
-                                        <property name="spacing">6</property>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="valign">start</property>
+                                        <property name="label" translatable="yes">Sample pixels:</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <property name="row-spacing">6</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Sample pixels:</property>
+                                            <property name="label" translatable="yes">x:</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
                                           </object>
                                         </child>
                                         <child>
-                                          <object class="GtkGrid">
-                                            <property name="column-spacing">6</property>
-                                            <property name="row-spacing">6</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">x:</property>
-                                                <layout>
-                                                  <property name="column">0</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">w:</property>
-                                                <layout>
-                                                  <property name="column">2</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">h:</property>
-                                                <layout>
-                                                  <property name="column">2</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">y:</property>
-                                                <layout>
-                                                  <property name="column">0</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_sample_x">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">1</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_sample_y">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">1</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_sample_w">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">3</property>
-                                                  <property name="row">0</property>
-                                                </layout>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xtrans_sample_h">
-                                                <property name="focusable">1</property>
-                                                <property name="input-hints">no-emoji|none</property>
-                                                <property name="text">0</property>
-                                                <layout>
-                                                  <property name="column">3</property>
-                                                  <property name="row">1</property>
-                                                </layout>
-                                              </object>
-                                            </child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">w:</property>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">y:</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">h:</property>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_sample_x">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_sample_w">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">3</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_sample_y">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="xtrans_sample_h">
+                                            <property name="focusable">1</property>
+                                            <property name="input-hints">no-emoji|none</property>
+                                            <property name="text">0</property>
+                                            <layout>
+                                              <property name="column">3</property>
+                                              <property name="row">1</property>
+                                            </layout>
                                           </object>
                                         </child>
                                       </object>
