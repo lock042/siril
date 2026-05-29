@@ -144,7 +144,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkSeparator" />
+          <object class="GtkSeparator" id="main_menu_separator" />
         </child>
         <child>
           <object class="GtkButton" id="main_menu_doc">

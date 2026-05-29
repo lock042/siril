@@ -66,21 +66,33 @@ void siril_show_about_dialog() {
 	 * siril.svg via GTK4's native paintable infrastructure, avoiding the
 	 * deprecated "logo" pixbuf path. */
 
-	gtk_show_about_dialog(parent,
-			"program-name", PACKAGE,
-			"title", _("About Siril"),
-			"logo-icon-name", "siril",
-			"version", version,
-			"copyright", copyright,
-			"authors", authors,
-			"documenters", documenters,
-			"artists", artists,
-			"comments", _("Astronomical image (pre-)processing program"),
+	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
+	g_object_set(G_OBJECT(dialog),
+			"program-name",      PACKAGE,
+			"title",             _("About Siril"),
+			"logo-icon-name",    "siril",
+			"version",           version,
+			"copyright",         copyright,
+			"authors",           authors,
+			"documenters",       documenters,
+			"artists",           artists,
+			"comments",          _("Astronomical image (pre-)processing program"),
 			"translator-credits", _("translator-credits"),
-			"website", PACKAGE_URL,
-			"website-label", _("Visit the Siril website"),
-			"license-type", GTK_LICENSE_GPL_3_0,
+			"website",           PACKAGE_URL,
+			"website-label",     _("Visit the Siril website"),
+			"license-type",      GTK_LICENSE_GPL_3_0,
 			NULL);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+	/* Enable macOS traffic-light window controls on the About dialog header bar. */
+	GtkWidget *titlebar = gtk_window_get_titlebar(GTK_WINDOW(dialog));
+	if (GTK_IS_HEADER_BAR(titlebar))
+		gtk_header_bar_set_use_native_controls(GTK_HEADER_BAR(titlebar), TRUE);
+#endif
+
+	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), FALSE);
+	gtk_window_present(GTK_WINDOW(dialog));
 
 	g_free(copyright);
 	g_free(version);
