@@ -159,14 +159,24 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 }
 
 starnet_version starnet_executablecheck(gchar* executable) {
+	/* Cache the last result to avoid re-spawning the process on every call
+	 * (e.g. when the preferences window opens).  On macOS, spawning triggers
+	 * Gatekeeper/XProtect which can block the UI thread for several seconds. */
+	static gchar *cached_path = NULL;
+	static starnet_version cached_version = NIL;
+
+	if (!executable || executable[0] == '\0') {
+		return NIL;
+	}
+	if (cached_path && g_strcmp0(cached_path, executable) == 0) {
+		return cached_version;
+	}
+
 	char *test_argv[3] = { NULL };
 	int retval = NIL;
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 	gchar *v1dir = NULL;
-	if (!executable || executable[0] == '\0') {
-		return NIL;
-	}
 	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
 		return NIL; // It's not executable so return NIL
 	}
@@ -267,6 +277,9 @@ starnet_version starnet_executablecheck(gchar* executable) {
 
 END:
 	g_free(v1dir);
+	g_free(cached_path);
+	cached_path = g_strdup(executable);
+	cached_version = retval;
 	return retval;
 }
 
