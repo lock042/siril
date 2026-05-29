@@ -1042,7 +1042,6 @@ int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt) {
 	if (dt)
 		*dt = NULL;
 	GDateTime *dtread = NULL;
-	double testjdt = 0.;
 	switch (seq->type) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename_checkext(seq, index, filename);
@@ -1097,8 +1096,9 @@ int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt) {
 		*dt = dtread;
 	}
 	if (jdt && dtread) {
-		*jdt = g_date_time_to_unix(dtread) / 86400.0 + 2440587.5;
-		testjdt = date_time_to_Julian(dtread);
+		*jdt = date_time_to_Julian(dtread);
+		if (!dt)
+			g_date_time_unref(dtread);
 	}
 	return 0;
 }
