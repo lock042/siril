@@ -132,8 +132,9 @@ public:
 
         // compute conj(F(k)).F(v)
         img_t<std::complex<T>> Ktf(v.w, v.h);
+        // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
         for (int i = 0; i < Ktf.size; i++)
             Ktf[i] = std::conj(K_otf[i]) * fv[i];
@@ -173,8 +174,9 @@ public:
             img_t<std::complex<T>> adj = fft::r2c(divergence);
 
             // solve the 'u' update
+            // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
             for (int i = 0; i < div.size; i++) {
                 T denom = T(1) / (KtK[i] + beta * DtD[i]);
@@ -385,8 +387,9 @@ public:
             // solve the linear system
             // opts.use_filters is loop-invariant; branch outside for SIMD
             if (opts.use_filters) {
+                // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
                 for (int i = 0; i < div.size; i++) {
                     std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i] + gamma * k_otf[i];
@@ -394,8 +397,9 @@ public:
                     div[i] = num / denum;
                 }
             } else {
+                // no simd: complex-valued body, clang can't vectorize it (would warn)
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
 #endif
                 for (int i = 0; i < div.size; i++) {
                     std::complex<T> num = std::conj(fu[i]) * fv[i] + gamma * k_otf[i];
