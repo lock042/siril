@@ -418,97 +418,17 @@ void transformColorSpace(
 ,	const ImageSize p_imSize
 ,	const bool p_isForward
 ){
-	//! If the image as only one channel, do nothing
+	//! If the image has only one channel, do nothing
 	if (p_imSize.nChannels == 1) {
 		return;
 	}
 
-	//! Initialization
-	const unsigned width	= p_imSize.width;
-	const unsigned height	= p_imSize.height;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned wh		= width * height;
-	vector<float> imTmp(wh * chnls);
-
-	//! RGB to YUV
-	if (p_isForward) {
-		if (chnls == 3) {
-			const unsigned red		= 0;
-			const unsigned green	= wh;
-			const unsigned blue		= wh * 2;
-			const float a			= 1.f / sqrtf(3.f);
-			const float b			= 1.f / sqrtf(2.f);
-			const float c			= 2.f * a * sqrtf(2.f);
-
-			for (unsigned k = 0; k < wh; k++) {
-				//! Y channel
-				imTmp[k + red	] = a * (io_im[k + red] + io_im[k + green] + io_im[k + blue]);
-
-				//! U channel
-				imTmp[k + green	] = b * (io_im[k + red] - io_im[k + blue]);
-
-				//! V channel
-				imTmp[k + blue	] = c * (0.25f * io_im[k + red] - 0.5f * io_im[k + green]
-										+ 0.25f * io_im[k + blue]);
-			}
-		}
-		else {	//! chnls == 4
-			const unsigned Gr	= 0;
-			const unsigned R	= wh;
-			const unsigned B	= wh * 2;
-			const unsigned Gb	= wh * 3;
-			const float a		= 0.5f;
-			const float b		= 1.f / sqrtf(2.f);
-			for (unsigned k = 0; k < wh; k++) {
-				imTmp[k + Gr] = a * (io_im[k + Gr] + io_im[k + R]
-									+ io_im[k + B] + io_im[k + Gb]);
-				imTmp[k + R ] = b * (io_im[k + R] - io_im[k + B]);
-				imTmp[k + B ] = a * (-io_im[k + Gr] + io_im[k + R]
-									+ io_im[k + B] - io_im[k + Gb]);
-				imTmp[k + Gb] = b * (-io_im[k + Gr] + io_im[k + Gb]);
-			}
-		}
-	}
-	//! YUV to RGB
-	else {
-		if (chnls == 3) {
-			const unsigned red		= 0;
-			const unsigned green	= wh;
-			const unsigned blue		= wh * 2;
-			const float a			= 1.f / sqrtf(3.f);
-			const float b			= 1.f / sqrtf(2.f);
-			const float c			= a / b;
-
-			for (unsigned k = 0; k < wh; k++) {
-				//! R channel
-				imTmp[k + red	] = a * io_im[k + red] + b * io_im[k + green]
-									+ c * 0.5f * io_im[k + blue];
-
-				//! G channel
-				imTmp[k + green	] = a * io_im[k + red] - c * io_im[k + blue];
-
-				//! B channel
-				imTmp[k + blue	] = a * io_im[k + red] - b * io_im[k + green]
-									+ c * 0.5f * io_im[k + blue];
-			}
-		}
-		else {	//! chnls == 4
-			const unsigned Gr	= 0;
-			const unsigned R	= wh;
-			const unsigned B	= wh * 2;
-			const unsigned Gb	= wh * 3;
-			const float a		= 0.5f;
-			const float b		= 1.f / sqrtf(2.f);
-			for (unsigned k = 0; k < wh; k++) {
-				imTmp[k + Gr] = a * io_im[k + Gr] - a * io_im[k + B] - b * io_im[k + Gb];
-				imTmp[k + R ] = a * io_im[k + Gr] + b * io_im[k + R] + a * io_im[k + B];
-				imTmp[k + B ] = a * io_im[k + Gr] - b * io_im[k + R] + a * io_im[k + B];
-				imTmp[k + Gb] = a * io_im[k + Gr] - a * io_im[k + B] + b * io_im[k + Gb];
-			}
-		}
-	}
-
-	io_im = std::move(imTmp);
+	// Delegates to the shared orthonormal opponent transform. nlbayes' planar
+	// [c*wh + ...] layout is img_t's planar layout, so the wrap is faithful;
+	// imgops::color_transform replicates the arithmetic below bit-for-bit.
+	img_t<float> im(p_imSize.width, p_imSize.height, p_imSize.nChannels, io_im.data());
+	imgops::color_transform(im, p_isForward);
+	std::copy(im.data.begin(), im.data.end(), io_im.begin());
 }
 
 /**
