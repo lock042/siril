@@ -487,14 +487,14 @@ public:
     }
 
     T operator[](int i) const {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + e.d * (x + e.w * y);
+        int j = (x + e.w * y) + dd * e.w * e.h;
         return e[j];
     }
 
@@ -527,26 +527,26 @@ public:
     }
 
     T operator[](int i) const {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + img->d * (x + img->w * y);
+        int j = (x + img->w * y) + dd * img->w * img->h;
         return (*img)[j];
     }
 
     T& operator[](int i) {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + img->d * (x + img->w * y);
+        int j = (x + img->w * y) + dd * img->w * img->h;
         return (*img)[j];
     }
 
@@ -624,7 +624,7 @@ REDUCE_HEAD(reduce1_img_expr_t)
 REDUCE_BODY
         T val = e[i];
         for (int d = 1; d < e.d; d++) {
-            val = reductor(val, e[i*e.d + d]);
+            val = reductor(val, e[i + d * e.w * e.h]);
         }
 REDUCE_TAIL
 
@@ -665,8 +665,8 @@ public:
     gradientx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -674,7 +674,7 @@ public:
             return T(0);
         } else {
             int current_idx = i;
-            int next_idx = z + d * ((x + 1) + w * y);
+            int next_idx = ((x + 1) + w * y) + z * w * h;
             return e[next_idx] - e[current_idx];
         }
     }
@@ -701,8 +701,8 @@ public:
     gradienty_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -710,7 +710,7 @@ public:
             return T(0);  // Handle the edge case when at the bottom-most row
         } else {
             int current_idx = i;
-            int next_idx = z + d * (x + w * (y + 1));  // Move to the next row in the same column
+            int next_idx = (x + w * (y + 1)) + z * w * h;  // Move to the next row in the same column
             return e[next_idx] - e[current_idx];
         }
     }
@@ -740,32 +740,32 @@ public:
 
     // Compute divergence at the index i (flattened)
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         // Convert 3D coordinates to 1D indices
-        int idx = z + d * (x + w * y);           // Current pixel
-        int idx_xm1 = z + d * ((x - 1) + w * y); // (x-1, y)
-        int idx_ym1 = z + d * (x + w * (y - 1)); // (x, y-1)
+        int idx = (x + w * y) + z * w * h;           // Current pixel
+        int idx_xm1 = ((x - 1) + w * y) + z * w * h; // (x-1, y)
+        int idx_ym1 = (x + w * (y - 1)) + z * w * h; // (x, y-1)
 
         if (x == 0 && y == 0) {
-            return gx[z] + gy[z];  // Top-left corner
+            return gx[z * w * h] + gy[z * w * h];  // Top-left corner
         } else if (x == w - 1 && y == 0) {
-            return -gx[z + d * (w - 2)] + gy[z + d * (w - 1)];  // Top-right corner
+            return -gx[(w - 2) + z * w * h] + gy[(w - 1) + z * w * h];  // Top-right corner
         } else if (x == 0 && y == h - 1) {
-            return gx[z + d * (h - 1)] - gy[z + d * (h - 2)];  // Bottom-left corner
+            return gx[(h - 1) + z * w * h] - gy[(h - 2) + z * w * h];  // Bottom-left corner
         } else if (x == w - 1 && y == h - 1) {
-            return -gx[z + d * (w - 2 + w * (h - 1))] - gy[z + d * (w - 1 + w * (h - 2))];  // Bottom-right corner
+            return -gx[(w - 2 + w * (h - 1)) + z * w * h] - gy[(w - 1 + w * (h - 2)) + z * w * h];  // Bottom-right corner
         } else if (x == 0) {
             return gx[idx] + gy[idx] - gy[idx_ym1];  // Left edge
         } else if (y == 0) {
             return gx[idx] - gx[idx_xm1] + gy[idx];  // Top edge
         } else if (x == w - 1) {
-            return -gx[z + d * (w - 2 + w * y)] + gy[idx] - gy[idx_ym1];  // Right edge
+            return -gx[(w - 2 + w * y) + z * w * h] + gy[idx] - gy[idx_ym1];  // Right edge
         } else if (y == h - 1) {
-            return gx[idx] - gx[idx_xm1] - gy[z + d * (x + w * (h - 2))];  // Bottom edge
+            return gx[idx] - gx[idx_xm1] - gy[(x + w * (h - 2)) + z * w * h];  // Bottom edge
         } else {
             return gx[idx] - gx[idx_xm1] + gy[idx] - gy[idx_ym1];  // Interior
         }
@@ -795,17 +795,17 @@ public:
     gradientxx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         if (x == 0 || x == w - 1) {
             return T(0);  // Handle boundary cases where no second derivative can be computed
         } else {
-            int left_idx = z + d * ((x - 1) + w * y);
-            int current_idx = z + d * (x + w * y);
-            int right_idx = z + d * ((x + 1) + w * y);
+            int left_idx = ((x - 1) + w * y) + z * w * h;
+            int current_idx = (x + w * y) + z * w * h;
+            int right_idx = ((x + 1) + w * y) + z * w * h;
             return e[right_idx] - 2 * e[current_idx] + e[left_idx];
         }
     }
@@ -832,17 +832,17 @@ public:
     gradientyy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         if (y == 0 || y == h - 1) {
             return T(0);  // Handle boundary cases where no second derivative can be computed
         } else {
-            int top_idx = z + d * (x + w * (y - 1));
-            int current_idx = z + d * (x + w * y);
-            int bottom_idx = z + d * (x + w * (y + 1));
+            int top_idx = (x + w * (y - 1)) + z * w * h;
+            int current_idx = (x + w * y) + z * w * h;
+            int bottom_idx = (x + w * (y + 1)) + z * w * h;
             return e[bottom_idx] - 2 * e[current_idx] + e[top_idx];
         }
     }
@@ -869,8 +869,8 @@ public:
     gradientxy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -878,10 +878,10 @@ public:
         if (x == w - 1 || y == h - 1) {
             return T(0);  // Handle boundary cases as in the gradientxy function
         } else {
-            int top_left_idx = z + d * (x + w * y);
-            int top_right_idx = z + d * ((x + 1) + w * y);
-            int bottom_left_idx = z + d * (x + w * (y + 1));
-            int bottom_right_idx = z + d * ((x + 1) + w * (y + 1));
+            int top_left_idx = (x + w * y) + z * w * h;
+            int top_right_idx = ((x + 1) + w * y) + z * w * h;
+            int bottom_left_idx = (x + w * (y + 1)) + z * w * h;
+            int bottom_right_idx = ((x + 1) + w * (y + 1)) + z * w * h;
             return e[bottom_right_idx] - e[top_right_idx] - e[bottom_left_idx] + e[top_left_idx];
         }
     }

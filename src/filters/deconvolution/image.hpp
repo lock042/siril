@@ -189,10 +189,10 @@ public:
         return data.data()[i];
     }
     inline T& operator()(int x, int y, int dd=0) {
-        return data.data()[dd+d*(x+y*w)];
+        return data.data()[x + w*(y + h*dd)];
     }
     inline const T& operator()(int x, int y, int dd=0) const {
-        return data.data()[dd+d*(x+y*w)];
+        return data.data()[x + w*(y + h*dd)];
     }
 
     void set_value(const T& v) {
@@ -1359,7 +1359,7 @@ public:
         for (int i = 0; i < size; i++) {
             T val(0);
             for (int dd = 0; dd < color.d; dd++) {
-                val += color[i * color.d + dd];
+                val += color[i + dd * color.w * color.h];
             }
             (*this)[i] = val / color.d;
         }
