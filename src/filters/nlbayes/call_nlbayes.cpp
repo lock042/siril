@@ -193,8 +193,27 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     fSigma = (float) intermediate_bgnoise;
     siril_log_message(_("NL-Bayes output: measured background noise level is %.3e\n"), fSigma);
 
-    // Blend the denoised result back into the fits.
-    imgops::to_fits(vout, fit, modulation);
+    // Modulation blend over the original (unclipped) image, done here in img_t
+    // space so that imgops::to_fits stays a general type-only converter. (Skip if
+    // DA3D collapsed a colour image to monochrome, changing the shape.)
+    if (modulation != 1.f) {
+      img_t<float> orig_raw = imgops::from_fits(fit, /*clip=*/false);
+      if (orig_raw.size == vout.size)
+        for (int i = 0; i < vout.size; i++)
+          vout.data[i] = (1.f - modulation) * orig_raw.data[i] + modulation * vout.data[i];
+    }
+
+    // Write back, preserving the fit's bit depth: float images stay float, ushort
+    // images are re-quantised to 16-bit. to_fits (re)allocates/updates the fits
+    // buffers and metadata to match.
+    if (fit->type == DATA_USHORT) {
+      img_t<WORD> wout(vout.w, vout.h, vout.d);
+      for (int i = 0; i < vout.size; i++)
+        wout.data[i] = roundf_to_WORD(vout.data[i] * USHRT_MAX_SINGLE);
+      imgops::to_fits(wout, fit);
+    } else {
+      imgops::to_fits(vout, fit);
+    }
 
     return EXIT_SUCCESS;
 }

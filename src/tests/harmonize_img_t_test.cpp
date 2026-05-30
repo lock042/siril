@@ -25,10 +25,13 @@
 
 #include <criterion/criterion.h>
 #include <vector>
+#include <cstdint>
+#include <cstdlib>
 #include "algos/img_t/image.hpp"
 #include "algos/img_t/image_expr.hpp"
 #include "algos/img_t/image_ops.hpp"
 #include "algos/img_t/image_dft.hpp"
+#include "algos/img_t/img_fits.hpp"
 #include "filters/nlbayes/LibMatrix.h"
 
 // The Siril core globals are not linked into the unit-test binary (see the
@@ -36,6 +39,7 @@
 // com.max_thread for OpenMP work-splitting and references sequence_is_running.
 cominfo com;
 int sequence_is_running = 0;
+fits *gfit = nullptr;  // referenced by fits helpers (fit_replace_buffer -> invalidate_stats_from_fit)
 
 // img_t uses com.max_thread for its OpenMP work splitting. In a unit-test
 // process the global is zero-initialised and Siril is never started, so pin it
@@ -313,6 +317,80 @@ Test(imgops, color_transform_mono_noop) {
 	imgops::color_transform(im, true);
 	for (int i = 0; i < 4; ++i)
 		cr_assert_float_eq(im.data[i], 0.5f, 1e-6, "mono unchanged");
+}
+
+/* ---- imgops: general to_fits type conversion ---- */
+
+Test(imgops, to_fits_float_into_ushort_fit_switches_to_float) {
+	fits f = {};
+	f.rx = f.naxes[0] = 2; f.ry = f.naxes[1] = 2; f.naxes[2] = 1; f.naxis = 2;
+	f.type = DATA_USHORT; f.bitpix = USHORT_IMG; f.orig_bitpix = USHORT_IMG;
+	f.data = (WORD*) malloc(4 * sizeof(WORD)); f.pdata[0] = f.data;
+
+	img_t<float> im(2, 2, 1);
+	im(0, 0) = 0.1f; im(1, 0) = 0.2f; im(0, 1) = 0.3f; im(1, 1) = 0.4f;
+	imgops::to_fits(im, &f);
+
+	cr_assert_eq(f.type, DATA_FLOAT, "type switched USHORT -> FLOAT");
+	cr_assert_not_null(f.fdata, "fdata allocated");
+	cr_assert_null(f.data, "old data buffer nulled");
+	cr_assert_eq(f.bitpix, FLOAT_IMG);
+	cr_assert_float_eq(f.fdata[0], 0.1f, 1e-6, "(0,0)");
+	cr_assert_float_eq(f.fdata[3], 0.4f, 1e-6, "(1,1) at planar index 3");
+	free(f.fdata);
+}
+
+Test(imgops, to_fits_double_narrows_to_float) {
+	fits f = {};
+	f.rx = f.naxes[0] = 2; f.ry = f.naxes[1] = 1; f.naxes[2] = 1; f.naxis = 2;
+	f.type = DATA_FLOAT; f.bitpix = FLOAT_IMG; f.orig_bitpix = FLOAT_IMG;
+	f.fdata = (float*) malloc(2 * sizeof(float)); f.fpdata[0] = f.fdata;
+
+	img_t<double> im(2, 1, 1);
+	im.data[0] = 0.123456789; im.data[1] = 0.9;
+	imgops::to_fits(im, &f);
+
+	cr_assert_eq(f.type, DATA_FLOAT);
+	cr_assert_float_eq(f.fdata[0], (float)0.123456789, 1e-7, "narrowed to float");
+	free(f.fdata);
+}
+
+Test(imgops, to_fits_uint8_casts_to_ushort_and_records_origin) {
+	fits f = {};
+	f.rx = f.naxes[0] = 2; f.ry = f.naxes[1] = 1; f.naxes[2] = 1; f.naxis = 2;
+	f.type = DATA_FLOAT; f.bitpix = FLOAT_IMG; f.orig_bitpix = FLOAT_IMG;
+	f.fdata = (float*) malloc(2 * sizeof(float)); f.fpdata[0] = f.fdata;
+
+	img_t<uint8_t> im(2, 1, 1);
+	im.data[0] = 200; im.data[1] = 50;
+	imgops::to_fits(im, &f);
+
+	cr_assert_eq(f.type, DATA_USHORT, "uint8 stored in uint16 container");
+	cr_assert_not_null(f.data);
+	cr_assert_null(f.fdata, "old fdata nulled");
+	cr_assert_eq(f.bitpix, USHORT_IMG, "bitpix 20");
+	cr_assert_eq(f.orig_bitpix, BYTE_IMG, "orig_bitpix records 8-bit origin");
+	cr_assert_eq((int)f.data[0], 200, "value cast, not scaled");
+	cr_assert_eq((int)f.data[1], 50);
+	free(f.data);
+}
+
+Test(imgops, to_fits_channel_count_change) {
+	fits f = {};
+	f.rx = f.naxes[0] = 2; f.ry = f.naxes[1] = 2; f.naxes[2] = 1; f.naxis = 2;
+	f.type = DATA_FLOAT; f.bitpix = FLOAT_IMG; f.orig_bitpix = FLOAT_IMG;
+	f.fdata = (float*) malloc(4 * sizeof(float)); f.fpdata[0] = f.fdata;
+
+	img_t<float> im(2, 2, 3);
+	im.set_value(0.5f);
+	imgops::to_fits(im, &f);
+
+	cr_assert_eq(f.naxes[2], 3, "channel count updated");
+	cr_assert_eq(f.naxis, 3, "naxis updated for RGB");
+	cr_assert_not_null(f.fpdata[1], "G channel pointer set");
+	cr_assert_not_null(f.fpdata[2], "B channel pointer set");
+	cr_assert_float_eq(f.fpdata[2][0], 0.5f, 1e-6, "B channel data written");
+	free(f.fdata);
 }
 
 /* ---- LibMatrix: span/template/OMP (Phase 2.5) ---- */

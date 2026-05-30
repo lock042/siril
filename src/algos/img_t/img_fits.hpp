@@ -19,23 +19,31 @@
  */
 
 /*
- * Adapters between Siril's `fits` struct and the shared img_t<float> type.
+ * Adapters between Siril's `fits` struct and the shared img_t<T> type.
  *
  * Both Siril fits and img_t are PLANAR (channel-major), so the conversion is a
  * straight per-element copy. A genuine zero-copy "borrow" is intentionally NOT
- * offered: USHORT data needs ushort->float conversion, float data needs
- * clipping to [0,1] (which must not mutate the caller's fits), and img_t owns
- * fftw-aligned storage that the FFT-based operations depend on - so a copy is
- * inherent. These helpers replace the ad-hoc raw-buffer juggling that the
- * denoise/deconvolution entry points previously did by hand.
+ * offered: USHORT data needs ushort<->float conversion, img_t owns fftw-aligned
+ * storage that the FFT ops depend on, and the fits may need its buffer
+ * reallocated - so a copy is inherent.
+ *
+ * from_fits() is a normalising reader for the [0,1] float convention used by
+ * the denoisers. to_fits() is a general type-aware writer (see below).
  */
 
 #pragma once
 
 #include <algorithm>
+#include <cstdlib>
+#include <type_traits>
 
-#include "image.hpp"  // img_t + core/siril.h (fits, DATA_FLOAT, USHRT_MAX_SINGLE)
-#include "core/proto.h"  // roundf_to_WORD (self-guards with extern "C")
+#include "image.hpp"  // img_t + core/siril.h (fits, data_type, WORD, USHRT_MAX_SINGLE,
+                      // BYTE_IMG/USHORT_IMG/FLOAT_IMG, PRINT_ALLOC_ERR)
+
+// fit_replace_buffer is defined in image_format_fits.c (C linkage); it swaps in
+// a new data buffer, frees the old one, NULLs the now-unused buffer, rewires the
+// per-channel pdata/fpdata pointers and sets type/bitpix/orig_bitpix.
+extern "C" void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype);
 
 namespace imgops {
 
@@ -67,39 +75,51 @@ inline img_t<float> from_fits(const fits* fit, bool clip = true) {
     return out;
 }
 
-//! Write an img_t<float> result back into an existing fits, IN PLACE (it does
-//! not allocate a new fits). The shape metadata (rx, ry, naxes, naxis, bitpix)
-//! is updated to match `im`; the pixel data is then written, blended with the
-//! fit's existing contents by `modulation` (fit = (1-modulation)*fit +
-//! modulation*im), with USHORT de-normalised.
-//!
-//! Precondition: the fit's data buffers (fdata/data and the fpdata/pdata
-//! per-channel pointers) must already be allocated for `im`'s dimensions - which
-//! holds when `fit` is the same one `im` was built from via from_fits(). For a
-//! differently-shaped target, (re)allocate the fit (e.g. with new_fit_image)
-//! first. modulation < 1 blends over the fit's existing data, so it requires
-//! that original data to be present.
-inline void to_fits(const img_t<float>& im, fits* fit, float modulation = 1.f) {
+//! General-purpose img_t<T> -> fits writer. Updates an EXISTING fits IN PLACE
+//! (it never allocates a new fits, so caller-side metadata - keywords, header,
+//! WCS, ... - is preserved) to hold `im`, reallocating the pixel buffer and
+//! fixing up rx/ry/naxes/naxis/bitpix/type when the size, channel count or bit
+//! depth differs. The element type chooses the fits representation:
+//!   - float                 -> DATA_FLOAT  (bitpix FLOAT_IMG)
+//!   - double                -> DATA_FLOAT, narrowed to float
+//!   - uint16_t / WORD        -> DATA_USHORT (bitpix USHORT_IMG)
+//!   - uint8_t                -> DATA_USHORT (value cast to uint16), orig_bitpix
+//!                              set to BYTE_IMG to record the 8-bit origin
+//! This is a plain type conversion (no [0,1] range scaling); callers that work
+//! in the normalised [0,1] convention quantise to the desired type first.
+template <typename T>
+void to_fits(const img_t<T>& im, fits* fit) {
+    static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value ||
+                  std::is_same<T, uint8_t>::value || std::is_same<T, uint16_t>::value,
+                  "to_fits supports img_t of float, double, uint8_t or uint16_t");
+    constexpr bool floaty = std::is_floating_point<T>::value;
+    const size_t nbdata = static_cast<size_t>(im.w) * im.h * im.d;
+
+    void* buf = malloc(nbdata * (floaty ? sizeof(float) : sizeof(WORD)));
+    if (!buf) {
+        PRINT_ALLOC_ERR;
+        return;
+    }
+    if constexpr (floaty) {
+        float* f = static_cast<float*>(buf);
+        for (size_t i = 0; i < nbdata; i++)
+            f[i] = static_cast<float>(im.data[i]);   // narrows double -> float
+    } else {
+        WORD* w = static_cast<WORD*>(buf);
+        for (size_t i = 0; i < nbdata; i++)
+            w[i] = static_cast<WORD>(im.data[i]);     // casts uint8 -> uint16
+    }
+
+    // fit_replace_buffer reads naxes for the per-channel pointer offsets, so set
+    // the shape first.
     fit->rx = fit->naxes[0] = im.w;
     fit->ry = fit->naxes[1] = im.h;
     fit->naxes[2] = im.d;
     fit->naxis = (im.d == 1) ? 2 : 3;
-    fit->bitpix = (fit->type == DATA_FLOAT) ? FLOAT_IMG : USHORT_IMG;
+    fit_replace_buffer(fit, buf, floaty ? DATA_FLOAT : DATA_USHORT);
 
-    const size_t n = static_cast<size_t>(im.w) * im.h * im.d;
-    if (fit->type == DATA_FLOAT) {
-        for (size_t i = 0; i < n; i++)
-            fit->fdata[i] = (1.f - modulation) * fit->fdata[i] + modulation * im.data[i];
-    } else {
-        const float invnorm = 1.f / USHRT_MAX_SINGLE;
-        for (size_t i = 0; i < n; i++)
-            // roundf_to_WORD (float) is the type-appropriate conversion for our
-            // float result, matching Siril's float_to_ushort_range; the old
-            // denoise code used round_to_WORD (double), which needlessly
-            // promoted the float and could differ by 1 LSB near saturation.
-            fit->data[i] = roundf_to_WORD(USHRT_MAX_SINGLE * ((1.f - modulation) * (fit->data[i] * invnorm)
-                                                             + modulation * im.data[i]));
-    }
+    if constexpr (std::is_same<T, uint8_t>::value)
+        fit->orig_bitpix = BYTE_IMG;  // record the 8-bit origin (data lives in a uint16 buffer)
 }
 
 }  // namespace imgops
