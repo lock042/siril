@@ -105,6 +105,71 @@ img_t<T> unpad(const img_t<T>& in, int border) {
     return out;
 }
 
+//! In-place orthonormal opponent (OPP) colour transform on a planar img_t.
+//! forward=true: RGB -> YUV; forward=false: YUV -> RGB. Handles 3-channel RGB
+//! and 4-channel CFA (Gr,R,B,Gb). This is the single shared implementation of
+//! the transform that da3d (ColorTransform) and nlbayes (transformColorSpace)
+//! each carried separately - they are mathematically identical. The arithmetic
+//! mirrors nlbayes' transformColorSpace exactly (operand order and constants)
+//! so swapping that function in is bit-identical.
+template <typename T>
+void color_transform(img_t<T>& im, bool forward) {
+    if (im.d != 3 && im.d != 4)
+        return;  // monochrome (or unsupported channel count): nothing to do
+    const int wh = im.w * im.h;
+    std::vector<T, fftw_alloc<T>> tmp(im.data.size());
+
+    if (forward) {
+        if (im.d == 3) {
+            const int red = 0, green = wh, blue = wh * 2;
+            const T a = T(1) / std::sqrt(T(3));
+            const T b = T(1) / std::sqrt(T(2));
+            const T c = T(2) * a * std::sqrt(T(2));
+            for (int k = 0; k < wh; k++) {
+                tmp[k + red]   = a * (im.data[k + red] + im.data[k + green] + im.data[k + blue]);
+                tmp[k + green] = b * (im.data[k + red] - im.data[k + blue]);
+                tmp[k + blue]  = c * (T(0.25) * im.data[k + red] - T(0.5) * im.data[k + green]
+                                      + T(0.25) * im.data[k + blue]);
+            }
+        } else {  // 4 channels (Gr, R, B, Gb)
+            const int Gr = 0, R = wh, B = wh * 2, Gb = wh * 3;
+            const T a = T(0.5);
+            const T b = T(1) / std::sqrt(T(2));
+            for (int k = 0; k < wh; k++) {
+                tmp[k + Gr] = a * (im.data[k + Gr] + im.data[k + R] + im.data[k + B] + im.data[k + Gb]);
+                tmp[k + R]  = b * (im.data[k + R] - im.data[k + B]);
+                tmp[k + B]  = a * (-im.data[k + Gr] + im.data[k + R] + im.data[k + B] - im.data[k + Gb]);
+                tmp[k + Gb] = b * (-im.data[k + Gr] + im.data[k + Gb]);
+            }
+        }
+    } else {
+        if (im.d == 3) {
+            const int red = 0, green = wh, blue = wh * 2;
+            const T a = T(1) / std::sqrt(T(3));
+            const T b = T(1) / std::sqrt(T(2));
+            const T c = a / b;
+            for (int k = 0; k < wh; k++) {
+                tmp[k + red]   = a * im.data[k + red] + b * im.data[k + green]
+                                 + c * T(0.5) * im.data[k + blue];
+                tmp[k + green] = a * im.data[k + red] - c * im.data[k + blue];
+                tmp[k + blue]  = a * im.data[k + red] - b * im.data[k + green]
+                                 + c * T(0.5) * im.data[k + blue];
+            }
+        } else {  // 4 channels (Gr, R, B, Gb)
+            const int Gr = 0, R = wh, B = wh * 2, Gb = wh * 3;
+            const T a = T(0.5);
+            const T b = T(1) / std::sqrt(T(2));
+            for (int k = 0; k < wh; k++) {
+                tmp[k + Gr] = a * im.data[k + Gr] - a * im.data[k + B] - b * im.data[k + Gb];
+                tmp[k + R]  = a * im.data[k + Gr] + b * im.data[k + R] + a * im.data[k + B];
+                tmp[k + B]  = a * im.data[k + Gr] - b * im.data[k + R] + a * im.data[k + B];
+                tmp[k + Gb] = a * im.data[k + Gr] - a * im.data[k + B] + b * im.data[k + Gb];
+            }
+        }
+    }
+    im.data = std::move(tmp);
+}
+
 //! Mean of an image along one axis (AXIS_X/AXIS_Y/AXIS_D), materialised into a
 //! new img_t whose extent along that axis is 1. Built on reduce_axis; this is
 //! the NL-Bayes baricenter (mean over patches = mean along the patch axis).

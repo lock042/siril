@@ -280,6 +280,41 @@ Test(img_expr, center_data_via_reduce_broadcast) {
 	cr_assert_float_eq(centered(2,1), 20.f, 1e-5, "50 - 30 = 20");
 }
 
+/* ---- imgops: OPP colour transform ---- */
+
+Test(imgops, color_transform_roundtrip) {
+	img_t<float> im(2, 2, 3);
+	for (int c = 0; c < 3; ++c)
+		for (int i = 0; i < 4; ++i)
+			im.data[i + c * 4] = 0.1f * (i + 1) + 0.2f * c; // distinct RGB per pixel
+	img_t<float> orig = im;
+	imgops::color_transform(im, true);   // RGB -> YUV
+	imgops::color_transform(im, false);  // YUV -> RGB
+	for (size_t i = 0; i < im.data.size(); ++i)
+		cr_assert_float_eq(im.data[i], orig.data[i], 1e-5, "forward+inverse identity, idx %zu", i);
+}
+
+Test(imgops, color_transform_known_value) {
+	img_t<float> im(1, 1, 3);
+	im.data[0] = 0.6f; // R
+	im.data[1] = 0.3f; // G
+	im.data[2] = 0.9f; // B
+	imgops::color_transform(im, true);
+	const float a = 1.f / std::sqrt(3.f), b = 1.f / std::sqrt(2.f);
+	cr_assert_float_eq(im.data[0], a * (0.6f + 0.3f + 0.9f), 1e-5, "Y = (R+G+B)/sqrt3");
+	cr_assert_float_eq(im.data[1], b * (0.6f - 0.9f), 1e-5, "U = (R-B)/sqrt2");
+	// V = (R - 2G + B)/sqrt6
+	cr_assert_float_eq(im.data[2], (0.6f - 2.f*0.3f + 0.9f) / std::sqrt(6.f), 1e-5, "V = (R-2G+B)/sqrt6");
+}
+
+Test(imgops, color_transform_mono_noop) {
+	img_t<float> im(2, 2, 1);
+	im.set_value(0.5f);
+	imgops::color_transform(im, true);
+	for (int i = 0; i < 4; ++i)
+		cr_assert_float_eq(im.data[i], 0.5f, 1e-6, "mono unchanged");
+}
+
 /* ---- LibMatrix: span/template/OMP (Phase 2.5) ---- */
 
 Test(libmatrix, transpose_involution) {
