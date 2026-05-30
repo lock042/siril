@@ -32,9 +32,8 @@
 #include <functional>
 #include "opencv/opencv.h"
 
-#include "filters/da3d/Image.hpp"
-#include "filters/da3d/Utils.hpp"
 #include "filters/da3d/DA3D.hpp"
+#include "filters/deconvolution/image_ops.hpp"
 #include "Utilities.h"
 #include "NlBayes.h"
 #include "LibImages.h"
@@ -61,10 +60,7 @@ using std::bind;
 using std::multiplies;
 using std::divides;
 
-using utils::isMonochrome;
-using utils::makeMonochrome;
 using NlBayes::runNlBayes;
-using da3d::Image;
 using da3d::DA3D;
 
 extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe) {
@@ -196,21 +192,22 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 #ifndef _OPENMP
       siril_log_message(_("OpenMP not available. The DA3D algorithm will run in a single thread.\n"));
 #endif
-      Image input(bgr_f, height, width, nchans);
-      Image guide(bgr_fout, height, width, nchans);
+      // img_t is planar (w=width, h=height), matching bgr_f's planar layout
+      img_t<float> input(width, height, nchans, bgr_f);
+      img_t<float> guide(width, height, nchans, bgr_fout);
       // DA3D doesn't work if a color image has monochromatic noise
-      if (input.channels()>1 && isMonochrome(input)) {
+      if (input.d > 1 && imgops::is_monochrome(input)) {
         siril_log_error(_("Warning: input color image has monochromatic noise! Converting to monochrome."));
-        input = makeMonochrome(input);
-        guide = makeMonochrome(guide);
+        input = imgops::make_monochrome(input);
+        guide = imgops::make_monochrome(guide);
       }
       int retval = 0;
-      Image output = DA3D(retval, input, guide, lastfSigma);
+      img_t<float> output = DA3D(retval, input, guide, lastfSigma);
       if (retval != 0) {
         siril_log_debug("do_nlbayes: DA3D returned an error code\n");
         return EXIT_FAILURE;
       }
-      bgr_da3dout = output.data();
+      bgr_da3dout = output.data.data();
       memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
     }
 

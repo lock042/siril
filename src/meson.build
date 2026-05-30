@@ -129,7 +129,6 @@ src_files = [
   'filters/wavelets.c',
 
   'filters/da3d/DA3D.cpp',
-  'filters/da3d/Utils.cpp',
   'filters/da3d/WeightMap.cpp',
   'filters/nlbayes/call_nlbayes.cpp',
   'filters/nlbayes/LibImages.cpp',
