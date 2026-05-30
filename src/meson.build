@@ -28,6 +28,7 @@ src_files = [
   'algos/img_t/image_dft.hpp',
   'algos/img_t/image_expr.hpp',
   'algos/img_t/image_ops.hpp',
+  'algos/img_t/img_fits.hpp',
   'algos/img_t/vec2.hpp',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',

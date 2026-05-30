@@ -34,6 +34,7 @@
 
 #include "filters/da3d/DA3D.hpp"
 #include "algos/img_t/image_ops.hpp"
+#include "algos/img_t/img_fits.hpp"
 #include "Utilities.h"
 #include "NlBayes.h"
 #include "LibImages.h"
@@ -68,49 +69,32 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
-    const unsigned npixels = width * height;
+    const unsigned whc = width * height * nchans;
     float fSigma = 0.f;
     float lastfSigma = 0.f;
     double intermediate_bgnoise;
 
-    float normalize = 1.f;
-    if (fit->type == DATA_USHORT)
-    	normalize = USHRT_MAX_SINGLE;
-    float invnorm = 1 / normalize;
     if (sos < 1)
       sos = 1;
 
-	// The useArea bools set the paste trick in both halves of the Nl-Bayes function
+    // The useArea bools set the paste trick in both halves of the Nl-Bayes function
     const bool useArea1 = true;
     const unsigned useArea2 = true;
     const bool verbose = false;
 
-    float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
-    float *bgr_fout;
-
-    // Sanitize input to remove any bad pixels
-    if (fit->type == DATA_FLOAT) {
-		for (size_t i = 0; i < npixels * nchans; i++)
-			bgr_f[i] = max(min(1.f, fit->fdata[i]), 0.f);
-	} else {
-		for (size_t i = 0; i < npixels * nchans; i++)
-			bgr_f[i] = max(min(1.f, (float) fit->data[i] * invnorm), 0.f);
-	}
-
-    // Measure image noise using the custom wrapper to FnNoise1_float in statistics.c
-    // Initial noise measurement
-    sos_update_noise_float(bgr_f, width, height, nchans, &intermediate_bgnoise);
+    // Build the source image once from the fits (normalise USHORT, clip to
+    // [0,1]); the whole SOS loop then runs entirely in img_t<float>, so there
+    // is no raw-buffer / vector / img_t juggling.
+    img_t<float> orig = imgops::from_fits(fit);
+    sos_update_noise_float(orig.data.data(), width, height, nchans, &intermediate_bgnoise);
     lastfSigma = (float) intermediate_bgnoise;
 
-    vector<float> bgr_v_orig { bgr_f, bgr_f + width * height * nchans };
-    vector<float> bgr_vout = bgr_v_orig;
-    vector<float> bgr_v(width * height * nchans, 0.f);
-    vector<float> basic;
-    const unsigned whc = width * height * nchans;
+    img_t<float> vout = orig;                 // running denoised result
+    img_t<float> v(width, height, nchans);    // SOS-strengthened input
 
     gui_iface.set_progress(0.0, _("NL-Bayes denoising..."));
 
-    if(!processing_should_continue()) {
+    if (!processing_should_continue()) {
         siril_log_debug("do_nlbayes: processing_should_continue() returned FALSE\n");
         return EXIT_FAILURE;
     }
@@ -122,70 +106,65 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     // SOS iteration loop
     for (unsigned iter = 0; iter < sos; iter++) {
 
-      // Strengthen result of previous iteration bgr_v by mixing back a fraction of the original noisy image
-      for (unsigned i = 0; i < bgr_v_orig.size(); i++)
-        bgr_v[i] = (rho * bgr_vout[i] + (1.f - rho) * bgr_v_orig[i]);
+      // Strengthen the previous result by mixing back a fraction of the original noisy image
+      for (unsigned i = 0; i < whc; i++)
+        v.data[i] = rho * vout.data[i] + (1.f - rho) * orig.data[i];
       // Update image noise measurement
-      sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+      sos_update_noise_float(v.data.data(), width, height, nchans, &intermediate_bgnoise);
       fSigma = (float) intermediate_bgnoise;
       if (fSigma > lastfSigma * 1.01f) {
         // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
         siril_log_error(_("Error: SOS is not converging. Try a smaller value of rho.\n"));
-        bgr_vout = std::move(bgr_v_orig);
+        vout = orig;
         break;
       }
       if (iter == 0)
-        siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %.3e\n"),fSigma);
+        siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %.3e\n"), fSigma);
 
       if (do_anscombe && iter == 0) {
         siril_log_message(_("Applying Anscombe VST\n"));
-        transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+        transform(v.data.begin(), v.data.end(), v.data.begin(),
               bind(multiplies<float>(), std::placeholders::_1, 65536.f));
-        generalized_anscombe_array(bgr_v.data(), 0.f, 0.f, 1.f, whc);
+        generalized_anscombe_array(v.data.data(), 0.f, 0.f, 1.f, whc);
         float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
-        transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+        transform(v.data.begin(), v.data.end(), v.data.begin(),
               bind(divides<float>(), std::placeholders::_1, norm));
-        sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+        sos_update_noise_float(v.data.data(), width, height, nchans, &intermediate_bgnoise);
         fSigma = (float) intermediate_bgnoise;
       }
-      // Operate the NL-Bayes algorithm. Wrap the planar [c*wh + ...] buffers in
-      // img_t views (img_t is planar, matching the bgr layout) and copy the
-      // results back into the flat vectors used by the SOS / anscombe arithmetic.
-      img_t<float> imNoisy(width, height, nchans, bgr_v.data());
+
+      // Operate the NL-Bayes algorithm directly on the img_t buffers.
       img_t<float> imBasic, imFinal;
-      if (runNlBayes(imNoisy, imBasic, imFinal, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS) {
+      if (runNlBayes(v, imBasic, imFinal, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS) {
         siril_log_debug("do_nlbayes: runNlBayes returned an error code\n");
         return EXIT_FAILURE;
       }
-      basic.assign(imBasic.data.begin(), imBasic.data.end());
-      bgr_vout.assign(imFinal.data.begin(), imFinal.data.end());
+      vout = std::move(imFinal);
 
       if (do_anscombe && iter == 0) {
         siril_log_message(_("Applying exact unbiased inverse Anscombe VST\n"));
         float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
-        transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+        transform(vout.data.begin(), vout.data.end(), vout.data.begin(),
               bind(multiplies<float>(), std::placeholders::_1, norm));
-        inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, 0.f, 1.f, whc);
-        transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+        inverse_generalized_anscombe_array(vout.data.data(), 0.f, 0.f, 1.f, whc);
+        transform(vout.data.begin(), vout.data.end(), vout.data.begin(),
               bind(divides<float>(), std::placeholders::_1, 65536.f));
       }
 
       // Subtraction step to produce input for next iteration. Not performed on the final iteration.
-      if (iter+1 < sos) {
-        for (unsigned i = 0; i < bgr_v.size(); i++) {
-          bgr_vout[i] *= 1.f / (1.f - rho);
-          bgr_vout[i] -= bgr_v[i] * (rho / (1.f - rho));
+      if (iter + 1 < sos) {
+        for (unsigned i = 0; i < whc; i++) {
+          vout.data[i] *= 1.f / (1.f - rho);
+          vout.data[i] -= v.data[i] * (rho / (1.f - rho));
         }
-      if (sos > 1)
-        siril_log_message(_("SOS iteration %d of %d complete\n"), iter+1, sos);
+        if (sos > 1)
+          siril_log_message(_("SOS iteration %d of %d complete\n"), iter + 1, sos);
       }
     }
-// Add another clipping check in case NL-Bayes causes a saturated pixel to slightly exceed 1.0.
-    bgr_fout = bgr_vout.data();
-    for (size_t i = 0; i < npixels * nchans; i++)
-      bgr_fout[i] = max(min(1.f, bgr_fout[i]), 0.f);
 
-    float *bgr_da3dout;
+    // Clip in case NL-Bayes pushed a saturated pixel slightly over 1.0.
+    for (unsigned i = 0; i < whc; i++)
+      vout.data[i] = max(min(1.f, vout.data[i]), 0.f);
 
     // Carry out final-stage DA3D denoising if required
     if (da3d != 0) {
@@ -193,9 +172,8 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 #ifndef _OPENMP
       siril_log_message(_("OpenMP not available. The DA3D algorithm will run in a single thread.\n"));
 #endif
-      // img_t is planar (w=width, h=height), matching bgr_f's planar layout
-      img_t<float> input(width, height, nchans, bgr_f);
-      img_t<float> guide(width, height, nchans, bgr_fout);
+      img_t<float> input = orig;   // original (noisy) image
+      img_t<float> guide = vout;   // NL-Bayes result, used as the DA3D guide
       // DA3D doesn't work if a color image has monochromatic noise
       if (input.d > 1 && imgops::is_monochrome(input)) {
         siril_log_error(_("Warning: input color image has monochromatic noise! Converting to monochrome."));
@@ -208,25 +186,16 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
         siril_log_debug("do_nlbayes: DA3D returned an error code\n");
         return EXIT_FAILURE;
       }
-      bgr_da3dout = output.data.data();
-      memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
+      vout = std::move(output);
     }
 
     // Final noise measurement
-    sos_update_noise_float(bgr_fout, width, height, nchans, &intermediate_bgnoise);
+    sos_update_noise_float(vout.data.data(), width, height, nchans, &intermediate_bgnoise);
     fSigma = (float) intermediate_bgnoise;
-    siril_log_message(_("NL-Bayes output: measured background noise level is %.3e\n"),fSigma);
+    siril_log_message(_("NL-Bayes output: measured background noise level is %.3e\n"), fSigma);
 
-    // Convert output from bgrbgr back to planar rgb and put back into fit
-    if (fit->type == DATA_FLOAT) {
-        for (unsigned i = 0; i < npixels * nchans; i++)
-          fit->fdata[i] = (1.f - modulation) * fit->fdata[i] + modulation * bgr_fout[i];
-    } else {
-       for (unsigned i = 0; i < npixels * nchans; i++)
-          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f - modulation) * (fit->data[i] * invnorm) + modulation * bgr_fout[i]));
-    }
+    // Blend the denoised result back into the fits.
+    imgops::to_fits(vout, fit, modulation);
 
     return EXIT_SUCCESS;
 }
-
-
