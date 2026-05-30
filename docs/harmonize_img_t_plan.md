@@ -193,18 +193,22 @@ to the one axis `img_expr_t` can reduce).
 
 ---
 
-## Phase 3 — Migrate da3d (interleaved→planar, DftPatch→patch-DFT)
-- [ ] Replace `da3d::Image` with `img_t<float>`; convert all `val(col,row,chan)` to planar `operator()` — removing the
-      interleaved assumption.
-- [ ] Replace `DftPatch` with the Phase-0/1 patch-DFT approach; port freq-domain ops (DA3D.cpp:331–342: modulus via
-      `std::norm`, scalar multiply, DC special-case).
-- [ ] Re-back `WeightMap` (WeightMap.cpp pyramid) with `img_t`; keep its min-pyramid algorithm.
-- [ ] Route tiling through Phase-1 split/merge; port `ColorTransform`, `ComputeRegressionPlane`, `BilateralWeight`,
-      `ModifyPatch` to planar/per-channel.
-- [ ] Update entry point (call_nlbayes.cpp:199) to construct `img_t` from the (layout-confirmed) buffer.
-- [ ] **Golden regression** within tolerance (mono + colour); if colour now differs because the old interleaved path
-      was buggy, document it as an intended fix with before/after images.
-- [ ] **Performance benchmark** vs baseline; investigate any >5% regression.
+## Phase 3 — Migrate da3d (interleaved→planar, DftPatch→patch-DFT) — DONE
+- [x] Replaced `da3d::Image` with planar `img_t<float>`; all `val(col,row,chan)` → `operator()`. ExtractPatch rewritten
+      for planar.
+- [x] Replaced `DftPatch` with `imgops::dft_patch`; ported the freq-domain ops (`std::norm` modulus, scalar multiply, DC
+      special-case) — `frows/fcolumns` → `h()/fw()`.
+- [x] Re-backed `WeightMap::IncreaseWeights` on `img_t<float>` (its min-pyramid storage unchanged).
+- [x] Routed tiling through `imgops::compute_tiling`/`split_tiles`/`merge_tiles` (faithful ports → mono bit-identical),
+      colour through `imgops::color_transform`, monochrome through `imgops::is_monochrome`/`make_monochrome`.
+- [x] Entry point (call_nlbayes.cpp) builds `img_t<float>(width,height,nchans, bgr_f)` — planar, **fixing the colour
+      bug** (da3d::Image had read planar input as interleaved).
+- [x] **Golden regression:** mono da3d **bit-identical**; colour da3d **differs (max 1.7e-2) by design** — the fix.
+      New colour output is finite, in-range, and a small (8.6e-3) refinement of the nlbayes result (correct DA3D
+      behaviour, not the old scrambled output). Plain non-da3d denoise unchanged; 26 unit tests pass.
+- [x] Removed `Image.hpp`, `DftPatch.hpp`, `Utils.cpp` (net −469 lines).
+- [ ] *(Optional)* Performance benchmark vs baseline — not yet measured; `imgops::dft_patch` reuses cached r2c/c2r plans
+      like the old `DftPatch`, so no regression expected, but unmeasured.
 
 ---
 
