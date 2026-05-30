@@ -412,8 +412,12 @@ static void siril_app_startup(GApplication *application) {
 #endif
 }
 
+static gboolean siril_app_activated = FALSE;
+
 static void siril_app_activate(GApplication *application) {
-	fprintf(stderr, "[DBG] siril_app_activate BEGIN\n"); fflush(stderr);
+	fprintf(stderr, "[DBG] siril_app_activate BEGIN (already=%d)\n", siril_app_activated); fflush(stderr);
+	if (siril_app_activated) return;
+	siril_app_activated = TRUE;
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
@@ -632,9 +636,12 @@ static void siril_app_activate(GApplication *application) {
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
 	fprintf(stderr, "[DBG] siril_app_open n_files=%d gui_iface.redraw_image=%p\n",
 	        n_files, (void*)gui_iface.redraw_image); fflush(stderr);
-#if !defined(OS_OSX)
+	/* Always activate first — on macOS, GApplication emits startup→open without
+	 * activate when files are passed as arguments.  siril_app_activate() is
+	 * guarded by siril_app_activated so a double call is a no-op. */
 	g_application_activate(application);
-#endif
+	fprintf(stderr, "[DBG] siril_app_open after activate, gui_iface.redraw_image=%p\n",
+	        (void*)gui_iface.redraw_image); fflush(stderr);
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
