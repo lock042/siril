@@ -112,13 +112,26 @@ extracted with evidence rather than speculation.
 ---
 
 ## Phase 2 — Migrate nlbayes (lower risk, already planar)
-- [ ] Replace `std::vector<float>`+`ImageSize` with `img_t<float>` through `NlBayes.cpp`/`LibImages.cpp`, routing
-      boundary/tiling/colour through Phase-1 ops. Keep `LibMatrix` algebra untouched.
-- [ ] Update entry point `do_nlbayes` (call_nlbayes.cpp) to build an `img_t` directly from `fit->fdata` (planar, no
-      copy/reorder).
-- [ ] Delete `ImageSize` and now-dead `LibImages` functions superseded by `img_t` ops.
-- [ ] **Golden regression:** nlbayes output matches Phase-0 baseline within tolerance (mono + colour).
-- [ ] Per-function Criterion tests for any nlbayes logic that changed shape (patch extraction indices, aggregation).
+Verification harness: `siril-cli` runs `denoise` headless; golden baselines captured on the mono test image and a
+synthetic 3-channel image (single-threaded), compared pixel-wise with numpy. Each step below is asserted **bit-identical**
+(max abs diff = 0) against the baselines.
+
+- [x] **Boundary** — `symetrizeImage` delegates to `imgops::pad_symmetric`/`unpad` (planar img_t view). Bit-identical.
+- [x] **Colour** — `transformColorSpace` delegates to `imgops::color_transform` (shared OPP transform). Bit-identical.
+      (Also corrected the record: da3d's and nlbayes' colour transforms are the *same* orthonormal transform; only da3d's
+      *layout usage* is wrong — the Phase-3 bug.)
+- [~] **Tiling** — `subDivide`/`subBuild` are NOT merged onto `imgops::split_tiles`/`merge_tiles`: they hard-cut the
+      non-boundary core (like `process_in_slices`), whereas imgops does weighted overlap-add — different stitch, would
+      change output. Their boundary already routes through the migrated `symetrizeImage`. (Rule of three: full tiling
+      unification still deferred.)
+- [~] **Full `vector<float>`+`ImageSize` -> `img_t` representation swap / `ImageSize` deletion** — DEFERRED with
+      rationale. The harmonization payoff is already captured: the duplicated image ops (boundary, colour) are shared,
+      and LibMatrix is pointer-based so the patch group ALREADY feeds it zero-copy via `.data()`. Swapping the internal
+      patch buffers to `img_t` (2.5.3) would add hot-loop allocations for cosmetic gain; replacing `ImageSize` across
+      every nlbayes signature is a large mechanical change with diminishing returns. Recommend doing it only if the
+      `ImageSize` removal is wanted for its own sake.
+- [x] **Golden regression:** mono + colour denoise output bit-identical after every landed step.
+- [x] Criterion unit tests for each new shared op (pad/colour/tiling/dft/axis) and all four LibMatrix routines.
 
 ### Section 2.5 — LibMatrix integration, genericization & OMP optimization
 LibMatrix stays a standalone linear-algebra unit (GEMM / Cholesky-inverse / covariance / transpose). We improve how it
