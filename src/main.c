@@ -118,6 +118,20 @@ cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
 fits *gfit = NULL;	// currently loaded image
 
+/* File passed by the OS via the GApplication "open" signal (e.g. Finder's
+ * "Open With" on macOS, or a file argument on Linux).  On macOS the "open"
+ * signal fires re-entrantly inside the GApplication "startup" emission —
+ * GTK's quartz backend calls [NSApp finishLaunching] from its startup handler
+ * and the launch Apple Event is dispatched there — i.e. before the main loop
+ * runs and before the window is mapped.  Opening the image straight from the
+ * handler then renders into a surface that is never shown, leaving a blank
+ * window.  We therefore stash the path here and open it from
+ * close_splash_and_show_window_cb, after the window is actually visible and
+ * on a normal main-loop iteration. */
+static gchar *pending_open_path = NULL;
+static gboolean main_window_shown = FALSE;
+static gboolean process_pending_open_idle(gpointer user_data);
+
 /* Callback to close splash screen and show main window after delay */
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	fprintf(stderr, "[DBG] close_splash_and_show_window_cb\n"); fflush(stderr);
@@ -135,6 +149,15 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	force_paned_restore();
 
 	g_idle_add(first_start_cb, NULL);
+
+	/* Now that the window is visible, open any file the OS handed us at
+	 * launch.  Scheduling it as an idle (rather than running it inline)
+	 * lets the window-show above complete first, so the image renders into
+	 * a realised, on-screen surface.  The flag also tells siril_app_open
+	 * that a later-arriving "open" can schedule itself directly. */
+	main_window_shown = TRUE;
+	if (pending_open_path)
+		g_idle_add(process_pending_open_idle, NULL);
 
 	return G_SOURCE_REMOVE;
 }
@@ -633,47 +656,86 @@ static void siril_app_activate(GApplication *application) {
 	fprintf(stderr, "[DBG] siril_app_activate END\n"); fflush(stderr);
 }
 
+/* Actually open the file the OS handed us (a sequence or a single image).
+ * Split out of siril_app_open so it can be deferred to after the window is
+ * shown — see pending_open_path. */
+static void do_open_file(gchar *path) {
+	if (!path)
+		return;
+	const char *ext = get_filename_ext(path);
+	if (ext && !strncmp(ext, "seq", 4)) {
+		gchar *sequence_dir = g_path_get_dirname(path);
+		if (!siril_change_dir(sequence_dir, NULL)) {
+			if (check_seq()) {
+				siril_log_message(_("No sequence `%s' found.\n"), path);
+			} else {
+				set_seq(path);
+				if (!com.script) {
+					gui_iface.populate_seq_combo(path);
+					gui_iface.set_gui_cwd();
+				}
+			}
+			g_free(sequence_dir);
+		}
+	} else {
+		image_type type = get_type_from_filename(path);
+		if (!main_option_directory && type != TYPEAVI && type != TYPESER
+				&& type != TYPEUNDEF) {
+			gchar *image_dir = g_path_get_dirname(path);
+			siril_change_dir(image_dir, NULL);
+			g_free(image_dir);
+		}
+		if (!com.script)
+			gui_function(set_GUI_CWD, NULL);
+		open_single_image(path);
+	}
+}
+
+/* Idle scheduled from close_splash_and_show_window_cb once the window is
+ * visible.  Opens the file stashed by siril_app_open. */
+static gboolean process_pending_open_idle(gpointer user_data) {
+	gchar *path = g_steal_pointer(&pending_open_path);
+	fprintf(stderr, "[DBG] process_pending_open_idle path=%s owner=%d\n",
+	        path ? path : "(null)",
+	        g_main_context_is_owner(g_main_context_default())); fflush(stderr);
+	do_open_file(path);
+	g_free(path);
+	return G_SOURCE_REMOVE;
+}
+
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
-	fprintf(stderr, "[DBG] siril_app_open n_files=%d gui_iface.redraw_image=%p\n",
-	        n_files, (void*)gui_iface.redraw_image); fflush(stderr);
+	fprintf(stderr, "[DBG] siril_app_open n_files=%d owner=%d gui_iface.redraw_image=%p\n",
+	        n_files, g_main_context_is_owner(g_main_context_default()),
+	        (void*)gui_iface.redraw_image); fflush(stderr);
 	/* Always activate first — on macOS, GApplication emits startup→open without
 	 * activate when files are passed as arguments.  siril_app_activate() is
 	 * guarded by siril_app_activated so a double call is a no-op. */
 	g_application_activate(application);
-	fprintf(stderr, "[DBG] siril_app_open after activate, gui_iface.redraw_image=%p\n",
+	fprintf(stderr, "[DBG] siril_app_open after activate, owner=%d gui_iface.redraw_image=%p\n",
+	        g_main_context_is_owner(g_main_context_default()),
 	        (void*)gui_iface.redraw_image); fflush(stderr);
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
 		fprintf(stderr, "[DBG] siril_app_open path=%s\n", path ? path : "(null)"); fflush(stderr);
-		const char *ext = get_filename_ext(path);
-		if (ext && !strncmp(ext, "seq", 4)) {
-			gchar *sequence_dir = g_path_get_dirname(path);
-			if (!siril_change_dir(sequence_dir, NULL)) {
-				if (check_seq()) {
-					siril_log_message(_("No sequence `%s' found.\n"), path);
-				} else {
-					set_seq(path);
-					if (!com.script) {
-						gui_iface.populate_seq_combo(path);
-						gui_iface.set_gui_cwd();
-					}
-				}
-				g_free(sequence_dir);
-			}
+		/* In GUI mode, defer the open until the window is shown
+		 * (close_splash_and_show_window_cb picks up pending_open_path).
+		 * Opening inline here would render into a not-yet-mapped surface on
+		 * macOS, where "open" fires re-entrantly during startup, giving a
+		 * blank window.  In headless/script mode there is no window to wait
+		 * for, so open immediately. */
+		if (com.headless) {
+			do_open_file(path);
+			g_free(path);
 		} else {
-			image_type type = get_type_from_filename(path);
-			if (!main_option_directory && type != TYPEAVI && type != TYPESER
-					&& type != TYPEUNDEF) {
-				gchar *image_dir = g_path_get_dirname(path);
-				siril_change_dir(image_dir, NULL);
-				g_free(image_dir);
-			}
-			if (!com.script)
-				gui_function(set_GUI_CWD, NULL);
-			open_single_image(path);
+			g_free(pending_open_path);
+			pending_open_path = path;  /* ownership transferred */
+			/* If the window was already shown (activate ran and its splash
+			 * timer fired before this "open" arrived), schedule the open
+			 * now — close_splash_and_show_window_cb won't run again. */
+			if (main_window_shown)
+				g_idle_add(process_pending_open_idle, NULL);
 		}
-		g_free(path);
 	}
 }
 
