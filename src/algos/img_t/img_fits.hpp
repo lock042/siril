@@ -67,9 +67,25 @@ inline img_t<float> from_fits(const fits* fit, bool clip = true) {
     return out;
 }
 
-//! Blend an img_t<float> result back into a fits with modulation:
-//! fit = (1 - modulation) * fit + modulation * im. USHORT is de-normalised.
-inline void to_fits(const img_t<float>& im, fits* fit, float modulation) {
+//! Write an img_t<float> result back into an existing fits, IN PLACE (it does
+//! not allocate a new fits). The shape metadata (rx, ry, naxes, naxis, bitpix)
+//! is updated to match `im`; the pixel data is then written, blended with the
+//! fit's existing contents by `modulation` (fit = (1-modulation)*fit +
+//! modulation*im), with USHORT de-normalised.
+//!
+//! Precondition: the fit's data buffers (fdata/data and the fpdata/pdata
+//! per-channel pointers) must already be allocated for `im`'s dimensions - which
+//! holds when `fit` is the same one `im` was built from via from_fits(). For a
+//! differently-shaped target, (re)allocate the fit (e.g. with new_fit_image)
+//! first. modulation < 1 blends over the fit's existing data, so it requires
+//! that original data to be present.
+inline void to_fits(const img_t<float>& im, fits* fit, float modulation = 1.f) {
+    fit->rx = fit->naxes[0] = im.w;
+    fit->ry = fit->naxes[1] = im.h;
+    fit->naxes[2] = im.d;
+    fit->naxis = (im.d == 1) ? 2 : 3;
+    fit->bitpix = (fit->type == DATA_FLOAT) ? FLOAT_IMG : USHORT_IMG;
+
     const size_t n = static_cast<size_t>(im.w) * im.h * im.d;
     if (fit->type == DATA_FLOAT) {
         for (size_t i = 0; i < n; i++)
