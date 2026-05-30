@@ -133,6 +133,16 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 
 	force_paned_restore();
 
+	/* On macOS the Quartz/macOS backend uses native compositing for
+	 * gtk_widget_set_opacity().  Changing from 0.0 to 1.0 above just flips
+	 * NSWindow's alphaValue — it does NOT re-invoke GTK's draw callbacks.
+	 * Any gtk_widget_queue_draw() calls that happened while the splash was
+	 * up (e.g. from "Open with") were processed at alpha=0 and are now
+	 * consumed.  Force a fresh redraw so images opened via "Open with"
+	 * actually appear.  The call is cheap on an empty view too. */
+	if (!com.headless && gfit != NULL && gfit->naxis > 0)
+		gui_iface.redraw_image(REDRAW_ALL);
+
 	g_idle_add(first_start_cb, NULL);
 
 	return G_SOURCE_REMOVE;
@@ -410,17 +420,7 @@ static void siril_app_startup(GApplication *application) {
 #endif
 }
 
-static gboolean siril_app_activated = FALSE;
-
 static void siril_app_activate(GApplication *application) {
-	/* Guard against re-entry: on macOS the open handler may call
-	 * g_application_activate() to ensure the GUI is initialised before the
-	 * file is opened, but on GTK3 the Quartz backend already calls activate
-	 * before open — so this can be reached twice. */
-	if (siril_app_activated)
-		return;
-	siril_app_activated = TRUE;
-
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
@@ -636,12 +636,9 @@ static void siril_app_activate(GApplication *application) {
 }
 
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
-	/* Always activate first so the GUI is fully initialised before we try to
-	 * open the file.  On non-macOS / GTK3-macOS this is a no-op when activate
-	 * has already fired; on GTK4-macOS the open signal can arrive before
-	 * activate, so calling activate here is necessary.  siril_app_activate()
-	 * is guarded against double-initialisation by siril_app_activated. */
+#if !defined(OS_OSX)
 	g_application_activate(application);
+#endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
