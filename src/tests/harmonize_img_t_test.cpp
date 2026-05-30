@@ -85,6 +85,16 @@ Test(imgops, symmetric_coordinate_half_sample) {
 	cr_assert_eq(imgops::symmetric_coordinate(6, 5), 3);
 }
 
+Test(imgops, reflect_whole_sample_matches_deconv_inline) {
+	// whole-sample reflection used by process_in_slices: -1 -> 1, size -> size-2
+	cr_assert_eq(imgops::reflect_whole_sample(0, 5), 0);
+	cr_assert_eq(imgops::reflect_whole_sample(4, 5), 4);
+	cr_assert_eq(imgops::reflect_whole_sample(-1, 5), 1);
+	cr_assert_eq(imgops::reflect_whole_sample(-2, 5), 2);
+	cr_assert_eq(imgops::reflect_whole_sample(5, 5), 3); // 2*5 - 5 - 2
+	cr_assert_eq(imgops::reflect_whole_sample(6, 5), 2); // 2*5 - 6 - 2
+}
+
 /* ---- imgops: monochrome ---- */
 
 Test(imgops, is_monochrome) {

@@ -38,18 +38,10 @@
 #include <vector>
 
 #include "image.hpp"
+#include "image_boundary.hpp"  // symmetric_coordinate / reflect_whole_sample
 #include "image_expr.hpp"  // reduce_axis / broadcast_axis / AXIS_*
 
 namespace imgops {
-
-//! Half-sample symmetric reflection of a (possibly out-of-range) coordinate
-//! into [0, size). Edge pixel is not repeated: -1 -> 0, size -> size-1.
-inline int symmetric_coordinate(int pos, int size) {
-    if (pos < 0) pos = -pos - 1;
-    if (pos >= 2 * size) pos %= 2 * size;
-    if (pos >= size) pos = 2 * size - 1 - pos;
-    return pos;
-}
 
 //! True if every pixel has identical values across all channels (so a
 //! "colour" image actually carries monochrome content). Mono is trivially true.
