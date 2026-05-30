@@ -25,10 +25,10 @@ SOFTWARE.
 
 #include "core/siril.h"
 #include "core/arithm.h"
-#include "image.hpp"
-#include "image_expr.hpp"
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/image_expr.hpp"
 #include "labeling.hpp"
-#include "vec2.hpp"
+#include "algos/img_t/vec2.hpp"
 
 namespace utils {
 
