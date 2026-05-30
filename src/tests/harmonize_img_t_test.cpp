@@ -26,6 +26,7 @@
 #include <criterion/criterion.h>
 #include "filters/deconvolution/image.hpp"
 #include "filters/deconvolution/image_ops.hpp"
+#include "filters/deconvolution/image_dft.hpp"
 
 // The Siril core globals are not linked into the unit-test binary (see the
 // other tests in this directory), so provide local definitions. img_t reads
@@ -193,4 +194,36 @@ Test(imgops, merge_tiles_weighted_average) {
 	for (int y = 0; y < 2; ++y)
 		for (int x = 0; x < 2; ++x)
 			cr_assert_float_eq(out(x, y), 5.f, 1e-6, "10/2 = 5");
+}
+
+/* ---- imgops: patch DFT ---- */
+
+Test(imgops, dft_patch_dc_component) {
+	imgops::dft_patch p(8, 8, 1);
+	p.space().set_value(3.f); // constant -> DC = sum, all other bins ~0
+	p.to_freq();
+	// DC term = sum of all samples = 3 * 64
+	cr_assert_float_eq(p.freq(0, 0).real(), 3.f * 64.f, 1e-2, "DC = sum");
+	cr_assert_float_eq(p.freq(0, 0).imag(), 0.f, 1e-3, "DC imag ~ 0");
+	cr_assert_eq(p.fw(), 5); // 8/2 + 1
+}
+
+Test(imgops, dft_patch_roundtrip) {
+	imgops::dft_patch p(16, 12, 2);
+	// fill with a deterministic pattern
+	for (int c = 0; c < 2; ++c)
+		for (int y = 0; y < 12; ++y)
+			for (int x = 0; x < 16; ++x)
+				p.space(x, y, c) = std::sin(0.3f * x + 0.2f * y + c) + 0.5f * c;
+
+	img_t<float> original = p.space(); // copy
+
+	p.to_freq();
+	p.to_space();
+
+	for (int c = 0; c < 2; ++c)
+		for (int y = 0; y < 12; ++y)
+			for (int x = 0; x < 16; ++x)
+				cr_assert_float_eq(p.space(x, y, c), original(x, y, c), 1e-4,
+				                   "forward+inverse is identity");
 }
