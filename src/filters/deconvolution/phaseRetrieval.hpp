@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef PHASE_RETRIEVAL_H
 #define PHASE_RETRIEVAL_H
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "options.hpp"
 
 template <typename T>

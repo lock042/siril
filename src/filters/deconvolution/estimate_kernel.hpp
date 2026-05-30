@@ -24,7 +24,7 @@ SOFTWARE.
 #pragma once
 
 #include <cassert>
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "fft.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
