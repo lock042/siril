@@ -410,7 +410,17 @@ static void siril_app_startup(GApplication *application) {
 #endif
 }
 
+static gboolean siril_app_activated = FALSE;
+
 static void siril_app_activate(GApplication *application) {
+	/* Guard against re-entry: on macOS the open handler may call
+	 * g_application_activate() to ensure the GUI is initialised before the
+	 * file is opened, but on GTK3 the Quartz backend already calls activate
+	 * before open — so this can be reached twice. */
+	if (siril_app_activated)
+		return;
+	siril_app_activated = TRUE;
+
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
@@ -626,9 +636,12 @@ static void siril_app_activate(GApplication *application) {
 }
 
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
-#if !defined(OS_OSX)
+	/* Always activate first so the GUI is fully initialised before we try to
+	 * open the file.  On non-macOS / GTK3-macOS this is a no-op when activate
+	 * has already fired; on GTK4-macOS the open signal can arrive before
+	 * activate, so calling activate here is necessary.  siril_app_activate()
+	 * is guarded against double-initialisation by siril_app_activated. */
 	g_application_activate(application);
-#endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
