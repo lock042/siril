@@ -30,9 +30,14 @@ Decisive consequences:
 ---
 
 ## Risks / decisions to confirm before coding
-- [ ] **Layout contract at the da3d boundary** — confirm whether da3d actually receives interleaved or planar data
-      today, and whether colour output is currently correct. Determines whether the migration is behaviour-preserving
-      or a bug-fix.
+- [x] **Layout contract at the da3d boundary** — RESOLVED. `do_nlbayes` (call_nlbayes.cpp:92-101) fills `bgr_f`
+      by a flat copy of the planar `fit->fdata`/`fit->data`, so the buffer is **planar** `[R…R,G…G,B…B]`. nlbayes
+      consumes it as planar (correct). da3d builds `Image input(bgr_f,…)` (line 199) but `da3d::Image` indexes
+      **interleaved** (Image.hpp:79), and `ColorTransform` (DA3D.cpp:58-63) reads `val(col,row,0/1/2)` as a pixel's
+      R/G/B. **For colour images the DA3D stage misinterprets planar data as interleaved → a latent colour bug** (same
+      class as the deconvolution one; the line-222 "convert bgrbgr back to planar" comment is stale — no de-interleave
+      happens). Mono is unaffected. **Consequence:** the da3d migration is a *bug-fix* for colour, so da3d colour golden
+      output will intentionally differ; capture before/after.
 - [ ] **Exact RGB↔YUV coefficients** — nlbayes `transformColorSpace` (LibImages.cpp:465) uses a specific opponent
       transform; `img_t::rgb2ycbcr` may differ. Must match nlbayes math exactly, not "a" YUV.
 - [ ] **Tolerance policy** — bit-exact is unrealistic (FFT/threading reorderings). Propose `max abs err ≤ 1e-5` on
@@ -42,16 +47,19 @@ Decisive consequences:
 ---
 
 ## Phase 0 — Setup & de-risking
-- [ ] Create branch `harmonize_img_t` from `master`.
+- [x] Create branch `harmonize_img_t` from `master`.
 - [ ] **Golden baselines:** capture current da3d and nlbayes output on a fixed mono + a fixed colour test FITS
       (small, committed fixtures), at fixed sigma/params. These reference arrays are the regression oracle for the
-      whole effort.
-- [ ] Add a Criterion test target to `src/tests/meson.build` (model on `imoper_test.c`), gated on
-      `criterion_dep.found()`.
-- [ ] **Resolve the layout-contract question** (risk item above); document in the PR description.
-- [ ] **Spike: patch-DFT performance.** Prototype `img_t`-backed forward/inverse r2c for a 16×16×{1,3} patch reusing
-      the `(h,w,d)` plan cache; benchmark N≈100k transforms vs the current `DftPatch`. Decide: reuse `img_t` fft
-      directly, or add a dedicated `dft_patch` helper. **Gate the da3d migration on this result.**
+      whole effort. *(Deferred to the start of the migration phases, where there is a refactored version to compare
+      against; needs real FITS fixtures + a built Siril.)*
+- [x] Add a Criterion test target to `src/tests/meson.build` (model on `imoper_test.c`), gated on
+      `criterion_dep.found()`. *(Done: `harmonize_img_t_test.cpp`, suite `harmonize`. NOTE: clang is absent in the dev
+      container; configured a gcc meson build dir `_build_gcc` with `-Dcriterion=true` for building/running tests.)*
+- [x] **Resolve the layout-contract question** (see Risks above; da3d colour path is a latent bug).
+- [x] **Spike: patch-DFT performance.** RESOLVED by code analysis: `img_t`'s `fft::r2c` runs a *full complex* FFT
+      (fft.hpp:117-133) and heap-allocates a new buffer per call, while DA3D needs the real-optimized half-spectrum
+      transform with persistent buffers. **Decision: dedicated helper.** Implemented `imgops::dft_patch`
+      (`image_dft.hpp`) backed by planar `img_t` storage using `fftwf_plan_many_dft_r2c/c2r` with reused plans.
 
 **Unit tests:** harness smoke test; baseline-capture reproducibility (same input → same bytes twice).
 
@@ -60,25 +68,21 @@ Decisive consequences:
 ## Phase 1 — Extend `img_t` / `img_expr_t` to cover the gaps (TDD: test first)
 Write the Criterion test *before* each implementation, asserting against a hand-computed or current-code reference.
 
-- [ ] **Symmetric (half-sample) boundary pad / unpad** — `pad_symmetric(img, border)` / `unpad`, matching nlbayes
-      `symetrizeImage`/`addBoundary` (LibImages.cpp:378) and da3d `SymmetricCoordinate` (Utils.cpp:49) semantics exactly.
-  - Tests: 1×N row reflects correctly; round-trip identity; matches current nlbayes `symetrizeImage` byte-for-byte.
-- [ ] **RGB↔YUV transform** matching nlbayes coefficients (verify vs `rgb2ycbcr`; add `rgb2yuv_nlbayes`/inverse only
-      if coefficients differ).
-  - Tests: forward∘inverse ≈ identity (ε); exact match vs `transformColorSpace` on the colour fixture.
-- [ ] **Tile split / merge** returning `std::vector<img_t<T>>` with weighted overlap-add merge — covers da3d
-      `SplitTiles`/`MergeTiles` (Utils.cpp) and nlbayes `subDivide`/`subBuild` (LibImages.cpp:575).
-  - Tests: split→merge identity (zero overlap); weighted merge matches reference; tiling count/padding matches `ComputeTiling`.
-- [ ] **Weighted aggregation helper** — overlap-add accumulate + normalise (nlbayes `computeWeightedAggregation`
-      NlBayes.cpp:1001; da3d patch accumulation DA3D.cpp:353).
-  - Tests: single patch → exact; overlapping patches → weighted mean.
-- [ ] **Monochrome detect / collapse** — `is_monochrome()` + reuse `greyfromcolor` for da3d `isMonochrome`/`makeMonochrome`
-      (Utils.cpp:143).
-  - Tests: detects equal-channel image; mismatch on colour fixture.
-- [ ] **Patch-DFT helper** (only if Phase-0 spike requires a dedicated helper) reusing cached plans for small
-      real↔complex patch transforms.
-  - Tests: forward→inverse ≈ identity (ε); known-signal spectrum (DC, single sine) matches analytic; equals `DftPatch`
-        output on a fixed patch.
+- [x] **Symmetric (half-sample) boundary pad / unpad** — `imgops::pad_symmetric`/`unpad` + `symmetric_coordinate`
+      (image_ops.hpp). Confirmed da3d `SymmetricCoordinate` and nlbayes `symetrizeImage` use the *same* half-sample
+      reflection, so one primitive serves both. Tests: reflection cases, interior preserved, pad→unpad identity.
+      *(Byte-for-byte match vs nlbayes `symetrizeImage` to be asserted during Phase 2.)*
+- [ ] **RGB↔YUV transform** — DEFERRED to the per-filter migrations: nlbayes `transformColorSpace` and da3d
+      `ColorTransform` (orthonormal opponent: `(r+g+b)/√3, (r-b)/√2, (r-2g+b)/√6`) are *different* transforms, so each
+      becomes a thin img_t-based function in its own module rather than a shared Phase-1 op.
+- [x] **Tile split / merge** — `imgops::compute_tiling`/`split_tiles`/`merge_tiles` (image_ops.hpp), faithful port of
+      da3d `ComputeTiling`/`SplitTiles`/`MergeTiles`. Tests: tiling cases, split→merge round-trip reconstructs original.
+- [x] **Weighted aggregation helper** — folded into `merge_tiles` (overlap-add accumulate + divide by summed weight).
+      Test: direct weighted-average (value/weight) check.
+- [x] **Monochrome detect / collapse** — `imgops::is_monochrome` + `imgops::make_monochrome` (double-accumulating mean,
+      matching da3d). Tests: equal-channel detection, colour mismatch, channel-average value.
+- [x] **Patch-DFT helper** — `imgops::dft_patch` (image_dft.hpp); see Phase 0 spike. Tests: DC component, forward→inverse
+      identity. *(Equality vs da3d `DftPatch` on a fixed patch to be asserted during Phase 3.)*
 - [ ] **(Optional, separately justified) Axis-reduce + axis-broadcast for `img_expr_t`.** Today the only reduction is
       `reduce_d` (channel axis) plus whole-image folds, and binary ops require matching `w/h/d` (no broadcasting).
       `reduce_axis(expr, axis)` + `broadcast_axis(expr, axis, n)` would let NL-Bayes mean-centering be expressed
