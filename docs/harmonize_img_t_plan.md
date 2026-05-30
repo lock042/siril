@@ -124,12 +124,11 @@ synthetic 3-channel image (single-threaded), compared pixel-wise with numpy. Eac
       non-boundary core (like `process_in_slices`), whereas imgops does weighted overlap-add — different stitch, would
       change output. Their boundary already routes through the migrated `symetrizeImage`. (Rule of three: full tiling
       unification still deferred.)
-- [~] **Full `vector<float>`+`ImageSize` -> `img_t` representation swap / `ImageSize` deletion** — DEFERRED with
-      rationale. The harmonization payoff is already captured: the duplicated image ops (boundary, colour) are shared,
-      and LibMatrix is pointer-based so the patch group ALREADY feeds it zero-copy via `.data()`. Swapping the internal
-      patch buffers to `img_t` (2.5.3) would add hot-loop allocations for cosmetic gain; replacing `ImageSize` across
-      every nlbayes signature is a large mechanical change with diminishing returns. Recommend doing it only if the
-      `ImageSize` removal is wanted for its own sake.
+- [x] **Full `vector<float>`+`ImageSize` -> `img_t` representation swap / `ImageSize` deletion** — DONE. Images through
+      NlBayes.cpp/.h, LibImages.cpp/.h and call_nlbayes.cpp are now `img_t<float>`; the `ImageSize` struct is deleted.
+      `img_t::operator[]` preserves the flat planar indexing so the maths is unchanged; patch-group buffers stay
+      `vector<float>` (not images); weight buffer is `img_t(w,h,d)` (a w,h,1 sizing would corrupt colour). Verified
+      bit-identical (plain mono + colour, max abs diff = 0). Net -47 lines.
 - [x] **Golden regression:** mono + colour denoise output bit-identical after every landed step.
 - [x] Criterion unit tests for each new shared op (pad/colour/tiling/dft/axis) and all four LibMatrix routines.
 
