@@ -46,11 +46,11 @@ void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float facto
     // process channel by channel
     for (int d = 0; d < in.d; d++) {
         for (int i = 0; i < in.w * in.h; i++) {
-            tmpin[i] = in[i*in.d+d];
+            tmpin[i] = in[i + d * in.w * in.h];
         }
         shrink((float*) &tmpout[0], (float*) &tmpin[0], (int) tmpout.w, (int) tmpout.h, (int) tmpin.w, (int) tmpin.h, (float) factor, (float) sigma);
         for (int i = 0; i < out.w * out.h; i++) {
-            out[i*in.d+d] = tmpout[i];
+            out[i + d * out.w * out.h] = tmpout[i];
         }
     }
 }
@@ -589,7 +589,7 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
     v.set_value(0);
     for (int i = 0; i < v.w * v.h; i++) {
         for (int d = 0; d < _v.d; d++) {
-            v[i] += _v[i * _v.d + d];
+            v[i] += _v[i + d * _v.w * _v.h];
         }
         v[i] /= _v.d;
     }
