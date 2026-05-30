@@ -3586,12 +3586,34 @@ void initialize_image_display() {
  * size in argument and the image size in gfit->
  * Should not be called before displaying the main gray window when using zoom to fit */
 double get_zoom_val() {
-	int window_width, window_height;
+	int window_width = 0, window_height = 0;
 	if (gui.zoom_value > 0.)
 		return gui.zoom_value;
 	/* else if zoom is < 0, it means fit to window */
-	window_width = gtk_widget_get_width(gui.view[RED_VPORT].drawarea);
-	window_height = gtk_widget_get_height(gui.view[RED_VPORT].drawarea);
+	/* Measure the viewport that is actually on screen.  In GTK4 a GtkNotebook
+	 * only allocates its visible page, so the off-screen vports' drawareas
+	 * report a zero size.  Hardcoding RED_VPORT therefore pinned colour images
+	 * (displayed in RGB_VPORT) to the 1.0 fallback, breaking fit-to-window. */
+	int vport = gui.cvport;
+	if (vport >= 0 && vport < MAXVPORT && gui.view[vport].drawarea) {
+		window_width = gtk_widget_get_width(gui.view[vport].drawarea);
+		window_height = gtk_widget_get_height(gui.view[vport].drawarea);
+	}
+	if (window_width <= 1 || window_height <= 1) {
+		/* cvport not allocated yet or stale: use whichever vport currently
+		 * has a real allocation (only the visible notebook page does). */
+		for (int i = 0; i < MAXVPORT; i++) {
+			if (!gui.view[i].drawarea)
+				continue;
+			int w = gtk_widget_get_width(gui.view[i].drawarea);
+			int h = gtk_widget_get_height(gui.view[i].drawarea);
+			if (w > 1 && h > 1) {
+				window_width = w;
+				window_height = h;
+				break;
+			}
+		}
+	}
 	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
 	double wtmp = (double) window_width / (double) gfit->rx;

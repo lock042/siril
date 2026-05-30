@@ -251,16 +251,32 @@ void reset_zoom_default() {
 	gui.zoom_value = ZOOM_DEFAULT;
 	if (gui.zoom_value == ZOOM_FIT && !com.script) {
 		image_interactions_init_statics();
-		siril_toggle_set_active(GTK_WIDGET(imgint_zoom_fit_btn), TRUE);
+		/* Light the fit toggle by setting the bound action's state directly.
+		 * siril_toggle_set_active() would click the action-bound button and
+		 * re-enter change_zoom_fit_state(), which can clobber gui.zoom_value. */
+		GAction *a = g_action_map_lookup_action(G_ACTION_MAP(imgint_app_win), "zoom-fit");
+		if (a)
+			g_simple_action_set_state(G_SIMPLE_ACTION(a), g_variant_new_boolean(TRUE));
 	}
 }
 
 void update_zoom_fit_button() {
 	image_interactions_init_statics();
-	GtkToggleButton *button = imgint_zoom_fit_btn;
-	if (siril_toggle_get_active(GTK_WIDGET(button))) {
-		siril_toggle_set_active(GTK_WIDGET(button), FALSE);
-	}
+	/* Drive the bound action's state rather than the button's "active":
+	 * a programmatic set_active() on an action-bound GTK4 button updates only
+	 * the visual and leaves the action state stale, so the next click on the
+	 * fit button toggled the wrong way and did nothing (needing a second
+	 * click).  change-state runs change_zoom_fit_state(), which also freezes
+	 * the current zoom so panning/zooming leaves fit mode cleanly. */
+	GAction *a = g_action_map_lookup_action(G_ACTION_MAP(imgint_app_win), "zoom-fit");
+	if (!a)
+		return;
+	GVariant *st = g_action_get_state(a);
+	gboolean active = st && g_variant_get_boolean(st);
+	if (st)
+		g_variant_unref(st);
+	if (active)
+		g_action_change_state(a, g_variant_new_boolean(FALSE));
 }
 
 gboolean is_over_the_left_side_of_sel(pointi zoomed, double zoom) {
