@@ -785,11 +785,11 @@ int computeHomogeneousAreaStep2(
 		centerData(io_group3d[c], i_mat.baricenter, nSimP, sP2);
 
 		//! Compute the covariance matrix of the set of similar patches
-		covarianceMatrix(io_group3d[c], i_mat.covMat, nSimP, sP2);
+		covarianceMatrix(io_group3d[c].data(), i_mat.covMat.data(), nSimP, sP2);
 
 		//! Bayes' Filtering
-		if (inverseMatrix(i_mat.covMat, sP2) == EXIT_SUCCESS) {
-            productMatrix(i_mat.group3dTranspose, i_mat.covMat, io_group3d[c], sP2, sP2, nSimP);
+		if (inverseMatrix(i_mat.covMat.data(), sP2) == EXIT_SUCCESS) {
+            productMatrix(i_mat.group3dTranspose.data(), i_mat.covMat.data(), io_group3d[c].data(), sP2, sP2, nSimP);
             for (unsigned k = 0; k < sP2 * nSimP; k++) {
                 io_group3d[c][k] -= valDiag * i_mat.group3dTranspose[k];
             }
@@ -844,7 +844,7 @@ void computeBayesEstimateStep2(
 	centerData(i_group3dNoisy, i_mat.baricenter, p_nSimP, sPC);
 
 	//! Compute the covariance matrix of the set of similar patches
-	covarianceMatrix(io_group3dBasic, i_mat.covMat, p_nSimP, sPC);
+	covarianceMatrix(io_group3dBasic.data(), i_mat.covMat.data(), p_nSimP, sPC);
 
 	//! Bayes' Filtering
     for (unsigned k = 0; k < sPC; k++) {
@@ -852,8 +852,8 @@ void computeBayesEstimateStep2(
     }
 
 	//! Compute the estimate
-	if (inverseMatrix(i_mat.covMat, sPC) == EXIT_SUCCESS) {
-        productMatrix(io_group3dBasic, i_mat.covMat, i_group3dNoisy, sPC, sPC, p_nSimP);
+	if (inverseMatrix(i_mat.covMat.data(), sPC) == EXIT_SUCCESS) {
+        productMatrix(io_group3dBasic.data(), i_mat.covMat.data(), i_group3dNoisy.data(), sPC, sPC, p_nSimP);
         for (unsigned k = 0; k < sPC * p_nSimP; k++) {
             io_group3dBasic[k] = i_group3dNoisy[k] - diagVal * io_group3dBasic[k];
         }

@@ -24,10 +24,12 @@
  */
 
 #include <criterion/criterion.h>
+#include <vector>
 #include "filters/deconvolution/image.hpp"
 #include "filters/deconvolution/image_expr.hpp"
 #include "filters/deconvolution/image_ops.hpp"
 #include "filters/deconvolution/image_dft.hpp"
+#include "filters/nlbayes/LibMatrix.h"
 
 // The Siril core globals are not linked into the unit-test binary (see the
 // other tests in this directory), so provide local definitions. img_t reads
@@ -276,6 +278,67 @@ Test(img_expr, center_data_via_reduce_broadcast) {
 	cr_assert_float_eq(centered(0,1) + centered(1,1) + centered(2,1), 0.f, 1e-5, "row1 centered");
 	cr_assert_float_eq(centered(1,0), 0.f, 1e-6, "2 - 2 = 0");
 	cr_assert_float_eq(centered(2,1), 20.f, 1e-5, "50 - 30 = 20");
+}
+
+/* ---- LibMatrix: span/template/OMP (Phase 2.5) ---- */
+
+Test(libmatrix, transpose_involution) {
+	std::vector<float> m = {1,2,3, 4,5,6, 7,8,9}; // 3x3 row-major
+	transposeMatrix(m.data(), 3u);
+	// row-major transpose: m[i*3+j] <-> m[j*3+i]
+	std::vector<float> expect = {1,4,7, 2,5,8, 3,6,9};
+	for (int i = 0; i < 9; ++i)
+		cr_assert_float_eq(m[i], expect[i], 1e-6, "transpose element %d", i);
+	transposeMatrix(m.data(), 3u);
+	std::vector<float> orig = {1,2,3, 4,5,6, 7,8,9};
+	for (int i = 0; i < 9; ++i)
+		cr_assert_float_eq(m[i], orig[i], 1e-6, "double transpose = identity");
+}
+
+Test(libmatrix, covariance_matrix) {
+	// N=2 pixels, nb=2 patches, layout i_patches[i*nb + k]
+	// pixel0 across patches = {1,2}; pixel1 = {3,4}
+	std::vector<float> patches = {1,2, 3,4};
+	std::vector<float> cov(4, 0.f);
+	covarianceMatrix(patches.data(), cov.data(), 2u, 2u);
+	cr_assert_float_eq(cov[0], 2.5f, 1e-5, "(1^2+2^2)/2");
+	cr_assert_float_eq(cov[3], 12.5f, 1e-5, "(3^2+4^2)/2");
+	cr_assert_float_eq(cov[1], 5.5f, 1e-5, "(1*3+2*4)/2");
+	cr_assert_float_eq(cov[2], 5.5f, 1e-5, "symmetric");
+}
+
+Test(libmatrix, product_matrix) {
+	// C = A * B, row-major 2x2 each. A=[[1,2],[3,4]], B=[[5,6],[7,8]]
+	std::vector<float> A = {1,2, 3,4};
+	std::vector<float> B = {5,6, 7,8};
+	std::vector<float> C(4, 0.f);
+	productMatrix(C.data(), A.data(), B.data(), 2u, 2u, 2u);
+	cr_assert_float_eq(C[0], 19.f, 1e-5, "1*5+2*7");
+	cr_assert_float_eq(C[1], 22.f, 1e-5, "1*6+2*8");
+	cr_assert_float_eq(C[2], 43.f, 1e-5, "3*5+4*7");
+	cr_assert_float_eq(C[3], 50.f, 1e-5, "3*6+4*8");
+}
+
+Test(libmatrix, inverse_roundtrip) {
+	// A symmetric positive definite; A * inv(A) ~ I
+	std::vector<float> A = {2,1, 1,2};
+	std::vector<float> inv = A; // inverseMatrix is in-place
+	int rc = inverseMatrix(inv.data(), 2u);
+	cr_assert_eq(rc, EXIT_SUCCESS, "PD inverse succeeds");
+	cr_assert_float_eq(inv[0], 2.f/3.f, 1e-5, "inv[0,0]");
+	cr_assert_float_eq(inv[1], -1.f/3.f, 1e-5, "inv[0,1]");
+	std::vector<float> I(4, 0.f);
+	productMatrix(I.data(), A.data(), inv.data(), 2u, 2u, 2u);
+	cr_assert_float_eq(I[0], 1.f, 1e-5, "I[0,0]");
+	cr_assert_float_eq(I[1], 0.f, 1e-5, "I[0,1]");
+	cr_assert_float_eq(I[2], 0.f, 1e-5, "I[1,0]");
+	cr_assert_float_eq(I[3], 1.f, 1e-5, "I[1,1]");
+}
+
+Test(libmatrix, inverse_not_pd_fails) {
+	// non positive-definite -> EXIT_FAILURE
+	std::vector<float> A = {1,2, 2,1}; // eigenvalues 3,-1
+	cr_assert_eq(inverseMatrix(A.data(), 2u), EXIT_FAILURE, "non-PD rejected");
 }
 
 /* ---- imgops: patch DFT ---- */
