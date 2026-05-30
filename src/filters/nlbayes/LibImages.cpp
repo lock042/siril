@@ -20,6 +20,7 @@
 #include "LibImages.h"
 #include "Utilities.h"
 //#include "mt19937ar.h"
+#include "filters/deconvolution/image_ops.hpp"  // imgops::pad_symmetric / unpad
 
 #include <iostream>
 #include <sstream>
@@ -382,75 +383,25 @@ void symetrizeImage(
 ,	const unsigned p_borderSize
 ,	const bool p_isForward
 ){
-	//! Declaration
-	unsigned w1, h1, w2, h2;
-	if (p_isForward) {
-        w1 = p_imSize.width;
-        w2 = w1 + 2 * p_borderSize;
-        h1 = p_imSize.height;
-        h2 = h1 + 2 * p_borderSize;
-	}
-	else {
-        w2 = p_imSize.width;
-        w1 = w2 + 2 * p_borderSize;
-        h2 = p_imSize.height;
-        h1 = h2 + 2 * p_borderSize;
-	}
+	// Delegates to the shared half-sample symmetric padding. nlbayes stores
+	// images planar ([c*wh + row*w + col]), which is exactly img_t's planar
+	// layout, so wrapping the buffer in an img_t is a faithful view.
 	const unsigned chnls = p_imSize.nChannels;
+	const int border = static_cast<int>(p_borderSize);
 
-	if (p_isForward && o_im2.size() != w2 * h2 * chnls) {
-		o_im2.resize(w2 * h2 * chnls);
+	if (p_isForward) {
+		// input is p_imSize; output grows by border on every side
+		img_t<float> src(p_imSize.width, p_imSize.height, chnls,
+		                 const_cast<float*>(i_im1.data()));
+		img_t<float> out = imgops::pad_symmetric(src, border);
+		o_im2.assign(out.data.begin(), out.data.end());
+	} else {
+		// input is the padded image (p_imSize + 2*border per side); output is p_imSize
+		img_t<float> src(p_imSize.width + 2 * border, p_imSize.height + 2 * border,
+		                 chnls, const_cast<float*>(i_im1.data()));
+		img_t<float> out = imgops::unpad(src, border);
+		o_im2.assign(out.data.begin(), out.data.end());
 	}
-
-	for (unsigned c = 0; c < chnls; c++) {
-		unsigned dc1, dc2;
-
-		//! Small to Big
-		if (p_isForward) {
-		    unsigned dc1 = c * w1 * h1;
-		    unsigned dc2 = c * w2 * h2 + p_borderSize * (w2 + 1);
-
-			//! Center of the image
-			for (unsigned i = 0; i < h1; i++) {
-				for (unsigned j = 0; j < w1; j++, dc1++) {
-					o_im2[dc2 + i * w2 + j] = i_im1[dc1];
-				}
-			}
-
-			//! Top and bottom
-			dc2 = c * w2 * h2 + p_borderSize;
-			for (unsigned j = 0; j < w1; j++, dc2++) {
-				for (unsigned i = 0; i < p_borderSize; i++) {
-					o_im2[dc2 + i * w2] = o_im2[dc2 + (2 * p_borderSize - i - 1) * w2];
-					o_im2[dc2 + (h2 - i - 1) * w2] =
-                        o_im2[dc2 + (h2 - 2 * p_borderSize + i) * w2];
-				}
-			}
-
-			//! Right and left
-			dc2 = c * w2 * h2;
-			for (unsigned i = 0; i < h2; i++) {
-				const unsigned di = dc2 + i * w2;
-				for (unsigned j = 0; j < p_borderSize; j++) {
-					o_im2[di + j] = o_im2[di + 2 * p_borderSize - j - 1];
-					o_im2[di + w2 - j - 1] = o_im2[di + w2 - 2 * p_borderSize + j];
-				}
-			}
-		}
-
-		//! Big to small
-		else {
-			dc2 = c * w2 * h2;
-			dc1	= c * w1 * h1 + p_borderSize * (w1 + 1);
-			for (unsigned i = 0; i < h2; i++) {
-				for (unsigned j = 0; j < w2; j++, dc2++) {
-					o_im2[dc2] = i_im1[dc1 + i * w1 + j];
-				}
-			}
-		}
-	}
-
-	return;
 }
 
 /**
