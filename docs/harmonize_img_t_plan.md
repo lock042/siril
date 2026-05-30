@@ -83,13 +83,29 @@ Write the Criterion test *before* each implementation, asserting against a hand-
       matching da3d). Tests: equal-channel detection, colour mismatch, channel-average value.
 - [x] **Patch-DFT helper** — `imgops::dft_patch` (image_dft.hpp); see Phase 0 spike. Tests: DC component, forward→inverse
       identity. *(Equality vs da3d `DftPatch` on a fixed patch to be asserted during Phase 3.)*
-- [ ] **(Optional, separately justified) Axis-reduce + axis-broadcast for `img_expr_t`.** Today the only reduction is
-      `reduce_d` (channel axis) plus whole-image folds, and binary ops require matching `w/h/d` (no broadcasting).
-      `reduce_axis(expr, axis)` + `broadcast_axis(expr, axis, n)` would let NL-Bayes mean-centering be expressed
-      directly. **Not required for harmonization; still cannot express GEMM/inverse.** Default: skip unless a second
-      consumer appears.
-  - Tests: `reduce_axis` over x/y/d vs reference; `broadcast_axis` round-trips with `reduce_axis`.
+- [x] **Axis-reduce + axis-broadcast for `img_expr_t`.** Added `reduce_axis(expr, axis, reductor, init)` and
+      `broadcast_axis(expr, axis, n)` (image_expr.hpp) over `AXIS_X/AXIS_Y/AXIS_D`, plus `imgops::mean_axis`. NL-Bayes
+      centering is now `group - broadcast_axis(mean_axis(group, AXIS_X), AXIS_X, group.w)`; tested incl. the centering
+      composition. **Side fix:** constrained the `DEFINE_EXPR_1/2` arithmetic operators with a new `is_imglike_v` trait
+      — they were unconstrained and matched `std::vector` iterator arithmetic, breaking any TU that mixes
+      `image_expr.hpp` with `std::vector<img_t<T>>` (required by the tiling ops).
 - [ ] Confirm/parameterise threading (`com.max_thread`/`fftw_max_thread`) for the new ops.
+
+### Tiling review — `img_t::process_in_slices` vs `imgops` tiling
+The deconvolution `img_t::process_in_slices` (image.hpp) and the new `imgops::split_tiles`/`merge_tiles` look similar
+but are different abstractions, differing on three axes:
+1. **Sizing:** process_in_slices picks slice sizes from a *memory budget* (smallest-number / FFTW-optimal /
+   best-compromise, `com.pref.max_slice_size`); imgops takes a *fixed tile count* (`compute_tiling`).
+2. **Reflection:** process_in_slices uses *whole-sample* reflection; imgops uses *half-sample* (to match da3d/nlbayes).
+3. **Stitch:** process_in_slices discards the overlap and hard-cuts the non-overlap core into the output; imgops does a
+   *weighted overlap-add blend*.
+
+Decision: a forced merge would be a flag-heavy god-function (3 mode axes) that is *more* complex, not less — so it is
+**not** done. The one genuinely-duplicated piece, the boundary reflection math, IS now shared via `image_boundary.hpp`
+(`symmetric_coordinate` + `reflect_whole_sample`), used by both. Full unification of the tiling *framework* is deferred
+to Phase 2/3 (rule of three): once nlbayes (`subDivide`/`subBuild`) and da3d (`SplitTiles`/`MergeTiles`) are migrated
+onto `imgops`, there will be three concrete consumers and any genuinely-common shape beyond the reflection can be
+extracted with evidence rather than speculation.
 
 **Exit criterion:** all Phase-1 ops have green Criterion tests; no migration started yet.
 
