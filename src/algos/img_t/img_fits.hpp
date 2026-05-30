@@ -35,7 +35,7 @@
 #include <algorithm>
 
 #include "image.hpp"  // img_t + core/siril.h (fits, DATA_FLOAT, USHRT_MAX_SINGLE)
-#include "core/proto.h"  // round_to_WORD (self-guards with extern "C")
+#include "core/proto.h"  // roundf_to_WORD (self-guards with extern "C")
 
 namespace imgops {
 
@@ -77,8 +77,12 @@ inline void to_fits(const img_t<float>& im, fits* fit, float modulation) {
     } else {
         const float invnorm = 1.f / USHRT_MAX_SINGLE;
         for (size_t i = 0; i < n; i++)
-            fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f - modulation) * (fit->data[i] * invnorm)
-                                                      + modulation * im.data[i]));
+            // roundf_to_WORD (float) is the type-appropriate conversion for our
+            // float result, matching Siril's float_to_ushort_range; the old
+            // denoise code used round_to_WORD (double), which needlessly
+            // promoted the float and could differ by 1 LSB near saturation.
+            fit->data[i] = roundf_to_WORD(USHRT_MAX_SINGLE * ((1.f - modulation) * (fit->data[i] * invnorm)
+                                                             + modulation * im.data[i]));
     }
 }
 
