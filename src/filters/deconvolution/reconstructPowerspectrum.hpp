@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef CALC_PS_FROM_PROJECTIONS
 #define CALC_PS_FROM_PROJECTIONS
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "angleSet.hpp"
 
 template <typename T>

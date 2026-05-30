@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef CALC_AC_PROJECTIONS_H
 #define CALC_AC_PROJECTIONS_H
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "angleSet.hpp"
 
 template <typename T>

@@ -13,7 +13,7 @@
 #include <algorithm>
 #include "WeightMap.hpp"
 #include "Utils.hpp"
-#include "filters/deconvolution/image.hpp"
+#include "algos/img_t/image.hpp"
 
 using std::max;
 using std::min;

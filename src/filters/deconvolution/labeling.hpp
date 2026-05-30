@@ -4,7 +4,7 @@
 #include <functional>
 #include <map>
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 namespace labeling {
 

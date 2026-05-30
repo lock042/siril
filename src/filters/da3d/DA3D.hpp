@@ -8,7 +8,7 @@
 #ifndef DA3D_DA3D_HPP_
 #define DA3D_DA3D_HPP_
 
-#include "filters/deconvolution/image.hpp"
+#include "algos/img_t/image.hpp"
 
 namespace da3d {
 

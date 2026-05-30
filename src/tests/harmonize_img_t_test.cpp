@@ -25,10 +25,10 @@
 
 #include <criterion/criterion.h>
 #include <vector>
-#include "filters/deconvolution/image.hpp"
-#include "filters/deconvolution/image_expr.hpp"
-#include "filters/deconvolution/image_ops.hpp"
-#include "filters/deconvolution/image_dft.hpp"
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/image_expr.hpp"
+#include "algos/img_t/image_ops.hpp"
+#include "algos/img_t/image_dft.hpp"
 #include "filters/nlbayes/LibMatrix.h"
 
 // The Siril core globals are not linked into the unit-test binary (see the

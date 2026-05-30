@@ -20,7 +20,7 @@
 #include "LibImages.h"
 #include "Utilities.h"
 //#include "mt19937ar.h"
-#include "filters/deconvolution/image_ops.hpp"  // imgops::pad_symmetric / unpad
+#include "algos/img_t/image_ops.hpp"  // imgops::pad_symmetric / unpad
 
 #include <iostream>
 #include <sstream>

@@ -33,7 +33,7 @@
 #include "opencv/opencv.h"
 
 #include "filters/da3d/DA3D.hpp"
-#include "filters/deconvolution/image_ops.hpp"
+#include "algos/img_t/image_ops.hpp"
 #include "Utilities.h"
 #include "NlBayes.h"
 #include "LibImages.h"

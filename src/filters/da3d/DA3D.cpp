@@ -26,9 +26,9 @@
 #include "WeightMap.hpp"
 #include "Utils.hpp"
 
-#include "filters/deconvolution/image.hpp"
-#include "filters/deconvolution/image_ops.hpp"
-#include "filters/deconvolution/image_dft.hpp"
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/image_ops.hpp"
+#include "algos/img_t/image_dft.hpp"
 
 #include "core/processing.h"
 #include "core/gui_iface.h"
