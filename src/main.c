@@ -120,6 +120,7 @@ fits *gfit = NULL;	// currently loaded image
 
 /* Callback to close splash screen and show main window after delay */
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
+	fprintf(stderr, "[DBG] close_splash_and_show_window_cb called\n"); fflush(stderr);
 	close_splash_screen();
 
 	/* Make window visible.  GTK4: the .ui no longer carries visible=1 on
@@ -370,6 +371,7 @@ static void global_initialization() {
 }
 
 static void siril_app_startup(GApplication *application) {
+	fprintf(stderr, "[DBG] siril_app_startup called\n"); fflush(stderr);
 	signals_init();
 	/*
 	 * Force C locale for numbers to avoid "," being used as decimal separator.
@@ -421,6 +423,7 @@ static void siril_app_startup(GApplication *application) {
 }
 
 static void siril_app_activate(GApplication *application) {
+	fprintf(stderr, "[DBG] siril_app_activate called\n"); fflush(stderr);
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
@@ -633,15 +636,19 @@ static void siril_app_activate(GApplication *application) {
 	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
+	fprintf(stderr, "[DBG] siril_app_activate DONE\n"); fflush(stderr);
 }
 
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
+	fprintf(stderr, "[DBG] siril_app_open called, n_files=%d\n", n_files); fflush(stderr);
 #if !defined(OS_OSX)
 	g_application_activate(application);
 #endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
+		fprintf(stderr, "[DBG] siril_app_open: path=%s, gui_iface.redraw_image=%p\n",
+		        path ? path : "(null)", (void*)gui_iface.redraw_image); fflush(stderr);
 		const char *ext = get_filename_ext(path);
 		if (ext && !strncmp(ext, "seq", 4)) {
 			gchar *sequence_dir = g_path_get_dirname(path);
