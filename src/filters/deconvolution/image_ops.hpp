@@ -38,6 +38,7 @@
 #include <vector>
 
 #include "image.hpp"
+#include "image_expr.hpp"  // reduce_axis / broadcast_axis / AXIS_*
 
 namespace imgops {
 
@@ -109,6 +110,24 @@ img_t<T> unpad(const img_t<T>& in, int border) {
         for (int y = 0; y < out.h; ++y)
             for (int x = 0; x < out.w; ++x)
                 out(x, y, c) = in(x + border, y + border, c);
+    return out;
+}
+
+//! Mean of an image along one axis (AXIS_X/AXIS_Y/AXIS_D), materialised into a
+//! new img_t whose extent along that axis is 1. Built on reduce_axis; this is
+//! the NL-Bayes baricenter (mean over patches = mean along the patch axis).
+template <typename T>
+img_t<T> mean_axis(const img_t<T>& in, int axis) {
+    const int n = (axis == AXIS_X) ? in.w : (axis == AXIS_Y) ? in.h : in.d;
+    img_t<T> out(axis == AXIS_X ? 1 : in.w,
+                 axis == AXIS_Y ? 1 : in.h,
+                 axis == AXIS_D ? 1 : in.d);
+    out.map(reduce_axis(in, axis,
+                        std::function<T(T, T)>([](T a, T b) { return a + b; }),
+                        T(0)));
+    const T invn = T(1) / static_cast<T>(n);
+    for (T& v : out.data)
+        v *= invn;
     return out;
 }
 

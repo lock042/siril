@@ -25,6 +25,7 @@
 
 #include <criterion/criterion.h>
 #include "filters/deconvolution/image.hpp"
+#include "filters/deconvolution/image_expr.hpp"
 #include "filters/deconvolution/image_ops.hpp"
 #include "filters/deconvolution/image_dft.hpp"
 
@@ -194,6 +195,77 @@ Test(imgops, merge_tiles_weighted_average) {
 	for (int y = 0; y < 2; ++y)
 		for (int x = 0; x < 2; ++x)
 			cr_assert_float_eq(out(x, y), 5.f, 1e-6, "10/2 = 5");
+}
+
+/* ---- img_expr_t: axis reduce / broadcast ---- */
+
+Test(img_expr, reduce_axis_d_matches_reduce_d) {
+	img_t<float> a(2, 2, 3);
+	for (int c = 0; c < 3; ++c)
+		for (int y = 0; y < 2; ++y)
+			for (int x = 0; x < 2; ++x)
+				a(x, y, c) = (float)(c + 1); // channel values 1,2,3
+
+	img_t<float> r;
+	r.resize(2, 2, 1);
+	r.map(reduce_axis(a, AXIS_D,
+	                  std::function<float(float, float)>([](float u, float v){ return u + v; }), 0.f));
+	for (int y = 0; y < 2; ++y)
+		for (int x = 0; x < 2; ++x)
+			cr_assert_float_eq(r(x, y), 6.f, 1e-6, "1+2+3 = 6 along channels");
+}
+
+Test(img_expr, reduce_axis_x_row_sums) {
+	img_t<float> a(3, 2, 1);
+	// row 0: 1,2,3 ; row 1: 10,20,30
+	a(0,0)=1; a(1,0)=2; a(2,0)=3;
+	a(0,1)=10; a(1,1)=20; a(2,1)=30;
+	img_t<float> r;
+	r.resize(1, 2, 1);
+	r.map(reduce_axis(a, AXIS_X,
+	                  std::function<float(float, float)>([](float u, float v){ return u + v; }), 0.f));
+	cr_assert_eq(r.w, 1);
+	cr_assert_eq(r.h, 2);
+	cr_assert_float_eq(r(0, 0), 6.f, 1e-6, "row 0 sum");
+	cr_assert_float_eq(r(0, 1), 60.f, 1e-6, "row 1 sum");
+}
+
+Test(img_expr, mean_axis_x) {
+	img_t<float> a(4, 1, 1);
+	a(0,0)=2; a(1,0)=4; a(2,0)=6; a(3,0)=8;
+	img_t<float> m = imgops::mean_axis(a, AXIS_X);
+	cr_assert_eq(m.w, 1);
+	cr_assert_float_eq(m(0, 0), 5.f, 1e-6, "(2+4+6+8)/4 = 5");
+}
+
+Test(img_expr, broadcast_axis_repeats) {
+	img_t<float> col(1, 2, 1);
+	col(0, 0) = 7.f;
+	col(0, 1) = 9.f;
+	img_t<float> b;
+	b.resize(3, 2, 1);
+	b.map(broadcast_axis(col, AXIS_X, 3));
+	for (int x = 0; x < 3; ++x) {
+		cr_assert_float_eq(b(x, 0), 7.f, 1e-6, "row 0 broadcast");
+		cr_assert_float_eq(b(x, 1), 9.f, 1e-6, "row 1 broadcast");
+	}
+}
+
+Test(img_expr, center_data_via_reduce_broadcast) {
+	// NL-Bayes style: group(nSimP=3 along x, pixels=2 along y); subtract the
+	// per-pixel mean across patches (mean along x) broadcast back over x.
+	img_t<float> group(3, 2, 1);
+	group(0,0)=1; group(1,0)=2; group(2,0)=3;   // row 0 mean = 2
+	group(0,1)=10; group(1,1)=30; group(2,1)=50; // row 1 mean = 30
+	img_t<float> baricenter = imgops::mean_axis(group, AXIS_X);
+	img_t<float> centered;
+	centered.resize(3, 2, 1);
+	centered.map(group - broadcast_axis(baricenter, AXIS_X, group.w));
+	// each row of centered should now sum to ~0
+	cr_assert_float_eq(centered(0,0) + centered(1,0) + centered(2,0), 0.f, 1e-5, "row0 centered");
+	cr_assert_float_eq(centered(0,1) + centered(1,1) + centered(2,1), 0.f, 1e-5, "row1 centered");
+	cr_assert_float_eq(centered(1,0), 0.f, 1e-6, "2 - 2 = 0");
+	cr_assert_float_eq(centered(2,1), 20.f, 1e-5, "50 - 30 = 20");
 }
 
 /* ---- imgops: patch DFT ---- */
