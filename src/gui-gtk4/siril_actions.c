@@ -177,7 +177,6 @@ static gboolean is_extended = FALSE;
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWindow *window;
 	GtkWidget *toolbarbox = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toolbarbox"));
-	GtkRevealer *rev = GTK_REVEALER(gtk_builder_get_object(gui.builder, "center_revealer"));
 	GtkButton *button = GTK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_paned")));
 	gboolean is_control_box_visible;
 	gboolean is_fullscreen;
