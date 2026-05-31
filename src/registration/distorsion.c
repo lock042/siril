@@ -549,6 +549,13 @@ disto_data *init_disto_data_ext(disto_params *distoparam, fits *extfit, int *sta
 	disto_data *disto = NULL;
 	int statusread = 0;
 	fits fit = { 0 };
+	if (has_wcs(ext_fit)) { 
+		// If the image is already solved, we can force to "image" distorsion (if any, it may well be a stack already undistorted), 
+		// even if the user has selected file or master, as we can safely assume it's better information that forcing that
+		// of another file or a master that may not exist for the external reference.
+		siril_log_debug("External reference distortion was %d, updating to DISTO_IMAGE if required\n", distoparam->index);
+		distoparam->index = DISTO_IMAGE;
+	}
 	switch (distoparam->index) {
 		case DISTO_UNDEF: // nothing to do
 		case DISTO_FILE_COMET: // cannot happen, not supported
