@@ -650,7 +650,7 @@ gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source ind
 			return FALSE;
 		}
 		if (!reffit->keywords.wcslib->lin.dispre) {
-			*msg1 = g_strdup(_("You have selected undistortion from current image but it is not platesolved, perform astrometry first or disable distortion"));
+			*msg1 = g_strdup(_("You have selected undistortion from current image but it is has no distortion terms, perform astrometry with SIP enabled or disable distortion"));
 			if (msg2)
 				*msg2 = g_strdup(_("Platesolve current image with distortions"));
 			return FALSE;

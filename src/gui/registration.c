@@ -866,16 +866,22 @@ static gboolean check_ext_ref(disto_source disto_index) {
 		clearfits(&fit);
 		return FALSE;
 	}
-	gboolean ok = TRUE;
-	if (!has_wcs(&fit)) {
-		gtk_label_set_text(labelregisterinfo, _("External reference: must be plate solved (WCS+SIP) when using distortion correction"));
-		ok = FALSE;
-	} else if (!fit.keywords.wcslib->lin.dispre) {
-		gtk_label_set_text(labelregisterinfo, _("External reference: plate solve must include SIP distortion terms"));
-		ok = FALSE;
+	if (has_wcs(&fit)) {
+		clearfits(&fit);
+		// if the file is plate solved, no need to check further,
+		// This covers the case DISTO_IMAGE, as well as any other possibility
+		// as this overides any other choice, see init_disto_data_ext
+		return TRUE; 
 	}
+	if (disto_index == DISTO_IMAGE) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: must be plate solved when using distortion correction on the sequence"));
+		clearfits(&fit);
+		return FALSE;
+	}
+	// The other cases (MASTER and FILE) are handled by the check_disto function
+	// Main sources for failure are missing file or missing masters which will occur also for main sequence
 	clearfits(&fit);
-	return ok;
+	return TRUE;
 }
 // Helpers
 struct registration_method *get_selected_registration_method(int *index) {
