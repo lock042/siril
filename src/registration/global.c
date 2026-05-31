@@ -655,26 +655,31 @@ int register_star_alignment(struct registration_args *regargs) {
 	}
 
 	if (regargs->use_external_ref) {
-		fits extfit = { 0 };
-		if (readfits(regargs->external_ref_path, &extfit, NULL, FALSE)) {
+		fits ext_fit = { 0 };
+		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
 			siril_log_error(_("Could not load external reference\n"));
 			free(args);
 			return -1;
 		}
-		regargs->external_ref_rx = extfit.rx;
-		regargs->external_ref_ry = extfit.ry;
+		regargs->external_ref_rx = ext_fit.rx;
+		regargs->external_ref_ry = ext_fit.ry;
 		if (regargs->undistort) {
 			int status = 1;
-			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &extfit, &status);
+			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &ext_fit, &status);
+			if (status) {
+				free(args);
+				clearfits(&ext_fit);
+				return -1;
+			}
 		}
-		if (!regargs->no_output && has_wcs(&extfit))
-			regargs->wcsref = wcs_deepcopy(extfit.keywords.wcslib, NULL);
+		if (!regargs->no_output && has_wcs(&ext_fit))
+			regargs->wcsref = wcs_deepcopy(ext_fit.keywords.wcslib, NULL);
 		// we will update the incoming sequence
 		regargs->seq->ext_ref = TRUE;
 		regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
-		regargs->seq->ext_ref_rx = extfit.rx;
-		regargs->seq->ext_ref_ry = extfit.ry;
-		clearfits(&extfit);
+		regargs->seq->ext_ref_rx = ext_fit.rx;
+		regargs->seq->ext_ref_ry = ext_fit.ry;
+		clearfits(&ext_fit);
 	}
 
 	if (!regargs->no_output) {

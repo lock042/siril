@@ -541,7 +541,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 // If master is selected, we fetch the master corresponding to the external reference
 // For all other cases, we return a NULL disto
 // Note: distoparam is left untouched as it is used by the main sequence
-disto_data *init_disto_data_ext(disto_params *distoparam, fits *extfit, int *status) {
+disto_data *init_disto_data_ext(disto_params *distoparam, fits *ext_fit, int *status) {
 	*status = 1;
 	if (!distoparam)
 		return NULL;
@@ -562,11 +562,12 @@ disto_data *init_disto_data_ext(disto_params *distoparam, fits *extfit, int *sta
 		case DISTO_FILES: // (astrometry registration) not supported yet
 			break;
 		case DISTO_IMAGE:
-			if (!extfit->keywords.wcslib->lin.dispre) {
+			if (!ext_fit->keywords.wcslib->lin.dispre) {
 				siril_log_warning(_("External reference has no SIP information, its stars will not be undistorted to align\n"));
+				*status = 0;
 				return NULL;
 			} else {
-				wcs = wcs_deepcopy(extfit->keywords.wcslib, NULL);
+				wcs = wcs_deepcopy(ext_fit->keywords.wcslib, NULL);
 			}
 			break;
 		case DISTO_FILE:;
@@ -591,7 +592,7 @@ disto_data *init_disto_data_ext(disto_params *distoparam, fits *extfit, int *sta
 				return NULL;
 			}
 			statusread = 0;
-			gchar *wcsname = path_parse(extfit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			gchar *wcsname = path_parse(ext_fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
 			if (statusread) {
 				siril_log_error(_("Could not parse master file name for distortion, aborting\n"));
 				free_disto_args(disto);
