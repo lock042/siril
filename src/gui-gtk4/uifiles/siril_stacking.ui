@@ -1,44 +1,44 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name siril_stacking.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_stack_blending">
-    <property name="upper">2000</property>
-    <property name="step-increment">20</property>
     <property name="page-increment">100</property>
+    <property name="step-increment">20</property>
+    <property name="upper">2000</property>
   </object>
   <object class="GtkAdjustment" id="adjustment1">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment2">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment3">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="stack_sighigh_adjustment">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
     <property name="upper">9.99</property>
     <property name="value">3</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="stack_siglow_adjustment">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
     <property name="upper">9.99</property>
     <property name="value">4</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkScrolledWindow" id="stacking_tab">
-    <property name="focusable">1</property>
-    <property name="hscrollbar-policy">never</property>
     <property name="child">
       <object class="GtkViewport">
         <property name="child">
@@ -47,8 +47,8 @@
             <property name="spacing">10</property>
             <child>
               <object class="GtkExpander" id="stack_expander_method">
-                <property name="focusable">1</property>
                 <property name="expanded">1</property>
+                <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
                     <property name="orientation">vertical</property>
@@ -58,6 +58,8 @@
                         <property name="margin-top">5</property>
                         <child>
                           <object class="GtkDropDown" id="comboboxstack_methods">
+                            <property name="hexpand">False</property>
+                            <property name="margin-top">10</property>
                             <property name="model">
                               <object class="GtkStringList">
                                 <items>
@@ -69,9 +71,8 @@
                                 </items>
                               </object>
                             </property>
-                            <property name="hexpand">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="tooltip-markup" translatable="1">&lt;b&gt;Sum&lt;/b&gt;: This is the simplest method.
+                            <property name="selected">0</property>
+                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Sum&lt;/b&gt;: This is the simplest method.
 Pixel values are added in an image normalized to 32-bit values.
 It increases signal/noise ratio (SNR) as square root of number of images.
 
@@ -94,15 +95,14 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
 
 &lt;b&gt;Pixel minimum&lt;/b&gt;: This case could be useful to select the area to be cropped after the stack operation.
 Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.</property>
-                            <property name="selected">0</property>
-                            <signal name="notify::selected" handler="on_comboboxstack_methods_changed" swapped="no" />
+                            <signal name="notify::selected" handler="on_comboboxstack_methods_changed"/>
                           </object>
                         </child>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Method:</property>
+                            <property name="label" translatable="yes">Method:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -128,32 +128,32 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                     </items>
                                   </object>
                                 </property>
-                                <property name="tooltip-markup" translatable="1">If one of these items is selected, a normalisation process will be applied to all input images before stacking.
+                                <property name="selected">3</property>
+                                <property name="tooltip-markup" translatable="yes">If one of these items is selected, a normalisation process will be applied to all input images before stacking.
 
 - Normalisation matches the mean background of all input images, then, the normalisation is processed by multiplication or addition. Keep in mind that both processes generally lead to similar results but multiplicative normalisation is prefered for image which will be used for multiplication or division as flat-field.
 
 - Scale matches dispersion by weighting all input images. This tends to improve the signal-to-noise ratio and therefore this is the option used by default with the additive normalisation.
 
 &lt;b&gt;The offset and dark masters should not be processed with normalisation. However, multiplicative normalisation must be used with flat-field frames.&lt;/b&gt;</property>
-                                <property name="selected">3</property>
-                                <signal name="notify::selected" handler="on_combonormalize_changed" swapped="no" />
+                                <signal name="notify::selected" handler="on_combonormalize_changed"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="checkforcenorm">
-                                <property name="label" translatable="1">Recompute</property>
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
                                 <property name="halign">start</property>
+                                <property name="label" translatable="yes">Recompute</property>
+                                <property name="tooltip-text" translatable="yes">By default, Siril takes the normalisation coefficients from seq file if already computed. However you can force Siril to recompute it before stacking.</property>
                                 <property name="valign">center</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="checkfastnorm">
-                                <property name="label" translatable="1">Faster normalisation</property>
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median absolute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
                                 <property name="halign">start</property>
+                                <property name="label" translatable="yes">Faster normalisation</property>
+                                <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median absolute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
                                 <property name="valign">center</property>
                               </object>
                             </child>
@@ -161,9 +161,9 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                         </child>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Normalisation:</property>
+                            <property name="label" translatable="yes">Normalisation:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -171,17 +171,14 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                     </child>
                     <child>
                       <object class="GtkNotebook" id="notebook4">
-                        <property name="show-tabs">0</property>
                         <property name="show-border">0</property>
+                        <property name="show-tabs">0</property>
                         <child>
                           <object class="GtkNotebookPage">
                             <property name="child">
                               <object class="GtkBox" id="box6">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">5</property>
-                                <child>
-                                  <placeholder />
-                                </child>
                               </object>
                             </property>
                             <property name="tab">
@@ -193,7 +190,6 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                         </child>
                         <child>
                           <object class="GtkNotebookPage">
-                            <property name="position">1</property>
                             <property name="child">
                               <object class="GtkFrame">
                                 <child>
@@ -202,22 +198,22 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                     <property name="orientation">vertical</property>
                                     <child>
                                       <object class="GtkGrid" id="grid34">
-                                        <property name="row-spacing">5</property>
                                         <property name="column-spacing">5</property>
+                                        <property name="row-spacing">5</property>
                                         <child>
                                           <object class="GtkSpinButton" id="stack_siglow_button">
-                                            <property name="focusable">1</property>
-                                            <property name="width-chars">5</property>
-                                            <property name="max-width-chars">6</property>
-                                            <property name="text">4.000</property>
                                             <property name="adjustment">stack_siglow_adjustment</property>
                                             <property name="climb-rate">0.05</property>
                                             <property name="digits">3</property>
+                                            <property name="focusable">1</property>
+                                            <property name="max-width-chars">6</property>
                                             <property name="numeric">1</property>
+                                            <property name="text">4.000</property>
                                             <property name="value">4</property>
-                                            <signal name="value-changed" handler="on_stack_siglow_button_value_changed" object="comborejection" swapped="no" />
+                                            <property name="width-chars">5</property>
+                                            <signal name="value-changed" handler="on_stack_siglow_button_value_changed" swapped="False" object="comborejection"/>
                                             <style>
-                                              <class name="small-spinbutton" />
+                                              <class name="small-spinbutton"/>
                                             </style>
                                             <layout>
                                               <property name="column">2</property>
@@ -227,7 +223,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                         </child>
                                         <child>
                                           <object class="GtkLabel" id="label_low">
-                                            <property name="label" translatable="1">Sigma low: </property>
+                                            <property name="label" translatable="yes">Sigma low: </property>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">0</property>
@@ -236,18 +232,18 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                         </child>
                                         <child>
                                           <object class="GtkSpinButton" id="stack_sighigh_button">
-                                            <property name="focusable">1</property>
-                                            <property name="width-chars">5</property>
-                                            <property name="max-width-chars">6</property>
-                                            <property name="text">3.000</property>
                                             <property name="adjustment">stack_sighigh_adjustment</property>
                                             <property name="climb-rate">0.05</property>
                                             <property name="digits">3</property>
+                                            <property name="focusable">1</property>
+                                            <property name="max-width-chars">6</property>
                                             <property name="numeric">1</property>
+                                            <property name="text">3.000</property>
                                             <property name="value">3</property>
-                                            <signal name="value-changed" handler="on_stack_sighigh_button_value_changed" object="comborejection" swapped="no" />
+                                            <property name="width-chars">5</property>
+                                            <signal name="value-changed" handler="on_stack_sighigh_button_value_changed" swapped="False" object="comborejection"/>
                                             <style>
-                                              <class name="small-spinbutton" />
+                                              <class name="small-spinbutton"/>
                                             </style>
                                             <layout>
                                               <property name="column">2</property>
@@ -257,7 +253,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                         </child>
                                         <child>
                                           <object class="GtkLabel" id="label_high">
-                                            <property name="label" translatable="1">Sigma high: </property>
+                                            <property name="label" translatable="yes">Sigma high: </property>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">1</property>
@@ -280,7 +276,8 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-markup" translatable="1">Seven rejection algorithms are available:
+                                            <property name="selected">4</property>
+                                            <property name="tooltip-markup" translatable="yes">Seven rejection algorithms are available:
 
 &lt;b&gt;Percentile Clipping&lt;/b&gt; is a one-step rejection algorithm ideal for small sets of data (up to 6 images).
 
@@ -299,8 +296,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 [1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., Wiley
 [2] Juan Conejero, ImageIntegration, Pixinsight Tutorial
 [3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-Outlier Procedure, Technometrics, 25(2), pp. 165-172</property>
-                                            <property name="selected">4</property>
-                                            <signal name="notify::selected" handler="on_comborejection_changed" swapped="no" />
+                                            <signal name="notify::selected" handler="on_comborejection_changed"/>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">0</property>
@@ -320,7 +316,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-markup" translatable="1">Four methods of weighting are available:
+                                            <property name="selected">0</property>
+                                            <property name="tooltip-markup" translatable="yes">Four methods of weighting are available:
 
 &lt;b&gt;Number of stars&lt;/b&gt; weights individual frames based on number of stars computed during registration step.
 
@@ -330,8 +327,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 
 &lt;b&gt;Number of images&lt;/b&gt; weights individual frames based on their integration time.</property>
                                             <property name="valign">start</property>
-                                            <property name="selected">0</property>
-                                            <signal name="notify::selected" handler="on_comboweighing_changed" swapped="no" />
+                                            <signal name="notify::selected" handler="on_comboweighing_changed"/>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">2</property>
@@ -341,7 +337,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         <child>
                                           <object class="GtkLabel" id="label_weighing">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Weighting:</property>
+                                            <property name="label" translatable="yes">Weighting:</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">1</property>
@@ -354,24 +350,24 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                             <property name="spacing">6</property>
                                             <child>
                                               <object class="GtkCheckButton" id="rejmaps_checkbutton">
-                                                <property name="label" translatable="1">Create rejection maps</property>
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Compute and create rejection maps during stacking. These are images showing how many images were rejected for each pixel of the result image, divided by the number of stacked images.</property>
-                                                <signal name="toggled" handler="on_rejmaps_toggled" swapped="no" />
+                                                <property name="label" translatable="yes">Create rejection maps</property>
+                                                <property name="tooltip-text" translatable="yes">Compute and create rejection maps during stacking. These are images showing how many images were rejected for each pixel of the result image, divided by the number of stacked images.</property>
+                                                <signal name="toggled" handler="on_rejmaps_toggled"/>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkCheckButton" id="merge_rejmaps_checkbutton">
-                                                <property name="label" translatable="1">Merge L+H</property>
-                                                <property name="sensitive">0</property>
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Create only one rejection map that will be the sum of the low and high maps</property>
+                                                <property name="label" translatable="yes">Merge L+H</property>
+                                                <property name="sensitive">0</property>
+                                                <property name="tooltip-text" translatable="yes">Create only one rejection map that will be the sum of the low and high maps</property>
                                               </object>
                                             </child>
                                             <layout>
                                               <property name="column">1</property>
-                                              <property name="row">2</property>
                                               <property name="column-span">2</property>
+                                              <property name="row">2</property>
                                             </layout>
                                           </object>
                                         </child>
@@ -381,14 +377,15 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child type="label">
                                   <object class="GtkLabel">
-                                    <property name="label" translatable="1">Pixel rejection:</property>
+                                    <property name="label" translatable="yes">Pixel rejection:</property>
                                     <attributes>
-                                      <attribute name="weight" value="bold" />
+                                      <attribute name="weight" value="bold"/>
                                     </attributes>
                                   </object>
                                 </child>
                               </object>
                             </property>
+                            <property name="position">1</property>
                             <property name="tab">
                               <object class="GtkLabel" id="label84">
                                 <property name="label">page 2</property>
@@ -398,16 +395,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                         </child>
                         <child>
                           <object class="GtkNotebookPage">
-                            <property name="position">2</property>
                             <property name="child">
                               <object class="GtkBox" id="box31">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">5</property>
-                                <child>
-                                  <placeholder />
-                                </child>
                               </object>
                             </property>
+                            <property name="position">2</property>
                             <property name="tab">
                               <object class="GtkLabel" id="label119">
                                 <property name="label">page 3</property>
@@ -417,16 +411,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                         </child>
                         <child>
                           <object class="GtkNotebookPage">
-                            <property name="position">3</property>
                             <property name="child">
                               <object class="GtkBox" id="box39">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">5</property>
-                                <child>
-                                  <placeholder />
-                                </child>
                               </object>
                             </property>
+                            <property name="position">3</property>
                             <property name="tab">
                               <object class="GtkLabel" id="label144">
                                 <property name="label">page 4</property>
@@ -436,16 +427,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                         </child>
                         <child>
                           <object class="GtkNotebookPage">
-                            <property name="position">4</property>
                             <property name="child">
                               <object class="GtkBox" id="box55">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">5</property>
-                                <child>
-                                  <placeholder />
-                                </child>
                               </object>
                             </property>
+                            <property name="position">4</property>
                             <property name="tab">
                               <object class="GtkLabel" id="label47">
                                 <property name="label">page 5</property>
@@ -459,12 +447,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                       <object class="GtkFrame" id="stack_blend_frame">
                         <child>
                           <object class="GtkGrid">
+                            <property name="column-spacing">10</property>
                             <property name="halign">start</property>
                             <property name="row-spacing">10</property>
-                            <property name="column-spacing">10</property>
                             <child>
                               <object class="GtkLabel">
-                                <property name="label" translatable="1">Borders feathering [pix]:</property>
+                                <property name="label" translatable="yes">Borders feathering [pix]:</property>
                                 <layout>
                                   <property name="column">0</property>
                                   <property name="row">0</property>
@@ -473,13 +461,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             </child>
                             <child>
                               <object class="GtkSpinButton" id="spin_stack_feather_dist">
-                                <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">Select here the number of pixels that will be faded out on the borders of each image.</property>
-                                <property name="hexpand">0</property>
-                                <property name="width-chars">6</property>
                                 <property name="adjustment">adj_stack_blending</property>
-                                <property name="snap-to-ticks">1</property>
+                                <property name="focusable">1</property>
+                                <property name="hexpand">0</property>
                                 <property name="numeric">1</property>
+                                <property name="snap-to-ticks">1</property>
+                                <property name="tooltip-text" translatable="yes">Select here the number of pixels that will be faded out on the borders of each image.</property>
+                                <property name="width-chars">6</property>
                                 <layout>
                                   <property name="column">1</property>
                                   <property name="row">0</property>
@@ -488,12 +476,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             </child>
                             <child>
                               <object class="GtkScale">
-                                <property name="width-request">100</property>
-                                <property name="focusable">1</property>
-                                <property name="hexpand">1</property>
                                 <property name="adjustment">adj_stack_blending</property>
                                 <property name="digits">0</property>
+                                <property name="focusable">1</property>
+                                <property name="hexpand">1</property>
                                 <property name="value-pos">right</property>
+                                <property name="width-request">100</property>
                                 <layout>
                                   <property name="column">2</property>
                                   <property name="row">0</property>
@@ -502,15 +490,15 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="check_norm_overlap">
-                                <property name="label" translatable="1">Normalization on overlaps</property>
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">By default, Siril computes the normalisation coefficients from each image. Ticking this box computes them on overlapping regions instead.</property>
                                 <property name="halign">start</property>
+                                <property name="label" translatable="yes">Normalization on overlaps</property>
+                                <property name="tooltip-text" translatable="yes">By default, Siril computes the normalisation coefficients from each image. Ticking this box computes them on overlapping regions instead.</property>
                                 <property name="valign">center</property>
                                 <layout>
                                   <property name="column">0</property>
-                                  <property name="row">1</property>
                                   <property name="column-span">3</property>
+                                  <property name="row">1</property>
                                 </layout>
                               </object>
                             </child>
@@ -518,9 +506,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                         </child>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Stack stitching:</property>
+                            <property name="label" translatable="yes">Stack stitching:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -536,7 +524,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             <child>
                               <object class="GtkLabel" id="stackfilter_label">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="1">Stacking 0 images of the 0 of the sequence</property>
+                                <property name="label" translatable="yes">Stacking 0 images of the 0 of the sequence</property>
                                 <property name="wrap">1</property>
                               </object>
                             </child>
@@ -559,7 +547,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="tooltip-markup" translatable="1">Select the set of images to be stacked:
+                                    <property name="selected">0</property>
+                                    <property name="tooltip-markup" translatable="yes">Select the set of images to be stacked:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used in the stack
 
@@ -576,27 +565,26 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                    <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin1">
-                                    <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                    <property name="halign">end</property>
-                                    <property name="width-chars">6</property>
-                                    <property name="max-width-chars">5</property>
-                                    <property name="text">90.00</property>
                                     <property name="adjustment">adjustment1</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
+                                    <property name="focusable">1</property>
+                                    <property name="halign">end</property>
+                                    <property name="max-width-chars">5</property>
                                     <property name="numeric">1</property>
+                                    <property name="text">90.00</property>
+                                    <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                     <property name="value">90</property>
-                                    <signal name="changed" handler="on_spinbut_percent_change" swapped="no" />
-                                    <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no" />
+                                    <property name="width-chars">6</property>
+                                    <signal name="changed" handler="on_spinbut_percent_change"/>
+                                    <signal name="value-changed" handler="on_spinbut_percent_change"/>
                                     <style>
-                                      <class name="small-spinbutton" />
+                                      <class name="small-spinbutton"/>
                                     </style>
                                   </object>
                                 </child>
@@ -610,10 +598,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="visible">0</property>
-                                    <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                     <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                    <property name="visible">0</property>
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
@@ -624,19 +612,16 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 <child>
                                   <object class="GtkButton" id="filter_add1">
                                     <property name="focusable">1</property>
-                                    <property name="receives-default">1</property>
-                                    <property name="tooltip-text" translatable="1">Add another filter</property>
                                     <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_filter_add1_clicked" swapped="no" />
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Add another filter</property>
+                                    <signal name="clicked" handler="on_filter_add1_clicked"/>
                                     <child>
                                       <object class="GtkImage" id="addfilter1">
                                         <property name="icon-name">list-add-symbolic</property>
                                       </object>
                                     </child>
                                   </object>
-                                </child>
-                                <child>
-                                  <placeholder />
                                 </child>
                               </object>
                             </child>
@@ -659,8 +644,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="visible">0</property>
-                                    <property name="tooltip-markup" translatable="1">Select the set of images to be stacked:
+                                    <property name="selected">0</property>
+                                    <property name="tooltip-markup" translatable="yes">Select the set of images to be stacked:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used in the stack
 
@@ -677,28 +662,28 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                    <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <property name="visible">0</property>
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin2">
-                                    <property name="visible">0</property>
-                                    <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                    <property name="halign">end</property>
-                                    <property name="width-chars">6</property>
-                                    <property name="max-width-chars">5</property>
-                                    <property name="text">90.00</property>
                                     <property name="adjustment">adjustment2</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
+                                    <property name="focusable">1</property>
+                                    <property name="halign">end</property>
+                                    <property name="max-width-chars">5</property>
                                     <property name="numeric">1</property>
+                                    <property name="text">90.00</property>
+                                    <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                     <property name="value">90</property>
-                                    <signal name="changed" handler="on_spinbut_percent_change" swapped="no" />
-                                    <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no" />
+                                    <property name="visible">0</property>
+                                    <property name="width-chars">6</property>
+                                    <signal name="changed" handler="on_spinbut_percent_change"/>
+                                    <signal name="value-changed" handler="on_spinbut_percent_change"/>
                                     <style>
-                                      <class name="small-spinbutton" />
+                                      <class name="small-spinbutton"/>
                                     </style>
                                   </object>
                                 </child>
@@ -712,10 +697,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="visible">0</property>
-                                    <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                     <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                    <property name="visible">0</property>
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
@@ -725,12 +710,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_add2">
-                                    <property name="visible">0</property>
                                     <property name="focusable">1</property>
-                                    <property name="receives-default">1</property>
-                                    <property name="tooltip-text" translatable="1">Add another filter</property>
                                     <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_filter_add2_clicked" swapped="no" />
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Add another filter</property>
+                                    <property name="visible">0</property>
+                                    <signal name="clicked" handler="on_filter_add2_clicked"/>
                                     <child>
                                       <object class="GtkImage" id="addfilter2">
                                         <property name="icon-name">list-add-symbolic</property>
@@ -740,12 +725,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_rem2">
-                                    <property name="visible">0</property>
                                     <property name="focusable">1</property>
-                                    <property name="receives-default">1</property>
-                                    <property name="tooltip-text" translatable="1">Remove this filter</property>
                                     <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_filter_rem2_clicked" swapped="no" />
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Remove this filter</property>
+                                    <property name="visible">0</property>
+                                    <signal name="clicked" handler="on_filter_rem2_clicked"/>
                                     <child>
                                       <object class="GtkImage" id="removefilter2">
                                         <property name="icon-name">list-remove-symbolic</property>
@@ -774,8 +759,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="visible">0</property>
-                                    <property name="tooltip-markup" translatable="1">Select the set of images to be stacked:
+                                    <property name="selected">0</property>
+                                    <property name="tooltip-markup" translatable="yes">Select the set of images to be stacked:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used in the stack
 
@@ -792,28 +777,28 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                    <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <property name="visible">0</property>
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin3">
-                                    <property name="visible">0</property>
-                                    <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                    <property name="halign">end</property>
-                                    <property name="width-chars">6</property>
-                                    <property name="max-width-chars">5</property>
-                                    <property name="text">90.00</property>
                                     <property name="adjustment">adjustment3</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
+                                    <property name="focusable">1</property>
+                                    <property name="halign">end</property>
+                                    <property name="max-width-chars">5</property>
                                     <property name="numeric">1</property>
+                                    <property name="text">90.00</property>
+                                    <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                     <property name="value">90</property>
-                                    <signal name="changed" handler="on_spinbut_percent_change" swapped="no" />
-                                    <signal name="value-changed" handler="on_spinbut_percent_change" swapped="no" />
+                                    <property name="visible">0</property>
+                                    <property name="width-chars">6</property>
+                                    <signal name="changed" handler="on_spinbut_percent_change"/>
+                                    <signal name="value-changed" handler="on_spinbut_percent_change"/>
                                     <style>
-                                      <class name="small-spinbutton" />
+                                      <class name="small-spinbutton"/>
                                     </style>
                                   </object>
                                 </child>
@@ -827,10 +812,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="visible">0</property>
-                                    <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                     <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_stacksel_changed" swapped="no" />
+                                    <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                    <property name="visible">0</property>
+                                    <signal name="notify::selected" handler="on_stacksel_changed"/>
                                   </object>
                                 </child>
                                 <child>
@@ -839,16 +824,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                   </object>
                                 </child>
                                 <child>
-                                  <placeholder />
-                                </child>
-                                <child>
                                   <object class="GtkButton" id="filter_rem3">
-                                    <property name="visible">0</property>
                                     <property name="focusable">1</property>
-                                    <property name="receives-default">1</property>
-                                    <property name="tooltip-text" translatable="1">Remove this filter</property>
                                     <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_filter_rem3_clicked" swapped="no" />
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Remove this filter</property>
+                                    <property name="visible">0</property>
+                                    <signal name="clicked" handler="on_filter_rem3_clicked"/>
                                     <child>
                                       <object class="GtkImage" id="removefilter3">
                                         <property name="icon-name">list-remove-symbolic</property>
@@ -862,9 +844,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                         </child>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Image rejection:</property>
+                            <property name="label" translatable="yes">Image rejection:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -874,9 +856,9 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                 </child>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Sequence stacking</property>
+                    <property name="label" translatable="yes">Sequence stacking</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -884,8 +866,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
             </child>
             <child>
               <object class="GtkExpander" id="stack_expander_output">
-                <property name="focusable">1</property>
                 <property name="expanded">1</property>
+                <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
                     <property name="margin-top">5</property>
@@ -893,18 +875,18 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                     <property name="spacing">5</property>
                     <child>
                       <object class="GtkGrid">
-                        <property name="valign">center</property>
-                        <property name="row-spacing">5</property>
                         <property name="column-spacing">10</property>
+                        <property name="row-spacing">5</property>
+                        <property name="valign">center</property>
                         <child>
                           <object class="GtkCheckButton" id="check_normalise_to_max">
-                            <property name="visible">0</property>
-                            <property name="label" translatable="1">Output Normalisation</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or clipped in [0, 65535] otherwise. This will work best if you also check Force 32b output, as it will avoid clipping.
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Output Normalisation</property>
+                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or clipped in [0, 65535] otherwise. This will work best if you also check Force 32b output, as it will avoid clipping.
 
 WARNING: This option should not be checked for master stacking.</property>
-                            <property name="halign">start</property>
+                            <property name="visible">0</property>
                             <layout>
                               <property name="column">0</property>
                               <property name="row">0</property>
@@ -913,13 +895,13 @@ WARNING: This option should not be checked for master stacking.</property>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="check_RGBequal">
-                            <property name="visible">0</property>
-                            <property name="label" translatable="1">RGB equalization</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If you check this button, the channels in the final image will be equalized (color images only).
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">RGB equalization</property>
+                            <property name="tooltip-text" translatable="yes">If you check this button, the channels in the final image will be equalized (color images only).
 
 WARNING: This option should not be checked for master stacking.</property>
-                            <property name="halign">start</property>
+                            <property name="visible">0</property>
                             <layout>
                               <property name="column">0</property>
                               <property name="row">1</property>
@@ -928,12 +910,12 @@ WARNING: This option should not be checked for master stacking.</property>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="check_maximize_framing">
-                            <property name="visible">0</property>
-                            <property name="label" translatable="1">Maximize framing</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.</property>
                             <property name="halign">start</property>
-                            <signal name="toggled" handler="on_check_maximize_framing_toggled" swapped="no" />
+                            <property name="label" translatable="yes">Maximize framing</property>
+                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.</property>
+                            <property name="visible">0</property>
+                            <signal name="toggled" handler="on_check_maximize_framing_toggled"/>
                             <layout>
                               <property name="column">1</property>
                               <property name="row">0</property>
@@ -942,11 +924,11 @@ WARNING: This option should not be checked for master stacking.</property>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="check_upscale_at_stacking">
-                            <property name="visible">0</property>
-                            <property name="label" translatable="1">Interpolation upscaling x2</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.</property>
                             <property name="halign">start</property>
+                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
+                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.</property>
+                            <property name="visible">0</property>
                             <layout>
                               <property name="column">1</property>
                               <property name="row">1</property>
@@ -955,18 +937,15 @@ WARNING: This option should not be checked for master stacking.</property>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="check_force32b">
-                            <property name="label" translatable="1">Force 32b output</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
                             <property name="halign">start</property>
+                            <property name="label" translatable="yes">Force 32b output</property>
+                            <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
                             <layout>
                               <property name="column">2</property>
                               <property name="row">1</property>
                             </layout>
                           </object>
-                        </child>
-                        <child>
-                          <placeholder />
                         </child>
                       </object>
                     </child>
@@ -976,40 +955,40 @@ WARNING: This option should not be checked for master stacking.</property>
                         <child>
                           <object class="GtkLabel" id="label30">
                             <property name="halign">end</property>
-                            <property name="label" translatable="1" comments="Must be short">Save in:</property>
+                            <property name="label" translatable="yes" comments="Must be short">Save in:</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkEntry" id="entryresultfile">
                             <property name="focusable">1</property>
                             <property name="hexpand">1</property>
+                            <property name="input-hints">no-emoji|none</property>
                             <property name="invisible-char">●</property>
-                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="checkbutoverwrite">
-                            <property name="label" translatable="1">Overwrite</property>
-                            <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">Overwrite file without notice if it already exists.</property>
-                            <property name="halign">start</property>
                             <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Overwrite</property>
+                            <property name="tooltip-text" translatable="yes">Overwrite file without notice if it already exists.</property>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="gostack_button">
-                        <property name="label" translatable="1">Start stacking</property>
-                        <property name="sensitive">0</property>
                         <property name="focusable">1</property>
-                        <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Start stacking the current sequence of images, using the method and other information provided above.</property>
+                        <property name="label" translatable="yes">Start stacking</property>
                         <property name="margin-top">3</property>
+                        <property name="receives-default">1</property>
+                        <property name="sensitive">0</property>
+                        <property name="tooltip-text" translatable="yes">Start stacking the current sequence of images, using the method and other information provided above.</property>
                         <property name="use-underline">1</property>
-                        <signal name="clicked" handler="on_seqstack_button_clicked" swapped="no" />
+                        <signal name="clicked" handler="on_seqstack_button_clicked"/>
                         <style>
-                          <class name="suggested-action" />
+                          <class name="suggested-action"/>
                         </style>
                       </object>
                     </child>
@@ -1017,9 +996,9 @@ WARNING: This option should not be checked for master stacking.</property>
                 </child>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Stacking result</property>
+                    <property name="label" translatable="yes">Stacking result</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -1029,12 +1008,14 @@ WARNING: This option should not be checked for master stacking.</property>
         </property>
       </object>
     </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
   </object>
   <object class="GtkLabel" id="label29">
-    <property name="tooltip-text" translatable="1">Stacking of images, either summing, median, mean with rejection or pixel minimum/maximum.</property>
-    <property name="margin-top">2</property>
-    <property name="margin-bottom">2</property>
-    <property name="label" translatable="1">Stacking</property>
     <property name="justify">center</property>
+    <property name="label" translatable="yes">Stacking</property>
+    <property name="margin-bottom">2</property>
+    <property name="margin-top">2</property>
+    <property name="tooltip-text" translatable="yes">Stacking of images, either summing, median, mean with rejection or pixel minimum/maximum.</property>
   </object>
 </interface>

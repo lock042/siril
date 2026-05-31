@@ -517,8 +517,18 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 
 	GHashTable *py_submenus = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
-	g_menu_append_submenu(menu, _("Siril Script Files"), G_MENU_MODEL(menu_ssf));
-	g_menu_append_submenu(menu, _("Python Scripts"),     G_MENU_MODEL(menu_py));
+	/* Wrap the submenu rows in their own (label-less) section so they sit at
+	 * the same GtkPopoverMenu nesting depth as the "Get Scripts" tail
+	 * section below.  A submenu appended directly to the top-level menu and
+	 * an item appended inside a <section> render at different left insets on
+	 * themes that indent sections, so the submenu labels and the tail item
+	 * labels wouldn't line up.  Keeping both groups in sections makes every
+	 * row align. */
+	GMenu *head = g_menu_new();
+	g_menu_append_submenu(head, _("Siril Script Files"), G_MENU_MODEL(menu_ssf));
+	g_menu_append_submenu(head, _("Python Scripts"),     G_MENU_MODEL(menu_py));
+	g_menu_append_section(menu, NULL, G_MENU_MODEL(head));
+	g_object_unref(head);
 
 	GMenu *tail = g_menu_new();
 	g_menu_append(tail, _("Get Scripts"),               "win.script-getscripts");
