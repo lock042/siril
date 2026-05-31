@@ -123,6 +123,15 @@ void script_pythonpad_action_activate(GSimpleAction *action, GVariant *parameter
 	on_open_pythonpad(NULL, NULL);
 }
 
+/* Boolean toggle backing the headerbar Scripts ▸ "Enable Python debug mode"
+ * check item.  It shares the python_debug flag with the script editor's
+ * Script ▸ debug toggle; set_python_debug_mode() updates the flag and keeps
+ * both check items showing the same state. */
+void script_pythondebug_change_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	set_python_debug_mode(g_variant_get_boolean(state));
+}
+
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	gui_iface.set_busy(TRUE);
 	undo_display_data(UNDO);

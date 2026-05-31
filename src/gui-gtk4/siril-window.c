@@ -48,6 +48,7 @@ static GActionEntry win_entries[] = {
 
 	{ "script-getscripts", script_getscripts_action_activate },
 	{ "script-pythonpad",  script_pythonpad_action_activate },
+	{ "script-pythondebug", NULL, NULL, "false", script_pythondebug_change_state },
 
 	/* Selection submenu radio groups (string-stateful actions consumed by
 	 * the menugray right-click context menu). */

@@ -29,4 +29,5 @@ gboolean code_view_exists();
 void new_script(const gchar *content, gint length, const char *ext);
 gboolean script_editor_has_unsaved_changes();
 gboolean get_python_debug_mode();
+void set_python_debug_mode(gboolean enabled);
 #endif

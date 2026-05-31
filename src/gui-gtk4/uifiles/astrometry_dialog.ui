@@ -58,6 +58,13 @@
     <property name="icon-name">edit-find-symbolic</property>
   </object>
   <object class="GtkWindow" id="astrometry_dialog">
+    <!-- GTK4 opens the window at its natural width (~720px); GTK4 widgets
+         (search entry, entries, spin/dropdown buttons) are intrinsically
+         wider than their GTK3 equivalents for the same width-chars, leaving
+         a lot of empty horizontal space.  Open at a compact width to match
+         the GTK3 dialog; it stays resizable and won't go below the content
+         minimum (~530px). -->
+    <property name="default-width">560</property>
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>

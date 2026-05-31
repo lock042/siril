@@ -355,6 +355,8 @@ static void ensure_git_view(void) {
 	gtk_single_selection_set_autoselect(sel, FALSE);
 
 	git_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
+	/* Match the file-open dialog's tight row spacing (see siril.css). */
+	gtk_widget_add_css_class(GTK_WIDGET(git_columnview), "siril-dense-rows");
 	gtk_column_view_set_show_column_separators(git_columnview, TRUE);
 	g_signal_connect(git_columnview, "activate", G_CALLBACK(on_row_activated), NULL);
 

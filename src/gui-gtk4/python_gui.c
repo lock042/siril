@@ -369,7 +369,31 @@ static void apply_editor_setting(const gchar *name, gboolean v) {
 			gtk_widget_set_visible(GTK_WIDGET(args_box), v);
 		from_cli = v;
 	} else if (g_strcmp0(name, "pythondebug") == 0) {
-		python_debug = v;
+		set_python_debug_mode(v);
+	}
+}
+
+/* Set the shared Python debug flag and keep both toggle UIs in sync: the
+ * editor's Script ▸ debug check item (editor.pythondebug) and the headerbar
+ * Scripts ▸ "Enable Python debug mode" check item (win.script-pythondebug).
+ * g_simple_action_set_state updates a check mark WITHOUT re-invoking the
+ * change-state handler, so reflecting the value onto the sibling action can't
+ * loop back here.  Either action map may be absent (the editor group isn't
+ * built until the editor is first opened), so each update is guarded. */
+void set_python_debug_mode(gboolean enabled) {
+	python_debug = enabled;
+
+	if (editor_action_group) {
+		GAction *a = g_action_map_lookup_action(G_ACTION_MAP(editor_action_group), "pythondebug");
+		if (a)
+			g_simple_action_set_state(G_SIMPLE_ACTION(a), g_variant_new_boolean(enabled));
+	}
+
+	GtkWidget *control_window = lookup_widget("control_window");
+	if (control_window && GTK_IS_APPLICATION_WINDOW(control_window)) {
+		GAction *a = g_action_map_lookup_action(G_ACTION_MAP(control_window), "script-pythondebug");
+		if (a)
+			g_simple_action_set_state(G_SIMPLE_ACTION(a), g_variant_new_boolean(enabled));
 	}
 }
 
@@ -425,6 +449,16 @@ static void setup_editor_actions(GtkWindow *window) {
 
 	gtk_widget_insert_action_group(GTK_WIDGET(window), "editor",
 	                               G_ACTION_GROUP(editor_action_group));
+
+	/* The debug flag is shared with the headerbar Scripts menu's toggle and
+	 * may have been flipped there before the editor was first opened, so
+	 * reflect the current value onto this group's check item every time the
+	 * editor is set up.  (Other toggles keep their in-session state.) */
+	{
+		GAction *dbg = g_action_map_lookup_action(G_ACTION_MAP(editor_action_group), "pythondebug");
+		if (dbg)
+			g_simple_action_set_state(G_SIMPLE_ACTION(dbg), g_variant_new_boolean(python_debug));
+	}
 
 	/* Attach the menu model and shortcut controller on first setup;
 	 * both reference actions in the group we just installed.  The
