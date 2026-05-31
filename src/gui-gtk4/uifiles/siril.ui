@@ -1334,6 +1334,9 @@
                     <child>
                       <object class="GtkButton" id="proc_star_synthetic">
                         <property name="action-name">win.star-synthetic</property>
+                        <!-- Fill the row so the Dynamic-PSF icon button sits at the end
+                             (GTK3 used a full-width GtkModelButton + pack-type=end icon). -->
+                        <property name="hexpand">1</property>
                         <property name="label" translatable="yes">Full Resynthesis</property>
                         <property name="tooltip-markup" translatable="yes">Create synthetic Gaussian / Moffat star mask with perfect profiles for every star detected by Siril's star finder routine, using parameters measured from the original data. The star mask can be recombined with a starless image to fix aberrations.
         Star synthesis should be applied &lt;i&gt;before&lt;/i&gt; &lt;b&gt;stretching&lt;/b&gt;.

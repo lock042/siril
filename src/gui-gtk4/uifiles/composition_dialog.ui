@@ -207,6 +207,8 @@
                 </child>
                 <child>
                   <object class="GtkDropDown" id="composition_combo_coloringtype">
+                    <!-- Fill the remaining row width as in GTK3 (the combo was pack-type=end + expand). -->
+                    <property name="hexpand">1</property>
                     <property name="model">
                       <object class="GtkStringList">
                         <items>

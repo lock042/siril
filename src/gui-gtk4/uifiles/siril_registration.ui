@@ -571,6 +571,12 @@ When this box is unchecked, the global star registration will be calculated and 
                                               </object>
                                             </child>
                                             <child>
+                                              <!-- Spacer: push the Star #N grid to the end of the row (GTK3 used pack-type=end). -->
+                                              <object class="GtkBox">
+                                                <property name="hexpand">1</property>
+                                              </object>
+                                            </child>
+                                            <child>
                                               <object class="GtkGrid">
                                                 <property name="column-spacing">5</property>
                                                 <property name="row-spacing">5</property>
@@ -1478,6 +1484,12 @@ The master flat must be set in the Calibration tab.</property>
                                 <property name="tooltip-text" translatable="yes">Display the reference image over the current image using a 50% transparency.
 To be enabled, the reference image must have been explicitly set and already displayed once on the selected registration layer.</property>
                                 <signal name="toggled" handler="on_checkbutton_displayref_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <!-- Spacer: push the reference-image label to the end (GTK3 used pack-type=end). -->
+                              <object class="GtkBox">
+                                <property name="hexpand">1</property>
                               </object>
                             </child>
                             <child>

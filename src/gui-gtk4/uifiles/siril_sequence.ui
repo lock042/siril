@@ -110,6 +110,12 @@
                           </object>
                         </child>
                         <child>
+                          <!-- Spacer: push Open Frame List to the end of the row (GTK3 used pack-type=end). -->
+                          <object class="GtkBox">
+                            <property name="hexpand">1</property>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkButton">
                             <property name="action-name">win.seq-list</property>
                             <property name="focusable">1</property>
@@ -210,6 +216,12 @@ For SER and TIFF, if input images are 32 bits, they are converted to 16, with a 
                                 <property name="tooltip-text" translatable="yes">Activate image normalisation for the export. This will make all images the same brightness and is thus recommended for sequences with inconsistent exposures or pixel values.
 A first computation pass will be done on all images before exporting, it may take some time, only the first export of a sequence.
 			</property>
+                              </object>
+                            </child>
+                            <child>
+                              <!-- Spacer: push the crop-area label to the end of the row (GTK3 used pack-type=end). -->
+                              <object class="GtkBox">
+                                <property name="hexpand">1</property>
                               </object>
                             </child>
                             <child>
