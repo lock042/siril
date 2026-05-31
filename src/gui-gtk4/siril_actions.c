@@ -168,7 +168,7 @@ static gboolean is_extended = FALSE;
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWindow *window;
 	GtkWidget *toolbarbox = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toolbarbox"));
-	GtkWidget *control_center_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_center_box"));
+	GtkRevealer *rev = GTK_REVEALER(gtk_builder_get_object(gui.builder, "center_revealer"));
 	GtkButton *button = GTK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_paned")));
 	gboolean is_control_box_visible;
 	gboolean is_fullscreen;
@@ -176,7 +176,8 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 	window = GTK_WINDOW(GTK_APPLICATION_WINDOW(user_data));
 
 	is_fullscreen = gtk_window_is_fullscreen(window);
-	is_control_box_visible = gtk_widget_get_visible(control_center_box);
+	is_control_box_visible = gtk_widget_get_visible(
+	    gtk_paned_get_end_child(GTK_PANED(gtk_builder_get_object(gui.builder, "main_panel"))));
 
 	if (is_fullscreen) {
 		gtk_window_unfullscreen(window);
@@ -192,22 +193,20 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 	gtk_widget_set_visible(toolbarbox, is_fullscreen);
 }
 
+void panel_animate(gboolean show);   /* defined in callbacks.c */
+
 void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkPaned *paned = GTK_PANED(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_panel")));
+	GtkPaned *paned = GTK_PANED(gtk_builder_get_object(gui.builder, "main_panel"));
 	GtkImage *image = GTK_IMAGE(gtk_button_get_child(GTK_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_paned")))));
-	GtkWidget *widget = gtk_paned_get_end_child(paned);
 
-	gboolean is_visible = gtk_widget_is_visible(widget);
+	gboolean is_visible = gtk_widget_get_visible(gtk_paned_get_end_child(paned));
 
-	gtk_widget_set_visible(widget, !is_visible);
+	panel_animate(!is_visible);
+	gtk_image_set_from_icon_name(image, !is_visible ? "pan-end-symbolic" : "pan-start-symbolic");
 
-	if (!is_visible) {
-		gtk_image_set_from_icon_name(image, "pan-end-symbolic");
-		if (com.gui_icc.iso12646)
-			disable_iso12646_conditions(TRUE, FALSE, TRUE);
-	} else {
-		gtk_image_set_from_icon_name(image, "pan-start-symbolic");
-	}
+	if (!is_visible && com.gui_icc.iso12646)
+		disable_iso12646_conditions(TRUE, FALSE, TRUE);
+
 	if (com.pref.gui.remember_windows) {
 		com.pref.gui.is_extended = !is_visible;
 		writeinitfile();
