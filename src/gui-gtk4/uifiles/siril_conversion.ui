@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkScrolledWindow" id="conversion_tab">
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+    <property name="child">
+      <object class="GtkViewport">
+        <property name="child">
+          <object class="GtkBox" id="box52">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="focusable">1</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkBox" id="box74">
+                    <property name="margin-top">5</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolledwindow8">
+                        <property name="focusable">1</property>
+                        <property name="vexpand">1</property>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <child>
+                          <object class="GtkBox" id="convert_toolbar">
+                            <property name="css-classes">toolbar</property>
+                            <property name="halign">center</property>
+                            <property name="margin-top">5</property>
+                            <property name="margin-bottom">5</property>
+                            <child>
+                              <object class="GtkButton" id="select_convert_button">
+                                <property name="tooltip-text" translatable="1">Add files to convert</property>
+                                <property name="valign">center</property>
+                                <property name="label" translatable="1">Add</property>
+                                <property name="use-underline">1</property>
+                                <property name="icon-name">list-add-symbolic</property>
+                                <signal name="clicked" handler="on_select_convert_button_clicked" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="remove_convert_button">
+                                <property name="tooltip-text" translatable="1">Remove selected files</property>
+                                <property name="valign">center</property>
+                                <property name="label" translatable="1">Remove</property>
+                                <property name="use-underline">1</property>
+                                <property name="icon-name">list-remove-symbolic</property>
+                                <signal name="clicked" handler="on_remove_convert_button_clicked" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="clear_convert_button">
+                                <property name="tooltip-text" translatable="1">Remove all files from the list</property>
+                                <property name="valign">center</property>
+                                <property name="label" translatable="1">Clear</property>
+                                <property name="use-underline">1</property>
+                                <property name="icon-name">edit-clear-symbolic</property>
+                                <signal name="clicked" handler="on_clear_convert_button_clicked" swapped="no" />
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="statuslabel_convert">
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <child>
+                          <object class="GtkLabel" id="label_supported_types">
+                            <property name="tooltip-text" translatable="1">Supported types depend on compile-time libraries availability. See documentation.
+RAW images are raw images from digital cameras, like CR2 files for Canon or NEF for Nikon.
+Films of any type can be converted as FITS or SER.
+SER files are directly handled as a sequence, and are not yet available for conversion.</property>
+                            <property name="halign">start</property>
+                            <property name="valign">start</property>
+                            <property name="margin-top">10</property>
+                            <property name="label">- list is filled at runtime -</property>
+                            <property name="wrap">1</property>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="label" translatable="1">Supported file types:</property>
+                            <attributes>
+                              <attribute name="weight" value="bold" />
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Source</property>
+                    <attributes>
+                      <attribute name="weight" value="bold" />
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="focusable">1</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkGrid" id="grid16">
+                    <property name="margin-top">5</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">5</property>
+                    <child>
+                      <object class="GtkEntry" id="startIndiceEntry">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Indicates the start indice of your converted files. This value must be included in the [1, 65535] range.</property>
+                        <property name="valign">center</property>
+                        <property name="max-length">5</property>
+                        <property name="width-chars">5</property>
+                        <property name="max-width-chars">5</property>
+                        <property name="text">00001</property>
+                        <property name="input-purpose">digits</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="activate" handler="on_startIndiceEntry_activate" swapped="no" />
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="convert_button">
+                        <property name="label" translatable="1">Convert</property>
+                        <property name="sensitive">0</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Start conversion of all source files into the configured output files, FITS or SER, with colour processing or not.</property>
+                        <signal name="clicked" handler="on_convert_button_clicked" swapped="no" />
+                        <style>
+                          <class name="suggested-action" />
+                        </style>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkDropDown" id="prepro_output_type_combo1">
+                        <property name="model">
+                          <object class="GtkStringList">
+                            <items>
+                              <item translatable="yes">FITS images</item>
+                              <item translatable="yes">SER sequence</item>
+                              <item translatable="yes">FITS sequence</item>
+                            </items>
+                          </object>
+                        </property>
+                        <property name="tooltip-text" translatable="1">This sets the destination sequence type.
+FITS images: one FITS file per image.
+SER sequence: one SER file for the whole sequence (limited to 16 bits per channel).
+FITS sequence: one FITS file for the whole sequence.
+
+Note: FITS images will have no effect when the pre-processed sequence is SER or FITS sequence file.</property>
+                        <property name="selected">0</property>
+                        <signal name="notify::selected" handler="on_prepro_output_type_combo1_changed" swapped="no" />
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <child>
+                          <object class="GtkCheckButton" id="multiple_seq">
+                            <property name="visible">0</property>
+                            <property name="label" translatable="1">Multiple sequences</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Tick this to create several sequence files instead of a single SER or FITS file for all input elements. Use this if input elements (sequence files such as films, SER or FITS cubes) don't share the same image size or must not be processed together.</property>
+                            <property name="halign">start</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="convert_symlink">
+                            <property name="label" translatable="1">Symbolic Link</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-markup" translatable="1">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk. This option disables compression.
+
+&lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
+                            <property name="halign">start</property>
+                            <property name="active">1</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="demosaicingButton">
+                            <property name="label" translatable="1">Debayer</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Debayer single-channel images (CFA format) using the Bayer matrix layout given in the settings. Also applies to image opening, not only conversion.
+Only for RAW and FITS input images and SER films.
+Colour image target also applies to the debayer result for conversion.</property>
+                            <property name="halign">start</property>
+                            <signal name="toggled" handler="on_demosaicing_toggled" swapped="no" />
+                          </object>
+                        </child>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="convroot_entry">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Enter the base name of the sequence, for example NGC_6822-L. It will create images in the form NGC_6822-L_00001.fit.</property>
+                        <property name="valign">center</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="activate" handler="on_conv_root_entry_activate" swapped="no" />
+                        <signal name="changed" handler="on_convtoroot_changed" swapped="no" />
+                        <signal name="insert-text" handler="insert_text_handler" swapped="no" />
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label62">
+                        <property name="label" translatable="1">Sequence name:</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Destination</property>
+                    <attributes>
+                      <attribute name="weight" value="bold" />
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+  <object class="GtkLabel" id="label22">
+    <property name="tooltip-text" translatable="1">This conversion tab is used to import files and convert them into a format with which Siril can work: FITS or SER.</property>
+    <property name="margin-top">2</property>
+    <property name="margin-bottom">2</property>
+    <property name="label" translatable="1">Conversion</property>
+    <property name="justify">center</property>
+  </object>
+</interface>

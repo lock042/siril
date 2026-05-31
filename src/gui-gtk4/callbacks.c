@@ -257,11 +257,37 @@ static void update_icons_to_theme(gboolean is_dark) {
 	}
 }
 
+/* Called by the system appearance observer when the OS switches dark/light
+ * while "Follow system" (index 0) is the active preference. */
+static void on_system_appearance_changed(gboolean dark) {
+	if (com.pref.gui.combo_theme != 0)
+		return;
+	GtkSettings *settings = gtk_settings_get_default();
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	update_icons_to_theme(dark);
+	update_icons_sequence_list(dark);
+}
+
+
 void siril_set_theme(int active) {
 	GtkSettings *settings = gtk_settings_get_default();
-	g_object_set(settings, "gtk-application-prefer-dark-theme", active == 0, NULL);
-	update_icons_to_theme(active == 0);
-	update_icons_sequence_list(active == 0);
+	gboolean dark;
+	switch ((siril_theme_t) active) {
+	case SIRIL_THEME_DARK:   dark = TRUE;  break;
+	case SIRIL_THEME_LIGHT:  dark = FALSE; break;
+	default:                 dark = siril_system_is_dark_mode(); break;
+	}
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	update_icons_to_theme(dark);
+	update_icons_sequence_list(dark);
+}
+
+gboolean siril_current_theme_is_dark(void) {
+	switch (com.pref.gui.combo_theme) {
+	case SIRIL_THEME_DARK:   return TRUE;
+	case SIRIL_THEME_LIGHT:  return FALSE;
+	default:                 return siril_system_is_dark_mode();
+	}
 }
 
 void on_combo_theme_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -503,23 +529,40 @@ gpointer on_clear_roi() {
 }
 
 static void initialize_theme_GUI() {
-	GtkDropDown *box;
+	GtkDropDown *box = GTK_DROP_DOWN(lookup_widget("combo_theme"));
 
-	box = GTK_DROP_DOWN(lookup_widget("combo_theme"));
-
+	/* Block before any model change: gtk_string_list_splice at position 0
+	 * shifts the current selection and fires notify::selected, which would
+	 * call siril_set_theme(0) and override the saved preference. */
 	g_signal_handlers_block_by_func(box, on_combo_theme_changed, NULL);
+
+	/* Insert "Follow system" at position 0.  Done once; the static flag
+	 * prevents a duplicate entry if this function is re-called.
+	 * Final order: 0=Follow system, 1=Dark, 2=Light. */
+	static gboolean system_option_added = FALSE;
+	if (!system_option_added) {
+		GtkStringList *model = GTK_STRING_LIST(gtk_drop_down_get_model(box));
+		const char *additions[] = { _("Follow system"), NULL };
+		gtk_string_list_splice(model, 0, 0, additions);
+		system_option_added = TRUE;
+		siril_watch_system_appearance_changes(on_system_appearance_changed);
+	}
+
 	gtk_drop_down_set_selected(box, com.pref.gui.combo_theme);
 	g_signal_handlers_unblock_by_func(box, on_combo_theme_changed, NULL);
-	update_icons_to_theme(com.pref.gui.combo_theme == 0);
-	update_icons_sequence_list(com.pref.gui.combo_theme == 0);
+	update_icons_to_theme(siril_current_theme_is_dark());
+	update_icons_sequence_list(siril_current_theme_is_dark());
 }
 
 void load_prefered_theme(gint theme) {
-	GtkSettings *settings;
-
-	settings = gtk_settings_get_default();
-
-	g_object_set(settings, "gtk-application-prefer-dark-theme", com.pref.gui.combo_theme == 0, NULL);
+	GtkSettings *settings = gtk_settings_get_default();
+	gboolean dark;
+	switch ((siril_theme_t) theme) {
+	case SIRIL_THEME_DARK:   dark = TRUE;  break;
+	case SIRIL_THEME_LIGHT:  dark = FALSE; break;
+	default:                 dark = siril_system_is_dark_mode(); break;
+	}
+	g_object_set(settings, "gtk-application-prefer-dark-theme", dark, NULL);
 }
 
 void set_sliders_value_to_gfit() {
@@ -606,7 +649,7 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
 		remap_all();
 		g_rw_lock_reader_unlock(&gfit->rwlock);
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	return FALSE;
 }
@@ -652,7 +695,7 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 			siril_add_idle(try_remap_for_mode_change_idle, NULL);
 		} else {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -665,12 +708,27 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 		gtk_popover_popdown(GTK_POPOVER(popover));
 }
 
+/* Generic "clicked" handler for buttons inside a GtkPopover used as a
+ * menu (the hamburger main_menu, etc.).  Dismisses the containing
+ * popover after the button's action-name has fired.  GtkPopoverMenu
+ * with a GMenu auto-popdowns on activation, but a hand-built
+ * GtkPopover-with-GtkButtons doesn't — leaving the menu hanging open
+ * after the user picks something.  Attach this as the "clicked" signal
+ * handler in the .ui (in addition to action-name) on each menu item. */
+void on_popover_menu_item_clicked(GtkButton *button, gpointer user_data) {
+	(void) user_data;
+	GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(button),
+	                                              GTK_TYPE_POPOVER);
+	if (popover)
+		gtk_popover_popdown(GTK_POPOVER(popover));
+}
+
 void on_mask_enable_toggled(GtkCheckButton *button, gpointer user_data) {
 	gboolean state = siril_toggle_get_active(GTK_WIDGET(button));
 	gfit->mask_active = state;
 	if (com.pref.gui.mask_tints_vports) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL); // draw or remove the red tint from the image
+		redraw(REDRAW_ALL); // draw or remove the red tint from the image
 	}
 }
 
@@ -679,7 +737,7 @@ void on_mask_show_toggled(GtkCheckButton *button, gpointer user_data) {
 	com.pref.gui.mask_tints_vports = state;
 	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 }
 
 void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
@@ -829,7 +887,7 @@ void on_autohd_item_toggled(GtkCheckButton *menuitem, gpointer user_data) {
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -844,7 +902,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -903,7 +961,7 @@ void set_unlink_channels(gboolean unlinked) {
 	siril_log_debug("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -1297,6 +1355,19 @@ static void update_roi_from_selection() {
 		on_set_roi();
 	else
 		on_clear_roi();
+	/* The steps above modify gfit pixels (restore_roi+copy_roi_into_gfit
+	 * write the OLD-ROI restoration; on_set_roi's copy_backup_to_gfit and
+	 * any registered ROI callback restore further state).  None of that
+	 * by itself re-remaps the Cairo display buffers — the call chain
+	 * gfit_modified_update_gui → end_gfit_operation → redraw_image_async
+	 * only queues a GTK paint, which then renders from whatever's already
+	 * cached in the per-vport buffers (still showing the previous preview
+	 * at the OLD ROI position).  notify_gfit_data_modified() is the one
+	 * that calls remap_all_vports() — mirror what siril_preview_hide()
+	 * does at siril_preview.c:189.  Cheap enough to call on every ROI
+	 * change; populate_roi/etc. above already touched gfit. */
+	if (!com.script && !com.python_command && !com.headless)
+		notify_gfit_data_modified();
 }
 
 void update_roi_config() {
@@ -1418,7 +1489,7 @@ void on_precision_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				notify_gfit_data_modified();
-				redraw(REMAP_ALL);
+				redraw(REDRAW_ALL);
 			}
 		} else if (gfit->type == DATA_USHORT) {
 			if (is_preview_active()) {
@@ -1429,7 +1500,7 @@ void on_precision_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 		}
 	}
 	gui_function(set_precision_switch, NULL);
@@ -1929,11 +2000,35 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+#ifdef OS_OSX
+/* On macOS, GTK4 maps <Primary> to GDK_CONTROL_MASK (Ctrl), but the Command
+ * key generates GDK_META_MASK.  Replace <Primary> with <Meta> in every accel
+ * string so that Cmd+key shortcuts match what the user actually presses. */
+static gchar *macos_remap_accel(const gchar *accel) {
+	if (!strstr(accel, "<Primary>"))
+		return g_strdup(accel);
+	gchar **parts = g_strsplit(accel, "<Primary>", -1);
+	gchar  *result = g_strjoinv("<Meta>", parts);
+	g_strfreev(parts);
+	return result;
+}
+#endif
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
 
 	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
+#ifdef OS_OSX
+		int n = g_strv_length((gchar **)(it + 1));
+		gchar **remapped = g_new0(gchar *, n + 1);
+		for (int i = 0; i < n; i++)
+			remapped[i] = macos_remap_accel(it[1 + i]);
+		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0],
+		                                      (const gchar * const *) remapped);
+		g_strfreev(remapped);
+#else
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+#endif
 	}
 }
 
@@ -2250,7 +2345,42 @@ void register_toolkit_app_actions(GApplication *app) {
 			G_N_ELEMENTS(entries), app);
 }
 
+/* Every tab of notebook_center_box lives in its own .ui file (siril_<tab>.ui)
+ * so each stays well under the UI-file size a design tool (Cambalache) can
+ * open; siril.ui only carries the empty notebook. All files load into the same
+ * gui.builder, so here we populate the notebook by inserting each tab in order.
+ * This array is the single source of truth for the centre-notebook tab order,
+ * which other code addresses by index — keep it in sync if tabs are added. */
+static void reassemble_center_notebook(void) {
+	GtkNotebook *nb = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	if (!nb) {
+		g_warning("reassemble_center_notebook: notebook_center_box not found");
+		return;
+	}
+	const struct { const char *content; const char *tab; } pages[] = {
+		{ "conversion_tab",   "label22"  },  /* 0 Conversion  */
+		{ "sequence_tab",     "label20"  },  /* 1 Sequence    */
+		{ "calibration_tab",  "label19"  },  /* 2 Calibration */
+		{ "registration_tab", "label28"  },  /* 3 Registration*/
+		{ "plot_tab",         "labelPlot"},  /* 4 Plot        */
+		{ "stacking_tab",     "label29"  },  /* 5 Stacking    */
+		{ "console_tab",      "label21"  },  /* 6 Console     */
+	};
+	for (int i = 0; i < (int) G_N_ELEMENTS(pages); i++) {
+		GtkWidget *content = GTK_WIDGET(gtk_builder_get_object(gui.builder, pages[i].content));
+		GtkWidget *tab     = GTK_WIDGET(gtk_builder_get_object(gui.builder, pages[i].tab));
+		if (!content || !tab) {
+			g_warning("reassemble_center_notebook: missing page '%s'", pages[i].content);
+			continue;
+		}
+		gtk_notebook_insert_page(nb, content, tab, i);
+	}
+}
+
 void initialize_all_GUI(gchar *supported_files) {
+	/* Re-attach the notebook tabs that were split into separate .ui files
+	 * before anything inspects notebook_center_box. */
+	reassemble_center_notebook();
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
@@ -2295,9 +2425,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Keybord Shortcuts */
 	load_accels();
 
-	/* Mouse event mask */
-	set_mouse_event_mask();
-
 	/* Wire up the menu-page actions for the Image Processing and Tools
 	 * popover menus.  Each popover holds a GtkStack whose pages are the
 	 * root menu and the various submenus; clicking a submenu trigger or
@@ -2325,7 +2452,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	icc_main_window_button_attach_gesture();
 
 	/* Wire GtkGestureClick "released" on scalemin / scalemax so the
-	 * end-of-drag REMAP_ALL redraw fires (Phase 18 stripped the
+	 * end-of-drag REDRAW_ALL redraw fires (Phase 18 stripped the
 	 * button-release-event binding from the .ui). */
 	attach_display_scale_release_handlers();
 
@@ -2564,7 +2691,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 void on_checkcut_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 	gui.cut_over = siril_toggle_get_active(GTK_WIDGET(togglebutton));
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 /* gamut check was toggled. */
@@ -2577,7 +2704,7 @@ void on_gamutcheck_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
 		unlock_display_transform();
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -2826,7 +2953,7 @@ void on_radiobutton_minmax_toggled(GtkCheckButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2841,7 +2968,7 @@ void on_radiobutton_hilo_toggled(GtkCheckButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2878,7 +3005,7 @@ void setup_stretch_sliders() {
 	if (changed) {
 		set_cutoff_sliders_values();
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2898,7 +3025,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2948,7 +3075,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -3312,7 +3439,8 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		}
 	}
 
-	g_object_unref(sel);
+	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full
+	 * for the model, so cv consumed the ref. */
 	g_object_unref(store);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 

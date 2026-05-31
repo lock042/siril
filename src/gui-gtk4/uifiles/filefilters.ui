@@ -1,6 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name filefilters.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkFileFilter" id="all_files">
     <patterns>
       <pattern>*</pattern>

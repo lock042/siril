@@ -240,6 +240,24 @@ if criterion_dep.found()
                                 cpp_args : siril_cpp_flag)
      test('test_flis_gpu_compose_bake', test_flis_gpu_compose_bake_exec, suite: 'flis')
 
+     harmonize_img_t_exec = executable('harmonize_img_t_test',
+                                       'harmonize_img_t_test.cpp',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('harmonize_img_t_test', harmonize_img_t_exec, suite: 'harmonize')
+
+     da3d_dft_perf_exec = executable('da3d_dft_perf',
+                                     'da3d_dft_perf.cpp',
+                                     dependencies : [siril_dep, criterion_dep],
+                                     link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                     c_args : siril_c_flag,
+                                     cpp_args : siril_cpp_flag)
+
+     test('da3d_dft_perf', da3d_dft_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
+
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',
                                    'measure_sorting.c',

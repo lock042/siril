@@ -300,7 +300,6 @@ static gchar *pick_image(int whichdial, GtkWindow *parent,
 			*out_paths = siril_file_browser_get_paths(fb);
 		picked = siril_file_browser_get_path(fb);
 	}
-	siril_file_browser_destroy(fb);
 	return picked;
 }
 

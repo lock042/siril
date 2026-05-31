@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkScrolledWindow" id="console_tab">
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+    <property name="child">
+      <object class="GtkViewport">
+        <property name="child">
+          <object class="GtkBox" id="vboxconsole">
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkScrolledWindow" id="scrolledconsolewindow">
+                <property name="vexpand">1</property>
+                <property name="focusable">1</property>
+                <property name="vscrollbar-policy">always</property>
+                <property name="child">
+                  <object class="GtkTextView" id="output">
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Siril output window, displays messages about what has been done and in response to command inputs.</property>
+                    <property name="pixels-above-lines">2</property>
+                    <property name="editable">0</property>
+                    <property name="wrap-mode">word</property>
+                    <property name="cursor-visible">0</property>
+                    <property name="accepts-tab">0</property>
+                    <property name="monospace">1</property>
+                    <style>
+                      <class name="monospace" />
+                    </style>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_log">
+                <property name="name">box_console_bar</property>
+                <child>
+                  <object class="GtkLabel" id="image_log">
+                    <property name="name">image_log</property>
+                    <property name="label">●</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="statusbar_script">
+                    <property name="hexpand">1</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-top">2</property>
+                    <property name="margin-bottom">2</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="toolbar_log">
+                    <property name="css-classes">toolbar</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <child>
+                      <object class="GtkButton" id="export_log_button">
+                        <property name="tooltip-text" translatable="1">Export the log</property>
+                        <property name="use-underline">1</property>
+                        <property name="icon-name">document-save-as-symbolic</property>
+                        <signal name="clicked" handler="on_export_log_button_clicked" swapped="no" />
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="clear_log_button">
+                        <property name="tooltip-text" translatable="1">Clear the log</property>
+                        <property name="use-underline">1</property>
+                        <property name="icon-name">edit-clear-symbolic</property>
+                        <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no" />
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+  <object class="GtkLabel" id="label21">
+    <property name="tooltip-text" translatable="1">This tab shows the Siril logs.</property>
+    <property name="margin-top">2</property>
+    <property name="margin-bottom">2</property>
+    <property name="label" translatable="1">Console</property>
+    <property name="justify">center</property>
+  </object>
+</interface>

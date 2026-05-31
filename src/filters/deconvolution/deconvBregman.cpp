@@ -23,7 +23,7 @@ SOFTWARE.
 */
 #include <array>
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "deconvolve.hpp"
 
 /// pad an image using constant boundaries

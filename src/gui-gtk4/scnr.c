@@ -82,7 +82,6 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
-	args->populate_roi_on_complete = !for_preview;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);

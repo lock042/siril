@@ -702,28 +702,6 @@ void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
 	g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 }
 
-void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkCheckButton *bias_button = GTK_CHECK_BUTTON(lookup_widget("check_button_pref_bias"));
-
-	if (siril_toggle_get_active(GTK_WIDGET(bias_button))) {
-		g_signal_handlers_block_by_func(bias_button, on_check_button_pref_bias_toggled, NULL);
-		siril_toggle_set_active(GTK_WIDGET(bias_button), FALSE);
-		g_signal_handlers_unblock_by_func(bias_button, on_check_button_pref_bias_toggled, NULL);
-		siril_toggle_set_active(GTK_WIDGET(togglebutton), TRUE);
-	}
-}
-
-void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkToggleButton *bias_button_bis = GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias_bis"));
-
-	if (siril_toggle_get_active(GTK_WIDGET(bias_button_bis))) {
-		g_signal_handlers_block_by_func(bias_button_bis, on_check_button_pref_bias_bis_toggled, NULL);
-		siril_toggle_set_active(GTK_WIDGET(bias_button_bis), FALSE);
-		g_signal_handlers_unblock_by_func(bias_button_bis, on_check_button_pref_bias_bis_toggled, NULL);
-		siril_toggle_set_active(GTK_WIDGET(togglebutton), TRUE);
-	}
-}
-
 //static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
 
 void update_preferences_from_model() {

@@ -3214,7 +3214,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					} else {
 						// Set STF
 						gui_iface.set_rendering_mode((int)stf);
-						gui_iface.redraw_image_sync(REMAP_ALL);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
@@ -3240,7 +3240,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					uint8_t statebyte = payload[0];
 					gboolean state = (statebyte);
 					gui_iface.set_channels_linked(state);
-					gui_iface.redraw_image_sync(REMAP_ALL);
+					gui_iface.redraw_image_sync(REDRAW_ALL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
@@ -3296,7 +3296,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					} else {
 						// Set slider mode only
 						gui_iface.set_sliders_mode((int)sliders);
-						gui_iface.redraw_image_sync(REMAP_ALL);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
@@ -3331,7 +3331,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							siril_log_debug("Error in send_response\n");
 					}  else {
 						gui_iface.set_cutoff_values(lo, hi);
-						gui_iface.redraw_image_sync(REMAP_ALL);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {

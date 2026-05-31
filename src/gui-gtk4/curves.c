@@ -144,6 +144,14 @@ void curves_dialog_init_statics() {
 			g_signal_connect(drag, "drag-update",
 			                 G_CALLBACK(curves_da_drag_update), NULL);
 			gtk_widget_add_controller(curves_drawingarea, GTK_EVENT_CONTROLLER(drag));
+
+			/* Group click + drag so they share sequence state — without
+			 * this whichever gesture claims first DENIES the other for
+			 * the rest of the sequence and drag-update never fires on
+			 * macOS (Quartz pushes GtkGestureClick to CLAIMED earlier
+			 * than Linux does).  Same pattern as histo_display.c:1392
+			 * and image_interactions.c. */
+			gtk_gesture_group(click, drag);
 		}
 
 		/* GTK3 wired prev/next via "button-press-event" on the parent
@@ -225,7 +233,7 @@ void set_curves_toggles_names() {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(curves_red_toggle),
 									_("Toggles whether to apply the curve to the monochrome channel"));
 		GtkWidget *w;
-		if (com.pref.gui.combo_theme == 0) {
+		if (siril_current_theme_is_dark()) {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
 		} else {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");

@@ -1,15 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
-  <requires lib="gtksourceview" version="5.0" />
+  <!-- interface-name python_scratchpad.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="gtksourceview" version="5.0"/>
   <object class="GtkOverlay" id="find_overlay">
     <property name="child">
       <object class="GtkRevealer" id="find_revealer">
-        <property name="transition-type">none</property>
-        <property name="reveal-child">1</property>
         <property name="child">
           <object class="GtkSearchBar">
-            <property name="search-mode-enabled">1</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="spacing">5</property>
@@ -17,7 +16,7 @@
                   <object class="GtkSearchEntry" id="find_entry">
                     <property name="focusable">1</property>
                     <property name="width-chars">30</property>
-                    <signal name="activate" handler="on_find_entry_activate" swapped="no" />
+                    <signal name="activate" handler="on_find_entry_activate"/>
                   </object>
                 </child>
                 <child>
@@ -30,8 +29,8 @@
                   <object class="GtkButton" id="go_up_button">
                     <child>
                       <object class="GtkImage" id="up_image">
-                        <property name="tooltip-text" translatable="1">Previous Result</property>
                         <property name="icon-name">go-up-symbolic</property>
+                        <property name="tooltip-text" translatable="yes">Previous Result</property>
                       </object>
                     </child>
                   </object>
@@ -40,61 +39,59 @@
                   <object class="GtkButton" id="go_down_button">
                     <child>
                       <object class="GtkImage" id="down_image">
-                        <property name="tooltip-text" translatable="1">Next Result</property>
                         <property name="icon-name">go-down-symbolic</property>
+                        <property name="tooltip-text" translatable="yes">Next Result</property>
                       </object>
                     </child>
                   </object>
                 </child>
               </object>
             </property>
+            <property name="search-mode-enabled">1</property>
           </object>
         </property>
+        <property name="reveal-child">1</property>
+        <property name="transition-type">none</property>
       </object>
     </property>
   </object>
   <object class="GtkWindow" id="python_window">
-    <property name="title" translatable="1">unsaved</property>
-    <property name="default-width">800</property>
-    <property name="default-height">600</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
     <property name="child">
       <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <object class="GtkBox" id="python_pad_box">
-            <property name="vexpand">1</property>
             <property name="orientation">vertical</property>
             <property name="spacing">6</property>
+            <property name="vexpand">1</property>
             <child>
-              <object class="GtkPopoverMenuBar" id="pyeditor_menubar" />
+              <object class="GtkPopoverMenuBar" id="pyeditor_menubar"/>
             </child>
             <child>
               <object class="GtkLabel" id="script_language_label">
-                <property name="tooltip-text" translatable="1">Script type</property>
+                <property name="tooltip-text" translatable="yes">Script type</property>
               </object>
             </child>
             <child>
               <object class="GtkBox">
-                <property name="vexpand">1</property>
                 <property name="orientation">vertical</property>
+                <property name="vexpand">1</property>
                 <child>
                   <object class="GtkBox" id="codeviewbox">
                     <child>
                       <object class="GtkScrolledWindow" id="python_scrolled_window">
                         <property name="focusable">1</property>
-                        <property name="min-content-width">400</property>
                         <property name="min-content-height">600</property>
-                        <property name="propagate-natural-width">1</property>
+                        <property name="min-content-width">400</property>
                         <property name="propagate-natural-height">1</property>
+                        <property name="propagate-natural-width">1</property>
                         <child>
-                          <object class="GtkSourceView" id="code_view">
-                            </object>
+                          <object class="GtkSourceView" id="code_view"/>
                         </child>
                       </object>
                     </child>
@@ -102,29 +99,30 @@
                 </child>
                 <child>
                   <object class="GtkBox" id="editor_args_box">
-                    <property name="visible">0</property>
                     <property name="margin-top">6</property>
                     <property name="spacing">6</property>
+                    <property name="visible">0</property>
                     <child>
                       <object class="GtkLabel">
+                        <property name="label" translatable="yes">Arguments:</property>
                         <property name="margin-start">6</property>
-                        <property name="label" translatable="1">Arguments:</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkEntry" id="editor_args_entry">
                         <property name="focusable">1</property>
-                        <property name="tooltip-markup" translatable="1">This entry can be used to set arguments to run the script with, in order to allow testing of how it will behave when called with the &lt;b&gt;pyscript&lt;/b&gt; command with arguments. Note that arguments  cannot be provided when a script is run from the Scripts menu, so scripts should not be solely reliant on arguments for input.</property>
                         <property name="hexpand">1</property>
+                        <property name="tooltip-markup" translatable="yes">This entry can be used to set arguments to run the script with, in order to allow testing of how it will behave when called with the &lt;b&gt;pyscript&lt;/b&gt; command with arguments. Note that arguments  cannot be provided when a script is run from the Scripts menu, so scripts should not be solely reliant on arguments for input.</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="editor_args_clear">
-                        <property name="label">gtk-clear</property>
                         <property name="focusable">1</property>
-                        <property name="receives-default">1</property>
                         <property name="halign">end</property>
-                        <signal name="clicked" handler="on_editor_args_clear_clicked" swapped="no" />
+                        <property name="icon-name">edit-clear-symbolic</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="yes">Clear arguments</property>
+                        <signal name="clicked" handler="on_editor_args_clear_clicked"/>
                       </object>
                     </child>
                   </object>
@@ -135,5 +133,10 @@
         </child>
       </object>
     </property>
+    <property name="default-height">600</property>
+    <property name="default-width">800</property>
+    <property name="title" translatable="yes">unsaved</property>
+    <signal name="show" handler="on_python_window_show"/>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
   </object>
 </interface>

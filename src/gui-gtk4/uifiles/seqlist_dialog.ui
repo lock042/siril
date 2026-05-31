@@ -1,37 +1,36 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name seqlist_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkApplicationWindow" id="seqlist_dialog">
-    <property name="name">400</property>
-    <property name="width-request">800</property>
     <property name="height-request">500</property>
-    <property name="title" translatable="1">Sequence List</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
+    <property name="name">400</property>
+    <property name="title" translatable="yes">Sequence List</property>
+    <property name="width-request">800</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
     <child>
       <object class="GtkBox">
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkScrolledWindow" id="scrolledwindow1">
-            <property name="vexpand">1</property>
             <property name="focusable">1</property>
-            <property name="tooltip-text" translatable="1">List of images in the sequence, with their state and quality information. Quality is FWHM when PSF registration is used, so lower is better, and gradient estimator for DFT registration, higher is better. X and Y columns are the translation relative to the reference image.</property>
-            <child>
-              <placeholder />
-            </child>
+            <property name="tooltip-text" translatable="yes">List of images in the sequence, with their state and quality information. Quality is FWHM when PSF registration is used, so lower is better, and gradient estimator for DFT registration, higher is better. X and Y columns are the translation relative to the reference image.</property>
+            <property name="vexpand">1</property>
           </object>
         </child>
         <child>
           <object class="GtkLabel" id="seqlist_statusbar">
             <property name="halign">end</property>
-            <property name="xalign">1</property>
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">2</property>
             <property name="margin-bottom">2</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">2</property>
+            <property name="xalign">1</property>
           </object>
         </child>
       </object>
@@ -40,22 +39,22 @@
       <object class="GtkHeaderBar" id="seqlistbar">
         <child>
           <object class="GtkDropDown" id="seqlist_dialog_combo">
-            <property name="tooltip-text" translatable="1">Select the channel you want to display.</property>
-            <signal name="notify::selected" handler="on_seqlist_dialog_combo_changed" swapped="no" />
+            <property name="tooltip-text" translatable="yes">Select the channel you want to display.</property>
+            <signal name="notify::selected" handler="on_seqlist_dialog_combo_changed"/>
           </object>
         </child>
         <child>
           <object class="GtkBox" id="seqlist_buttonbar">
-            <property name="spacing">6</property>
             <property name="halign">end</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="visible">True</property>
             <child>
               <object class="GtkButton" id="seqexcludeall_button">
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Excludes all images of the sequence from the processing schedule</property>
-                <signal name="clicked" handler="on_seqexcludeall_button_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Excludes all images of the sequence from the processing schedule</property>
+                <signal name="clicked" handler="on_seqexcludeall_button_clicked"/>
                 <child>
                   <object class="GtkImage">
                     <property name="icon-name">list-remove-all-symbolic</property>
@@ -67,8 +66,8 @@
               <object class="GtkButton" id="seqselectall_button">
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Includes all images of the sequence in the processing schedule</property>
-                <signal name="clicked" handler="on_seqselectall_button_clicked" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Includes all images of the sequence in the processing schedule</property>
+                <signal name="clicked" handler="on_seqselectall_button_clicked"/>
                 <child>
                   <object class="GtkImage">
                     <property name="icon-name">edit-select-all-symbolic</property>
@@ -80,8 +79,8 @@
               <object class="GtkButton" id="selected_frames">
                 <property name="focusable">1</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Includes/excludes selected images of the sequence from the processing schedule</property>
-                <signal name="clicked" handler="on_selected_frames_select" swapped="no" />
+                <property name="tooltip-text" translatable="yes">Includes/excludes selected images of the sequence from the processing schedule</property>
+                <signal name="clicked" handler="on_selected_frames_select"/>
                 <child>
                   <object class="GtkImage">
                     <property name="icon-name">emblem-ok-symbolic</property>
@@ -91,11 +90,11 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="drawframe_check">
-                <property name="focusable">1</property>
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">When toggled, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
                 <property name="action-name">win.regframe</property>
                 <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">When toggled, the outline of the reference image as transformed with registration data is drawn on each image to review image position wrt. reference.</property>
                 <child>
                   <object class="GtkImage">
                     <property name="resource">/org/siril/ui/pixmaps/frame_dark.svg</property>
@@ -107,22 +106,22 @@
         </child>
         <child>
           <object class="GtkCheckButton" id="refframe2">
-            <property name="label" translatable="1">Reference image</property>
             <property name="focusable">1</property>
-            <property name="tooltip-text" translatable="1">If set, the current image will be the reference image for registration.
+            <property name="halign">start</property>
+            <property name="label" translatable="yes">Reference image</property>
+            <property name="tooltip-text" translatable="yes">If set, the current image will be the reference image for registration.
 Only one image can be the reference image in a sequence, setting it will unset the image previously set as reference.
 If not set manually, the first image of the sequence is taken as reference.</property>
-            <property name="halign">start</property>
             <property name="valign">center</property>
-            <signal name="toggled" handler="on_ref_frame_toggled" swapped="no" />
+            <signal name="toggled" handler="on_ref_frame_toggled"/>
           </object>
         </child>
         <child type="end">
           <object class="GtkSearchEntry" id="seqlistsearch">
             <property name="focusable">1</property>
-            <property name="tooltip-text" translatable="1">Enter the number of the image you want to reach.</property>
+            <property name="input-hints">no-emoji|none</property>
             <property name="input-purpose">digits</property>
-            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+            <property name="tooltip-text" translatable="yes">Enter the number of the image you want to reach.</property>
           </object>
         </child>
       </object>

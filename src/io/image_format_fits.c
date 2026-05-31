@@ -3847,6 +3847,28 @@ int fits_swap_image_data(fits *a, fits *b) {
 	return 0;
 }
 
+/* Swap every member of the fits struct except the trailing rwlock.
+ * Relies on the static_assert in core/siril.h that pins GRWLock as the
+ * last field of struct ffit, so memcpy of offsetof(fits, rwlock) bytes
+ * covers everything in front of the lock and nothing behind it.  Each
+ * struct keeps the same rwlock identity / address, so readers/writers
+ * that hold the lock on `a` or `b` are unaffected by the swap.
+ *
+ * Used by generic_image_worker to install an image_hook's result into
+ * gfit under a microsecond writer-lock window — far cheaper than
+ * holding the writer lock for the duration of the hook itself. */
+int fits_swap_all_except_rwlock(fits *a, fits *b) {
+	if (a == NULL || b == NULL)
+		return 1;
+	const size_t swap_size = offsetof(fits, rwlock);
+	void *tmp = g_malloc(swap_size);
+	memcpy(tmp, a,   swap_size);
+	memcpy(a,   b,   swap_size);
+	memcpy(b,   tmp, swap_size);
+	g_free(tmp);
+	return 0;
+}
+
 /** Calculate the bayer pattern color from the row and column **/
 
 // These interpolation routines will work for X-Trans as well as Bayer patterns

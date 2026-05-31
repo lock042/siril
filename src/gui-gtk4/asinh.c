@@ -93,8 +93,6 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
-	if (!for_preview)
-		args->populate_roi_on_complete = TRUE;
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -278,7 +276,6 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->custom_undo = TRUE;
-	args->populate_roi_on_complete = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);
 

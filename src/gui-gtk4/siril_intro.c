@@ -40,9 +40,16 @@ static void siril_intro_init_statics(void) {
 	intro_control_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 }
 
-/* Structure to keep track of windows and their key handlers */
+/* Structure to keep track of windows and their key handlers.
+ * `handler_id` is the "key-pressed" signal id on the EventController,
+ * NOT on the window — disconnecting it from the window is what the old
+ * code did and it generated the bulk GLib-CRITICAL "no handler with id"
+ * flood at intro teardown.  Track the controller too so cleanup can use
+ * gtk_widget_remove_controller, which detaches the controller from the
+ * widget and releases its signals atomically. */
 typedef struct {
 	GtkWidget *window;
+	GtkEventController *controller;
 	gulong handler_id;
 } WindowKeyHandler;
 
@@ -146,9 +153,13 @@ static void disconnect_key_handlers() {
 			if (handler->window && GTK_IS_WINDOW(handler->window)) {
 				g_object_weak_unref(G_OBJECT(handler->window),
 				                    on_window_destroyed_weakref, handler);
-				if (handler->handler_id > 0) {
-					g_signal_handler_disconnect(handler->window, handler->handler_id);
-				}
+				/* Detach the controller from the window — this releases
+				 * the "key-pressed" signal connection that was made on
+				 * the controller (not on the window itself), without
+				 * the bogus g_signal_handler_disconnect-on-the-window
+				 * call the previous code did. */
+				if (handler->controller && GTK_IS_EVENT_CONTROLLER(handler->controller))
+					gtk_widget_remove_controller(handler->window, handler->controller);
 			}
 			g_free(handler);
 		}
@@ -165,11 +176,10 @@ static void add_key_handler_to_widget(GtkWidget *widget) {
 
 	WindowKeyHandler *handler = g_new0(WindowKeyHandler, 1);
 	handler->window = widget;
-	{
-		GtkEventController *kctrl = gtk_event_controller_key_new();
-		handler->handler_id = g_signal_connect(kctrl, "key-pressed", G_CALLBACK(on_key_press), NULL);
-		gtk_widget_add_controller(widget, kctrl);
-	}
+	handler->controller = gtk_event_controller_key_new();
+	handler->handler_id = g_signal_connect(handler->controller, "key-pressed",
+	                                        G_CALLBACK(on_key_press), NULL);
+	gtk_widget_add_controller(widget, handler->controller);
 
 	/* GTK4 widgets have no "destroy" signal.  Use a GObject weak ref so
 	 * we can null out the cached window pointer when GTK finalises it. */

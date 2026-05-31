@@ -71,6 +71,9 @@ static void sequence_list_init_statics(void) {
 	if (seq_columnview) return;
 	seqlist_dialog_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
 	seqlist_headerbar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "seqlistbar"));
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+	gtk_header_bar_set_use_native_controls(seqlist_headerbar, TRUE);
+#endif
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
 	seqlist_search_entry = GTK_EDITABLE(gtk_builder_get_object(gui.builder, "seqlistsearch"));
@@ -560,7 +563,7 @@ static SirilSeqRow *build_seq_row(sequence *seq, int index, int layer) {
 		}
 	}
 
-	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
+	color = (siril_current_theme_is_dark()) ? 1 : 0;
 	basename = g_path_get_basename(seq_get_image_filename(seq, index, imname));
 	SirilSeqRow *row = g_object_new(SIRIL_TYPE_SEQ_ROW, NULL);
 	row->imname   = basename;     /* takes ownership */
@@ -918,10 +921,10 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected
-				GtkToggleButton *refframebutton = GTK_TOGGLE_BUTTON(seqlist_refframe2); // invalidate toggle button, only effective if the frame is the first one in the selection
-				g_signal_handlers_block_by_func(refframebutton, on_ref_frame_toggled, NULL);
-				siril_toggle_set_active(GTK_WIDGET(refframebutton), FALSE);
-				g_signal_handlers_unblock_by_func(refframebutton, on_ref_frame_toggled, NULL);
+				// refframe2 is a GtkCheckButton in GTK4; clear it via the type-safe helper (only effective if the frame is the first one in the selection)
+				g_signal_handlers_block_by_func(seqlist_refframe2, on_ref_frame_toggled, NULL);
+				siril_toggle_set_active(seqlist_refframe2, FALSE);
+				g_signal_handlers_unblock_by_func(seqlist_refframe2, on_ref_frame_toggled, NULL);
 			}
 		}
 	} else {
@@ -1034,7 +1037,7 @@ void sequence_list_change_current() {
 }
 
 void sequence_list_change_reference() {
-	int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
+	int color = (siril_current_theme_is_dark()) ? 1 : 0;
 	get_list_store();
 	if (!seq_store) return;
 	guint n = g_list_model_get_n_items(G_LIST_MODEL(seq_store));

@@ -1,46 +1,43 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name mask_blur_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_gaussian_blur_radius">
     <property name="lower">0.10</property>
+    <property name="page-increment">1</property>
+    <property name="step-increment">0.10</property>
     <property name="upper">1000</property>
     <property name="value">5</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">1</property>
   </object>
   <object class="GtkWindow" id="mask_blur_dialog">
-    <property name="title" translatable="1">Gaussian Blur Image Mask</property>
-    <property name="resizable">0</property>
-    <property name="modal">1</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_blur_mask_close_clicked" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">8</property>
             <child>
               <object class="GtkBox">
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
-                <property name="margin-top">6</property>
                 <property name="margin-bottom">6</property>
+                <property name="margin-end">6</property>
+                <property name="margin-start">6</property>
+                <property name="margin-top">6</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkGrid">
-                    <property name="row-spacing">8</property>
                     <property name="column-spacing">12</property>
+                    <property name="row-spacing">8</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Blur radius (pixels):</property>
+                        <property name="label" translatable="yes">Blur radius (pixels):</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">0</property>
@@ -49,11 +46,11 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spin_mask_blur_radius">
-                        <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Gaussian blur radius in pixels</property>
                         <property name="adjustment">adj_gaussian_blur_radius</property>
                         <property name="digits">1</property>
+                        <property name="focusable">1</property>
                         <property name="numeric">1</property>
+                        <property name="tooltip-text" translatable="yes">Gaussian blur radius in pixels</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">0</property>
@@ -68,30 +65,30 @@
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="gaussian_blur_mask_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_blur_mask_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_blur_mask_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="gaussian_blur_mask_apply">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_blur_mask_apply_clicked" swapped="no" />
+                <signal name="clicked" handler="on_blur_mask_apply_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -99,5 +96,10 @@
         </child>
       </object>
     </property>
+    <property name="modal">1</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Gaussian Blur Image Mask</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_blur_mask_close_clicked"/>
   </object>
 </interface>

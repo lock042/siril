@@ -3,7 +3,7 @@
 
 #include <gtk/gtk.h>
 #include "core/siril.h"
-#include "core/gui_iface.h"   /* SirilRedrawType, REDRAW_OVERLAY/REDRAW_IMAGE/REMAP_ALL */
+#include "core/gui_iface.h"   /* SirilRedrawType, REDRAW_OVERLAY/REDRAW_IMAGE/REDRAW_ALL */
 
 /* Backward-compatibility alias: existing callers use remap_type; new code
  * should use SirilRedrawType from core/gui_iface.h directly. */

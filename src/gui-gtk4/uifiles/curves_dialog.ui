@@ -1,15 +1,17 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name curves_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkImage" id="blue">
     <property name="resource">/org/siril/ui/pixmaps/b.svg</property>
   </object>
   <object class="GtkAdjustment" id="curves_adj_zoom">
     <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkImage" id="green">
     <property name="resource">/org/siril/ui/pixmaps/g.svg</property>
@@ -21,139 +23,131 @@
     <property name="resource">/org/siril/ui/pixmaps/r.svg</property>
   </object>
   <object class="GtkWindow" id="curves_dialog">
-    <property name="width-request">420</property>
-    <property name="height-request">715</property>
-    <property name="title" translatable="1">Curves Transformation</property>
-    <property name="default-width">1</property>
-    <property name="default-height">1</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_curves_close_button_clicked" swapped="no" />
-    <signal name="show" handler="on_curves_window_show" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
               <object class="GtkBox">
-                <property name="hexpand">1</property>
-                <property name="vexpand">1</property>
-                <property name="spacing">5</property>
                 <property name="baseline-position">top</property>
+                <property name="hexpand">1</property>
+                <property name="spacing">5</property>
+                <property name="vexpand">1</property>
                 <child>
                   <object class="GtkBox">
+                    <property name="baseline-position">top</property>
                     <property name="hexpand">1</property>
-                    <property name="vexpand">1</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">5</property>
-                    <property name="baseline-position">top</property>
+                    <property name="vexpand">1</property>
                     <child>
                       <object class="GtkBox" id="curves_toolbar1">
                         <property name="css-classes">toolbar</property>
                         <property name="valign">end</property>
                         <child>
                           <object class="GtkSpinButton" id="curves_spin_zoom">
-                            <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">Curves histogram display zoom</property>
-                            <property name="text">1</property>
                             <property name="adjustment">curves_adj_zoom</property>
+                            <property name="focusable">1</property>
                             <property name="numeric">1</property>
+                            <property name="text">1</property>
+                            <property name="tooltip-text" translatable="yes">Curves histogram display zoom</property>
                             <property name="value">1</property>
-                            <signal name="value-changed" handler="on_curves_spin_zoom_value_changed" swapped="no" />
+                            <signal name="value-changed" handler="on_curves_spin_zoom_value_changed"/>
                           </object>
                         </child>
                         <child>
                           <object class="GtkButton" id="curves_reset_zoom">
-                            <property name="tooltip-text" translatable="1">Reset zoom to 1</property>
                             <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="use-underline">1</property>
                             <property name="icon-name">zoom-original-symbolic</property>
-                            <signal name="clicked" handler="on_curves_reset_zoom_clicked" swapped="no" />
+                            <property name="tooltip-text" translatable="yes">Reset zoom to 1</property>
+                            <property name="use-underline">1</property>
+                            <property name="valign">center</property>
+                            <signal name="clicked" handler="on_curves_reset_zoom_clicked"/>
                           </object>
                         </child>
                         <child>
                           <object class="GtkCheckButton" id="curves_log_check">
-                            <property name="label" translatable="1">Logarithmic scale</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
-                                </property>
                             <property name="halign">end</property>
-                            <signal name="toggled" handler="on_curves_log_check_toggled" swapped="no" />
+                            <property name="label" translatable="yes">Logarithmic scale</property>
+                            <property name="tooltip-text" translatable="yes">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
+                                </property>
+                            <signal name="toggled" handler="on_curves_log_check_toggled"/>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkScrolledWindow" id="curves_scroll">
-                        <property name="height-request">300</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
-                        <property name="hscrollbar-policy">always</property>
-                        <property name="vscrollbar-policy">always</property>
-                        <property name="overlay-scrolling">0</property>
                         <property name="child">
                           <object class="GtkViewport" id="curves_viewport">
-                            <property name="hexpand">1</property>
-                            <property name="vexpand">1</property>
                             <property name="child">
                               <object class="GtkDrawingArea" id="curves_drawingarea">
                                 <property name="hexpand">1</property>
                                 <property name="vexpand">1</property>
                               </object>
                             </property>
+                            <property name="hexpand">1</property>
+                            <property name="vexpand">1</property>
                           </object>
                         </property>
+                        <property name="focusable">1</property>
+                        <property name="height-request">300</property>
+                        <property name="hexpand">1</property>
+                        <property name="hscrollbar-policy">always</property>
+                        <property name="overlay-scrolling">0</property>
+                        <property name="vexpand">1</property>
+                        <property name="vscrollbar-policy">always</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkBox">
-                        <property name="hexpand">1</property>
-                        <property name="vexpand">0</property>
-                        <property name="spacing">5</property>
                         <property name="baseline-position">top</property>
+                        <property name="hexpand">1</property>
+                        <property name="spacing">5</property>
+                        <property name="vexpand">0</property>
                         <child>
                           <object class="GtkBox" id="curves_toolbar2">
                             <property name="css-classes">toolbar</property>
                             <property name="valign">start</property>
                             <child>
                               <object class="GtkToggleButton" id="curves_red_toggle">
-                                <property name="name">curves_red_toggle</property>
-                                <property name="tooltip-text" translatable="1">Toggles whether to apply the curve to the red channel</property>
-                                <property name="halign">center</property>
-                                <property name="valign">center</property>
-                                <property name="use-underline">1</property>
                                 <property name="active">1</property>
-                                <signal name="toggled" handler="on_curves_display_toggle" swapped="no" />
+                                <property name="halign">center</property>
+                                <property name="name">curves_red_toggle</property>
+                                <property name="tooltip-text" translatable="yes">Toggles whether to apply the curve to the red channel</property>
+                                <property name="use-underline">1</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_curves_display_toggle"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkToggleButton" id="curves_green_toggle">
-                                <property name="name">curves_green_toggle</property>
-                                <property name="tooltip-text" translatable="1">Toggles whether to apply the curve to the green channel</property>
-                                <property name="halign">center</property>
-                                <property name="valign">center</property>
-                                <property name="use-underline">1</property>
                                 <property name="active">1</property>
-                                <signal name="toggled" handler="on_curves_display_toggle" swapped="no" />
+                                <property name="halign">center</property>
+                                <property name="name">curves_green_toggle</property>
+                                <property name="tooltip-text" translatable="yes">Toggles whether to apply the curve to the green channel</property>
+                                <property name="use-underline">1</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_curves_display_toggle"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkToggleButton" id="curves_blue_toggle">
-                                <property name="name">curves_blue_toggle</property>
-                                <property name="tooltip-text" translatable="1">Toggles whether to apply the curve to the blue channel</property>
-                                <property name="halign">center</property>
-                                <property name="valign">center</property>
-                                <property name="use-underline">1</property>
                                 <property name="active">1</property>
-                                <signal name="toggled" handler="on_curves_display_toggle" swapped="no" />
+                                <property name="halign">center</property>
+                                <property name="name">curves_blue_toggle</property>
+                                <property name="tooltip-text" translatable="yes">Toggles whether to apply the curve to the blue channel</property>
+                                <property name="use-underline">1</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_curves_display_toggle"/>
                               </object>
                             </child>
                             <child>
@@ -163,18 +157,20 @@
                             </child>
                             <child>
                               <object class="GtkToggleButton" id="curves_grid_toggle">
-                                <property name="tooltip-text" translatable="1">Toggles whether the grid is shown on the histogram display</property>
-                                <property name="halign">center</property>
-                                <property name="valign">center</property>
-                                <property name="use-underline">1</property>
                                 <property name="active">1</property>
-                                <signal name="toggled" handler="on_curves_display_toggle" swapped="no" />
+                                <property name="halign">center</property>
+                                <property name="tooltip-text" translatable="yes">Toggles whether the grid is shown on the histogram display</property>
+                                <property name="use-underline">1</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_curves_display_toggle"/>
                               </object>
                             </child>
                           </object>
                         </child>
                         <child>
                           <object class="GtkDropDown" id="curves_interpolation_combo">
+                            <property name="halign">center</property>
+                            <property name="hexpand">1</property>
                             <property name="model">
                               <object class="GtkStringList">
                                 <items>
@@ -183,12 +179,10 @@
                                 </items>
                               </object>
                             </property>
-                            <property name="tooltip-text" translatable="1">Interpolation algorithm used to compute a curve from the placed points</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="hexpand">1</property>
                             <property name="selected">0</property>
-                            <signal name="notify::selected" handler="on_curves_interpolation_combo_changed" swapped="no" />
+                            <property name="tooltip-text" translatable="yes">Interpolation algorithm used to compute a curve from the placed points</property>
+                            <property name="valign">center</property>
+                            <signal name="notify::selected" handler="on_curves_interpolation_combo_changed"/>
                           </object>
                         </child>
                       </object>
@@ -197,13 +191,13 @@
                       <object class="GtkBox">
                         <child>
                           <object class="GtkGrid" id="curves_point_grid">
+                            <property name="column-spacing">10</property>
                             <property name="hexpand">1</property>
                             <property name="valign">start</property>
-                            <property name="column-spacing">10</property>
                             <child>
                               <object class="GtkLabel" id="curves_label_y">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="1">Curve point Y: </property>
+                                <property name="label" translatable="yes">Curve point Y: </property>
                                 <layout>
                                   <property name="column">0</property>
                                   <property name="row">2</property>
@@ -213,7 +207,7 @@
                             <child>
                               <object class="GtkLabel" id="curves_label_id">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="1">Curve point ID: </property>
+                                <property name="label" translatable="yes">Curve point ID: </property>
                                 <layout>
                                   <property name="column">0</property>
                                   <property name="row">0</property>
@@ -223,7 +217,7 @@
                             <child>
                               <object class="GtkLabel" id="curves_label_x">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="1">Curve point X: </property>
+                                <property name="label" translatable="yes">Curve point X: </property>
                                 <layout>
                                   <property name="column">0</property>
                                   <property name="row">1</property>
@@ -232,20 +226,20 @@
                             </child>
                             <child>
                               <object class="GtkBox">
-                                <property name="hexpand">0</property>
-                                <property name="vexpand">0</property>
-                                <property name="spacing">5</property>
                                 <property name="baseline-position">top</property>
+                                <property name="hexpand">0</property>
+                                <property name="spacing">5</property>
+                                <property name="vexpand">0</property>
                                 <child>
                                   <object class="GtkBox" id="curves_prev_event_box">
                                     <property name="visible">True</property>
                                     <child>
                                       <object class="GtkImage" id="curves_prev_button">
                                         <property name="halign">center</property>
-                                        <property name="valign">center</property>
                                         <property name="hexpand">0</property>
-                                        <property name="vexpand">0</property>
                                         <property name="resource">/org/siril/ui/pixmaps/arrow_left.svg</property>
+                                        <property name="valign">center</property>
+                                        <property name="vexpand">0</property>
                                       </object>
                                     </child>
                                   </object>
@@ -253,15 +247,15 @@
                                 <child>
                                   <object class="GtkEntry" id="curves_id_entry">
                                     <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">The ID of the selected curve point</property>
-                                    <property name="hexpand">0</property>
-                                    <property name="max-length">2</property>
                                     <property name="has-frame">0</property>
-                                    <property name="width-chars">2</property>
-                                    <property name="text">0</property>
-                                    <property name="xalign">0.5</property>
+                                    <property name="hexpand">0</property>
                                     <property name="input-purpose">number</property>
-                                    <signal name="activate" handler="on_curves_id_entry_activate" swapped="no" />
+                                    <property name="max-length">2</property>
+                                    <property name="text">0</property>
+                                    <property name="tooltip-text" translatable="yes">The ID of the selected curve point</property>
+                                    <property name="width-chars">2</property>
+                                    <property name="xalign">0.5</property>
+                                    <signal name="activate" handler="on_curves_id_entry_activate"/>
                                   </object>
                                 </child>
                                 <child>
@@ -270,10 +264,10 @@
                                     <child>
                                       <object class="GtkImage" id="curves_next_button">
                                         <property name="halign">center</property>
-                                        <property name="valign">center</property>
                                         <property name="hexpand">0</property>
-                                        <property name="vexpand">0</property>
                                         <property name="resource">/org/siril/ui/pixmaps/arrow_right.svg</property>
+                                        <property name="valign">center</property>
+                                        <property name="vexpand">0</property>
                                       </object>
                                     </child>
                                   </object>
@@ -287,13 +281,13 @@
                             <child>
                               <object class="GtkEntry" id="curves_x_entry">
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">X coordinate of the selected curve point</property>
-                                <property name="hexpand">1</property>
                                 <property name="has-frame">0</property>
-                                <property name="width-chars">10</property>
-                                <property name="text">0.0000000</property>
+                                <property name="hexpand">1</property>
                                 <property name="input-purpose">number</property>
-                                <signal name="activate" handler="on_curves_x_entry_activate" swapped="no" />
+                                <property name="text">0.0000000</property>
+                                <property name="tooltip-text" translatable="yes">X coordinate of the selected curve point</property>
+                                <property name="width-chars">10</property>
+                                <signal name="activate" handler="on_curves_x_entry_activate"/>
                                 <layout>
                                   <property name="column">1</property>
                                   <property name="row">1</property>
@@ -303,13 +297,13 @@
                             <child>
                               <object class="GtkEntry" id="curves_y_entry">
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">Y coordinate of the selected curve point</property>
-                                <property name="hexpand">1</property>
                                 <property name="has-frame">0</property>
-                                <property name="width-chars">10</property>
-                                <property name="text">1.0000000</property>
+                                <property name="hexpand">1</property>
                                 <property name="input-purpose">number</property>
-                                <signal name="activate" handler="on_curves_y_entry_activate" swapped="no" />
+                                <property name="text">1.0000000</property>
+                                <property name="tooltip-text" translatable="yes">Y coordinate of the selected curve point</property>
+                                <property name="width-chars">10</property>
+                                <signal name="activate" handler="on_curves_y_entry_activate"/>
                                 <layout>
                                   <property name="column">1</property>
                                   <property name="row">2</property>
@@ -324,31 +318,31 @@
                             <child>
                               <object class="GtkLabel" id="curves_clip_label">
                                 <property name="halign">center</property>
-                                <property name="label" translatable="1">Clip (%)</property>
+                                <property name="label" translatable="yes">Clip (%)</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkEntry" id="curves_clip_low">
-                                <property name="sensitive">0</property>
-                                <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">Clipped pixels count (shadows)</property>
-                                <property name="halign">center</property>
                                 <property name="editable">0</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">center</property>
                                 <property name="has-frame">0</property>
-                                <property name="width-chars">6</property>
                                 <property name="max-width-chars">8</property>
+                                <property name="sensitive">0</property>
+                                <property name="tooltip-text" translatable="yes">Clipped pixels count (shadows)</property>
+                                <property name="width-chars">6</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkEntry" id="curves_clip_high">
-                                <property name="sensitive">0</property>
-                                <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">Clipped pixels count (highlights)</property>
-                                <property name="halign">center</property>
                                 <property name="editable">0</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">center</property>
                                 <property name="has-frame">0</property>
-                                <property name="width-chars">6</property>
                                 <property name="max-width-chars">8</property>
+                                <property name="sensitive">0</property>
+                                <property name="tooltip-text" translatable="yes">Clipped pixels count (highlights)</property>
+                                <property name="width-chars">6</property>
                               </object>
                             </child>
                           </object>
@@ -357,42 +351,42 @@
                     </child>
                     <child>
                       <object class="GtkBox">
-                        <property name="valign">start</property>
                         <property name="spacing">5</property>
+                        <property name="valign">start</property>
                         <child>
                           <object class="GtkCheckButton" id="curves_sequence_check">
-                            <property name="label" translatable="1">Apply to sequence</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
                             <property name="halign">start</property>
+                            <property name="label" translatable="yes">Apply to sequence</property>
+                            <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkLabel" id="curves_seq_prefix_label">
                             <property name="halign">start</property>
-                            <property name="label" translatable="1">Output prefix:</property>
+                            <property name="label" translatable="yes">Output prefix:</property>
                           </object>
                         </child>
                         <child>
                           <object class="GtkEntry" id="curves_seq_entry">
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="1">Prefix of the image names resulting from the curve transformation</property>
+                            <property name="input-hints">no-emoji|none</property>
                             <property name="max-length">10</property>
-                            <property name="width-chars">10</property>
                             <property name="text">curve_</property>
-                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                            <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the curve transformation</property>
+                            <property name="width-chars">10</property>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="curves_preview_check">
-                        <property name="label" translatable="1">Preview</property>
-                        <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Toggles preview</property>
-                        <property name="halign">start</property>
                         <property name="active">1</property>
-                        <signal name="toggled" handler="on_curves_preview_toggled" swapped="no" />
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Preview</property>
+                        <property name="tooltip-text" translatable="yes">Toggles preview</property>
+                        <signal name="toggled" handler="on_curves_preview_toggled"/>
                       </object>
                     </child>
                   </object>
@@ -403,44 +397,44 @@
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="curves_reset_button">
-                <property name="label" translatable="1">Reset</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reset</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Reset curves transformation dialog window</property>
+                <property name="tooltip-text" translatable="yes">Reset curves transformation dialog window</property>
                 <property name="valign">start</property>
-                <signal name="clicked" handler="on_curves_reset_button_clicked" swapped="no" />
+                <signal name="clicked" handler="on_curves_reset_button_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="curves_close_button">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Close curves transformation dialog window</property>
+                <property name="tooltip-text" translatable="yes">Close curves transformation dialog window</property>
                 <property name="valign">start</property>
-                <signal name="clicked" handler="on_curves_close_button_clicked" swapped="no" />
+                <signal name="clicked" handler="on_curves_close_button_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="curves_apply_button">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="1">Apply curves transformation</property>
+                <property name="tooltip-text" translatable="yes">Apply curves transformation</property>
                 <property name="valign">start</property>
-                <signal name="clicked" handler="on_curves_apply_button_clicked" swapped="no" />
+                <signal name="clicked" handler="on_curves_apply_button_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -448,5 +442,13 @@
         </child>
       </object>
     </property>
+    <property name="default-height">1</property>
+    <property name="default-width">1</property>
+    <property name="height-request">715</property>
+    <property name="title" translatable="yes">Curves Transformation</property>
+    <property name="width-request">420</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_curves_close_button_clicked"/>
+    <signal name="show" handler="on_curves_window_show"/>
   </object>
 </interface>

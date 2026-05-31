@@ -150,7 +150,8 @@ static void ensure_stat_view(void) {
 
 	gtk_scrolled_window_set_child(stat_scrolled_window, GTK_WIDGET(cv));
 	stat_columnview = cv;
-	g_object_unref(sel);
+	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full for
+	 * the model, so cv consumed the ref returned by single_selection_new. */
 }
 
 static void display_stat(const double *value, const double *normalization, char *format, int nblayer, int i, data_type type) {

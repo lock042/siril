@@ -1,0 +1,372 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAdjustment" id="adjustmentqualscale">
+    <property name="lower">1</property>
+    <property name="upper">5</property>
+    <property name="value">2</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkPopover" id="menu_seq_clean">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_reg">
+            <property name="label" translatable="1">Registration</property>
+            <property name="focusable">1</property>
+            <property name="active">1</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_stat">
+            <property name="label" translatable="1">Statistics</property>
+            <property name="focusable">1</property>
+            <property name="active">1</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="seq_clean_sel">
+            <property name="label" translatable="1">Selection</property>
+            <property name="focusable">1</property>
+            <property name="active">1</property>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+  <object class="GtkScrolledWindow" id="sequence_tab">
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+    <property name="child">
+      <object class="GtkViewport">
+        <property name="child">
+          <object class="GtkBox" id="vbox8">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="focusable">1</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="margin-top">5</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkDropDown" id="sequence_list_combobox">
+                            <property name="hexpand">1</property>
+                            <signal name="notify::selected" handler="on_seqproc_entry_changed" swapped="no" />
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkButton" id="clean_sequence_button">
+                                <property name="label" translatable="1">Clean Sequence</property>
+                                <property name="focusable">1</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="1">This button clears selection, registration and/or statistics data stored in the loaded sequence. You can specify to clear only registration, statistics and/or selection with the button on the right.
+</property>
+                                <signal name="clicked" handler="on_clean_sequence_button_clicked" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuButton" id="clean_seq_menu">
+                                <property name="name">recent-button</property>
+                                <property name="focusable">1</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="1">You can specify to clear only registration, statistics and/or selection by checking the option you want.</property>
+                                <property name="popover">menu_seq_clean</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">pan-down-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkButton" id="checkseqbutton">
+                            <property name="label" translatable="1">Search sequences</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Search current directory for sequences of FITS images, SER or film videos.</property>
+                            <property name="use-underline">1</property>
+                            <signal name="clicked" handler="on_checkseqbutton_clicked" swapped="no" />
+                            <style>
+                              <class name="suggested-action" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="label" translatable="1">Open Frame List</property>
+                            <property name="focusable">1</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="1">Show/Hide list of images in the sequence with registration data</property>
+                            <property name="halign">center</property>
+                            <property name="action-name">win.seq-list</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Sequence selection</property>
+                    <attributes>
+                      <attribute name="weight" value="bold" />
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="focusable">1</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="margin-top">5</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkBox" id="box12">
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel" id="label97">
+                            <property name="label" translatable="1">Base name:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entryExportSeq">
+                            <property name="hexpand">1</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Base name for the exported sequence</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                            <signal name="changed" handler="on_entryExportSeq_changed" swapped="no" />
+                            <signal name="insert-text" handler="insert_text_handler" swapped="no" />
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="comboExport">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">FITS images</item>
+                                  <item translatable="yes">FITS cube</item>
+                                  <item>16-bit TIFF</item>
+                                  <item>SER</item>
+                                  <item>AVI</item>
+                                  <item>MP4 (h264)</item>
+                                  <item>MP4 (h265)</item>
+                                  <item>WEBM</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="tooltip-text" translatable="1">Export sequence format.
+MP4 and WEBM replace GIF for Web publication, AVI is uncompressed 8 bits. To create the 8 bit image for these 3 formats, a linear scale is created from the low and high cut-off value cursors.
+FITS images is a sequence of FITS files, one per image, FITS cube is a sequence of images in a single FITS file.
+For SER and TIFF, if input images are 32 bits, they are converted to 16, with a loss of precision.</property>
+                            <property name="selected">0</property>
+                            <signal name="notify::selected" handler="on_comboExport_changed" swapped="no" />
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkButton" id="buttonExportSeq">
+                                <property name="label" translatable="1">Export sequence</property>
+                                <property name="focusable">1</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="1">Export the loaded sequence in the selected format. It can be used to store a sequence in another format, make animated movies, or store a lighter version of a sequence with less images. Images of the exported selection can be cropped and selected with the same criteria as the stacking image selection.</property>
+                                <signal name="clicked" handler="on_buttonExportSeq_clicked" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="exportNormalize">
+                                <property name="label" translatable="1">Normalize images</property>
+                                <property name="focusable">1</property>
+                                <property name="tooltip-text" translatable="1">Activate image normalisation for the export. This will make all images the same brightness and is thus recommended for sequences with inconsistent exposures or pixel values.
+A first computation pass will be done on all images before exporting, it may take some time, only the first export of a sequence.
+			</property>
+                                <property name="halign">start</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="exportLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="1">Select area to crop</property>
+                                <style>
+                                  <class name="label-info" />
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkLabel" id="label210">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="1">Image selection uses the same controls as for stacking:</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="gotoStackingButton">
+                                <property name="label" translatable="1">Go to the stacking tab</property>
+                                <property name="focusable">1</property>
+                                <property name="receives-default">1</property>
+                                <property name="halign">start</property>
+                                <signal name="clicked" handler="on_gotoStacking_button_clicked" swapped="no" />
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="boxAviOptions">
+                            <property name="visible">0</property>
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkLabel" id="label68">
+                                <property name="label" translatable="1">Fps:</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entryAviFps">
+                                <property name="halign">center</property>
+                                <property name="focusable">1</property>
+                                <property name="tooltip-text" translatable="1">Frame rate</property>
+                                <property name="valign">center</property>
+                                <property name="max-length">7</property>
+                                <property name="width-chars">7</property>
+                                <property name="text">25.000</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkAviResize">
+                                <property name="label" translatable="1">Resize</property>
+                                <property name="focusable">1</property>
+                                <property name="tooltip-text" translatable="1">Check this box if you want to resize exported sequence. Note that this will degrade image quality.</property>
+                                <property name="halign">center</property>
+                                <signal name="toggled" handler="on_checkAviResize_toggled" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="combo_export_preset">
+                                <property name="model">
+                                  <object class="GtkStringList">
+                                    <items>
+                                      <item translatable="yes">Preserve ratio</item>
+                                      <item translatable="yes">Free ratio</item>
+                                      <item translatable="yes">Full HD</item>
+                                      <item translatable="yes">4K</item>
+                                      <item translatable="yes">8K</item>
+                                    </items>
+                                  </object>
+                                </property>
+                                <property name="sensitive">0</property>
+                                <property name="selected">0</property>
+                                <signal name="notify::selected" handler="on_combo_export_preset_changed" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entryAviWidth">
+                                <property name="halign">center</property>
+                                <property name="sensitive">0</property>
+                                <property name="focusable">1</property>
+                                <property name="tooltip-text" translatable="1">Width of output video</property>
+                                <property name="valign">center</property>
+                                <property name="max-length">5</property>
+                                <property name="width-chars">5</property>
+                                <property name="max-width-chars">5</property>
+                                <property name="text">620</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <signal name="changed" handler="on_entryAviWidth_changed" swapped="no" />
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label172">
+                                <property name="label" translatable="1">x</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entryAviHeight">
+                                <property name="halign">center</property>
+                                <property name="sensitive">0</property>
+                                <property name="focusable">1</property>
+                                <property name="tooltip-text" translatable="1">Height of output video</property>
+                                <property name="valign">center</property>
+                                <property name="max-length">5</property>
+                                <property name="width-chars">5</property>
+                                <property name="max-width-chars">5</property>
+                                <property name="text">480</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <signal name="changed" handler="on_entryAviHeight_changed" swapped="no" />
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="exportQualScale">
+                            <property name="draw-value">1</property>
+                            <property name="visible">0</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Film quality: lower value will use more compression and less bitrate, also resulting in smaller file size. Values above 2 could be useful for fast-moving images like bright time-lapses.</property>
+                            <property name="adjustment">adjustmentqualscale</property>
+                            <property name="round-digits">0</property>
+                            <property name="digits">0</property>
+                            <property name="value-pos">left</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Sequence export</property>
+                    <attributes>
+                      <attribute name="weight" value="bold" />
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+  <object class="GtkLabel" id="label20">
+    <property name="tooltip-text" translatable="1">Images are manipulated in sequences. Siril can find sequences in CWD, and you can filter images out.</property>
+    <property name="margin-top">2</property>
+    <property name="margin-bottom">2</property>
+    <property name="label" translatable="1">Sequence</property>
+    <property name="justify">center</property>
+  </object>
+</interface>

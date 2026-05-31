@@ -68,10 +68,32 @@ extern "C" {
  * including GTK headers.  gui/image_display.h aliases this as remap_type
  * for backward compatibility.
  */
+/* SirilRedrawType — what to refresh on the next paint pass.  All three
+ * cases queue a GtkWidget redraw; the differences are what other
+ * housekeeping piggy-backs on the call:
+ *
+ *   REDRAW_OVERLAY — Cairo buffers are assumed fresh; only the overlay
+ *                    (selection rect, annotations, etc.) needs repainting.
+ *   REDRAW_IMAGE   — Cairo image-render cache is stale; invalidate it
+ *                    first, then queue paint.  Use when pixel data
+ *                    changed but no other panels need refreshing.
+ *   REDRAW_ALL     — Like REDRAW_OVERLAY plus a refresh of subordinate
+ *                    panels (currently the aberration-inspector mosaic).
+ *                    Used at end-of-operation when the actual gfit remap
+ *                    has already been done by notify_gfit_data_modified
+ *                    so the Cairo cache is fresh — only the side panels
+ *                    need a nudge.
+ *
+ * Historically this enum had a REMAP_ALL case that called
+ * remap_all_vports() directly.  When the remap moved into
+ * notify_gfit_data_modified (so the worker thread could do it without
+ * a GUI roundtrip) REMAP_ALL stopped remapping anything — it became
+ * "paint-time housekeeping that includes side panels."  Renamed to
+ * REDRAW_ALL to reflect what it actually does. */
 typedef enum {
-	REDRAW_OVERLAY, /* only annotation/overlay layers changed */
-	REDRAW_IMAGE,   /* image pixel values changed; re-render but no remap */
-	REMAP_ALL,      /* image data or display LUT changed; remap then render */
+	REDRAW_OVERLAY,
+	REDRAW_IMAGE,
+	REDRAW_ALL,
 } SirilRedrawType;
 
 /* ── ActionResult — returned by activate_action() ───────────────────────── */

@@ -1,52 +1,48 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name mask_from_stars.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_mask_feather">
-    <property name="upper">100</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_mask_star_radius">
     <property name="lower">0.5</property>
+    <property name="page-increment">1</property>
+    <property name="step-increment">0.10</property>
     <property name="upper">20</property>
     <property name="value">4</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">1</property>
   </object>
   <object class="GtkWindow" id="mask_from_stars_dialog">
-    <property name="title" translatable="1">Create Mask from Stars</property>
-    <property name="resizable">0</property>
-    <property name="modal">1</property>
-    <signal name="close-request" handler="siril_widget_hide_on_delete" swapped="no" />
-    <signal name="hide" handler="on_mask_from_stars_close_clicked" swapped="no" />
-    <signal name="show" handler="on_mask_from_stars_dialog_show" swapped="no" />
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="margin-start">6</property>
-            <property name="margin-end">6</property>
-            <property name="margin-top">6</property>
             <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
             <property name="orientation">vertical</property>
             <property name="spacing">8</property>
             <child>
               <object class="GtkBox">
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
-                <property name="margin-top">6</property>
                 <property name="margin-bottom">6</property>
+                <property name="margin-end">6</property>
+                <property name="margin-start">6</property>
+                <property name="margin-top">6</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkGrid">
-                    <property name="row-spacing">8</property>
                     <property name="column-spacing">12</property>
+                    <property name="row-spacing">8</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Star radius (FWHM):</property>
+                        <property name="label" translatable="yes">Star radius (FWHM):</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">0</property>
@@ -55,11 +51,11 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spin_mask_star_radius">
-                        <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Star radius as a multiple of FWHM</property>
                         <property name="adjustment">adj_mask_star_radius</property>
                         <property name="digits">1</property>
+                        <property name="focusable">1</property>
                         <property name="numeric">1</property>
+                        <property name="tooltip-text" translatable="yes">Star radius as a multiple of FWHM</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">0</property>
@@ -69,7 +65,7 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Output bit depth:</property>
+                        <property name="label" translatable="yes">Output bit depth:</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">1</property>
@@ -97,7 +93,7 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Feather radius:</property>
+                        <property name="label" translatable="yes">Feather radius:</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="row">2</property>
@@ -106,29 +102,20 @@
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spin_mask_feather">
-                        <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Feather radius in pixels (0 = no feathering)</property>
                         <property name="adjustment">adj_mask_feather</property>
+                        <property name="focusable">1</property>
                         <property name="numeric">1</property>
+                        <property name="tooltip-text" translatable="yes">Feather radius in pixels (0 = no feathering)</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">2</property>
                         </layout>
                       </object>
                     </child>
-                    <child>
-                      <placeholder />
-                    </child>
-                    <child>
-                      <placeholder />
-                    </child>
-                    <child>
-                      <placeholder />
-                    </child>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkSeparator" />
+                  <object class="GtkSeparator"/>
                 </child>
                 <child>
                   <object class="GtkBox">
@@ -137,17 +124,17 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="halign">start</property>
-                        <property name="label" translatable="1">Options:</property>
+                        <property name="label" translatable="yes">Options:</property>
                         <attributes>
-                          <attribute name="weight" value="bold" />
+                          <attribute name="weight" value="bold"/>
                         </attributes>
                       </object>
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="toggle_mask_stars_invert">
-                        <property name="label" translatable="1">Invert mask</property>
                         <property name="focusable">1</property>
-                        <property name="tooltip-text" translatable="1">Invert the mask after creation</property>
+                        <property name="label" translatable="yes">Invert mask</property>
+                        <property name="tooltip-text" translatable="yes">Invert the mask after creation</property>
                       </object>
                     </child>
                   </object>
@@ -158,30 +145,30 @@
         </child>
         <child>
           <object class="GtkBox">
-            <property name="margin-top">12</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
-            <property name="margin-bottom">12</property>
-            <property name="spacing">6</property>
             <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
             <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
             <property name="valign">center</property>
             <child>
               <object class="GtkButton" id="mask_from_stars_close">
-                <property name="label" translatable="1">Close</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mask_from_stars_close_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mask_from_stars_close_clicked"/>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="mask_from_stars_apply">
-                <property name="label" translatable="1">Apply</property>
                 <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
                 <property name="receives-default">1</property>
-                <signal name="clicked" handler="on_mask_from_stars_apply_clicked" swapped="no" />
+                <signal name="clicked" handler="on_mask_from_stars_apply_clicked"/>
                 <style>
-                  <class name="suggested-action" />
+                  <class name="suggested-action"/>
                 </style>
               </object>
             </child>
@@ -189,5 +176,11 @@
         </child>
       </object>
     </property>
+    <property name="modal">1</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Create Mask from Stars</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_mask_from_stars_close_clicked"/>
+    <signal name="show" handler="on_mask_from_stars_dialog_show"/>
   </object>
 </interface>

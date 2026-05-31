@@ -863,13 +863,31 @@ ENDDECONV:
 
 ///////// ****** IMAGE PROCESSING   ****** //////////
 
-/* Wrapper hooks for deconvolution */
+/* Wrapper hooks for deconvolution.
+ *
+ * `args->user` is an estk_data whose `->fit` pointer is pre-bound at
+ * process_deconvolve() time (to gfit or gui.roi.fit).  The worker's
+ * image_hook contract is "operate on the `fit` parameter, not on the
+ * global gfit" — necessary for the upcoming swap refactor where the
+ * worker passes a private copy of gfit and installs the result later
+ * under a brief writer-lock window.  Plumb the parameter through by
+ * temporarily retargeting data->fit around the call. */
 int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	return GPOINTER_TO_INT(deconvolve(args->user));
+	estk_data *data = (estk_data *)args->user;
+	fits *saved = data->fit;
+	data->fit = fit;
+	gpointer ret = deconvolve(data);
+	data->fit = saved;
+	return GPOINTER_TO_INT(ret);
 }
 
 int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	return GPOINTER_TO_INT(estimate_only(args->user));
+	estk_data *data = (estk_data *)args->user;
+	fits *saved = data->fit;
+	data->fit = fit;
+	gpointer ret = estimate_only(data);
+	data->fit = saved;
+	return GPOINTER_TO_INT(ret);
 }
 
 ///////// ****** SEQUENCE PROCESSING ****** //////////

@@ -43,7 +43,7 @@
 GtkButton *epf_undo = NULL, *epf_cancel = NULL, *epf_apply = NULL;
 GtkDropDown *ep_filter_type = NULL;
 GtkWindow *epf_dialog = NULL;
-GtkFileChooser *guided_filter_guideimage = NULL;
+GtkWidget *guided_filter_guideimage = NULL;
 GtkGrid *guide_image_widgets = NULL, *epf_sigma_spatial_settings = NULL, *epf_mod_settings = NULL;
 GtkLabel *label176 = NULL, *label1 = NULL, *label177 = NULL;
 GtkScale *scale_epf_d = NULL;
@@ -67,8 +67,8 @@ void epf_dialog_init_statics() {
 		// GtkDialog
 		epf_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "epf_dialog"));
 		// Picker button for the guide image.
-		guided_filter_guideimage = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "guided_filter_guideimage"));
-		siril_image_button_init(GTK_WIDGET(guided_filter_guideimage),
+		guided_filter_guideimage = GTK_WIDGET(gtk_builder_get_object(gui.builder, "guided_filter_guideimage"));
+		siril_image_button_init(guided_filter_guideimage,
 			_("Select guide image"), _("FITS files"),
 			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz",
 			on_guided_filter_guideimage_picked, NULL);

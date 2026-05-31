@@ -666,11 +666,10 @@ void on_resample_dialog_show(GtkWidget *dialog, gpointer user_data) {
 
 void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	pause_resample_signal_handlers();
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
 
-	if (siril_toggle_get_active(GTK_WIDGET(ratio))) {
+	if (siril_toggle_get_active(button_sample_ratio)) {
 		double yvalue = xvalue;
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), yvalue);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
@@ -680,11 +679,10 @@ void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer 
 
 void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	pause_resample_signal_handlers();
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double yvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y));
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
 
-	if (siril_toggle_get_active(GTK_WIDGET(ratio))) {
+	if (siril_toggle_get_active(button_sample_ratio)) {
 		double xvalue = yvalue;
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), xvalue);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
@@ -694,12 +692,11 @@ void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer 
 
 void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	pause_resample_signal_handlers();
-	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double xpix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px));
 	double ratio = xpix / gfit->rx;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
 
-	if (siril_toggle_get_active(GTK_WIDGET(ratio_button))) {
+	if (siril_toggle_get_active(button_sample_ratio)) {
 		double ypix = round_to_int(gfit->ry * ratio);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), ypix);
@@ -709,12 +706,11 @@ void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpoint
 
 void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	pause_resample_signal_handlers();
-	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double ypix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px));
 	double ratio = ypix / gfit->ry;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
 
-	if (siril_toggle_get_active(GTK_WIDGET(ratio_button))) {
+	if (siril_toggle_get_active(button_sample_ratio)) {
 		double xpix = round_to_int(gfit->rx * ratio);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), xpix);

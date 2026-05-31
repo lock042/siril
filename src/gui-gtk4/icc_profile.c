@@ -691,7 +691,7 @@ static gboolean iso12646_recenter_idle(gpointer user_data) {
 	gui.display_offset.x = (window_width  / 2.0) - (gfit->rx / 2.0) * z;
 	gui.display_offset.y = (window_height / 2.0) - (gfit->ry / 2.0) * z;
 	adjust_vport_size_to_image();
-	queue_redraw(remap ? REMAP_ALL : REDRAW_IMAGE);
+	queue_redraw(remap ? REDRAW_ALL : REDRAW_IMAGE);
 	gtk_widget_queue_draw(lookup_widget("vbox_r"));
 	gtk_widget_queue_draw(lookup_widget("vbox_g"));
 	gtk_widget_queue_draw(lookup_widget("vbox_b"));
@@ -840,7 +840,7 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 	}
 	if (mode_changed) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
 }
@@ -868,7 +868,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	if (!profiles_identical(old_monitor, com.gui_icc.monitor)) {
 		refresh_icc_transforms();
 		notify_gfit_data_modified();
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	}
 	cmsCloseProfile(old_monitor);
 }
@@ -891,7 +891,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -967,7 +967,7 @@ void on_custom_proofing_profile_active_toggled(GtkCheckButton *button, gpointer 
 			icc_unlock_soft_proof_profile();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 			return;
 		} else {
 			if (!no_file) {
@@ -981,5 +981,5 @@ void on_custom_proofing_profile_active_toggled(GtkCheckButton *button, gpointer 
 	icc_unlock_soft_proof_profile();
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 }

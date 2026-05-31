@@ -375,7 +375,7 @@ static gboolean merge_cfa_img_idle(gpointer p) {
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		set_cutoff_sliders_values();
 		set_display_mode();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		sequence_list_change_current();
 		reset_controls();
 		control_window_switch_to_tab(OUTPUT_LOGS);

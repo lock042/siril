@@ -788,8 +788,9 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 		}
 	}
 
-	g_object_unref(factory);
-	g_object_unref(sel);
+	/* No g_object_unref(factory) / unref(sel): gtk_grid_view_new() is
+	 * transfer-full for BOTH the model and the factory, so gridview
+	 * consumed the refs we passed in. */
 	g_object_unref(store);
 	gtk_window_destroy(GTK_WINDOW(dlg));
 

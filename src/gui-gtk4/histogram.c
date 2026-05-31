@@ -139,6 +139,9 @@ static void histo_release_cb(GtkGestureClick *gesture, int n_press,
                              double x, double y, gpointer user_data);
 static void histo_motion_cb(GtkEventControllerMotion *controller,
                             double x, double y, gpointer user_data);
+static void histo_drag_update_cb(GtkGestureDrag *g,
+                                 double offset_x, double offset_y,
+                                 gpointer user_data);
 
 static void init_toggles() {
 	if (!toggles[0]) {
@@ -161,13 +164,24 @@ static void init_toggles() {
 
 			/* GTK4 event-controller wiring for the drawingarea sliders.
 			 * GtkGestureClick replaces button-press/release-event;
-			 * GtkEventControllerMotion replaces motion-notify-event. */
+			 * GtkGestureDrag carries motion-while-pressed (slider drag);
+			 * GtkEventControllerMotion handles hover-only cursor work. */
 			GtkGesture *click = gtk_gesture_click_new();
 			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click),
 			                              GDK_BUTTON_PRIMARY);
 			g_signal_connect(click, "pressed",  G_CALLBACK(histo_press_cb),  NULL);
 			g_signal_connect(click, "released", G_CALLBACK(histo_release_cb), NULL);
 			gtk_widget_add_controller(drawarea, GTK_EVENT_CONTROLLER(click));
+
+			GtkGesture *drag = gtk_gesture_drag_new();
+			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(drag),
+			                              GDK_BUTTON_PRIMARY);
+			g_signal_connect(drag, "drag-update",
+			                 G_CALLBACK(histo_drag_update_cb), NULL);
+			gtk_widget_add_controller(drawarea, GTK_EVENT_CONTROLLER(drag));
+
+			/* Group so click's claim doesn't deny drag (and vice versa). */
+			gtk_gesture_group(click, drag);
 
 			GtkEventController *motion = gtk_event_controller_motion_new();
 			g_signal_connect(motion, "motion", G_CALLBACK(histo_motion_cb), NULL);
@@ -450,7 +464,7 @@ static void set_histo_toggles_names() {
 	if (fit->naxis == 2) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Toggles whether to apply the stretch to the monochrome channel"));
 		GtkWidget *w;
-		if (com.pref.gui.combo_theme == 0) {
+		if (siril_current_theme_is_dark()) {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
 		} else {
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");
@@ -1641,7 +1655,7 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), (gfit->naxes[2] == 3));
 			GtkWidget *w;
-			if (com.pref.gui.combo_theme == 0) {
+			if (siril_current_theme_is_dark()) {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 			} else {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
@@ -1757,15 +1771,14 @@ void toggle_histogram_window_visibility(int _invocation) {
 	}
 }
 
-/* GTK4 motion handler.  Replaces the GTK3 button_press_event /
- * motion_notify_event pair: GtkEventControllerMotion delivers (x, y) in
- * widget coordinates directly, so we no longer extract them from a
- * GdkEvent.  Behaviour is identical to the legacy version — when
- * `_click_on_histo` is set by the press handler we drag the corresponding
- * shadow / midtone / highlight slider as the cursor moves. */
-static void histo_motion_cb(GtkEventControllerMotion *controller,
-                            double x, double y, gpointer user_data) {
-	(void)controller; (void)user_data;
+/* GTK4 pointer handler.  Called from both the hover (motion) controller
+ * and the drag (GtkGestureDrag) controller — both need the same body to
+ * update cursor shape and (when a slider was grabbed by the press) the
+ * staged shadow / midtone / highlight value.  Routing drag-while-pressed
+ * through GtkGestureDrag is required on macOS, where AppKit routes
+ * NSEventTypeMouseDragged exclusively to drag gestures and the motion
+ * controller would never fire while the button is held. */
+static void histo_apply_pointer(double x, double y) {
 	int width = get_width_of_histo();
 	int height = get_height_of_histo();
 
@@ -1811,6 +1824,31 @@ static void histo_motion_cb(GtkEventControllerMotion *controller,
 		update_histo_mtf();
 		g_free(buffer);
 	}
+}
+
+/* Hover-only motion: early-return when any button is held so the drag
+ * gesture is the single source of truth for motion-while-pressed (macOS
+ * already enforces this; the filter makes Linux match). */
+static void histo_motion_cb(GtkEventControllerMotion *controller,
+                            double x, double y, gpointer user_data) {
+	(void)user_data;
+	GdkModifierType state = gtk_event_controller_get_current_event_state(
+	    GTK_EVENT_CONTROLLER(controller));
+	if (state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK))
+		return;
+	histo_apply_pointer(x, y);
+}
+
+/* Drag-update: the only way slider-drag work runs on macOS, where
+ * AppKit routes NSEventTypeMouseDragged exclusively to GtkGestureDrag
+ * (the motion controller never fires while a button is held). */
+static void histo_drag_update_cb(GtkGestureDrag *g,
+                                 double offset_x, double offset_y,
+                                 gpointer user_data) {
+	(void)user_data;
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(g, &sx, &sy);
+	histo_apply_pointer(sx + offset_x, sy + offset_y);
 }
 
 

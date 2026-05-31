@@ -659,7 +659,7 @@ gboolean on_iso12646_panel_hide_completed(GtkWidget *widget, gpointer data) {
 	gui.display_offset.y = (window_height / 2) - (gfit->ry / 2 * z);
 	adjust_vport_size_to_image();
 	// TODO: convince myself this is safe if a thread is updating gfit->..
-	queue_redraw(remap ? REMAP_ALL : REDRAW_IMAGE); // Has to do the remap in case the sliders have been changed
+	queue_redraw(remap ? REDRAW_ALL : REDRAW_IMAGE); // Has to do the remap in case the sliders have been changed
 	gtk_widget_queue_draw(lookup_widget("vbox_r"));
 	gtk_widget_queue_draw(lookup_widget("vbox_g"));
 	gtk_widget_queue_draw(lookup_widget("vbox_b"));
@@ -793,7 +793,7 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 	}
 	if (mode_changed) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
 }
@@ -822,7 +822,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	if (!profiles_identical(old_monitor, com.gui_icc.monitor)) {
 		refresh_icc_transforms();
 		notify_gfit_data_modified();
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	}
 	cmsCloseProfile(old_monitor);
 }
@@ -846,7 +846,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -922,7 +922,7 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			icc_unlock_soft_proof_profile();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 			return;
 		} else {
 			if (!no_file) {
@@ -936,5 +936,5 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	icc_unlock_soft_proof_profile();
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 }

@@ -35,6 +35,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -120,6 +121,8 @@ static void on_DrawingPlot_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
 static void on_DrawingPlot_released(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data);
+static void on_DrawingPlot_drag_update(GtkGestureDrag *g,
+		double offset_x, double offset_y, gpointer user_data);
 
 /* GTK4 draw_func adapter (signature matches GtkDrawingAreaDrawFunc). */
 static void plot_draw_cb(GtkDrawingArea *area, cairo_t *cr,
@@ -363,7 +366,7 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 }
 
 static void plot_draw_all_sliders(cairo_t *cr) {
-	double color = (com.pref.gui.combo_theme == 0) ? 1.0 : 0.0;
+	double color = (siril_current_theme_is_dark()) ? 1.0 : 0.0;
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, color, color, color);
 	// x-slider
@@ -423,7 +426,7 @@ static void plot_draw_all_markers(cairo_t *cr) {
 static void plot_draw_selection(cairo_t *cr){
 	if (pdd.selection.h == 0. || pdd.selection.w == 0.) return;
 	double dash_format[] = { 4.0, 2.0 };
-	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	double color = (siril_current_theme_is_dark()) ? 0.8 : 0.2;
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_set_dash(cr, dash_format, 2, 0);
 	cairo_set_line_width(cr, 1.);
@@ -1075,6 +1078,21 @@ static void fill_plot_statics() {
 		g_signal_connect(plot_click, "released", G_CALLBACK(on_DrawingPlot_released), NULL);
 		gtk_widget_add_controller(drawingPlot, GTK_EVENT_CONTROLLER(plot_click));
 
+		/* Drag: primary-only — marker grab, slider grab, selection
+		 * rectangle drag and selection-border resize all need
+		 * motion-while-pressed, which macOS only delivers to
+		 * GtkGestureDrag.  The motion controller above bails out
+		 * during press so this is the single source of truth. */
+		GtkGesture *plot_drag = gtk_gesture_drag_new();
+		gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(plot_drag),
+		                              GDK_BUTTON_PRIMARY);
+		g_signal_connect(plot_drag, "drag-update",
+		                 G_CALLBACK(on_DrawingPlot_drag_update), NULL);
+		gtk_widget_add_controller(drawingPlot, GTK_EVENT_CONTROLLER(plot_drag));
+
+		/* Group click + drag so neither claim denies the other. */
+		gtk_gesture_group(plot_click, plot_drag);
+
 		/* GTK4: GtkButton emits "clicked" on click (the .ui's "activate"
 		 * binding is silently dropped).  Connect each menu_plot button. */
 		GtkWidget *mi1 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_plot_item1"));
@@ -1493,7 +1511,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 		return;
 	pldata *plot = plot_data;
 
-	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
+	double color = (siril_current_theme_is_dark()) ? 0.0 : 1.0;
 
 	kplotcfg_defaults(&cfgplot);
 	kdatacfg_defaults(&cfgdata);
@@ -1881,12 +1899,9 @@ static void free_colors(struct kplotcfg *cfg) {
  * drag, and tooltip generation.  Replaces the GTK3
  * "motion-notify-event"; (x, y) come straight from
  * GtkEventControllerMotion. */
-static void on_DrawingPlot_motion(GtkEventControllerMotion *controller,
-		double x, double y, gpointer user_data) {
-	(void)user_data;
+static void plot_handle_pointer(GtkWidget *widget, double x, double y) {
 	if (!plot_data) return;
 	if (!com.seq.imgparam) return;
-	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
 	if (pdd.action == SELACTION_SELECTING) {
@@ -2052,6 +2067,33 @@ static void on_DrawingPlot_motion(GtkEventControllerMotion *controller,
 		}
 	}
 	set_cursor("tcross");
+}
+
+/* Hover motion: bail when any button is held so the drag gesture owns
+ * motion-while-pressed.  On macOS the motion controller already
+ * wouldn't fire during press (AppKit routes NSEventTypeMouseDragged
+ * exclusively to GtkGestureDrag); this matches Linux to that. */
+static void on_DrawingPlot_motion(GtkEventControllerMotion *controller,
+		double x, double y, gpointer user_data) {
+	(void)user_data;
+	GdkModifierType state = gtk_event_controller_get_current_event_state(
+	    GTK_EVENT_CONTROLLER(controller));
+	if (state & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK | GDK_BUTTON3_MASK))
+		return;
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+	plot_handle_pointer(widget, x, y);
+}
+
+/* Drag-update: the only path that fires while the button is held on
+ * macOS — selection-rectangle drag, selection-border resize, marker
+ * grab and slider grab all flow through here. */
+static void on_DrawingPlot_drag_update(GtkGestureDrag *g,
+		double offset_x, double offset_y, gpointer user_data) {
+	(void)user_data;
+	double sx, sy;
+	gtk_gesture_drag_get_start_point(g, &sx, &sy);
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
+	plot_handle_pointer(widget, sx + offset_x, sy + offset_y);
 }
 
 

@@ -245,7 +245,6 @@ static void set_description_in_TIFF() {
 }
 
 static void prepare_savepopup() {
-	save_dialog_init_statics();
 	GtkWidget *savepopup = sd_savepopup;
 	GtkWidget *savetxt = sd_filenameframe;
 	GtkWidget *button_savepopup = sd_button_savepopup;
@@ -304,11 +303,21 @@ static void prepare_savepopup() {
 }
 
 static void init_dialog() {
+	/* The savepopup statics back both the parameters dialog and the
+	 * GtkEntry that save_dialog() writes the chosen path into. Populate
+	 * them up-front so callers that read sd_* before prepare_savepopup()
+	 * (e.g. save_dialog() at the gtk_editable_set_text() call site, and
+	 * on_header_save_as_button_clicked() that latches sd_savepopup) see
+	 * non-NULL widgets. */
+	save_dialog_init_statics();
 	if (saveDialog == NULL) {
 		GtkWindow *parent = siril_get_active_window();
 		saveDialog = siril_fc_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
 		set_filters_save_dialog(saveDialog);
 	}
+	/* Refresh every time: com.wd can change between save-as invocations. */
+	if (com.wd)
+		siril_fc_set_current_folder_path(saveDialog, com.wd);
 }
 
 static void close_dialog() {
@@ -933,17 +942,16 @@ void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		/* Ensure the savepopup statics are populated before either we
-		 * dereference `savepopup` below or save_dialog() touches
-		 * sd_savetxt_entry on its first run.  prepare_savepopup() does
-		 * call save_dialog_init_statics(), but it runs AFTER the use
-		 * sites above — so on the first Save As of a session those
-		 * widgets are NULL and GTK_CRITICAL warnings fire.  Init here
-		 * is idempotent (the helper guards on sd_notebook_format). */
+		/* Ensure the savepopup statics are populated before
+		 * save_dialog() touches sd_savetxt_entry on its first run.
+		 * prepare_savepopup() does call save_dialog_init_statics(),
+		 * but it runs AFTER the use site below — so on the first Save
+		 * As of a session those widgets are NULL and GTK_CRITICAL
+		 * warnings fire.  Init here is idempotent (the helper guards
+		 * on sd_notebook_format). */
 		save_dialog_init_statics();
-		GtkWidget *savepopup = sd_savepopup;
-
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
+			GtkWidget *savepopup = sd_savepopup;
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
@@ -993,14 +1001,19 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 
 /* Build a self-contained notification popover.
  *
- * popover_new_with_image() parents every popover to `control_window`
- * (the top-level GtkApplicationWindow).  Parenting a GtkPopover
- * directly to a GtkWindow is unreliable in GTK4 — the popup surface
- * never becomes visible for this notification, even though the popover
- * widget is created and gtk_popover_popup() is called.  Parent the
- * notification to the snapshot button's containing headerbar instead:
- * a plain GtkHeaderBar accepts a popover child via gtk_widget_set_parent
- * and the popup surface renders correctly. */
+ * Parented to the headerbar (the only ancestor that reliably makes the
+ * popover surface appear in GTK4 for this caller — control_window
+ * parenting silently fails to popup, and parenting directly to the
+ * snapshot GtkMenuButton crashes inside realize because GtkMenuButton
+ * already owns its own popover machinery).
+ *
+ * For the pointing_to anchor we use `snapshot_button_box` — the plain
+ * GtkBox inside the menubutton.  Its bounds are equivalent to the
+ * menubutton's for positioning purposes, and as a regular widget it
+ * doesn't have any of the menubutton-specific gotchas that the earlier
+ * compute_bounds(menubutton, headerbar) call appeared to trip on
+ * (which silently produced wrong coordinates → popover anchored at
+ * the centre of the headerbar instead of under the button). */
 static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *filename, GdkPaintable *paintable) {
 	gchar *text;
 	if (filename)
@@ -1013,10 +1026,7 @@ static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *file
 	 * dismiss when the user clicks elsewhere in the app. */
 	gtk_popover_set_autohide(GTK_POPOVER(popover), FALSE);
 
-	/* Walk up from the snapshot button until we find a non-popover
-	 * ancestor — the headerbar.  This avoids parenting the popover
-	 * to the snapshot menubutton (whose own popover machinery would
-	 * conflict) or to the snapshot_menu popover (which is mid-popdown). */
+	/* Walk up from the snapshot button to its containing headerbar. */
 	GtkWidget *parent = NULL;
 	if (anchor_btn) {
 		for (GtkWidget *p = gtk_widget_get_parent(anchor_btn); p; p = gtk_widget_get_parent(p)) {
@@ -1029,9 +1039,18 @@ static GtkWidget *snapshot_notification(GtkWidget *anchor_btn, const gchar *file
 	}
 	if (parent) {
 		gtk_widget_set_parent(popover, parent);
-		if (anchor_btn && anchor_btn != parent) {
+		/* Anchor on the menubutton's inner GtkBox rather than the
+		 * menubutton itself.  Inner-widget bounds compute reliably,
+		 * the menubutton's apparently don't. */
+		GtkWidget *anchor_widget = NULL;
+		if (gui.builder) {
+			GObject *box_obj = gtk_builder_get_object(gui.builder, "snapshot_button_box");
+			if (GTK_IS_WIDGET(box_obj)) anchor_widget = GTK_WIDGET(box_obj);
+		}
+		if (!anchor_widget) anchor_widget = anchor_btn;
+		if (anchor_widget && anchor_widget != parent) {
 			graphene_rect_t bounds;
-			if (gtk_widget_compute_bounds(anchor_btn, parent, &bounds)) {
+			if (gtk_widget_compute_bounds(anchor_widget, parent, &bounds)) {
 				GdkRectangle rect = {
 					(int) bounds.origin.x, (int) bounds.origin.y,
 					(int) bounds.size.width, (int) bounds.size.height,

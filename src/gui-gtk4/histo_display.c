@@ -1439,9 +1439,15 @@ void update_histogram_display(void) {
  * concurrent operation (e.g. Resample) may be rewriting gfit->pdata
  * and updating gfit->rx/ry under the writer lock — without the reader
  * lock we can see new dimensions but a stale pdata pointer, indexing
- * past the buffer end and crashing. */
+ * past the buffer end and crashing.
+ *
+ * The lock is acquired via trylock so a long-running writer (image
+ * processing op) doesn't stall the GUI thread.  If we can't grab the
+ * reader immediately, skip the cursor read for this motion event; the
+ * next one retries.  Keeps the canvas responsive during processing. */
 void histogram_update_cursor_value(int x, int y) {
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	if (!g_rw_lock_reader_trylock(&gfit->rwlock))
+		return;
 
 	/* Re-clamp under the lock against the now-stable dimensions; the
 	 * caller's clamp ran without the lock and may have used a torn

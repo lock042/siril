@@ -37,6 +37,7 @@ void initialize_all_GUI(gchar *files);
 void register_toolkit_app_actions(GApplication *app);
 void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
+gboolean siril_current_theme_is_dark(void);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
 gboolean set_cutoff_sliders_values_idle(gpointer p);
@@ -123,9 +124,6 @@ void on_excludebutton_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 void on_ref_frame_toggled(GtkCheckButton *togglebutton, gpointer user_data);
 
 void on_spin_w_changed(GtkSpinButton *spinbutton, gpointer user_data);
-
-void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);

@@ -19,6 +19,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
 #include "io/siril_pythonmodule.h"
 
 #include "python_gui.h"
@@ -145,7 +146,7 @@ void set_code_view_theme() {
 	// The core "Classic" and "Oblivion" themes are used: these should always be available
 	stylemanager = gtk_source_style_scheme_manager_get_default();
 	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
-										com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
+										siril_current_theme_is_dark() ? "oblivion" : "classic");
 	if (scheme)
 		gtk_source_buffer_set_style_scheme(sourcebuffer, scheme);
 }
@@ -1230,6 +1231,12 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 		g_object_unref(filter);
 		g_object_unref(filters);
 
+		if (com.wd) {
+			GFile *initial = g_file_new_for_path(com.wd);
+			gtk_file_dialog_set_initial_folder(fd, initial);
+			g_object_unref(initial);
+		}
+
 		gtk_file_dialog_open(fd,
 			GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),
 			NULL, on_file_open_done, NULL);
@@ -1273,8 +1280,13 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 	g_object_unref(filter);
 	g_object_unref(filters);
 
-	if (G_IS_OBJECT(current_file))
+	if (G_IS_OBJECT(current_file)) {
 		gtk_file_dialog_set_initial_file(fd, current_file);
+	} else if (com.wd) {
+		GFile *initial = g_file_new_for_path(com.wd);
+		gtk_file_dialog_set_initial_folder(fd, initial);
+		g_object_unref(initial);
+	}
 
 	gtk_file_dialog_save(fd,
 		GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")),
@@ -1294,35 +1306,40 @@ void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer us
 	save_file(current_file);
 }
 
-int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
-	if (!editor_window) {
-		python_scratchpad_init_statics();
-	}
+/* Per-show preparation for the script editor.  Connected to
+ * python_window's "show" signal in the .ui so it runs no matter HOW
+ * the window is made visible — whether via on_open_pythonpad (the
+ * normal menu-driven path) or via the new-user Introduction
+ * (siril_intro.c) which makes the widget visible directly to anchor
+ * a tip popover.  Without this signal-driven path, an intro run
+ * before the user has opened the editor manually displayed the
+ * window with none of the cfg applied — missing source-view
+ * settings, no menu bar, no language label, etc.
+ *
+ * Idempotent: python_scratchpad_init_statics, setup_editor_actions
+ * and populate_pyeditor_recent_menu all guard themselves; the editor
+ * toggles are direct pref→widget applies and safe to repeat.  Runs
+ * every time the window is shown, which is what we want — closes
+ * hide-on-delete, so the next open's pref values are picked up. */
+void on_python_window_show(GtkWidget *widget, gpointer user_data) {
+	(void) widget; (void) user_data;
+	python_scratchpad_init_statics();
 
-	// This is a normal window with normal decorations
-	/* Phase 14: gtk_window_set_type_hint removed in GTK4; window-type
-	 * hints were window-manager-specific X11 metadata that GTK4 dropped. */
-
-	// Decouple window behaviour from main window
+	/* Decouple window behaviour from main window. */
 	gtk_window_set_transient_for(editor_window, NULL);
-	// (Note, if the editor window is minimized and there isn't an icon in the system tray
-	// it can be restored just by clicking on the script editor menu item again - no work
-	// will be lost...)
 
-	// Hide on close
-	g_signal_connect(editor_window, "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
+	/* close-request → hide.  Reconnecting on every show is harmless;
+	 * GTK4 ignores duplicate identical g_signal_connect calls? — no,
+	 * actually it doesn't.  But python_scratchpad_init_statics is
+	 * idempotent because of its NULL guard, and the signal is
+	 * connected exactly once there at the bottom of init.  Leaving
+	 * it out of the per-show path. */
 
 	setup_editor_actions(editor_window);
 	/* The menu bar references this submenu by pointer, so populate it
 	 * before showing the window — first open builds the bar, subsequent
 	 * opens just refresh the existing one. */
 	populate_pyeditor_recent_menu();
-
-	/* Phase 17.5: gtk_window_get_position / gtk_window_get_size /
-	 * gtk_window_move are all gone in GTK4 — placement is
-	 * compositor-managed.  We drop the cascading-offset logic and
-	 * rely on the WM to place the editor window. */
-	(void)main_window;
 
 	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 
@@ -1360,8 +1377,17 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 	}
 	editor_action_set_state("language",
 		g_variant_new_string(active_language == LANG_PYTHON ? "py" : "ssf"));
+}
 
-	// Show the window and bring it to front
+int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
+	if (!editor_window) {
+		python_scratchpad_init_statics();
+	}
+	(void) main_window;
+
+	/* gtk_window_present triggers the window's "show" signal when
+	 * the window was hidden — on_python_window_show runs there and
+	 * does the editor configuration. */
 	gtk_window_present(editor_window);
 
 	// Focus the SourceView

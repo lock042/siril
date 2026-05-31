@@ -686,7 +686,6 @@ static gchar *remix_run_browser(GtkButton *button, const gchar *title,
 	gchar *picked = NULL;
 	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
 		picked = siril_file_browser_get_path(fb);
-	siril_file_browser_destroy(fb);
 	return picked;
 }
 
@@ -809,7 +808,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		}
 		// Set eyedropper icons to light or dark according to theme
 		GtkWidget *v = NULL, *w = NULL;
-		if (com.pref.gui.combo_theme == 0) {
+		if (siril_current_theme_is_dark()) {
 			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 		} else {

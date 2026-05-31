@@ -313,7 +313,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	/* Tell the layers panel to refresh.  Unconditional so opening a
 	 * non-FLIS file also clears the previously-shown layers (panel
 	 * survives across image switches per §4.1).  flis_gui_update
@@ -348,7 +348,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -437,9 +437,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	gui_iface.enable_display_mode_menu();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	else
-		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
+		gui_iface.redraw_image_async(REDRAW_ALL);	// queues a redraw if !com.script
 
 	gui_iface.redraw_previews();
 
