@@ -29,6 +29,40 @@ frame {
     padding: 1px;
 }
 
+/* Restore the inter-cell gap that GTK3 gave "label + control" rows.  In the
+ * GTK3 build these rows filled the width with the label halign=start and the
+ * control packed to the end, leaving a clear gap between them; the GTK4 port
+ * dropped fill/pack-end so the label and control now sit flush against each
+ * other (e.g. "Stretch factor[0.0]" / "Black Point[0.00000]" in the Asinh
+ * dialog).  Add a left margin to any control that immediately follows a label
+ * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) and grids
+ * so a control stacked *under* a label in a vertical box doesn't get an odd
+ * left indent.  6px matches the column-spacing GTK3 used on these grids. */
+box.horizontal > label + button,
+box.horizontal > label + spinbutton,
+box.horizontal > label + entry,
+box.horizontal > label + dropdown,
+box.horizontal > label + combobox,
+box.horizontal > label + menubutton,
+box.horizontal > label + scale,
+box.horizontal > label + switch,
+box.horizontal > label + checkbutton,
+box.horizontal > label + togglebutton,
+box.horizontal > label + colorbutton,
+grid > label + button,
+grid > label + spinbutton,
+grid > label + entry,
+grid > label + dropdown,
+grid > label + combobox,
+grid > label + menubutton,
+grid > label + scale,
+grid > label + switch,
+grid > label + checkbutton,
+grid > label + togglebutton,
+grid > label + colorbutton {
+    margin-left: 6px;
+}
+
 .toolbar {
    background-color: transparent;
 }
