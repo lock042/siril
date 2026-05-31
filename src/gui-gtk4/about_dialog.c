@@ -53,9 +53,11 @@ void siril_show_about_dialog() {
 	gchar *version;
 #ifdef SIRIL_UNSTABLE
 	version = g_strdup_printf(_("%s\nThis is an unstable development release\n"
-					"commit %s\n"), VERSION, SIRIL_GIT_VERSION_ABBREV);
+					"commit %s\nGTK %d.%d.%d\n"), VERSION, SIRIL_GIT_VERSION_ABBREV,
+			gtk_get_major_version(), gtk_get_minor_version(), gtk_get_micro_version());
 #else
-	version = g_strdup_printf("%s\ncommit %s", VERSION, SIRIL_GIT_VERSION_ABBREV);
+	version = g_strdup_printf("%s\ncommit %s\nGTK %d.%d.%d", VERSION, SIRIL_GIT_VERSION_ABBREV,
+			gtk_get_major_version(), gtk_get_minor_version(), gtk_get_micro_version());
 #endif
 	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
 			"Copyright © 2012-%s Team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
