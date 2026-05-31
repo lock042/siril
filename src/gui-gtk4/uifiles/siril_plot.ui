@@ -128,16 +128,11 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkLabel">
-                    <property name="label" translatable="yes">Hovering for the legend</property>
-                    <property name="single-line-mode">1</property>
-                    <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
-Green curve: sorted values by order of decreasing quality.
-Circle marker: the value for the reference frame.
-Cross marker: the value for the currently loaded frame.</property>
-                    <attributes>
-                      <attribute name="style" value="italic"/>
-                    </attributes>
+                  <!-- Spacer: pushes the Output button and the Hovering legend
+                       label to the end of the row, leaving Display at the start
+                       (GTK3 packed Output and Hovering with pack-type=end). -->
+                  <object class="GtkBox">
+                    <property name="hexpand">1</property>
                   </object>
                 </child>
                 <child>
@@ -163,6 +158,19 @@ Cross marker: the value for the currently loaded frame.</property>
                         </child>
                       </object>
                     </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Hovering for the legend</property>
+                    <property name="single-line-mode">1</property>
+                    <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
+                    <attributes>
+                      <attribute name="style" value="italic"/>
+                    </attributes>
                   </object>
                 </child>
               </object>
