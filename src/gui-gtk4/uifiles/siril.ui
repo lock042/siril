@@ -2463,9 +2463,15 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                       </object>
                     </property>
                     <property name="focusable">1</property>
-                    <property name="min-content-height">400</property>
-                    <property name="min-content-width">400</property>
-                    <property name="vscrollbar-policy">never</property>
+                    <property name="hexpand">1</property>
+                    <property name="vexpand">1</property>
+                    <property name="min-content-height">200</property>
+                    <property name="min-content-width">300</property>
+                    <property name="vscrollbar-policy">automatic</property>
+                    <property name="hscrollbar-policy">automatic</property>
+                    <property name="margin-top">6</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="margin-end">6</property>
                   </object>
                 </property>
                 <property name="focusable">1</property>
@@ -2474,7 +2480,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                 <property name="resize-end-child">0</property>
                 <property name="shrink-start-child">0</property>
                 <property name="shrink-end-child">1</property>
-                <property name="focusable">1</property>
                 <property name="start-child">
                   <object class="GtkNotebook" id="notebook1">
                     <property name="focusable">1</property>
@@ -2950,116 +2955,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="tab-fill">False</property>
                       </object>
                     </child>
-                  </object>
-                </property>
-                <property name="end-child">
-                  <object class="GtkScrolledWindow" id="control_center_box">
-                    <property name="focusable">1</property>
-                    <property name="vscrollbar-policy">automatic</property>
-                    <property name="hscrollbar-policy">automatic</property>
-                    <property name="min-content-width">300</property>
-                    <property name="min-content-height">200</property>
-                    <property name="margin-top">6</property>
-                    <property name="margin-bottom">6</property>
-                    <property name="margin-end">6</property>
-                    <property name="child">
-                      <object class="GtkViewport">
-                        <property name="child">
-                          <object class="GtkBox">
-                            <property name="orientation">vertical</property>
-                            <child>
-                              <object class="GtkNotebook" id="notebook_center_box">
-                                <property name="vexpand">1</property>
-                                <property name="focusable">1</property>
-                                <property name="show-border">0</property>
-                                <property name="scrollable">1</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkFrame" id="frame_miniconsole">
-                                <property name="valign">center</property>
-                                <child>
-                                  <object class="GtkBox" id="GtkBoxCommand">
-                                    <child>
-                                      <object class="GtkEntry" id="command">
-                                        <property name="hexpand">1</property>
-                                        <property name="focusable">1</property>
-                                        <property name="tooltip-text" translatable="1">Input command. Typing "help" here will bring the list of supported commands.</property>
-                                        <property name="invisible-char">●</property>
-                                        <property name="truncate-multiline">1</property>
-                                        <property name="placeholder-text" translatable="1">Type "help" for the list of supported commands</property>
-                                        <property name="input-hints">GTK_INPUT_HINT_WORD_COMPLETION | GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                        <signal name="activate" handler="on_command_activate" swapped="no" />
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="GtkCommandHelper">
-                                        <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Displays manual of the command written in the console.</property>
-                                        <signal name="clicked" handler="on_GtkCommandHelper_clicked" object="command" swapped="no" />
-                                        <child>
-                                          <object class="GtkImage" id="imageHelp">
-                                            <property name="icon-name">help-browser-symbolic</property>
-                                          </object>
-                                        </child>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="processes_button_cancel">
-                                        <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Stop running processes</property>
-                                        <property name="halign">center</property>
-                                        <property name="valign">center</property>
-                                        <signal name="clicked" handler="on_processes_button_cancel_clicked" swapped="no" />
-                                        <style>
-                                          <class name="destructive-action" />
-                                        </style>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="spacing">6</property>
-                                            <property name="valign">center</property>
-                                            <child>
-                                              <object class="GtkImage" id="imagestop">
-                                                <property name="icon-name">process-stop-symbolic</property>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="label" translatable="1">Stop</property>
-                                                <property name="use-underline">1</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                        </child>
-                                      </object>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel" id="label23">
-                                    <property name="margin-bottom">5</property>
-                                    <property name="label" translatable="1">Command line</property>
-                                    <attributes>
-                                      <attribute name="weight" value="bold" />
-                                    </attributes>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkProgressBar" id="progressbar1">
-                                <property name="pulse-step">0.05</property>
-                                <property name="text" translatable="1">Ready.</property>
-                                <property name="show-text">1</property>
-                                <property name="ellipsize">middle</property>
-                              </object>
-                            </child>
-                          </object>
-                        </property>
-                      </object>
-                    </property>
                   </object>
                 </property>
               </object>
