@@ -134,7 +134,6 @@ static gboolean process_pending_open_idle(gpointer user_data);
 
 /* Callback to close splash screen and show main window after delay */
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
-	siril_log_warning("[DBG] close_splash_and_show_window_cb\n");
 	close_splash_screen();
 
 	/* Make window visible.  GTK4: the .ui no longer carries visible=1 on
@@ -389,8 +388,6 @@ static void siril_app_startup(GApplication *application) {
 	 * reaches the GUI log.  Keep an stderr copy too — on a macOS Finder
 	 * launch that lands in Console.app / the unified log
 	 * (log stream --predicate 'process == "siril"'). */
-	fprintf(stderr, "[DBG] siril_app_startup\n"); fflush(stderr);
-	siril_log_warning("[DBG] siril_app_startup\n");
 	signals_init();
 	/*
 	 * Force C locale for numbers to avoid "," being used as decimal separator.
@@ -446,8 +443,6 @@ static gboolean siril_app_activated = FALSE;
 static void siril_app_activate(GApplication *application) {
 	/* Hybrid (see siril_app_startup): the BEGIN line precedes
 	 * siril_register_gui_iface(), so keep an stderr copy. */
-	fprintf(stderr, "[DBG] siril_app_activate BEGIN (already=%d)\n", siril_app_activated); fflush(stderr);
-	siril_log_warning("[DBG] siril_app_activate BEGIN (already=%d)\n", siril_app_activated);
 	if (siril_app_activated) return;
 	siril_app_activated = TRUE;
 	/* the first thing we need to do is to know if we are headless or not */
@@ -662,7 +657,6 @@ static void siril_app_activate(GApplication *application) {
 	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
-	siril_log_warning("[DBG] siril_app_activate END\n");
 }
 
 /* Actually open the file the OS handed us (a sequence or a single image).
@@ -704,9 +698,6 @@ static void do_open_file(gchar *path) {
  * visible.  Opens the file stashed by siril_app_open. */
 static gboolean process_pending_open_idle(gpointer user_data) {
 	gchar *path = g_steal_pointer(&pending_open_path);
-	siril_log_warning("[DBG] process_pending_open_idle path=%s owner=%d\n",
-	        path ? path : "(null)",
-	        g_main_context_is_owner(g_main_context_default()));
 	do_open_file(path);
 	g_free(path);
 	return G_SOURCE_REMOVE;
@@ -722,23 +713,13 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 	 * activate has registered the real GUI logger (activated=0), so keep an
 	 * stderr copy.  This is the line that proves the open/activate ordering
 	 * on macOS. */
-	fprintf(stderr, "[DBG] siril_app_open n_files=%d owner=%d activated=%d\n",
-	        n_files, g_main_context_is_owner(g_main_context_default()),
-	        siril_app_activated); fflush(stderr);
-	siril_log_warning("[DBG] siril_app_open n_files=%d owner=%d activated=%d\n",
-	        n_files, g_main_context_is_owner(g_main_context_default()),
-	        siril_app_activated);
 	/* Always activate first — on macOS, GApplication emits startup→open without
 	 * activate when files are passed as arguments.  siril_app_activate() is
 	 * guarded by siril_app_activated so a double call is a no-op. */
 	g_application_activate(application);
-	siril_log_warning("[DBG] siril_app_open after activate, owner=%d activated=%d\n",
-	        g_main_context_is_owner(g_main_context_default()),
-	        siril_app_activated);
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
-		siril_log_warning("[DBG] siril_app_open path=%s\n", path ? path : "(null)");
 		/* In GUI mode, defer the open until the window is shown
 		 * (close_splash_and_show_window_cb picks up pending_open_path).
 		 * Opening inline here would render into a not-yet-mapped surface on
