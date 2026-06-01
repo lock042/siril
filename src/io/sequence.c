@@ -2353,7 +2353,7 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	return FALSE;
 }
 
-void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel) {
+void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel, gboolean cleanmpp) {
 	if (cleanreg && seq->regparam) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			if (seq->regparam[i]) {
@@ -2392,6 +2392,19 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 		// unsetting ref image
 		seq->reference_image = -1;
 		fix_selnum(seq, TRUE);
+	}
+	if (cleanmpp) {
+		/* Remove the mpp registration sidecar (<seqname>.mpp) written by
+		 * REGISTER_MPP / PSS. The in-memory cached run, if any, is cleared
+		 * by the GUI caller — the io layer must not call into registration. */
+		gchar *mpp_path = g_strdup_printf("%s.mpp", seq->seqname);
+		if (g_file_test(mpp_path, G_FILE_TEST_EXISTS)) {
+			if (g_unlink(mpp_path))
+				siril_log_debug("g_unlink() failed for %s\n", mpp_path);
+			else
+				siril_log_message(_("MPP registration data (sidecar) cleared\n"));
+		}
+		g_free(mpp_path);
 	}
 	writeseqfile(seq);
 }

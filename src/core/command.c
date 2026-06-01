@@ -217,7 +217,7 @@ int process_dumpheader(int nb) {
 }
 
 int process_seq_clean(int nb) {
-	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE, cleanmpp = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
@@ -239,6 +239,9 @@ int process_seq_clean(int nb) {
 				else if (!strcmp(word[i], "-sel")) {
 					cleansel = TRUE;
 				}
+				else if (!strcmp(word[i], "-mpp")) {
+					cleanmpp = TRUE;
+				}
 				else {
 					siril_log_error(_("Unknown parameter %s, aborting.\n"), word[i]);
 					if (!check_seq_is_comseq(seq))
@@ -251,9 +254,10 @@ int process_seq_clean(int nb) {
 		cleanreg = TRUE;
 		cleanstat = TRUE;
 		cleansel = TRUE;
+		cleanmpp = TRUE;
 	}
 
-	clean_sequence(seq, cleanreg, cleanstat, cleansel);
+	clean_sequence(seq, cleanreg, cleanstat, cleansel, cleanmpp);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		gui_iface.update_stack_interface(TRUE);

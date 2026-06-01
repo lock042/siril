@@ -75,6 +75,7 @@ void update_export_crop_label();
 #include "registration_preview.h"
 #include "undo_gui.h"
 #include "io/healpix/fluxcache_cat.h"
+#include "registration/mpp.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -2727,12 +2728,14 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 	gboolean cleanreg = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_reg")));
 	gboolean cleanstat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_stat")));
 	gboolean cleansel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_sel")));
+	gboolean cleanmpp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("seq_clean_mpp")));
 
-	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
+	if ((cleanreg || cleanstat || cleansel || cleanmpp) && sequence_is_loaded()) {
 		GString *warning = g_string_new(_("This erases the following data, and there's no possible undo:\n"));
 		if (cleanreg) warning = g_string_append(warning, _("\n- Registration"));
 		if (cleanstat) warning = g_string_append(warning, _("\n- Statistics"));
 		if (cleansel) warning = g_string_append(warning, _("\n- Selection"));
+		if (cleanmpp) warning = g_string_append(warning, _("\n- Multipoint registration data (.mpp sidecar)"));
 
 		gchar *str = g_string_free(warning, FALSE);
 
@@ -2740,7 +2743,13 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		g_free(str);
 
 		if (clear) {
-			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel, cleanmpp);
+			if (cleanmpp) {
+				/* Forget any in-memory Stage-A run so the AP overlay and a
+				 * subsequent Multipoint stack don't use the deleted sidecar. */
+				mpp_clear_cached_run();
+				redraw(REDRAW_OVERLAY);
+			}
 			update_stack_interface(TRUE);
 			update_reg_interface(FALSE);
 			adjust_sellabel();
