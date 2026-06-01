@@ -44,6 +44,31 @@ static GtkWidget    *wrap_guides_area = NULL;
  * (created by setup_find_overlay) that wraps the active editor scroller. */
 static GtkNotebook  *editor_notebook = NULL;
 static GtkWidget    *content_overlay = NULL;
+
+/* One open document per notebook page.  The module-level statics above
+ * (code_view, sourcebuffer, scrolled_window, map, map_wrapper, wrap_guides_area,
+ * space_drawer, content_overlay, current_file, active_language, buffer_modified)
+ * always mirror the ACTIVE document; on tab switch we save them into the
+ * outgoing doc and load them from the incoming one, so the existing
+ * statics-based code keeps operating on the active tab. */
+typedef struct {
+	GtkWidget            *page;          /* notebook page child (hbox) */
+	GtkWidget            *overlay;       /* GtkOverlay wrapping the scroller */
+	GtkScrolledWindow    *scroll;
+	GtkSourceView        *view;
+	GtkSourceBuffer      *buffer;
+	GtkSourceMap         *map;
+	GtkWidget            *map_wrapper;
+	GtkWidget            *guides;        /* wrap guides drawing area */
+	GtkSourceSpaceDrawer *space_drawer;
+	GFile                *current_file;
+	gint                  active_language;
+	gboolean              buffer_modified;
+	GtkWidget            *tab_label;     /* label widget shown in the tab */
+} EditorDoc;
+static GPtrArray  *editor_docs = NULL;   /* EditorDoc* */
+static EditorDoc  *active_doc  = NULL;
+static SearchData *active_search = NULL; /* search data of the active view */
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkDropDown *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -1291,7 +1316,10 @@ static void backward_search(SearchData *search_data) {
 
 gboolean on_find_entry_key_press_event(GtkEventControllerKey *ctrl, guint keyval,
                                          guint keycode, GdkModifierType state, gpointer data) {
-	SearchData *search_data = (SearchData *)data;
+	(void) data;
+	SearchData *search_data = active_search;   /* operate on the active tab */
+	if (!search_data)
+		return FALSE;
 	/* Close window */
 	if (keyval == GDK_KEY_Tab || keyval == GDK_KEY_Escape) {
 		hide_find_box();
@@ -1405,16 +1433,18 @@ static gboolean perform_search(SearchData *search_data) {
 }
 
 void on_next_match(GtkButton *button, SearchData *search_data) {
-	forward_search(search_data);
+	(void) button; (void) search_data;
+	if (active_search) forward_search(active_search);
 }
 
 void on_previous_match(GtkButton *button, SearchData *search_data) {
-	backward_search(search_data);
+	(void) button; (void) search_data;
+	if (active_search) backward_search(active_search);
 }
 
 void on_find_entry_changed(GtkSearchEntry *entry, SearchData *search_data) {
-    (void) entry;
-    perform_search(search_data);
+    (void) entry; (void) search_data;
+    if (active_search) perform_search(active_search);
 }
 
 void setup_search(GtkSourceView *source_view, GtkSearchEntry *search_entry) {
@@ -1451,17 +1481,226 @@ void setup_search(GtkSourceView *source_view, GtkSearchEntry *search_entry) {
 				NULL);
 	}
 
-	g_signal_connect(search_entry, "changed", G_CALLBACK(on_find_entry_changed), search_data);
-	{
-		GtkEventController *kctrl = gtk_event_controller_key_new();
-		g_signal_connect(kctrl, "key-pressed", G_CALLBACK(on_find_entry_key_press_event), search_data);
-		gtk_widget_add_controller(GTK_WIDGET(search_entry), kctrl);
-	}
-	g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), search_data);
-	g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), search_data);
-
-	// Store the search data
+	/* The shared find widgets (find_entry, go_up/down) are connected once in
+	 * setup_find_signals(); those handlers act on `active_search`.  We only
+	 * create and attach the per-view SearchData here. */
 	g_object_set_data_full(G_OBJECT(source_view), "search-data", search_data, g_free);
+}
+
+/* Connect the shared find widgets once.  The handlers operate on the active
+ * tab's SearchData (active_search), which is updated on tab switch. */
+static void setup_find_signals(void) {
+	static gboolean done = FALSE;
+	if (done || !find_entry)
+		return;
+	done = TRUE;
+	g_signal_connect(find_entry, "changed", G_CALLBACK(on_find_entry_changed), NULL);
+	GtkEventController *kctrl = gtk_event_controller_key_new();
+	g_signal_connect(kctrl, "key-pressed", G_CALLBACK(on_find_entry_key_press_event), NULL);
+	gtk_widget_add_controller(GTK_WIDGET(find_entry), kctrl);
+	if (go_down_button)
+		g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), NULL);
+	if (go_up_button)
+		g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), NULL);
+}
+
+/* Apply every editor preference to the active document's source view (and sync
+ * the menu check states).  Shared by the per-show path and new-tab creation so
+ * new tabs match the current settings. */
+static void apply_editor_settings_to_active(void) {
+	if (!code_view)
+		return;
+	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+	struct { const gchar *name; gboolean v; } setup[] = {
+		{ "syntax",               com.pref.gui.editor_cfg.highlight_syntax },
+		{ "bracketmatch",         com.pref.gui.editor_cfg.highlight_bracketmatch },
+		{ "rmargin",              com.pref.gui.editor_cfg.rmargin },
+		{ "linenums",             com.pref.gui.editor_cfg.show_linenums },
+		{ "linemarks",            com.pref.gui.editor_cfg.show_linemarks },
+		{ "highlightcurrentline", com.pref.gui.editor_cfg.highlight_currentline },
+		{ "autoindent",           com.pref.gui.editor_cfg.autoindent },
+		{ "indentontab",          com.pref.gui.editor_cfg.indentontab },
+		{ "smartbs",              com.pref.gui.editor_cfg.smartbs },
+		{ "smarthomeend",         com.pref.gui.editor_cfg.smarthomeend },
+		{ "showspaces",           com.pref.gui.editor_cfg.showspaces },
+		{ "shownewlines",         com.pref.gui.editor_cfg.shownewlines },
+		{ "minimap",              com.pref.gui.editor_cfg.minimap },
+		{ "dynamicwrap",          com.pref.gui.editor_cfg.dynamic_wrap },
+		{ "useargs",              from_cli },
+		{ "pythondebug",          python_debug },
+	};
+	for (size_t i = 0; i < G_N_ELEMENTS(setup); i++) {
+		apply_editor_setting(setup[i].name, setup[i].v);
+		editor_action_set_state(setup[i].name, g_variant_new_boolean(setup[i].v));
+	}
+	editor_action_set_state("language",
+		g_variant_new_string(active_language == LANG_PYTHON ? "py" : "ssf"));
+}
+
+/* ---- Multi-tab document management ----
+ * The module statics mirror the active document.  doc_save_statics copies them
+ * into a doc; doc_load_statics copies a doc back into the statics. */
+static void doc_save_statics(EditorDoc *d) {
+	if (!d) return;
+	d->view = code_view; d->buffer = sourcebuffer; d->scroll = scrolled_window;
+	d->map = map; d->map_wrapper = map_wrapper; d->guides = wrap_guides_area;
+	d->space_drawer = space_drawer; d->overlay = content_overlay;
+	d->current_file = current_file; d->active_language = active_language;
+	d->buffer_modified = buffer_modified;
+}
+static void doc_load_statics(EditorDoc *d) {
+	code_view = d->view; sourcebuffer = d->buffer; scrolled_window = d->scroll;
+	map = d->map; map_wrapper = d->map_wrapper; wrap_guides_area = d->guides;
+	space_drawer = d->space_drawer; content_overlay = d->overlay;
+	current_file = d->current_file; active_language = d->active_language;
+	buffer_modified = d->buffer_modified;
+}
+
+/* Apply an editor preference to EVERY open tab (view prefs are global to the
+ * script editor), then restore the active document's statics. */
+static void apply_editor_setting_all(const gchar *name, gboolean v) {
+	if (!editor_docs || editor_docs->len <= 1) {
+		apply_editor_setting(name, v);
+		return;
+	}
+	EditorDoc *cur = active_doc;
+	if (cur) doc_save_statics(cur);
+	for (guint i = 0; i < editor_docs->len; i++) {
+		EditorDoc *d = g_ptr_array_index(editor_docs, i);
+		doc_load_statics(d);
+		apply_editor_setting(name, v);
+		doc_save_statics(d);
+	}
+	if (cur) doc_load_statics(cur);
+}
+
+/* Refresh both the window title and the active tab's label from the active
+ * document's file + modified state. */
+static void editor_update_window_title(void) {
+	char *base = current_file ? g_file_get_basename(current_file) : g_strdup(_("unsaved"));
+	char *t = g_strdup_printf("%s%s", base, buffer_modified ? "*" : "");
+	if (editor_window)
+		gtk_window_set_title(editor_window, t);
+	if (active_doc && active_doc->tab_label)
+		gtk_label_set_text(GTK_LABEL(active_doc->tab_label), t);
+	g_free(t);
+	g_free(base);
+}
+
+/* Make `d` the active document: load its statics, move the shared find box into
+ * its overlay, and point active_search at its view's search data. */
+static void editor_make_active(EditorDoc *d) {
+	if (!d) return;
+	active_doc = d;
+	doc_load_statics(d);
+	if (find_overlay && content_overlay) {
+		GtkWidget *par = gtk_widget_get_parent(GTK_WIDGET(find_overlay));
+		if (par != content_overlay) {
+			g_object_ref(find_overlay);
+			if (GTK_IS_OVERLAY(par))
+				gtk_overlay_remove_overlay(GTK_OVERLAY(par), GTK_WIDGET(find_overlay));
+			else if (par)
+				gtk_widget_unparent(GTK_WIDGET(find_overlay));
+			gtk_overlay_add_overlay(GTK_OVERLAY(content_overlay), GTK_WIDGET(find_overlay));
+			g_object_unref(find_overlay);
+		}
+	}
+	active_search = code_view ? g_object_get_data(G_OBJECT(code_view), "search-data") : NULL;
+	if (active_search) active_search->search_entry = find_entry;
+	gtk_label_set_text(language_label,
+		active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
+	editor_update_window_title();
+}
+
+static EditorDoc *editor_doc_for_page(GtkWidget *page) {
+	if (!editor_docs) return NULL;
+	for (guint i = 0; i < editor_docs->len; i++) {
+		EditorDoc *d = g_ptr_array_index(editor_docs, i);
+		if (d->page == page) return d;
+	}
+	return NULL;
+}
+
+static void on_notebook_switch_page(GtkNotebook *nb, GtkWidget *page, guint idx, gpointer u) {
+	(void) nb; (void) idx; (void) u;
+	EditorDoc *d = editor_doc_for_page(page);
+	if (!d || d == active_doc)
+		return;
+	if (active_doc) doc_save_statics(active_doc);
+	editor_make_active(d);
+}
+
+static GtkWidget *editor_make_tab_label(EditorDoc *d) {
+	GtkWidget *lbl = gtk_label_new(_("unsaved"));
+	d->tab_label = lbl;
+	return lbl;
+}
+
+/* Build a fresh empty document in a new notebook tab and make it active. */
+static EditorDoc *editor_new_tab(void) {
+	if (!editor_docs) editor_docs = g_ptr_array_new();
+	if (active_doc) doc_save_statics(active_doc);   /* preserve outgoing doc */
+
+	GtkSourceView *view = GTK_SOURCE_VIEW(gtk_source_view_new());
+	gtk_widget_set_focusable(GTK_WIDGET(view), TRUE);
+	GtkWidget *scroll = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 600);
+	gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroll), 400);
+	gtk_widget_set_hexpand(scroll, TRUE);
+	gtk_widget_set_vexpand(scroll, TRUE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), GTK_WIDGET(view));
+
+	/* repoint statics at the new widgets, then build per-doc machinery */
+	code_view = view;
+	scrolled_window = GTK_SCROLLED_WINDOW(scroll);
+	current_file = NULL;
+	active_language = LANG_PYTHON;
+	buffer_modified = FALSE;
+
+	add_code_view(NULL);   /* sourcebuffer + map + change tracker + wrap */
+	g_signal_connect(sourcebuffer, "modified-changed",
+	                 G_CALLBACK(on_buffer_modified_changed), NULL);
+
+	GtkWidget *overlay = gtk_overlay_new();
+	content_overlay = overlay;
+	gtk_widget_set_hexpand(overlay, TRUE);
+	gtk_widget_set_vexpand(overlay, TRUE);
+	gtk_overlay_set_child(GTK_OVERLAY(overlay), scroll);
+	wrap_guides_area = gtk_drawing_area_new();
+	gtk_widget_set_can_target(wrap_guides_area, FALSE);
+	gtk_widget_set_hexpand(wrap_guides_area, TRUE);
+	gtk_widget_set_vexpand(wrap_guides_area, TRUE);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wrap_guides_area), wrap_guides_draw, NULL, NULL);
+	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), wrap_guides_area);
+	{
+		GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scroll));
+		if (vadj)
+			g_signal_connect_swapped(vadj, "value-changed",
+				G_CALLBACK(gtk_widget_queue_draw), wrap_guides_area);
+	}
+
+	GtkWidget *page = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_hexpand(page, TRUE);
+	gtk_widget_set_vexpand(page, TRUE);
+	gtk_box_append(GTK_BOX(page), overlay);
+	if (map_wrapper)
+		gtk_box_append(GTK_BOX(page), map_wrapper);
+
+	setup_search(view, find_entry);
+
+	EditorDoc *d = g_new0(EditorDoc, 1);
+	doc_save_statics(d);
+	d->page = page;
+	g_ptr_array_add(editor_docs, d);
+
+	int idx = gtk_notebook_append_page(editor_notebook, page, editor_make_tab_label(d));
+	gtk_widget_set_visible(page, TRUE);
+	/* set active_doc before switching so the switch-page handler no-ops */
+	active_doc = d;
+	gtk_notebook_set_current_page(editor_notebook, idx);
+	editor_make_active(d);
+	apply_editor_settings_to_active();
+	return d;
 }
 
 // Statics init
@@ -1545,8 +1784,23 @@ void python_scratchpad_init_statics() {
 			gtk_box_append(GTK_BOX(page0), map_wrapper);
 			g_object_unref(map_wrapper);
 		}
-		gtk_notebook_append_page(editor_notebook, page0, gtk_label_new(_("unsaved")));
+		GtkWidget *tab0_label = gtk_label_new(_("unsaved"));
+		gtk_notebook_append_page(editor_notebook, page0, tab0_label);
 		gtk_box_append(GTK_BOX(codeviewbox), GTK_WIDGET(editor_notebook));
+
+		/* Capture the first document and wire tab switching. */
+		setup_find_signals();
+		editor_docs = g_ptr_array_new();
+		EditorDoc *d0 = g_new0(EditorDoc, 1);
+		doc_save_statics(d0);
+		d0->page = page0;
+		d0->tab_label = tab0_label;
+		g_ptr_array_add(editor_docs, d0);
+		active_doc = d0;
+		active_search = g_object_get_data(G_OBJECT(code_view), "search-data");
+		if (active_search) active_search->search_entry = find_entry;
+		g_signal_connect(editor_notebook, "switch-page",
+		                 G_CALLBACK(on_notebook_switch_page), NULL);
 
 		// Initialize with "unsaved" if no file is loaded
 		if (!current_file) {
@@ -1556,29 +1810,12 @@ void python_scratchpad_init_statics() {
 }
 
 static void update_title_with_modification() {
-	const gchar *current_text = gtk_window_get_title(GTK_WINDOW(editor_window));
-	if (!current_text || !*current_text) return;
-
-	// If the title already ends with *, don't add another
-	if (g_str_has_suffix(current_text, "*")) {
-		if (!buffer_modified) {
-			gchar *base_name = g_strndup(current_text, strlen(current_text) - 1);
-			gtk_window_set_title(GTK_WINDOW(editor_window), base_name);
-			g_free(base_name);
-		}
-	} else if (buffer_modified) {
-		gchar *new_title = g_strdup_printf("%s*", current_text);
-		gtk_window_set_title(GTK_WINDOW(editor_window), new_title);
-		g_free(new_title);
-	}
+	editor_update_window_title();
 }
 
 static void update_title(GFile *file) {
 	if (file) {
 		char *basename = g_file_get_basename(file);
-		gtk_window_set_title(GTK_WINDOW(editor_window), basename);
-
-
 		char *suffix = strrchr(basename, '.');
 		if (suffix != NULL) {
 			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
@@ -1587,14 +1824,13 @@ static void update_title(GFile *file) {
 				editor_action_change_state("language", g_variant_new_string("ssf"));
 			}
 		}
-
 		g_free(basename);
-	} else {
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 	}
 	buffer_modified = FALSE;
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	editor_update_window_title();
+	if (editor_window)
+		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 }
 
 // File handling
@@ -1667,22 +1903,11 @@ void save_file(GFile *file) {
 }
 
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	// Get the start and end iterators
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_text_buffer_begin_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		buffer_modified = FALSE;
-		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-		gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-		change_tracker_reset_current(sourcebuffer);
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-	}
+	(void) action; (void) parameter; (void) user_data;
+	/* New always opens a fresh, independent tab. */
+	editor_new_tab();
+	if (code_view)
+		gtk_widget_grab_focus(GTK_WIDGET(code_view));
 }
 
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
@@ -1708,31 +1933,25 @@ void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer 
 
 void new_script(const gchar *contents, gint length, const char *ext) {
 	on_open_pythonpad(NULL, NULL);
-	// Get the start and end iterators
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_text_buffer_begin_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), contents, (gint) length);
-		buffer_modified = FALSE;
-		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-		gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-		change_tracker_reset_current(sourcebuffer);
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-		if (!g_ascii_strcasecmp(ext, "ssf")) {
-			active_language = LANG_SSF;
-			editor_action_change_state("language", g_variant_new_string("ssf"));
-		} else {
-			active_language = LANG_PYTHON;
-			editor_action_change_state("language", g_variant_new_string("py"));
-		}
-		gtk_window_present(editor_window);
-		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	/* Always edit in a fresh, independent tab. */
+	editor_new_tab();
+	current_file = NULL;
+	gtk_text_buffer_begin_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
+	gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), contents, (gint) length);
+	buffer_modified = FALSE;
+	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+	gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
+	change_tracker_reset_current(sourcebuffer);
+	if (!g_ascii_strcasecmp(ext, "ssf")) {
+		active_language = LANG_SSF;
+		editor_action_change_state("language", g_variant_new_string("ssf"));
+	} else {
+		active_language = LANG_PYTHON;
+		editor_action_change_state("language", g_variant_new_string("py"));
 	}
+	editor_update_window_title();
+	gtk_window_present(editor_window);
+	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 }
 
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1773,11 +1992,10 @@ static void on_file_open_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	GError *error = NULL;
 	GFile *file = gtk_file_dialog_open_finish(fd, res, &error);
 	if (file) {
+		editor_new_tab();          /* open the file in a fresh tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
-		load_file(file);
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
 		current_file = g_object_ref(file);
+		load_file(file);
 		update_title(current_file);
 		g_object_unref(file);
 	}
@@ -1803,17 +2021,11 @@ static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gp
 		}
 		return;
 	}
-	if (buffer_modified &&
-	    !siril_confirm_dialog(_("Are you sure?"),
-		_("This will replace the entry buffer. You will not be able to recover any contents."),
-		_("Proceed")))
-		return;
 	GFile *file = g_file_new_for_path(path);
+	editor_new_tab();              /* open the recent file in a fresh tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	load_file(file);
-	if (G_IS_OBJECT(current_file))
-		g_object_unref(current_file);
 	current_file = g_object_ref(file);
+	load_file(file);
 	update_title(current_file);
 	g_object_unref(file);
 }
@@ -2014,41 +2226,9 @@ void on_python_window_show(GtkWidget *widget, gpointer user_data) {
 
 	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 
-	/* Right-margin position is a numeric pref (not a toggle), so it
-	 * has no action; apply directly. */
-	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
-
-	/* Apply every editor toggle from com.pref.gui.editor_cfg directly
-	 * to the source view and helper widgets BEFORE presenting the
-	 * window, so the first paint is correct.  We then sync the GAction
-	 * states so the menu's check marks match — without re-running the
-	 * change_state handler, which would just redo the same work. */
-	struct { const gchar *name; gboolean v; } setup[] = {
-		{ "syntax",               com.pref.gui.editor_cfg.highlight_syntax },
-		{ "bracketmatch",         com.pref.gui.editor_cfg.highlight_bracketmatch },
-		{ "rmargin",              com.pref.gui.editor_cfg.rmargin },
-		{ "linenums",             com.pref.gui.editor_cfg.show_linenums },
-		{ "linemarks",            com.pref.gui.editor_cfg.show_linemarks },
-		{ "highlightcurrentline", com.pref.gui.editor_cfg.highlight_currentline },
-		{ "autoindent",           com.pref.gui.editor_cfg.autoindent },
-		{ "indentontab",          com.pref.gui.editor_cfg.indentontab },
-		{ "smartbs",              com.pref.gui.editor_cfg.smartbs },
-		{ "smarthomeend",         com.pref.gui.editor_cfg.smarthomeend },
-		{ "showspaces",           com.pref.gui.editor_cfg.showspaces },
-		{ "shownewlines",         com.pref.gui.editor_cfg.shownewlines },
-		{ "minimap",              com.pref.gui.editor_cfg.minimap },
-		{ "dynamicwrap",          com.pref.gui.editor_cfg.dynamic_wrap },
-		/* useargs / pythondebug keep their session values rather than
-		 * being read from the pref (they're not persisted). */
-		{ "useargs",              from_cli },
-		{ "pythondebug",          python_debug },
-	};
-	for (size_t i = 0; i < G_N_ELEMENTS(setup); i++) {
-		apply_editor_setting(setup[i].name, setup[i].v);
-		editor_action_set_state(setup[i].name, g_variant_new_boolean(setup[i].v));
-	}
-	editor_action_set_state("language",
-		g_variant_new_string(active_language == LANG_PYTHON ? "py" : "ssf"));
+	/* Apply all editor prefs to the active document's view and sync the menu
+	 * check states (also used when creating new tabs). */
+	apply_editor_settings_to_active();
 }
 
 int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
@@ -2207,7 +2387,17 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 
 	if (ctx.result == GTK_RESPONSE_APPLY) {
 		com.pref.gui.editor_cfg.rmargin_pos = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin));
-		gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+		/* Right-margin position is global to the editor: apply to every tab. */
+		if (editor_docs) {
+			for (guint i = 0; i < editor_docs->len; i++) {
+				EditorDoc *d = g_ptr_array_index(editor_docs, i);
+				if (d->view)
+					gtk_source_view_set_right_margin_position(d->view,
+						com.pref.gui.editor_cfg.rmargin_pos);
+			}
+		} else {
+			gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+		}
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
 
@@ -2367,7 +2557,8 @@ static void on_toggle_change_state(GSimpleAction *action, GVariant *value, gpoin
 	const gboolean v = g_variant_get_boolean(value);
 	const gchar *name = g_action_get_name(G_ACTION(action));
 	g_simple_action_set_state(action, value);
-	apply_editor_setting(name, v);
+	/* Editor view preferences are global: apply to all open tabs. */
+	apply_editor_setting_all(name, v);
 }
 
 void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
