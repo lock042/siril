@@ -675,36 +675,63 @@ static void change_diff(gchar **cur, guint n, gchar **base, guint m,
 		return;
 	}
 
-	/* Guard the O(n*m) table against pathologically large buffers. */
-	guint64 cells = (guint64)(n + 1) * (guint64)(m + 1);
+	/* Trim the common prefix and suffix first.  A typical edit touches only a
+	 * few lines, so this collapses the LCS to a tiny window around the change
+	 * and keeps every unchanged line stable regardless of file size — without
+	 * it, a single insertion in a large file shifts all following lines and
+	 * (once the O(n*m) guard below trips) marks them all as changed. */
+	guint p = 0;
+	while (p < n && p < m && g_strcmp0(cur[p], base[p]) == 0) {
+		cur_changed[p] = FALSE; p++;
+	}
+	guint s = 0;
+	while (s < (n - p) && s < (m - p) &&
+	       g_strcmp0(cur[n - 1 - s], base[m - 1 - s]) == 0) {
+		cur_changed[n - 1 - s] = FALSE; s++;
+	}
+
+	guint cn = n - p - s;        /* current lines in the changed window */
+	guint cm = m - p - s;        /* base lines in the changed window    */
+	if (cn == 0) {               /* pure deletion at the gap before line p */
+		del_before[p] = cm;
+		return;
+	}
+	if (cm == 0)
+		return;                  /* pure insertion: window lines stay changed */
+
+	gchar **cw = cur + p;
+	gchar **bw = base + p;
+
+	/* Guard the O(cn*cm) table against pathologically large changed windows. */
+	guint64 cells = (guint64)(cn + 1) * (guint64)(cm + 1);
 	if (cells > 6000000ULL) {
-		guint k = MIN(n, m);
+		guint k = MIN(cn, cm);
 		for (guint i = 0; i < k; i++)
-			cur_changed[i] = (g_strcmp0(cur[i], base[i]) != 0);
-		if (m > n)
-			del_before[n] = m - n;
+			cur_changed[p + i] = (g_strcmp0(cw[i], bw[i]) != 0);
+		if (cm > cn)
+			del_before[p + cn] = cm - cn;
 		return;
 	}
 
 	guint *dp = g_new0(guint, (gsize) cells);
-#define DP(i,j) dp[(gsize)(i) * (m + 1) + (j)]
-	for (gint i = (gint) n - 1; i >= 0; i--)
-		for (gint j = (gint) m - 1; j >= 0; j--)
-			DP(i, j) = (g_strcmp0(cur[i], base[j]) == 0)
+#define DP(i,j) dp[(gsize)(i) * (cm + 1) + (j)]
+	for (gint i = (gint) cn - 1; i >= 0; i--)
+		for (gint j = (gint) cm - 1; j >= 0; j--)
+			DP(i, j) = (g_strcmp0(cw[i], bw[j]) == 0)
 				? DP(i + 1, j + 1) + 1
 				: MAX(DP(i + 1, j), DP(i, j + 1));
 
 	guint i = 0, j = 0;
-	while (i < n && j < m) {
-		if (g_strcmp0(cur[i], base[j]) == 0) {
-			cur_changed[i] = FALSE; i++; j++;
+	while (i < cn && j < cm) {
+		if (g_strcmp0(cw[i], bw[j]) == 0) {
+			cur_changed[p + i] = FALSE; i++; j++;
 		} else if (DP(i + 1, j) >= DP(i, j + 1)) {
 			i++;                 /* current line changed/added */
 		} else {
-			del_before[i]++; j++; /* base line deleted here */
+			del_before[p + i]++; j++; /* base line deleted here */
 		}
 	}
-	while (j < m) { del_before[n]++; j++; }
+	while (j < cm) { del_before[p + cn]++; j++; }
 #undef DP
 	g_free(dp);
 }
