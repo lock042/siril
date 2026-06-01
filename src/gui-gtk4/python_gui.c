@@ -37,6 +37,9 @@ static GtkSourceView *code_view = NULL;
 static GtkSourceBuffer *sourcebuffer = NULL;
 static GtkSourceMap *map = NULL;
 static GtkWidget    *map_wrapper = NULL;  /* clip container holding `map` */
+/* EXPERIMENTAL: transparent overlay that paints grey indent/tab guides in the
+ * virtual hanging-indent area of wrapped continuation rows (Kate style). */
+static GtkWidget    *wrap_guides_area = NULL;
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkDropDown *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -897,6 +900,8 @@ static void wrap_on_insert(GtkTextBuffer *b, GtkTextIter *loc, char *text, int l
 	for (char *c = text; *c; c++)
 		if (*c == '\n') start_line--;
 	wrap_apply_lines(wd, b, start_line, end_line);
+	if (wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
 }
 
 static void wrap_on_delete(GtkTextBuffer *b, GtkTextIter *s, GtkTextIter *e, gpointer u) {
@@ -905,6 +910,8 @@ static void wrap_on_delete(GtkTextBuffer *b, GtkTextIter *s, GtkTextIter *e, gpo
 	if (!wd->enabled)
 		return;
 	wrap_apply_lines(wd, b, gtk_text_iter_get_line(s), gtk_text_iter_get_line(s));
+	if (wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
 }
 
 /* Continuation-marker gutter renderer: draws ↪ on wrapped rows. */
@@ -933,19 +940,27 @@ static void siril_cont_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
 	int wy = 0;
 	gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_LEFT, 0, by, NULL, &wy);
 	int width = gtk_widget_get_width(GTK_WIDGET(renderer));
-	static const GdkRGBA grey = { 0.5f, 0.5f, 0.5f, 1.0f };
+	/* Draw a hooked continuation arrow (↪) with cairo so it doesn't depend on
+	 * a font glyph being present. */
+	graphene_rect_t cell = GRAPHENE_RECT_INIT(0.0f, (float) wy,
+	                                          (float) width, (float) full);
+	cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &cell);
+	cairo_set_source_rgba(cr, 0.5, 0.5, 0.5, 0.9);
+	cairo_set_line_width(cr, 1.2);
 	for (int k = 1; k < nrows; k++) {
-		PangoLayout *pl = gtk_widget_create_pango_layout(GTK_WIDGET(renderer), "\xe2\x86\xaa");
-		int tw = 0, th = 0;
-		pango_layout_get_pixel_size(pl, &tw, &th);
-		gtk_snapshot_save(snapshot);
-		graphene_point_t pt = GRAPHENE_POINT_INIT((float)(width - tw - 2),
-		                                          (float)(wy + k * rowh + (rowh - th) / 2));
-		gtk_snapshot_translate(snapshot, &pt);
-		gtk_snapshot_append_layout(snapshot, pl, &grey);
-		gtk_snapshot_restore(snapshot);
-		g_object_unref(pl);
+		double cx = width - 11.0;
+		double yt = wy + k * rowh + rowh * 0.30;
+		double yb = wy + k * rowh + rowh * 0.62;
+		cairo_move_to(cr, cx, yt);          /* down ... */
+		cairo_line_to(cr, cx, yb);          /* ... then right (the hook) */
+		cairo_line_to(cr, cx + 6.0, yb);
+		cairo_stroke(cr);
+		cairo_move_to(cr, cx + 3.0, yb - 3.0);  /* arrowhead */
+		cairo_line_to(cr, cx + 6.5, yb);
+		cairo_line_to(cr, cx + 3.0, yb + 3.0);
+		cairo_stroke(cr);
 	}
+	cairo_destroy(cr);
 }
 static void siril_cont_gutter_class_init(SirilContGutterClass *klass) {
 	GTK_SOURCE_GUTTER_RENDERER_CLASS(klass)->snapshot_line = siril_cont_gutter_snapshot_line;
@@ -998,6 +1013,71 @@ static void wrap_set_enabled(gboolean on) {
 	}
 	if (wd->renderer)
 		gtk_widget_queue_draw(GTK_WIDGET(wd->renderer));
+	if (wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
+}
+
+/* EXPERIMENTAL (Kate-style): paint grey tab/indent guides in the virtual
+ * hanging-indent area of wrapped continuation rows.  Drawn on a transparent
+ * overlay above the editor; only active while dynamic wrap is enabled. */
+static void wrap_guides_draw(GtkDrawingArea *area, cairo_t *cr, int w, int h, gpointer u) {
+	(void) area; (void) w; (void) h; (void) u;
+	if (!code_view || !sourcebuffer)
+		return;
+	WrapData *wd = wrap_data(GTK_TEXT_BUFFER(sourcebuffer));
+	if (!wd || !wd->enabled)
+		return;
+	GtkTextView *view = GTK_TEXT_VIEW(code_view);
+	GtkTextBuffer *buf = GTK_TEXT_BUFFER(sourcebuffer);
+	int cw = wd->char_width > 0 ? wd->char_width : 8;
+
+	GdkRectangle vis;
+	gtk_text_view_get_visible_rect(view, &vis);
+	GtkTextIter top, bot;
+	gtk_text_view_get_line_at_y(view, &top, vis.y, NULL);
+	gtk_text_view_get_line_at_y(view, &bot, vis.y + vis.height, NULL);
+	int first = gtk_text_iter_get_line(&top);
+	int last  = gtk_text_iter_get_line(&bot);
+
+	/* widget-space x of buffer x=0 (the text's left edge, after the gutter) */
+	int basex = 0, basetmp = 0;
+	gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_WIDGET, 0, 0, &basex, &basetmp);
+
+	cairo_set_source_rgba(cr, 0.5, 0.5, 0.5, 0.6);
+	cairo_set_line_width(cr, 1.0);
+
+	for (int ln = first; ln <= last; ln++) {
+		GtkTextIter s, e;
+		gtk_text_buffer_get_iter_at_line(buf, &s, ln);
+		e = s;
+		gtk_text_iter_forward_to_line_end(&e);
+		gchar *txt = gtk_text_buffer_get_text(buf, &s, &e, FALSE);
+		int cols = wrap_leading_cols(GTK_SOURCE_VIEW(code_view), txt);
+		g_free(txt);
+		if (cols <= 0)
+			continue;
+		GdkRectangle loc;
+		gtk_text_view_get_iter_location(view, &s, &loc);
+		int rowh = loc.height;
+		int by = 0, full = 0;
+		gtk_text_view_get_line_yrange(view, &s, &by, &full);
+		if (rowh <= 0)
+			continue;
+		int nrows = full / rowh;
+		if (nrows <= 1)
+			continue;
+		int lwx = 0, lwy = 0;
+		gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_WIDGET, 0, by, &lwx, &lwy);
+		for (int k = 1; k < nrows; k++) {
+			int rowtop = lwy + k * rowh;
+			/* one solid grey block spanning the whole indent depth */
+			double x0 = basex;
+			double bw = cols * cw;
+			double pad_y = rowh * 0.18;
+			cairo_rectangle(cr, x0, rowtop + pad_y, bw, rowh - 2.0 * pad_y);
+			cairo_fill(cr);
+		}
+	}
 }
 
 void add_code_view(GtkBuilder *builder) {
@@ -1083,6 +1163,23 @@ static void setup_find_overlay() {
 	gtk_widget_set_vexpand(GTK_WIDGET(scrolled_window), TRUE);
 	gtk_widget_set_hexpand(GTK_WIDGET(scrolled_window), TRUE);
 	g_object_unref(scrolled_window);
+
+	/* EXPERIMENTAL: transparent overlay for Kate-style wrap indent guides.
+	 * Non-interactive (can-target FALSE) so it never steals editor input; it
+	 * only paints when dynamic wrap is enabled. */
+	wrap_guides_area = gtk_drawing_area_new();
+	gtk_widget_set_can_target(wrap_guides_area, FALSE);
+	gtk_widget_set_hexpand(wrap_guides_area, TRUE);
+	gtk_widget_set_vexpand(wrap_guides_area, TRUE);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wrap_guides_area),
+	                               wrap_guides_draw, NULL, NULL);
+	gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), wrap_guides_area);
+	{
+		GtkAdjustment *vadj = gtk_scrolled_window_get_vadjustment(scrolled_window);
+		if (vadj)
+			g_signal_connect_swapped(vadj, "value-changed",
+				G_CALLBACK(gtk_widget_queue_draw), wrap_guides_area);
+	}
 
 	// Move find_overlay to new overlay
 	g_object_ref(find_overlay);
