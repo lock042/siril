@@ -90,6 +90,7 @@ void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
+static void wrap_set_enabled(gboolean on);
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data);
 
@@ -133,6 +134,7 @@ static GActionEntry editor_actions[] = {
 	{ "showspaces",           NULL, NULL, "false", on_toggle_change_state },
 	{ "shownewlines",         NULL, NULL, "false", on_toggle_change_state },
 	{ "minimap",              NULL, NULL, "false", on_toggle_change_state },
+	{ "dynamicwrap",          NULL, NULL, "false", on_toggle_change_state },
 	{ "useargs",              NULL, NULL, "false", on_toggle_change_state },
 	{ "pythondebug",          NULL, NULL, "false", on_toggle_change_state },
 
@@ -266,6 +268,7 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_menu_append(prefs, _("Show spaces and _tabs"),         "editor.showspaces");
 	g_menu_append(prefs, _("Show _newlines"),                "editor.shownewlines");
 	g_menu_append(prefs, _("Show mi_nimap"),                 "editor.minimap");
+	g_menu_append(prefs, _("Dynamic line _wrap"),            "editor.dynamicwrap");
 	g_menu_append_submenu(bar, _("_Preferences"), G_MENU_MODEL(prefs));
 	g_object_unref(prefs);
 
@@ -364,6 +367,9 @@ static void apply_editor_setting(const gchar *name, gboolean v) {
 		if (map_wrapper)
 			gtk_widget_set_visible(map_wrapper, v);
 		com.pref.gui.editor_cfg.minimap = v;
+	} else if (g_strcmp0(name, "dynamicwrap") == 0) {
+		wrap_set_enabled(v);
+		com.pref.gui.editor_cfg.dynamic_wrap = v;
 	} else if (g_strcmp0(name, "useargs") == 0) {
 		if (args_box)
 			gtk_widget_set_visible(GTK_WIDGET(args_box), v);
@@ -476,20 +482,292 @@ gboolean script_editor_has_unsaved_changes() {
 	return buffer_modified;
 }
 
-void add_code_view(GtkBuilder *builder) {
-	// Create a new GtkSourceBuffer (glade doesn't handle this properly)
-	sourcebuffer = gtk_source_buffer_new(NULL);
-	gtk_text_view_set_buffer(GTK_TEXT_VIEW(code_view), GTK_TEXT_BUFFER(sourcebuffer));
-	/* initialize minimap */
+/* ---------------------------------------------------------------------------
+ * Changed-line marks ("change bar")
+ *
+ * A thin gutter bar marks every line that differs from the last-saved version
+ * (amber) or that was changed earlier this session but is now saved (green),
+ * plus a small caret where lines were deleted (red while unsaved, green once
+ * the deletion has been saved).
+ *
+ * The state hangs off the GtkSourceBuffer via g_object_set_data_full (same
+ * pattern as SearchData on the view) so it is naturally per-document and will
+ * survive the move to one-buffer-per-tab unchanged.
+ * ------------------------------------------------------------------------- */
+
+typedef enum { CHG_NONE = 0, CHG_UNSAVED, CHG_SAVED } ChangeState;
+typedef enum { DEL_NONE = 0, DEL_UNSAVED, DEL_SAVED } DelState;
+
+typedef struct {
+	GtkTextBuffer *buffer;          /* not owned */
+	gchar **open_lines; guint open_n;   /* content at open / new */
+	gchar **save_lines; guint save_n;   /* content at last save */
+	GArray *line_state;             /* guint8 ChangeState, indexed by line */
+	GArray *del_state;              /* guint8 DelState, deletion before line i (size n+1) */
+	guint recompute_id;             /* debounce timeout source */
+	GtkSourceGutterRenderer *renderer;  /* not owned (held by the gutter) */
+} ChangeTracker;
+
+/* Custom gutter renderer that paints the change bar by reading the
+ * ChangeTracker attached to its buffer. */
+#define SIRIL_TYPE_CHANGE_GUTTER (siril_change_gutter_get_type())
+G_DECLARE_FINAL_TYPE(SirilChangeGutter, siril_change_gutter, SIRIL, CHANGE_GUTTER, GtkSourceGutterRenderer)
+struct _SirilChangeGutter { GtkSourceGutterRenderer parent_instance; };
+G_DEFINE_TYPE(SirilChangeGutter, siril_change_gutter, GTK_SOURCE_TYPE_GUTTER_RENDERER)
+
+static void siril_change_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
+		GtkSnapshot *snapshot, GtkSourceGutterLines *lines, guint line) {
+	GtkTextBuffer *buffer = gtk_source_gutter_lines_get_buffer(lines);
+	if (!buffer)
+		return;
+	ChangeTracker *ct = g_object_get_data(G_OBJECT(buffer), "change-tracker");
+	if (!ct)
+		return;
+
+	int width = gtk_widget_get_width(GTK_WIDGET(renderer));
+	int y = 0, height = 0;
+	/* Line y/height in the gutter's window coordinates, via the text view.
+	 * (gtk_source_gutter_lines_get_line_yrange is deprecated in newer
+	 * gtksourceview; this path is version-independent.) */
+	GtkTextView *view = gtk_source_gutter_lines_get_view(lines);
+	GtkTextIter it;
+	gtk_text_buffer_get_iter_at_line(buffer, &it, (int) line);
+	int by = 0;
+	gtk_text_view_get_line_yrange(view, &it, &by, &height);
+	gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_LEFT, 0, by, NULL, &y);
+
+	static const GdkRGBA amber = { 0.95f, 0.61f, 0.07f, 1.0f };
+	static const GdkRGBA green = { 0.18f, 0.70f, 0.32f, 1.0f };
+	static const GdkRGBA red   = { 0.86f, 0.20f, 0.18f, 1.0f };
+
+	guint8 st = (line < ct->line_state->len)
+		? g_array_index(ct->line_state, guint8, line) : CHG_NONE;
+	if (st == CHG_UNSAVED || st == CHG_SAVED) {
+		graphene_rect_t bar = GRAPHENE_RECT_INIT((float) width - 4.0f, (float) y,
+		                                         3.0f, (float) height);
+		gtk_snapshot_append_color(snapshot,
+			st == CHG_UNSAVED ? &amber : &green, &bar);
+	}
+
+	guint8 d = (line < ct->del_state->len)
+		? g_array_index(ct->del_state, guint8, line) : DEL_NONE;
+	if (d != DEL_NONE) {
+		const GdkRGBA *c = (d == DEL_UNSAVED) ? &red : &green;
+		/* Deletion caret: a small triangle at the top edge of the line,
+		 * pointing down to indicate lines were removed above this one. */
+		graphene_rect_t area = GRAPHENE_RECT_INIT(0.0f, (float) y,
+		                                          (float) width, 7.0f);
+		cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &area);
+		cairo_set_source_rgba(cr, c->red, c->green, c->blue, c->alpha);
+		cairo_move_to(cr, width - 7.0, y);
+		cairo_line_to(cr, width, y);
+		cairo_line_to(cr, width - 3.5, y + 6.0);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+		cairo_destroy(cr);
+	}
+}
+
+static void siril_change_gutter_class_init(SirilChangeGutterClass *klass) {
+	GTK_SOURCE_GUTTER_RENDERER_CLASS(klass)->snapshot_line =
+		siril_change_gutter_snapshot_line;
+}
+static void siril_change_gutter_init(SirilChangeGutter *self) { (void) self; }
+
+/* Split the buffer into lines; *n receives the line count.  The returned
+ * array is NULL-terminated (g_strfreev to release).  Index i corresponds to
+ * GtkTextBuffer line i. */
+static gchar **change_split_buffer(GtkTextBuffer *buffer, guint *n) {
+	GtkTextIter s, e;
+	gtk_text_buffer_get_bounds(buffer, &s, &e);
+	gchar *text = gtk_text_buffer_get_text(buffer, &s, &e, FALSE);
+	gchar **lines = g_strsplit(text, "\n", -1);
+	g_free(text);
+	*n = g_strv_length(lines);
+	return lines;
+}
+
+/* Line-based LCS diff of current[] against base[].
+ * cur_changed[i] (size n) is set TRUE when current line i is not part of the
+ * longest common subsequence (i.e. added or modified relative to base).
+ * del_before[i] (size n+1) counts base lines deleted at the gap before
+ * current line i (del_before[n] = trailing deletions). */
+static void change_diff(gchar **cur, guint n, gchar **base, guint m,
+                        gboolean *cur_changed, guint *del_before) {
+	for (guint i = 0; i < n; i++) cur_changed[i] = TRUE;
+	for (guint i = 0; i <= n; i++) del_before[i] = 0;
+	if (m == 0)
+		return;                  /* nothing to match: all current lines added */
+	if (n == 0) {
+		del_before[0] = m;       /* whole baseline deleted */
+		return;
+	}
+
+	/* Guard the O(n*m) table against pathologically large buffers. */
+	guint64 cells = (guint64)(n + 1) * (guint64)(m + 1);
+	if (cells > 6000000ULL) {
+		guint k = MIN(n, m);
+		for (guint i = 0; i < k; i++)
+			cur_changed[i] = (g_strcmp0(cur[i], base[i]) != 0);
+		if (m > n)
+			del_before[n] = m - n;
+		return;
+	}
+
+	guint *dp = g_new0(guint, (gsize) cells);
+#define DP(i,j) dp[(gsize)(i) * (m + 1) + (j)]
+	for (gint i = (gint) n - 1; i >= 0; i--)
+		for (gint j = (gint) m - 1; j >= 0; j--)
+			DP(i, j) = (g_strcmp0(cur[i], base[j]) == 0)
+				? DP(i + 1, j + 1) + 1
+				: MAX(DP(i + 1, j), DP(i, j + 1));
+
+	guint i = 0, j = 0;
+	while (i < n && j < m) {
+		if (g_strcmp0(cur[i], base[j]) == 0) {
+			cur_changed[i] = FALSE; i++; j++;
+		} else if (DP(i + 1, j) >= DP(i, j + 1)) {
+			i++;                 /* current line changed/added */
+		} else {
+			del_before[i]++; j++; /* base line deleted here */
+		}
+	}
+	while (j < m) { del_before[n]++; j++; }
+#undef DP
+	g_free(dp);
+}
+
+static gboolean change_recompute_idle(gpointer data) {
+	ChangeTracker *ct = data;
+	ct->recompute_id = 0;
+
+	guint n = 0;
+	gchar **cur = change_split_buffer(ct->buffer, &n);
+
+	g_array_set_size(ct->line_state, n);
+	g_array_set_size(ct->del_state, n + 1);
+	if (n) memset(ct->line_state->data, 0, n);
+	memset(ct->del_state->data, 0, n + 1);
+
+	gboolean *chg_s = g_new0(gboolean, n ? n : 1);
+	guint    *del_s = g_new0(guint, n + 1);
+	change_diff(cur, n, ct->save_lines, ct->save_n, chg_s, del_s);
+
+	gboolean *chg_o = g_new0(gboolean, n ? n : 1);
+	guint    *del_o = g_new0(guint, n + 1);
+	change_diff(cur, n, ct->open_lines, ct->open_n, chg_o, del_o);
+
+	for (guint i = 0; i < n; i++) {
+		guint8 st = CHG_NONE;
+		if (chg_s[i])           st = CHG_UNSAVED;   /* differs from last save */
+		else if (chg_o[i])      st = CHG_SAVED;     /* saved, but changed this session */
+		g_array_index(ct->line_state, guint8, i) = st;
+	}
+	/* A deletion gap that is adjacent to a changed/added current line is part
+	 * of a modification (the amber/green bar already conveys it) — only show a
+	 * caret for a "pure" deletion, where no current line at the gap changed. */
+	for (guint i = 0; i <= n; i++) {
+		guint8 d = DEL_NONE;
+		gboolean pure_s = (del_s[i] > 0) &&
+			(i == 0 || !chg_s[i - 1]) && (i >= n || !chg_s[i]);
+		gboolean pure_o = (del_o[i] > 0) &&
+			(i == 0 || !chg_o[i - 1]) && (i >= n || !chg_o[i]);
+		if (pure_s)             d = DEL_UNSAVED;
+		else if (pure_o)        d = DEL_SAVED;
+		g_array_index(ct->del_state, guint8, i) = d;
+	}
+
+	g_free(chg_s); g_free(del_s); g_free(chg_o); g_free(del_o);
+	g_strfreev(cur);
+
+	if (ct->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(ct->renderer));
+	return G_SOURCE_REMOVE;
+}
+
+static void change_tracker_schedule(ChangeTracker *ct) {
+	if (ct && ct->recompute_id == 0)
+		ct->recompute_id = g_timeout_add(150, change_recompute_idle, ct);
+}
+
+/* Snapshot the current buffer as the new save baseline (and optionally the
+ * open baseline too).  Reset open+save on load/new; advance only save on a
+ * successful save so amber marks flip to green. */
+static void change_tracker_set_baselines(ChangeTracker *ct, gboolean reset_open) {
+	if (!ct) return;
+	guint n = 0;
+	gchar **cur = change_split_buffer(ct->buffer, &n);
+	g_strfreev(ct->save_lines);
+	ct->save_lines = g_strdupv(cur);
+	ct->save_n = n;
+	if (reset_open) {
+		g_strfreev(ct->open_lines);
+		ct->open_lines = g_strdupv(cur);
+		ct->open_n = n;
+	}
+	g_strfreev(cur);
+	change_tracker_schedule(ct);
+}
+
+static void change_tracker_free(gpointer data) {
+	ChangeTracker *ct = data;
+	if (ct->recompute_id)
+		g_source_remove(ct->recompute_id);
+	g_strfreev(ct->open_lines);
+	g_strfreev(ct->save_lines);
+	g_array_unref(ct->line_state);
+	g_array_unref(ct->del_state);
+	g_free(ct);
+}
+
+static void on_buffer_changed_for_tracking(GtkTextBuffer *buffer, gpointer ud) {
+	(void) ud;
+	change_tracker_schedule(g_object_get_data(G_OBJECT(buffer), "change-tracker"));
+}
+
+/* Build the change tracker for a view/buffer pair and attach it to the
+ * buffer.  Inserts the change-bar gutter renderer at the far left, ahead of
+ * the line-number column. */
+static ChangeTracker *change_tracker_setup(GtkSourceView *view, GtkSourceBuffer *buffer) {
+	ChangeTracker *ct = g_new0(ChangeTracker, 1);
+	ct->buffer = GTK_TEXT_BUFFER(buffer);
+	ct->line_state = g_array_new(FALSE, TRUE, sizeof(guint8));
+	ct->del_state  = g_array_new(FALSE, TRUE, sizeof(guint8));
+
+	ct->renderer = GTK_SOURCE_GUTTER_RENDERER(g_object_new(SIRIL_TYPE_CHANGE_GUTTER, NULL));
+	gtk_widget_set_size_request(GTK_WIDGET(ct->renderer), 8, -1);
+	GtkSourceGutter *gutter = gtk_source_view_get_gutter(view, GTK_TEXT_WINDOW_LEFT);
+	gtk_source_gutter_insert(gutter, ct->renderer, 0);
+
+	g_object_set_data_full(G_OBJECT(buffer), "change-tracker", ct, change_tracker_free);
+	g_signal_connect(buffer, "changed", G_CALLBACK(on_buffer_changed_for_tracking), NULL);
+
+	change_tracker_set_baselines(ct, TRUE);
+	return ct;
+}
+
+/* Reset both baselines to the current buffer content (load / new / clear). */
+static void change_tracker_reset_current(GtkSourceBuffer *buffer) {
+	change_tracker_set_baselines(
+		g_object_get_data(G_OBJECT(buffer), "change-tracker"), TRUE);
+}
+
+/* Advance only the save baseline (successful save): amber → green. */
+static void change_tracker_mark_saved(GtkSourceBuffer *buffer) {
+	change_tracker_set_baselines(
+		g_object_get_data(G_OBJECT(buffer), "change-tracker"), FALSE);
+}
+
+/* Build the minimap (GtkSourceMap), wrapped in a clipping scrolled window.
+ * Reverted from the experimental drawing-area minimap.  Appended to
+ * codeviewbox later (after setup_find_overlay re-parents the editor scroller)
+ * so the minimap stays on the right-hand side. */
+static void add_minimap(void) {
 	map = GTK_SOURCE_MAP(gtk_source_map_new());
 
-	/* Apply a tiny font to the map's text view so the minimap looks like
-	 * a thumbnail rather than a second editor.  GtkSourceMap IS itself
-	 * the textview CSS node (it inherits from GtkSourceView → GtkTextView)
-	 * — the previous `.pyeditor-map textview` selector searched for a
-	 * child node that doesn't exist, so the rule never applied and the
-	 * map kept default-font sizing.  Match the map widget directly and
-	 * scope to `text`/`textview` parts to leave the slider node alone. */
+	/* Tiny font so the minimap reads as a thumbnail rather than a second
+	 * editor.  GtkSourceMap IS the textview CSS node (inherits GtkSourceView
+	 * -> GtkTextView), so target the widget itself and its text part. */
 	siril_register_css_for_display("siril-pyeditor-map",
 		".pyeditor-map, .pyeditor-map text { font-size: 1px; }");
 	gtk_widget_add_css_class(GTK_WIDGET(map), "pyeditor-map");
@@ -499,13 +777,9 @@ void add_code_view(GtkBuilder *builder) {
 	gtk_widget_set_valign(GTK_WIDGET(map), GTK_ALIGN_FILL);
 	gtk_widget_set_hexpand(GTK_WIDGET(map), FALSE);
 
-	/* GTK4 has no max-width on widgets — `gtk_widget_set_size_request`
-	 * is a MINIMUM, not a maximum, and the natural-width measurement of
-	 * GtkSourceMap (font-driven) propagates upward through the box and
-	 * makes the map grow huge if the font CSS hasn't applied yet.  Wrap
-	 * the map in a GtkScrolledWindow with `propagate-natural-width =
-	 * FALSE` so the scroller's own size_request decides the allocation;
-	 * the inner map is then clipped (no scrollbars enabled). */
+	/* Wrap in a scrolled window with propagate-natural-width = FALSE so the
+	 * map's font-driven natural width can't blow up the layout; the inner map
+	 * is clipped (no scrollbars). */
 	map_wrapper = gtk_scrolled_window_new();
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(map_wrapper),
 	                               GTK_POLICY_NEVER, GTK_POLICY_NEVER);
@@ -518,7 +792,218 @@ void add_code_view(GtkBuilder *builder) {
 	gtk_widget_set_valign(map_wrapper, GTK_ALIGN_FILL);
 	gtk_widget_set_halign(map_wrapper, GTK_ALIGN_END);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(map_wrapper), GTK_WIDGET(map));
-	gtk_box_append(GTK_BOX(codeviewbox), map_wrapper);
+}
+
+/* ---------------------------------------------------------------------------
+ * Dynamic line wrap (Kate-style indent-aligned wrapping)
+ *
+ * When enabled, long lines wrap (GTK_WRAP_WORD_CHAR) and each wrapped row is
+ * aligned to its line's indentation via a per-line GtkTextTag with a negative
+ * `indent` (a hanging indent: first row at x=0, wrapped rows at the indent
+ * depth).  A gutter renderer draws a continuation marker (↪) on wrapped rows.
+ *
+ * State hangs off the GtkSourceBuffer (like the change tracker) so it stays
+ * per-document.
+ * ------------------------------------------------------------------------- */
+
+typedef struct {
+	GtkSourceView *view;            /* not owned */
+	gboolean enabled;
+	int char_width;                 /* pixels per monospace column */
+	GHashTable *tags;               /* int cols -> GtkTextTag* (owned by tag table) */
+	GtkSourceGutterRenderer *renderer;  /* continuation marker (not owned) */
+} WrapData;
+
+static WrapData *wrap_data(GtkTextBuffer *buffer) {
+	return buffer ? g_object_get_data(G_OBJECT(buffer), "wrap-data") : NULL;
+}
+
+/* Pixel advance of one monospace column in the view's current font. */
+static int wrap_measure_char_width(GtkSourceView *view) {
+	PangoLayout *layout = gtk_widget_create_pango_layout(GTK_WIDGET(view), "0000000000");
+	int w = 0, h = 0;
+	pango_layout_get_pixel_size(layout, &w, &h);
+	g_object_unref(layout);
+	int cw = w / 10;
+	return cw > 0 ? cw : 8;
+}
+
+/* Visual columns of leading whitespace on a line (tabs expand to tab stops). */
+static int wrap_leading_cols(GtkSourceView *view, const char *line) {
+	int tabw = gtk_source_view_get_tab_width(view);
+	if (tabw <= 0) tabw = 4;
+	int col = 0;
+	for (const char *c = line; *c; c++) {
+		if (*c == ' ') col++;
+		else if (*c == '\t') col += tabw - (col % tabw);
+		else break;
+	}
+	return col;
+}
+
+static GtkTextTag *wrap_tag_for_cols(WrapData *wd, GtkTextBuffer *buf, int cols) {
+	if (cols <= 0)
+		return NULL;
+	GtkTextTag *t = g_hash_table_lookup(wd->tags, GINT_TO_POINTER(cols));
+	if (!t) {
+		int px = cols * wd->char_width;
+		/* negative indent + zero left-margin == hanging indent */
+		t = gtk_text_buffer_create_tag(buf, NULL, "indent", -px, "left-margin", 0, NULL);
+		g_hash_table_insert(wd->tags, GINT_TO_POINTER(cols), t);
+	}
+	return t;
+}
+
+/* Re-apply the hanging-indent tag to buffer lines [first..last]. */
+static void wrap_apply_lines(WrapData *wd, GtkTextBuffer *buf, int first, int last) {
+	if (!wd->enabled)
+		return;
+	int n = gtk_text_buffer_get_line_count(buf);
+	if (first < 0) first = 0;
+	if (last > n - 1) last = n - 1;
+	for (int ln = first; ln <= last; ln++) {
+		GtkTextIter s, e;
+		gtk_text_buffer_get_iter_at_line(buf, &s, ln);
+		e = s;
+		if (!gtk_text_iter_forward_line(&e))
+			gtk_text_buffer_get_end_iter(buf, &e);
+		/* clear any of our existing wrap tags on the line first */
+		GHashTableIter it; gpointer k, v;
+		g_hash_table_iter_init(&it, wd->tags);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			gtk_text_buffer_remove_tag(buf, GTK_TEXT_TAG(v), &s, &e);
+		GtkTextIter le = s;
+		gtk_text_iter_forward_to_line_end(&le);
+		gchar *txt = gtk_text_buffer_get_text(buf, &s, &le, FALSE);
+		int cols = wrap_leading_cols(wd->view, txt);
+		g_free(txt);
+		GtkTextTag *t = wrap_tag_for_cols(wd, buf, cols);
+		if (t)
+			gtk_text_buffer_apply_tag(buf, t, &s, &e);
+	}
+}
+
+static void wrap_apply_all(WrapData *wd, GtkTextBuffer *buf) {
+	wrap_apply_lines(wd, buf, 0, gtk_text_buffer_get_line_count(buf) - 1);
+}
+
+static void wrap_on_insert(GtkTextBuffer *b, GtkTextIter *loc, char *text, int len, gpointer u) {
+	(void) len;
+	WrapData *wd = u;
+	if (!wd->enabled)
+		return;
+	int end_line = gtk_text_iter_get_line(loc);  /* loc is end of inserted text */
+	int start_line = end_line;
+	for (char *c = text; *c; c++)
+		if (*c == '\n') start_line--;
+	wrap_apply_lines(wd, b, start_line, end_line);
+}
+
+static void wrap_on_delete(GtkTextBuffer *b, GtkTextIter *s, GtkTextIter *e, gpointer u) {
+	(void) e;
+	WrapData *wd = u;
+	if (!wd->enabled)
+		return;
+	wrap_apply_lines(wd, b, gtk_text_iter_get_line(s), gtk_text_iter_get_line(s));
+}
+
+/* Continuation-marker gutter renderer: draws ↪ on wrapped rows. */
+#define SIRIL_TYPE_CONT_GUTTER (siril_cont_gutter_get_type())
+G_DECLARE_FINAL_TYPE(SirilContGutter, siril_cont_gutter, SIRIL, CONT_GUTTER, GtkSourceGutterRenderer)
+struct _SirilContGutter { GtkSourceGutterRenderer parent_instance; };
+G_DEFINE_TYPE(SirilContGutter, siril_cont_gutter, GTK_SOURCE_TYPE_GUTTER_RENDERER)
+
+static void siril_cont_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
+		GtkSnapshot *snapshot, GtkSourceGutterLines *lines, guint line) {
+	GtkTextBuffer *buf = gtk_source_gutter_lines_get_buffer(lines);
+	WrapData *wd = wrap_data(buf);
+	if (!wd || !wd->enabled)
+		return;
+	GtkTextView *view = gtk_source_gutter_lines_get_view(lines);
+	GtkTextIter it;
+	gtk_text_buffer_get_iter_at_line(buf, &it, (int) line);
+	GdkRectangle loc;
+	gtk_text_view_get_iter_location(view, &it, &loc);  /* loc.height = one row */
+	int by = 0, full = 0;
+	gtk_text_view_get_line_yrange(view, &it, &by, &full);
+	int rowh = loc.height > 0 ? loc.height : full;
+	int nrows = (rowh > 0) ? (full / rowh) : 1;
+	if (nrows <= 1)
+		return;
+	int wy = 0;
+	gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_LEFT, 0, by, NULL, &wy);
+	int width = gtk_widget_get_width(GTK_WIDGET(renderer));
+	static const GdkRGBA grey = { 0.5f, 0.5f, 0.5f, 1.0f };
+	for (int k = 1; k < nrows; k++) {
+		PangoLayout *pl = gtk_widget_create_pango_layout(GTK_WIDGET(renderer), "\xe2\x86\xaa");
+		int tw = 0, th = 0;
+		pango_layout_get_pixel_size(pl, &tw, &th);
+		gtk_snapshot_save(snapshot);
+		graphene_point_t pt = GRAPHENE_POINT_INIT((float)(width - tw - 2),
+		                                          (float)(wy + k * rowh + (rowh - th) / 2));
+		gtk_snapshot_translate(snapshot, &pt);
+		gtk_snapshot_append_layout(snapshot, pl, &grey);
+		gtk_snapshot_restore(snapshot);
+		g_object_unref(pl);
+	}
+}
+static void siril_cont_gutter_class_init(SirilContGutterClass *klass) {
+	GTK_SOURCE_GUTTER_RENDERER_CLASS(klass)->snapshot_line = siril_cont_gutter_snapshot_line;
+}
+static void siril_cont_gutter_init(SirilContGutter *self) { (void) self; }
+
+static void wrap_data_free(gpointer p) {
+	WrapData *wd = p;
+	g_hash_table_destroy(wd->tags);
+	g_free(wd);
+}
+
+static void wrap_setup(GtkSourceView *view, GtkSourceBuffer *buffer) {
+	WrapData *wd = g_new0(WrapData, 1);
+	wd->view = view;
+	wd->char_width = 8;
+	wd->tags = g_hash_table_new(g_direct_hash, g_direct_equal);
+	g_object_set_data_full(G_OBJECT(buffer), "wrap-data", wd, wrap_data_free);
+	g_signal_connect_after(buffer, "insert-text", G_CALLBACK(wrap_on_insert), wd);
+	g_signal_connect_after(buffer, "delete-range", G_CALLBACK(wrap_on_delete), wd);
+
+	wd->renderer = GTK_SOURCE_GUTTER_RENDERER(g_object_new(SIRIL_TYPE_CONT_GUTTER, NULL));
+	gtk_widget_set_size_request(GTK_WIDGET(wd->renderer), 18, -1);
+	GtkSourceGutter *gutter = gtk_source_view_get_gutter(view, GTK_TEXT_WINDOW_LEFT);
+	/* High position so the marker sits to the right of the line-number column
+	 * (nearest the text), where a wrapped row's blank line-number would be. */
+	gtk_source_gutter_insert(gutter, wd->renderer, 100);
+}
+
+/* Toggle dynamic wrap: set the wrap mode and (re)apply or clear the
+ * hanging-indent tags. */
+static void wrap_set_enabled(gboolean on) {
+	WrapData *wd = wrap_data(GTK_TEXT_BUFFER(sourcebuffer));
+	if (!wd)
+		return;
+	wd->enabled = on;
+	GtkTextBuffer *buf = GTK_TEXT_BUFFER(sourcebuffer);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(code_view),
+		on ? GTK_WRAP_WORD_CHAR : GTK_WRAP_NONE);
+	if (on) {
+		wd->char_width = wrap_measure_char_width(code_view);
+		wrap_apply_all(wd, buf);
+	} else {
+		GtkTextIter s, e;
+		gtk_text_buffer_get_bounds(buf, &s, &e);
+		GHashTableIter it; gpointer k, v;
+		g_hash_table_iter_init(&it, wd->tags);
+		while (g_hash_table_iter_next(&it, &k, &v))
+			gtk_text_buffer_remove_tag(buf, GTK_TEXT_TAG(v), &s, &e);
+	}
+	if (wd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(wd->renderer));
+}
+
+void add_code_view(GtkBuilder *builder) {
+	// Create a new GtkSourceBuffer (glade doesn't handle this properly)
+	sourcebuffer = gtk_source_buffer_new(NULL);
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(code_view), GTK_TEXT_BUFFER(sourcebuffer));
 
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
@@ -556,6 +1041,15 @@ void add_code_view(GtkBuilder *builder) {
 												space_types);
 
 	gtk_source_space_drawer_set_enable_matrix(space_drawer, TRUE);
+
+	// Attach the changed-line tracker / change-bar gutter renderer
+	change_tracker_setup(code_view, sourcebuffer);
+
+	// Dynamic line-wrap manager (indent-aligned continuations + marker)
+	wrap_setup(code_view, sourcebuffer);
+
+	// Build the custom minimap (decoupled from the editor buffer)
+	add_minimap();
 }
 
 /** Code for the find feature ***/
@@ -919,6 +1413,12 @@ void python_scratchpad_init_statics() {
 		setup_find_overlay();
 		setup_search(code_view, find_entry);
 
+		/* Append the minimap now, AFTER setup_find_overlay() re-parents the
+		 * editor scroller into codeviewbox, so the minimap is the last child
+		 * (right-hand side) rather than being pushed to the left. */
+		if (map_wrapper && !gtk_widget_get_parent(map_wrapper))
+			gtk_box_append(GTK_BOX(codeviewbox), map_wrapper);
+
 		// Initialize with "unsaved" if no file is loaded
 		if (!current_file) {
 			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
@@ -975,6 +1475,9 @@ void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_dat
 		g_printerr("Error loading file: %s\n", error->message);
 		gtk_window_set_title(GTK_WINDOW(editor_window), "");
 		g_error_free(error);
+	} else {
+		// Loaded content becomes the baseline: no lines are "changed" yet.
+		change_tracker_reset_current(sourcebuffer);
 	}
 	g_object_unref(loader);
 }
@@ -1005,6 +1508,9 @@ void save_file_complete(GObject *saver, GAsyncResult *result, gpointer user_data
 	if (!gtk_source_file_saver_save_finish(GTK_SOURCE_FILE_SAVER(saver), result, &error)) {
 		g_printerr("Error saving file: %s\n", error->message);
 		g_error_free(error);
+	} else {
+		// Save succeeded: advance the save baseline so amber marks turn green.
+		change_tracker_mark_saved(sourcebuffer);
 	}
 	g_object_unref(saver);
 }
@@ -1044,6 +1550,7 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 		buffer_modified = FALSE;
 		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
 		gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
+		change_tracker_reset_current(sourcebuffer);
 		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
@@ -1085,6 +1592,7 @@ void new_script(const gchar *contents, gint length, const char *ext) {
 		buffer_modified = FALSE;
 		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
 		gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
+		change_tracker_reset_current(sourcebuffer);
 		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		if (!g_ascii_strcasecmp(ext, "ssf")) {
 			active_language = LANG_SSF;
@@ -1400,6 +1908,7 @@ void on_python_window_show(GtkWidget *widget, gpointer user_data) {
 		{ "showspaces",           com.pref.gui.editor_cfg.showspaces },
 		{ "shownewlines",         com.pref.gui.editor_cfg.shownewlines },
 		{ "minimap",              com.pref.gui.editor_cfg.minimap },
+		{ "dynamicwrap",          com.pref.gui.editor_cfg.dynamic_wrap },
 		/* useargs / pythondebug keep their session values rather than
 		 * being read from the pref (they're not persisted). */
 		{ "useargs",              from_cli },

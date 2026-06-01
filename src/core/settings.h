@@ -208,6 +208,7 @@ struct editor_config {
 	gboolean showspaces;
 	gboolean shownewlines;
 	gboolean minimap;
+	gboolean dynamic_wrap;
 };
 
 typedef enum {
