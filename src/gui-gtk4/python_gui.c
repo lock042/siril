@@ -40,6 +40,10 @@ static GtkWidget    *map_wrapper = NULL;  /* clip container holding `map` */
 /* EXPERIMENTAL: transparent overlay that paints grey indent/tab guides in the
  * virtual hanging-indent area of wrapped continuation rows (Kate style). */
 static GtkWidget    *wrap_guides_area = NULL;
+/* Multi-tab: notebook holding one page per open document, and the GtkOverlay
+ * (created by setup_find_overlay) that wraps the active editor scroller. */
+static GtkNotebook  *editor_notebook = NULL;
+static GtkWidget    *content_overlay = NULL;
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkDropDown *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -1137,6 +1141,7 @@ void add_code_view(GtkBuilder *builder) {
 static void setup_find_overlay() {
 	// Create a new overlay
 	GtkWidget *new_overlay = gtk_overlay_new();
+	content_overlay = new_overlay;   /* the active editor's find/guides host */
 	gtk_widget_set_visible(new_overlay, TRUE);
 	gtk_widget_set_vexpand(new_overlay, TRUE);
 	gtk_widget_set_hexpand(new_overlay, TRUE);
@@ -1515,6 +1520,33 @@ void python_scratchpad_init_statics() {
 		 * (right-hand side) rather than being pushed to the left. */
 		if (map_wrapper && !gtk_widget_get_parent(map_wrapper))
 			gtk_box_append(GTK_BOX(codeviewbox), map_wrapper);
+
+		/* Multi-tab (stage 1): wrap the assembled editor content (find-overlay
+		 * host + minimap) in a GtkNotebook page.  Subsequent stages add the
+		 * per-document factory, tab switching and close handling. */
+		editor_notebook = GTK_NOTEBOOK(gtk_notebook_new());
+		gtk_widget_set_vexpand(GTK_WIDGET(editor_notebook), TRUE);
+		gtk_widget_set_hexpand(GTK_WIDGET(editor_notebook), TRUE);
+		gtk_notebook_set_scrollable(editor_notebook, TRUE);
+		GtkWidget *page0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+		gtk_widget_set_hexpand(page0, TRUE);
+		gtk_widget_set_vexpand(page0, TRUE);
+		/* Move the existing content (overlay + minimap) out of codeviewbox and
+		 * into the first notebook page. */
+		if (content_overlay && gtk_widget_get_parent(content_overlay) == GTK_WIDGET(codeviewbox)) {
+			g_object_ref(content_overlay);
+			gtk_box_remove(GTK_BOX(codeviewbox), content_overlay);
+			gtk_box_append(GTK_BOX(page0), content_overlay);
+			g_object_unref(content_overlay);
+		}
+		if (map_wrapper && gtk_widget_get_parent(map_wrapper) == GTK_WIDGET(codeviewbox)) {
+			g_object_ref(map_wrapper);
+			gtk_box_remove(GTK_BOX(codeviewbox), map_wrapper);
+			gtk_box_append(GTK_BOX(page0), map_wrapper);
+			g_object_unref(map_wrapper);
+		}
+		gtk_notebook_append_page(editor_notebook, page0, gtk_label_new(_("unsaved")));
+		gtk_box_append(GTK_BOX(codeviewbox), GTK_WIDGET(editor_notebook));
 
 		// Initialize with "unsaved" if no file is loaded
 		if (!current_file) {
