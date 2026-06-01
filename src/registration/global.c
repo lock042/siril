@@ -134,13 +134,33 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	// peaking or using cached list in lst(if no selection is made)
 	// For now selection is using com.selection
-	// Pass -1 as image index for external ref to skip sequence cache
-	int ref_cache_index = regargs->use_external_ref ? -1 : regargs->reference_image;
-	struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, ref_cache_index, &fit, NULL, com.max_thread);
-	if (sf_data) {
-		sadata->refstars = *sf_data->stars;
-		nb_stars = *sf_data->nb_stars;
-		free(sf_data);
+	if (regargs->use_external_ref) {
+		// Use a clean sfargs like the 2-pass path: findstar_image_worker carries
+		// sequence-specific context (from_seq, layer) that is wrong for an external ref
+		psf_star **ref_stars = NULL;
+		int nb_ref_stars = 0;
+		struct starfinder_data *sfargs_ext = calloc(1, sizeof(struct starfinder_data));
+		sfargs_ext->im.fit = &fit;
+		sfargs_ext->im.from_seq = NULL;
+		sfargs_ext->im.index_in_seq = -1;
+		sfargs_ext->layer = (fit.naxes[2] == 1) ? 0 : 1;
+		sfargs_ext->max_stars_fitted = regargs->max_stars_candidates;
+		sfargs_ext->selection = (rectangle){0, 0, 0, 0};
+		sfargs_ext->stars = &ref_stars;
+		sfargs_ext->nb_stars = &nb_ref_stars;
+		sfargs_ext->threading = MULTI_THREADED;
+		if (!GPOINTER_TO_INT(findstar_worker(sfargs_ext))) {
+			sadata->refstars = ref_stars;
+			nb_stars = nb_ref_stars;
+		}
+		free(sfargs_ext);
+	} else {
+		struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
+		if (sf_data) {
+			sadata->refstars = *sf_data->stars;
+			nb_stars = *sf_data->nb_stars;
+			free(sf_data);
+		}
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
