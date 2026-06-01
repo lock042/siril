@@ -181,7 +181,8 @@ preferences pref_init = {
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
 			.minimap = FALSE,
-			.dynamic_wrap = FALSE
+			.dynamic_wrap = FALSE,
+			.code_folding = FALSE
 		},
 		.mask_tints_vports = TRUE
 	},
@@ -571,6 +572,7 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
 	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
 	{ "script_editor", "dynamic_wrap", STYPE_BOOL, N_("Dynamically wrap long lines in the script editor"), &com.pref.gui.editor_cfg.dynamic_wrap },
+	{ "script_editor", "code_folding", STYPE_BOOL, N_("Enable code folding in the script editor"), &com.pref.gui.editor_cfg.code_folding },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

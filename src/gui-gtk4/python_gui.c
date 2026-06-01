@@ -126,6 +126,8 @@ void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
 static void wrap_set_enabled(gboolean on);
+static void fold_set_enabled(GtkSourceBuffer *buffer, gboolean on);
+static gboolean editor_line_is_folded(GtkTextBuffer *b, int line);
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data);
 
@@ -171,6 +173,7 @@ static GActionEntry editor_actions[] = {
 	{ "shownewlines",         NULL, NULL, "false", on_toggle_change_state },
 	{ "minimap",              NULL, NULL, "false", on_toggle_change_state },
 	{ "dynamicwrap",          NULL, NULL, "false", on_toggle_change_state },
+	{ "codefolding",          NULL, NULL, "false", on_toggle_change_state },
 	{ "useargs",              NULL, NULL, "false", on_toggle_change_state },
 	{ "pythondebug",          NULL, NULL, "false", on_toggle_change_state },
 
@@ -306,6 +309,7 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_menu_append(prefs, _("Show _newlines"),                "editor.shownewlines");
 	g_menu_append(prefs, _("Show mi_nimap"),                 "editor.minimap");
 	g_menu_append(prefs, _("Dynamic line _wrap"),            "editor.dynamicwrap");
+	g_menu_append(prefs, _("Enable code _folding"),          "editor.codefolding");
 	g_menu_append_submenu(bar, _("_Preferences"), G_MENU_MODEL(prefs));
 	g_object_unref(prefs);
 
@@ -407,6 +411,9 @@ static void apply_editor_setting(const gchar *name, gboolean v) {
 	} else if (g_strcmp0(name, "dynamicwrap") == 0) {
 		wrap_set_enabled(v);
 		com.pref.gui.editor_cfg.dynamic_wrap = v;
+	} else if (g_strcmp0(name, "codefolding") == 0) {
+		fold_set_enabled(sourcebuffer, v);
+		com.pref.gui.editor_cfg.code_folding = v;
 	} else if (g_strcmp0(name, "useargs") == 0) {
 		if (args_box)
 			gtk_widget_set_visible(GTK_WIDGET(args_box), v);
@@ -1082,6 +1089,8 @@ static void wrap_guides_draw(GtkDrawingArea *area, cairo_t *cr, int w, int h, gp
 	cairo_set_line_width(cr, 1.0);
 
 	for (int ln = first; ln <= last; ln++) {
+		if (editor_line_is_folded(buf, ln))
+			continue;                 /* line hidden by a fold: no guides */
 		GtkTextIter s, e;
 		gtk_text_buffer_get_iter_at_line(buf, &s, ln);
 		e = s;
@@ -1113,6 +1122,289 @@ static void wrap_guides_draw(GtkDrawingArea *area, cairo_t *cr, int w, int h, gp
 			cairo_fill(cr);
 		}
 	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Code folding (Python, indentation-based)
+ *
+ * GtkSourceView 5 has no folding, so this is custom: regions are detected by
+ * indentation (a line whose following lines are more indented is a foldable
+ * header), folding hides the body via an "invisible" GtkTextTag, and a gutter
+ * renderer draws ▸/▾ markers.  State hangs off the buffer (per tab).
+ * ------------------------------------------------------------------------- */
+
+typedef struct { int header; int end; gboolean folded; } FoldRegion;
+
+typedef struct {
+	GtkSourceView   *view;          /* not owned */
+	GtkTextBuffer   *buffer;        /* not owned */
+	gboolean         enabled;
+	GArray          *regions;       /* FoldRegion */
+	GtkTextTag      *invisible_tag;
+	GtkSourceGutterRenderer *renderer;  /* not owned (held by gutter) */
+	guint            recompute_id;
+	int              hover_line;    /* header hovered in the gutter, or -1 (stage 3b) */
+	gboolean         gutter_hover;  /* pointer is over the fold gutter (stage 3b) */
+} FoldData;
+
+static FoldData *fold_data(GtkTextBuffer *b) {
+	return b ? g_object_get_data(G_OBJECT(b), "fold-data") : NULL;
+}
+
+/* TRUE if `line` is hidden inside a folded region (used by the wrap guides). */
+static gboolean editor_line_is_folded(GtkTextBuffer *b, int line) {
+	FoldData *fd = fold_data(b);
+	if (!fd || !fd->enabled || !fd->invisible_tag)
+		return FALSE;
+	GtkTextIter it;
+	gtk_text_buffer_get_iter_at_line(b, &it, line);
+	return gtk_text_iter_has_tag(&it, fd->invisible_tag);
+}
+
+static FoldRegion *fold_region_at_header(FoldData *fd, int line) {
+	for (guint i = 0; i < fd->regions->len; i++) {
+		FoldRegion *r = &g_array_index(fd->regions, FoldRegion, i);
+		if (r->header == line)
+			return r;
+	}
+	return NULL;
+}
+
+/* Leading-whitespace columns of a line; returns -1 for a blank/whitespace line. */
+static int fold_line_indent(const char *s, int tabw) {
+	int col = 0;
+	for (const char *c = s; *c; c++) {
+		if (*c == ' ') col++;
+		else if (*c == '\t') col += tabw - (col % tabw);
+		else return col;
+	}
+	return -1;
+}
+
+/* (Re)apply the invisible tag: clear it, then hide the body of every folded
+ * region.  Re-applying all folded regions keeps nested folds correct. */
+static void fold_apply_all(FoldData *fd) {
+	GtkTextBuffer *b = fd->buffer;
+	GtkTextIter s, e;
+	gtk_text_buffer_get_bounds(b, &s, &e);
+	gtk_text_buffer_remove_tag(b, fd->invisible_tag, &s, &e);
+	if (!fd->enabled)
+		return;
+	for (guint i = 0; i < fd->regions->len; i++) {
+		FoldRegion *r = &g_array_index(fd->regions, FoldRegion, i);
+		if (!r->folded)
+			continue;
+		GtkTextIter hs, ee;
+		gtk_text_buffer_get_iter_at_line(b, &hs, r->header);
+		gtk_text_iter_forward_to_line_end(&hs);     /* end of header text */
+		gtk_text_buffer_get_iter_at_line(b, &ee, r->end);
+		gtk_text_iter_forward_to_line_end(&ee);      /* end of last body line */
+		gtk_text_buffer_apply_tag(b, fd->invisible_tag, &hs, &ee);
+	}
+	/* Folding changes which lines are visible and their positions, so the
+	 * wrap-guide overlay must repaint. */
+	if (wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
+}
+
+/* Recompute fold regions from indentation, preserving folded state by header
+ * line number where possible. */
+static void fold_compute_regions(FoldData *fd) {
+	GtkTextBuffer *b = fd->buffer;
+	GtkTextIter s, e;
+	gtk_text_buffer_get_bounds(b, &s, &e);
+	gchar *text = gtk_text_buffer_get_text(b, &s, &e, FALSE);
+	gchar **lines = g_strsplit(text, "\n", -1);
+	g_free(text);
+	guint n = g_strv_length(lines);
+	int tabw = gtk_source_view_get_tab_width(fd->view);
+	if (tabw <= 0) tabw = 4;
+
+	/* remember which header lines were folded */
+	GHashTable *folded = g_hash_table_new(g_direct_hash, g_direct_equal);
+	for (guint i = 0; i < fd->regions->len; i++) {
+		FoldRegion *r = &g_array_index(fd->regions, FoldRegion, i);
+		if (r->folded)
+			g_hash_table_add(folded, GINT_TO_POINTER(r->header));
+	}
+
+	/* Per-line indent, with triple-quoted strings tracked so their (often
+	 * dedented) interior lines aren't mistaken for code:
+	 *   >= 0 : real code line, leading-whitespace columns
+	 *   -1   : blank line
+	 *   -2   : line that begins inside a multi-line string (treated as body
+	 *          continuation: never a header, never breaks a region). */
+	int *ind = g_new(int, n ? n : 1);
+	gboolean in_str = FALSE;
+	char q = 0;
+	for (guint i = 0; i < n; i++) {
+		gboolean starts_in_str = in_str;
+		for (const char *p = lines[i]; *p; ) {
+			if (in_str) {
+				if (p[0] == q && p[1] == q && p[2] == q) { in_str = FALSE; p += 3; }
+				else p++;
+			} else if ((p[0] == '"' || p[0] == '\'') && p[1] == p[0] && p[2] == p[0]) {
+				in_str = TRUE; q = p[0]; p += 3;
+			} else {
+				p++;
+			}
+		}
+		ind[i] = starts_in_str ? -2 : fold_line_indent(lines[i], tabw);
+	}
+
+	g_array_set_size(fd->regions, 0);
+	for (guint i = 0; i < n; i++) {
+		if (ind[i] < 0)
+			continue;
+		guint j = i + 1;
+		while (j < n && ind[j] < 0) j++;
+		if (j >= n || ind[j] <= ind[i])
+			continue;                       /* no more-indented body: not a header */
+		int end = (int) i;
+		for (guint m = i + 1; m < n; m++) {
+			if (ind[m] == -1) continue;          /* blank: stays within, doesn't extend */
+			if (ind[m] == -2) { end = (int) m; continue; } /* string interior: body */
+			if (ind[m] > ind[i]) { end = (int) m; continue; }
+			break;                                /* dedent to <= header: region ends */
+		}
+		FoldRegion r = { (int) i, end,
+		                 g_hash_table_contains(folded, GINT_TO_POINTER((int) i)) };
+		g_array_append_val(fd->regions, r);
+	}
+	g_free(ind);
+	g_strfreev(lines);
+	g_hash_table_destroy(folded);
+
+	fold_apply_all(fd);
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+}
+
+static gboolean fold_recompute_idle(gpointer u) {
+	FoldData *fd = u;
+	fd->recompute_id = 0;
+	if (fd->enabled)
+		fold_compute_regions(fd);
+	return G_SOURCE_REMOVE;
+}
+static void on_buffer_changed_for_folding(GtkTextBuffer *b, gpointer u) {
+	(void) u;
+	FoldData *fd = fold_data(b);
+	if (fd && fd->enabled && fd->recompute_id == 0)
+		fd->recompute_id = g_timeout_add(150, fold_recompute_idle, fd);
+}
+
+static void fold_toggle_at_line(FoldData *fd, int line) {
+	FoldRegion *r = fold_region_at_header(fd, line);
+	if (!r)
+		return;
+	r->folded = !r->folded;
+	fold_apply_all(fd);
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+}
+
+/* ---- fold gutter renderer ---- */
+#define SIRIL_TYPE_FOLD_GUTTER (siril_fold_gutter_get_type())
+G_DECLARE_FINAL_TYPE(SirilFoldGutter, siril_fold_gutter, SIRIL, FOLD_GUTTER, GtkSourceGutterRenderer)
+struct _SirilFoldGutter { GtkSourceGutterRenderer parent_instance; };
+G_DEFINE_TYPE(SirilFoldGutter, siril_fold_gutter, GTK_SOURCE_TYPE_GUTTER_RENDERER)
+
+static void siril_fold_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
+		GtkSnapshot *snapshot, GtkSourceGutterLines *lines, guint line) {
+	GtkTextBuffer *buf = gtk_source_gutter_lines_get_buffer(lines);
+	FoldData *fd = fold_data(buf);
+	if (!fd || !fd->enabled)
+		return;
+	FoldRegion *r = fold_region_at_header(fd, (int) line);
+	if (!r)
+		return;
+	GtkTextView *view = gtk_source_gutter_lines_get_view(lines);
+	GtkTextIter it;
+	gtk_text_buffer_get_iter_at_line(buf, &it, (int) line);
+	int by = 0, h = 0;
+	gtk_text_view_get_line_yrange(view, &it, &by, &h);
+	int wy = 0;
+	gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_LEFT, 0, by, NULL, &wy);
+	int width = gtk_widget_get_width(GTK_WIDGET(renderer));
+	graphene_rect_t cell = GRAPHENE_RECT_INIT(0.0f, (float) wy, (float) width, (float) h);
+	cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &cell);
+	cairo_set_source_rgba(cr, 0.55, 0.55, 0.55, 0.9);
+	double cx = width / 2.0, cy = wy + h / 2.0, s = 3.5;
+	if (r->folded) {                 /* ▸ right-pointing */
+		cairo_move_to(cr, cx - s, cy - s);
+		cairo_line_to(cr, cx + s, cy);
+		cairo_line_to(cr, cx - s, cy + s);
+	} else {                         /* ▾ down-pointing */
+		cairo_move_to(cr, cx - s, cy - s);
+		cairo_line_to(cr, cx + s, cy - s);
+		cairo_line_to(cr, cx, cy + s);
+	}
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_destroy(cr);
+}
+static gboolean siril_fold_gutter_query_activatable(GtkSourceGutterRenderer *renderer,
+		GtkTextIter *iter, GdkRectangle *area) {
+	(void) area;
+	FoldData *fd = fold_data(gtk_text_iter_get_buffer(iter));
+	return fd && fd->enabled && fold_region_at_header(fd, gtk_text_iter_get_line(iter)) != NULL;
+}
+static void siril_fold_gutter_activate(GtkSourceGutterRenderer *renderer,
+		GtkTextIter *iter, GdkRectangle *area, guint button,
+		GdkModifierType state, gint n_presses) {
+	(void) renderer; (void) area; (void) button; (void) state; (void) n_presses;
+	FoldData *fd = fold_data(gtk_text_iter_get_buffer(iter));
+	if (fd)
+		fold_toggle_at_line(fd, gtk_text_iter_get_line(iter));
+}
+static void siril_fold_gutter_class_init(SirilFoldGutterClass *klass) {
+	GtkSourceGutterRendererClass *rc = GTK_SOURCE_GUTTER_RENDERER_CLASS(klass);
+	rc->snapshot_line = siril_fold_gutter_snapshot_line;
+	rc->query_activatable = siril_fold_gutter_query_activatable;
+	rc->activate = siril_fold_gutter_activate;
+}
+static void siril_fold_gutter_init(SirilFoldGutter *self) { (void) self; }
+
+static void fold_data_free(gpointer p) {
+	FoldData *fd = p;
+	if (fd->recompute_id)
+		g_source_remove(fd->recompute_id);
+	g_array_unref(fd->regions);
+	g_free(fd);
+}
+
+static void fold_setup(GtkSourceView *view, GtkSourceBuffer *buffer) {
+	FoldData *fd = g_new0(FoldData, 1);
+	fd->view = view;
+	fd->buffer = GTK_TEXT_BUFFER(buffer);
+	fd->regions = g_array_new(FALSE, FALSE, sizeof(FoldRegion));
+	fd->hover_line = -1;
+	fd->invisible_tag = gtk_text_buffer_create_tag(fd->buffer, NULL, "invisible", TRUE, NULL);
+	fd->renderer = GTK_SOURCE_GUTTER_RENDERER(g_object_new(SIRIL_TYPE_FOLD_GUTTER, NULL));
+	/* Always visible (so it is always allocated — avoids snapshot-without-
+	 * allocation warnings); reserve no column until folding is enabled by
+	 * toggling the requested width rather than visibility. */
+	gtk_widget_set_size_request(GTK_WIDGET(fd->renderer), 0, -1);
+	gtk_source_gutter_insert(gtk_source_view_get_gutter(view, GTK_TEXT_WINDOW_LEFT),
+	                         fd->renderer, 90);
+	g_object_set_data_full(G_OBJECT(buffer), "fold-data", fd, fold_data_free);
+	g_signal_connect(buffer, "changed", G_CALLBACK(on_buffer_changed_for_folding), NULL);
+}
+
+/* Enable/disable folding on a buffer: show/hide the gutter, recompute or
+ * unfold everything. */
+static void fold_set_enabled(GtkSourceBuffer *buffer, gboolean on) {
+	FoldData *fd = fold_data(GTK_TEXT_BUFFER(buffer));
+	if (!fd)
+		return;
+	fd->enabled = on;
+	if (fd->renderer)
+		gtk_widget_set_size_request(GTK_WIDGET(fd->renderer), on ? 14 : 0, -1);
+	if (on)
+		fold_compute_regions(fd);
+	else
+		fold_apply_all(fd);     /* enabled==FALSE -> removes all invisible tags */
 }
 
 void add_code_view(GtkBuilder *builder) {
@@ -1162,6 +1454,9 @@ void add_code_view(GtkBuilder *builder) {
 
 	// Dynamic line-wrap manager (indent-aligned continuations + marker)
 	wrap_setup(code_view, sourcebuffer);
+
+	// Code-folding manager (indentation-based regions + fold gutter)
+	fold_setup(code_view, sourcebuffer);
 
 	// Build the custom minimap (decoupled from the editor buffer)
 	add_minimap();
@@ -1532,6 +1827,7 @@ static void apply_editor_settings_to_active(void) {
 		{ "shownewlines",         com.pref.gui.editor_cfg.shownewlines },
 		{ "minimap",              com.pref.gui.editor_cfg.minimap },
 		{ "dynamicwrap",          com.pref.gui.editor_cfg.dynamic_wrap },
+		{ "codefolding",          com.pref.gui.editor_cfg.code_folding },
 		{ "useargs",              from_cli },
 		{ "pythondebug",          python_debug },
 	};
