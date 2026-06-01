@@ -29,8 +29,8 @@ SOFTWARE.
 #include <fftw3.h>
 #endif
 
-#include "image.hpp"
-#include "image_expr.hpp"
+#include "algos/img_t/image.hpp"
+#include "algos/img_t/image_expr.hpp"
 
 #include <map>
 #include <unordered_map>

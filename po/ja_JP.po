@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-20 10:42+0000\n"
+"PO-Revision-Date: 2026-06-01 08:43+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -5037,9 +5037,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:623
-#, fuzzy
 msgid "Parameters"
-msgstr "画像パラメーター"
+msgstr "パラメータ"
 
 #: src/gui/uifiles/pixelmath.ui:649
 msgid "Rescale result"
@@ -7917,7 +7916,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5263
 msgid "Automatic updates"
-msgstr "自動アップデート"
+msgstr "自動更新"
 
 #: src/gui/uifiles/settings_window.ui:5267
 msgid "Automatically update the repository at startup."
@@ -7925,7 +7924,7 @@ msgstr "開始時に自動的にリポジトリを更新します。"
 
 #: src/gui/uifiles/settings_window.ui:5279
 msgid "Manual update"
-msgstr "手動アップデート"
+msgstr "手動更新"
 
 #: src/gui/uifiles/settings_window.ui:5284
 msgid ""
@@ -8314,11 +8313,11 @@ msgstr "TIFFの著作権情報"
 
 #: src/gui/uifiles/settings_window.ui:6443
 msgid "Check update at startup"
-msgstr "起動時にアップデートを確認"
+msgstr "起動時に更新を確認"
 
 #: src/gui/uifiles/settings_window.ui:6459
 msgid "Update"
-msgstr "アップデート"
+msgstr "更新"
 
 #: src/gui/uifiles/siril.ui:296
 msgid "Clear all curves displayed in photometry."
@@ -8354,7 +8353,7 @@ msgstr "Sirilのマニュアル"
 
 #: src/gui/uifiles/siril.ui:518
 msgid "Check For Updates"
-msgstr "アップデートを確認"
+msgstr "更新を確認"
 
 #: src/gui/uifiles/siril.ui:532
 msgid "Keyboard Shortcuts"
@@ -12309,9 +12308,8 @@ msgid "local"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:900
-#, fuzzy
 msgid "online"
-msgstr "B-スプライン"
+msgstr "online"
 
 #: src/algos/astrometry_solver.c:901
 #, c-format
@@ -17509,7 +17507,7 @@ msgstr ""
 
 #: src/core/command_def.h:20
 msgid "Lists Siril capabilities, based on compilation options and runtime"
-msgstr "コンパイルオプションおよび実行時環境に基づいて、Sirilの機能の一覧を表示します"
+msgstr "コンパイルオプションおよび実行時環境に基づいて、Sirilの機能の一覧を表示"
 
 #: src/core/command_def.h:21
 msgid ""
@@ -17767,9 +17765,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:41
-#, fuzzy
 msgid "Dumps the FITS header of the loaded image in the console"
-msgstr "この dark マスター画像は画像シーケンスの全ての画像から削除されます."
+msgstr "読み込んだ画像のFITSヘッダをコンソールに出力"
 
 #: src/core/command_def.h:43
 msgid ""
@@ -17817,7 +17814,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:46
-#, fuzzy
 msgid "Quits the application"
 msgstr "アプリケーションを終了"
 
@@ -18084,7 +18080,7 @@ msgstr ""
 
 #: src/core/command_def.h:75
 msgid "Lists the available commands or help for one command"
-msgstr ""
+msgstr "利用可能なコマンドの一覧を表示、または、特定のコマンドのヘルプを表示"
 
 #: src/core/command_def.h:76
 msgid ""
@@ -19552,12 +19548,12 @@ msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
 msgstr ""
-"処理時に画像をチャンネルあたり32ビットで保存することを禁止し、代わりに16ビッ"
-"トを使用する"
+"処理時に画像をチャンネルあたり32ビットで保存することを禁止し、代わりに16"
+"ビットを使用"
 
 #: src/core/command_def.h:197
 msgid "Allows images to be saved with 32 bits per channel on processing"
-msgstr "処理時に、画像をチャンネルあたり32ビットで保存できるようにする"
+msgstr "処理時に、画像をチャンネルあたり32ビットで保存できるように"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -19575,8 +19571,8 @@ msgstr ""
 "画像を圧縮するかどうかを指定する。\n"
 "\n"
 "<b>0</b>は圧縮しないことを意味し、<b>1</b>は圧縮を有効にする。\n"
-"圧縮を有効にする場合、オプション <b>-type=</b>に圧縮方式（\"rice\"、"
-"\"gzip1\"、\"gzip2\"）を明示的に指定することが必要。\n"
+"圧縮を有効にする場合、オプション<b>-type=</b>に圧縮方式"
+"（\"rice\"、\"gzip1\"、\"gzip2\"）を明示的に指定することが必要。\n"
 "圧縮に関連して、量子化値は [0, 256] の範囲内であることが必要。\n"
 "\n"
 "例えば、\"setcompress 1 -type=rice 16\"と指定すると、量子化値 16 の rice 圧縮"
@@ -21230,9 +21226,8 @@ msgid "need requires cmd in pipe"
 msgstr ""
 
 #: src/core/settings.c:363
-#, fuzzy
 msgid "check update at start-up"
-msgstr "アップデートを確認"
+msgstr "起動時に更新を確認する"
 
 #: src/core/settings.c:364
 msgid "active siril language"
@@ -22155,9 +22150,7 @@ msgstr ""
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
-msgstr ""
-"新しいバージョンが利用可能です。<a href=\"%s\">%s</a>でダウンロードできま"
-"す。\n"
+msgstr "新しいバージョンが利用可能です。<a href=\"%s\">%s</a>でダウンロードできます\n"
 
 #: src/core/siril_update.c:417
 msgid "No update check: this is a development version\n"
@@ -22223,7 +22216,7 @@ msgstr ""
 
 #: src/core/siril_update.c:656
 msgid "Looking for updates..."
-msgstr "アップデートを確認しています..."
+msgstr "更新を確認しています..."
 
 #: src/core/siril_update.c:676
 #, fuzzy
@@ -28532,6 +28525,8 @@ msgstr ""
 #, c-format
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr ""
+"FITSを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル, %d "
+"ビット\n"
 
 #: src/io/image_format_fits.c:1390
 #, c-format
@@ -28561,7 +28556,7 @@ msgstr ""
 #: src/io/image_format_fits.c:1937
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
-msgstr ""
+msgstr "FITSを保存しています: ファイル %s, %ld レイヤー, %ux%u ピクセル, %d ビット\n"
 
 #: src/io/image_format_fits.c:2035
 #, c-format
@@ -28626,7 +28621,7 @@ msgstr ""
 #: src/io/image_formats_internal.c:293
 #, c-format
 msgid "Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "BMPを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_internal.c:395
 msgid "Can't create BMP file.\n"
@@ -28635,7 +28630,7 @@ msgstr ""
 #: src/io/image_formats_internal.c:450
 #, c-format
 msgid "Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "BMPを保存しています: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_internal.c:474 src/io/image_formats_internal.c:1005
 msgid "Sorry but Siril cannot open this file.\n"
@@ -28667,7 +28662,7 @@ msgstr ""
 #: src/io/image_formats_internal.c:662
 #, c-format
 msgid "Reading NetPBM: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "NetPBMを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_internal.c:671
 #, fuzzy, c-format
@@ -28677,7 +28672,7 @@ msgstr "%d: ‘%s’ 行目にエラー.\n"
 #: src/io/image_formats_internal.c:742 src/io/image_formats_internal.c:810
 #, c-format
 msgid "Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "NetPBMを保存しています: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_internal.c:913
 msgid "Wrong magic cookie in PIC file. This image is not supported.\n"
@@ -28694,19 +28689,17 @@ msgid "Error: seek failure in file.\n"
 msgstr "エラー: 統計計算失敗\n"
 
 #: src/io/image_formats_internal.c:983
-#, fuzzy
 msgid "Error: memory allocation failure.\n"
-msgstr "エラー: 統計計算失敗\n"
+msgstr "エラー: メモリ割り当て失敗。\n"
 
 #: src/io/image_formats_internal.c:990
-#, fuzzy
 msgid "Error: Cannot read the data\n"
-msgstr "画像シーケンスをエクスポート"
+msgstr "エラー: データを読み取れません\n"
 
 #: src/io/image_formats_internal.c:1015
 #, c-format
 msgid "Reading PIC: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "PICを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #. removing left white spaces if exist
 #: src/io/image_formats_internal.c:1023
@@ -28753,7 +28746,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:641
 #, c-format
 msgid "Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "TIFFを読み込んでいます: %dビットファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:665
 msgid "Siril cannot create TIFF file.\n"
@@ -28765,12 +28758,12 @@ msgstr ""
 
 #: src/io/image_formats_libraries.c:949
 msgid "Saving TIFF: Cannot write TIFF file.\n"
-msgstr ""
+msgstr "TIFFを保存しています: TIFFファイルを書き込めません。\n"
 
 #: src/io/image_formats_libraries.c:955
 #, c-format
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "TIFFを保存しています: %dビットファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:1154
 #, fuzzy
@@ -28784,7 +28777,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:1264
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "XISFを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:1285 src/io/image_formats_libraries.c:1579
 #: src/io/image_formats_libraries.c:2747
@@ -28837,7 +28830,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:2028
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "PNGを保存しています: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:2163
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
@@ -28861,7 +28854,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:2301
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "RAWを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:2435
 msgid ""
@@ -28896,7 +28889,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:2848
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "JPEG XLを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
 #: src/io/image_formats_libraries.c:2868
 #, fuzzy

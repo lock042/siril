@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-19 11:03+0000\n"
+"PO-Revision-Date: 2026-05-28 10:56+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -1605,6 +1605,12 @@ msgid ""
 "controls the total number of interior random samples (grid mode: samples per "
 "line)."
 msgstr ""
+"Если этот флажок установлен, образцы будут размещены случайным образом на "
+"самых тёмных участках каждого квадранта изображения, а также фиксированный "
+"набор образцов по краям. Этот режим — альтернатива обычному размещению "
+"образцов по сетке. В случайном режиме число образцов определяет общее "
+"количество внутренних случайных образцов (в режиме сетки: плотность образцов)"
+"."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:467
 msgid "Optimize sample positions"
@@ -5023,23 +5029,23 @@ msgstr "Радиус Гауссового размытия в пикселях"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:14
 msgid "Feather Image Mask"
-msgstr ""
+msgstr "Растушевать маску изображения"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:90
-#, fuzzy
 msgid "Feather distance (pixels):"
-msgstr "Измерение в пикселях"
+msgstr "Растушевать на (пикс.):"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:101
 msgid ""
 "Feather distance in pixels. A linear feather is applied to soften the mask "
 "edge."
 msgstr ""
+"Величина растушёвки в пикселях. Для смягчения края маски будет применена "
+"линейная растушёвка."
 
 #: src/gui/uifiles/mask_feather_dialog.ui:115
-#, fuzzy
 msgid "Feather type:"
-msgstr "Тип по умолчанию:"
+msgstr "Тип растушёвки:"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:126
 msgid ""
@@ -5047,18 +5053,22 @@ msgid ""
 "boundaries; \"Outer\" feathers outside the \"mask active\" boundaries, and "
 "\"Edge\" feathers equally either side of the boundary."
 msgstr ""
+"Выберите тип растушёвки. При выборе «Внутрь», растушёвка происходит в "
+"границах «активной маски», при выборе «Наружу» — за границами «активной маски"
+"», а при выборе «По краю» растушёвка будет происходить по обе стороны от "
+"границы."
 
 #: src/gui/uifiles/mask_feather_dialog.ui:129
 msgid "Inner"
-msgstr ""
+msgstr "Внутрь"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:130
 msgid "Outer"
-msgstr ""
+msgstr "Наружу"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:131
 msgid "Edge"
-msgstr ""
+msgstr "По краю"
 
 #: src/gui/uifiles/mask_fmul_dialog.ui:14
 msgid "Multiply Image Mask"
@@ -5075,7 +5085,7 @@ msgstr ""
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:51
 msgid "Create Color Mask"
-msgstr ""
+msgstr "Создать цветную маску"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:119
 msgid "Bit Depth"
@@ -5104,17 +5114,15 @@ msgstr "32 бита"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:160
 msgid "<b>Target Chromaticity (Pure Color)</b>"
-msgstr ""
+msgstr "<b>Целевая цветность (Чистый цвет)</b>"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:185
-#, fuzzy
 msgid "Selected color preview"
-msgstr "Установить второй предпросмотр"
+msgstr "Предпросмотр выбранного цвета"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:193
-#, fuzzy
 msgid "Selected Color"
-msgstr "Выбранная область"
+msgstr "Выбранный цвет"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:214
 msgid ""
@@ -5123,50 +5131,53 @@ msgid ""
 "(pure color ratio) will be extracted\n"
 "automatically, independent of brightness.</i>"
 msgstr ""
+"<i>Нажмите «Получить цвет из изображения» для выбора\n"
+"пикселя на изображении. Цветность (отношение чистых\n"
+"цветов) будет получена автоматически, независимо\n"
+"от яркости</i>"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:230
 msgid "Pick Color from Image"
-msgstr ""
+msgstr "Получить цвет из изображения"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:234
 msgid "Click to select a pixel from the image to use its color"
-msgstr ""
+msgstr "Кликните по изображению для выбора пикселя, чтобы использовать его цвет"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:268
 msgid ""
 "How far from the target color to accept (0.0 = exact match, 1.0 = very broad)"
 msgstr ""
+"Как далеко от целевого цвета, чтобы принять (0.0 = полное соответствие, 1.0 "
+"= очень широко)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:270
-#, fuzzy
 msgid "Color Tolerance"
-msgstr "Допуск"
+msgstr "Отклонение"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:295
 msgid "Minimum brightness (0.0 = black, 1.0 = white)"
 msgstr "Минимальная яркость (0.0 = чёрный, 1.0 = белый)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:297
-#, fuzzy
 msgid "Luminance Min"
-msgstr "Светимость"
+msgstr "Мин. светимость"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:322
 msgid "Maximum brightness (0.0 = black, 1.0 = white)"
 msgstr "Максимальная яркость (0.0 = чёрный, 1.0 = белый)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:324
-#, fuzzy
 msgid "Luminance Max"
-msgstr "Светимость"
+msgstr "Макс. светимость"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:381
 msgid "Smooths mask edges. 0 = hard edges, higher = softer transitions"
-msgstr ""
+msgstr "Сгладить углы маски. 0 = жёсткие края, больше = более мягкие переходы"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:383
 msgid "Feather Radius (px)"
-msgstr ""
+msgstr "Растушевать на (пикс.)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:410
 #: src/gui/uifiles/mask_from_image.ui:422
@@ -5182,7 +5193,7 @@ msgstr "Если этот флажок установлен, маска буде
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:425
 msgid "Clean up mask"
-msgstr ""
+msgstr "Очистить маску"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:429
 msgid ""
@@ -5214,7 +5225,7 @@ msgstr "Способ"
 
 #: src/gui/uifiles/mask_from_image.ui:201
 msgid "Select what type of mask to create from the image"
-msgstr ""
+msgstr "Укажите, какой тип маски создать на основе изображения"
 
 #: src/gui/uifiles/mask_from_image.ui:204 src/gui/callbacks.c:1199
 msgid "Luminance"
@@ -5222,14 +5233,12 @@ msgstr "Светимость"
 
 #: src/gui/uifiles/mask_from_image.ui:205
 #: src/gui/uifiles/mask_from_image.ui:380
-#, fuzzy
 msgid "Channel"
-msgstr "канал"
+msgstr "Канал"
 
 #: src/gui/uifiles/mask_from_image.ui:218
-#, fuzzy
 msgid "Bit depth"
-msgstr "Установить разрядность"
+msgstr "Разрядность"
 
 #: src/gui/uifiles/mask_from_image.ui:260
 #, fuzzy
@@ -5269,12 +5278,10 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/mask_from_image.ui:350
-#, fuzzy
 msgid "Even-weighted"
-msgstr "Равновзвешенная светимость"
+msgstr "Равновзвешенная"
 
 #: src/gui/uifiles/mask_from_image.ui:351
-#, fuzzy
 msgid "Human-weighted"
 msgstr "Относительная чувствительность глаза"
 
@@ -5291,37 +5298,32 @@ msgid "Create Mask from Stars"
 msgstr "Создать маску из звёзд"
 
 #: src/gui/uifiles/mask_from_stars.ui:96
-#, fuzzy
 msgid "Star radius (FWHM):"
-msgstr "Радиус поиска:"
+msgstr "Радиус звезды (FWHM):"
 
 #: src/gui/uifiles/mask_from_stars.ui:107
 msgid "Star radius as a multiple of FWHM"
 msgstr ""
 
 #: src/gui/uifiles/mask_from_stars.ui:122
-#, fuzzy
 msgid "Output bit depth:"
-msgstr "Установить разрядность"
+msgstr "Итоговая разрядность:"
 
 #: src/gui/uifiles/mask_from_stars.ui:150
-#, fuzzy
 msgid "Feather radius:"
-msgstr "Внешний радиус:"
+msgstr "Растушевать на:"
 
 #: src/gui/uifiles/mask_from_stars.ui:161
 msgid "Feather radius in pixels (0 = no feathering)"
-msgstr ""
+msgstr "Радиус растушёвки в пикселях (0 = без растушёвки)"
 
 #: src/gui/uifiles/mask_from_stars.ui:208
-#, fuzzy
 msgid "Options:"
-msgstr "Параметры FITS"
+msgstr "Параметры:"
 
 #: src/gui/uifiles/mask_from_stars.ui:225
-#, fuzzy
 msgid "Invert the mask after creation"
-msgstr "Обратная передаточная функция полутонов"
+msgstr "Инвертировать маску после создания"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:34
 msgid "Merge CFA Elements"
@@ -7635,7 +7637,7 @@ msgstr "Очистить кэш"
 
 #: src/gui/uifiles/settings_window.ui:1620
 msgid "Clean the Gaia online cache"
-msgstr ""
+msgstr "Очистить удалённый кэш Gaia"
 
 #: src/gui/uifiles/settings_window.ui:1636
 msgid ""
@@ -8293,9 +8295,8 @@ msgid "Region of Interest"
 msgstr "Область интереса"
 
 #: src/gui/uifiles/settings_window.ui:3889
-#, fuzzy
 msgid "Default mask bit depth:"
-msgstr "мастер-кадр шума считывания по умолчанию"
+msgstr "Разрядность маски по умолчанию:"
 
 #: src/gui/uifiles/settings_window.ui:3900
 msgid ""
@@ -9530,12 +9531,11 @@ msgstr "Кадрировать последовательность..."
 
 #: src/gui/uifiles/siril.ui:1039
 msgid "Mask"
-msgstr ""
+msgstr "Маска"
 
 #: src/gui/uifiles/siril.ui:1050
-#, fuzzy
 msgid "Mask from current image"
-msgstr "Астрономическое решение для текущего изображения"
+msgstr "Маска из текущего изображения"
 
 #: src/gui/uifiles/siril.ui:1059 src/core/command.c:15513
 #: src/gui/masks_gui.c:803
@@ -9563,9 +9563,8 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:1101 src/core/command.c:15070
 #: src/gui/callbacks.c:665 src/gui/siril_actions.c:933
-#, fuzzy
 msgid "Clear mask"
-msgstr "Маска звёзд"
+msgstr "Очистить маску"
 
 #: src/gui/uifiles/siril.ui:1113
 msgid "ROI"
@@ -9592,25 +9591,24 @@ msgid "KOMBAT alignment (planetary/deep-sky)"
 msgstr "KOMBAT (планеты/глубокий космос)"
 
 #: src/gui/uifiles/siril.ui:1205
-#, fuzzy
 msgid "Autostretch Mask"
-msgstr "Авторастягивание"
+msgstr "Авторастягивание маски"
 
 #: src/gui/uifiles/siril.ui:1214
 msgid "Apply Thresholds to Mask"
-msgstr ""
+msgstr "Применить пороги к маске"
 
 #: src/gui/uifiles/siril.ui:1222
 msgid "Blur Mask"
-msgstr ""
+msgstr "Размыть маску"
 
 #: src/gui/uifiles/siril.ui:1230
 msgid "Feather Mask"
-msgstr ""
+msgstr "Растушевать маску"
 
 #: src/gui/uifiles/siril.ui:1238
 msgid "Invert Mask"
-msgstr ""
+msgstr "Инвертировать маску"
 
 #: src/gui/uifiles/siril.ui:1246 src/core/command.c:15308
 #: src/gui/masks_gui.c:645
@@ -9618,15 +9616,13 @@ msgid "Multiply mask"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1255 src/gui/siril_actions.c:1006
-#, fuzzy
 msgid "Gradient of mask"
-msgstr "Градиентный спуск"
+msgstr "Градиент маски"
 
 #. Create clear button
 #: src/gui/uifiles/siril.ui:1269 src/gui/callbacks.c:724
-#, fuzzy
 msgid "Clear Mask"
-msgstr "Очистить все"
+msgstr "Очистить маску"
 
 #: src/gui/uifiles/siril.ui:1286
 msgid ""
@@ -10102,14 +10098,14 @@ msgid "Create Comparison Stars File ..."
 msgstr "Создать файл со списком звёзд сравнения ..."
 
 #: src/gui/uifiles/siril.ui:2757
-#, fuzzy
 msgid ""
 "Calibrate magnitudes of the image using stars detected from the catalogue"
-msgstr "Не удалось сопоставить звёзды из каталога"
+msgstr ""
+"Калибровать блеск на изображении, используя звёзды, определённые в каталоге"
 
 #: src/gui/uifiles/siril.ui:2759
 msgid "Calibrate magnitudes ..."
-msgstr ""
+msgstr "Калибровать блеск..."
 
 #: src/gui/uifiles/siril.ui:2772
 msgid ""
@@ -12516,7 +12512,7 @@ msgstr "Переключиться между обычным просмотро�
 
 #: src/gui/uifiles/siril.ui:10441
 msgid "Show/hide histogram overlay"
-msgstr ""
+msgstr "Показать / скрыть гистограмму"
 
 #: src/gui/uifiles/siril.ui:10465
 msgid ""
@@ -13276,10 +13272,9 @@ msgid "Zoom to 100%"
 msgstr "Масштабировать к 100%"
 
 #: src/gui/siril-shortcuts.ui:75
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Hide / Show histogram"
-msgstr "Показать / скрыть панель инструментов"
+msgstr "Показать / скрыть гистограмму"
 
 #: src/gui/siril-shortcuts.ui:83
 msgctxt "shortcut window"
@@ -13504,7 +13499,7 @@ msgid ", %s channel"
 msgstr ", %s канал"
 
 #: src/algos/PSF.c:1017
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF %s result (%s%s):\n"
 "\n"
@@ -14650,9 +14645,8 @@ msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "Кадрирование (x=%d, y=%d, ш=%d, в=%d)"
 
 #: src/algos/geometry.c:1306
-#, fuzzy
 msgid "The specified coordinates are not in the image\n"
-msgstr "Координаты за приделами изображения, прерывание\n"
+msgstr "Указанные координаты за приделами изображения\n"
 
 #: src/algos/geometry.c:1363
 #, c-format
@@ -14660,9 +14654,8 @@ msgid "Cropping image to pixel coordinates (%d, %d), size %d x %d\n"
 msgstr ""
 
 #: src/algos/geometry.c:1367
-#, fuzzy
 msgid "Cropping failed\n"
-msgstr "предобработка не удалась\n"
+msgstr "Кадрирование не удалось\n"
 
 #: src/algos/geometry.c:1416 src/registration/applyreg.c:870
 #: src/registration/global.c:598 src/stacking/blending.c:116
@@ -15127,14 +15120,12 @@ msgid "Failed to analyse the photometry of reference star %d\n"
 msgstr "Не удалось проанализировать фотометрию опорной звезды %d\n"
 
 #: src/algos/photometry.c:649
-#, fuzzy
 msgid "Failed to initialize the catalogue query\n"
-msgstr "Не удалось прочитать локальный каталог %s\n"
+msgstr "Не удалось инициализировать запрос в каталог\n"
 
 #: src/algos/photometry.c:669
-#, fuzzy
 msgid "Failed to get stars from catalog\n"
-msgstr "Получено %d звёзд из каталога %s\n"
+msgstr "Не удалось получить звёзды из каталога\n"
 
 #: src/algos/photometry.c:679
 #, fuzzy
@@ -15274,14 +15265,13 @@ msgstr "Поиск %s в SIMBAD...\n"
 
 #: src/algos/search_objects.c:520 src/algos/search_objects.c:525
 #: src/core/command.c:13723 src/gui/search_objects.c:50
-#, fuzzy
 msgid "Catalog search"
-msgstr "Каталог"
+msgstr "Поиск по каталогу"
 
 #: src/algos/search_objects.c:523
-#, fuzzy, c-format
+#, c-format
 msgid "Catalog search: %s"
-msgstr "Каталог: "
+msgstr "Поиск по каталогу: %s"
 
 #: src/algos/spcc.c:315
 msgid ""
@@ -15435,9 +15425,8 @@ msgid "KOMBAT registration (planetary / deep-sky)"
 msgstr "KOMBAT (планеты / глубокий космос)"
 
 #: src/compositing/align_rgb.c:136 src/gui/compositing.c:1328
-#, fuzzy
 msgid "A processing operation is already running.\n"
-msgstr "обработка уже запущена"
+msgstr "Операция обработки уже запущена.\n"
 
 #: src/compositing/align_rgb.c:146
 msgid "Error in channels alignment."
@@ -15730,7 +15719,7 @@ msgstr "Активно подавление цветных артефактов.
 
 #: src/core/command.c:595
 msgid "Denoising failed: invalid parameters\n"
-msgstr ""
+msgstr "Шумопдавление не удалось: неверные параметры\n"
 
 #: src/core/command.c:605
 msgid "Applying generalised Anscombe variance stabilising transform.\n"
@@ -17101,7 +17090,7 @@ msgstr "Фон: %d (%.3e)"
 #: src/core/command.c:6882
 #, c-format
 msgid "Background (RGB): %d, %d, %d"
-msgstr ""
+msgstr "Фон (RGB): %d, %d, %d"
 
 #: src/core/command.c:6888
 msgid "Background computation"
@@ -17142,7 +17131,7 @@ msgstr "Верхний порог: %d"
 #: src/core/command.c:7141
 #, c-format
 msgid "Threshold: lo = %d, hi = %d"
-msgstr ""
+msgstr "Порог: lo = %d, hi = %d"
 
 #: src/core/command.c:7176 src/core/command.c:7182 src/core/command.c:7199
 #: src/core/command.c:7211 src/core/command.c:7343
@@ -17166,7 +17155,7 @@ msgstr "Отрицательный"
 #: src/core/command.c:7335
 #, c-format
 msgid "Replace zeros with %d"
-msgstr ""
+msgstr "Заменить нули на %d"
 
 #: src/core/command.c:7367
 msgid "Replace zeros"
@@ -17331,7 +17320,7 @@ msgstr "Вычисление центра тяжести"
 
 #: src/core/command.c:8207
 msgid "Center of gravity"
-msgstr "Центр  тяжести"
+msgstr "Центр тяжести"
 
 #: src/core/command.c:8259
 #, c-format
@@ -18973,7 +18962,7 @@ msgstr "Неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:15389
 msgid "Change mask bitdepth"
-msgstr ""
+msgstr "Изменить разрядность маски"
 
 #: src/core/command.c:15417
 #, fuzzy, c-format
@@ -19457,7 +19446,7 @@ msgstr "Очищает содержимое журнала"
 
 #: src/core/command_def.h:28
 msgid "Clears the image mask, if one is set"
-msgstr ""
+msgstr "Очищает маску изображения, если установлена"
 
 #: src/core/command_def.h:29
 msgid "Clears all the stars saved in memory and displayed on the screen"
@@ -27240,6 +27229,9 @@ msgid ""
 "\n"
 "Shutting down the processing subsystem..."
 msgstr ""
+"### Выход из приложения ###\n"
+"\n"
+"Выключение подсистемы обработки..."
 
 #: src/gui/callbacks.c:2425
 msgid "Unsaved script changes"
@@ -27401,28 +27393,24 @@ msgid "_OK"
 msgstr "_ОК"
 
 #: src/gui/catmag.c:91
-#, fuzzy
 msgid "Using catalogue:"
-msgstr "(удалённый каталог)"
+msgstr "Использовать каталог:"
 
 #: src/gui/catmag.c:99
-#, fuzzy
 msgid "Filter stars"
-msgstr "Фильтры"
+msgstr "Фильтровать звёзды"
 
 #: src/gui/catmag.c:105
-#, fuzzy
 msgid "Temperature:"
-msgstr "апертура"
+msgstr "Температура:"
 
 #: src/gui/catmag.c:108
 msgid "Stars with temperatures around this value will be used"
-msgstr ""
+msgstr "Будут использованы звёзды с температурой, близкой к этому значению"
 
 #: src/gui/catmag.c:118
-#, fuzzy
 msgid "Allowed range:"
-msgstr "Допустимый диапазон показателя цвета B-V:"
+msgstr "Допустимый диапазон:"
 
 #: src/gui/catmag.c:121
 msgid ""
@@ -27597,9 +27585,8 @@ msgid "Starting a RGB composition\n"
 msgstr "Запуск совмещения в RGB\n"
 
 #: src/gui/compositing.c:851
-#, fuzzy
 msgid "Select source image"
-msgstr "Выберите изображение"
+msgstr "Выберите исходное изображение"
 
 #: src/gui/compositing.c:891
 msgid "Could not display image, unloading it\n"
@@ -28878,30 +28865,27 @@ msgstr ""
 
 #: src/gui/image_interactions.h:191
 msgid "Single click"
-msgstr ""
+msgstr "Одиночный клик"
 
 #: src/gui/image_interactions.h:192
 msgid "Double click"
-msgstr ""
+msgstr "Двойной клик"
 
 #: src/gui/image_interactions.h:195
-#, fuzzy
 msgid "Compose"
-msgstr "Компас"
+msgstr "Compose"
 
 #: src/gui/image_interactions.h:196
-#, fuzzy
 msgid "Compose Shift"
-msgstr "Совмещение"
+msgstr "Compose Shift"
 
 #: src/gui/image_interactions.h:198
 msgid "Ctrl"
-msgstr ""
+msgstr "Ctrl"
 
 #: src/gui/image_interactions.h:199
-#, fuzzy
 msgid "Ctrl Shift"
-msgstr "Сдвиг"
+msgstr "Ctrl Shift"
 
 #: src/gui/image_interactions.h:202
 #, fuzzy
@@ -29028,9 +29012,8 @@ msgid "Create mask from stars"
 msgstr "Создать список звёзд сравнения"
 
 #: src/gui/masks_gui.c:749
-#, fuzzy
 msgid "Initialization error"
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Ошибка инициализации"
 
 #: src/gui/masks_gui.c:750
 msgid "Color mask dialog widgets not properly initialized."
@@ -29067,14 +29050,12 @@ msgid "Crop confirmation"
 msgstr "Подтверждение кадрирования"
 
 #: src/gui/menu_gray_geometry.c:187
-#, fuzzy
 msgid "Rotation 90°"
-msgstr "Вращение (90°)"
+msgstr "Вращение 90°"
 
 #: src/gui/menu_gray_geometry.c:229
-#, fuzzy
 msgid "Rotation -90°"
-msgstr "Вращение (-90°)"
+msgstr "Вращение -90°"
 
 #: src/gui/menu_gray_geometry.c:684
 msgid "Image backup is active"
@@ -31447,7 +31428,7 @@ msgstr "Выравнивание RGB (PSF)"
 
 #: src/gui/siril_actions.c:942 src/gui/siril_actions.c:972
 msgid "No mask present"
-msgstr ""
+msgstr "Маска отсутствует"
 
 #: src/gui/siril_actions.c:943
 #, fuzzy
@@ -31948,9 +31929,8 @@ msgid "Wavelets Transformation"
 msgstr "Вейвлетные преобразования"
 
 #: src/gui/wavelets.c:187
-#, fuzzy
 msgid "Wavelets Transformation\n"
-msgstr "Вейвлетные преобразования"
+msgstr "Вейвлетные преобразования\n"
 
 #: src/io/FITS_symlink.c:77
 msgid ""
@@ -32418,9 +32398,8 @@ msgid "Fetching index to cache\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:369
-#, fuzzy
 msgid "Failed to download index via HTTP\n"
-msgstr "Не удалось прочитать записи данных.\n"
+msgstr "Не удалось скачать индекс через HTTP\n"
 
 #: src/io/healpix/healpix.cpp:376
 #, fuzzy
@@ -34682,14 +34661,12 @@ msgid "SirilInterface.open_dialog() cannot be run headless"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:3760
-#, fuzzy
 msgid "Action not found"
-msgstr "директория не найдена"
+msgstr "Действие не найдено"
 
 #: src/io/siril_pythoncommands.c:3764
-#, fuzzy
 msgid "Action disabled"
-msgstr "выключено"
+msgstr "Действие отключено"
 
 #: src/io/siril_pythoncommands.c:3768
 msgid "NULL data provided"
@@ -35514,94 +35491,80 @@ msgid "Initializing FFTW multithreading support...\n"
 msgstr "Включается мультипотоковая поддержка FFTW...\n"
 
 #: src/main.c:364
-#, fuzzy
 msgid "Initializing..."
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Инициализация..."
 
 #: src/main.c:374
-#, fuzzy
 msgid "Initializing random number generator..."
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Инициализация генератора случайных чисел..."
 
 #: src/main.c:378
-#, fuzzy
 msgid "Global initialization..."
-msgstr "Калибровка цвета…"
+msgstr "Глобальная инициализация…"
 
 #: src/main.c:383
-#, fuzzy
 msgid "Initializing sequences..."
-msgstr "Укладка последовательности %s\n"
+msgstr "Инициализация последовательностей..."
 
 #: src/main.c:391
-#, fuzzy
 msgid "Loading configuration..."
-msgstr "Загрузка файла конфигурации: %s\n"
+msgstr "Загрузка конфигурации..."
 
 #: src/main.c:399
-#, fuzzy
 msgid "Initializing language..."
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Инициализация языка..."
 
 #: src/main.c:406
 #, fuzzy
 msgid "Loading image converters..."
-msgstr "Загрузка содержимого изображения HEIF"
+msgstr "Загрузка конвертеров изображений..."
 
 #. Load GResource
 #: src/main.c:467
-#, fuzzy
 msgid "Loading resources..."
-msgstr "Загрузка сообщения коммита..."
+msgstr "Загрузка ресурсов..."
 
 #. Load preferred theme
 #: src/main.c:471
-#, fuzzy
 msgid "Loading theme..."
-msgstr "Загрузка сообщения коммита..."
+msgstr "Загрузка темы..."
 
 #. Load the css sheet for general style
 #: src/main.c:475
-#, fuzzy
 msgid "Loading styles..."
-msgstr "Загрузка сообщения коммита..."
+msgstr "Загрузка стилей..."
 
 #. Load UI files
 #: src/main.c:479
-#, fuzzy
 msgid "Loading user interface..."
-msgstr "Интерфейс GraXpert..."
+msgstr "Загрузка пользовательского интерфейса..."
 
 #. Load state of the main windows (position and maximized)
 #: src/main.c:492
 msgid "Restoring window state..."
-msgstr ""
+msgstr "Восстановление состояния окна..."
 
 #: src/main.c:495
-#, fuzzy
 msgid "Initializing SPCC..."
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Инициализация SPCC..."
 
 #: src/main.c:500
-#, fuzzy
 msgid "Checking for updates..."
-msgstr "Поиск обновлений…"
+msgstr "Проверка обновлений…"
 
 #: src/main.c:514
-#, fuzzy
 msgid "Initializing interface components..."
-msgstr "Инициализация данных сверхразрешения..."
+msgstr "Инициализация компонентов интерфейса..."
 
 #: src/main.c:518
-#, fuzzy, c-format
+#, c-format
 msgid "Welcome to %s - GUI\n"
-msgstr "Приветствуем в %s v%s\n"
+msgstr "Приветствуем в %s - Граф. интерфейс\n"
 
 #. Show "Ready!" message then close splash and show window after 200ms
 #: src/main.c:526
-#, fuzzy
 msgid "Ready!"
-msgstr "Готово."
+msgstr "Готово!"
 
 #: src/opencv/opencv.cpp:113
 #, c-format

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-09 10:17+0000\n"
+"PO-Revision-Date: 2026-05-24 11:27+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/de/>\n"
@@ -5090,11 +5090,11 @@ msgstr ""
 
 #: src/gui/uifiles/mask_feather_dialog.ui:129
 msgid "Inner"
-msgstr ""
+msgstr "Innere"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:130
 msgid "Outer"
-msgstr ""
+msgstr "Äußere"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:131
 msgid "Edge"
@@ -5115,7 +5115,7 @@ msgstr ""
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:51
 msgid "Create Color Mask"
-msgstr ""
+msgstr "Farbmaske erstellen"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:119
 msgid "Bit Depth"
@@ -5126,21 +5126,21 @@ msgstr ""
 #: src/gui/uifiles/mask_from_stars.ui:135
 #: src/gui/uifiles/settings_window.ui:3904
 msgid "8-bit"
-msgstr ""
+msgstr "8-Bit"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:133
 #: src/gui/uifiles/mask_from_image.ui:232
 #: src/gui/uifiles/mask_from_stars.ui:136
 #: src/gui/uifiles/settings_window.ui:3905
 msgid "16-bit"
-msgstr ""
+msgstr "16-Bit"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:134
 #: src/gui/uifiles/mask_from_image.ui:233
 #: src/gui/uifiles/mask_from_stars.ui:137
 #: src/gui/uifiles/settings_window.ui:3906
 msgid "32-bit"
-msgstr ""
+msgstr "32-Bit"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:160
 msgid "<b>Target Chromaticity (Pure Color)</b>"
@@ -5166,7 +5166,7 @@ msgstr ""
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:230
 msgid "Pick Color from Image"
-msgstr ""
+msgstr "Farbe vom Bild auswählen"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:234
 msgid "Click to select a pixel from the image to use its color"
@@ -5184,7 +5184,7 @@ msgstr "Gitternetz Toleranz"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:295
 msgid "Minimum brightness (0.0 = black, 1.0 = white)"
-msgstr ""
+msgstr "Minimale Helligkeit (0.0 = Schwarz, 1.0 = Weiß)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:297
 #, fuzzy
@@ -5193,7 +5193,7 @@ msgstr "Luminanz"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:322
 msgid "Maximum brightness (0.0 = black, 1.0 = white)"
-msgstr ""
+msgstr "Maximale Helligkeit (0.0 = Schwarz, 1.0 = Weiß)"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:324
 #, fuzzy
@@ -9609,7 +9609,7 @@ msgstr "Zuschnitt auf gesamte Sequenz anwenden..."
 
 #: src/gui/uifiles/siril.ui:1039
 msgid "Mask"
-msgstr ""
+msgstr "Maske"
 
 #: src/gui/uifiles/siril.ui:1050
 #, fuzzy
@@ -10197,7 +10197,7 @@ msgstr "Konnte keine übereinstimmenden Sterne im Katalog finden"
 
 #: src/gui/uifiles/siril.ui:2759
 msgid "Calibrate magnitudes ..."
-msgstr ""
+msgstr "Helligkeiten kalibrieren ..."
 
 #: src/gui/uifiles/siril.ui:2772
 msgid ""
@@ -14807,11 +14807,11 @@ msgstr "Drehung (%.1lf Grad, Ausschnitt = %s, clamped=%s)"
 
 #: src/algos/geometry.c:1620
 msgid "TRUE"
-msgstr ""
+msgstr "Wahr"
 
 #: src/algos/geometry.c:1620
 msgid "FALSE"
-msgstr ""
+msgstr "Falsch"
 
 #: src/algos/noise.c:56
 msgid "Noise standard deviation: calculating...\n"
@@ -17441,7 +17441,7 @@ msgstr "Auf ein-kanalige Master-Darks muß \"find_hot\" angewendet werden"
 
 #: src/core/command.c:7921
 msgid "Find Hot/Cold Pixels"
-msgstr ""
+msgstr "Heiße/Kalte Pixel finden"
 
 #: src/core/command.c:7947
 #, fuzzy
@@ -24483,7 +24483,7 @@ msgstr "Die Einstellungen in %s konnten nicht gespeichert werden: %s\n"
 
 #: src/core/masks.c:410
 msgid "Color mask requires RGB image\n"
-msgstr ""
+msgstr "Farbmaske benötigt ein RGB-Bild\n"
 
 #: src/core/masks.c:417
 msgid "Invalid chromaticity center (sum near zero)\n"
@@ -24564,7 +24564,7 @@ msgstr "Alle Bilder wurden erfolgreich neu geladen.\n"
 
 #: src/core/masks.c:1571
 msgid "Mask cleared\n"
-msgstr ""
+msgstr "Maske gelöscht\n"
 
 #: src/core/pipe.c:101
 #, c-format

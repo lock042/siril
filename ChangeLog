@@ -23,6 +23,7 @@ siril-1.5.0
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Adding TIFF support in Pixelmath (#1726)
 * Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
+* Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
