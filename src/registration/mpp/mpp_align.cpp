@@ -403,7 +403,8 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              const mpp_config_t &cfg,
                                              progress_cb_fn progress,
                                              void *progress_user,
-                                             bool provider_is_thread_safe) {
+                                             bool provider_is_thread_safe,
+                                             const std::vector<cv::Vec2d> &seed) {
 	AlignGlobalResult out;
 	if (N <= 0 || (int) quality.size() != N)
 		return out;
@@ -478,6 +479,14 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 
 	out.shifts.assign(N, cv::Vec2d(0.0, 0.0));
 
+	/* Optional gross-shift seed (see header). When sized to N, each frame's
+	 * search window is centred at its own seed re-referenced to the best
+	 * frame, so the cumulative frame-to-frame chain is bypassed entirely —
+	 * frames become independent and arbitrarily large jumps are tolerated
+	 * as long as the seed's residual error is within search_width. */
+	const bool use_seed = ((int) seed.size() == N);
+	const cv::Vec2d seed_base = use_seed ? seed[best] : cv::Vec2d(0.0, 0.0);
+
 	/* Backward and forward sweeps are independent: they read disjoint
 	 * frame indices, share only const inputs (ref_window*, py/px_lo/hi,
 	 * cfg) and write to disjoint slices of out.shifts. They each carry
@@ -511,6 +520,21 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 				continue;
 			}
 			const cv::Mat frame = provider(idx);
+			if (use_seed) {
+				/* Independent per-frame: window centred at this frame's
+				 * seed (re-referenced to best); total = seed + residual. */
+				const int sdy = (int) std::lround(seed[idx][0] - seed_base[0]);
+				const int sdx = (int) std::lround(seed[idx][1] - seed_base[1]);
+				const AlignShiftResult rs = align_shift_one_frame(
+				    ref_window, ref_window_first, frame,
+				    py_lo - sdy, py_hi - sdy, px_lo - sdx, px_hi - sdx, cfg);
+				double dy_s = (double) sdy, dx_s = (double) sdx;
+				if (rs.success) { dy_s = (double) sdy + rs.dy; dx_s = (double) sdx + rs.dx; }
+				out.shifts[idx] = cv::Vec2d(dy_s, dx_s);
+				const gint d = g_atomic_int_add(&done, 1) + 1;
+				if (progress) progress((double) d / (double) total, progress_user);
+				continue;
+			}
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
 			    py_lo - dy_int_cum, py_hi - dy_int_cum,
@@ -541,6 +565,21 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 				break;
 			}
 			const cv::Mat frame = provider(idx);
+			if (use_seed) {
+				/* Independent per-frame: window centred at this frame's
+				 * seed (re-referenced to best); total = seed + residual. */
+				const int sdy = (int) std::lround(seed[idx][0] - seed_base[0]);
+				const int sdx = (int) std::lround(seed[idx][1] - seed_base[1]);
+				const AlignShiftResult rs = align_shift_one_frame(
+				    ref_window, ref_window_first, frame,
+				    py_lo - sdy, py_hi - sdy, px_lo - sdx, px_hi - sdx, cfg);
+				double dy_s = (double) sdy, dx_s = (double) sdx;
+				if (rs.success) { dy_s = (double) sdy + rs.dy; dx_s = (double) sdx + rs.dx; }
+				out.shifts[idx] = cv::Vec2d(dy_s, dx_s);
+				const gint d = g_atomic_int_add(&done, 1) + 1;
+				if (progress) progress((double) d / (double) total, progress_user);
+				continue;
+			}
 			const AlignShiftResult r = align_shift_one_frame(
 			    ref_window, ref_window_first, frame,
 			    py_lo - dy_int_cum, py_hi - dy_int_cum,
@@ -586,13 +625,14 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames,
                                            const std::vector<double> &quality,
                                            const mpp_config_t &cfg,
                                            progress_cb_fn progress,
-                                           void *progress_user) {
+                                           void *progress_user,
+                                           const std::vector<cv::Vec2d> &seed) {
 	/* Reading from a const cached vector is trivially reentrant — enable
 	 * the two-section parallel sweep. */
 	return align_global_from_provider(
 	    [&frames](int i) -> cv::Mat { return frames[i]; },
 	    (int) frames.size(), quality, cfg, progress, progress_user,
-	    /*provider_is_thread_safe=*/true);
+	    /*provider_is_thread_safe=*/true, seed);
 }
 
 std::vector<int> align_find_best_frames(const std::vector<double> &quality,

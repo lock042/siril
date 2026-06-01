@@ -276,6 +276,30 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 	return out;
 }
 
+/* See mpp_align_priv.hpp. translation_from_H yields exactly the to-align
+ * content translation that shift_fit_from_reg applies, in the same buffer
+ * orientation the mpp reader produces — so it maps to the port's (dy, dx)
+ * with no extra flip. Kept free of logging so unit tests can call it
+ * without a live Siril log/gui. */
+std::vector<cv::Vec2d> seed_from_regdata(sequence *seq) {
+	if (!seq || !seq->regparam || seq->number <= 0 || seq->nb_layers <= 0)
+		return {};
+	int layer = -1;
+	for (int l = 0; l < seq->nb_layers; ++l) {
+		if (seq->regparam[l]) { layer = l; break; }
+	}
+	if (layer < 0)
+		return {};
+	const regdata *rp = seq->regparam[layer];
+	std::vector<cv::Vec2d> seed((size_t) seq->number, cv::Vec2d(0.0, 0.0));
+	for (int i = 0; i < seq->number; ++i) {
+		double dx = 0.0, dy = 0.0;
+		translation_from_H(rp[i].H, &dx, &dy);
+		seed[(size_t) i] = cv::Vec2d(dy, dx);  /* port (dy, dx) to-align convention */
+	}
+	return seed;
+}
+
 namespace {   /* reopen anonymous namespace for the remaining helpers */
 
 /* Per-AP target stack size from cfg (number override wins, else
@@ -849,9 +873,20 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	    (seq->type == SEQ_SER
 	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
 	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
+	/* Auto-seed the global aligner from any existing .seq shift registration
+	 * (Siril enhancement; opt-out via cfg->align_frames_seed_from_regdata).
+	 * Lets jumpy video whose gross shifts exceed align_frames_search_width
+	 * still align — the bare MLC search only covers the seed's residual. */
+	std::vector<cv::Vec2d> seed;
+	if (cfg->align_frames_seed_from_regdata) {
+		seed = mpp::seed_from_regdata(seq);
+		if (!seed.empty())
+			siril_log_message(_("mpp: seeding global alignment from existing "
+			                    "registration data\n"));
+	}
 	const auto align = mpp::align_global_from_provider(
 	    blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global,
-	    streaming_provider_safe);
+	    streaming_provider_safe, seed);
 	/* Drop the blurred cache now — Passes 3/4 don't use it, and the
 	 * freed bytes give them more headroom (matters most when the blur
 	 * top-up was large). */

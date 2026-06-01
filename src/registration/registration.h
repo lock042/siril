@@ -7,6 +7,10 @@
 #include "algos/star_finder.h"
 #include "registration/distorsion.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
 
@@ -226,4 +230,8 @@ int shift_fit_from_reg(fits *fit, Homography H);
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
 gboolean check_before_applyreg(struct registration_args *regargs);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -40,6 +40,7 @@ struct mpp_config {
 	int align_frames_average_frame_percent;     /* 5 */
 	bool align_frames_fast_changing_object;     /* true */
 	int align_frames_best_frames_window_extension; /* 2 */
+	bool align_frames_seed_from_regdata;        /* true — seed global align from existing .seq shift regdata (Siril enhancement; no PSS equivalent) */
 
 	/* Alignment-point grid (Phase 3). Per-AP search and stacking parameters
 	 * live with their respective modules. */

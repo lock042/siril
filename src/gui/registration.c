@@ -142,7 +142,7 @@ static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *
  * per-AP best-frame list and Stage B does proportionally less correlation
  * work. */
 static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_frames = NULL;
-static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL;
+static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL;
 static GtkComboBox *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkComboBox *combo_mpp_align_mode = NULL;
@@ -281,6 +281,7 @@ static void registration_init_statics() {
 		spin_mpp_reg_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_frames"));
 		check_mpp_dewarp         = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
 		check_mpp_normalize      = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
+		check_mpp_seed           = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_seed"));
 		combo_mpp_avi_bayer      = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer      = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
 		combo_mpp_align_mode     = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
@@ -1207,6 +1208,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->alignment_points_frame_number         = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_frames);
 		cfg->alignment_points_de_warp              = gtk_toggle_button_get_active(check_mpp_dewarp);
 		cfg->frames_normalization                  = gtk_toggle_button_get_active(check_mpp_normalize);
+		cfg->align_frames_seed_from_regdata        = gtk_toggle_button_get_active(check_mpp_seed);
 		{
 			const int ab = combo_mpp_avi_bayer ? gtk_combo_box_get_active(combo_mpp_avi_bayer) : 0;
 			cfg->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)

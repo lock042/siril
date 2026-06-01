@@ -45,6 +45,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->align_frames_average_frame_percent = 5;
 	cfg->align_frames_fast_changing_object = true;
 	cfg->align_frames_best_frames_window_extension = 2;
+	cfg->align_frames_seed_from_regdata = true;
 
 	/* Phase 3 — alignment-point grid */
 	cfg->alignment_points_half_box_width = 24;

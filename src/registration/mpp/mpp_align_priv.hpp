@@ -12,6 +12,8 @@
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_config.h"
 
+struct sequ;   /* Siril sequence (typedef struct sequ sequence) */
+
 namespace mpp {
 
 /* Generic progress callback for long stages. fraction is in [0, 1] over
@@ -112,6 +114,19 @@ struct AlignGlobalResult {
  * inner loops treat this the same as an excluded frame. */
 using FrameProvider = std::function<cv::Mat(int idx)>;
 
+/* Optional per-frame gross-shift seed (Siril enhancement, no PSS
+ * equivalent). When `seed.size() == num_frames`, each frame's MLC search
+ * window is pre-centred at that frame's seed value (re-referenced to the
+ * best frame: seed[idx] - seed[best]) instead of the previous frame's
+ * cumulative shift. This lets a frame whose true displacement exceeds
+ * `align_frames_search_width` still be aligned — the residual MLC search
+ * only has to cover the seed's error, not the whole jump. The seed must
+ * be expressed in the SAME (dy, dx) convention and orientation as the
+ * returned `shifts` (the to-align correction); its absolute origin is
+ * irrelevant since only seed[idx] - seed[best] is used. An empty seed (or
+ * one whose size != num_frames) restores the exact cumulative behaviour.
+ * Sourced from Siril's regdata via seed_from_regdata() in mpp.cpp. */
+
 /* Pick a patch on the best (max-quality) frame and compute per-frame integer
  * shifts via a backward-then-forward cumulative-shift loop. `frames` are
  * the Gaussian-blurred mono frames. */
@@ -119,7 +134,8 @@ AlignGlobalResult align_global_from_frames(const std::vector<cv::Mat> &frames_mo
                                            const std::vector<double> &quality,
                                            const mpp_config_t &cfg,
                                            progress_cb_fn progress = nullptr,
-                                           void *progress_user = nullptr);
+                                           void *progress_user = nullptr,
+                                           const std::vector<cv::Vec2d> &seed = {});
 
 /* Streamed overload — identical algorithm, but the provider supplies
  * one frame at a time so the caller controls how the blurred frames are
@@ -138,7 +154,17 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              const mpp_config_t &cfg,
                                              progress_cb_fn progress = nullptr,
                                              void *progress_user = nullptr,
-                                             bool provider_is_thread_safe = false);
+                                             bool provider_is_thread_safe = false,
+                                             const std::vector<cv::Vec2d> &seed = {});
+
+/* Build a per-frame gross-shift seed (see the seed param above) from the
+ * sequence's existing shift registration data. Uses the first layer with
+ * non-null regparam; per frame, extracts the translation via Siril's
+ * canonical translation_from_H (dx = H.h02, dy = -H.h12) — the same to-align
+ * content translation shift_fit_from_reg applies — and stores it as the
+ * port's (dy, dx). Returns an empty vector when no layer carries regdata
+ * (so the aligner falls back to its cumulative path). */
+std::vector<cv::Vec2d> seed_from_regdata(struct sequ *seq);
 
 /* Pick the `number_frames` indices that maximise the summed quality
  * within a sliding window of size `region_size`. */

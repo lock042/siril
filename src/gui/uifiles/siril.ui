@@ -7111,6 +7111,23 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkCheckButton" id="check_mpp_seed">
+                                                            <property name="label" translatable="yes">Seed from existing registration</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use the sequence's existing shift registration data (if any) to pre-centre each frame's global-alignment search. Lets jumpy video whose drift exceeds the global search width align correctly (CLI -noseed turns it off). Default on; ignored when the sequence has no registration data.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">13</property>
+                                                            <property name="width">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkButton" id="button_mpp_analyze">
                                                             <property name="label" translatable="yes">Analyze</property>
                                                             <property name="visible">True</property>
@@ -7125,7 +7142,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">13</property>
+                                                            <property name="top-attach">14</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7141,7 +7158,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">13</property>
+                                                            <property name="top-attach">14</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7157,7 +7174,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">14</property>
+                                                            <property name="top-attach">15</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>

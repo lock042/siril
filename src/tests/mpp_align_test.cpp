@@ -18,6 +18,7 @@
 
 #include "registration/mpp/mpp_align_priv.hpp"
 #include "registration/mpp/mpp_rank_priv.hpp"
+#include "registration/registration.h"   /* H_from_translation, for regdata seed test */
 
 extern "C" {
 #include "registration/mpp.h"
@@ -236,6 +237,115 @@ Test(mpp_align, planet_mode_recovers_known_shifts) {
 		             "frame %zu dx: expected %d, got %g", i,
 		             -jit[i].second, r.shifts[i][1]);
 	}
+}
+
+/* ---- Regdata gross-shift seed --------------------------------------------- */
+
+/* A jump larger than align_frames_search_width cannot be recovered by the
+ * bare MLC search, but a per-frame seed re-centres the window so only the
+ * residual remains. The seed here is intentionally a few px off from the
+ * true shift to prove the residual refinement runs on top of it. */
+Test(mpp_align, seed_recovers_shift_beyond_search_width) {
+	auto cfg = default_cfg();
+	cfg.align_frames_search_width = 10;       /* shrink so a modest jump exceeds it */
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+	const int big = 16;                        /* > 10 → out of bare MLC reach */
+	std::vector<cv::Mat> frames = { truth, shifted(truth, big, 0) };
+	std::vector<double> q = { 1.0, 0.5 };      /* best = frame 0 (reference) */
+
+	/* Without a seed the jump is unreachable, so frame 1 is left near zero. */
+	const auto bare = mpp::align_global_from_frames(frames, q, cfg);
+	cr_assert_gt(std::abs(bare.shifts[1][0] - (double)(-big)), 5.0,
+	             "without seed a >search_width jump should NOT be recovered (got dy=%g)",
+	             bare.shifts[1][0]);
+
+	/* Seed in the to-align convention (same as shifts), deliberately 3 px shy
+	 * of the true -16 so the MLC has a non-trivial residual to solve. */
+	std::vector<cv::Vec2d> seed = { cv::Vec2d(0.0, 0.0), cv::Vec2d(-(big - 3), 0.0) };
+	const auto seeded = mpp::align_global_from_frames(frames, q, cfg, nullptr, nullptr, seed);
+	cr_assert_float_eq(seeded.shifts[1][0], (double)(-big), 0.6,
+	             "with seed the full shift should be recovered (got dy=%g)",
+	             seeded.shifts[1][0]);
+	cr_assert_float_eq(seeded.shifts[1][1], 0.0, 0.6,
+	             "with seed dx should stay ~0 (got dx=%g)", seeded.shifts[1][1]);
+}
+
+/* An empty / wrong-sized seed must leave the cumulative path byte-for-byte
+ * unchanged — the seed feature is strictly opt-in. */
+Test(mpp_align, empty_seed_matches_unseeded) {
+	const auto cfg = default_cfg();
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+	std::vector<cv::Mat> frames = { truth, shifted(truth, 2, -3), shifted(truth, -1, 1) };
+	std::vector<double> q = { 1.0, 0.5, 0.5 };
+
+	const auto base = mpp::align_global_from_frames(frames, q, cfg);
+	const std::vector<cv::Vec2d> empty_seed;            /* size 0 != N → ignored */
+	const auto with_empty = mpp::align_global_from_frames(frames, q, cfg, nullptr,
+	                                                      nullptr, empty_seed);
+	for (size_t i = 0; i < frames.size(); ++i) {
+		cr_assert_float_eq(with_empty.shifts[i][0], base.shifts[i][0], 1e-12);
+		cr_assert_float_eq(with_empty.shifts[i][1], base.shifts[i][1], 1e-12);
+	}
+}
+
+/* seed_from_regdata must reproduce the port's (dy, dx) to-align convention.
+ * regdata is written with Siril's canonical H_from_translation; the seed must
+ * invert it via translation_from_H (dx=h02, dy=-h12) and store (dy, dx). */
+Test(mpp_align, seed_from_regdata_uses_port_convention) {
+	sequence seq{};
+	seq.number = 2;
+	seq.nb_layers = 1;
+	regdata *rd = (regdata *) calloc(2, sizeof(regdata));
+	regdata *layers[1] = { rd };
+	seq.regparam = layers;
+
+	const double dx_ta = 8.0, dy_ta = -12.0;   /* an arbitrary to-align translation */
+	rd[0].H = H_from_translation(0.0, 0.0);
+	rd[1].H = H_from_translation(dx_ta, dy_ta);
+
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+	cr_assert_eq(seed.size(), 2u);
+	cr_assert_float_eq(seed[0][0], 0.0, 1e-9);
+	cr_assert_float_eq(seed[0][1], 0.0, 1e-9);
+	cr_assert_float_eq(seed[1][0], dy_ta, 1e-9, "seed dy: got %g", seed[1][0]);
+	cr_assert_float_eq(seed[1][1], dx_ta, 1e-9, "seed dx: got %g", seed[1][1]);
+	free(rd);
+}
+
+/* End-to-end, the careful one: a physical jump beyond search_width, regdata
+ * written for that jump exactly as Siril's registration would, then the
+ * regdata-derived seed must drive the real aligner to recover it. A wrong
+ * sign would place the window ~2x the shift away and the assert would fail. */
+Test(mpp_align, seed_from_regdata_drives_alignment) {
+	auto cfg = default_cfg();
+	cfg.align_frames_search_width = 10;
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+	const int Dy = 12, Dx = -8;     /* content displacement; |Dy| > search_width */
+	std::vector<cv::Mat> frames = { truth, shifted(truth, Dy, Dx) };
+	std::vector<double> q = { 1.0, 0.5 };
+
+	/* Siril stores the to-align translation, which for a content shift of
+	 * (Dx, Dy) is (-Dx, -Dy). */
+	sequence seq{};
+	seq.number = 2;
+	seq.nb_layers = 1;
+	regdata *rd = (regdata *) calloc(2, sizeof(regdata));
+	regdata *layers[1] = { rd };
+	seq.regparam = layers;
+	rd[0].H = H_from_translation(0.0, 0.0);
+	rd[1].H = H_from_translation(-(double) Dx, -(double) Dy);
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+
+	const auto bare = mpp::align_global_from_frames(frames, q, cfg);
+	cr_assert_gt(std::abs(bare.shifts[1][0] - (double)(-Dy)), 4.0,
+	             "unseeded should miss the >search_width jump (dy=%g)", bare.shifts[1][0]);
+
+	const auto seeded = mpp::align_global_from_frames(frames, q, cfg, nullptr, nullptr, seed);
+	cr_assert_float_eq(seeded.shifts[1][0], (double)(-Dy), 0.6,
+	             "seeded dy: expected %d, got %g", -Dy, seeded.shifts[1][0]);
+	cr_assert_float_eq(seeded.shifts[1][1], (double)(-Dx), 0.6,
+	             "seeded dx: expected %d, got %g", -Dx, seeded.shifts[1][1]);
+	free(rd);
 }
 
 /* find_best_frames must pick the highest-quality subset constrained to a

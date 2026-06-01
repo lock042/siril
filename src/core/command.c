@@ -14669,6 +14669,11 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && !strcmp(arg, "-no-normalize")) {
 		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && !strcmp(arg, "-noseed")) {
+		/* Disable auto-seeding the global aligner from existing .seq shift
+		 * registration data (default on). */
+		cfg->align_frames_seed_from_regdata = FALSE; return MPP_FLAG_OK;
+	}
 	if (accept_register && g_str_has_prefix(arg, "-align=")) {
 		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
 		 * "surface" = patch correlation (default); "planet" = brightness
