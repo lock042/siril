@@ -474,7 +474,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
-	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
+	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MPP } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
 	{ "gui_stack", "rejection", STYPE_INT, N_("index of the rejection method"), &com.pref.stack.rej_method, { .range_int = { 0, GESDT } } },
 	{ "gui_stack", "weighting", STYPE_INT, N_("index of the weighting method"), &com.pref.stack.weighting_method, { .range_int = { 0, NBSTACK_WEIGHT } } },
