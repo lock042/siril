@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-11 17:46+0200\n"
-"PO-Revision-Date: 2026-05-25 19:48+0000\n"
+"PO-Revision-Date: 2026-06-01 08:43+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -7916,7 +7916,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5263
 msgid "Automatic updates"
-msgstr "自動アップデート"
+msgstr "自動更新"
 
 #: src/gui/uifiles/settings_window.ui:5267
 msgid "Automatically update the repository at startup."
@@ -7924,7 +7924,7 @@ msgstr "開始時に自動的にリポジトリを更新します。"
 
 #: src/gui/uifiles/settings_window.ui:5279
 msgid "Manual update"
-msgstr "手動アップデート"
+msgstr "手動更新"
 
 #: src/gui/uifiles/settings_window.ui:5284
 msgid ""
@@ -8313,11 +8313,11 @@ msgstr "TIFFの著作権情報"
 
 #: src/gui/uifiles/settings_window.ui:6443
 msgid "Check update at startup"
-msgstr "起動時にアップデートを確認"
+msgstr "起動時に更新を確認"
 
 #: src/gui/uifiles/settings_window.ui:6459
 msgid "Update"
-msgstr "アップデート"
+msgstr "更新"
 
 #: src/gui/uifiles/siril.ui:296
 msgid "Clear all curves displayed in photometry."
@@ -8353,7 +8353,7 @@ msgstr "Sirilのマニュアル"
 
 #: src/gui/uifiles/siril.ui:518
 msgid "Check For Updates"
-msgstr "アップデートを確認"
+msgstr "更新を確認"
 
 #: src/gui/uifiles/siril.ui:532
 msgid "Keyboard Shortcuts"
@@ -21226,9 +21226,8 @@ msgid "need requires cmd in pipe"
 msgstr ""
 
 #: src/core/settings.c:363
-#, fuzzy
 msgid "check update at start-up"
-msgstr "アップデートを確認"
+msgstr "起動時に更新を確認する"
 
 #: src/core/settings.c:364
 msgid "active siril language"
@@ -22217,7 +22216,7 @@ msgstr ""
 
 #: src/core/siril_update.c:656
 msgid "Looking for updates..."
-msgstr "アップデートを確認しています..."
+msgstr "更新を確認しています..."
 
 #: src/core/siril_update.c:676
 #, fuzzy
