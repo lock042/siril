@@ -114,6 +114,8 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_close_all(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_action_fold_toplevel(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_action_unfold_all(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -154,6 +156,8 @@ static GActionEntry editor_actions[] = {
 	{ "paste", on_paste, NULL, NULL, NULL },
 	{ "find", on_find, NULL, NULL, NULL },
 	{ "reload", on_action_file_reload, NULL, NULL, NULL },
+	{ "fold_toplevel", on_action_fold_toplevel, NULL, NULL, NULL },
+	{ "unfold_all", on_action_unfold_all, NULL, NULL, NULL },
 	{ "open_recent", on_action_open_recent, "s", NULL, NULL },
 
 	/* Boolean stateful actions: rendered as check items in the menu.
@@ -231,6 +235,7 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_menu_item_set_submenu(recent_item, G_MENU_MODEL(pyeditor_recent_menu_model));
 	g_menu_append_item(file_top, recent_item);
 	g_object_unref(recent_item);
+	pyeditor_menu_append(file_top, _("Re_load"), "editor.reload", "<Control><Shift>r");
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_top));
 	g_object_unref(file_top);
 	GMenu *file_save = g_menu_new();
@@ -285,6 +290,11 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_object_unref(lang_ssf);
 	g_menu_append_section(script, NULL, G_MENU_MODEL(script_lang));
 	g_object_unref(script_lang);
+	GMenu *script_fold = g_menu_new();
+	pyeditor_menu_append(script_fold, _("_Fold top-level nodes"), "editor.fold_toplevel", "<Control>braceleft");
+	pyeditor_menu_append(script_fold, _("_Unfold all"), "editor.unfold_all", "<Control>braceright");
+	g_menu_append_section(script, NULL, G_MENU_MODEL(script_fold));
+	g_object_unref(script_fold);
 	GMenu *script_opts = g_menu_new();
 	g_menu_append(script_opts, _("Enable test _arguments"),  "editor.useargs");
 	g_menu_append(script_opts, _("Enable python _debug mode"), "editor.pythondebug");
@@ -339,6 +349,20 @@ static void editor_action_set_state(const gchar *name, GVariant *value) {
 		g_simple_action_set_state(G_SIMPLE_ACTION(act), value);
 	else
 		g_variant_unref(g_variant_ref_sink(value));
+}
+
+/* The fold-all / unfold-all actions are only usable when the active tab is a
+ * Python script and code folding is enabled. */
+static void editor_update_fold_actions(void) {
+	if (!editor_action_group)
+		return;
+	gboolean en = (active_language == LANG_PYTHON) && com.pref.gui.editor_cfg.code_folding;
+	const char *names[] = { "fold_toplevel", "unfold_all" };
+	for (size_t i = 0; i < G_N_ELEMENTS(names); i++) {
+		GAction *a = g_action_map_lookup_action(G_ACTION_MAP(editor_action_group), names[i]);
+		if (a)
+			g_simple_action_set_enabled(G_SIMPLE_ACTION(a), en);
+	}
 }
 
 /* Request a state change on an editor action (fires the change_state
@@ -462,6 +486,8 @@ static void install_editor_shortcuts(GtkWindow *window) {
 		{ "<Control><Shift>s",   "editor.save_as" },
 		{ "<Control>q",          "editor.close" },
 		{ "<Control><Shift>q",   "editor.close_all" },
+		{ "<Control>braceleft",  "editor.fold_toplevel" },
+		{ "<Control>braceright", "editor.unfold_all" },
 		{ "<Control>z",          "editor.undo" },
 		{ "<Control>y",          "editor.redo" },
 		{ "<Control>x",          "editor.cut" },
@@ -1155,7 +1181,7 @@ static void wrap_guides_draw(GtkDrawingArea *area, cairo_t *cr, int w, int h, gp
  * renderer draws ▸/▾ markers.  State hangs off the buffer (per tab).
  * ------------------------------------------------------------------------- */
 
-typedef struct { int header; int end; gboolean folded; } FoldRegion;
+typedef struct { int header; int end; int indent; gboolean folded; } FoldRegion;
 
 typedef struct {
 	GtkSourceView   *view;          /* not owned */
@@ -1302,7 +1328,7 @@ static void fold_compute_regions(FoldData *fd) {
 			if (ind[m] > ind[i]) { end = (int) m; continue; }
 			break;                                /* dedent to <= header: region ends */
 		}
-		FoldRegion r = { (int) i, end,
+		FoldRegion r = { (int) i, end, ind[i],
 		                 g_hash_table_contains(folded, GINT_TO_POINTER((int) i)) };
 		g_array_append_val(fd->regions, r);
 	}
@@ -1334,6 +1360,37 @@ static void fold_toggle_at_line(FoldData *fd, int line) {
 	if (!r)
 		return;
 	r->folded = !r->folded;
+	fold_apply_all(fd);
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+}
+
+/* Fold the outermost (minimum-indent) regions — collapses the file to its
+ * top-level structure. */
+static void fold_fold_top_level(FoldData *fd) {
+	if (!fd->enabled || fd->regions->len == 0)
+		return;
+	int min_indent = G_MAXINT;
+	for (guint i = 0; i < fd->regions->len; i++) {
+		int ind = g_array_index(fd->regions, FoldRegion, i).indent;
+		if (ind < min_indent) min_indent = ind;
+	}
+	for (guint i = 0; i < fd->regions->len; i++) {
+		FoldRegion *r = &g_array_index(fd->regions, FoldRegion, i);
+		if (r->indent == min_indent)
+			r->folded = TRUE;
+	}
+	fold_apply_all(fd);
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+}
+
+/* Unfold every region. */
+static void fold_unfold_all(FoldData *fd) {
+	if (fd->regions->len == 0)
+		return;
+	for (guint i = 0; i < fd->regions->len; i++)
+		g_array_index(fd->regions, FoldRegion, i).folded = FALSE;
 	fold_apply_all(fd);
 	if (fd->renderer)
 		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
@@ -1915,6 +1972,7 @@ static void apply_editor_settings_to_active(void) {
 	}
 	editor_action_set_state("language",
 		g_variant_new_string(active_language == LANG_PYTHON ? "py" : "ssf"));
+	editor_update_fold_actions();
 }
 
 /* ---- Multi-tab document management ----
@@ -1992,6 +2050,7 @@ static void editor_make_active(EditorDoc *d) {
 	gtk_label_set_text(language_label,
 		active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 	editor_update_window_title();
+	editor_update_fold_actions();
 }
 
 static EditorDoc *editor_doc_for_page(GtkWidget *page) {
@@ -2462,6 +2521,20 @@ void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer 
 		load_file(current_file);
 		update_title(current_file);
 	}
+}
+
+void on_action_fold_toplevel(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void) action; (void) parameter; (void) user_data;
+	FoldData *fd = fold_data(GTK_TEXT_BUFFER(sourcebuffer));
+	if (fd)
+		fold_fold_top_level(fd);
+}
+
+void on_action_unfold_all(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void) action; (void) parameter; (void) user_data;
+	FoldData *fd = fold_data(GTK_TEXT_BUFFER(sourcebuffer));
+	if (fd)
+		fold_unfold_all(fd);
 }
 
 void new_script(const gchar *contents, gint length, const char *ext) {
@@ -2954,6 +3027,7 @@ void set_language() {
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
+	editor_update_fold_actions();   /* fold actions only apply to Python */
 }
 
 /* String-state action for the language radio.  Activating an item with a
@@ -3078,6 +3152,7 @@ static void on_toggle_change_state(GSimpleAction *action, GVariant *value, gpoin
 	g_simple_action_set_state(action, value);
 	/* Editor view preferences are global: apply to all open tabs. */
 	apply_editor_setting_all(name, v);
+	editor_update_fold_actions();   /* e.g. toggling code folding */
 }
 
 void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
