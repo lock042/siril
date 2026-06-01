@@ -68,7 +68,9 @@ typedef struct {
 } EditorDoc;
 static GPtrArray  *editor_docs = NULL;   /* EditorDoc* */
 static EditorDoc  *active_doc  = NULL;
+static EditorDoc  *prev_doc    = NULL;   /* most-recently-active tab before the current one */
 static SearchData *active_search = NULL; /* search data of the active view */
+static gboolean    editor_suppress_switch = FALSE; /* ignore switch-page during removals */
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkDropDown *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -110,6 +112,7 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_action_close_all(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -136,6 +139,7 @@ static GActionEntry editor_actions[] = {
 	{ "save_as", on_action_file_save_as, NULL, NULL, NULL },
 	{ "new", on_action_file_new, NULL, NULL, NULL },
 	{ "close", on_action_file_close, NULL, NULL, NULL },
+	{ "close_all", on_action_close_all, NULL, NULL, NULL },
 	{ "execute", on_action_file_execute, NULL, NULL, NULL },
 	{ "python_doc", on_action_python_doc, NULL, NULL, NULL },
 	{ "command_doc", on_action_command_doc, NULL, NULL, NULL },
@@ -231,7 +235,8 @@ static GMenuModel *build_pyeditor_menubar_model(void) {
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_save));
 	g_object_unref(file_save);
 	GMenu *file_close = g_menu_new();
-	pyeditor_menu_append(file_close, _("_Close"), "editor.close", "<Control>q");
+	pyeditor_menu_append(file_close, _("_Close tab"), "editor.close", "<Control>q");
+	pyeditor_menu_append(file_close, _("Close _all tabs"), "editor.close_all", "<Control><Shift>q");
 	g_menu_append_section(file, NULL, G_MENU_MODEL(file_close));
 	g_object_unref(file_close);
 	g_menu_append_submenu(bar, _("_File"), G_MENU_MODEL(file));
@@ -448,6 +453,7 @@ static void install_editor_shortcuts(GtkWindow *window) {
 		{ "<Control>s",          "editor.save" },
 		{ "<Control><Shift>s",   "editor.save_as" },
 		{ "<Control>q",          "editor.close" },
+		{ "<Control><Shift>q",   "editor.close_all" },
 		{ "<Control>z",          "editor.undo" },
 		{ "<Control>y",          "editor.redo" },
 		{ "<Control>x",          "editor.cut" },
@@ -1591,6 +1597,8 @@ static void editor_update_window_title(void) {
  * its overlay, and point active_search at its view's search data. */
 static void editor_make_active(EditorDoc *d) {
 	if (!d) return;
+	if (active_doc && active_doc != d)
+		prev_doc = active_doc;   /* remember the tab we're leaving (MRU) */
 	active_doc = d;
 	doc_load_statics(d);
 	if (find_overlay && content_overlay) {
@@ -1623,6 +1631,8 @@ static EditorDoc *editor_doc_for_page(GtkWidget *page) {
 
 static void on_notebook_switch_page(GtkNotebook *nb, GtkWidget *page, guint idx, gpointer u) {
 	(void) nb; (void) idx; (void) u;
+	if (editor_suppress_switch)
+		return;
 	EditorDoc *d = editor_doc_for_page(page);
 	if (!d || d == active_doc)
 		return;
@@ -1630,10 +1640,126 @@ static void on_notebook_switch_page(GtkNotebook *nb, GtkWidget *page, guint idx,
 	editor_make_active(d);
 }
 
+/* Detach the shared find box from whichever overlay currently hosts it so it
+ * survives destruction of that overlay (it is kept alive by the GtkBuilder). */
+static void editor_detach_find_box(void) {
+	if (!find_overlay) return;
+	GtkWidget *par = gtk_widget_get_parent(GTK_WIDGET(find_overlay));
+	if (par && GTK_IS_OVERLAY(par))
+		gtk_overlay_remove_overlay(GTK_OVERLAY(par), GTK_WIDGET(find_overlay));
+}
+
+/* Remove a document's page and free it (no prompting / no UI follow-up). */
+static void editor_drop_doc(EditorDoc *d) {
+	if (prev_doc == d)
+		prev_doc = NULL;
+	int idx = gtk_notebook_page_num(editor_notebook, d->page);
+	GFile *f = d->current_file;
+	g_ptr_array_remove(editor_docs, d);
+	if (idx >= 0)
+		gtk_notebook_remove_page(editor_notebook, idx);
+	if (f)
+		g_object_unref(f);
+	g_free(d);
+}
+
+/* Genuinely close a document's tab.  Prompts if it has unsaved changes.  When
+ * it is the last tab, the tab is really removed and the window hidden, so the
+ * next time the editor opens it starts with a fresh blank tab.  Closing a
+ * background tab keeps the current tab active. */
+static void editor_close_doc(EditorDoc *d) {
+	if (!d || !editor_docs)
+		return;
+	gboolean modified = (d == active_doc) ? buffer_modified : d->buffer_modified;
+	if (modified &&
+	    !siril_confirm_dialog(_("Unsaved changes"),
+		_("This tab has unsaved changes that will be lost. Close it anyway?"),
+		_("Close")))
+		return;
+
+	gboolean closing_active = (d == active_doc);
+	EditorDoc *keep_active = closing_active ? NULL : active_doc;
+
+	/* If the shared find box lives in the page we're about to destroy, detach
+	 * it first so it isn't destroyed with the overlay. */
+	if (closing_active)
+		editor_detach_find_box();
+
+	editor_suppress_switch = TRUE;
+	editor_drop_doc(d);
+	editor_suppress_switch = FALSE;
+
+	if (editor_docs->len == 0) {
+		/* That was the last tab: hide the window; a fresh tab is created on
+		 * the next open. */
+		active_doc = NULL;
+		prev_doc = NULL;
+		gtk_widget_set_visible(GTK_WIDGET(editor_window), FALSE);
+		return;
+	}
+
+	/* Activate the doc that should now be shown. */
+	EditorDoc *next = keep_active;
+	if (!next) {
+		GtkWidget *cur = gtk_notebook_get_nth_page(editor_notebook,
+			gtk_notebook_get_current_page(editor_notebook));
+		next = editor_doc_for_page(cur);
+		if (!next && editor_docs->len > 0)
+			next = g_ptr_array_index(editor_docs, 0);
+	}
+	active_doc = NULL;   /* force editor_make_active to fully apply */
+	if (next) {
+		int nidx = gtk_notebook_page_num(editor_notebook, next->page);
+		editor_suppress_switch = TRUE;
+		gtk_notebook_set_current_page(editor_notebook, nidx);
+		editor_suppress_switch = FALSE;
+		editor_make_active(next);
+	}
+}
+
+/* Close every tab and hide the editor (Ctrl+Shift+Q).  Prompts once if any tab
+ * has unsaved changes. */
+static void editor_close_all(void) {
+	if (!editor_docs || editor_docs->len == 0) {
+		if (editor_window) gtk_widget_set_visible(GTK_WIDGET(editor_window), FALSE);
+		return;
+	}
+	if (active_doc) doc_save_statics(active_doc);   /* sync active modified flag */
+	gboolean any_mod = FALSE;
+	for (guint i = 0; i < editor_docs->len; i++)
+		if (((EditorDoc *) g_ptr_array_index(editor_docs, i))->buffer_modified) {
+			any_mod = TRUE;
+			break;
+		}
+	if (any_mod &&
+	    !siril_confirm_dialog(_("Unsaved changes"),
+		_("Some tabs have unsaved changes that will be lost. Close all tabs?"),
+		_("Close all")))
+		return;
+
+	editor_detach_find_box();
+	editor_suppress_switch = TRUE;
+	while (editor_docs->len > 0)
+		editor_drop_doc(g_ptr_array_index(editor_docs, 0));
+	editor_suppress_switch = FALSE;
+	active_doc = NULL;
+	prev_doc = NULL;
+	gtk_widget_set_visible(GTK_WIDGET(editor_window), FALSE);
+}
+
+/* Tab widget: a label (filename / '*') plus a small close button. */
 static GtkWidget *editor_make_tab_label(EditorDoc *d) {
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	GtkWidget *lbl = gtk_label_new(_("unsaved"));
 	d->tab_label = lbl;
-	return lbl;
+	gtk_box_append(GTK_BOX(box), lbl);
+	GtkWidget *close = gtk_button_new_from_icon_name("window-close-symbolic");
+	gtk_button_set_has_frame(GTK_BUTTON(close), FALSE);
+	gtk_widget_set_focusable(close, FALSE);
+	gtk_widget_set_tooltip_text(close, _("Close tab"));
+	g_signal_connect_swapped(close, "clicked", G_CALLBACK(editor_close_doc), d);
+	gtk_box_append(GTK_BOX(box), close);
+	return box;
 }
 
 /* Build a fresh empty document in a new notebook tab and make it active. */
@@ -1696,11 +1822,41 @@ static EditorDoc *editor_new_tab(void) {
 	int idx = gtk_notebook_append_page(editor_notebook, page, editor_make_tab_label(d));
 	gtk_widget_set_visible(page, TRUE);
 	/* set active_doc before switching so the switch-page handler no-ops */
+	if (active_doc)
+		prev_doc = active_doc;   /* opening a tab makes the old one the MRU previous */
 	active_doc = d;
 	gtk_notebook_set_current_page(editor_notebook, idx);
 	editor_make_active(d);
 	apply_editor_settings_to_active();
 	return d;
+}
+
+/* Switch to the most-recently-active other tab (MRU toggle).  Pressing it
+ * again toggles back, because the switch updates prev_doc to the tab we left. */
+static void editor_toggle_recent_tab(void) {
+	if (!editor_docs || !prev_doc || prev_doc == active_doc)
+		return;
+	gboolean exists = FALSE;
+	for (guint i = 0; i < editor_docs->len; i++)
+		if (g_ptr_array_index(editor_docs, i) == prev_doc) { exists = TRUE; break; }
+	if (!exists)
+		return;
+	int idx = gtk_notebook_page_num(editor_notebook, prev_doc->page);
+	if (idx >= 0)
+		gtk_notebook_set_current_page(editor_notebook, idx);  /* -> editor_make_active updates prev_doc */
+}
+
+/* Capture-phase handler so Ctrl+Tab reaches us before GtkTextView treats it as
+ * focus navigation.  Ctrl+Tab toggles between the two most-recent tabs. */
+static gboolean on_editor_tab_key(GtkEventControllerKey *ctrl, guint keyval,
+                                  guint keycode, GdkModifierType state, gpointer u) {
+	(void) ctrl; (void) keycode; (void) u;
+	if ((state & GDK_CONTROL_MASK) &&
+	    (keyval == GDK_KEY_Tab || keyval == GDK_KEY_KP_Tab || keyval == GDK_KEY_ISO_Left_Tab)) {
+		editor_toggle_recent_tab();
+		return TRUE;
+	}
+	return FALSE;
 }
 
 // Statics init
@@ -1712,6 +1868,12 @@ void python_scratchpad_init_statics() {
 			GtkEventController *kctrl = gtk_event_controller_key_new();
 			g_signal_connect(kctrl, "key-pressed", G_CALLBACK(on_editor_key_press), NULL);
 			gtk_widget_add_controller(GTK_WIDGET(editor_window), kctrl);
+			/* Capture-phase controller for Ctrl+Tab / Ctrl+Shift+Tab so the
+			 * source view's focus-navigation doesn't swallow them. */
+			GtkEventController *tabctrl = gtk_event_controller_key_new();
+			gtk_event_controller_set_propagation_phase(tabctrl, GTK_PHASE_CAPTURE);
+			g_signal_connect(tabctrl, "key-pressed", G_CALLBACK(on_editor_tab_key), NULL);
+			gtk_widget_add_controller(GTK_WIDGET(editor_window), tabctrl);
 		}
 		main_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 		// GtkSourceView
@@ -1784,17 +1946,14 @@ void python_scratchpad_init_statics() {
 			gtk_box_append(GTK_BOX(page0), map_wrapper);
 			g_object_unref(map_wrapper);
 		}
-		GtkWidget *tab0_label = gtk_label_new(_("unsaved"));
-		gtk_notebook_append_page(editor_notebook, page0, tab0_label);
-		gtk_box_append(GTK_BOX(codeviewbox), GTK_WIDGET(editor_notebook));
-
 		/* Capture the first document and wire tab switching. */
 		setup_find_signals();
 		editor_docs = g_ptr_array_new();
 		EditorDoc *d0 = g_new0(EditorDoc, 1);
 		doc_save_statics(d0);
 		d0->page = page0;
-		d0->tab_label = tab0_label;
+		gtk_notebook_append_page(editor_notebook, page0, editor_make_tab_label(d0));
+		gtk_box_append(GTK_BOX(codeviewbox), GTK_WIDGET(editor_notebook));
 		g_ptr_array_add(editor_docs, d0);
 		active_doc = d0;
 		active_search = g_object_get_data(G_OBJECT(code_view), "search-data");
@@ -1955,34 +2114,15 @@ void new_script(const gchar *contents, gint length, const char *ext) {
 }
 
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
-	gboolean is_empty = (char_count == 0);
-	if (!is_empty) {
-		GtkTextIter start, end;
-		gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-			if (G_IS_OBJECT(current_file))
-				g_object_unref(current_file);
-			current_file = NULL;
-			gtk_text_buffer_begin_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-			gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-			buffer_modified = FALSE;
-			gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-			gtk_text_buffer_end_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
-			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-			gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-			gtk_widget_set_visible(GTK_WIDGET(editor_window), FALSE);
-			return;
-		} else {
-			return;
-		}
-	} else {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-	}
-	gtk_widget_set_visible(GTK_WIDGET(editor_window), FALSE);
+	(void) action; (void) parameter; (void) user_data;
+	/* Close the active tab (prompts if modified); closing the last tab really
+	 * removes it and hides the window (fresh tab on next open). */
+	editor_close_doc(active_doc);
+}
+
+void on_action_close_all(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void) action; (void) parameter; (void) user_data;
+	editor_close_all();
 }
 
 /* Phase 14G.2: GtkFileChooserDialog → GtkFileDialog. */
@@ -2237,13 +2377,18 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 	}
 	(void) main_window;
 
+	/* If all tabs were closed previously, start with a fresh blank tab. */
+	if (!editor_docs || editor_docs->len == 0)
+		editor_new_tab();
+
 	/* gtk_window_present triggers the window's "show" signal when
 	 * the window was hidden — on_python_window_show runs there and
 	 * does the editor configuration. */
 	gtk_window_present(editor_window);
 
 	// Focus the SourceView
-	gtk_widget_grab_focus(GTK_WIDGET(code_view));
+	if (code_view)
+		gtk_widget_grab_focus(GTK_WIDGET(code_view));
 
 	return 0;
 }
