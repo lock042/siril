@@ -47,13 +47,14 @@ SpatialException::SpatialException(const char *cstr, int defIndex) throw()
     {
         if (cstr)
         {
-            str_ = new char[slen(cstr) + 1];
-            strcpy(str_, cstr);
+            size_t const clen = slen(cstr) + 1;
+            str_ = new char[clen];
+            strncpy(str_, cstr, clen);
         }
         else
         {
             str_ = new char[50];
-            sprintf(str_, "%s : %s", defaultstr[CONTEXT], defaultstr[defIndex]);
+            snprintf(str_, 50, "%s : %s", defaultstr[CONTEXT], defaultstr[defIndex]);
         }
     }
     catch (...)
@@ -69,8 +70,9 @@ SpatialException::SpatialException(const char *context, const char *because, int
         const char *tmpc, *tmpb;
         tmpc = context ? context : defaultstr[CONTEXT];
         tmpb = because ? because : defaultstr[defIndex];
-        str_ = new char[slen(tmpc) + slen(tmpb) + 50]; // allow extensions
-        sprintf(str_, "%s : %s", tmpc, tmpb);
+        size_t const tblen = slen(tmpc) + slen(tmpb) + 50;
+        str_ = new char[tblen]; // allow extensions
+        snprintf(str_, tblen, "%s : %s", tmpc, tmpb);
     }
     catch (...)
     {
@@ -84,8 +86,9 @@ SpatialException::SpatialException(const SpatialException &oldX) throw()
     {
         if (oldX.str_)
         {
-            str_ = new char[slen(oldX.str_) + 1];
-            strcpy(str_, oldX.str_);
+            size_t const clen = slen(oldX.str_) + 1;
+            str_ = new char[clen];
+            strncpy(str_, oldX.str_, clen);
         }
     }
     catch (...)
@@ -102,8 +105,9 @@ SpatialException &SpatialException::operator=(const SpatialException &oldX) thro
         {
             if (oldX.str_)
             {
-                str_ = new char[slen(oldX.str_) + 1];
-                strcpy(str_, oldX.str_);
+                size_t const clen = slen(oldX.str_) + 1;
+                str_ = new char[clen];
+                strncpy(str_, oldX.str_, clen);
             }
         }
     }
