@@ -128,6 +128,7 @@ void set_language();
 static void wrap_set_enabled(gboolean on);
 static void fold_set_enabled(GtkSourceBuffer *buffer, gboolean on);
 static gboolean editor_line_is_folded(GtkTextBuffer *b, int line);
+static gboolean fold_hover_extent(GtkTextBuffer *b, int *hdr, int *end);
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data);
 
@@ -1063,14 +1064,35 @@ static void wrap_set_enabled(gboolean on) {
  * hanging-indent area of wrapped continuation rows.  Drawn on a transparent
  * overlay above the editor; only active while dynamic wrap is enabled. */
 static void wrap_guides_draw(GtkDrawingArea *area, cairo_t *cr, int w, int h, gpointer u) {
-	(void) area; (void) w; (void) h; (void) u;
+	(void) area; (void) h; (void) u;
 	if (!code_view || !sourcebuffer)
-		return;
-	WrapData *wd = wrap_data(GTK_TEXT_BUFFER(sourcebuffer));
-	if (!wd || !wd->enabled)
 		return;
 	GtkTextView *view = GTK_TEXT_VIEW(code_view);
 	GtkTextBuffer *buf = GTK_TEXT_BUFFER(sourcebuffer);
+
+	/* Fold hover highlight (independent of dynamic wrap): a translucent blue
+	 * band over the extent of the fold whose marker is hovered. */
+	int fh = 0, fe = 0;
+	if (fold_hover_extent(buf, &fh, &fe)) {
+		GtkTextIter hi, ei;
+		gtk_text_buffer_get_iter_at_line(buf, &hi, fh);
+		gtk_text_buffer_get_iter_at_line(buf, &ei, fe);
+		int hby = 0, hh = 0, eby = 0, eh = 0;
+		gtk_text_view_get_line_yrange(view, &hi, &hby, &hh);
+		gtk_text_view_get_line_yrange(view, &ei, &eby, &eh);
+		int wy0 = 0, wy1 = 0, tmp = 0;
+		gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_WIDGET, 0, hby, &tmp, &wy0);
+		gtk_text_view_buffer_to_window_coords(view, GTK_TEXT_WINDOW_WIDGET, 0, eby + eh, &tmp, &wy1);
+		if (wy1 > wy0) {
+			cairo_set_source_rgba(cr, 0.25, 0.45, 1.0, 0.13);
+			cairo_rectangle(cr, 0, wy0, w, wy1 - wy0);
+			cairo_fill(cr);
+		}
+	}
+
+	WrapData *wd = wrap_data(GTK_TEXT_BUFFER(sourcebuffer));
+	if (!wd || !wd->enabled)
+		return;
 	int cw = wd->char_width > 0 ? wd->char_width : 8;
 
 	GdkRectangle vis;
@@ -1168,6 +1190,19 @@ static FoldRegion *fold_region_at_header(FoldData *fd, int line) {
 			return r;
 	}
 	return NULL;
+}
+
+/* If a fold marker is currently hovered, report its header/end line range. */
+static gboolean fold_hover_extent(GtkTextBuffer *b, int *hdr, int *end) {
+	FoldData *fd = fold_data(b);
+	if (!fd || !fd->enabled || fd->hover_line < 0)
+		return FALSE;
+	FoldRegion *r = fold_region_at_header(fd, fd->hover_line);
+	if (!r)
+		return FALSE;
+	*hdr = r->header;
+	*end = r->end;
+	return TRUE;
 }
 
 /* Leading-whitespace columns of a line; returns -1 for a blank/whitespace line. */
@@ -1374,6 +1409,45 @@ static void fold_data_free(gpointer p) {
 	g_free(fd);
 }
 
+/* Track pointer hover over the fold gutter: show markers only while hovering,
+ * and highlight the fold extent of the header under the pointer. */
+static void fold_gutter_motion(GtkEventControllerMotion *c, double x, double y, gpointer u) {
+	(void) c; (void) x;
+	FoldData *fd = u;
+	if (!fd || !fd->enabled)
+		return;
+	int line = -1;
+	if (fd->view) {
+		int bx = 0, by = 0;
+		gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(fd->view),
+			GTK_TEXT_WINDOW_LEFT, 0, (int) y, &bx, &by);
+		GtkTextIter it;
+		gtk_text_view_get_line_at_y(GTK_TEXT_VIEW(fd->view), &it, by, NULL);
+		int ln = gtk_text_iter_get_line(&it);
+		if (fold_region_at_header(fd, ln))
+			line = ln;
+	}
+	gboolean changed = (!fd->gutter_hover) || (line != fd->hover_line);
+	fd->gutter_hover = TRUE;
+	fd->hover_line = line;
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+	if (changed && wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
+}
+static void fold_gutter_leave(GtkEventControllerMotion *c, gpointer u) {
+	(void) c;
+	FoldData *fd = u;
+	if (!fd)
+		return;
+	fd->gutter_hover = FALSE;
+	fd->hover_line = -1;
+	if (fd->renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(fd->renderer));
+	if (wrap_guides_area)
+		gtk_widget_queue_draw(wrap_guides_area);
+}
+
 static void fold_setup(GtkSourceView *view, GtkSourceBuffer *buffer) {
 	FoldData *fd = g_new0(FoldData, 1);
 	fd->view = view;
@@ -1388,6 +1462,10 @@ static void fold_setup(GtkSourceView *view, GtkSourceBuffer *buffer) {
 	gtk_widget_set_size_request(GTK_WIDGET(fd->renderer), 0, -1);
 	gtk_source_gutter_insert(gtk_source_view_get_gutter(view, GTK_TEXT_WINDOW_LEFT),
 	                         fd->renderer, 90);
+	GtkEventController *mc = gtk_event_controller_motion_new();
+	g_signal_connect(mc, "motion", G_CALLBACK(fold_gutter_motion), fd);
+	g_signal_connect(mc, "leave", G_CALLBACK(fold_gutter_leave), fd);
+	gtk_widget_add_controller(GTK_WIDGET(fd->renderer), mc);
 	g_object_set_data_full(G_OBJECT(buffer), "fold-data", fd, fold_data_free);
 	g_signal_connect(buffer, "changed", G_CALLBACK(on_buffer_changed_for_folding), NULL);
 }
