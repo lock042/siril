@@ -999,6 +999,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(reg_reference_checkbutton, TRUE);
 		gtk_entry_set_text(reg_reference_entry, com.seq.ext_ref_path);
 		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
+	} else if (!dont_change_reg_radio && !com.seq.ext_ref) {
+		gtk_toggle_button_set_active(reg_reference_checkbutton, FALSE);
+		gtk_entry_set_text(reg_reference_entry, "");
 	}
 	gboolean use_external_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
 	gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
