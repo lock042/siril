@@ -215,6 +215,34 @@ cv::Vec4i align_pick_patch(const cv::Mat &best, const mpp_config_t &cfg) {
 	return best_bounds;
 }
 
+cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred) {
+	/* PSS AlignFrames.center_of_gravity (align_frames.py):
+	 *   minVal, maxVal = minMaxLoc(frame)
+	 *   threshold = int((minVal + maxVal) / 2)        # truncates toward zero
+	 *   thresh    = clip(frame, threshold, None) - threshold   # = max(frame-thr, 0)
+	 *   M = moments(thresh); cog = (M01/M00, M10/M00)
+	 * PSS then round()s cog to integer; we keep it sub-pixel (see header). */
+	double min_val = 0.0, max_val = 0.0;
+	cv::minMaxLoc(frame_mono_blurred, &min_val, &max_val);
+	const double threshold = std::trunc((min_val + max_val) / 2.0);
+
+	cv::Mat weights;
+	frame_mono_blurred.convertTo(weights, CV_64F);
+	weights -= threshold;
+	cv::max(weights, 0.0, weights);   /* clip(frame, thr, None) - thr */
+
+	const cv::Moments m = cv::moments(weights, /*binaryImage=*/false);
+	if (m.m00 <= 0.0) {
+		/* Blank/flat frame: no centroid. Fall back to the geometric
+		 * centre so a uniform sequence yields zero relative shift. */
+		return cv::Vec2d((frame_mono_blurred.rows - 1) / 2.0,
+		                 (frame_mono_blurred.cols - 1) / 2.0);
+	}
+	const double cog_x = m.m10 / m.m00;
+	const double cog_y = m.m01 / m.m00;
+	return cv::Vec2d(cog_y, cog_x);
+}
+
 /* Precomputed pseudo-inverse `(AᵀA)⁻¹ Aᵀ` for fitting
  * f(x,y) = a x² + b y² + c xy + d x + e y + g to 9 correlation values
  * on a 3×3 grid (indexed row-major y=0..2, x=0..2 with the grid centred
@@ -387,6 +415,50 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	for (int i = 1; i < N; ++i)
 		if (quality[i] > quality[best]) best = i;
 	out.best_frame_idx = best;
+
+	/* Planet mode (PSS "Planet"): align on the brightness centroid rather
+	 * than correlating a surface patch. The per-frame shift is the centroid
+	 * displacement relative to the best frame — this "cannot fail" (no
+	 * search window, no patch). Frames are independent, so a single
+	 * parallel-for over all frames replaces the two cumulative sweeps. */
+	if (cfg.align_frames_mode == MPP_ALIGN_PLANET) {
+		const cv::Mat best_blurred = provider(best);
+		if (best_blurred.empty()) {        /* best frame unreadable */
+			out.best_frame_idx = -1;
+			return out;
+		}
+		const cv::Vec2d cog_ref = center_of_gravity(best_blurred);
+		out.patch_yxyx = cv::Vec4i(0, 0, 0, 0);  /* no patch in planet mode */
+		out.shifts.assign(N, cv::Vec2d(0.0, 0.0));
+
+		gint cancelled = 0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic) if (provider_is_thread_safe)
+#endif
+		for (int idx = 0; idx < N; ++idx) {
+			if (g_atomic_int_get(&cancelled)) continue;
+			if (!processing_should_continue()) {
+				g_atomic_int_set(&cancelled, 1);
+				continue;
+			}
+			if (idx != best) {
+				const cv::Mat frame = provider(idx);
+				/* Empty frame → leave the zero-init shift (excluded). */
+				if (!frame.empty()) {
+					const cv::Vec2d cog = center_of_gravity(frame);
+					out.shifts[idx] = cv::Vec2d(cog_ref[0] - cog[0],
+					                            cog_ref[1] - cog[1]);
+				}
+			}
+			const gint d = g_atomic_int_add(&done, 1) + 1;
+			if (progress) progress((double) d / (double) total, progress_user);
+		}
+		if (g_atomic_int_get(&cancelled)) {
+			out.best_frame_idx = -1;
+			return out;
+		}
+		return out;
+	}
 
 	/* Patch on best frame's mono_blurred. Hold the best frame for the
 	 * full duration of both sweeps — we need to re-derive ref_window

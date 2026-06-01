@@ -33,6 +33,18 @@ double align_quality_measure_threshold_weighted(const cv::Mat &frame,
 cv::Vec4i align_pick_patch(const cv::Mat &best_frame_mono_blurred,
                            const mpp_config_t &cfg);
 
+/* Brightness-weighted centroid of a mono frame — PSS Planet mode
+ * (AlignFrames.center_of_gravity, align_frames.py). The threshold/clip
+ * pixel-selection matches PSS exactly: threshold = trunc((min+max)/2),
+ * weights = max(frame - threshold, 0). The returned (y, x) is the
+ * moment centroid m01/m00, m10/m00 kept at SUB-PIXEL precision —
+ * PSS rounds these to integer, but the port keeps the fractional part
+ * to seed drizzle's cross-frame CFA-phase diversity (same rationale as
+ * the always-on sub-pixel global correlation residual). Oracle tests
+ * must lround() before comparing to PSS's integer cog. Returns the
+ * frame centre if the frame has no pixels above threshold (m00 == 0). */
+cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred);
+
 struct AlignShiftResult {
 	/* Sign convention: shift the frame by (dy,dx) to align with ref.
 	 * Sub-pixel (multilevel_correlation's parabolic refinement) is

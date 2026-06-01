@@ -30,6 +30,7 @@ struct mpp_config {
 	int bitdepth;
 
 	/* Global frame alignment (Phase 2). */
+	int align_frames_mode;                      /* enum mpp_align_mode; default MPP_ALIGN_SURFACE */
 	int align_frames_search_width;              /* 34 */
 	double align_frames_rectangle_scale_factor; /* 3.0 */
 	int align_frames_border_width;              /* 10 */
@@ -89,6 +90,17 @@ struct mpp_config {
 	 * and Stage C through the dobox Bayer path. Only consulted for
 	 * SEQ_AVI sequences; ignored for SER / FITS. */
 	int avi_bayer_pattern;     /* enum mpp_avi_bayer; default MPP_AVI_BAYER_AUTO */
+};
+
+/* Global frame alignment mode (PSS configuration.align_frames_mode).
+ * SURFACE uses the auto-picked alignment rectangle + MultiLevelCorrelation
+ * (the only Phase-2 path historically); PLANET aligns on the brightness
+ * centroid (PSS "Planet" mode / AlignFrames.center_of_gravity), suitable
+ * for discs on a dark background where there is no surface detail to
+ * correlate. */
+enum mpp_align_mode {
+	MPP_ALIGN_SURFACE = 0,
+	MPP_ALIGN_PLANET  = 1,
 };
 
 enum mpp_drizzle_mode {

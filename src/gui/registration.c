@@ -145,6 +145,7 @@ static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_fra
 static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL;
 static GtkComboBox *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
+static GtkComboBox *combo_mpp_align_mode = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
@@ -282,6 +283,7 @@ static void registration_init_statics() {
 		check_mpp_normalize      = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
 		combo_mpp_avi_bayer      = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer      = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
+		combo_mpp_align_mode     = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -1209,6 +1211,12 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			const int ab = combo_mpp_avi_bayer ? gtk_combo_box_get_active(combo_mpp_avi_bayer) : 0;
 			cfg->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
 			                       ? ab : MPP_AVI_BAYER_AUTO;
+		}
+		{
+			/* Combo item indices match the enum: 0 = Surface, 1 = Planet. */
+			const int am = combo_mpp_align_mode ? gtk_combo_box_get_active(combo_mpp_align_mode) : 0;
+			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
+			                                                  : MPP_ALIGN_SURFACE;
 		}
 		regargs->mpp_cfg = cfg;
 	}

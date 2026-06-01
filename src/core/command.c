@@ -14669,6 +14669,16 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && !strcmp(arg, "-no-normalize")) {
 		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && g_str_has_prefix(arg, "-align=")) {
+		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
+		 * "surface" = patch correlation (default); "planet" = brightness
+		 * centroid, for discs on a dark background. */
+		const char *v = arg + 7;
+		if      (!g_ascii_strcasecmp(v, "surface")) cfg->align_frames_mode = MPP_ALIGN_SURFACE;
+		else if (!g_ascii_strcasecmp(v, "planet"))  cfg->align_frames_mode = MPP_ALIGN_PLANET;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
 	if (accept_register && g_str_has_prefix(arg, "-avi-bayer=")) {
 		/* AVI Bayer-pattern hint (see mpp_config.h enum mpp_avi_bayer).
 		 * Only consulted for SEQ_AVI sequences; ignored for SER/FITS. */

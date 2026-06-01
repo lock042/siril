@@ -96,6 +96,7 @@ Test(mpp_align, default_config_has_pss_values) {
 	cr_assert_eq(cfg.align_frames_rectangle_black_threshold, 10240);
 	cr_assert_float_eq(cfg.align_frames_rectangle_min_fraction, 0.7, 1e-12);
 	cr_assert_eq(cfg.align_frames_average_frame_percent, 5);
+	cr_assert_eq(cfg.align_frames_mode, MPP_ALIGN_SURFACE);
 }
 
 Test(mpp_align, patch_picker_returns_bounds_within_frame) {
@@ -177,6 +178,61 @@ Test(mpp_align, align_global_recovers_known_shifts_per_frame) {
 		             "frame %zu dy: expected %d, got %g", i,
 		             -jit[i].first, r.shifts[i][0]);
 		cr_assert_float_eq(r.shifts[i][1], (double)(-jit[i].second), 0.5,
+		             "frame %zu dx: expected %d, got %g", i,
+		             -jit[i].second, r.shifts[i][1]);
+	}
+}
+
+/* ---- Planet / center-of-gravity mode ----------------------------------- */
+
+/* CoG of a symmetric disc is its geometric centre. */
+Test(mpp_align, cog_recovers_disc_centre) {
+	cv::Mat f(200, 240, CV_16U, cv::Scalar(0));
+	const double cy = 99.0, cx = 119.0;   /* integer-grid centre of 200x240 */
+	cv::circle(f, cv::Point((int) cx, (int) cy), 50, cv::Scalar(50000), -1);
+	const cv::Vec2d cog = mpp::center_of_gravity(f);
+	cr_assert_float_eq(cog[0], cy, 0.05, "cog y: expected %g, got %g", cy, cog[0]);
+	cr_assert_float_eq(cog[1], cx, 0.05, "cog x: expected %g, got %g", cx, cog[1]);
+}
+
+/* The centroid must be sub-pixel — PSS rounds, the port does not. Two equal
+ * bright pixels at x=10 and x=11 give an analytic centroid at x=10.5. */
+Test(mpp_align, cog_is_subpixel_not_rounded) {
+	cv::Mat f(20, 20, CV_16U, cv::Scalar(0));
+	f.at<uint16_t>(10, 10) = 40000;
+	f.at<uint16_t>(10, 11) = 40000;
+	/* threshold = trunc((0+40000)/2) = 20000; weights = 20000 each.
+	 * cog_x = (10+11)/2 = 10.5, cog_y = 10.0. */
+	const cv::Vec2d cog = mpp::center_of_gravity(f);
+	cr_assert_float_eq(cog[0], 10.0, 1e-9, "cog y: got %g", cog[0]);
+	cr_assert_float_eq(cog[1], 10.5, 1e-9, "cog x: got %g (must be sub-pixel)", cog[1]);
+}
+
+/* Planet mode recovers known per-frame shifts via centroid displacement.
+ * A rigidly translated image has a centroid that shifts by exactly the same
+ * amount, so the internal texture is irrelevant. */
+Test(mpp_align, planet_mode_recovers_known_shifts) {
+	auto cfg = default_cfg();
+	cfg.align_frames_mode = MPP_ALIGN_PLANET;
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+	const std::vector<std::pair<int, int>> jit = {
+	    {0, 0}, {-2, 1}, {3, -2}, {1, 2}, {-1, -1}, {0, 3}};
+
+	std::vector<cv::Mat> frames;
+	for (auto p : jit) frames.push_back(shifted(truth, p.first, p.second));
+
+	std::vector<double> q(frames.size(), 0.5);
+	q[0] = 1.0;   /* frame 0 is the reference */
+
+	const auto r = mpp::align_global_from_frames(frames, q, cfg);
+	cr_assert_eq(r.best_frame_idx, 0);
+	cr_assert_eq(r.patch_yxyx[0], 0);   /* no patch in planet mode */
+	cr_assert_eq(r.patch_yxyx[1], 0);
+	for (size_t i = 0; i < jit.size(); ++i) {
+		cr_assert_float_eq(r.shifts[i][0], (double)(-jit[i].first), 0.1,
+		             "frame %zu dy: expected %d, got %g", i,
+		             -jit[i].first, r.shifts[i][0]);
+		cr_assert_float_eq(r.shifts[i][1], (double)(-jit[i].second), 0.1,
 		             "frame %zu dx: expected %d, got %g", i,
 		             -jit[i].second, r.shifts[i][1]);
 	}

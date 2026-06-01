@@ -7083,6 +7083,34 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkLabel" id="label_mpp_align_mode">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Alignment mode:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">12</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="combo_mpp_align_mode">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Global frame alignment. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface). Planet aligns on the brightness centroid — robust for a disc on a dark background (CLI -align=planet).</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">Surface (detail)</item>
+                                                            <item translatable="yes">Planet (disc)</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">12</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkButton" id="button_mpp_analyze">
                                                             <property name="label" translatable="yes">Analyze</property>
                                                             <property name="visible">True</property>
@@ -7097,7 +7125,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">12</property>
+                                                            <property name="top-attach">13</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7113,7 +7141,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">12</property>
+                                                            <property name="top-attach">13</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7129,7 +7157,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">13</property>
+                                                            <property name="top-attach">14</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>

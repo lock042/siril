@@ -35,6 +35,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->bitdepth = 16;
 
 	/* Phase 2 — global alignment */
+	cfg->align_frames_mode = MPP_ALIGN_SURFACE;
 	cfg->align_frames_search_width = 34;
 	cfg->align_frames_rectangle_scale_factor = 3.0;
 	cfg->align_frames_border_width = 10;
