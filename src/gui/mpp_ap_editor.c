@@ -21,6 +21,7 @@
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
+#include "gui/message_dialog.h"
 #include "gui/mpp_ap_editor.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
@@ -311,8 +312,9 @@ gboolean mpp_ap_editor_is_open(void) {
 void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!mpp_get_cached_run()) {
-		siril_log_warning(_("AP editor: no analysis result is cached. "
-		                          "Run Analyze first.\n"));
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("No analysis result"),
+		                     _("There is no multipoint analysis to edit yet. "
+		                       "Run Analyze first."));
 		return;
 	}
 	editor_init_statics();

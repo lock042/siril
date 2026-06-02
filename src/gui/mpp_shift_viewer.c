@@ -16,6 +16,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
+#include "gui/message_dialog.h"
 #include "gui/mpp_shift_viewer.h"
 #include "io/sequence.h"
 #include "registration/mpp.h"
@@ -87,8 +88,9 @@ void on_seqmpp_view_shifts_button_clicked(GtkButton *button, gpointer user_data)
 	(void) button; (void) user_data;
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->shifts) {
-		siril_log_warning(_("Shift viewer: no Stage B shifts cached. "
-		                          "Run Register first.\n"));
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("No registration data"),
+		                     _("There are no per-AP shifts to view yet. "
+		                       "Run Register first."));
 		return;
 	}
 	init_statics();
