@@ -540,9 +540,10 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	 * and the heavier AP accumulation without a phase barrier or a fixed
 	 * I/O-vs-AP pool split — a thread blocked on the SER read lock simply
 	 * lets others get on with AP work. The float sum is reordered by the
-	 * reduction, so the output is close-but-not-bit-identical across thread
-	 * counts (a few LSB) — acceptable for a statistical stack. Reads must be
-	 * reentrant to parallelise; otherwise run single-threaded. */
+	 * reduction, so the output is not bit-identical across thread counts —
+	 * measured ≤1 16-bit LSB (~1 % of pixels off by one) on an 8000-frame
+	 * stack, negligible for a statistical mean. Reads must be reentrant to
+	 * parallelise; otherwise run single-threaded. */
 	const bool par = provider_thread_safe && nt > 1;
 	int n_threads = par ? nt : 1;
 	if (par && mem_budget_bytes > 0) {

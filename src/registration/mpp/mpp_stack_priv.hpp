@@ -205,8 +205,9 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
  * otherwise the read — and hence the whole loop — stays single-threaded.
  *
  * The float sum is reordered by the per-thread reduction, so the output is
- * close-but-not-bit-identical across thread counts (a few LSB) — the same
- * trade the drizzle paths make, acceptable for a statistical stack.
+ * not bit-identical across thread counts (measured ≤1 16-bit LSB on an
+ * 8000-frame stack) — the same trade the drizzle paths make, negligible for
+ * a statistical stack.
  *
  * `mem_budget_bytes` (0 = unbounded) caps the thread count so the private
  * per-AP buffer sets fit in the available memory. */

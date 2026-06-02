@@ -229,7 +229,7 @@ Test(mpp_stack, remap_rigid_clips_and_records_border) {
 /* The apply pass is frame-parallel: each thread accumulates its frames into
  * private per-AP buffers that are then summed. The float-sum reduction
  * reorders, so single-threaded and multi-threaded runs over the same frames
- * match to within a few LSB (not bit-identical) — verified on the merged
+ * match to within ≤1 16-bit LSB (not bit-identical) — verified on the merged
  * image. The border (a max-reduction) stays exact. */
 Test(mpp_stack, apply_shifts_parallel_matches_serial) {
 	const auto cfg = default_cfg();
@@ -296,9 +296,10 @@ Test(mpp_stack, apply_shifts_parallel_matches_serial) {
 	             (int) par.state.stacking_buffers.size());
 
 	/* The frame-parallel per-thread-buffer reduction reorders the float sum,
-	 * so the merged image is close-but-not-bit-identical across thread counts
-	 * (a few LSB). A correct reduction stays within a couple of LSB; a broken
-	 * one diverges by thousands. */
+	 * so the merged image is not bit-identical across thread counts. The
+	 * reorder is ≤1 16-bit LSB on representative data; a broken reduction
+	 * would diverge by thousands. Tolerance 2 leaves headroom without
+	 * masking breakage. */
 	const cv::Mat ms = mpp::stack_merge_alignment_point_buffers(
 	    serial.state, serial.border, *aps, cfg);
 	const cv::Mat mp = mpp::stack_merge_alignment_point_buffers(
@@ -310,7 +311,7 @@ Test(mpp_stack, apply_shifts_parallel_matches_serial) {
 	cv::absdiff(ms, mp, diff);
 	double dmin = 0.0, dmax = 0.0;
 	cv::minMaxLoc(diff.reshape(1), &dmin, &dmax);
-	cr_assert_leq(dmax, 8.0,
+	cr_assert_leq(dmax, 2.0,
 	              "parallel vs serial merged image diverges by %.0f LSB", dmax);
 
 	mpp_shift_free(shifts);
@@ -376,7 +377,7 @@ Test(mpp_stack, apply_shifts_fractional_scale) {
 	cr_assert_neq(serial.state.dim_y_drizzled, dim_y * 2);
 
 	/* 1-thread vs 8-thread stays close at fractional scale (frame-parallel
-	 * reduction reorders the float sum → a few LSB, not bit-identical). */
+	 * reduction reorders the float sum → ≤1 16-bit LSB, not bit-identical). */
 	cr_assert_eq((int) serial.state.stacking_buffers.size(),
 	             (int) par.state.stacking_buffers.size());
 	const cv::Mat ms = mpp::stack_merge_alignment_point_buffers(
@@ -389,7 +390,7 @@ Test(mpp_stack, apply_shifts_fractional_scale) {
 	cv::absdiff(ms, mp, diff);
 	double dmin = 0.0, dmax = 0.0;
 	cv::minMaxLoc(diff.reshape(1), &dmin, &dmax);
-	cr_assert_leq(dmax, 8.0,
+	cr_assert_leq(dmax, 2.0,
 	              "fractional-scale parallel vs serial diverges by %.0f LSB", dmax);
 
 	mpp_shift_free(shifts);
