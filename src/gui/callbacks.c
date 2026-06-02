@@ -982,7 +982,12 @@ gboolean update_MenuItem(gpointer user_data) {
 	}
 
 	/* update undo/redo button tooltips */
-	if (is_undo_available()) {
+	if (mpp_ap_editor_is_open()) {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"),
+		    mpp_ap_editor_can_undo() ? _("Undo alignment-point edit") : _("Nothing to undo"));
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"),
+		    mpp_ap_editor_can_redo() ? _("Redo alignment-point edit") : _("Nothing to redo"));
+	} else if (is_undo_available()) {
 		historic *h = (historic *) com.undo_stack->data;
 		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
@@ -990,13 +995,15 @@ gboolean update_MenuItem(gpointer user_data) {
 	} else {
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
-	if (is_redo_available()) {
-		historic *h = (historic *) com.redo_stack->data;
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
-		g_free(str);
-	} else {
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+	if (!mpp_ap_editor_is_open()) {
+		if (is_redo_available()) {
+			historic *h = (historic *) com.redo_stack->data;
+			gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+			g_free(str);
+		} else {
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+		}
 	}
 
 	/* save and save as */

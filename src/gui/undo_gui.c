@@ -25,6 +25,7 @@
 #include "core/undo.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/mpp_ap_editor.h"
 #include "undo_gui.h"
 
 static gboolean destroy_widget_idle(gpointer data) {
@@ -122,6 +123,10 @@ static void show_undo_history_popover(GtkWidget *button, int dir) {
 
 static gboolean on_undo_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	if (event->button == GDK_BUTTON_SECONDARY) {
+		/* The history popover lists the image-processing history; it isn't
+		 * meaningful while Undo/Redo are diverted to the AP editor. */
+		if (mpp_ap_editor_is_open())
+			return TRUE;
 		show_undo_history_popover(widget, UNDO);
 		return TRUE;
 	}
@@ -130,6 +135,8 @@ static gboolean on_undo_button_press(GtkWidget *widget, GdkEventButton *event, g
 
 static gboolean on_redo_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	if (event->button == GDK_BUTTON_SECONDARY) {
+		if (mpp_ap_editor_is_open())
+			return TRUE;
 		show_undo_history_popover(widget, REDO);
 		return TRUE;
 	}
