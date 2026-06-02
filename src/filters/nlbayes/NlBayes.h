@@ -14,6 +14,7 @@
 
 #include<vector>
 #include "Utilities.h"
+#include "algos/img_t/image.hpp"
 
 namespace NlBayes {
 
@@ -88,7 +89,7 @@ void initializeNlbParameters(
 	nlbParams &o_paramStep1
 ,	nlbParams &o_paramStep2
 ,   const float p_sigma
-,	const ImageSize &p_imSize
+,	const img_t<float> &p_imNoisy
 ,	const bool p_useArea1
 ,   const bool p_useArea2
 ,   const bool p_verbose
@@ -109,10 +110,9 @@ void initializeNlbParameters(
  * @return EXIT_FAILURE if something wrong happens during the whole process.
  **/
 int runNlBayes(
-	std::vector<float> const& i_imNoisy
-,   std::vector<float> &o_imBasic
-,	std::vector<float> &o_imFinal
-,	const ImageSize &p_imSize
+	img_t<float> const& i_imNoisy
+,   img_t<float> &o_imBasic
+,	img_t<float> &o_imFinal
 ,	const bool p_useArea1
 ,	const bool p_useArea2
 ,	const float p_sigma
@@ -142,10 +142,9 @@ int runNlBayes(
  * @return none.
  **/
 int processNlBayes(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> &io_imBasic
-,	std::vector<float> &o_imFinal
-,	const ImageSize &p_imSize
+	img_t<float> const& i_imNoisy
+,	img_t<float> &io_imBasic
+,	img_t<float> &o_imFinal
 ,	nlbParams &p_params
 ,	int thread
 ,	int pass
@@ -164,11 +163,10 @@ int processNlBayes(
  * @return none.
  **/
 void estimateSimilarPatchesStep1(
-	std::vector<float> const& i_im
+	img_t<float> const& i_im
 ,	std::vector<std::vector<float> > &o_group3d
 ,	std::vector<unsigned> &o_index
 ,	const unsigned p_ij
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 );
 
@@ -187,13 +185,12 @@ void estimateSimilarPatchesStep1(
  * @return number of similar patches kept.
  **/
 unsigned estimateSimilarPatchesStep2(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> const& i_imBasic
+	img_t<float> const& i_imNoisy
+,	img_t<float> const& i_imBasic
 ,	std::vector<float> &o_group3dNoisy
 ,	std::vector<float> &o_group3dBasic
 ,	std::vector<unsigned> &o_index
 ,	const unsigned p_ij
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 );
 
@@ -214,7 +211,7 @@ int computeHomogeneousAreaStep1(
 ,	const unsigned p_sP
 ,	const unsigned p_nSimP
 ,	const float p_threshold
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 );
 
 /**
@@ -236,7 +233,7 @@ int computeHomogeneousAreaStep2(
 ,	const unsigned p_sP
 ,	const unsigned p_nSimP
 ,	const float p_threshold
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 );
 
 /**
@@ -285,7 +282,7 @@ void computeBayesEstimateStep2(
 ,	std::vector<float> &io_group3dBasic
 ,	matParams &i_mat
 ,	unsigned &io_nInverseFailed
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 ,	nlbParams p_params
 ,	const unsigned p_nSimP
 );
@@ -304,12 +301,11 @@ void computeBayesEstimateStep2(
  * @return none.
  **/
 void computeAggregationStep1(
-	std::vector<float> &io_im
-,	std::vector<float> &io_weight
+	img_t<float> &io_im
+,	img_t<float> &io_weight
 ,	std::vector<bool> &io_mask
 ,	std::vector<std::vector<float> > const& i_group3d
 ,	std::vector<unsigned> const& i_index
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 );
 
@@ -328,12 +324,11 @@ void computeAggregationStep1(
  * @return none.
  **/
 void computeAggregationStep2(
-	std::vector<float> &io_im
-,	std::vector<float> &io_weight
+	img_t<float> &io_im
+,	img_t<float> &io_weight
 ,	std::vector<bool> &io_mask
 ,	std::vector<float> const& i_group3d
 ,	std::vector<unsigned> const& i_index
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 ,	const unsigned p_nSimP
 );
@@ -348,12 +343,11 @@ void computeAggregationStep2(
  * @return none.
  **/
 void computeWeightedAggregation(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> &io_imBasic
-,	std::vector<float> &io_imFinal
-,	std::vector<float> const& i_weight
+	img_t<float> const& i_imNoisy
+,	img_t<float> &io_imBasic
+,	img_t<float> &io_imFinal
+,	img_t<float> const& i_weight
 ,	const nlbParams &p_params
-,	const ImageSize &p_imSize
 );
 
 }

@@ -114,22 +114,53 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->current_regdata) return -2;
 
 	/* first we're looking for stars in reference image */
-	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
-		siril_log_error(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
-		return 1;
+	if (regargs->use_external_ref) {
+		if (readfits(regargs->external_ref_path, &fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		siril_log_info(_("External Reference Image:\n"));
+	} else {
+		if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+			siril_log_error(_("Could not load reference image\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			return 1;
+		}
+		siril_log_info(_("Reference Image:\n"));
 	}
-
-	siril_log_info(_("Reference Image:\n"));
 
 	// peaking or using cached list in lst(if no selection is made)
 	// For now selection is using com.selection
-	struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
-	if (sf_data) {
-		sadata->refstars = *sf_data->stars;
-		nb_stars = *sf_data->nb_stars;
-		free(sf_data);
+	if (regargs->use_external_ref) {
+		// Use a clean sfargs like the 2-pass path: findstar_image_worker carries
+		// sequence-specific context (from_seq, layer) that is wrong for an external ref
+		psf_star **ref_stars = NULL;
+		int nb_ref_stars = 0;
+		struct starfinder_data *sfargs_ext = calloc(1, sizeof(struct starfinder_data));
+		sfargs_ext->im.fit = &fit;
+		sfargs_ext->im.from_seq = NULL;
+		sfargs_ext->im.index_in_seq = -1;
+		sfargs_ext->layer = (fit.naxes[2] == 1) ? 0 : 1;
+		sfargs_ext->max_stars_fitted = regargs->max_stars_candidates;
+		sfargs_ext->selection = (rectangle){0, 0, 0, 0};
+		sfargs_ext->stars = &ref_stars;
+		sfargs_ext->nb_stars = &nb_ref_stars;
+		sfargs_ext->threading = MULTI_THREADED;
+		if (!GPOINTER_TO_INT(findstar_worker(sfargs_ext))) {
+			sadata->refstars = ref_stars;
+			nb_stars = nb_ref_stars;
+		}
+		free(sfargs_ext);
+	} else {
+		struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
+		if (sf_data) {
+			sadata->refstars = *sf_data->stars;
+			nb_stars = *sf_data->nb_stars;
+			free(sf_data);
+		}
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -145,7 +176,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	/* copying refstars to com.stars for display
 	/ * we make this cop before distortion correction */
-	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
+	if (!com.script && &com.seq == args->seq && !regargs->use_external_ref && com.seq.current == regargs->reference_image) {
 		psf_star **stars = new_fitted_stars(MAX_STARS);
 		if (stars) {
 			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
@@ -164,7 +195,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	// We prepare the distortion structure maps if required
-	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
+	if (regargs->undistort && init_disto_map(regargs->seq->rx, regargs->seq->ry, regargs->disto)) {
 		siril_log_error(
 				_("Could not init distortion mapping\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -190,13 +221,20 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	// the distortion source is logged together with the registration info in the .seq file
 	// Note: for global reg, disto source can only by DISTO_IMAGE or DISTO_FILE
 	// i.e regargs->disto is of size 1
-	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
-		siril_log_error(
-			_("Could not correct the stars position with SIP coeffients\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
-		clearfits(&fit);
-		return 1;
+	if (regargs->undistort) {
+		int status = 0;
+		if (!regargs->use_external_ref)
+			status = disto_correct_stars(sadata->refstars, regargs->disto);
+		else if (regargs->disto_ext) // ext ref may not have distortion info, this was handled at init
+			status = disto_correct_stars(sadata->refstars, regargs->disto_ext);
+		if (status) {
+			siril_log_error(
+				_("Could not correct the stars position with SIP coeffients\n"));
+			args->seq->regparam[regargs->layer] = NULL;
+			free(sadata->current_regdata);
+			clearfits(&fit);
+			return 1;
+		}
 	}
 
 	sadata->ref.x = fit.rx;
@@ -308,7 +346,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
-	if (in_index != regargs->reference_image) {
+	if (in_index != regargs->reference_image || regargs->use_external_ref) {
 		psf_star **stars = NULL;
 		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
 			siril_log_bold(_("Frame %d:\n"), filenum);
@@ -636,6 +674,42 @@ int register_star_alignment(struct registration_args *regargs) {
 		}
 	}
 
+	if (regargs->use_external_ref) {
+		fits ext_fit = { 0 };
+		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference\n"));
+			free(args);
+			return -1;
+		}
+		regargs->external_ref_rx = ext_fit.rx;
+		regargs->external_ref_ry = ext_fit.ry;
+		if (regargs->undistort) {
+			int status = 1;
+			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &ext_fit, &status);
+			if (status) {
+				free(args);
+				clearfits(&ext_fit);
+				return -1;
+			}
+		}
+		if (!regargs->no_output && has_wcs(&ext_fit))
+			regargs->wcsref = wcs_deepcopy(ext_fit.keywords.wcslib, NULL);
+		// we will update the incoming sequence
+		regargs->seq->ext_ref = TRUE;
+		regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
+		regargs->seq->ext_ref_rx = ext_fit.rx;
+		regargs->seq->ext_ref_ry = ext_fit.ry;
+		clearfits(&ext_fit);
+	}
+
+	if (!regargs->no_output) {
+		if (!regargs->use_external_ref)
+			regargs->wcsref = get_wcs_ref(regargs->seq);
+		if (regargs->wcsref && regargs->undistort && regargs->wcsref->lin.dispre) {
+			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+		}
+	}
+
 	// preparing detection params
 	regargs->sfargs = calloc(1, sizeof(struct starfinder_data));
 	regargs->sfargs->im.from_seq = regargs->seq;
@@ -669,13 +743,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
-
-	if (!regargs->no_output) {
-		regargs->wcsref = get_wcs_ref(regargs->seq);
-		if (regargs->wcsref && regargs->undistort && regargs->wcsref->lin.dispre) {
-			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
-		}
-	}
 
 	generic_sequence_worker(args);
 
@@ -847,6 +914,64 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;
 
+	// Use for ext ref only
+	psf_star **ref_stars = NULL;
+	int nb_ref_stars = 0;
+
+	struct starfinder_data *sfargs = NULL;
+
+	if (regargs->use_external_ref) { // we detect (undistort) its stars first
+		fits ext_fit = { 0 };
+		if (readfits(regargs->external_ref_path, &ext_fit, NULL, FALSE)) {
+			siril_log_error(_("Could not load external reference image, aborting\n"));
+			retval = 1;
+			goto free_all;
+		}
+		struct starfinder_data *sfargs_ext = calloc(1, sizeof(struct starfinder_data));
+		if (!sfargs_ext) {
+			siril_log_error(_("Memory allocation failed\n"));
+			return 1;
+		}
+		sfargs_ext->im.fit = &ext_fit;
+		sfargs_ext->im.from_seq = NULL;
+		sfargs_ext->im.index_in_seq = -1;
+		sfargs_ext->layer = (ext_fit.naxes[2] == 1) ? 0 : 1;
+		sfargs_ext->max_stars_fitted = regargs->max_stars_candidates;
+		sfargs_ext->selection = (rectangle){0, 0, 0, 0};
+		sfargs_ext->stars = &ref_stars;
+		sfargs_ext->nb_stars = &nb_ref_stars;
+		sfargs_ext->threading = MULTI_THREADED;
+
+		retval = GPOINTER_TO_INT(findstar_worker(sfargs_ext));
+		free(sfargs_ext);
+		if (retval) {
+			siril_log_error(_("Finding stars in external reference image failed, aborting\n"));
+			clearfits(&ext_fit);
+			goto free_all;
+		}
+		if (!nb_ref_stars || !ref_stars || nb_ref_stars < get_min_requires_stars(regargs->type)) {
+			siril_log_error(_("Not enough stars found in external reference image, aborting\n"));
+			clearfits(&ext_fit);
+			goto free_all;
+		}
+		int status = 0;
+		if (regargs->undistort) {
+			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &ext_fit, &status);
+			status |= disto_correct_stars(ref_stars, regargs->disto_ext);
+				if (status) {
+				siril_log_error(_("Could not correct the external reference stars position with SIP coeffients\n"));
+				clearfits(&ext_fit);
+				goto free_all;
+			}
+		}
+		// we will update the incoming sequence if it's successful
+		regargs->seq->ext_ref = TRUE;
+		regargs->seq->ext_ref_path = g_strdup(regargs->external_ref_path);
+		regargs->seq->ext_ref_rx = ext_fit.rx;
+		regargs->seq->ext_ref_ry = ext_fit.ry;
+		clearfits(&ext_fit);
+	}
+
 	if (regargs->undistort) {
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
@@ -858,7 +983,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		}
 	}
 
-	struct starfinder_data *sfargs = calloc(1, sizeof(struct starfinder_data));
+	sfargs = calloc(1, sizeof(struct starfinder_data));
 	sfargs->im.from_seq = regargs->seq;
 	sfargs->layer = regargs->layer;
 	sfargs->max_stars_fitted = regargs->max_stars_candidates;
@@ -977,9 +1102,52 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	regargs->seq->reference_image = best_index;
 	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
-	siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), 1, reffilenum);
 
-	// 3. compute the transforms and store them in regparams
+	siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference\n"), 1, reffilenum);
+
+	// 3b. No external reference, compute the transforms and store them in regparams
+	// we go to the end once done
+	if (regargs->use_external_ref) {
+		int nb_aligned = 0;
+		regdata *current_regdata = registration_get_current_regdata(regargs);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) shared(failed, nb_aligned)
+#endif
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!included[i])
+				continue;
+			Homography H = { 0 };
+			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
+			int not_matched = star_match_and_checks(ref_stars, sfargs->stars[i],
+					nb_ref_stars, sfargs->nb_stars[i], regargs, filenum, &H);
+			if (not_matched) {
+				g_atomic_int_inc(&failed);
+				included[i] = FALSE;
+				continue;
+			}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
+			g_atomic_int_inc(&nb_aligned);
+			current_regdata[i].roundness = roundness[i];
+			current_regdata[i].fwhm = fwhm[i];
+			current_regdata[i].weighted_fwhm = 2 * fwhm[i]
+				* ((double)nb_ref_stars - sfargs->nb_stars[i])
+				/ (double)nb_ref_stars + fwhm[i];
+			current_regdata[i].background_lvl = B[i];
+			current_regdata[i].number_of_stars = sfargs->nb_stars[i];
+			current_regdata[i].H = H;
+		}
+		if (nb_aligned == 0) {
+			siril_log_error(_("Could not align any image to the external reference, aborting\n"));
+			retval = 1;
+			goto free_all;
+		}
+		goto finish;
+	}
+
+	// 3b. No external reference, compute the transforms and store them in regparams
 	// we will check that we have registered enough meaningful frames to the new ref before going to distance checking (step 4.)
 
 	//intializing some useful info
@@ -1071,7 +1239,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			regargs->seq->reference_image = new_best_index;
 			reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
 			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
-			// back to 3. compute the transforms and store them in regparams
+			// back to 3b. compute the transforms and store them in regparams
 			compute_transform(regargs, sfargs, included, &failed, fwhm, roundness, B, TRUE);
 		} else {
 			siril_log_message(_("Could not find a better frame, keeping image %d as the reference for the sequence\n"), reffilenum);
@@ -1079,7 +1247,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	} else {
 		siril_log_message(_("After sequence alignment, we find that image %d is %2.1fpx away from sequence cog, i.e. within allowable bounds\n"), reffilenum, dist[best_index]);
 	}
-
+finish:
 	// we finally copy the local included flag to seq->imgparam
 	for (int i = 0; i < regargs->seq->number; i++) {
 		regargs->seq->imgparam[i].incl = included[i];
@@ -1094,13 +1262,15 @@ int register_multi_step_global(struct registration_args *regargs) {
 	show_time(t_start, t_end);
 
 free_all:
-	if (sfargs->stars) {
-		for (int i = 0; i < regargs->seq->number; i++)
-			free_fitted_stars(sfargs->stars[i]);
+	if (sfargs) {
+		if (sfargs->stars) {
+			for (int i = 0; i < regargs->seq->number; i++)
+				free_fitted_stars(sfargs->stars[i]);
+		}
+		free(sfargs->stars);
+		free(sfargs->nb_stars);
+		free(sfargs);
 	}
-	free(sfargs->stars);
-	free(sfargs->nb_stars);
-	free(sfargs);
 	free(fwhm);
 	free(roundness);
 	free(B);
@@ -1111,6 +1281,7 @@ free_all:
 	free(meaningful);
 	free(scores);
 	free(dist);
+	free_fitted_stars(ref_stars);
 	return retval;
 }
 
