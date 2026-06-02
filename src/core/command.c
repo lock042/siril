@@ -14626,39 +14626,15 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-scale=")) {
-		/* Numeric output scale factor in [1.0, 3.0]. The dispatcher
-		 * routes scale > 1 to dobox unless -scale-method=upscale is
-		 * set; at scale=1 the picked method still chooses between a
-		 * drizzle stack and the plain Upscale (bicubic + classical
-		 * debayer) path. */
+		/* Output scale factor in [1.0, 3.0]; fractional values are
+		 * supported. Scaling is done by cv::resize in the classical stack
+		 * (the dobox drizzle backends are no longer used). */
 		const char *v = arg + 7;
 		char *end = NULL;
 		const double s = g_ascii_strtod(v, &end);
 		if (end == v || *end != '\0' || s < 1.0 || s > 3.0)
 			return MPP_FLAG_INVALID_VALUE;
 		cfg->drizzle_scale = s;
-		cfg->drizzle_mode  = MPP_DRIZZLE_OFF;   /* let dispatcher auto-route */
-		return MPP_FLAG_OK;
-	}
-	if (accept_stack && g_str_has_prefix(arg, "-pixfrac=")) {
-		/* Per-pixel fraction passed to dobox. Ignored by the Upscale
-		 * method (no equivalent in cv::resize), so we don't reject the
-		 * flag when -scale-method=upscale is set but it has no effect. */
-		const double v = atof(arg + 9);
-		if (v <= 0.0 || v > 1.0) return MPP_FLAG_INVALID_VALUE;
-		cfg->drizzle_pixfrac = v;
-		return MPP_FLAG_OK;
-	}
-	if (accept_stack && g_str_has_prefix(arg, "-scale-method=")) {
-		const char *v = arg + 14;
-		if      (!g_ascii_strcasecmp(v, "square"))   cfg->drizzle_kernel = MPP_KERNEL_SQUARE;
-		else if (!g_ascii_strcasecmp(v, "gaussian")) cfg->drizzle_kernel = MPP_KERNEL_GAUSSIAN;
-		else if (!g_ascii_strcasecmp(v, "point"))    cfg->drizzle_kernel = MPP_KERNEL_POINT;
-		else if (!g_ascii_strcasecmp(v, "turbo"))    cfg->drizzle_kernel = MPP_KERNEL_TURBO;
-		else if (!g_ascii_strcasecmp(v, "lanczos2")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS2;
-		else if (!g_ascii_strcasecmp(v, "lanczos3")) cfg->drizzle_kernel = MPP_KERNEL_LANCZOS3;
-		else if (!g_ascii_strcasecmp(v, "upscale"))  cfg->drizzle_kernel = MPP_KERNEL_UPSCALE;
-		else return MPP_FLAG_INVALID_VALUE;
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-stack-percent=")) {

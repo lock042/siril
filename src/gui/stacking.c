@@ -117,10 +117,9 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
-	static GtkComboBox *mpp_drizzle_combo = NULL, *mpp_driz_kernel_combo = NULL;
+	static GtkComboBox *mpp_drizzle_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
-	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL,
-	                     *mpp_pixfrac = NULL;
+	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -145,16 +144,12 @@ static void start_stacking() {
 		force32b = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
-		mpp_driz_kernel_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
-		/* Replace the .ui XML's fixed item list with the input-type-
-		 * appropriate set so the combo opens already filtered for a
-		 * loaded sequence (or with the full palette if none is loaded). */
+		/* Populate the scale combo (1x / 1.5x / 2x / 3x). */
 		mpp_drizzle_combo_repopulate(GTK_COMBO_BOX_TEXT(mpp_drizzle_combo));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
 		mpp_bg_blend      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_blend"));
-		mpp_pixfrac       = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
 	}
 
 	if (processing_is_job_active()) {
@@ -268,14 +263,11 @@ static void start_stacking() {
 			cfg->drizzle_scale = mpp_drizzle_choices[driz_idx].scale;
 		else
 			cfg->drizzle_scale = 1.0;
-		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* let the dispatcher auto-route by input type */
+		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* dobox disabled; scaling via cv::resize */
 		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
 		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
-		cfg->drizzle_pixfrac = gtk_spin_button_get_value(mpp_pixfrac);
-		const int k = gtk_combo_box_get_active(mpp_driz_kernel_combo);
-		cfg->drizzle_kernel = (k >= 0 && k <= MPP_KERNEL_UPSCALE) ? k : MPP_KERNEL_TURBO;
 		params->mpp_cfg = cfg;
 	}
 
@@ -298,12 +290,9 @@ static void mpp_drizzle_combo_append(GtkComboBoxText *combo,
 	mpp_drizzle_choice_count++;
 }
 
-/* Populate the drizzle combo. Item set is the same regardless of
- * sequence type — the dispatcher in mpp_stack_apply auto-routes
- * scale > 1 to STScI (mono / RGB) or Bayer (CFA SER) dobox based on
- * mpp_classify_sequence_input. Previously this menu duplicated the
- * scale across "bicubic" / "Drizzle" / "Bayer drizzle" entries, which
- * confused users into picking the wrong path. */
+/* Populate the output-scale combo. All scaling is done by cv::resize in the
+ * classical stack (the dobox drizzle backends are no longer used), so this
+ * is just a plain scale-factor selector. */
 static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 	if (!combo) return;
 
@@ -333,53 +322,13 @@ static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
 	on_combo_mpp_drizzle_changed(GTK_COMBO_BOX(combo), NULL);
 }
 
-/* Show / hide the scaling-method widgets.
- *   - Scaling-method combo / label: hidden when a CFA sequence is
- *     loaded — Bayer drizzle has been retired and the surviving
- *     STScI dobox path on auto-debayered RGB doesn't recover any
- *     resolution Upscale doesn't already give (bilinear demosaic
- *     locks the correlation peak to CFA phase, suppressing the
- *     sub-pixel diversity the dobox needs). Forcing
- *     MPP_KERNEL_UPSCALE in this case routes through the plain
- *     cv::resize + classical-debayer path, which is the correct
- *     default for CFA data. Shown for mono / RGB where the
- *     STScI drizzle kernels are still meaningful.
- *   - Pixfrac spinner: only meaningful when the picked method is a
- *     drizzle kernel — the Upscale path ignores it entirely. */
+/* The scale combo's "changed" signal. There are no longer any dependent
+ * widgets to show/hide (the drizzle kernel + pixfrac controls were removed
+ * when all scaling moved to cv::resize), so this is a no-op kept only as the
+ * .ui signal target. */
 void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
-	(void) user_data;
 	(void) combo;
-	static GtkWidget *lbl_pf = NULL, *spin_pf = NULL;
-	static GtkWidget *lbl_kn = NULL;
-	static GtkComboBox *combo_kn = NULL;
-	if (!lbl_pf) {
-		lbl_pf   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_pixfrac"));
-		spin_pf  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_mpp_pixfrac"));
-		lbl_kn   = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_driz_kernel"));
-		combo_kn = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_driz_kernel"));
-	}
-	/* Probe the loaded sequence's input type. sequence_is_loaded() is
-	 * false at app startup before any sequence is opened — fall back to
-	 * the visible/non-CFA branch then. */
-	const gboolean cfa_seq = sequence_is_loaded()
-	                      && mpp_classify_sequence_input(&com.seq) == MPP_INPUT_CFA;
-	if (cfa_seq && combo_kn
-	    && gtk_combo_box_get_active(combo_kn) != MPP_KERNEL_UPSCALE) {
-		gtk_combo_box_set_active(combo_kn, MPP_KERNEL_UPSCALE);
-	}
-	gtk_widget_set_visible(lbl_kn,           !cfa_seq);
-	gtk_widget_set_visible(GTK_WIDGET(combo_kn), !cfa_seq);
-	const int k_idx = combo_kn ? gtk_combo_box_get_active(combo_kn) : -1;
-	const gboolean drizzle_kernel = !cfa_seq
-	                             && (k_idx >= 0 && k_idx != MPP_KERNEL_UPSCALE);
-	gtk_widget_set_visible(lbl_pf,  drizzle_kernel);
-	gtk_widget_set_visible(spin_pf, drizzle_kernel);
-}
-
-/* Kernel-combo signal handler: pixfrac visibility depends on whether
- * a drizzle kernel or Upscale is picked, so re-evaluate on change. */
-void on_combo_mpp_driz_kernel_changed(GtkComboBox *combo, gpointer user_data) {
-	on_combo_mpp_drizzle_changed(NULL, user_data);
+	(void) user_data;
 }
 
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {

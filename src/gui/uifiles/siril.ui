@@ -149,13 +149,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">5</property>
   </object>
-  <object class="GtkAdjustment" id="adj_mpp_pixfrac">
-    <property name="lower">0.05</property>
-    <property name="upper">1</property>
-    <property name="value">0.69999999999999996</property>
-    <property name="step-increment">0.05</property>
-    <property name="page-increment">0.10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_mpp_search_global">
     <property name="lower">4</property>
     <property name="upper">64</property>
@@ -9662,65 +9655,6 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel" id="label_mpp_pixfrac">
-                                                            <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Pixfrac (drizzle):</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">5</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkSpinButton" id="spin_mpp_pixfrac">
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Drizzle drop size — the fraction of each input pixel's area dropped onto the output: 1.0 = no shrinkage; smaller values sharpen at the cost of coverage. Only applies to drizzle modes. Default 0.7.</property>
-                                                            <property name="adjustment">adj_mpp_pixfrac</property>
-                                                            <property name="digits">2</property>
-                                                            <property name="numeric">True</property>
-                                                            <property name="value">0.69999999999999996</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">5</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel" id="label_mpp_driz_kernel">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Scaling method:</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">6</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkComboBoxText" id="combo_mpp_driz_kernel">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Scaling method. The (drizzle) entries use drizzle at every scale including 1x; one-shot-colour input is debayered first so all kernels work on colour pixels. 'turbo' is the recommended default — as fast as bicubic 2x with no measurable quality difference vs square on typical planetary data. 'square' is the standard pixel-area kernel; 'gaussian' is smoother; 'lanczos2/3' can sharpen high-frequency detail but may ring on hard edges and is much slower. 'upscale' is NOT a drizzle method — it does a plain bicubic resize (with standard debayer for one-shot-colour input) and is a reliable fallback for the rare cases where drizzle produces ringing on fine high-contrast detail such as Saturn's rings or a sharp planetary terminator.</property>
-                                                            <property name="active">3</property>
-                                                            <items>
-                                                            <item translatable="yes">square (drizzle)</item>
-                                                            <item translatable="yes">gaussian (drizzle)</item>
-                                                            <item translatable="yes">point (drizzle)</item>
-                                                            <item translatable="yes">turbo (drizzle)</item>
-                                                            <item translatable="yes">lanczos2 (drizzle)</item>
-                                                            <item translatable="yes">lanczos3 (drizzle)</item>
-                                                            <item translatable="yes">upscale</item>
-                                                            </items>
-                                                            <signal name="changed" handler="on_combo_mpp_driz_kernel_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">6</property>
                                                             </packing>
                                                             </child>
                                                             <child>
