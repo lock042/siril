@@ -85,10 +85,9 @@ static char *tooltip_text[] = {
 		"interpolation method or drizzling can be selected in the Output "
 		"Registration section and it can be applied on selected/filtered images only, to avoid saving "
 		"unnecessary images."),
-	N_("<b>Multipoint Registration (PSS-style)</b>: For planetary imaging. Ranks frames by "
+	N_("<b>Multipoint Registration (planetary)</b>: For planetary imaging. Ranks frames by "
 		"Laplacian-σ quality, globally aligns them, lays a grid of alignment points and computes "
-		"per-AP local shifts. Writes a sidecar (.mpp) consumed by the matching stack method. "
-		"Use the <b>pss</b> command for a one-step register-and-stack equivalent.")
+		"per-AP local shifts. Writes a sidecar (.mpp) consumed by the matching stack method.")
 };
 
 static char *reg_frame_registration[] = {
@@ -358,7 +357,7 @@ void initialize_registration_methods() {
 	// we register 2-pass but we won't add it to the combo/tooltip
 	reg_methods[REG_2PASS] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
 			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[REG_MPP] = new_reg_method(_("Multipoint Registration (planetary, PSS-style)"),
+	reg_methods[REG_MPP] = new_reg_method(_("Multipoint Registration (planetary)"),
 			&register_mpp, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[NUMBER_OF_METHODS] = NULL;
 

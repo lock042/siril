@@ -817,7 +817,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
-            <property name="tooltip-text" translatable="yes">Delete the multipoint (PSS-style) registration sidecar (&lt;sequence&gt;.mpp) written by Multipoint Registration, and forget any cached run.</property>
+            <property name="tooltip-text" translatable="yes">Delete the multipoint registration sidecar (&lt;sequence&gt;.mpp) written by Multipoint Registration, and forget any cached run.</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
           </object>
@@ -6907,7 +6907,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Build the reference frame from the best frames within a short contiguous interval, so a fast-changing object (e.g. a rotating planet) is less blurred. Off by default (CLI -fast-changing).</property>
+                                                            <property name="tooltip-text" translatable="yes">Build the reference frame from the best frames within a short contiguous interval, so a fast-changing object (e.g. a rotating planet) is less blurred. Off by default.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">False</property>
                                                             <property name="draw-indicator">True</property>
@@ -7034,7 +7034,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">When off, all APs use the same single best-frame shift instead of per-AP shifts (CLI -no-dewarp). Default on.</property>
+                                                            <property name="tooltip-text" translatable="yes">When off, all APs use the same single best-frame shift instead of per-AP shifts. Default on.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -7051,7 +7051,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Divide per-frame Laplace-σ quality by mean above-threshold brightness for invariance to varying exposure (CLI -no-normalize toggles off). Default on.</property>
+                                                            <property name="tooltip-text" translatable="yes">Divide per-frame Laplace-σ quality by mean above-threshold brightness for invariance to varying exposure. Default on.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -7130,7 +7130,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkComboBoxText" id="combo_mpp_align_mode">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Global frame alignment. Planet (default) aligns on the brightness centroid — robust for a full disc on a dark background. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface; CLI -align=surface).</property>
+                                                            <property name="tooltip-text" translatable="yes">Global frame alignment. Planet (default) aligns on the brightness centroid — robust for a full disc on a dark background. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface).</property>
                                                             <property name="active">1</property>
                                                             <items>
                                                             <item translatable="yes">Surface (detail)</item>
@@ -7148,7 +7148,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Use the sequence's existing shift registration data (if any) to pre-centre each frame's global-alignment search. Lets jumpy video whose drift exceeds the global search width align correctly (CLI -noseed turns it off). Default on; ignored when the sequence has no registration data.</property>
+                                                            <property name="tooltip-text" translatable="yes">Use the sequence's existing shift registration data (if any) to pre-centre each frame's global-alignment search. Lets jumpy video whose drift exceeds the global search width align correctly. Default on; ignored when the sequence has no registration data.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -8970,7 +8970,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
 &lt;b&gt;Pixel minimum&lt;/b&gt;: This case could be useful to select the area to be cropped after the stack operation.
 Pixels of the image are replaced by pixels at the same coordinates if intensity is lower.
 
-&lt;b&gt;Multipoint (PSS-style)&lt;/b&gt;: For planetary imaging. Requires a prior "Multipoint Registration" run on the same sequence (writes a .mpp sidecar). Per-frame brightness equalisation, drizzle resize, per-AP remap into per-AP buffers, weighted top-N merge, background blend, uint16 cast.</property>
+&lt;b&gt;Multipoint (planetary)&lt;/b&gt;: For planetary imaging. Requires a prior "Multipoint Registration" run on the same sequence (writes a .mpp sidecar). Per-frame brightness equalisation, drizzle resize, per-AP remap into per-AP buffers, weighted top-N merge, background blend, uint16 cast.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Sum stacking</item>
@@ -8978,7 +8978,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <item translatable="yes">Median stacking</item>
                                                             <item translatable="yes">Pixel maximum stacking</item>
                                                             <item translatable="yes">Pixel minimum stacking</item>
-                                                            <item translatable="yes">Multipoint (PSS-style)</item>
+                                                            <item translatable="yes">Multipoint (planetary)</item>
                                                             </items>
                                                             <signal name="changed" handler="on_comboboxstack_methods_changed" swapped="no"/>
                                                             </object>
