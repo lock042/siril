@@ -273,6 +273,7 @@ gpointer register_thread_func(gpointer p) {
 		g_date_time_unref(args->reference_date);
 	if (args->wcsref)
 		wcsfree(args->wcsref);
+	g_free(args->external_ref_path);
 	if (!siril_add_idle(end_register_idle, args)) {
 		stop_processing_thread();
 		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
@@ -384,8 +385,13 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	float scale = 1.0;
 	gint64 im_size = 0; // total size of all images after registration
 	if (regargs->func == &register_star_alignment) {// global registration
-		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		if (!regargs->use_external_ref) {
+			w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+			h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		} else {
+			w_out = regargs->external_ref_rx;
+			h_out = regargs->external_ref_ry;
+		}
 		scale = regargs->output_scale;
 		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
 	} else if (regargs->func == &register_apply_reg) { // applyreg
