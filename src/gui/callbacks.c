@@ -77,6 +77,7 @@ void update_export_crop_label();
 #include "io/healpix/fluxcache_cat.h"
 #include "registration/mpp.h"
 #include "gui/mpp_ap_editor.h"
+#include "gui/mpp_shift_viewer.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -2764,6 +2765,10 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 				/* Forget any in-memory Stage-A run so the AP overlay and a
 				 * subsequent Multipoint stack don't use the deleted sidecar. */
 				mpp_clear_cached_run();
+				/* No cached run left → grey out the Edit-APs / View-shifts
+				 * buttons that depend on it. */
+				mpp_update_edit_button_sensitivity();
+				mpp_shift_viewer_update_button_sensitivity();
 				redraw(REDRAW_OVERLAY);
 			}
 			update_stack_interface(TRUE);
