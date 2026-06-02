@@ -186,14 +186,21 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const std::vector<int> &quality_sorted_idx,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg,
-                                   const int *included = nullptr);
+                                   const int *included = nullptr,
+                                   int max_threads = 0);
 
 /* Streamed overload — `num_frames` and `num_layers` are passed
  * explicitly because there's no upfront vector to introspect. The
  * provider returns the raw frame for each index; iteration is
  * sequential by construction (the per-AP and background accumulators
  * have shared state so parallelising would need per-thread buffers).
- * Cached overload above is a thin wrapper. */
+ * Cached overload above is a thin wrapper.
+ *
+ * `max_threads` bounds the per-frame parallel-for over the frame's
+ * alignment points (the per-AP stacking buffers are disjoint, so this
+ * needs no reduction and is bit-identical to the serial order). 0 or 1 ⇒
+ * serial. The outer frame loop stays sequential, so each AP buffer still
+ * accumulates frames in index order. */
 StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             int num_frames,
                                             int num_layers,
@@ -205,7 +212,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const std::vector<int> &quality_sorted_idx,
                                             const cv::Vec4i &intersection,
                                             const mpp_config_t &cfg,
-                                            const int *included = nullptr);
+                                            const int *included = nullptr,
+                                            int max_threads = 0);
 
 /* stack_frames main loop.
  *

@@ -480,8 +480,15 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const std::vector<int> &quality_sorted_idx,
                                             const cv::Vec4i &intersection,
                                             const mpp_config_t &cfg,
-                                            const int *included) {
+                                            const int *included,
+                                            int max_threads) {
 	StackLoopOutput out;
+	/* Per-frame AP accumulation parallelism. The per-AP stacking buffers
+	 * are disjoint (each AP appears at most once in used_alignment_points[f]
+	 * and writes only its own buffer), so the inner loop parallelises with
+	 * no reduction. The frame loop stays serial, so every buffer still sees
+	 * frames in index order ⇒ bit-identical to the serial result. */
+	const int nt = max_threads > 0 ? max_threads : 1;
 	/* This is the cv::resize / no-upscale path — the dobox drizzle paths
 	 * never enter stack_apply_shifts. The buffer arithmetic in
 	 * stack_prepare_for_blending only handles integer factors, so
@@ -555,19 +562,43 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		const int dy_K = dy * K;
 		const int dx_K = dx * K;
 
-		for (int a : apq.used_alignment_points[f]) {
-			const size_t soff = (size_t) (f * M + a) * 2;
-			const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
-			const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
-			const int shift_y_K = (int) std::lround(shift_y * (double) K);
-			const int shift_x_K = (int) std::lround(shift_x * (double) K);
-			const int total_y_K = dy_K - shift_y_K;
-			const int total_x_K = dx_K - shift_x_K;
+		const std::vector<int> &ap_list = apq.used_alignment_points[f];
+		const int na = (int) ap_list.size();
+#ifdef _OPENMP
+#pragma omp parallel if (nt > 1 && na > 1) num_threads(nt)
+#endif
+		{
+			/* Thread-private border; merged into out.border once per
+			 * thread below. max is order-independent, so the merge is
+			 * bit-identical regardless of how APs are distributed. */
+			RemapBorder lb;
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic)
+#endif
+			for (int ai = 0; ai < na; ++ai) {
+				const int a = ap_list[ai];
+				const size_t soff = (size_t) (f * M + a) * 2;
+				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
+				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
+				const int shift_y_K = (int) std::lround(shift_y * (double) K);
+				const int shift_x_K = (int) std::lround(shift_x * (double) K);
+				const int total_y_K = dy_K - shift_y_K;
+				const int total_x_K = dx_K - shift_x_K;
 
-			const auto &p = out.state.patch_drizzled[a];
-			stack_remap_rigid(frame_drizzled, out.state.stacking_buffers[a],
-			                  total_y_K, total_x_K, p[0], p[1], p[2], p[3],
-			                  out.border);
+				const auto &p = out.state.patch_drizzled[a];
+				stack_remap_rigid(frame_drizzled, out.state.stacking_buffers[a],
+				                  total_y_K, total_x_K, p[0], p[1], p[2], p[3],
+				                  lb);
+			}
+#ifdef _OPENMP
+#pragma omp critical(mpp_stack_border)
+#endif
+			{
+				out.border.y_low  = std::max(out.border.y_low,  lb.y_low);
+				out.border.y_high = std::max(out.border.y_high, lb.y_high);
+				out.border.x_low  = std::max(out.border.x_low,  lb.x_low);
+				out.border.x_high = std::max(out.border.x_high, lb.x_high);
+			}
 		}
 
 		if (out.state.number_stacking_holes > 0
@@ -636,13 +667,14 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const std::vector<int> &quality_sorted_idx,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg,
-                                   const int *included) {
+                                   const int *included,
+                                   int max_threads) {
 	const int N = (int) frames_raw.size();
 	const int num_layers = N == 0 ? 1 : frames_raw[0].channels();
 	return stack_apply_shifts_streamed(
 	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
 	    N, num_layers, aps, apq, shifts, offsets, frame_brightness,
-	    quality_sorted_idx, intersection, cfg, included);
+	    quality_sorted_idx, intersection, cfg, included, max_threads);
 }
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,

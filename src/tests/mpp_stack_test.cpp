@@ -12,11 +12,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "registration/mpp/mpp_align_priv.hpp"
@@ -27,7 +29,9 @@
 
 extern "C" {
 #include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_stack.h"
 }
 
@@ -40,6 +44,46 @@ mpp_config_t default_cfg() {
 	mpp_config_t cfg{};
 	mpp_config_defaults(&cfg);
 	return cfg;
+}
+
+cv::Mat make_textured_frame(int rows = 200, int cols = 240, int seed = 1) {
+	cv::Mat f(rows, cols, CV_16U, cv::Scalar(0));
+	const double cy = rows / 2.0, cx = cols / 2.0;
+	const double r0 = std::min(rows, cols) * 0.30;
+	cv::RNG rng(seed);
+	for (int y = 0; y < rows; ++y) {
+		for (int x = 0; x < cols; ++x) {
+			const double r = std::hypot(y - cy, x - cx);
+			double v = 0.0;
+			if (r < r0) {
+				v = 0.55 + 0.25 * std::tanh((r0 - r) / 4.0);
+				v += 0.03 * rng.gaussian(1.0);
+			}
+			v = std::clamp(v, 0.0, 1.0);
+			f.at<uint16_t>(y, x) = static_cast<uint16_t>(v * 65535.0);
+		}
+	}
+	rng.state = seed;
+	for (int i = 0; i < 40; ++i) {
+		const int sy = rng.uniform(int(cy - r0 * 0.6), int(cy + r0 * 0.6));
+		const int sx = rng.uniform(int(cx - r0 * 0.6), int(cx + r0 * 0.6));
+		cv::circle(f, {sx, sy}, 2, cv::Scalar(60000), -1);
+	}
+	return f;
+}
+
+cv::Mat blurred(const cv::Mat &mono, const mpp_config_t &cfg) {
+	cv::Mat b;
+	cv::GaussianBlur(mono, b, cv::Size(cfg.frames_gauss_width, cfg.frames_gauss_width), 0);
+	return b;
+}
+
+cv::Mat shifted(const cv::Mat &mono, int dy, int dx) {
+	const cv::Mat M = (cv::Mat_<double>(2, 3) << 1, 0, dx, 0, 1, dy);
+	cv::Mat out;
+	cv::warpAffine(mono, out, M, mono.size(), cv::INTER_NEAREST,
+	               cv::BORDER_REPLICATE);
+	return out;
 }
 
 }  // namespace
@@ -180,4 +224,96 @@ Test(mpp_stack, remap_rigid_clips_and_records_border) {
 	/* The non-clipped region holds frame[y-3, x-3] for y ≥ 3, x ≥ 3. */
 	cr_assert_float_eq(buffer.at<float>(3, 3), frame.at<float>(0, 0), 1e-6);
 	cr_assert_float_eq(buffer.at<float>(9, 9), frame.at<float>(6, 6), 1e-6);
+}
+
+/* The per-frame AP accumulation is parallelised over alignment points
+ * (disjoint per-AP buffers + an order-independent max-merge of the border).
+ * Running the full apply pass single-threaded and multi-threaded over the
+ * same in-memory frames must produce bit-identical buffers, borders, and
+ * final merged image. */
+Test(mpp_stack, apply_shifts_parallel_matches_serial) {
+	const auto cfg = default_cfg();
+	const cv::Mat truth = make_textured_frame();
+	const std::vector<std::pair<int, int>> jit = {
+	    {0, 0}, {-2, 1}, {3, -1}, {1, 2}, {-1, -2}, {2, 3}};
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (auto p : jit) {
+		const cv::Mat f = shifted(truth, p.first, p.second);
+		frames_raw.push_back(f);
+		frames_blurred.push_back(blurred(f, cfg));
+		q.push_back(0.5);
+	}
+	q[0] = 1.0;  /* frame 0 is the reference */
+
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	auto cfg_no_fc = cfg;
+	cfg_no_fc.align_frames_fast_changing_object = false;
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 1);
+
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+
+	std::vector<double> brightness;
+	for (const auto &f : frames_raw)
+		brightness.push_back(mpp::rank_average_brightness(f, cfg));
+
+	const auto apq = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg);
+	/* Default frame_percent = 100 ⇒ every frame is in every AP's top-N, so
+	 * the inner loop spans all M APs — the heavy case we're parallelising. */
+	cr_assert_eq(apq.stack_size, (int) frames_raw.size());
+
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+
+	std::vector<int> sorted(frames_raw.size());
+	std::iota(sorted.begin(), sorted.end(), 0);
+	std::sort(sorted.begin(), sorted.end(),
+	          [&q](int a, int b) { return q[a] > q[b]; });
+
+	const auto serial = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+	                                            offsets, brightness, sorted,
+	                                            avg.intersection, cfg, nullptr,
+	                                            /*max_threads=*/1);
+	const auto par = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+	                                         offsets, brightness, sorted,
+	                                         avg.intersection, cfg, nullptr,
+	                                         /*max_threads=*/8);
+
+	cr_assert_eq(serial.border.y_low,  par.border.y_low);
+	cr_assert_eq(serial.border.y_high, par.border.y_high);
+	cr_assert_eq(serial.border.x_low,  par.border.x_low);
+	cr_assert_eq(serial.border.x_high, par.border.x_high);
+	cr_assert_eq(serial.shift_failure_counter, par.shift_failure_counter);
+
+	cr_assert_eq((int) serial.state.stacking_buffers.size(),
+	             (int) par.state.stacking_buffers.size());
+	for (int a = 0; a < (int) serial.state.stacking_buffers.size(); ++a) {
+		const cv::Mat &s = serial.state.stacking_buffers[a];
+		const cv::Mat &p = par.state.stacking_buffers[a];
+		cr_assert_eq(s.rows, p.rows);
+		cr_assert_eq(s.cols, p.cols);
+		cr_assert_eq(s.type(), p.type());
+		const double d = cv::norm(s, p, cv::NORM_INF);
+		cr_assert_float_eq(d, 0.0, 0.0,
+		    "AP %d stacking buffer differs (NORM_INF=%.6g)", a, d);
+	}
+
+	const cv::Mat ms = mpp::stack_merge_alignment_point_buffers(
+	    serial.state, serial.border, *aps, cfg);
+	const cv::Mat mp = mpp::stack_merge_alignment_point_buffers(
+	    par.state, par.border, *aps, cfg);
+	cr_assert_eq(ms.rows, mp.rows);
+	cr_assert_eq(ms.cols, mp.cols);
+	cr_assert_eq(ms.type(), mp.type());
+	cr_assert_eq(0, std::memcmp(ms.data, mp.data, ms.total() * ms.elemSize()));
+
+	mpp_shift_free(shifts);
+	mpp_ap_free(aps);
 }
