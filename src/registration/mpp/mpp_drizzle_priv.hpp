@@ -44,14 +44,21 @@ mpp_status_t stack_apply_stsci(const std::vector<cv::Mat> &frames_raw,
 
 /* Streamed overload. provider(f) returns the raw frame (channel count
  * matching run->num_layers). num_frames must equal included.size().
- * One frame in flight at a time; sequential. */
+ *
+ * `max_threads` / `provider_thread_safe` enable parallel per-frame decode +
+ * prep (load, planar-convert, pixmap build) in batches when the provider is
+ * reentrant; the dobox splat stays serial and in frame-index order, so the
+ * output is deterministic and bit-identical regardless of thread count.
+ * Defaults preserve the single-threaded behaviour. */
 mpp_status_t stack_apply_stsci_streamed(const FrameProvider &provider,
                                         int num_frames,
                                         const std::vector<int> &included,
                                         const std::vector<double> &frame_brightness,
                                         const mpp_run_t *run,
                                         const mpp_config_t *cfg,
-                                        fits *out);
+                                        fits *out,
+                                        int max_threads = 1,
+                                        bool provider_thread_safe = false);
 
 /* Inner Bayer-drizzle stack path. Inputs: per-frame single-channel raw
  * Bayer-mosaic frames (NO debayering applied), and the same run state

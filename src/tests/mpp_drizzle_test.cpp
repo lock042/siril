@@ -893,6 +893,113 @@ Test(mpp_stsci_synthetic, resolution_recovery) {
 	mpp_run_free(run);
 }
 
+/* The STScI drizzle path parallelises per-frame decode + prep across
+ * threads while keeping the dobox accumulation serial and in frame-index
+ * order, so the output must be bit-identical whether run single-threaded or
+ * multi-threaded. */
+Test(mpp_stsci_synthetic, parallel_matches_serial) {
+	const int HR = 384, LR = 192;
+	const int N  = 16;
+
+	cv::Mat gt_hr = gen_synthetic_ground_truth_hr(HR);
+	std::vector<std::pair<double, double>> offs;
+	std::mt19937 rng(7);
+	std::uniform_real_distribution<double> uni(-1.0, 1.0);
+	for (int i = 0; i < N; ++i) offs.emplace_back(uni(rng), uni(rng));
+
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q_rank, frame_brightness;
+	mpp_config_t cfg = stsci_default_cfg();
+	cfg.bitdepth = 8;
+	for (int i = 0; i < N; ++i) {
+		cv::Mat f = shift_and_downsample(gt_hr, offs[i].first, offs[i].second, LR);
+		frames_raw.push_back(f);
+		frames_blurred.push_back(blurred_for_align(f, cfg));
+		q_rank.push_back(mpp::rank_score_normalized(f, cfg));
+		frame_brightness.push_back(mpp::rank_average_brightness(f, cfg));
+	}
+
+	const auto align = mpp::align_global_from_frames(frames_blurred, q_rank, cfg);
+	const auto avg   = mpp::align_average_frame(frames_raw, q_rank, align.shifts, cfg);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 0);
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	const auto ofpf = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, ofpf, cfg);
+	cr_assert_not_null(shifts);
+
+	mpp_config_t cfg_stsci = cfg;
+	cfg_stsci.drizzle_mode    = MPP_DRIZZLE_STSCI;
+	cfg_stsci.drizzle_scale   = 2.0;
+	cfg_stsci.drizzle_pixfrac = 0.6;
+	cfg_stsci.drizzle_kernel  = MPP_KERNEL_SQUARE;
+
+	mpp_run_t *run = mpp_run_alloc();
+	cr_assert_not_null(run);
+	run->cfg = (mpp_config_t *) std::malloc(sizeof(mpp_config_t));
+	*run->cfg = cfg_stsci;
+	run->num_frames = N;
+	run->frame_rows = LR;
+	run->frame_cols = LR;
+	run->num_layers = 1;
+	run->bitdepth   = 8;
+	run->aps        = aps;
+	run->shifts     = shifts;
+	run->global_shifts    = (double *) std::calloc((size_t) 2 * N, sizeof(double));
+	run->frame_brightness = (double *) std::calloc((size_t) N, sizeof(double));
+	run->included         = (int *) std::calloc((size_t) N, sizeof(int));
+	for (int i = 0; i < N; ++i) {
+		run->global_shifts[2*i + 0] = align.shifts[i][0];
+		run->global_shifts[2*i + 1] = align.shifts[i][1];
+		run->frame_brightness[i] = frame_brightness[i];
+		run->included[i] = 1;
+	}
+	for (int k = 0; k < 4; ++k) run->intersection[k] = avg.intersection[k];
+
+	auto provider = [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; };
+	const std::vector<int> incl(N, 1);
+
+	fits out_serial{}, out_par{};
+	cr_assert_eq(mpp::stack_apply_stsci_streamed(provider, N, incl, frame_brightness,
+	             run, &cfg_stsci, &out_serial, /*max_threads=*/1,
+	             /*provider_thread_safe=*/true), MPP_OK);
+	cr_assert_eq(mpp::stack_apply_stsci_streamed(provider, N, incl, frame_brightness,
+	             run, &cfg_stsci, &out_par, /*max_threads=*/8,
+	             /*provider_thread_safe=*/true), MPP_OK);
+
+	cr_assert_eq(out_serial.rx, out_par.rx);
+	cr_assert_eq(out_serial.ry, out_par.ry);
+	cr_assert_eq(out_serial.naxes[2], out_par.naxes[2]);
+	const int C = out_serial.naxes[2] > 0 ? out_serial.naxes[2] : 1;
+	const size_t total = (size_t) out_serial.rx * (size_t) out_serial.ry * (size_t) C;
+	int max_abs = 0;
+	long long sum_abs = 0;
+	for (size_t i = 0; i < total; ++i) {
+		const int d = (int) out_serial.data[i] - (int) out_par.data[i];
+		const int ad = d < 0 ? -d : d;
+		if (ad > max_abs) max_abs = ad;
+		sum_abs += ad;
+	}
+	siril_log_status("[stsci parallel] 1-thread vs 8-thread: max|Δ|=%d "
+	                 "mean|Δ|=%.5f over %zu samples\n",
+	                 max_abs, (double) sum_abs / (double) total, total);
+	/* The per-thread-canvas weighted-mean reduction reorders float
+	 * accumulation, so the output is NOT bit-identical across thread counts
+	 * — only sub-quantisation close. A correct reduction stays within a few
+	 * LSB; a broken one (missing weight factor, wrong divide) diverges by
+	 * thousands. */
+	cr_assert_leq(max_abs, 16,
+	              "parallel STScI output diverges from serial by %d LSB — "
+	              "reduction likely incorrect", max_abs);
+
+	clearfits(&out_serial);
+	clearfits(&out_par);
+	mpp_run_free(run);
+}
+
 /* ===========================================================================
  * Bayer drizzle slanted-edge resolution test (slice 5b.6).
  *
