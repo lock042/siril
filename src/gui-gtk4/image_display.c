@@ -347,9 +347,6 @@ static void view_refresh_tile_textures(struct image_view *view) {
 		view_refresh_tile_textures_eager(view);
 }
 
-/* Forward declaration: cancel any pending mip-prefetch idle for a view
- * (defined further down with the rest of the prefetch machinery). */
-static void cancel_view_prefetch_idle(struct image_view *view);
 
 /* Allocate (or reallocate) the per-viewport tile grid for the current
  * gfit dimensions.  Images that fit in a single tile (≤ SIRIL_TILE_DIM
@@ -389,9 +386,10 @@ static int allocate_full_surface(struct image_view *view) {
 				view, img_w, img_h, tile_cols, tile_rows,
 				want_lazy ? "lazy" : "eager");
 
-		/* Cancel any pending background prefetch — it would otherwise
-		 * dereference tile state we're about to free. */
-		cancel_view_prefetch_idle(view);
+		/* Bump the generation so any materialise-worker job that's mid-flight
+		 * for the old grid discards its result instead of writing into the
+		 * tile array we're about to free/replace. */
+		view->generation++;
 
 		/* Drop existing textures.  In eager mode the tile textures hold
 		 * sub-refs on view->buf_gbytes; once we unref our copy of
@@ -986,164 +984,381 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
 	}
 }
 
-/* ── Background mip prefetch ──────────────────────────────────────────────
+/* ── Background materialise worker ────────────────────────────────────────
  *
- * A low-priority idle that does at most ONE tile per main-loop tick (to keep
- * input responsive) and self-removes once there's nothing left to do.  It has
- * two jobs, in priority order:
+ * The heavy per-pixel tile fill runs on a shared single-thread GThreadPool, so
+ * neither the fill itself nor cairo_mutex contention can stall the GTK main
+ * thread during a zoom.  A worker job for a viewport loops, doing one tile per
+ * iteration, in the same priority order the old main-thread idle used:
  *
- *  1. Deferred fill.  When a fast zoom-out makes many never-materialised tiles
- *     visible at once, the snapshot doesn't block to materialise them — it
- *     draws the low-res proxy backdrop instead and leaves them unready.  This
- *     idle materialises those still-unready visible tiles up to target_mip,
- *     one per tick, queueing a redraw each time so the sharp tile is appended
- *     over the proxy.  This is what makes a fast zoom-out *resolve* smoothly
- *     instead of stalling the render thread.
+ *   1. Deferred fill — materialise a still-unready visible tile up to
+ *      target_mip and queue a redraw, so the proxy backdrop is progressively
+ *      replaced by sharp tiles.  This is what makes a fast zoom-out *resolve*.
+ *   2. Prefetch — step the MRU tile one level finer (target_mip − 1) so the
+ *      next zoom-in octave is already dense enough.  No redraw queued.
  *
- *  2. Prefetch.  Once everything visible is at target_mip, step the most-
- *     recently-used tile one level finer (target_mip − 1).  The *next* zoom-in
- *     octave then finds those tiles already dense enough and the snapshot
- *     doesn't have to stall on a fresh materialise.  No redraw is queued for
- *     this step (see the note at the prefetch site).
- *
- * Memory cost: at steady state with prefetch complete, visible tiles hold
- * ~4× the bytes of a strict-target materialisation.  Still bounded by the
- * zoom_fit cap and the global SIRIL_LAZY_BUDGET. */
+ * Locking (critical):
+ *   - Lock order is gfit->rwlock reader THEN gui.cairo_mutex, matching
+ *     redraw_mask_idle; no path takes them the other way round.
+ *   - The reader lock is held for the WHOLE job and keeps gfit's pixel buffers
+ *     alive across the unlocked fill phase (a processing thread takes the
+ *     writer lock to mutate gfit, so it blocks until we're done).
+ *   - cairo_mutex is held only briefly to pick a job + snapshot its inputs
+ *     (phase 1) and to assign the finished texture (phase 3).  The expensive
+ *     fill (phase 2) holds NEITHER cairo_mutex — so the snapshot never waits on
+ *     us — relying on the reader lock for pixels and on the generation stamp to
+ *     detect a grid realloc before assigning.
+ *   - LUT contents (gui.remap_index) can be rewritten by a concurrent remap;
+ *     that's the same benign race the inline path already tolerates (remap
+ *     builds the LUT before taking cairo_mutex), self-healed by remap's own
+ *     dirty+redraw. */
 
-static gboolean prefetch_idle_cb(gpointer data);
+static GThreadPool *materialise_pool = NULL;
 
-/* Schedule the refine idle for a viewport if one isn't already running and
- * there's plausibly work to do: either some visible tile is still unready and
- * being covered by the proxy (have_deferred), or there's a finer prefetch to
- * do (target_mip > 0).  The idle rechecks everything under the mutex, so this
- * is just a cheap "maybe-kick" test. */
-static void schedule_view_prefetch_idle(struct image_view *view, int vport,
-                                         int target_mip, gboolean have_deferred) {
-	if (view->prefetch_idle_id != 0) return;
-	if (!view->lazy) return;
-	if (!have_deferred && target_mip <= 0) return;
-	view->prefetch_idle_id = g_idle_add_full(G_PRIORITY_LOW,
-	                                          prefetch_idle_cb,
-	                                          GINT_TO_POINTER(vport), NULL);
-}
-
-/* Cancel any pending prefetch idle for a view.  Must be called whenever the
- * tile array is reallocated (so the idle doesn't dereference freed state). */
-static void cancel_view_prefetch_idle(struct image_view *view) {
-	if (view->prefetch_idle_id != 0) {
-		g_source_remove(view->prefetch_idle_id);
-		view->prefetch_idle_id = 0;
-	}
-}
-
-static gboolean prefetch_idle_cb(gpointer data) {
-	const int vport = GPOINTER_TO_INT(data);
-	if (vport < 0 || vport >= MAXVPORT) return G_SOURCE_REMOVE;
-
-	g_mutex_lock(&gui.cairo_mutex);
-	struct image_view *view = &gui.view[vport];
-
-	/* Re-derive target_mip under the lock — the zoom may have shifted since
-	 * the snapshot scheduled us.  Same cap-at-zoom_fit logic as the snapshot. */
-	const int img_w = view->buf_stride / 4;
-	const int img_h = view->buf_height;
-	const double zoom_now = get_zoom_val();
-	double zoom_effective = zoom_now;
-	if (img_w > 0 && img_h > 0 && view->drawarea) {
-		const int ww = gtk_widget_get_width(view->drawarea);
-		const int wh = gtk_widget_get_height(view->drawarea);
-		if (ww > 0 && wh > 0) {
-			const double zoom_fit = MIN((double)ww / img_w,
-			                            (double)wh / img_h);
-			if (zoom_effective < zoom_fit) zoom_effective = zoom_fit;
+/* Select the LUT pointer(s) for a viewport, mirroring the materialise_tile
+ * dispatcher's slot logic exactly.  idx[0..2] for the RGB composite; idx[0]
+ * only for a gray channel.  Returns hd_mode and sets *out_do_icc.  Reads gui.*
+ * / gfit->* and so must be called with gui.cairo_mutex held. */
+static gboolean pick_render_luts(int vport, const BYTE *idx[3],
+                                 gboolean *out_do_icc) {
+	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
+		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	idx[0] = idx[1] = idx[2] = NULL;
+	if (vport == RGB_VPORT) {
+		for (int c = 0; c < 3; c++) {
+			const int slot = (gui.rendering_mode == STF_DISPLAY
+			                  && gui.unlink_channels) ? c : 0;
+			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
+		*out_do_icc = (gfit->color_managed && com.gui_icc.proofing_transform
+			&& !identical && !com.gui_icc.same_primaries);
+	} else {
+		const int ti = (gui.rendering_mode == STF_DISPLAY
+		                && gui.unlink_channels) ? vport : 0;
+		idx[0] = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
+		*out_do_icc = FALSE;
 	}
-	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
-	const int prefetch_mip = target_mip > 0 ? target_mip - 1 : 0;
+	return hd_mode;
+}
 
-	if (!view->lazy || !view->tiles) {
-		view->prefetch_idle_id = 0;
-		g_mutex_unlock(&gui.cairo_mutex);
-		return G_SOURCE_REMOVE;
-	}
-
-	/* Priority 1 — deferred fill.  Materialise one still-unready visible tile
-	 * up to target_mip so the proxy backdrop is progressively replaced by
-	 * sharp tiles.  We scan the visible range the last snapshot recorded, in
-	 * raster order, and DO queue a redraw afterwards so the new tile actually
-	 * lands on screen.  This is the work that makes a fast zoom-out resolve. */
-	if (view->vis_valid) {
-		const int tx0 = CLAMP(view->vis_tx0, 0, view->tile_cols - 1);
-		const int tx1 = CLAMP(view->vis_tx1, 0, view->tile_cols - 1);
-		const int ty0 = CLAMP(view->vis_ty0, 0, view->tile_rows - 1);
-		const int ty1 = CLAMP(view->vis_ty1, 0, view->tile_rows - 1);
-		for (int ty = ty0; ty <= ty1; ty++) {
-			for (int tx = tx0; tx <= tx1; tx++) {
-				struct image_tile *t = &view->tiles[ty * view->tile_cols + tx];
-				const gboolean ready = t->texture && !t->dirty
-					&& tile_mip_acceptable(t->mip, target_mip);
-				if (ready) continue;
-				const gboolean ok = materialise_tile(view, vport, tx, ty, target_mip);
-				g_mutex_unlock(&gui.cairo_mutex);
-				if (!ok) {            /* allocation refusal — back off */
-					view->prefetch_idle_id = 0;
-					return G_SOURCE_REMOVE;
+/* Pure pixel producers used by the worker's phase 2.  These hold no lock and
+ * touch no view/tile/gui state — everything comes in as parameters.  They MUST
+ * stay byte-for-byte equivalent to materialise_tile_gray / materialise_tile_rgb
+ * (the inline path) so a tile looks identical whether the main thread or the
+ * worker built it. */
+static void wk_fill_gray(int gfit_type, const WORD *src, const float *fsrc,
+                         int img_w, int img_h, int x0, int y0,
+                         int tex_w, int tex_h, int mip, const BYTE *lut,
+                         guint hd_max, gboolean hd_mode, gboolean inverted,
+                         guchar *data, int out_w, int out_h) {
+	const int step = 1 << mip;
+	if (mip == 0) {
+		for (int dy = 0; dy < tex_h; dy++) {
+			const int iy = img_h - 1 - (y0 + dy);
+			guint32 *row_out = (guint32 *)(data + (size_t)dy * out_w * 4);
+			for (int dx = 0; dx < tex_w; dx++) {
+				const int ix = x0 + dx;
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE val;
+				if (gfit_type == DATA_USHORT) {
+					const WORD sv = src[si];
+					val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+				} else {
+					val = hd_mode ? lut[float_to_max_range(fsrc[si], hd_max)]
+					              : lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
 				}
-				/* This tile was covered by the proxy; queue a redraw so the
-				 * snapshot appends the sharp texture over it. */
-				if (view->drawarea)
-					gtk_widget_queue_draw(view->drawarea);
-				return G_SOURCE_CONTINUE;
+				if (inverted) val = UCHAR_MAX - val;
+				row_out[dx] = ((guint32)val << 16) | ((guint32)val << 8) | val;
+			}
+		}
+	} else {
+		for (int oy = 0; oy < out_h; oy++) {
+			guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
+			for (int ox = 0; ox < out_w; ox++) {
+				unsigned sum = 0;
+				int count = 0;
+				for (int sy = 0; sy < step; sy++) {
+					const int dy = oy * step + sy;
+					if (dy >= tex_h) break;
+					const int iy = img_h - 1 - (y0 + dy);
+					for (int sx = 0; sx < step; sx++) {
+						const int dx = ox * step + sx;
+						if (dx >= tex_w) break;
+						const int ix = x0 + dx;
+						const size_t si = (size_t)iy * img_w + ix;
+						BYTE val;
+						if (gfit_type == DATA_USHORT) {
+							const WORD sv = src[si];
+							val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+						} else {
+							val = hd_mode ? lut[float_to_max_range(fsrc[si], hd_max)]
+							              : lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+						}
+						if (inverted) val = UCHAR_MAX - val;
+						sum += val;
+						count++;
+					}
+				}
+				const BYTE avg = count > 0 ? (BYTE)(sum / count) : 0;
+				row_out[ox] = ((guint32)avg << 16) | ((guint32)avg << 8) | avg;
 			}
 		}
 	}
+}
 
-	/* Priority 2 — prefetch.  Find the most-recently-used tile that's currently
-	 * above prefetch_mip (i.e. could be stepped one level finer) and isn't
-	 * dirty.  Skipping dirty tiles avoids racing the next snapshot's own
-	 * re-materialise. */
-	int best_tx = -1, best_ty = -1;
-	guint64 best_last = 0;
-	gboolean have_best = FALSE;
-	const int n = view->tile_cols * view->tile_rows;
-	for (int i = 0; i < n; i++) {
-		struct image_tile *t = &view->tiles[i];
-		if (!t->texture) continue;
-		if (t->dirty) continue;
-		if (t->mip <= prefetch_mip) continue;
-		if (!have_best || t->last_used > best_last) {
-			have_best = TRUE;
-			best_last = t->last_used;
-			best_tx = i % view->tile_cols;
-			best_ty = i / view->tile_cols;
+static void wk_fill_rgb(int gfit_type, const WORD *const psrc[3],
+                        const float *const fpsrc[3], int img_w, int img_h,
+                        int x0, int y0, int tex_w, int tex_h, int mip,
+                        const BYTE *const idx[3], guint hd_max, gboolean hd_mode,
+                        gboolean inverted, gboolean do_icc,
+                        guchar *data, int out_w, int out_h) {
+	const int step = 1 << mip;
+	BYTE *lb = malloc((size_t)out_w * 3);
+	if (!lb) {
+		memset(data, 0, (size_t)out_w * out_h * 4);
+		return;
+	}
+	BYTE *lb_r = lb, *lb_g = lb + out_w, *lb_b = lb + 2 * out_w;
+	for (int oy = 0; oy < out_h; oy++) {
+		guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
+		for (int ox = 0; ox < out_w; ox++) {
+			unsigned sum[3] = { 0, 0, 0 };
+			int count = 0;
+			for (int sy = 0; sy < step; sy++) {
+				const int dy = oy * step + sy;
+				if (dy >= tex_h) break;
+				const int iy = img_h - 1 - (y0 + dy);
+				for (int sx = 0; sx < step; sx++) {
+					const int dx = ox * step + sx;
+					if (dx >= tex_w) break;
+					const int ix = x0 + dx;
+					const size_t si = (size_t)iy * img_w + ix;
+					for (int c = 0; c < 3; c++) {
+						BYTE val;
+						if (gfit_type == DATA_USHORT) {
+							const WORD sv = psrc[c][si];
+							val = hd_mode ? idx[c][(guint)sv * hd_max / USHRT_MAX]
+							              : idx[c][sv];
+						} else {
+							const float fv = fpsrc[c][si];
+							val = hd_mode ? idx[c][float_to_max_range(fv, hd_max)]
+							              : idx[c][roundf_to_WORD(fv * USHRT_MAX_SINGLE)];
+						}
+						if (inverted) val = UCHAR_MAX - val;
+						sum[c] += val;
+					}
+					count++;
+				}
+			}
+			if (count > 0) {
+				lb_r[ox] = (BYTE)(sum[0] / count);
+				lb_g[ox] = (BYTE)(sum[1] / count);
+				lb_b[ox] = (BYTE)(sum[2] / count);
+			} else {
+				lb_r[ox] = lb_g[ox] = lb_b[ox] = 0;
+			}
 		}
+		if (do_icc)
+			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
+		for (int ox = 0; ox < out_w; ox++)
+			row_out[ox] = ((guint32)lb_r[ox] << 16)
+				| ((guint32)lb_g[ox] << 8) | (guint32)lb_b[ox];
 	}
+	free(lb);
+}
 
-	if (!have_best) {
-		view->prefetch_idle_id = 0;
+/* Assign a worker-built texture to a tile and update the LRU budget — the
+ * mutating tail of materialise_tile_gray/rgb, factored out for the worker's
+ * phase 3.  Must be called with gui.cairo_mutex held. */
+static void wk_assign_tile(struct image_view *view, int tx, int ty, int mip,
+                           GdkTexture *tex, guchar *data, gsize tile_bytes) {
+	struct image_tile *t = &view->tiles[ty * view->tile_cols + tx];
+	const gsize prev = (t->data ? t->bytes : 0);
+	if (prev && view->lazy_bytes_used >= prev)
+		view->lazy_bytes_used -= prev;
+	materialise_tile_evict_until(view, tile_bytes);
+	if (t->texture)
+		g_object_unref(t->texture);
+	t->texture = tex;
+	t->data = data;
+	t->mip = mip;
+	t->bytes = tile_bytes;
+	t->dirty = FALSE;
+	t->last_used = ++view->lazy_epoch;
+	view->lazy_bytes_used += tile_bytes;
+}
+
+/* Runs on the main thread (scheduled from the worker) to request a redraw of
+ * the viewport whose deferred tile just landed. */
+static gboolean wk_queue_draw_idle(gpointer p) {
+	const int vport = GPOINTER_TO_INT(p);
+	if (vport >= 0 && vport < MAXVPORT && gui.view[vport].drawarea)
+		gtk_widget_queue_draw(gui.view[vport].drawarea);
+	return G_SOURCE_REMOVE;
+}
+
+static void materialise_worker(gpointer data, gpointer user) {
+	(void) user;
+	const int vport = GPOINTER_TO_INT(data);
+	/* Only the gray channels (0..2) and the RGB composite have lazy
+	 * materialisers; the mask vport has none (see materialise_tile). */
+	if (vport < 0 || vport > RGB_VPORT)
+		return;
+
+	for (;;) {
+		if (!gfit) {
+			g_mutex_lock(&gui.cairo_mutex);
+			gui.view[vport].worker_active = FALSE;
+			g_mutex_unlock(&gui.cairo_mutex);
+			return;
+		}
+
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		g_mutex_lock(&gui.cairo_mutex);
+		struct image_view *view = &gui.view[vport];
+
+		if (!view->lazy || !view->tiles
+		    || g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
+			view->worker_active = FALSE;
+			g_mutex_unlock(&gui.cairo_mutex);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			return;
+		}
+
+		const int cols = view->tile_cols;
+		const int rows = view->tile_rows;
+		const int target = view->wk_target_mip;
+		const int prefetch = target > 0 ? target - 1 : 0;
+
+		/* Phase 1a — pick the next job. */
+		int jtx = -1, jty = -1, jmip = 0;
+		gboolean redraw = FALSE, found = FALSE;
+		if (view->vis_valid) {
+			const int tx0 = CLAMP(view->vis_tx0, 0, cols - 1);
+			const int tx1 = CLAMP(view->vis_tx1, 0, cols - 1);
+			const int ty0 = CLAMP(view->vis_ty0, 0, rows - 1);
+			const int ty1 = CLAMP(view->vis_ty1, 0, rows - 1);
+			for (int ty = ty0; !found && ty <= ty1; ty++) {
+				for (int tx = tx0; tx <= tx1; tx++) {
+					const struct image_tile *t = &view->tiles[ty * cols + tx];
+					const gboolean ready = t->texture && !t->dirty
+						&& tile_mip_acceptable(t->mip, target);
+					if (!ready) {
+						jtx = tx; jty = ty; jmip = target;
+						redraw = TRUE; found = TRUE;
+						break;
+					}
+				}
+			}
+		}
+		if (!found) {
+			guint64 best = 0;
+			const int n = cols * rows;
+			for (int i = 0; i < n; i++) {
+				const struct image_tile *t = &view->tiles[i];
+				if (!t->texture || t->dirty || t->mip <= prefetch) continue;
+				if (!found || t->last_used > best) {
+					best = t->last_used;
+					jtx = i % cols; jty = i / cols; jmip = prefetch;
+					found = TRUE;
+				}
+			}
+		}
+		if (!found) {
+			view->worker_active = FALSE;
+			g_mutex_unlock(&gui.cairo_mutex);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			return;
+		}
+
+		/* Phase 1b — snapshot every input the fill needs, so phase 2 touches no
+		 * shared mutable state.  LUT *pointers* are captured here (contents may
+		 * race a remap, see the section note); gfit pixel pointers stay valid
+		 * under the reader lock. */
+		const guint gen = view->generation;
+		int gx0, gy0, gtw, gth, gtex_w, gtex_h;
+		tile_dims_padded(view, jtx, jty, &gx0, &gy0, &gtw, &gth, &gtex_w, &gtex_h);
+		const int img_w = view->buf_stride / 4;
+		const int img_h = view->buf_height;
+		const int out_w = MAX(1, gtex_w >> jmip);
+		const int out_h = MAX(1, gtex_h >> jmip);
+		const gsize tile_bytes = (gsize)out_w * out_h * 4;
+		const gboolean neg = view->render_neg;
+		const int gtype = gfit->type;
+		const guint hd_max = gui.hd_remap_max;
+		const BYTE *idx[3];
+		gboolean do_icc = FALSE;
+		const gboolean hd_mode = pick_render_luts(vport, idx, &do_icc);
+		const WORD *psrc[3] = { gfit->pdata[0], gfit->pdata[1], gfit->pdata[2] };
+		const float *fpsrc[3] = { gfit->fpdata[0], gfit->fpdata[1], gfit->fpdata[2] };
+
+		g_mutex_unlock(&gui.cairo_mutex);   /* keep the reader lock for the fill */
+
+		/* Phase 2 — heavy fill, NO cairo_mutex held. */
+		guchar *buf = malloc(tile_bytes);
+		if (!buf) {
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			g_mutex_lock(&gui.cairo_mutex);
+			gui.view[vport].worker_active = FALSE;
+			g_mutex_unlock(&gui.cairo_mutex);
+			return;
+		}
+		if (vport == RGB_VPORT)
+			wk_fill_rgb(gtype, psrc, fpsrc, img_w, img_h, gx0, gy0,
+				gtex_w, gtex_h, jmip, idx, hd_max, hd_mode, neg, do_icc,
+				buf, out_w, out_h);
+		else
+			wk_fill_gray(gtype, psrc[vport], fpsrc[vport], img_w, img_h,
+				gx0, gy0, gtex_w, gtex_h, jmip, idx[0], hd_max, hd_mode, neg,
+				buf, out_w, out_h);
+
+		GBytes *bytes = g_bytes_new_with_free_func(buf, tile_bytes, free, buf);
+		GdkTexture *tex = gdk_memory_texture_new(out_w, out_h,
+			GDK_MEMORY_B8G8R8X8, bytes, out_w * 4);
+		g_bytes_unref(bytes);
+
+		/* Phase 3 — assign, but only if the grid hasn't moved under us. */
+		g_mutex_lock(&gui.cairo_mutex);
+		gboolean assigned = FALSE;
+		if (view->generation == gen && view->lazy && view->tiles
+		    && view->tile_cols == cols && view->tile_rows == rows) {
+			wk_assign_tile(view, jtx, jty, jmip, tex, buf, tile_bytes);
+			assigned = TRUE;
+		}
 		g_mutex_unlock(&gui.cairo_mutex);
-		return G_SOURCE_REMOVE;
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+
+		if (!assigned)
+			g_object_unref(tex);   /* discard; frees buf via the GBytes free func */
+		else if (redraw)
+			g_idle_add(wk_queue_draw_idle, GINT_TO_POINTER(vport));
+
+		/* Loop for the next job. */
 	}
+}
 
-	/* Step this tile down one mip level.  If it fails (allocation refusal),
-	 * stop — the next snapshot will try again. */
-	const gboolean ok = materialise_tile(view, vport, best_tx, best_ty, prefetch_mip);
-	g_mutex_unlock(&gui.cairo_mutex);
-
-	if (!ok) {
-		view->prefetch_idle_id = 0;
-		return G_SOURCE_REMOVE;
+/* Kick the materialise worker for a viewport if one isn't already churning it
+ * and there's plausibly work to do: a visible tile still on the proxy
+ * (have_deferred) or a finer prefetch (target_mip > 0).  Called with
+ * gui.cairo_mutex held (from the snapshot); the worker re-checks under the lock
+ * before doing anything. */
+static void schedule_view_prefetch_idle(struct image_view *view, int vport,
+                                         int target_mip, gboolean have_deferred) {
+	if (!view->lazy) return;
+	if (vport < 0 || vport > RGB_VPORT) return;  /* mask vport has no materialiser */
+	if (!have_deferred && target_mip <= 0) return;
+	if (view->worker_active) return;
+	if (!materialise_pool) {
+		/* One dedicated worker thread: the job function loops until the view is
+		 * drained, and all jobs contend on cairo_mutex anyway, so extra threads
+		 * would only add contention. */
+		materialise_pool = g_thread_pool_new(materialise_worker, NULL,
+		                                     1, TRUE, NULL);
+		if (!materialise_pool) return;
 	}
-
-	/* Deliberately NOT queueing a redraw for the prefetch step: the freshly-
-	 * built GdkMemoryTexture lives CPU-side only until the next user-driven
-	 * snapshot (zoom, pan, exposure event) actually appends it to the render
-	 * tree, at which point GSK does a single GPU upload.  Queueing a redraw
-	 * per tick would force GSK to upload each prefetched tile as it lands,
-	 * producing a stream of small uploads that contend with the very zoom
-	 * snapshots they're meant to accelerate.  The accept range will still pick
-	 * the finer texture up on the next legitimate redraw. */
-	return G_SOURCE_CONTINUE;  /* more candidates may remain — keep going */
+	view->worker_active = TRUE;
+	g_thread_pool_push(materialise_pool, GINT_TO_POINTER(vport), NULL);
 }
 
 void check_gfit_profile_identical_to_monitor() {
@@ -2256,6 +2471,23 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		if (zoom_effective < zoom_fit) zoom_effective = zoom_fit;
 	}
 	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
+
+	/* Record the render state the materialise worker can't query itself off
+	 * the main thread: the zoom-derived target mip, and the negative-view flag
+	 * (GAction lookup is main-thread-only).  Captured under cairo_mutex so the
+	 * worker reads a consistent pair. */
+	if (view->lazy) {
+		view->wk_target_mip = target_mip;
+		gboolean neg_now = FALSE;
+		GAction *an = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win),
+		                                         "negative-view");
+		if (an) {
+			GVariant *st = g_action_get_state(an);
+			neg_now = g_variant_get_boolean(st);
+			g_variant_unref(st);
+		}
+		view->render_neg = neg_now;
+	}
 
 	GdkTexture **tiles_snapshot = NULL;
 	GdkTexture *proxy_ref = NULL;

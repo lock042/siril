@@ -115,14 +115,21 @@ struct image_view {
 	guchar           *buf;
 	GBytes           *buf_gbytes;
 
-	/* Background prefetch idle: GLib source id (0 = none) of an idle that
-	 * walks visible tiles whose current mip is one coarser than the target
-	 * prefetch level and re-materialises them at target_mip - 1, so that
-	 * the *next* zoom-in step finds them already at the right resolution
-	 * and doesn't have to stall the snapshot path.  Scheduled at the end
-	 * of the snapshot vfunc; auto-removes when no more candidates remain.
-	 * Cancelled when the tile grid is reallocated. */
-	guint             prefetch_idle_id;
+	/* Background materialise worker (lazy mode).  The heavy per-pixel tile
+	 * fill runs on a shared single-thread GThreadPool rather than the GTK
+	 * main thread, so neither the fill nor cairo_mutex contention can stall
+	 * rendering.  worker_active (set under cairo_mutex) is a dedupe flag: the
+	 * snapshot pushes a job only when no worker is already churning this view.
+	 * generation is bumped whenever the tile grid is reallocated; the worker
+	 * stamps each job with it and discards a finished texture whose generation
+	 * no longer matches (the grid moved under it).  wk_target_mip and
+	 * render_neg are the bits of render state the worker can't compute itself
+	 * off the main thread (zoom/widget size, GAction state); the snapshot
+	 * records them under cairo_mutex each frame for the worker to read. */
+	gboolean          worker_active;
+	guint             generation;
+	int               wk_target_mip;
+	gboolean          render_neg;
 
 	/* Lazy mode: tile bytes are allocated on demand by materialise_tile and
 	 * may be freed by LRU eviction once lazy_bytes_used exceeds the budget. */
@@ -146,8 +153,8 @@ struct image_view {
 	gboolean          proxy_dirty;
 
 	/* Inclusive visible tile-index range recorded by the most recent snapshot,
-	 * consumed by the refine idle so it only does work for on-screen tiles.
-	 * vis_valid is FALSE until the first snapshot populates it. */
+	 * consumed by the materialise worker so it only does work for on-screen
+	 * tiles.  vis_valid is FALSE until the first snapshot populates it. */
 	int               vis_tx0, vis_ty0, vis_tx1, vis_ty1;
 	gboolean          vis_valid;
 };
