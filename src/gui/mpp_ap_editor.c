@@ -17,8 +17,8 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/proto.h"
-#include "core/undo.h"
 #include "gui/utils.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/mpp_ap_editor.h"
@@ -231,16 +231,28 @@ gboolean mpp_ap_editor_can_redo(void) { return g_ap_redo && g_ap_redo->len > 0; 
  * diversion). Restores the image-history state when the editor is closed. */
 static void ap_sync_undo_actions(void) {
 	if (!gui.builder) return;
+	/* Editor closed: hand the Undo/Redo actions and tooltips back to the
+	 * image-history state via the central updater. */
+	if (!mpp_ap_editor_is_open()) {
+		update_MenuItem(NULL);
+		return;
+	}
+	const gboolean can_u = mpp_ap_editor_can_undo();
+	const gboolean can_r = mpp_ap_editor_can_redo();
 	GObject *w = gtk_builder_get_object(gui.builder, "control_window");
-	if (!w) return;
-	GActionMap *map = G_ACTION_MAP(w);
-	GAction *u = g_action_map_lookup_action(map, "undo");
-	GAction *r = g_action_map_lookup_action(map, "redo");
-	const gboolean open = mpp_ap_editor_is_open();
-	if (u) g_simple_action_set_enabled(G_SIMPLE_ACTION(u),
-	        open ? mpp_ap_editor_can_undo() : is_undo_available());
-	if (r) g_simple_action_set_enabled(G_SIMPLE_ACTION(r),
-	        open ? mpp_ap_editor_can_redo() : is_redo_available());
+	if (w) {
+		GActionMap *map = G_ACTION_MAP(w);
+		GAction *u = g_action_map_lookup_action(map, "undo");
+		GAction *r = g_action_map_lookup_action(map, "redo");
+		if (u) g_simple_action_set_enabled(G_SIMPLE_ACTION(u), can_u);
+		if (r) g_simple_action_set_enabled(G_SIMPLE_ACTION(r), can_r);
+	}
+	GObject *ub = gtk_builder_get_object(gui.builder, "header_undo_button");
+	GObject *rb = gtk_builder_get_object(gui.builder, "header_redo_button");
+	if (ub) gtk_widget_set_tooltip_text(GTK_WIDGET(ub),
+	        can_u ? _("Undo alignment-point edit") : _("Nothing to undo"));
+	if (rb) gtk_widget_set_tooltip_text(GTK_WIDGET(rb),
+	        can_r ? _("Redo alignment-point edit") : _("Nothing to redo"));
 }
 
 void mpp_ap_editor_record_undo(int coalesce_key) {
