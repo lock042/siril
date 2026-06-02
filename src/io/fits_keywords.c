@@ -924,6 +924,14 @@ void set_all_keywords_default(fits *fit) {
 		// Change it to 1.
 		fit->keywords.stackcnt = 1;
 	}
+	if (fit->keywords.binning_x == DEFAULT_UINT_VALUE) {
+		// DEFAULT_UINT_VALUE doesn't make any sense for a binning factor.
+		// Change it to 1.
+		fit->keywords.binning_x = 1;
+	}
+	if (fit->keywords.binning_y == DEFAULT_UINT_VALUE) {
+		fit->keywords.binning_y = 1;
+	}
 	// Add any other special cases here...
 
 	// Free the hash table and unknown keys
