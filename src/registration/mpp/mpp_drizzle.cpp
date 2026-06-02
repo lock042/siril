@@ -314,7 +314,6 @@ struct FrameFilterSetup {
 	int M;
 	std::vector<std::vector<int>> used_alignment_points;
 	std::vector<int> top_for_bg_flag;        /* length N, 0/1 */
-	std::vector<int> ap_active_buf;          /* length M, reused per frame */
 };
 
 FrameFilterSetup make_frame_filter(const mpp_run_t *run, int N,
@@ -350,29 +349,9 @@ FrameFilterSetup make_frame_filter(const mpp_run_t *run, int N,
 	for (int i = 0; i < K_bg; ++i)
 		s.top_for_bg_flag[sorted_idx[i]] = 1;
 
-	s.ap_active_buf.assign(s.M, 0);
 	return s;
 }
 
-/* Populate ap_active_buf for frame f. Returns true if this frame should
- * be drizzled (contributes to at least one AP or to the background);
- * false to skip the disk read + dobox call entirely. */
-bool prepare_frame_filter(FrameFilterSetup &s, int f,
-                          const int **ap_active_ptr_out,
-                          int *include_bg_flag_out) {
-	if (!s.apply) {
-		*ap_active_ptr_out   = nullptr;
-		*include_bg_flag_out = 1;
-		return true;
-	}
-	std::fill(s.ap_active_buf.begin(), s.ap_active_buf.end(), 0);
-	for (int a : s.used_alignment_points[f]) s.ap_active_buf[a] = 1;
-	const bool any_ap = !s.used_alignment_points[f].empty();
-	const bool any_bg = s.top_for_bg_flag[f] != 0;
-	*ap_active_ptr_out   = s.ap_active_buf.data();
-	*include_bg_flag_out = any_bg ? 1 : 0;
-	return any_ap || any_bg;
-}
 
 /* Per-frame drizzle iteration plan. dobox uses [xmin,xmax]×[ymin,ymax]
  * inclusive bounds. */
@@ -440,7 +419,7 @@ void compute_driz_plan(const mpp_run_t *run,
 		sum_patch_area += (long long)(px_hi - px_lo) * (long long)(py_hi - py_lo);
 	}
 	if (K == 0) {
-		/* Shouldn't reach here — prepare_frame_filter would have
+		/* Shouldn't reach here — the caller filters frames that
 		 * returned false. Defensive fallback. */
 		out_rects.push_back(full);
 		return;
@@ -643,8 +622,8 @@ mpp_status_t mpp::stack_apply_stsci_streamed(const FrameProvider &provider,
 			if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
 			const int f = work[wi];
 
-			/* Per-frame AP-active mask (thread-local; prepare_frame_filter's
-			 * shared scratch buffer is not reentrant). */
+			/* Per-frame AP-active mask, computed into a thread-local vector
+			 * (a shared scratch mask would not be reentrant). */
 			const int *ap_active_ptr = nullptr;
 			int include_bg_flag = 1;
 			std::vector<int> ap_active_local;
@@ -881,7 +860,9 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
                                              const mpp_config_t *cfg,
                                              const unsigned char *cfa,
                                              int cfadim,
-                                             fits *out) {
+                                             fits *out,
+                                             int max_threads,
+                                             bool provider_thread_safe) {
 	if (!cfg || !run || !out || !run->aps || !run->shifts || !cfa) return MPP_EINVAL;
 	if (cfadim != 2) return MPP_EINVAL;     /* 2x2 Bayer only for now */
 	if (N <= 0 || (int) included.size() != N
@@ -909,19 +890,11 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 		return MPP_ENOMEM;
 	}
 
-	imgmap_t pixmap{};
-	if (mpp_imgmap_alloc(&pixmap, frame_rx, frame_ry) != MPP_OK) {
-		clearfits(&output_data);
-		clearfits(&output_counts);
-		return MPP_ENOMEM;
-	}
-
 	std::vector<double> bright_inc;
 	bright_inc.reserve(N);
 	for (int i = 0; i < N; ++i)
 		if (included[i]) bright_inc.push_back(frame_brightness[i]);
 	if (bright_inc.empty()) {
-		mpp_imgmap_free(&pixmap);
 		clearfits(&output_data);
 		clearfits(&output_counts);
 		return MPP_ENODATA;
@@ -932,8 +905,6 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 	const double median_brightness = bright_inc[bright_inc.size() / 2];
 
 	FrameFilterSetup filter = make_frame_filter(run, N, included);
-	std::vector<DrizRect> driz_rects;        /* re-used per frame */
-	bool driz_needs_claim = false;
 
 	struct driz_args_t driz_args;
 	std::memset(&driz_args, 0, sizeof(driz_args));
@@ -947,141 +918,202 @@ mpp_status_t mpp::stack_apply_bayer_streamed(const FrameProvider &provider,
 	driz_args.use_flats      = FALSE;
 	driz_args.flat           = nullptr;
 
-	struct driz_error_t error;
-	std::memset(&error, 0, sizeof(error));
+	/* Frames that participate, in index order. */
+	std::vector<int> work;
+	work.reserve(N);
+	for (int f = 0; f < N; ++f)
+		if (included[f]) work.push_back(f);
+	const int W = (int) work.size();
+	const int n_included = W;
 
-	const int n_included = (int) bright_inc.size();
-	int cur_nb = 0;
+	const size_t in_plane  = (size_t) frame_rx * (size_t) frame_ry;   /* 1-channel mosaic */
+	const size_t out_plane = (size_t) out_rx * (size_t) out_ry;
+
+	/* Frame-parallel drizzle with per-thread output canvases + weighted-
+	 * mean reduction — identical strategy and trade-offs to
+	 * stack_apply_stsci_streamed (output close-but-not-bit-identical across
+	 * thread counts). Input here is a 1-channel mosaic; the canvas is
+	 * 3-channel RGB (dobox routes each CFA sample to its colour plane). */
+	const int max_t = max_threads > 0 ? max_threads : 1;
+	int n_threads = max_t;
+#ifdef _OPENMP
+	if (provider_thread_safe && max_t > 1) {
+		const size_t per_thread_canvas = (size_t) 2 * out_plane * (size_t) channels * sizeof(float);
+		const size_t per_thread_frame  = in_plane * sizeof(float)   /* planar float (1-channel mosaic) */
+		                               + (size_t) 2 * in_plane * sizeof(float)   /* pixmap xmap+ymap */
+		                               + in_plane * 2;                           /* decoded raw (~16-bit) */
+		const size_t per_thread = per_thread_canvas + per_thread_frame;
+		const size_t shared     = (size_t) 2 * out_plane * (size_t) channels * sizeof(float);
+		guint64 budget_b = get_available_memory();
+		const long long cap_mb = get_max_memory_in_MB();
+		if (cap_mb > 0) {
+			const guint64 cap_b = (guint64) cap_mb * 1024ULL * 1024ULL;
+			if (cap_b < budget_b) budget_b = cap_b;
+		}
+		long double budget = (long double) budget_b * 0.8L;   /* 20 % headroom */
+		budget = (budget > (long double) shared) ? budget - (long double) shared : 0.0L;
+		int fit = (per_thread > 0) ? (int) (budget / (long double) per_thread) : max_t;
+		if (fit < 1) fit = 1;
+		if (fit < n_threads) {
+			siril_log_message(_("Stack (mpp): Bayer drizzle limited to %d of %d "
+			                    "thread(s) by available memory\n"), fit, max_t);
+			n_threads = fit;
+		}
+	} else {
+		n_threads = 1;
+	}
+#else
+	n_threads = 1;
+#endif
+
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack (Bayer drizzle): processing frames"));
+	gint cur_nb = 0;
+	gint cancelled = 0;
+	mpp_status_t rc = MPP_OK;
 
-	for (int f = 0; f < N; ++f) {
-		if (!included[f]) continue;
-		if (!processing_should_continue()) {
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EINTR;
-		}
+#ifdef _OPENMP
+#pragma omp parallel num_threads(n_threads) if (n_threads > 1)
+#endif
+	{
+		fits od_local{}, oc_local{};
+		imgmap_t pixmap_local{};
+		struct driz_error_t error;
+		std::memset(&error, 0, sizeof(error));
+		const bool alloc_ok =
+		    alloc_float_fits(&od_local, out_rx, out_ry, channels)
+		    && alloc_float_fits(&oc_local, out_rx, out_ry, channels)
+		    && (mpp_imgmap_alloc(&pixmap_local, frame_rx, frame_ry) == MPP_OK);
+		mpp_status_t local_rc = alloc_ok ? MPP_OK : MPP_ENOMEM;
 
-		const int *ap_active_ptr = nullptr;
-		int include_bg_flag = 1;
-		if (!prepare_frame_filter(filter, f, &ap_active_ptr, &include_bg_flag)) {
-			g_atomic_int_inc(&cur_nb);
-			gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
-			continue;
-		}
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic) nowait
+#endif
+		for (int wi = 0; wi < W; ++wi) {
+			if (local_rc != MPP_OK || g_atomic_int_get(&cancelled)) continue;
+			if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
+			const int f = work[wi];
 
-		const cv::Mat frame_raw = provider(f);
-		if (frame_raw.empty()) continue;
-		if (frame_raw.channels() != 1) {
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EINVAL;
-		}
-
-		const double brightness_scale = median_brightness
-		                              / (frame_brightness[f] + 1e-7);
-
-		fits frame_fit{};
-		if (!cv_to_planar_fits(frame_raw, brightness_scale, &frame_fit)) {
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_ENOMEM;
-		}
-
-		if (mpp_pixmap_build_filtered(run, f, scale, ap_active_ptr,
-		                              include_bg_flag, &pixmap) != MPP_OK) {
-			clearfits(&frame_fit);
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EINVAL;
-		}
-
-		compute_driz_plan(run, ap_active_ptr, include_bg_flag,
-		                  frame_rx, frame_ry,
-		                  driz_rects, driz_needs_claim);
-
-		bool dobox_failed = false;
-		for (size_t r = 0; r < driz_rects.size() && !dobox_failed; ++r) {
-			const DrizRect &rect = driz_rects[r];
-			struct driz_param_t p;
-			std::memset(&p, 0, sizeof(p));
-			driz_param_init(&p);
-			p.driz           = &driz_args;
-			p.kernel         = driz_args.kernel;
-			/* Bayer-drizzle drop-size correction: dobox's turbo and
-			 * gaussian kernels compute drop half-width as pfo =
-			 * pixfrac · p.scale / 2 (cdrizzlebox.c around lines 829
-			 * and 504). The pre-existing code set p.scale = 1.0,
-			 * leaving the drop always 1 output pixel wide regardless
-			 * of drizzle_scale. At scale=2 the inter-input-pixel gap
-			 * in output coords is 2, and same-CFA-colour inputs (R,
-			 * B) are 2 input pixels apart = 4 output pixels — 1-wide
-			 * drops leave 3-pixel gaps where that colour is never
-			 * deposited from any frame without large sub-pixel
-			 * diversity, producing the 2-pixel-period vertical-stripe
-			 * artefact wavelets bring out. (Square's kernel sets
-			 * drop bounds via the pixmap transform of input corners,
-			 * so it is correct regardless; lanczos uses
-			 * input_pixel_size_in_output too — both kernels' tests
-			 * pass either way. Turbo is the GUI default.)
-			 *
-			 * Setting p.scale = drizzle_scale fixes pfo uniformly
-			 * across all affected kernels. As a side effect it
-			 * scales the per-input-pixel value by drizzle_scale²
-			 * (the flux-conservation factor `d *= scale2` inside
-			 * each kernel), inflating output brightness by the same
-			 * factor — undone post-stack by dividing the
-			 * accumulator by drizzle_scale². Brightness is then
-			 * indistinguishable from the previous p.scale=1 path. */
-			p.scale          = (float) scale;
-			p.pixel_fraction = driz_args.pixel_fraction;
-			p.weight_scale   = 1.0f;
-			p.in_units       = unit_counts;
-			p.out_units      = unit_counts;
-			p.exposure_time  = 1.0f;
-			p.data           = &frame_fit;
-			p.weights        = nullptr;
-			p.pixmap         = &pixmap;
-			p.output_data    = &output_data;
-			p.output_counts  = &output_counts;
-			std::memcpy(p.cfa, cfa, 4);
-			p.cfadim         = (size_t) cfadim;
-			p.xmin           = rect.xmin;
-			p.ymin           = rect.ymin;
-			p.xmax           = rect.xmax;
-			p.ymax           = rect.ymax;
-			p.threads        = 1;
-			p.error          = &error;
-
-			if (dobox(&p)) {
-				dobox_failed = true;
-				break;
+			/* Per-frame AP-active mask, computed into a thread-local vector
+			 * (a shared scratch mask would not be reentrant). */
+			const int *ap_active_ptr = nullptr;
+			int include_bg_flag = 1;
+			std::vector<int> ap_active_local;
+			if (filter.apply) {
+				const bool any_ap = !filter.used_alignment_points[f].empty();
+				const bool any_bg = filter.top_for_bg_flag[f] != 0;
+				if (!(any_ap || any_bg)) {
+					gui_iface.set_progress((double) g_atomic_int_add(&cur_nb, 1) / (double) n_included, NULL);
+					continue;
+				}
+				ap_active_local.assign(filter.M, 0);
+				for (int a : filter.used_alignment_points[f]) ap_active_local[a] = 1;
+				ap_active_ptr   = ap_active_local.data();
+				include_bg_flag = any_bg ? 1 : 0;
 			}
-			if (driz_needs_claim) {
-				pixmap_claim_rect(&pixmap, rect);
+
+			const cv::Mat frame_raw = provider(f);
+			if (frame_raw.empty()) {
+				gui_iface.set_progress((double) g_atomic_int_add(&cur_nb, 1) / (double) n_included, NULL);
+				continue;
+			}
+			if (frame_raw.channels() != 1) { local_rc = MPP_EINVAL; continue; }
+
+			const double brightness_scale = median_brightness / (frame_brightness[f] + 1e-7);
+			fits frame_fit{};
+			if (!cv_to_planar_fits(frame_raw, brightness_scale, &frame_fit)) {
+				local_rc = MPP_ENOMEM; continue;
+			}
+			if (mpp_pixmap_build_filtered(run, f, scale, ap_active_ptr,
+			                              include_bg_flag, &pixmap_local) != MPP_OK) {
+				clearfits(&frame_fit); local_rc = MPP_EINVAL; continue;
+			}
+			std::vector<DrizRect> rects;
+			bool needs_claim = false;
+			compute_driz_plan(run, ap_active_ptr, include_bg_flag,
+			                  frame_rx, frame_ry, rects, needs_claim);
+
+			bool dobox_failed = false;
+			for (size_t r = 0; r < rects.size() && !dobox_failed; ++r) {
+				const DrizRect &rect = rects[r];
+				struct driz_param_t p;
+				std::memset(&p, 0, sizeof(p));
+				driz_param_init(&p);
+				p.driz           = &driz_args;
+				p.kernel         = driz_args.kernel;
+				/* p.scale = drizzle_scale (not 1.0): for Bayer the drop
+				 * half-width must scale with the output grid so same-colour
+				 * CFA samples don't leave gaps (turbo/gaussian kernels). The
+				 * scale² flux inflation it introduces is undone by the
+				 * /(scale·scale) in cast_scale below. */
+				p.scale          = (float) scale;
+				p.pixel_fraction = driz_args.pixel_fraction;
+				p.weight_scale   = 1.0f;
+				p.in_units       = unit_counts;
+				p.out_units      = unit_counts;
+				p.exposure_time  = 1.0f;
+				p.data           = &frame_fit;
+				p.weights        = nullptr;
+				p.pixmap         = &pixmap_local;
+				p.output_data    = &od_local;
+				p.output_counts  = &oc_local;
+				std::memcpy(p.cfa, cfa, 4);
+				p.cfadim         = (size_t) cfadim;
+				p.xmin           = rect.xmin;
+				p.ymin           = rect.ymin;
+				p.xmax           = rect.xmax;
+				p.ymax           = rect.ymax;
+				p.threads        = 1;
+				p.error          = &error;
+
+				if (dobox(&p)) { dobox_failed = true; break; }
+				if (needs_claim) pixmap_claim_rect(&pixmap_local, rect);
+			}
+			clearfits(&frame_fit);
+			if (dobox_failed) {
+				siril_log_error(
+				    _("Stack (Bayer Drizzle): dobox failed on frame %d: %s\n"),
+				    f, error.last_message[0] ? error.last_message : _("(no detail)"));
+				local_rc = MPP_EIO;
+				continue;
+			}
+			gui_iface.set_progress((double) g_atomic_int_add(&cur_nb, 1) / (double) n_included, NULL);
+		}
+
+		/* Weighted-mean reduction (see stack_apply_stsci_streamed). */
+#ifdef _OPENMP
+#pragma omp critical(bayer_reduce)
+#endif
+		{
+			if (local_rc != MPP_OK) {
+				if (rc == MPP_OK) rc = local_rc;
+			} else {
+				const size_t total = out_plane * (size_t) channels;
+				for (size_t i = 0; i < total; ++i) {
+					output_data.fdata[i]   += od_local.fdata[i] * oc_local.fdata[i];
+					output_counts.fdata[i] += oc_local.fdata[i];
+				}
 			}
 		}
-		if (dobox_failed) {
-			siril_log_error(
-			    _("Stack (Bayer Drizzle): dobox failed on frame %d: %s\n"),
-			    f, error.last_message[0] ? error.last_message : _("(no detail)"));
-			clearfits(&frame_fit);
-			mpp_imgmap_free(&pixmap);
-			clearfits(&output_data);
-			clearfits(&output_counts);
-			return MPP_EIO;
-		}
-		clearfits(&frame_fit);
-
-		++cur_nb;
-		gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
+		clearfits(&od_local);
+		clearfits(&oc_local);
+		mpp_imgmap_free(&pixmap_local);
 	}
 
-	mpp_imgmap_free(&pixmap);
+	if (cancelled && rc == MPP_OK) rc = MPP_EINTR;
+	if (rc != MPP_OK) {
+		clearfits(&output_data);
+		clearfits(&output_counts);
+		return rc;
+	}
+
+	/* Recover the global weighted mean from Σ(meanₜ·countsₜ) / Σ countsₜ. */
+	{
+		const size_t total = out_plane * (size_t) channels;
+		for (size_t i = 0; i < total; ++i) {
+			const float w = output_counts.fdata[i];
+			output_data.fdata[i] = (w > 0.0f) ? (output_data.fdata[i] / w) : 0.0f;
+		}
+	}
 	clearfits(&output_counts);
 
 	clearfits(out);
@@ -1134,10 +1166,12 @@ mpp_status_t mpp::stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer
 	for (const auto &f : frames_raw_bayer) {
 		if (!f.empty() && f.channels() != 1) return MPP_EINVAL;
 	}
+	/* In-memory frames are trivially safe to read concurrently. */
 	return mpp::stack_apply_bayer_streamed(
 	    [&frames_raw_bayer](int i) -> cv::Mat { return frames_raw_bayer[i]; },
 	    (int) frames_raw_bayer.size(), included, frame_brightness, run, cfg,
-	    cfa, cfadim, out);
+	    cfa, cfadim, out,
+	    /*max_threads=*/std::max(1, com.max_thread), /*provider_thread_safe=*/true);
 }
 
 /* Sequence-side wrapper: streams each included frame via Siril's
@@ -1254,8 +1288,9 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 	 * actually get raw mosaic bytes back we have to flip that field
 	 * to SER_MONO for the duration of the provider's reads and
 	 * restore on the way out. Stage A/B already ran upstream on
-	 * debayered frames; nothing else is reading from this SER
-	 * concurrently because Stage C is sequential by construction.
+	 * debayered frames; the field is flipped once for the whole call,
+	 * so the parallel raw reads inside stack_apply_bayer_streamed all
+	 * see a stable raw-mosaic state.
 	 * AVI doesn't need this dance — film_read_frame already returns
 	 * a 1-layer mosaic, so we just call read_full_frame with no
 	 * pattern hint (avi_pattern=AUTO suppresses the cv::cvtColor
@@ -1297,6 +1332,12 @@ extern "C" mpp_status_t mpp_stack_apply_bayer(sequence *seq,
 		 * AUTO → no cv::cvtColor debayer). */
 		return mpp::read_full_frame(seq, i, MPP_AVI_BAYER_AUTO);
 	};
+	/* SER raw-mosaic reads are reentrant (ser_read_frame serialises only
+	 * the fread; the SerRawGuard above sets the debayer field once for the
+	 * whole call, so concurrent reads see a stable raw-mosaic state). AVI
+	 * (film) reads are not reentrant → serial. */
+	const bool provider_safe = (seq->type == SEQ_SER);
 	return mpp::stack_apply_bayer_streamed(
-	    provider, N, included, brightness, run, cfg, cfa, /*cfadim=*/2, out);
+	    provider, N, included, brightness, run, cfg, cfa, /*cfadim=*/2, out,
+	    std::max(1, com.max_thread), provider_safe);
 }

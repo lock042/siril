@@ -571,6 +571,105 @@ Test(mpp_bayer_drizzle, synthetic_mosaic_rggb) {
 	mpp_run_free(run);
 }
 
+/* Bayer-drizzle frame-parallel path: per-thread canvas + weighted-mean
+ * reduction must match the single-thread result within a few LSB (float
+ * reordering, not bit-identical — same trade as the STScI path). */
+Test(mpp_bayer_drizzle, parallel_matches_serial) {
+	const int W = 96, H = 96, N = 12;
+	const unsigned char cfa[4] = { 0, 1, 1, 2 };   /* RGGB */
+
+	mpp_config_t cfg = stsci_default_cfg();
+	cfg.bitdepth        = 8;
+	cfg.drizzle_mode    = MPP_DRIZZLE_BAYER;
+	cfg.drizzle_scale   = 2.0;
+	cfg.drizzle_pixfrac = 1.0;
+	cfg.drizzle_kernel  = MPP_KERNEL_SQUARE;
+
+	std::vector<cv::Mat> frames;
+	std::vector<int> included(N, 1);
+	std::vector<double> brightness(N);
+	for (int i = 0; i < N; ++i) {
+		cv::Mat bayer(H, W, CV_8UC1);
+		const int base = 40 + 8 * i;   /* vary per frame so reduction weights matter */
+		for (int y = 0; y < H; ++y) {
+			uint8_t *row = bayer.ptr<uint8_t>(y);
+			for (int x = 0; x < W; ++x) {
+				const int kind = ((y & 1) << 1) | (x & 1);
+				const int v = (kind == 0) ? base : (kind == 3) ? (base + 100) : (base + 50);
+				row[x] = (uint8_t) std::min(255, v);
+			}
+		}
+		frames.push_back(bayer);
+		brightness[i] = base + 50;
+	}
+
+	mpp_run_t *run = mpp_run_alloc();
+	cr_assert_not_null(run);
+	run->cfg = (mpp_config_t *) std::malloc(sizeof(mpp_config_t));
+	*run->cfg = cfg;
+	run->num_frames = N;
+	run->frame_rows = H;
+	run->frame_cols = W;
+	run->num_layers = 3;
+	run->bitdepth   = 8;
+	run->intersection[0] = 0; run->intersection[1] = H;
+	run->intersection[2] = 0; run->intersection[3] = W;
+	run->global_shifts    = (double *) std::calloc((size_t) 2 * N, sizeof(double));
+	run->frame_brightness = (double *) std::calloc((size_t) N, sizeof(double));
+	run->included         = (int *) std::calloc((size_t) N, sizeof(int));
+	for (int i = 0; i < N; ++i) { run->frame_brightness[i] = brightness[i]; run->included[i] = 1; }
+	run->aps = (mpp_aps_t *) std::calloc(1, sizeof(mpp_aps_t));
+	run->aps->count = 1;
+	run->aps->records = (mpp_ap_record_t *) std::calloc(1, sizeof(mpp_ap_record_t));
+	run->aps->records[0].y = H / 2; run->aps->records[0].x = W / 2;
+	run->aps->records[0].patch_y_low = 0; run->aps->records[0].patch_y_high = H;
+	run->aps->records[0].patch_x_low = 0; run->aps->records[0].patch_x_high = W;
+	run->aps->records[0].box_y_low = 0; run->aps->records[0].box_y_high = H;
+	run->aps->records[0].box_x_low = 0; run->aps->records[0].box_x_high = W;
+	run->aps->records[0].structure = 1.0;
+	run->shifts = (mpp_shifts_t *) std::calloc(1, sizeof(mpp_shifts_t));
+	run->shifts->num_frames = N;
+	run->shifts->num_aps = 1;
+	run->shifts->shifts = (double *) std::calloc((size_t) 2 * N, sizeof(double));
+	run->shifts->success = (uint8_t *) std::calloc((size_t) N, sizeof(uint8_t));
+	for (int i = 0; i < N; ++i) run->shifts->success[i] = 1;
+	/* run->stack_size stays 0 → per-AP filter disabled → every frame
+	 * contributes to the whole canvas (include_bg path). */
+
+	auto provider = [&frames](int i) -> cv::Mat { return frames[i]; };
+
+	fits out_serial{}, out_par{};
+	cr_assert_eq(mpp::stack_apply_bayer_streamed(provider, N, included, brightness,
+	             run, &cfg, cfa, 2, &out_serial, /*max_threads=*/1,
+	             /*provider_thread_safe=*/true), MPP_OK);
+	cr_assert_eq(mpp::stack_apply_bayer_streamed(provider, N, included, brightness,
+	             run, &cfg, cfa, 2, &out_par, /*max_threads=*/8,
+	             /*provider_thread_safe=*/true), MPP_OK);
+
+	cr_assert_eq(out_serial.rx, out_par.rx);
+	cr_assert_eq(out_serial.ry, out_par.ry);
+	cr_assert_eq(out_serial.naxes[2], out_par.naxes[2]);
+	const size_t total = (size_t) out_serial.rx * (size_t) out_serial.ry * 3;
+	int max_abs = 0;
+	long long sum_abs = 0;
+	for (size_t i = 0; i < total; ++i) {
+		const int d = (int) out_serial.data[i] - (int) out_par.data[i];
+		const int ad = d < 0 ? -d : d;
+		if (ad > max_abs) max_abs = ad;
+		sum_abs += ad;
+	}
+	siril_log_status("[bayer parallel] 1-thread vs 8-thread: max|Δ|=%d "
+	                 "mean|Δ|=%.5f over %zu samples\n",
+	                 max_abs, (double) sum_abs / (double) total, total);
+	cr_assert_leq(max_abs, 16,
+	              "Bayer-drizzle parallel output diverges from serial by %d LSB",
+	              max_abs);
+
+	clearfits(&out_serial);
+	clearfits(&out_par);
+	mpp_run_free(run);
+}
+
 /* ===========================================================================
  * STScI resolution-recovery synthetic-truth test (slice 5b.5).
  *

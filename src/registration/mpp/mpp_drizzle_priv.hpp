@@ -83,8 +83,13 @@ mpp_status_t stack_apply_bayer(const std::vector<cv::Mat> &frames_raw_bayer,
                                fits *out);
 
 /* Streamed Bayer overload. provider(f) returns the single-channel raw
- * mosaic frame; num_frames must equal included.size(). One frame in
- * flight at a time; sequential. */
+ * mosaic frame; num_frames must equal included.size().
+ *
+ * `max_threads` / `provider_thread_safe`: as for stack_apply_stsci_streamed,
+ * frames are drizzled into per-thread output canvases and reduced as a
+ * weighted mean when the provider is reentrant; thread count is clamped to
+ * the available-memory budget. Output is close-but-not-bit-identical across
+ * thread counts. Defaults preserve single-threaded behaviour. */
 mpp_status_t stack_apply_bayer_streamed(const FrameProvider &provider,
                                         int num_frames,
                                         const std::vector<int> &included,
@@ -93,7 +98,9 @@ mpp_status_t stack_apply_bayer_streamed(const FrameProvider &provider,
                                         const mpp_config_t *cfg,
                                         const unsigned char *cfa,
                                         int cfadim,
-                                        fits *out);
+                                        fits *out,
+                                        int max_threads = 1,
+                                        bool provider_thread_safe = false);
 
 }  // namespace mpp
 
