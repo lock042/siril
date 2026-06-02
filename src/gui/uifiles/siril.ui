@@ -7114,8 +7114,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkComboBoxText" id="combo_mpp_align_mode">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Global frame alignment. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface). Planet aligns on the brightness centroid — robust for a disc on a dark background (CLI -align=planet).</property>
-                                                            <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Global frame alignment. Planet (default) aligns on the brightness centroid — robust for a full disc on a dark background. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface; CLI -align=surface).</property>
+                                                            <property name="active">1</property>
                                                             <items>
                                                             <item translatable="yes">Surface (detail)</item>
                                                             <item translatable="yes">Planet (disc)</item>

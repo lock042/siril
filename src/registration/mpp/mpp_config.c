@@ -34,8 +34,10 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->frames_normalization_threshold = 15;
 	cfg->bitdepth = 16;
 
-	/* Phase 2 — global alignment */
-	cfg->align_frames_mode = MPP_ALIGN_SURFACE;
+	/* Phase 2 — global alignment. Default Planet (centroid, full-disc
+	 * planetary) — a deliberate divergence from PSS, which defaults to
+	 * Surface. Surface remains available via -align=surface / the combo. */
+	cfg->align_frames_mode = MPP_ALIGN_PLANET;
 	cfg->align_frames_search_width = 34;
 	cfg->align_frames_rectangle_scale_factor = 3.0;
 	cfg->align_frames_border_width = 10;

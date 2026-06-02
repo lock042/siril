@@ -97,7 +97,9 @@ Test(mpp_align, default_config_has_pss_values) {
 	cr_assert_eq(cfg.align_frames_rectangle_black_threshold, 10240);
 	cr_assert_float_eq(cfg.align_frames_rectangle_min_fraction, 0.7, 1e-12);
 	cr_assert_eq(cfg.align_frames_average_frame_percent, 5);
-	cr_assert_eq(cfg.align_frames_mode, MPP_ALIGN_SURFACE);
+	/* Deliberate Siril divergence: default is Planet (full-disc centroid),
+	 * whereas PSS defaults to Surface. */
+	cr_assert_eq(cfg.align_frames_mode, MPP_ALIGN_PLANET);
 }
 
 Test(mpp_align, patch_picker_returns_bounds_within_frame) {
@@ -160,7 +162,8 @@ Test(mpp_align, multilevel_correlation_recovers_known_shift) {
 
 /* Multi-frame: each frame has known displacement, recovered shifts agree. */
 Test(mpp_align, align_global_recovers_known_shifts_per_frame) {
-	const auto cfg = default_cfg();
+	auto cfg = default_cfg();
+	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* exercising the patch-correlation path */
 	const cv::Mat truth = blurred(make_textured_frame(), cfg);
 	const std::vector<std::pair<int, int>> jit = {
 	    {0, 0}, {-2, 1}, {3, -2}, {1, 2}, {-1, -1}, {0, 3}};
@@ -247,6 +250,7 @@ Test(mpp_align, planet_mode_recovers_known_shifts) {
  * true shift to prove the residual refinement runs on top of it. */
 Test(mpp_align, seed_recovers_shift_beyond_search_width) {
 	auto cfg = default_cfg();
+	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* seeding applies to the surface path */
 	cfg.align_frames_search_width = 10;       /* shrink so a modest jump exceeds it */
 	const cv::Mat truth = blurred(make_textured_frame(), cfg);
 	const int big = 16;                        /* > 10 → out of bare MLC reach */
@@ -273,7 +277,8 @@ Test(mpp_align, seed_recovers_shift_beyond_search_width) {
 /* An empty / wrong-sized seed must leave the cumulative path byte-for-byte
  * unchanged — the seed feature is strictly opt-in. */
 Test(mpp_align, empty_seed_matches_unseeded) {
-	const auto cfg = default_cfg();
+	auto cfg = default_cfg();
+	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* cumulative path is surface-only */
 	const cv::Mat truth = blurred(make_textured_frame(), cfg);
 	std::vector<cv::Mat> frames = { truth, shifted(truth, 2, -3), shifted(truth, -1, 1) };
 	std::vector<double> q = { 1.0, 0.5, 0.5 };
@@ -318,6 +323,7 @@ Test(mpp_align, seed_from_regdata_uses_port_convention) {
  * sign would place the window ~2x the shift away and the assert would fail. */
 Test(mpp_align, seed_from_regdata_drives_alignment) {
 	auto cfg = default_cfg();
+	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* regdata seed drives the surface search */
 	cfg.align_frames_search_width = 10;
 	const cv::Mat truth = blurred(make_textured_frame(), cfg);
 	const int Dy = 12, Dx = -8;     /* content displacement; |Dy| > search_width */
