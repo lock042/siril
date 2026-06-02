@@ -12,6 +12,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -55,6 +56,41 @@ static int g_ap_selected_idx = -1;
  * revert edits made between show and Cancel. Commit drops it. */
 static mpp_aps_t *g_aps_snapshot = NULL;
 
+/* +/- (and =, KP +/-) resize the selected AP while the editor is open.
+ * Connected to both the editor dialog and the control window so it fires
+ * whichever has keyboard focus (the user typically mouses the image, i.e.
+ * the control window). Inert unless the editor is open, and never steals
+ * the keys from a focused entry/spin-button so numeric fields stay usable. */
+static gboolean editor_key_press(GtkWidget *widget, GdkEventKey *event,
+                                 gpointer user_data) {
+	(void) user_data;
+	if (!mpp_ap_editor_is_open()) return FALSE;
+	/* Leave Ctrl/Alt/Super combos alone so Ctrl+plus/minus still zoom. */
+	if (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK))
+		return FALSE;
+	GtkWidget *top = gtk_widget_get_toplevel(widget);
+	GtkWidget *focus = GTK_IS_WINDOW(top) ? gtk_window_get_focus(GTK_WINDOW(top)) : NULL;
+	if (focus && (GTK_IS_ENTRY(focus) || GTK_IS_SPIN_BUTTON(focus)))
+		return FALSE;
+	int step = 0;
+	switch (event->keyval) {
+		case GDK_KEY_plus:  case GDK_KEY_equal: case GDK_KEY_KP_Add:
+			step = 2; break;
+		case GDK_KEY_minus: case GDK_KEY_underscore: case GDK_KEY_KP_Subtract:
+			step = -2; break;
+		default:
+			return FALSE;
+	}
+	mpp_run_t *run = mpp_get_cached_run();
+	const int sel = mpp_ap_editor_get_selected_idx();
+	if (run && run->aps && sel >= 0 && sel < run->aps->count) {
+		mpp_ap_resize(run, sel, step);
+		redraw(REDRAW_OVERLAY);
+		return TRUE;   /* consumed */
+	}
+	return FALSE;   /* no selection — let the key propagate */
+}
+
 static void editor_init_statics(void) {
 	if (dialog) return;
 	dialog             = GTK_WIDGET     (gtk_builder_get_object(gui.builder, "mpp_ap_editor_dialog"));
@@ -64,6 +100,13 @@ static void editor_init_statics(void) {
 	spin_contrast      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_contrast"));
 	spin_structure     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_structure"));
 	check_show_patches = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_ap_editor_show_patches"));
+	/* Resize-by-key: connect once. The handler self-gates on
+	 * mpp_ap_editor_is_open() so it's inert when the dialog is closed. */
+	if (dialog)
+		g_signal_connect(dialog, "key-press-event", G_CALLBACK(editor_key_press), NULL);
+	GtkWidget *ctrl = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (ctrl)
+		g_signal_connect(ctrl, "key-press-event", G_CALLBACK(editor_key_press), NULL);
 }
 
 /* Persistent flag — true iff the user has ticked "Show stacking
