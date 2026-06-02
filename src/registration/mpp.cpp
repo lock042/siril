@@ -1287,10 +1287,24 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	                    "%s frame reads\n"),
 	                  stack_threads,
 	                  stack_provider_safe ? _("parallel") : _("serial"));
+	/* Memory budget for the per-thread private accumulators: 80% of the
+	 * lesser of free RAM and the configured cap. stack_apply_shifts_streamed
+	 * clamps its thread count to what fits. */
+	size_t stack_mem_budget = 0;
+	{
+		guint64 budget_b = get_available_memory();
+		const long long cap_mb = get_max_memory_in_MB();
+		if (cap_mb > 0) {
+			const guint64 cap_b = (guint64) cap_mb * 1024ULL * 1024ULL;
+			if (cap_b < budget_b) budget_b = cap_b;
+		}
+		stack_mem_budget = (size_t) ((long double) budget_b * 0.8L);
+	}
 	const auto loop = mpp::stack_apply_shifts_streamed(
 	    provider, run->num_frames, num_layers, *run->aps, apq,
 	    run->shifts, offsets, frame_brightness, sorted_idx,
-	    intersection, *cfg, run->included, stack_threads, stack_provider_safe);
+	    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
+	    stack_mem_budget);
 	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);

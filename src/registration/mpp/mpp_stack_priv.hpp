@@ -187,24 +187,29 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg,
                                    const int *included = nullptr,
-                                   int max_threads = 0);
+                                   int max_threads = 0,
+                                   size_t mem_budget_bytes = 0);
 
 /* Streamed overload — `num_frames` and `num_layers` are passed
  * explicitly because there's no upfront vector to introspect. The
  * provider returns the raw frame for each index. Cached overload above
  * is a thin wrapper.
  *
- * Parallelism (bounded by `max_threads`): two independent axes, both
- * bit-identical to the single-threaded result.
- *   - Decode: frames are decoded + prepared (brightness, resize) a batch
- *     at a time across threads — the dominant per-frame cost. Only enabled
- *     when `provider_thread_safe` (reentrant provider, e.g. SER / reentrant
- *     FITS); otherwise reads stay serial.
- *   - Accumulate: the per-frame alignment-point loop parallelises over the
- *     disjoint per-AP buffers.
- * Frames are accumulated serially in index order regardless, so each AP
- * buffer sees the same summation order ⇒ deterministic, thread-count
- * independent output. */
+ * Parallelism (bounded by `max_threads`): the frame loop is parallelised —
+ * each thread runs the full per-frame pipeline (read + brightness +
+ * resize + per-AP remap) for its share of frames into PRIVATE per-AP
+ * buffers, which are then summed. This keeps every core busy on both the
+ * (cheap, I/O-bound) decode and the heavier AP accumulation with no phase
+ * barrier and no fixed I/O-vs-AP pool split. Only enabled when
+ * `provider_thread_safe` (reentrant provider, e.g. SER / reentrant FITS);
+ * otherwise the read — and hence the whole loop — stays single-threaded.
+ *
+ * The float sum is reordered by the per-thread reduction, so the output is
+ * close-but-not-bit-identical across thread counts (a few LSB) — the same
+ * trade the drizzle paths make, acceptable for a statistical stack.
+ *
+ * `mem_budget_bytes` (0 = unbounded) caps the thread count so the private
+ * per-AP buffer sets fit in the available memory. */
 StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             int num_frames,
                                             int num_layers,
@@ -218,7 +223,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const mpp_config_t &cfg,
                                             const int *included = nullptr,
                                             int max_threads = 0,
-                                            bool provider_thread_safe = false);
+                                            bool provider_thread_safe = false,
+                                            size_t mem_budget_bytes = 0);
 
 /* stack_frames main loop.
  *

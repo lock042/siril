@@ -487,7 +487,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const mpp_config_t &cfg,
                                             const int *included,
                                             int max_threads,
-                                            bool provider_thread_safe) {
+                                            bool provider_thread_safe,
+                                            size_t mem_budget_bytes) {
 	StackLoopOutput out;
 	/* Two parallelism axes, both bit-identical to the serial result:
 	 *   - Decode (the dominant per-frame cost: read + debayer + float
@@ -530,158 +531,158 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		if (!included || included[f]) work.push_back(f);
 	const int W = (int) work.size();
 	const int n_included = W > 0 ? W : 1;
+	const bool holes = out.state.number_stacking_holes > 0;
 
-	/* Decode is the per-frame bottleneck (read + debayer + float convert +
-	 * optional resize), so it is decoded a batch at a time across threads
-	 * when the provider is reentrant. Accumulation then runs serially in
-	 * index order, keeping the result deterministic and bit-identical to
-	 * the single-threaded path. */
-	const bool par_read = provider_thread_safe && nt > 1;
-	const int batch = par_read ? std::max(1, nt) * 2 : 1;
+	/* Frame-parallel accumulation. Each thread runs the full per-frame
+	 * pipeline (read + brightness + resize + per-AP remap) for its share of
+	 * frames into PRIVATE per-AP buffers, then the buffers are summed. This
+	 * keeps every core busy on both the (cheap, I/O-bound for mono) decode
+	 * and the heavier AP accumulation without a phase barrier or a fixed
+	 * I/O-vs-AP pool split — a thread blocked on the SER read lock simply
+	 * lets others get on with AP work. The float sum is reordered by the
+	 * reduction, so the output is close-but-not-bit-identical across thread
+	 * counts (a few LSB) — acceptable for a statistical stack. Reads must be
+	 * reentrant to parallelise; otherwise run single-threaded. */
+	const bool par = provider_thread_safe && nt > 1;
+	int n_threads = par ? nt : 1;
+	if (par && mem_budget_bytes > 0) {
+		/* Per thread: one private copy of all per-AP buffers (+ background)
+		 * plus one in-flight frame (float + resized). */
+		size_t set_bytes = 0;
+		for (const auto &b : out.state.stacking_buffers)
+			set_bytes += b.total() * b.elemSize();
+		if (holes && !out.state.averaged_background.empty())
+			set_bytes += out.state.averaged_background.total()
+			           * out.state.averaged_background.elemSize();
+		const size_t frame_bytes = (size_t) out.state.dim_x_drizzled
+		                         * (size_t) out.state.dim_y_drizzled
+		                         * (size_t) num_layers * sizeof(float) * 2;
+		const size_t per_thread = set_bytes + frame_bytes;
+		int fit = (int) (mem_budget_bytes / std::max<size_t>(1, per_thread));
+		if (fit < 1) fit = 1;
+		if (fit < n_threads) n_threads = fit;
+	}
 
-	struct PreparedFrame {
-		int f = -1;
-		bool valid = false;
-		cv::Mat frame_drizzled;  /* AP accumulation source */
-		cv::Mat frame_f32;       /* background source (pre-resize) */
-		int dy = 0, dx = 0;
+	auto clamped_blit = [](const cv::Mat &src, cv::Mat &dst,
+	                       int src_y, int src_x, int len_y, int len_x) {
+		const int src_y_lo = std::max(0, src_y);
+		const int src_y_hi = std::min(src.rows, src_y + len_y);
+		const int src_x_lo = std::max(0, src_x);
+		const int src_x_hi = std::min(src.cols, src_x + len_x);
+		if (src_y_hi <= src_y_lo || src_x_hi <= src_x_lo) return;
+		const int dst_y_lo = src_y_lo - src_y;
+		const int dst_x_lo = src_x_lo - src_x;
+		cv::Mat dst_view = dst(
+		    cv::Range(dst_y_lo, dst_y_lo + (src_y_hi - src_y_lo)),
+		    cv::Range(dst_x_lo, dst_x_lo + (src_x_hi - src_x_lo)));
+		dst_view += src(cv::Range(src_y_lo, src_y_hi),
+		                cv::Range(src_x_lo, src_x_hi));
 	};
-	auto prep_frame = [&](int f) -> PreparedFrame {
-		PreparedFrame pf;
-		pf.f = f;
-		const cv::Mat frame_raw = provider(f);
-		if (frame_raw.empty()) return pf;   /* valid stays false */
-		if (cfg.frames_normalization) {
-			const double scale = median_brightness / (frame_brightness[f] + 1e-7);
-			frame_raw.convertTo(pf.frame_f32, CV_32F, scale);
-		} else {
-			frame_raw.convertTo(pf.frame_f32, CV_32F);
-		}
-		if (S != 1.0)
-			cv::resize(pf.frame_f32, pf.frame_drizzled,
-			           cv::Size((int) std::lround(pf.frame_f32.cols * S),
-			                    (int) std::lround(pf.frame_f32.rows * S)),
-			           0, 0, cv::INTER_LINEAR);
-		else
-			pf.frame_drizzled = pf.frame_f32;
-		/* Integer rigid placement in drizzled coords; round the global
-		 * offset (sub-pixel residual isn't carried by this path). */
-		pf.dy = (int) std::lround(offsets[f].dy);
-		pf.dx = (int) std::lround(offsets[f].dx);
-		pf.valid = true;
-		return pf;
-	};
 
-	auto accumulate_frame = [&](const PreparedFrame &pf) {
-		const int f = pf.f;
-		const int dy_K = (int) std::lround(pf.dy * S);
-		const int dx_K = (int) std::lround(pf.dx * S);
-		const std::vector<int> &ap_list = apq.used_alignment_points[f];
-		const int na = (int) ap_list.size();
+	/* Per-frame progress maps into the second half of Stage C's bar — the
+	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
+	gint cur_nb = 0;
+	gint cancelled = 0;
 #ifdef _OPENMP
-#pragma omp parallel if (nt > 1 && na > 1) num_threads(nt)
+#pragma omp parallel num_threads(n_threads) if (n_threads > 1)
 #endif
-		{
-			/* Thread-private border; merged into out.border once per
-			 * thread below. max is order-independent, so the merge is
-			 * bit-identical regardless of how APs are distributed. */
-			RemapBorder lb;
+	{
+		/* Per-thread private accumulators (zero-init). */
+		std::vector<cv::Mat> lbuf(M);
+		for (int a = 0; a < M; ++a)
+			lbuf[a] = cv::Mat::zeros(out.state.stacking_buffers[a].size(),
+			                         out.state.stacking_buffers[a].type());
+		cv::Mat lbg;
+		if (holes)
+			lbg = cv::Mat::zeros(out.state.averaged_background.size(),
+			                     out.state.averaged_background.type());
+		RemapBorder lb;
+
 #ifdef _OPENMP
-#pragma omp for schedule(dynamic)
+#pragma omp for schedule(dynamic) nowait
 #endif
-			for (int ai = 0; ai < na; ++ai) {
-				const int a = ap_list[ai];
+		for (int wi = 0; wi < W; ++wi) {
+			if (g_atomic_int_get(&cancelled)) continue;
+			if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
+			const int f = work[wi];
+
+			const cv::Mat frame_raw = provider(f);
+			if (frame_raw.empty()) {
+				gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
+				                       / (double) n_included, NULL);
+				continue;
+			}
+			cv::Mat frame_f32;
+			if (cfg.frames_normalization) {
+				const double sc = median_brightness / (frame_brightness[f] + 1e-7);
+				frame_raw.convertTo(frame_f32, CV_32F, sc);
+			} else {
+				frame_raw.convertTo(frame_f32, CV_32F);
+			}
+			cv::Mat frame_drizzled;
+			if (S != 1.0)
+				cv::resize(frame_f32, frame_drizzled,
+				           cv::Size((int) std::lround(frame_f32.cols * S),
+				                    (int) std::lround(frame_f32.rows * S)),
+				           0, 0, cv::INTER_LINEAR);
+			else
+				frame_drizzled = frame_f32;
+			/* Integer rigid placement in drizzled coords; round the global
+			 * offset (sub-pixel residual isn't carried by this path). */
+			const int dy = (int) std::lround(offsets[f].dy);
+			const int dx = (int) std::lround(offsets[f].dx);
+			const int dy_K = (int) std::lround(dy * S);
+			const int dx_K = (int) std::lround(dx * S);
+
+			for (int a : apq.used_alignment_points[f]) {
 				const size_t soff = (size_t) (f * M + a) * 2;
 				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
 				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
 				const int shift_y_K = (int) std::lround(shift_y * S);
 				const int shift_x_K = (int) std::lround(shift_x * S);
-				const int total_y_K = dy_K - shift_y_K;
-				const int total_x_K = dx_K - shift_x_K;
-
 				const auto &p = out.state.patch_drizzled[a];
-				stack_remap_rigid(pf.frame_drizzled, out.state.stacking_buffers[a],
-				                  total_y_K, total_x_K, p[0], p[1], p[2], p[3],
-				                  lb);
+				stack_remap_rigid(frame_drizzled, lbuf[a],
+				                  dy_K - shift_y_K, dx_K - shift_x_K,
+				                  p[0], p[1], p[2], p[3], lb);
 			}
-#ifdef _OPENMP
-#pragma omp critical(mpp_stack_border)
-#endif
-			{
-				out.border.y_low  = std::max(out.border.y_low,  lb.y_low);
-				out.border.y_high = std::max(out.border.y_high, lb.y_high);
-				out.border.x_low  = std::max(out.border.x_low,  lb.x_low);
-				out.border.x_high = std::max(out.border.x_high, lb.x_high);
-			}
-		}
 
-		if (out.state.number_stacking_holes > 0
-		 && top_for_bg.find(f) != top_for_bg.end()) {
-			/* Clamp helper: an off-by-one in lround(intersection[0] -
-			 * shifts[f][0]) vs lround(shifts[f][0]) can push the source
-			 * slice one row/col past the frame edge when a shift sits on
-			 * a rounding tie (e.g. exactly 0.5). Compute the valid
-			 * frame-side window and the matching destination window;
-			 * pixels outside the frame stay unwritten in the
-			 * accumulator. */
-			auto clamped_blit = [](const cv::Mat &src, cv::Mat &dst,
-			                       int src_y, int src_x, int len_y, int len_x) {
-				const int src_y_lo = std::max(0, src_y);
-				const int src_y_hi = std::min(src.rows, src_y + len_y);
-				const int src_x_lo = std::max(0, src_x);
-				const int src_x_hi = std::min(src.cols, src_x + len_x);
-				if (src_y_hi <= src_y_lo || src_x_hi <= src_x_lo) return;
-				const int dst_y_lo = src_y_lo - src_y;
-				const int dst_x_lo = src_x_lo - src_x;
-				cv::Mat dst_view = dst(
-				    cv::Range(dst_y_lo, dst_y_lo + (src_y_hi - src_y_lo)),
-				    cv::Range(dst_x_lo, dst_x_lo + (src_x_hi - src_x_lo)));
-				dst_view += src(cv::Range(src_y_lo, src_y_hi),
-				                cv::Range(src_x_lo, src_x_hi));
-			};
-			if (!out.state.background_patches.empty()) {
-				for (const auto &bp : out.state.background_patches) {
-					cv::Mat dst = out.state.averaged_background(
-					    cv::Range(bp.y_low, bp.y_high),
-					    cv::Range(bp.x_low, bp.x_high));
-					clamped_blit(pf.frame_f32, dst,
-					             bp.y_low + pf.dy, bp.x_low + pf.dx,
-					             bp.y_high - bp.y_low,
-					             bp.x_high - bp.x_low);
+			if (holes && top_for_bg.find(f) != top_for_bg.end()) {
+				if (!out.state.background_patches.empty()) {
+					for (const auto &bp : out.state.background_patches) {
+						cv::Mat dst = lbg(cv::Range(bp.y_low, bp.y_high),
+						                  cv::Range(bp.x_low, bp.x_high));
+						clamped_blit(frame_f32, dst, bp.y_low + dy, bp.x_low + dx,
+						             bp.y_high - bp.y_low, bp.x_high - bp.x_low);
+					}
+				} else {
+					clamped_blit(frame_f32, lbg, dy, dx,
+					             out.state.dim_y, out.state.dim_x);
 				}
-			} else {
-				clamped_blit(pf.frame_f32, out.state.averaged_background,
-				             pf.dy, pf.dx, out.state.dim_y, out.state.dim_x);
 			}
+			gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
+			                       / (double) n_included, NULL);
 		}
-	};
 
-	/* Per-frame progress maps into the second half of Stage C's bar — the
-	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
-	int cur_nb = 0;
-	std::vector<PreparedFrame> slots(batch);
-	for (int base = 0; base < W; base += batch) {
-		if (!processing_should_continue()) {
-			out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
-			return out;
-		}
-		const int cnt = std::min(batch, W - base);
+		/* Sum the private buffers into the shared accumulators (border is
+		 * order-independent max). */
 #ifdef _OPENMP
-#pragma omp parallel for if (par_read) num_threads(nt) schedule(dynamic)
+#pragma omp critical(mpp_stack_reduce)
 #endif
-		for (int j = 0; j < cnt; ++j)
-			slots[j] = prep_frame(work[base + j]);
+		{
+			for (int a = 0; a < M; ++a)
+				out.state.stacking_buffers[a] += lbuf[a];
+			if (holes)
+				out.state.averaged_background += lbg;
+			out.border.y_low  = std::max(out.border.y_low,  lb.y_low);
+			out.border.y_high = std::max(out.border.y_high, lb.y_high);
+			out.border.x_low  = std::max(out.border.x_low,  lb.x_low);
+			out.border.x_high = std::max(out.border.x_high, lb.x_high);
+		}
+	}
 
-		for (int j = 0; j < cnt; ++j) {
-			if (slots[j].valid)
-				accumulate_frame(slots[j]);
-			++cur_nb;
-			gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
-		}
-		for (int j = 0; j < cnt; ++j) {
-			slots[j].frame_drizzled.release();
-			slots[j].frame_f32.release();
-		}
+	if (cancelled) {
+		out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
+		return out;
 	}
 
 	if (out.state.number_stacking_holes > 0) {
@@ -708,7 +709,8 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    const cv::Vec4i &intersection,
                                    const mpp_config_t &cfg,
                                    const int *included,
-                                   int max_threads) {
+                                   int max_threads,
+                                   size_t mem_budget_bytes) {
 	const int N = (int) frames_raw.size();
 	const int num_layers = N == 0 ? 1 : frames_raw[0].channels();
 	/* In-memory frames are trivially safe to read concurrently. */
@@ -716,7 +718,7 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
 	    N, num_layers, aps, apq, shifts, offsets, frame_brightness,
 	    quality_sorted_idx, intersection, cfg, included, max_threads,
-	    /*provider_thread_safe=*/true);
+	    /*provider_thread_safe=*/true, mem_budget_bytes);
 }
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
