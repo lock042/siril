@@ -1642,6 +1642,14 @@ gboolean end_register_idle(gpointer p) {
 	 * step. Failures stay on the console so warnings are visible. */
 	if (args->func == &register_mpp && !args->retval) {
 		control_window_switch_to_tab(REGISTRATION);
+		/* Re-evaluate the Register button. The full-Register path loads the
+		 * reference via seq_load_image (unlike Analyze, which repaints the
+		 * ref frame through update_single_image_from_gfit and refreshes the
+		 * interface as a side effect), so without this the "Go Register"
+		 * button stays disabled from the run. Refreshing here keeps it
+		 * available so the user can re-run after editing APs — Register
+		 * recomputes the per-AP qualities for the edited grid. */
+		update_reg_interface(TRUE);
 		/* Full Register (not Analyze-only) has just written the .mpp
 		 * sidecar. The update_stack_interface(TRUE) call above preserves
 		 * the current stacking method, so the existing "auto-select
