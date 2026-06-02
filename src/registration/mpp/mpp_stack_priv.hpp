@@ -110,7 +110,7 @@ struct StackBackgroundPatch {
 };
 
 struct StackState {
-	int drizzle_factor = 1;
+	double drizzle_scale = 1.0;   /* output scale; fractional supported (cv::resize) */
 	int stack_size = 0;
 	int num_layers = 1;       /* 1 = mono, 3 = RGB */
 	int dim_y = 0;            /* pre-drizzle intersection size (for background) */
@@ -135,7 +135,7 @@ struct StackState {
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
-                                      int drizzle_factor,
+                                      double drizzle_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg);
 

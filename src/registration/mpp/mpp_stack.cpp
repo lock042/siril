@@ -260,17 +260,22 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
-                                      int drizzle_factor,
+                                      double drizzle_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg) {
 	StackState s;
-	s.drizzle_factor = drizzle_factor;
+	s.drizzle_scale  = drizzle_scale;
 	s.stack_size     = stack_size;
 	s.num_layers     = num_layers;
 	s.dim_y = intersection[1] - intersection[0];
 	s.dim_x = intersection[3] - intersection[2];
-	s.dim_y_drizzled = s.dim_y * drizzle_factor;
-	s.dim_x_drizzled = s.dim_x * drizzle_factor;
+	/* Output (drizzled) dimensions. drizzle_scale may be fractional (e.g.
+	 * 1.5); every coordinate below is the original × scale rounded to the
+	 * nearest pixel. lround is monotonic so patch bounds never exceed the
+	 * canvas. */
+	auto scl = [drizzle_scale](int v) { return (int) std::lround((double) v * drizzle_scale); };
+	s.dim_y_drizzled = scl(s.dim_y);
+	s.dim_x_drizzled = scl(s.dim_x);
 	const int buf_type = (num_layers == 3) ? CV_32FC3 : CV_32F;
 
 	const int M = aps.count;
@@ -285,12 +290,12 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 
 	for (int a = 0; a < M; ++a) {
 		const auto &ap = aps.records[a];
-		const int py_lo = ap.patch_y_low  * drizzle_factor;
-		const int py_hi = ap.patch_y_high * drizzle_factor;
-		const int px_lo = ap.patch_x_low  * drizzle_factor;
-		const int px_hi = ap.patch_x_high * drizzle_factor;
-		const int yc    = ap.y * drizzle_factor;
-		const int xc    = ap.x * drizzle_factor;
+		const int py_lo = scl(ap.patch_y_low);
+		const int py_hi = scl(ap.patch_y_high);
+		const int px_lo = scl(ap.patch_x_low);
+		const int px_hi = scl(ap.patch_x_high);
+		const int yc    = scl(ap.y);
+		const int xc    = scl(ap.x);
 
 		s.patch_drizzled.push_back(cv::Vec4i(py_lo, py_hi, px_lo, px_hi));
 		s.ap_drizzled.push_back(cv::Vec2i(yc, xc));
@@ -347,8 +352,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 				const int px_hi = std::min(px + patch_size, s.dim_x - 1);
 				if (px == px_hi) continue;
 				const cv::Mat slice = needed_mask(
-				    cv::Range(py * drizzle_factor, py_hi * drizzle_factor),
-				    cv::Range(px * drizzle_factor, px_hi * drizzle_factor));
+				    cv::Range(scl(py), scl(py_hi)),
+				    cv::Range(scl(px), scl(px_hi)));
 				if (cv::countNonZero(slice) > 0)
 					s.background_patches.push_back({py, py_hi, px, px_hi});
 			}
@@ -418,9 +423,9 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		 *     alignment correction). That means r.dy + sub_y = 0. ✓
 		 * If we used r.dy − sub_y the sub-pixel global residual would
 		 * be DOUBLED in the drizzle path and you get the high-frequency
-		 * CFA-phase striping the user sees on real data. The bicubic
-		 * stack path rounds to integer × K and is unaffected by this
-		 * ≤0.5 px correction. */
+		 * CFA-phase striping the user sees on real data. The classical
+		 * stack path rounds shifts to whole drizzled pixels and is
+		 * unaffected by this ≤0.5 px correction. */
 		const double dy_full = offsets[f].dy;
 		const double dx_full = offsets[f].dx;
 		const int dy = (int) std::lround(dy_full);
@@ -494,15 +499,12 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	 * Frames are accumulated serially in index order, so every buffer sees
 	 * the same summation order ⇒ deterministic regardless of thread count. */
 	const int nt = max_threads > 0 ? max_threads : 1;
-	/* This is the cv::resize / no-upscale path — the dobox drizzle paths
-	 * never enter stack_apply_shifts. The buffer arithmetic in
-	 * stack_prepare_for_blending only handles integer factors, so
-	 * non-integer scales (1.5x) round to the nearest integer. The
-	 * dispatcher routes scale > 1 to dobox unless the caller pinned
-	 * drizzle_mode = OFF explicitly. */
-	const int K = std::max(1, (int) std::lround(cfg.drizzle_scale));
+	/* Output scale. Fractional values (e.g. 1.5) are supported: every
+	 * coordinate is original × S rounded to the nearest pixel, and each
+	 * frame is cv::resize'd to S× before its patches are accumulated. */
+	const double S = std::max(1.0, cfg.drizzle_scale);
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
-	                                       K, num_layers, cfg);
+	                                       S, num_layers, cfg);
 	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
 	const int M = aps.count;
@@ -555,14 +557,15 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		} else {
 			frame_raw.convertTo(pf.frame_f32, CV_32F);
 		}
-		if (K != 1)
+		if (S != 1.0)
 			cv::resize(pf.frame_f32, pf.frame_drizzled,
-			           cv::Size(pf.frame_f32.cols * K, pf.frame_f32.rows * K),
+			           cv::Size((int) std::lround(pf.frame_f32.cols * S),
+			                    (int) std::lround(pf.frame_f32.rows * S)),
 			           0, 0, cv::INTER_LINEAR);
 		else
 			pf.frame_drizzled = pf.frame_f32;
-		/* Bicubic upscale-and-stack path is integer-only (no drizzle
-		 * pixmap to carry sub-pixel). Round the global offset. */
+		/* Integer rigid placement in drizzled coords; round the global
+		 * offset (sub-pixel residual isn't carried by this path). */
 		pf.dy = (int) std::lround(offsets[f].dy);
 		pf.dx = (int) std::lround(offsets[f].dx);
 		pf.valid = true;
@@ -571,8 +574,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 
 	auto accumulate_frame = [&](const PreparedFrame &pf) {
 		const int f = pf.f;
-		const int dy_K = pf.dy * K;
-		const int dx_K = pf.dx * K;
+		const int dy_K = (int) std::lround(pf.dy * S);
+		const int dx_K = (int) std::lround(pf.dx * S);
 		const std::vector<int> &ap_list = apq.used_alignment_points[f];
 		const int na = (int) ap_list.size();
 #ifdef _OPENMP
@@ -591,8 +594,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				const size_t soff = (size_t) (f * M + a) * 2;
 				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
 				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
-				const int shift_y_K = (int) std::lround(shift_y * (double) K);
-				const int shift_x_K = (int) std::lround(shift_x * (double) K);
+				const int shift_y_K = (int) std::lround(shift_y * S);
+				const int shift_x_K = (int) std::lround(shift_x * S);
 				const int total_y_K = dy_K - shift_y_K;
 				const int total_x_K = dx_K - shift_x_K;
 
@@ -682,7 +685,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	}
 
 	if (out.state.number_stacking_holes > 0) {
-		if (K != 1) {
+		if (S != 1.0) {
 			cv::Mat r;
 			cv::resize(out.state.averaged_background, r,
 			           cv::Size(out.state.dim_x_drizzled, out.state.dim_y_drizzled),

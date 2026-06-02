@@ -317,3 +317,77 @@ Test(mpp_stack, apply_shifts_parallel_matches_serial) {
 	mpp_shift_free(shifts);
 	mpp_ap_free(aps);
 }
+
+/* Fractional output scale (e.g. 1.5x) is honoured exactly — the drizzled
+ * canvas is round(intersection × scale), NOT the nearest integer factor —
+ * and accumulation stays deterministic across thread counts. */
+Test(mpp_stack, apply_shifts_fractional_scale) {
+	auto cfg = default_cfg();
+	cfg.drizzle_scale = 1.5;
+	const cv::Mat truth = make_textured_frame();
+	const std::vector<std::pair<int, int>> jit = {
+	    {0, 0}, {-2, 1}, {3, -1}, {1, 2}};
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (auto p : jit) {
+		const cv::Mat f = shifted(truth, p.first, p.second);
+		frames_raw.push_back(f);
+		frames_blurred.push_back(blurred(f, cfg));
+		q.push_back(0.5);
+	}
+	q[0] = 1.0;
+
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	auto cfg_no_fc = cfg;
+	cfg_no_fc.align_frames_fast_changing_object = false;
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 1);
+
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	std::vector<double> brightness;
+	for (const auto &f : frames_raw)
+		brightness.push_back(mpp::rank_average_brightness(f, cfg));
+	const auto apq = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg);
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+	std::vector<int> sorted(frames_raw.size());
+	std::iota(sorted.begin(), sorted.end(), 0);
+	std::sort(sorted.begin(), sorted.end(),
+	          [&q](int a, int b) { return q[a] > q[b]; });
+
+	const auto serial = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+	                                            offsets, brightness, sorted,
+	                                            avg.intersection, cfg, nullptr, 1);
+	const auto par = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+	                                         offsets, brightness, sorted,
+	                                         avg.intersection, cfg, nullptr, 8);
+
+	const int dim_y = avg.intersection[1] - avg.intersection[0];
+	const int dim_x = avg.intersection[3] - avg.intersection[2];
+	cr_assert_float_eq(serial.state.drizzle_scale, 1.5, 1e-12);
+	/* Exact fractional geometry, not integer-rounded scale. */
+	cr_assert_eq(serial.state.dim_y_drizzled, (int) std::lround(dim_y * 1.5));
+	cr_assert_eq(serial.state.dim_x_drizzled, (int) std::lround(dim_x * 1.5));
+	cr_assert_neq(serial.state.dim_y_drizzled, dim_y * 2);
+
+	/* Determinism preserved at fractional scale (1 thread vs 8). */
+	cr_assert_eq((int) serial.state.stacking_buffers.size(),
+	             (int) par.state.stacking_buffers.size());
+	for (int a = 0; a < (int) serial.state.stacking_buffers.size(); ++a) {
+		const cv::Mat &s = serial.state.stacking_buffers[a];
+		const cv::Mat &p = par.state.stacking_buffers[a];
+		cr_assert_eq(s.rows, p.rows);
+		cr_assert_eq(s.cols, p.cols);
+		cr_assert_float_eq(cv::norm(s, p, cv::NORM_INF), 0.0, 0.0,
+		                   "AP %d buffer differs at fractional scale", a);
+	}
+
+	mpp_shift_free(shifts);
+	mpp_ap_free(aps);
+}
