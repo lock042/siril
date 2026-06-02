@@ -101,7 +101,7 @@ if criterion_dep.found()
      # fixture in-process or asserts pure-math invariants. No env vars
      # required.
      foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
-                  'mpp_shift_test', 'mpp_stack_test', 'mpp_drizzle_test',
+                  'mpp_shift_test', 'mpp_stack_test',
                   'mpp_pipeline_test']
          mpp_exec = executable(t,
                                t + '.cpp',

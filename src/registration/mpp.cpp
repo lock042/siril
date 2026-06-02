@@ -68,7 +68,6 @@ extern "C" {
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
-#include "registration/mpp/mpp_drizzle.h"
 #include "registration/mpp/mpp_frames.h"
 #include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_sidecar.h"
@@ -146,31 +145,6 @@ int avi_bayer_to_cv_code(int avi_pattern, int rows) {
 	}
 }
 
-/* Map an mpp_avi_bayer value to the Y-flip-aware cfa[4] used by the
- * Bayer-drizzle dobox path. Output channels are R=0, G=1, B=2. Returns
- * false when the pattern is AUTO / NONE / out-of-range. */
-bool avi_bayer_to_cfa(int avi_pattern, int rows, unsigned char cfa[4]) {
-	if (avi_pattern == MPP_AVI_BAYER_AUTO || avi_pattern == MPP_AVI_BAYER_NONE)
-		return false;
-	sensor_pattern pat;
-	switch (avi_pattern) {
-		case MPP_AVI_BAYER_RGGB: pat = BAYER_FILTER_RGGB; break;
-		case MPP_AVI_BAYER_BGGR: pat = BAYER_FILTER_BGGR; break;
-		case MPP_AVI_BAYER_GBRG: pat = BAYER_FILTER_GBRG; break;
-		case MPP_AVI_BAYER_GRBG: pat = BAYER_FILTER_GRBG; break;
-		default: return false;
-	}
-	adjust_Bayer_pattern_orientation(&pat, (unsigned int) rows, TRUE);
-	const int R = 0, G = 1, B = 2;
-	switch (pat) {
-		case BAYER_FILTER_RGGB: cfa[0]=R; cfa[1]=G; cfa[2]=G; cfa[3]=B; return true;
-		case BAYER_FILTER_GRBG: cfa[0]=G; cfa[1]=R; cfa[2]=B; cfa[3]=G; return true;
-		case BAYER_FILTER_GBRG: cfa[0]=G; cfa[1]=B; cfa[2]=R; cfa[3]=G; return true;
-		case BAYER_FILTER_BGGR: cfa[0]=B; cfa[1]=G; cfa[2]=G; cfa[3]=R; return true;
-		default: return false;
-	}
-}
-
 namespace {
 
 /* Helper: read a frame and return a mono analysis Mat (cloned, owns its
@@ -236,16 +210,15 @@ cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdept
 	return out;
 }
 
-}  /* close inner anonymous namespace — read_full_frame needs external
-    * linkage so mpp_drizzle.cpp (the STScI stack path) can call it. */
+}  /* close inner anonymous namespace */
 
 /* Read the frame as a multi-channel cv::Mat preserving all layers (1 or 3).
- * Used by mpp_stack_apply and by mpp_stack_apply_stsci so colour frames
- * carry through to the stacked output.
+ * Used by mpp_stack_apply so colour frames carry through to the stacked
+ * output.
  *
  * For SEQ_AVI with a Bayer pattern set, the mono mosaic is debayered to
- * 3-channel RGB before return so the non-drizzle stack paths see proper
- * colour input. The Bayer-drizzle path bypasses this helper. */
+ * 3-channel RGB before return so the classical stack sees proper colour
+ * input. */
 cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 	FitsBuf buf;
 	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
@@ -1175,16 +1148,13 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 
 	/* Dispatch: all stacking goes through the classical engine
 	 * (stack_apply_shifts_streamed) — rigid-shift per-AP patch accumulation
-	 * + tent-weight mosaic, parallelised over frames + APs, with cv::resize
+	 * + tent-weight mosaic, parallelised over frames, with cv::resize
 	 * interpolation for scale > 1 and a straight accumulate at scale = 1.
 	 *
-	 * The dobox drizzle backends (STScI for mono/RGB, MPP_DRIZZLE_BAYER for
-	 * raw CFA) are NOT used: both produce sampling / mosaic-phase artefacts
-	 * on planetary data (the issue that first retired the Bayer splat, later
-	 * confirmed on mono STScI too). They remain in-tree, parallelised and
-	 * tested (mpp_stack_apply_stsci / mpp_stack_apply_bayer in
-	 * mpp_drizzle.cpp), as groundwork for a possible future CFA-aware
-	 * revival, but are unreachable through normal dispatch.
+	 * The STScI / Bayer dobox drizzle backends were removed: both produced
+	 * sampling / mosaic-phase artefacts on planetary data. (The code is
+	 * preserved on the pss-drizzle branch in case a future CFA-aware
+	 * revival is wanted.)
 	 *
 	 * CFA input is debayered first (SerAnalysisDebayerGuard below forces the
 	 * SER reader to debayer regardless of the user's debayer-on-open pref),
