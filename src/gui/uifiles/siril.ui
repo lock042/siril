@@ -6910,8 +6910,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes">Min brightness:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6924,8 +6924,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="value">10</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6936,8 +6936,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes">Min contrast:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">5</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6949,8 +6949,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="numeric">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">5</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6961,8 +6961,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes">Min structure:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">6</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6976,8 +6976,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="value">0.04</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">6</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6988,8 +6988,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes">AVI Bayer pattern:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">7</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7008,8 +7008,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </items>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">7</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7025,7 +7025,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">8</property>
+                                                            <property name="top-attach">6</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -7041,8 +7041,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">9</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">6</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -7055,7 +7055,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">10</property>
+                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7069,7 +7069,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">10</property>
+                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7080,8 +7080,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="label" translatable="yes">Stack frames:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">11</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7094,8 +7094,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="value">-1</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">11</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7107,7 +7107,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">12</property>
+                                                            <property name="top-attach">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7123,7 +7123,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">12</property>
+                                                            <property name="top-attach">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7138,8 +7138,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">13</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">5</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -7158,7 +7158,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">14</property>
+                                                            <property name="top-attach">7</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7173,8 +7174,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <signal name="clicked" handler="on_seqmpp_edit_aps_button_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">14</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">7</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7190,8 +7192,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">15</property>
-                                                            <property name="width">2</property>
+                                                            <property name="top-attach">8</property>
+                                                            <property name="width">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
