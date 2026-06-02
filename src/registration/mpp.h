@@ -204,6 +204,10 @@ mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y);
 /* Grow (step>0) or shrink (step<0) AP `i`'s box/patch by `step` px of
  * half-box, clamped so the box stays inside the reference frame. GUI-only. */
 mpp_status_t mpp_ap_resize(mpp_run_t *run, int i, int step);
+/* Current half-box of AP `i` (max centre-to-edge), or -1 on error. */
+int          mpp_ap_get_half_box(const mpp_run_t *run, int i);
+/* Set AP `i`'s half-box absolutely (clamped); used to revert a resize. */
+mpp_status_t mpp_ap_set_half_box(mpp_run_t *run, int i, int hb);
 int          mpp_ap_hit_test(const mpp_run_t *run, int x, int y);
 
 mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src);

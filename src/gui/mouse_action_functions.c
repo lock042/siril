@@ -607,12 +607,14 @@ gboolean main_action_click(mouse_data *data) {
 					mpp_ap_editor_set_selected_idx(hit);   /* resize controls act on this AP */
 					register_release_callback(mpp_ap_drag_release, data->event->button);
 					redraw(REDRAW_OVERLAY);   /* show selection highlight */
-				} else {
-					if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
-						mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
-						mpp_ap_editor_refresh_count_label();
-						redraw(REDRAW_OVERLAY);
-					}
+				} else if (mpp_ap_editor_get_selected_idx() >= 0) {
+					/* Background click while an AP is selected: fix its size
+					 * and deselect (don't add a new AP). */
+					mpp_ap_editor_set_selected_idx(-1);
+					redraw(REDRAW_OVERLAY);
+				} else if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
+					mpp_ap_editor_refresh_count_label();
+					redraw(REDRAW_OVERLAY);
 				}
 				break;
 			}

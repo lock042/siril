@@ -52,6 +52,10 @@ static int g_ap_hover_idx = -1;
  * (add/remove/clear/auto-place) so the index can't go stale, and on close. */
 static int g_ap_selected_idx = -1;
 
+/* Half-box of the selected AP at the moment it was selected. Escape reverts
+ * the AP to this size. Captured by mpp_ap_editor_set_selected_idx. */
+static int g_ap_selected_orig_hb = -1;
+
 /* Snapshot of the AP grid taken when the dialog opens. Used by Cancel to
  * revert edits made between show and Cancel. Commit drops it. */
 static mpp_aps_t *g_aps_snapshot = NULL;
@@ -65,12 +69,41 @@ static gboolean editor_key_press(GtkWidget *widget, GdkEventKey *event,
                                  gpointer user_data) {
 	(void) user_data;
 	if (!mpp_ap_editor_is_open()) return FALSE;
-	/* Leave Ctrl/Alt/Super combos alone so Ctrl+plus/minus still zoom. */
-	if (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK))
-		return FALSE;
 	GtkWidget *top = gtk_widget_get_toplevel(widget);
 	GtkWidget *focus = GTK_IS_WINDOW(top) ? gtk_window_get_focus(GTK_WINDOW(top)) : NULL;
 	if (focus && (GTK_IS_ENTRY(focus) || GTK_IS_SPIN_BUTTON(focus)))
+		return FALSE;
+	mpp_run_t *run = mpp_get_cached_run();
+	const int sel = mpp_ap_editor_get_selected_idx();
+	const gboolean have_sel = (run && run->aps && sel >= 0 && sel < run->aps->count);
+
+	/* Escape reverts the selected AP to its size at selection (stays
+	 * selected); Enter fixes the current size and deselects. With no
+	 * selection both fall through so Escape can still close the dialog. */
+	switch (event->keyval) {
+		case GDK_KEY_Escape:
+			if (have_sel) {
+				if (g_ap_selected_orig_hb > 0)
+					mpp_ap_set_half_box(run, sel, g_ap_selected_orig_hb);
+				redraw(REDRAW_OVERLAY);
+				return TRUE;
+			}
+			return FALSE;
+		case GDK_KEY_Return:
+		case GDK_KEY_KP_Enter:
+			if (have_sel) {
+				mpp_ap_editor_set_selected_idx(-1);
+				redraw(REDRAW_OVERLAY);
+				return TRUE;
+			}
+			return FALSE;
+		default:
+			break;
+	}
+
+	/* +/- resize — leave Ctrl/Alt/Super combos alone so Ctrl+plus/minus
+	 * still zoom. */
+	if (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK))
 		return FALSE;
 	int step = 0;
 	switch (event->keyval) {
@@ -81,9 +114,7 @@ static gboolean editor_key_press(GtkWidget *widget, GdkEventKey *event,
 		default:
 			return FALSE;
 	}
-	mpp_run_t *run = mpp_get_cached_run();
-	const int sel = mpp_ap_editor_get_selected_idx();
-	if (run && run->aps && sel >= 0 && sel < run->aps->count) {
+	if (have_sel) {
 		mpp_ap_resize(run, sel, step);
 		redraw(REDRAW_OVERLAY);
 		return TRUE;   /* consumed */
@@ -154,7 +185,12 @@ int  mpp_ap_editor_get_hover_idx(void)     { return g_ap_hover_idx; }
 void mpp_ap_editor_set_hover_idx(int idx)  { g_ap_hover_idx = idx; }
 
 int  mpp_ap_editor_get_selected_idx(void)    { return g_ap_selected_idx; }
-void mpp_ap_editor_set_selected_idx(int idx) { g_ap_selected_idx = idx; }
+void mpp_ap_editor_set_selected_idx(int idx) {
+	g_ap_selected_idx = idx;
+	/* Capture the AP's current size as the Escape-revert baseline. */
+	if (idx >= 0)
+		g_ap_selected_orig_hb = mpp_ap_get_half_box(mpp_get_cached_run(), idx);
+}
 
 gboolean mpp_ap_editor_is_open(void) {
 	return dialog && gtk_widget_get_visible(dialog);
