@@ -24,6 +24,7 @@
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/masks.h"
+#include "gui/mpp_ap_editor.h"
 #include "core/siril_update.h"
 #include "gui/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -111,12 +112,23 @@ void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpoin
 }
 
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	/* While the AP editor is open, Undo (Ctrl-Z / toolbar / menu) operates on
+	 * the AP grid, not the image-processing history. Always consume so the
+	 * image isn't accidentally undone mid-edit. */
+	if (mpp_ap_editor_is_open()) {
+		mpp_ap_editor_undo();
+		return;
+	}
 	gui_iface.set_busy(TRUE);
 	undo_display_data(UNDO);
 	gui_iface.set_busy(FALSE);
 }
 
 void redo_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
+	if (mpp_ap_editor_is_open()) {
+		mpp_ap_editor_redo();
+		return;
+	}
 	gui_iface.set_busy(TRUE);
 	undo_display_data(REDO);
 	gui_iface.set_busy(FALSE);

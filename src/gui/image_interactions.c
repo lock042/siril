@@ -698,6 +698,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			                        zoomed.x, zoomed.y, &ap_x, &ap_y);
 			const int drag = mpp_ap_editor_get_drag_idx();
 			if (drag >= 0) {
+				/* One undo step per drag: coalesce all motion events for
+				 * this AP. The +(1<<24) offset keeps a drag distinct from a
+				 * resize of the same AP (which uses the bare AP index). */
+				mpp_ap_editor_record_undo((1 << 24) + drag);
 				mpp_ap_move(run, drag, ap_x, ap_y);
 				redraw(REDRAW_OVERLAY);
 			} else {
@@ -914,6 +918,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 				else if (sdelta.y > 0.0) step = -2;
 			}
 			if (step != 0) {
+				mpp_ap_editor_record_undo(sel);   /* coalesce the resize burst */
 				mpp_ap_resize(run, sel, step);
 				redraw(REDRAW_OVERLAY);
 				return TRUE;   /* consume — no zoom while resizing an AP */

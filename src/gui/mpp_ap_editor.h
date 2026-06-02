@@ -26,6 +26,18 @@ void mpp_ap_editor_set_hover_idx(int idx);
 int  mpp_ap_editor_get_selected_idx(void);
 void mpp_ap_editor_set_selected_idx(int idx);
 
+/* Within-session AP undo/redo (the global Undo/Redo is diverted here while
+ * the editor is open). record_undo snapshots the current AP grid before a
+ * mutation; coalesce_key >= 0 merges consecutive same-key edits (e.g. a
+ * resize burst or a single drag) into one step, -1 always starts a new step. */
+void     mpp_ap_editor_record_undo(int coalesce_key);
+gboolean mpp_ap_editor_undo(void);
+gboolean mpp_ap_editor_redo(void);
+/* Whether the AP undo/redo stacks are non-empty (used to drive the
+ * Undo/Redo action enabled-state while the editor is open). */
+gboolean mpp_ap_editor_can_undo(void);
+gboolean mpp_ap_editor_can_redo(void);
+
 /* Recompute the "Current APs: N" label from the cached run. Safe to call
  * before the dialog has ever been shown (no-op until widget cached). */
 void mpp_ap_editor_refresh_count_label(void);

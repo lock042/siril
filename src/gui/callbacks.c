@@ -76,6 +76,7 @@ void update_export_crop_label();
 #include "undo_gui.h"
 #include "io/healpix/fluxcache_cat.h"
 #include "registration/mpp.h"
+#include "gui/mpp_ap_editor.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -969,8 +970,16 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* undo and redo */
 	GAction *action_undo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "undo");
 	GAction *action_redo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "redo");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	/* While the AP editor is open the Undo/Redo actions are diverted to the
+	 * AP grid, so drive their enabled-state from the AP stacks; otherwise
+	 * from the image-processing history. */
+	if (mpp_ap_editor_is_open()) {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), mpp_ap_editor_can_undo());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), mpp_ap_editor_can_redo());
+	} else {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	}
 
 	/* update undo/redo button tooltips */
 	if (is_undo_available()) {

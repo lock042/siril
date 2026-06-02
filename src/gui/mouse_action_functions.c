@@ -612,9 +612,12 @@ gboolean main_action_click(mouse_data *data) {
 					 * and deselect (don't add a new AP). */
 					mpp_ap_editor_set_selected_idx(-1);
 					redraw(REDRAW_OVERLAY);
-				} else if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
-					mpp_ap_editor_refresh_count_label();
-					redraw(REDRAW_OVERLAY);
+				} else {
+					mpp_ap_editor_record_undo(-1);
+					if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
+						mpp_ap_editor_refresh_count_label();
+						redraw(REDRAW_OVERLAY);
+					}
 				}
 				break;
 			}
@@ -772,10 +775,13 @@ gboolean second_action_click(mouse_data *data) {
 				                        data->zoomed.x, data->zoomed.y,
 				                        &ap_x, &ap_y);
 				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
-				if (hit >= 0 && mpp_ap_remove(run, hit) == MPP_OK) {
-					mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
-					mpp_ap_editor_refresh_count_label();
-					redraw(REDRAW_OVERLAY);
+				if (hit >= 0) {
+					mpp_ap_editor_record_undo(-1);
+					if (mpp_ap_remove(run, hit) == MPP_OK) {
+						mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
+						mpp_ap_editor_refresh_count_label();
+						redraw(REDRAW_OVERLAY);
+					}
 				}
 			}
 		} else if (*data->mouse_status == MOUSE_ACTION_PHOTOMETRY) {

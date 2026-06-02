@@ -17,6 +17,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/proto.h"
+#include "core/undo.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -56,6 +57,14 @@ static int g_ap_selected_idx = -1;
  * the AP to this size. Captured by mpp_ap_editor_set_selected_idx. */
 static int g_ap_selected_orig_hb = -1;
 
+/* Within-session AP undo/redo. While the editor is open the global Undo/Redo
+ * (Ctrl-Z/Y, the toolbar buttons, the menu) are diverted here. Each entry is
+ * a deep-copied AP grid state; the stacks are cleared when the dialog opens
+ * and closes. */
+static GPtrArray *g_ap_undo = NULL;   /* prior states, most recent last */
+static GPtrArray *g_ap_redo = NULL;
+static int g_ap_undo_coalesce = -1;   /* key of the last coalescing edit, else -1 */
+
 /* Snapshot of the AP grid taken when the dialog opens. Used by Cancel to
  * revert edits made between show and Cancel. Commit drops it. */
 static mpp_aps_t *g_aps_snapshot = NULL;
@@ -83,8 +92,10 @@ static gboolean editor_key_press(GtkWidget *widget, GdkEventKey *event,
 	switch (event->keyval) {
 		case GDK_KEY_Escape:
 			if (have_sel) {
-				if (g_ap_selected_orig_hb > 0)
+				if (g_ap_selected_orig_hb > 0) {
+					mpp_ap_editor_record_undo(-1);
 					mpp_ap_set_half_box(run, sel, g_ap_selected_orig_hb);
+				}
 				redraw(REDRAW_OVERLAY);
 				return TRUE;
 			}
@@ -115,6 +126,7 @@ static gboolean editor_key_press(GtkWidget *widget, GdkEventKey *event,
 			return FALSE;
 	}
 	if (have_sel) {
+		mpp_ap_editor_record_undo(sel);   /* coalesce the resize burst */
 		mpp_ap_resize(run, sel, step);
 		redraw(REDRAW_OVERLAY);
 		return TRUE;   /* consumed */
@@ -197,6 +209,86 @@ void mpp_ap_editor_set_selected_idx(int idx) {
 		g_ap_selected_orig_hb = mpp_ap_get_half_box(mpp_get_cached_run(), idx);
 }
 
+static void ap_undo_free_all(GPtrArray *a) {
+	if (!a) return;
+	for (guint i = 0; i < a->len; i++)
+		mpp_ap_free((mpp_aps_t *) g_ptr_array_index(a, i));
+	g_ptr_array_set_size(a, 0);
+}
+
+static void ap_undo_clear(void) {
+	ap_undo_free_all(g_ap_undo);
+	ap_undo_free_all(g_ap_redo);
+	g_ap_undo_coalesce = -1;
+}
+
+gboolean mpp_ap_editor_can_undo(void) { return g_ap_undo && g_ap_undo->len > 0; }
+gboolean mpp_ap_editor_can_redo(void) { return g_ap_redo && g_ap_redo->len > 0; }
+
+/* Keep the win.undo/redo actions enabled to reflect the AP undo stacks while
+ * the editor is open (otherwise they'd be disabled whenever the image has no
+ * processing history, and Ctrl-Z / the toolbar buttons would never reach the
+ * diversion). Restores the image-history state when the editor is closed. */
+static void ap_sync_undo_actions(void) {
+	if (!gui.builder) return;
+	GObject *w = gtk_builder_get_object(gui.builder, "control_window");
+	if (!w) return;
+	GActionMap *map = G_ACTION_MAP(w);
+	GAction *u = g_action_map_lookup_action(map, "undo");
+	GAction *r = g_action_map_lookup_action(map, "redo");
+	const gboolean open = mpp_ap_editor_is_open();
+	if (u) g_simple_action_set_enabled(G_SIMPLE_ACTION(u),
+	        open ? mpp_ap_editor_can_undo() : is_undo_available());
+	if (r) g_simple_action_set_enabled(G_SIMPLE_ACTION(r),
+	        open ? mpp_ap_editor_can_redo() : is_redo_available());
+}
+
+void mpp_ap_editor_record_undo(int coalesce_key) {
+	if (!mpp_ap_editor_is_open()) return;
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps) return;
+	if (!g_ap_undo) g_ap_undo = g_ptr_array_new();
+	if (!g_ap_redo) g_ap_redo = g_ptr_array_new();
+	/* Coalesce consecutive edits sharing a non-negative key (e.g. a burst of
+	 * scroll/+/- resizes, or a single drag) into one undo step. */
+	if (coalesce_key >= 0 && coalesce_key == g_ap_undo_coalesce && g_ap_undo->len > 0)
+		return;
+	mpp_aps_t *snap = mpp_aps_snapshot(run->aps);
+	if (!snap) return;
+	g_ptr_array_add(g_ap_undo, snap);
+	ap_undo_free_all(g_ap_redo);   /* a fresh edit invalidates the redo stack */
+	g_ap_undo_coalesce = coalesce_key;
+	ap_sync_undo_actions();
+}
+
+gboolean mpp_ap_editor_undo(void) {
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || !g_ap_undo || g_ap_undo->len == 0) return FALSE;
+	g_ptr_array_add(g_ap_redo, mpp_aps_snapshot(run->aps));   /* current → redo */
+	mpp_aps_t *prev = (mpp_aps_t *) g_ptr_array_remove_index(g_ap_undo, g_ap_undo->len - 1);
+	mpp_aps_restore(run, prev);   /* run takes ownership */
+	g_ap_undo_coalesce = -1;
+	g_ap_selected_idx = -1;       /* AP indices may have shifted */
+	editor_refresh_count_label();
+	ap_sync_undo_actions();
+	redraw(REDRAW_OVERLAY);
+	return TRUE;
+}
+
+gboolean mpp_ap_editor_redo(void) {
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || !g_ap_redo || g_ap_redo->len == 0) return FALSE;
+	g_ptr_array_add(g_ap_undo, mpp_aps_snapshot(run->aps));   /* current → undo */
+	mpp_aps_t *next = (mpp_aps_t *) g_ptr_array_remove_index(g_ap_redo, g_ap_redo->len - 1);
+	mpp_aps_restore(run, next);
+	g_ap_undo_coalesce = -1;
+	g_ap_selected_idx = -1;
+	editor_refresh_count_label();
+	ap_sync_undo_actions();
+	redraw(REDRAW_OVERLAY);
+	return TRUE;
+}
+
 gboolean mpp_ap_editor_is_open(void) {
 	return dialog && gtk_widget_get_visible(dialog);
 }
@@ -246,6 +338,8 @@ void on_mpp_ap_editor_dialog_show(GtkWidget *widget, gpointer user_data) {
 		if (g_aps_snapshot) mpp_ap_free(g_aps_snapshot);
 		g_aps_snapshot = mpp_aps_snapshot(run->aps);
 	}
+	ap_undo_clear();   /* fresh undo history for this editing session */
+	ap_sync_undo_actions();   /* take over the Undo/Redo actions (empty -> disabled) */
 	/* Flip mouse mode so left=add, right=remove, drag=move (handlers in
 	 * mouse_action_functions.c). */
 	mouse_status = MOUSE_ACTION_EDIT_APS;
@@ -259,6 +353,8 @@ void on_mpp_ap_editor_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	g_ap_drag_idx = -1;
 	g_ap_hover_idx = -1;
 	g_ap_selected_idx = -1;
+	ap_undo_clear();          /* drop the session's undo history */
+	ap_sync_undo_actions();   /* hand the Undo/Redo actions back to image history */
 	redraw(REDRAW_OVERLAY);   /* clear hover highlight */
 	/* Don't auto-free the snapshot here — Cancel and Commit handle it
 	 * explicitly; this path can run via window-manager close, in which
@@ -292,6 +388,7 @@ void on_mpp_ap_editor_auto_place_clicked(GtkButton *button, gpointer user_data) 
 	}
 	mpp_config_t cfg;
 	cfg_from_spinners(run, &cfg);
+	mpp_ap_editor_record_undo(-1);
 	const int rc = mpp_ap_replace(run, &cfg);
 	g_ap_selected_idx = -1;   /* AP set replaced — old index is meaningless */
 	switch (rc) {
@@ -317,6 +414,7 @@ void on_mpp_ap_editor_clear_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run) return;
+	mpp_ap_editor_record_undo(-1);
 	mpp_ap_clear_all(run);
 	g_ap_selected_idx = -1;
 	siril_log_warning(_("AP editor: cleared all APs.\n"));
