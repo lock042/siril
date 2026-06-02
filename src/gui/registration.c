@@ -1547,8 +1547,21 @@ gboolean end_register_idle(gpointer p) {
 	 * at run start; with the run done, the logs are still visible if
 	 * the user wants them but the Registration tab is the natural next
 	 * step. Failures stay on the console so warnings are visible. */
-	if (args->func == &register_mpp && !args->retval)
+	if (args->func == &register_mpp && !args->retval) {
 		control_window_switch_to_tab(REGISTRATION);
+		/* Full Register (not Analyze-only) has just written the .mpp
+		 * sidecar. The update_stack_interface(TRUE) call above preserves
+		 * the current stacking method, so the existing "auto-select
+		 * STACK_MPP when a sidecar exists" default (which only runs on the
+		 * dont_change_stack_type=FALSE path) does not fire here. Select it
+		 * explicitly so the user can proceed straight to a Multipoint stack. */
+		if (!args->mpp_stage_a_only) {
+			GtkComboBox *stack_method_combo = GTK_COMBO_BOX(
+			    gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
+			if (stack_method_combo)
+				gtk_combo_box_set_active(stack_method_combo, STACK_MPP);
+		}
+	}
 
 	free(args->new_seq_name);
 	free(args);
