@@ -746,7 +746,7 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
 		else {
 			if (convert.nb_input_images == convert.converted_images)
-				siril_log_error(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			else siril_log_error(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			write_conversion_report(args);
 		}
@@ -756,11 +756,11 @@ gpointer convert_thread_worker(gpointer p) {
 		else {
 			gboolean success = TRUE;
 			if (!args->multiple_output && args->nb_converted_files == 1)
-				siril_log_error(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			else if (args->multiple_output && convert.nb_input_images == args->nb_converted_files)
-				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
 			else {
-				siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				siril_log_error(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
 				success = FALSE;
 			}
 			if (success)

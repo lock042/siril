@@ -10909,6 +10909,22 @@ int process_register(int nb) {
 					}
 				}
 			}
+		} else if (g_str_has_prefix(word[i], "-extref=")) {
+			char *value = word[i] + 8;
+			if (value[0] == '\0') {
+				siril_log_error(_("Missing argument to %s, aborting.\n"), word[i]);
+				goto terminate_register_on_error;
+			}
+			fits reffit = { 0 };
+			if (read_fits_metadata_from_path_first_HDU(value, &reffit)) {
+				siril_log_error(_("External reference path %s could not be loaded, aborting.\n"), value);
+				goto terminate_register_on_error;
+			}
+			clearfits(&reffit);
+			if (regargs->external_ref_path)
+				g_free(regargs->external_ref_path);
+			regargs->external_ref_path = g_strdup(value);
+			regargs->use_external_ref = TRUE;
 		} else {
 			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
@@ -11009,6 +11025,7 @@ int process_register(int nb) {
 
 terminate_register_on_error:
 	free(regargs->prefix);
+	g_free(regargs->external_ref_path);
 	free(regargs);
 	if (!check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
@@ -11376,6 +11393,11 @@ int process_seq_applyreg(int nb) {
 			siril_log_error(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
 		}
+	}
+
+	if (seq->ext_ref && regargs->framing != FRAMING_CURRENT) {
+		siril_log_message(_("External reference alignment detected: forcing framing to 'current'\n"));
+		regargs->framing = FRAMING_CURRENT;
 	}
 
 	if (drizzle) {

@@ -19,11 +19,15 @@ siril-1.5.0
 * Separation of GUI and processing code (!1025)
 * Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
+* Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
+* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Adding TIFF support in Pixelmath (#1726)
 * Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
+* Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed command help popover being too tall on low-resolution screens
 
 siril-1.4.4
 --/--/--

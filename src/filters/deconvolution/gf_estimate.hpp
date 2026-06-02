@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef RUN_BLIND_KERNEL_ESTIMATION_H
 #define RUN_BLIND_KERNEL_ESTIMATION_H
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 #include "options.hpp"
 
 template <typename T>

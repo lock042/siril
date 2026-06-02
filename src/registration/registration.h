@@ -164,6 +164,10 @@ struct registration_args {
 	 * before committing to the heavier per-AP shift compute. The run is
 	 * installed in com.mpp_run on success (see mpp_set_cached_run). */
 	gboolean mpp_stage_a_only;
+	gchar *external_ref_path;	// path to external reference image (global reg only)
+	gboolean use_external_ref;	// TRUE: all sequence images aligned to external ref
+	unsigned int external_ref_rx, external_ref_ry; // dimensions of the external reference image (for global/apply reg only)
+	disto_data *disto_ext;			// undistortion information for an external reference
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,

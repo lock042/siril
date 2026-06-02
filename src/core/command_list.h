@@ -160,7 +160,7 @@ static command commands[] = {
 
 	{"register", 1, "register sequencename [-2pass] [-selected] [-prefix=] [-scale=]\n"
 					"register sequencename ... [-layer=] [-transf=] [-minpairs=] [-maxstars=] [-nostarlist] [-disto=]\n"
-					"register sequencename ... [-interp=] [-noclamp]\n"
+					"register sequencename ... [-interp=] [-noclamp] [-extref=filepath]\n"
 					"register sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"register_mpp", 1, "register_mpp seqname [-half-box=N] [-search-width=N] [-search-global=N] [-patch-scale=F] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-selected]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
