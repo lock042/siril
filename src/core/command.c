@@ -14864,7 +14864,7 @@ int process_pss(int nb) {
 
 	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
-	                  cfg.drizzle_scale > 1.001 ? " (drizzle)" : "");
+	                  cfg.drizzle_scale > 1.001 ? " (upscaled)" : "");
 
 	mpp_run_t *run = NULL;
 	int rc = mpp_analyze(seq, &cfg, &run);
@@ -15053,7 +15053,7 @@ int process_stack_mpp(int nb) {
 	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_scale > 1.001 ? " (drizzle)" : "");
+	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
 
 	fits stacked = {0};
 	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);

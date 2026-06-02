@@ -1173,30 +1173,22 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	mpp_run_t *cached = mpp_get_cached_run();
 	if (cached && cached != run) mpp_run_drop_cache(cached);
 
-	/* Dispatch: input type + scale determine the backend. Two stacking
-	 * engines exist:
-	 *   - Classical (stack_apply_shifts_streamed): rigid-shift per-AP patch
-	 *     accumulation + tent-weight mosaic, parallelised over APs. cv::resize
-	 *     (integer factor) handles scale > 1. This is the path for all CFA
-	 *     input and for mono/RGB at native scale.
-	 *   - STScI dobox (stack_apply_stsci_streamed): true drizzle. Reserved
-	 *     for genuine upscaling of non-CFA (mono / native RGB) input.
+	/* Dispatch: all stacking goes through the classical engine
+	 * (stack_apply_shifts_streamed) — rigid-shift per-AP patch accumulation
+	 * + tent-weight mosaic, parallelised over frames + APs, with cv::resize
+	 * interpolation for scale > 1 and a straight accumulate at scale = 1.
 	 *
-	 * CFA is never drizzled: the mosaic-phase artefacts that retired the raw
-	 * Bayer-splat backend (MPP_DRIZZLE_BAYER) also showed up via dobox on
-	 * debayered CFA, so CFA always takes the classical path with classical
-	 * debayering (SerAnalysisDebayerGuard below forces the SER reader to
-	 * debayer regardless of the user's debayer-on-open pref).
+	 * The dobox drizzle backends (STScI for mono/RGB, MPP_DRIZZLE_BAYER for
+	 * raw CFA) are NOT used: both produce sampling / mosaic-phase artefacts
+	 * on planetary data (the issue that first retired the Bayer splat, later
+	 * confirmed on mono STScI too). They remain in-tree, parallelised and
+	 * tested (mpp_stack_apply_stsci / mpp_stack_apply_bayer in
+	 * mpp_drizzle.cpp), as groundwork for a possible future CFA-aware
+	 * revival, but are unreachable through normal dispatch.
 	 *
-	 * The MPP_DRIZZLE_BAYER backend (CFA-position-aware splat with dobox) is
-	 * preserved in-tree (mpp_stack_apply_bayer + stack_apply_bayer_streamed
-	 * in mpp_drizzle.cpp, tests in mpp_drizzle_test.cpp) but is no longer
-	 * reachable through normal dispatch.
-	 *
-	 * cfg->drizzle_mode is honoured if explicitly set (sidecar / scripts)
-	 * for non-CFA input; the default MPP_DRIZZLE_OFF triggers the routing
-	 * below. */
-	int mode = cfg->drizzle_mode;
+	 * CFA input is debayered first (SerAnalysisDebayerGuard below forces the
+	 * SER reader to debayer regardless of the user's debayer-on-open pref),
+	 * then stacked classically like any RGB sequence. */
 	/* AVI Bayer routing: an AVI marked as a raw mosaic (cfg->avi_bayer_pattern
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
 	 * classifier can't see this (sequence-only signature) so it's
@@ -1207,49 +1199,20 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const mpp_input_type input_type = mpp_classify_sequence_input(seq);
 	const bool is_cfa = (input_type == MPP_INPUT_CFA) || avi_cfa;
 
-	/* Backend routing (default cfg->drizzle_mode == MPP_DRIZZLE_OFF):
-	 *   - CFA / Bayer input: never drizzle. The mosaic-phase artefacts that
-	 *     retired the raw Bayer-splat backend also make dobox a poor fit on
-	 *     debayered CFA, and drizzle buys nothing at native scale. Always
-	 *     classical: debayer (SER guard below) + rigid-shift accumulation,
-	 *     with cv::resize interpolation when scale > 1.
-	 *   - Mono / RGB at scale <= 1: nothing to drizzle — read straight into
-	 *     the classical accumulator.
-	 *   - Mono / RGB at scale > 1: genuine upscale → STScI dobox (unless the
-	 *     UPSCALE kernel pins the cv::resize bicubic fallback).
-	 * An explicitly pinned drizzle_mode (sidecar / script) is honoured for
-	 * non-CFA input; CFA is forced classical regardless. */
-	if (is_cfa) {
-		if (mode != MPP_DRIZZLE_OFF)
-			siril_log_message(_("Stack (mpp): CFA/Bayer input — using classical "
-			                    "debayering (drizzle is not applied to CFA "
-			                    "data).\n"));
-		mode = MPP_DRIZZLE_OFF;
-	} else if (mode == MPP_DRIZZLE_OFF) {
-		if (cfg->drizzle_kernel == MPP_KERNEL_UPSCALE) {
-			/* Explicit bicubic fallback — stay classical (cv::resize). */
-		} else if (cfg->drizzle_scale > 1.0) {
-			mode = MPP_DRIZZLE_STSCI;   /* genuine upscale drizzle */
-		}
-		/* else scale <= 1: stay classical, no drizzle. */
-	} else if (mode == MPP_DRIZZLE_BAYER) {
-		/* Non-CFA input pinned to the retired Bayer backend (script edge
-		 * case). Promote to STScI rather than reject. */
-		siril_log_warning(_("Stack (mpp): Bayer drizzle backend retired "
-		                    "(see commit notes); routing to STScI instead.\n"));
-		mode = MPP_DRIZZLE_STSCI;
-	}
+	/* The classical (OpenCV-interpolation) path handles every input and
+	 * scale; a sidecar/script that explicitly pinned a dobox backend is
+	 * overridden — drizzle is no longer applied for scaling. */
+	if (cfg->drizzle_mode != MPP_DRIZZLE_OFF)
+		siril_log_message(_("Stack (mpp): dobox drizzle backend disabled — "
+		                    "scaling uses OpenCV interpolation\n"));
 
-	/* Auto-debayer for any CFA SER opened raw — STScI, Bayer, and the
-	 * bicubic fallthrough all need RGB input now. The guard restores
-	 * the prior debayer_type_ser on destruction. */
+	/* Auto-debayer for any CFA SER opened raw — the classical stack needs
+	 * RGB input. The guard restores the prior debayer_type_ser on
+	 * destruction. */
 	SerAnalysisDebayerGuard ser_guard;
 	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
 
-	/* Pre-flight memory check. All Stack paths stream sequentially —
-	 * the dobox wrappers and the bicubic loop below both hold one
-	 * in-flight frame at a time, plus the drizzle output canvases
-	 * (small relative to per-frame). */
+	/* Pre-flight memory check for the classical path. */
 	{
 		/* CFA inputs (SER mosaic or AVI Bayer) decode to 3-channel RGB via
 		 * the debayer guard / cv::cvtColor; run->num_layers may still read 1
@@ -1258,39 +1221,25 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		                   ? 3
 		                   : (run->num_layers > 0 ? run->num_layers : 1);
 		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
-		/* The STScI path holds one in-flight frame. The classical path
-		 * decodes a batch of ~2 frames per thread concurrently (CV_32F,
-		 * hence bytes_per_sample 4) before accumulating, so its working set
-		 * scales with the thread budget. */
-		const bool classical = (mode != MPP_DRIZZLE_STSCI && mode != MPP_DRIZZLE_BAYER);
+		/* The classical path decodes a batch of ~2 frames per thread
+		 * concurrently (CV_32F, hence bytes_per_sample 4) before
+		 * accumulating, so its working set scales with the thread budget. */
 #ifdef _OPENMP
-		const int mem_threads = classical ? std::max(1, com.max_thread) : 1;
+		const int mem_threads = std::max(1, com.max_thread);
 #else
 		const int mem_threads = 1;
 #endif
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, run->frame_cols, run->frame_rows, channels,
-		    /*bytes_per_sample=*/classical ? 4 : 2,
+		    /*bytes_per_sample=*/4,
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
 		    /*max_threads=*/mem_threads,
-		    /*per_thread_in_flight=*/classical ? 2 : 1,
+		    /*per_thread_in_flight=*/2,
 		    /*output_bytes=*/0,
 		    _("Stack (mpp)"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 		(void) mem_pick;
-	}
-	switch (mode) {
-		case MPP_DRIZZLE_STSCI: return mpp_stack_apply_stsci(seq, cfg, run, out);
-		case MPP_DRIZZLE_BAYER:
-			/* Unreachable in normal use — the OFF and explicit-BAYER
-			 * branches above both promote to STSCI. Kept as a switch
-			 * arm so the enum value stays callable for tests and any
-			 * future CFA-aware revival. */
-			return mpp_stack_apply_bayer(seq, cfg, run, out);
-		case MPP_DRIZZLE_OFF:
-		default:
-			break;   /* fall through to the cv::resize no-upscale path */
 	}
 
 	const auto apq = mpp::apq_from_run(run);

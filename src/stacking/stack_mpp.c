@@ -107,7 +107,7 @@ int stack_mpp_handler(struct stacking_args *args) {
 	siril_log_message(_("Stack (mpp): %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_scale > 1.001 ? " (drizzle)" : "");
+	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
 
 	fits stacked = { 0 };
 	rc = mpp_stack_apply(args->seq, run->cfg, run, &stacked);
