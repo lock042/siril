@@ -259,6 +259,13 @@ int process_seq_clean(int nb) {
 
 	clean_sequence(seq, cleanreg, cleanstat, cleansel, cleanmpp);
 	if (check_seq_is_comseq(seq)) {
+		if (cleanmpp) {
+			/* The sidecar is gone — forget any in-memory Stage-A run so the
+			 * AP overlay and a later Multipoint stack don't use stale data
+			 * (mirrors the Clean Sequence GUI button). */
+			mpp_clear_cached_run();
+			gui_iface.redraw_image_async(REDRAW_OVERLAY);
+		}
 		fix_selnum(&com.seq, FALSE);
 		gui_iface.update_stack_interface(TRUE);
 		gui_iface.update_reg_interface(FALSE);
