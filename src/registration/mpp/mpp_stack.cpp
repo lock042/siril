@@ -481,13 +481,18 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const cv::Vec4i &intersection,
                                             const mpp_config_t &cfg,
                                             const int *included,
-                                            int max_threads) {
+                                            int max_threads,
+                                            bool provider_thread_safe) {
 	StackLoopOutput out;
-	/* Per-frame AP accumulation parallelism. The per-AP stacking buffers
-	 * are disjoint (each AP appears at most once in used_alignment_points[f]
-	 * and writes only its own buffer), so the inner loop parallelises with
-	 * no reduction. The frame loop stays serial, so every buffer still sees
-	 * frames in index order ⇒ bit-identical to the serial result. */
+	/* Two parallelism axes, both bit-identical to the serial result:
+	 *   - Decode (the dominant per-frame cost: read + debayer + float
+	 *     convert + optional resize) is done a batch at a time across
+	 *     threads, when the provider is reentrant.
+	 *   - The per-frame AP accumulation parallelises over the disjoint
+	 *     per-AP stacking buffers (each AP appears at most once in
+	 *     used_alignment_points[f] and writes only its own buffer).
+	 * Frames are accumulated serially in index order, so every buffer sees
+	 * the same summation order ⇒ deterministic regardless of thread count. */
 	const int nt = max_threads > 0 ? max_threads : 1;
 	/* This is the cv::resize / no-upscale path — the dobox drizzle paths
 	 * never enter stack_apply_shifts. The buffer arithmetic in
@@ -516,52 +521,58 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	for (int i = 0; i < apq.stack_size && i < (int) quality_sorted_idx.size(); ++i)
 		top_for_bg.insert(quality_sorted_idx[i]);
 
-	/* Per-frame progress mapped into the second half of Stage C's bar — the
-	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
-	int n_included = 0;
-	if (included) {
-		for (int f = 0; f < N; ++f) if (included[f]) ++n_included;
-	} else {
-		n_included = N;
-	}
-	int cur_nb = 0;
-	for (int f = 0; f < N; ++f) {
-		if (included && !included[f]) continue;
-		if (!processing_should_continue()) {
-			out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
-			return out;
-		}
+	/* Frames that actually participate, in index order. */
+	std::vector<int> work;
+	work.reserve(N);
+	for (int f = 0; f < N; ++f)
+		if (!included || included[f]) work.push_back(f);
+	const int W = (int) work.size();
+	const int n_included = W > 0 ? W : 1;
+
+	/* Decode is the per-frame bottleneck (read + debayer + float convert +
+	 * optional resize), so it is decoded a batch at a time across threads
+	 * when the provider is reentrant. Accumulation then runs serially in
+	 * index order, keeping the result deterministic and bit-identical to
+	 * the single-threaded path. */
+	const bool par_read = provider_thread_safe && nt > 1;
+	const int batch = par_read ? std::max(1, nt) * 2 : 1;
+
+	struct PreparedFrame {
+		int f = -1;
+		bool valid = false;
+		cv::Mat frame_drizzled;  /* AP accumulation source */
+		cv::Mat frame_f32;       /* background source (pre-resize) */
+		int dy = 0, dx = 0;
+	};
+	auto prep_frame = [&](int f) -> PreparedFrame {
+		PreparedFrame pf;
+		pf.f = f;
 		const cv::Mat frame_raw = provider(f);
-		if (frame_raw.empty()) {
-			g_atomic_int_inc(&cur_nb);
-			gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
-			continue;
-		}
-
-		cv::Mat frame_f32;
+		if (frame_raw.empty()) return pf;   /* valid stays false */
 		if (cfg.frames_normalization) {
-			const double scale = median_brightness
-			                   / (frame_brightness[f] + 1e-7);
-			frame_raw.convertTo(frame_f32, CV_32F, scale);
+			const double scale = median_brightness / (frame_brightness[f] + 1e-7);
+			frame_raw.convertTo(pf.frame_f32, CV_32F, scale);
 		} else {
-			frame_raw.convertTo(frame_f32, CV_32F);
+			frame_raw.convertTo(pf.frame_f32, CV_32F);
 		}
-
-		cv::Mat frame_drizzled;
 		if (K != 1)
-			cv::resize(frame_f32, frame_drizzled,
-			           cv::Size(frame_f32.cols * K, frame_f32.rows * K),
+			cv::resize(pf.frame_f32, pf.frame_drizzled,
+			           cv::Size(pf.frame_f32.cols * K, pf.frame_f32.rows * K),
 			           0, 0, cv::INTER_LINEAR);
 		else
-			frame_drizzled = frame_f32;
-
+			pf.frame_drizzled = pf.frame_f32;
 		/* Bicubic upscale-and-stack path is integer-only (no drizzle
 		 * pixmap to carry sub-pixel). Round the global offset. */
-		const int dy = (int) std::lround(offsets[f].dy);
-		const int dx = (int) std::lround(offsets[f].dx);
-		const int dy_K = dy * K;
-		const int dx_K = dx * K;
+		pf.dy = (int) std::lround(offsets[f].dy);
+		pf.dx = (int) std::lround(offsets[f].dx);
+		pf.valid = true;
+		return pf;
+	};
 
+	auto accumulate_frame = [&](const PreparedFrame &pf) {
+		const int f = pf.f;
+		const int dy_K = pf.dy * K;
+		const int dx_K = pf.dx * K;
 		const std::vector<int> &ap_list = apq.used_alignment_points[f];
 		const int na = (int) ap_list.size();
 #ifdef _OPENMP
@@ -586,7 +597,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				const int total_x_K = dx_K - shift_x_K;
 
 				const auto &p = out.state.patch_drizzled[a];
-				stack_remap_rigid(frame_drizzled, out.state.stacking_buffers[a],
+				stack_remap_rigid(pf.frame_drizzled, out.state.stacking_buffers[a],
 				                  total_y_K, total_x_K, p[0], p[1], p[2], p[3],
 				                  lb);
 			}
@@ -630,18 +641,44 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 					cv::Mat dst = out.state.averaged_background(
 					    cv::Range(bp.y_low, bp.y_high),
 					    cv::Range(bp.x_low, bp.x_high));
-					clamped_blit(frame_f32, dst,
-					             bp.y_low + dy, bp.x_low + dx,
+					clamped_blit(pf.frame_f32, dst,
+					             bp.y_low + pf.dy, bp.x_low + pf.dx,
 					             bp.y_high - bp.y_low,
 					             bp.x_high - bp.x_low);
 				}
 			} else {
-				clamped_blit(frame_f32, out.state.averaged_background,
-				             dy, dx, out.state.dim_y, out.state.dim_x);
+				clamped_blit(pf.frame_f32, out.state.averaged_background,
+				             pf.dy, pf.dx, out.state.dim_y, out.state.dim_x);
 			}
 		}
-		g_atomic_int_inc(&cur_nb);
-		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
+	};
+
+	/* Per-frame progress maps into the second half of Stage C's bar — the
+	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
+	int cur_nb = 0;
+	std::vector<PreparedFrame> slots(batch);
+	for (int base = 0; base < W; base += batch) {
+		if (!processing_should_continue()) {
+			out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
+			return out;
+		}
+		const int cnt = std::min(batch, W - base);
+#ifdef _OPENMP
+#pragma omp parallel for if (par_read) num_threads(nt) schedule(dynamic)
+#endif
+		for (int j = 0; j < cnt; ++j)
+			slots[j] = prep_frame(work[base + j]);
+
+		for (int j = 0; j < cnt; ++j) {
+			if (slots[j].valid)
+				accumulate_frame(slots[j]);
+			++cur_nb;
+			gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
+		}
+		for (int j = 0; j < cnt; ++j) {
+			slots[j].frame_drizzled.release();
+			slots[j].frame_f32.release();
+		}
 	}
 
 	if (out.state.number_stacking_holes > 0) {
@@ -671,10 +708,12 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
                                    int max_threads) {
 	const int N = (int) frames_raw.size();
 	const int num_layers = N == 0 ? 1 : frames_raw[0].channels();
+	/* In-memory frames are trivially safe to read concurrently. */
 	return stack_apply_shifts_streamed(
 	    [&frames_raw](int i) -> cv::Mat { return frames_raw[i]; },
 	    N, num_layers, aps, apq, shifts, offsets, frame_brightness,
-	    quality_sorted_idx, intersection, cfg, included, max_threads);
+	    quality_sorted_idx, intersection, cfg, included, max_threads,
+	    /*provider_thread_safe=*/true);
 }
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,

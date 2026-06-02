@@ -1258,15 +1258,23 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		                   ? 3
 		                   : (run->num_layers > 0 ? run->num_layers : 1);
 		mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
-		/* Stack uses read_full_frame (CV_16U) regardless of source depth
-		 * so the accumulator retains the full dynamic range. */
+		/* The STScI path holds one in-flight frame. The classical path
+		 * decodes a batch of ~2 frames per thread concurrently (CV_32F,
+		 * hence bytes_per_sample 4) before accumulating, so its working set
+		 * scales with the thread budget. */
+		const bool classical = (mode != MPP_DRIZZLE_STSCI && mode != MPP_DRIZZLE_BAYER);
+#ifdef _OPENMP
+		const int mem_threads = classical ? std::max(1, com.max_thread) : 1;
+#else
+		const int mem_threads = 1;
+#endif
 		const mpp_status_t mem = mpp_pick_memory_mode(
 		    run->num_frames, run->frame_cols, run->frame_rows, channels,
-		    /*bytes_per_sample=*/2,
+		    /*bytes_per_sample=*/classical ? 4 : 2,
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
-		    /*max_threads=*/1,
-		    /*per_thread_in_flight=*/1,
+		    /*max_threads=*/mem_threads,
+		    /*per_thread_in_flight=*/classical ? 2 : 1,
 		    /*output_bytes=*/0,
 		    _("Stack (mpp)"), &mem_pick);
 		if (mem != MPP_OK) return mem;
@@ -1303,7 +1311,7 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	const cv::Vec4i intersection(run->intersection[0], run->intersection[1],
 	                             run->intersection[2], run->intersection[3]);
 
-	gui_iface.set_progress(PROGRESS_RESET, _("Stack: drizzling frames"));
+	gui_iface.set_progress(PROGRESS_RESET, _("Stack: accumulating frames"));
 	auto provider = [seq, cfg](int i) -> cv::Mat {
 		return mpp::read_full_frame(seq, i, cfg->avi_bayer_pattern);
 	};
@@ -1319,10 +1327,21 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 #else
 	const int stack_threads = 1;
 #endif
+	/* Parallel decode needs a reentrant provider — same predicate as Stage
+	 * A's parallel frame read: SER serialises only the raw fread, and FITS
+	 * is safe only when cfitsio was built reentrant. */
+	const bool stack_provider_safe =
+	    (seq->type == SEQ_SER
+	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
+	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
+	siril_log_message(_("Stack (mpp): classical accumulation, %d thread(s), "
+	                    "%s frame reads\n"),
+	                  stack_threads,
+	                  stack_provider_safe ? _("parallel") : _("serial"));
 	const auto loop = mpp::stack_apply_shifts_streamed(
 	    provider, run->num_frames, num_layers, *run->aps, apq,
 	    run->shifts, offsets, frame_brightness, sorted_idx,
-	    intersection, *cfg, run->included, stack_threads);
+	    intersection, *cfg, run->included, stack_threads, stack_provider_safe);
 	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);

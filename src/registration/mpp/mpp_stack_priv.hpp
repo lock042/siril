@@ -191,16 +191,20 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
 
 /* Streamed overload — `num_frames` and `num_layers` are passed
  * explicitly because there's no upfront vector to introspect. The
- * provider returns the raw frame for each index; iteration is
- * sequential by construction (the per-AP and background accumulators
- * have shared state so parallelising would need per-thread buffers).
- * Cached overload above is a thin wrapper.
+ * provider returns the raw frame for each index. Cached overload above
+ * is a thin wrapper.
  *
- * `max_threads` bounds the per-frame parallel-for over the frame's
- * alignment points (the per-AP stacking buffers are disjoint, so this
- * needs no reduction and is bit-identical to the serial order). 0 or 1 ⇒
- * serial. The outer frame loop stays sequential, so each AP buffer still
- * accumulates frames in index order. */
+ * Parallelism (bounded by `max_threads`): two independent axes, both
+ * bit-identical to the single-threaded result.
+ *   - Decode: frames are decoded + prepared (brightness, resize) a batch
+ *     at a time across threads — the dominant per-frame cost. Only enabled
+ *     when `provider_thread_safe` (reentrant provider, e.g. SER / reentrant
+ *     FITS); otherwise reads stay serial.
+ *   - Accumulate: the per-frame alignment-point loop parallelises over the
+ *     disjoint per-AP buffers.
+ * Frames are accumulated serially in index order regardless, so each AP
+ * buffer sees the same summation order ⇒ deterministic, thread-count
+ * independent output. */
 StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             int num_frames,
                                             int num_layers,
@@ -213,7 +217,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
                                             const cv::Vec4i &intersection,
                                             const mpp_config_t &cfg,
                                             const int *included = nullptr,
-                                            int max_threads = 0);
+                                            int max_threads = 0,
+                                            bool provider_thread_safe = false);
 
 /* stack_frames main loop.
  *
