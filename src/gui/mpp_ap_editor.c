@@ -133,8 +133,13 @@ static void editor_init_statics(void) {
 	check_show_patches = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_ap_editor_show_patches"));
 	/* Resize-by-key: connect once. The handler self-gates on
 	 * mpp_ap_editor_is_open() so it's inert when the dialog is closed. */
-	if (dialog)
+	if (dialog) {
+		/* Ensure no default widget, so Enter never activates a button — the
+		 * key handler uses Enter to deselect a selected AP, and with no
+		 * selection Enter should simply do nothing. */
+		gtk_window_set_default(GTK_WINDOW(dialog), NULL);
 		g_signal_connect(dialog, "key-press-event", G_CALLBACK(editor_key_press), NULL);
+	}
 	GtkWidget *ctrl = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	if (ctrl)
 		g_signal_connect(ctrl, "key-press-event", G_CALLBACK(editor_key_press), NULL);
