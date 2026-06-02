@@ -604,9 +604,12 @@ gboolean main_action_click(mouse_data *data) {
 				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
 				if (hit >= 0) {
 					mpp_ap_editor_set_drag_idx(hit);
+					mpp_ap_editor_set_selected_idx(hit);   /* resize controls act on this AP */
 					register_release_callback(mpp_ap_drag_release, data->event->button);
+					redraw(REDRAW_OVERLAY);   /* show selection highlight */
 				} else {
 					if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
+						mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
 						mpp_ap_editor_refresh_count_label();
 						redraw(REDRAW_OVERLAY);
 					}
@@ -768,6 +771,7 @@ gboolean second_action_click(mouse_data *data) {
 				                        &ap_x, &ap_y);
 				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
 				if (hit >= 0 && mpp_ap_remove(run, hit) == MPP_OK) {
+					mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
 					mpp_ap_editor_refresh_count_label();
 					redraw(REDRAW_OVERLAY);
 				}

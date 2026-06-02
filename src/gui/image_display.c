@@ -2035,10 +2035,6 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	    && sequence_is_loaded());
 	if (!showing_ref && !showing_seq_frame) return;
 
-	const int hb = run->cfg->alignment_points_half_box_width;
-	if (hb <= 0) return;
-	const int side = 2 * hb;
-
 	int dx = 0, dy = 0;
 	if (showing_seq_frame) {
 		const int i = com.seq.current;
@@ -2063,6 +2059,7 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	 * right-side-up; overlays in pdata-row coords have to redo it. */
 	const int H = (int) gfit->ry;
 	const int hover = mpp_ap_editor_get_hover_idx();
+	const int selected = mpp_ap_editor_get_selected_idx();
 
 	/* Optional patch overlay — gated by the persistent "Show stacking
 	 * patches" toggle in the AP editor dialog. Drawn underneath the
@@ -2088,15 +2085,24 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 
 	for (int i = 0; i < run->aps->count; ++i) {
 		const mpp_ap_record_t *ap = &run->aps->records[i];
-		if (i == hover) {
+		if (i == selected) {
+			cairo_set_line_width(dd->cr, 2.5 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.2, 1.0, 1.0);   /* magenta — selected */
+		} else if (i == hover) {
 			cairo_set_line_width(dd->cr, 2.0 / dd->zoom);
-			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange */
+			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange — hover */
 		} else {
 			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
 			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
 		}
-		const int box_y_top = (H - 1) - (ap->y + dy) - hb;
-		cairo_rectangle(dd->cr, ap->x - hb + dx, box_y_top, side, side);
+		/* Draw each AP's actual (per-AP, possibly resized/clamped) box,
+		 * not a fixed global size. Same pdata-row→display-y flip as the
+		 * patch overlay above. */
+		const int bw = ap->box_x_high - ap->box_x_low;
+		const int bh = ap->box_y_high - ap->box_y_low;
+		if (bw <= 0 || bh <= 0) continue;
+		const int box_y_top = (H - 1) - (ap->box_y_low + dy) - (bh - 1);
+		cairo_rectangle(dd->cr, ap->box_x_low + dx, box_y_top, bw, bh);
 		cairo_stroke(dd->cr);
 	}
 

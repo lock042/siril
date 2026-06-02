@@ -1547,13 +1547,11 @@ extern "C" void mpp_ap_clear_all(mpp_run_t *run) {
 	run->best_frame_indices = nullptr;
 }
 
-/* Fill the box/patch bounds for an AP at (x, y) from cfg, extending the
- * patch out to the frame border for edge APs. */
-static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
-                           const mpp_config_t *cfg,
-                           int frame_rows, int frame_cols) {
-	const int hb = cfg->alignment_points_half_box_width;
-	const int hp = mpp_cfg_half_patch_width(cfg);
+/* Fill the box/patch bounds for an AP at (x, y) for an explicit half-box
+ * (hb) and half-patch (hp), clamped to the given frame dimensions. */
+static void fill_ap_bounds_hb(mpp_ap_record_t *r, int x, int y,
+                              int hb, int hp,
+                              int frame_rows, int frame_cols) {
 	r->x = x;
 	r->y = y;
 	r->box_x_low  = std::max(0, x - hb);
@@ -1564,6 +1562,15 @@ static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
 	r->patch_x_high = std::min(frame_cols, x + hp);
 	r->patch_y_low  = std::max(0, y - hp);
 	r->patch_y_high = std::min(frame_rows, y + hp);
+}
+
+/* Fill the box/patch bounds for an AP at (x, y) from cfg, extending the
+ * patch out to the frame border for edge APs. */
+static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
+                           const mpp_config_t *cfg,
+                           int frame_rows, int frame_cols) {
+	fill_ap_bounds_hb(r, x, y, cfg->alignment_points_half_box_width,
+	                  mpp_cfg_half_patch_width(cfg), frame_rows, frame_cols);
 }
 
 extern "C" mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y) {
@@ -1605,6 +1612,39 @@ extern "C" mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y) {
 		return MPP_EINVAL;
 	mpp_ap_record_t *r = &run->aps->records[i];
 	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
+	std::free(run->best_frame_indices);
+	run->best_frame_indices = nullptr;
+	return MPP_OK;
+}
+
+/* Grow/shrink AP `i`'s correlation box (and its output patch) by `step`
+ * pixels of half-box, recomputing both around the AP centre. The current
+ * half-box is recovered as the largest centre-to-edge distance (the box is
+ * clamped at the frame border for edge APs, so the unclamped side gives the
+ * true value). The new half-box is clamped to [6, border − search_width] so
+ * the symmetric box stays inside the mean (reference) frame — which is what
+ * the boxes index — with room for the per-AP search. Half-patch tracks at
+ * 1.5× half-box, matching mpp_cfg_half_patch_width. GUI-only: editor edits
+ * the cached run; resetting best_frame_indices makes Register recompute. */
+extern "C" mpp_status_t mpp_ap_resize(mpp_run_t *run, int i, int step) {
+	if (!run || !run->aps || !run->cfg || i < 0 || i >= run->aps->count)
+		return MPP_EINVAL;
+	mpp_ap_record_t *r = &run->aps->records[i];
+	const int x = r->x, y = r->y;
+	const int rows = run->mean_frame_rows, cols = run->mean_frame_cols;
+	if (rows <= 0 || cols <= 0) return MPP_EINVAL;
+	const int cur_hb = std::max(std::max(x - r->box_x_low, r->box_x_high - x),
+	                            std::max(y - r->box_y_low, r->box_y_high - y));
+	const int sw = run->cfg->alignment_points_search_width;
+	const int min_hb = 6;
+	int max_hb = std::min(std::min(x, cols - 1 - x),
+	                      std::min(y, rows - 1 - y)) - sw;
+	if (max_hb < min_hb) max_hb = min_hb;
+	int new_hb = cur_hb + step;
+	if (new_hb < min_hb) new_hb = min_hb;
+	if (new_hb > max_hb) new_hb = max_hb;
+	if (new_hb == cur_hb) return MPP_OK;   /* already at a clamp limit */
+	fill_ap_bounds_hb(r, x, y, new_hb, (new_hb * 3) / 2, rows, cols);
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;

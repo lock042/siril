@@ -46,6 +46,11 @@ static int g_ap_drag_idx = -1;
  * dialog hide. */
 static int g_ap_hover_idx = -1;
 
+/* AP currently selected (by clicking it); -1 if none. The resize controls
+ * (mouse scroll, +/- keys) act on this AP. Cleared when the AP set changes
+ * (add/remove/clear/auto-place) so the index can't go stale, and on close. */
+static int g_ap_selected_idx = -1;
+
 /* Snapshot of the AP grid taken when the dialog opens. Used by Cancel to
  * revert edits made between show and Cancel. Commit drops it. */
 static mpp_aps_t *g_aps_snapshot = NULL;
@@ -104,6 +109,9 @@ void mpp_ap_editor_set_drag_idx(int idx)   { g_ap_drag_idx = idx; }
 
 int  mpp_ap_editor_get_hover_idx(void)     { return g_ap_hover_idx; }
 void mpp_ap_editor_set_hover_idx(int idx)  { g_ap_hover_idx = idx; }
+
+int  mpp_ap_editor_get_selected_idx(void)    { return g_ap_selected_idx; }
+void mpp_ap_editor_set_selected_idx(int idx) { g_ap_selected_idx = idx; }
 
 gboolean mpp_ap_editor_is_open(void) {
 	return dialog && gtk_widget_get_visible(dialog);
@@ -166,6 +174,7 @@ void on_mpp_ap_editor_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	g_ap_drag_idx = -1;
 	g_ap_hover_idx = -1;
+	g_ap_selected_idx = -1;
 	redraw(REDRAW_OVERLAY);   /* clear hover highlight */
 	/* Don't auto-free the snapshot here — Cancel and Commit handle it
 	 * explicitly; this path can run via window-manager close, in which
@@ -200,6 +209,7 @@ void on_mpp_ap_editor_auto_place_clicked(GtkButton *button, gpointer user_data) 
 	mpp_config_t cfg;
 	cfg_from_spinners(run, &cfg);
 	const int rc = mpp_ap_replace(run, &cfg);
+	g_ap_selected_idx = -1;   /* AP set replaced — old index is meaningless */
 	switch (rc) {
 		case MPP_OK:
 			siril_log_status(_("AP editor: auto-placed %d APs.\n"), run->aps->count);
@@ -224,6 +234,7 @@ void on_mpp_ap_editor_clear_clicked(GtkButton *button, gpointer user_data) {
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run) return;
 	mpp_ap_clear_all(run);
+	g_ap_selected_idx = -1;
 	siril_log_warning(_("AP editor: cleared all APs.\n"));
 	editor_refresh_count_label();
 	redraw(REDRAW_OVERLAY);

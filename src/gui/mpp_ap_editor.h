@@ -20,6 +20,12 @@ void mpp_ap_editor_set_drag_idx(int idx);
 int  mpp_ap_editor_get_hover_idx(void);
 void mpp_ap_editor_set_hover_idx(int idx);
 
+/* Index of the selected AP (set by clicking it); -1 when none. The resize
+ * controls (mouse scroll, +/- keys) act on this AP. Cleared when the AP set
+ * changes or the dialog closes so the index can't go stale. */
+int  mpp_ap_editor_get_selected_idx(void);
+void mpp_ap_editor_set_selected_idx(int idx);
+
 /* Recompute the "Current APs: N" label from the cached run. Safe to call
  * before the dialog has ever been shown (no-op until widget cached). */
 void mpp_ap_editor_refresh_count_label(void);

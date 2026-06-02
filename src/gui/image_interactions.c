@@ -894,6 +894,30 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 // scroll event is the wheel interception for zoom
 gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
+	/* AP editor: with an AP selected, the scroll wheel resizes it (grow on
+	 * scroll-up, shrink on scroll-down) instead of zooming. Only intercept
+	 * when an AP is actually selected, so zoom still works otherwise. */
+	if (mouse_status == MOUSE_ACTION_EDIT_APS && mpp_ap_editor_is_open()) {
+		const int sel = mpp_ap_editor_get_selected_idx();
+		mpp_run_t *run = mpp_get_cached_run();
+		if (sel >= 0 && run && run->aps && sel < run->aps->count) {
+			int step = 0;
+			GdkScrollDirection dir;
+			double sdx = 0.0, sdy = 0.0;
+			if (gdk_event_get_scroll_direction((GdkEvent *) event, &dir)) {
+				if (dir == GDK_SCROLL_UP)        step = 2;
+				else if (dir == GDK_SCROLL_DOWN) step = -2;
+			} else if (gdk_event_get_scroll_deltas((GdkEvent *) event, &sdx, &sdy)) {
+				if (sdy < 0.0)      step = 2;
+				else if (sdy > 0.0) step = -2;
+			}
+			if (step != 0) {
+				mpp_ap_resize(run, sel, step);
+				redraw(REDRAW_OVERLAY);
+			}
+			return TRUE;   /* consume — no zoom while resizing an AP */
+		}
+	}
 	if (!gui.scroll_actions)
 		load_or_initialize_scroll_actions();
 	point delta;

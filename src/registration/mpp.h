@@ -201,6 +201,9 @@ void         mpp_ap_clear_all(mpp_run_t *run);
 mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y);
 mpp_status_t mpp_ap_remove(mpp_run_t *run, int i);
 mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y);
+/* Grow (step>0) or shrink (step<0) AP `i`'s box/patch by `step` px of
+ * half-box, clamped so the box stays inside the reference frame. GUI-only. */
+mpp_status_t mpp_ap_resize(mpp_run_t *run, int i, int step);
 int          mpp_ap_hit_test(const mpp_run_t *run, int x, int y);
 
 mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src);
