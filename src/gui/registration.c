@@ -134,7 +134,7 @@ static GtkImage *framing_image = NULL;
 static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL, *estimate_label = NULL;
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
-static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_patch_scale = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
+static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_ref_percent = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
 /* Linked-adjustment companions for the Stack-tab spinners
  * (spin_mpp_stack_percent / spin_mpp_stack_frames). Sharing GtkAdjustment
  * keeps the values in sync across tabs without any signal plumbing —
@@ -142,7 +142,7 @@ static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *
  * per-AP best-frame list and Stage B does proportionally less correlation
  * work. */
 static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_frames = NULL;
-static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL;
+static GtkToggleButton *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
 static GtkComboBox *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkComboBox *combo_mpp_align_mode = NULL;
@@ -273,7 +273,7 @@ static void registration_init_statics() {
 		spin_mpp_half_box        = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_half_box"));
 		spin_mpp_search_width    = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_search_width"));
 		spin_mpp_search_global   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_search_global"));
-		spin_mpp_patch_scale     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_patch_scale"));
+		spin_mpp_ref_percent     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ref_percent"));
 		spin_mpp_min_brightness  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_brightness"));
 		spin_mpp_min_contrast    = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_contrast"));
 		spin_mpp_min_structure   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_structure"));
@@ -282,6 +282,7 @@ static void registration_init_statics() {
 		check_mpp_dewarp         = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
 		check_mpp_normalize      = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
 		check_mpp_seed           = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_seed"));
+		check_mpp_fast_changing  = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_fast_changing"));
 		combo_mpp_avi_bayer      = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer      = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
 		combo_mpp_align_mode     = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
@@ -1200,7 +1201,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->alignment_points_half_box_width      = gtk_spin_button_get_value_as_int(spin_mpp_half_box);
 		cfg->alignment_points_search_width        = gtk_spin_button_get_value_as_int(spin_mpp_search_width);
 		cfg->align_frames_search_width            = gtk_spin_button_get_value_as_int(spin_mpp_search_global);
-		cfg->align_frames_rectangle_scale_factor  = gtk_spin_button_get_value(spin_mpp_patch_scale);
+		cfg->align_frames_average_frame_percent   = gtk_spin_button_get_value_as_int(spin_mpp_ref_percent);
+		cfg->align_frames_fast_changing_object    = gtk_toggle_button_get_active(check_mpp_fast_changing);
 		cfg->alignment_points_brightness_threshold = gtk_spin_button_get_value_as_int(spin_mpp_min_brightness);
 		cfg->alignment_points_contrast_threshold   = gtk_spin_button_get_value_as_int(spin_mpp_min_contrast);
 		cfg->alignment_points_structure_threshold  = gtk_spin_button_get_value(spin_mpp_min_structure);

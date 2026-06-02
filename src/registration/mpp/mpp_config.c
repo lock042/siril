@@ -45,7 +45,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->align_frames_rectangle_black_threshold = 10240;
 	cfg->align_frames_rectangle_min_fraction = 0.7;
 	cfg->align_frames_average_frame_percent = 5;
-	cfg->align_frames_fast_changing_object = true;
+	cfg->align_frames_fast_changing_object = false;   /* Siril default off; PSS defaults on */
 	cfg->align_frames_best_frames_window_extension = 2;
 	cfg->align_frames_seed_from_regdata = true;
 

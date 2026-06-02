@@ -14662,8 +14662,14 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && g_str_has_prefix(arg, "-search-global=")) {
 		cfg->align_frames_search_width = atoi(arg + 15); return MPP_FLAG_OK;
 	}
-	if (accept_register && g_str_has_prefix(arg, "-patch-scale=")) {
-		cfg->align_frames_rectangle_scale_factor = atof(arg + 13); return MPP_FLAG_OK;
+	if (accept_register && !strcmp(arg, "-fast-changing")) {
+		/* Build the reference frame from a short interval of best frames
+		 * (for a fast-changing object). Default off. */
+		cfg->align_frames_fast_changing_object = TRUE; return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-ref-percent=")) {
+		/* %% of frames averaged into the reference frame (both modes). */
+		cfg->align_frames_average_frame_percent = atoi(arg + 13); return MPP_FLAG_OK;
 	}
 	if (accept_register && g_str_has_prefix(arg, "-min-brightness=")) {
 		cfg->alignment_points_brightness_threshold = atoi(arg + 16); return MPP_FLAG_OK;
@@ -14791,9 +14797,10 @@ static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
 int process_pss(int nb) {
 	/* `pss seqname [-out=file] [-scale=N (1..3)] [-scale-method=K] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
-	 *              [-search-global=N] [-patch-scale=F] [-min-brightness=N]
-	 *              [-min-contrast=N] [-min-structure=F] [-bg-fraction=F]
-	 *              [-bg-blend=F] [-no-dewarp] [-no-normalize] [-selected]`
+	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]
+	 *              [-min-brightness=N] [-min-contrast=N] [-min-structure=F]
+	 *              [-bg-fraction=F] [-bg-blend=F] [-no-dewarp] [-no-normalize]
+	 *              [-noseed] [-selected]`
 	 *
 	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
 	 * sequence and writes the stacked output to a FITS file. See

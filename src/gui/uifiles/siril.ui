@@ -142,12 +142,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.05</property>
   </object>
-  <object class="GtkAdjustment" id="adj_mpp_patch_scale">
-    <property name="lower">1.5</property>
-    <property name="upper">6</property>
-    <property name="value">3</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">0.5</property>
+  <object class="GtkAdjustment" id="adj_mpp_ref_percent">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">5</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
   </object>
   <object class="GtkAdjustment" id="adj_mpp_pixfrac">
     <property name="lower">0.05</property>
@@ -6880,7 +6880,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Patch scale:</property>
+                                                            <property name="label" translatable="yes">Reference frame %:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -6888,18 +6888,34 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkSpinButton" id="spin_mpp_patch_scale">
+                                                            <object class="GtkSpinButton" id="spin_mpp_ref_percent">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Multiplies the auto-picked patch dimension during global alignment. Default 3.0.</property>
-                                                            <property name="adjustment">adj_mpp_patch_scale</property>
-                                                            <property name="digits">2</property>
+                                                            <property name="tooltip-text" translatable="yes">Percentage of the sequence's best frames averaged into the reference frame. Applies whether or not "Object is changing fast" is set. Default 5.</property>
+                                                            <property name="adjustment">adj_mpp_ref_percent</property>
                                                             <property name="numeric">True</property>
-                                                            <property name="value">3</property>
+                                                            <property name="value">5</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_mpp_fast_changing">
+                                                            <property name="label" translatable="yes">Object is changing fast</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Build the reference frame from the best frames within a short contiguous interval, so a fast-changing object (e.g. a rotating planet) is less blurred. Off by default (CLI -fast-changing).</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">False</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6989,7 +7005,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">2</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7009,7 +7025,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">3</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7138,9 +7154,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">5</property>
-                                                            <property name="width">2</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">7</property>
+                                                            <property name="width">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7158,8 +7174,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">7</property>
-                                                            <property name="width">2</property>
+                                                            <property name="top-attach">8</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7174,9 +7189,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <signal name="clicked" handler="on_seqmpp_edit_aps_button_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">7</property>
-                                                            <property name="width">2</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">8</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7191,9 +7205,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <signal name="clicked" handler="on_seqmpp_view_shifts_button_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
+                                                            <property name="left-attach">2</property>
                                                             <property name="top-attach">8</property>
-                                                            <property name="width">4</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
