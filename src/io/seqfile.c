@@ -57,8 +57,11 @@
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
  * version 6
  * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
+ * version 7
+ * - added E card:
+ * 	=> E filename ext_ref_rx ext_ref_ry
  */
-#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 7	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -596,6 +599,21 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'E': { // External reference: "E path rx ry"
+				char buf0[256];
+				unsigned int ref_rx, ref_ry, active;
+				nb_tokens = sscanf(line + 2, "%s %u %u %u\n",
+							buf0, &active, &ref_rx, &ref_ry);
+				if (nb_tokens != 4) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
+					goto error;
+				}
+				seq->ext_ref_path = g_strchomp(g_strdup(buf0));
+				seq->ext_ref_rx = ref_rx;
+				seq->ext_ref_ry = ref_ry;
+				seq->ext_ref = (gboolean)active;
+				break;
+			}
 			case 'O':
 				current_layer = line[1] - '0';
 				if (!seq->ostats) {
@@ -726,6 +744,8 @@ int writeseqfile(sequence *seq){
 		}
 	}
 
+	if (seq->ext_ref_path)
+		fprintf(seqfile, "E %s %d %u %u\n", seq->ext_ref_path, seq->ext_ref ? 1 : 0, seq->ext_ref_rx, seq->ext_ref_ry);
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
 			if (layer_has_distortion(seq, layer)) {

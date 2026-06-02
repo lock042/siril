@@ -340,6 +340,51 @@ When this box is unchecked, the global star registration will be calculated and 
                                                 </layout>
                                               </object>
                                             </child>
+                                            <child>
+                                              <object class="GtkCheckButton" id="reg_reference_checkbutton">
+                                                <property name="label" translatable="yes">Use Ext. Ref</property>
+                                                <property name="focusable">1</property>
+                                                <property name="tooltip-text" translatable="yes">Use an external reference image (from a different night or sequence) instead of an image from the current sequence.</property>
+                                                <property name="halign">start</property>
+                                                <signal name="toggled" handler="on_reg_reference_checkbutton_toggled"/>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox" id="reg_referencefilechooser_box">
+                                                <property name="sensitive">False</property>
+                                                <child>
+                                                  <object class="GtkEntry" id="reg_reference_entry">
+                                                    <property name="focusable">1</property>
+                                                    <property name="hexpand">1</property>
+                                                    <property name="input-hints">no-emoji|none</property>
+                                                    <property name="tooltip-text" translatable="yes">Path to the external reference FITS image.</property>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="reg_reference_button">
+                                                    <property name="focusable">1</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="tooltip-text" translatable="yes">Browse for the external reference FITS image.</property>
+                                                    <property name="use-underline">1</property>
+                                                    <signal name="clicked" handler="on_reg_reference_button_clicked"/>
+                                                    <child>
+                                                      <object class="GtkImage">
+                                                        <property name="icon-name">document-open-symbolic</property>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="column-span">3</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
+                                            </child>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="column-span">4</property>
