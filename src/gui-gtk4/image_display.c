@@ -145,6 +145,24 @@ static void invalidate_image_render_cache(int vport);
  * Also keeps tex_w >> mip strictly positive on every realistic tile. */
 #define SIRIL_MAX_MIP        6
 
+/* Long-edge size (pixels) of the lazy-mode full-image proxy.  One texture of
+ * at most SIRIL_PROXY_MAX on its longer axis is kept resident per lazy
+ * viewport and used as the fallback backdrop while real tiles are still being
+ * materialised after a fast zoom-out.  2048 keeps it inside every GPU's
+ * texture-size limit and makes it pixel-adequate at zoom_fit on any normal
+ * monitor; it is point-sampled (not box-averaged) so its build cost is
+ * O(proxy area) — a few megapixels — regardless of how large the source is. */
+#define SIRIL_PROXY_MAX      2048
+
+/* When this many or fewer visible tiles still need materialising, the snapshot
+ * does it synchronously (sharp immediately — this is the zoomed-in, few-tiles
+ * case that was never the problem).  Above this count — the fast-zoom-out case
+ * where many tiles appear at once — the snapshot stops blocking, draws the
+ * proxy backdrop instead, and lets the refine idle materialise the real tiles
+ * over the next frames.  Tunable: higher = sharper sooner but more per-frame
+ * stall risk; lower = smoother but leans on the proxy more. */
+#define SIRIL_SYNC_MATERIALISE_BUDGET 4
+
 /* Choose the mip level we want to materialise tiles at, given the current
  * display zoom.  At mip M each texture pixel covers 2^M × 2^M source pixels;
  * the coarsest mip that still keeps the texture at least as dense as the
@@ -312,6 +330,10 @@ static void view_invalidate_tiles_lazy(struct image_view *view) {
 		}
 		view->tiles[i].dirty = TRUE;
 	}
+	/* The LUT changed, so the resident proxy is stale too — rebuild it on
+	 * the next snapshot.  Keep the old texture around until then so there's
+	 * still a backdrop to draw in the meantime. */
+	view->proxy_dirty = TRUE;
 }
 
 /* Compatibility wrapper called from every remap exit point.  In eager
@@ -384,6 +406,15 @@ static int allocate_full_surface(struct image_view *view) {
 			view->buf_gbytes = NULL;
 		}
 		view->buf = NULL;
+
+		/* The image dimensions / mode are changing — drop the proxy so it's
+		 * rebuilt at the new size (and never lingers into eager mode). */
+		if (view->proxy) {
+			g_object_unref(view->proxy);
+			view->proxy = NULL;
+		}
+		view->proxy_dirty = TRUE;
+		view->vis_valid = FALSE;
 
 		if (!want_lazy) {
 			guchar *fresh = malloc(total_bytes * sizeof(guchar));
@@ -760,15 +791,175 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 	return TRUE;
 }
 
-/* True when `mip` is in the snapshot's acceptable range for displaying a
- * tile at the current target.  We accept the strict target plus one level
- * finer (i.e. the prefetched mip) so the background prefetch idle's work
- * isn't undone on the next snapshot.  Anything coarser than target_mip is
- * too aliased; anything more than one level finer than target_mip is just
- * wasting memory and should be coarsened. */
+/* ── Full-image proxy (lazy mode) ─────────────────────────────────────────
+ *
+ * fill_proxy_{gray,rgb} write a point-sampled downscale of the *whole* image
+ * into a caller-provided BGRX buffer (out_w × out_h), taking one source pixel
+ * per output pixel at stride `step`.  This mirrors the LUT / HD / inverted /
+ * ICC handling of materialise_tile_{gray,rgb} (kept in sync with those
+ * functions) but skips box-averaging: the proxy is a transient stand-in shown
+ * only until real mipmapped tiles arrive, so decimation is visually adequate
+ * and keeps the build cost proportional to the proxy size, not the image size.
+ * The same bottom-up y-flip as the tile materialisers is applied so the proxy
+ * lines up with the tiles and the display_matrix. */
+static void fill_proxy_gray(struct image_view *view, int vport,
+                            const BYTE *lut, gboolean hd_mode, gboolean inverted,
+                            guchar *data, int out_w, int out_h, int step) {
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const WORD *src   = gfit->pdata[vport];
+	const float *fsrc = gfit->fpdata[vport];
+	const guint hd_max = gui.hd_remap_max;
+	for (int oy = 0; oy < out_h; oy++) {
+		const int iy = img_h - 1 - MIN(oy * step, img_h - 1);  /* y-flip */
+		guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
+		for (int ox = 0; ox < out_w; ox++) {
+			const int ix = MIN(ox * step, img_w - 1);
+			const size_t si = (size_t)iy * img_w + ix;
+			BYTE val;
+			if (gfit->type == DATA_USHORT) {
+				const WORD sv = src[si];
+				val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+			} else {
+				val = hd_mode
+					? lut[float_to_max_range(fsrc[si], hd_max)]
+					: lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+			}
+			if (inverted) val = UCHAR_MAX - val;
+			row_out[ox] = ((guint32)val << 16) | ((guint32)val << 8) | val;
+		}
+	}
+}
+
+static void fill_proxy_rgb(struct image_view *view, const BYTE * const idx[3],
+                           gboolean hd_mode, gboolean inverted, gboolean do_icc,
+                           guchar *data, int out_w, int out_h, int step) {
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const guint hd_max = gui.hd_remap_max;
+	BYTE *lb = malloc((size_t)out_w * 3);
+	if (!lb) {                          /* extremely unlikely; show black proxy */
+		memset(data, 0, (size_t)out_w * out_h * 4);
+		return;
+	}
+	BYTE *lb_r = lb, *lb_g = lb + out_w, *lb_b = lb + 2 * out_w;
+	for (int oy = 0; oy < out_h; oy++) {
+		const int iy = img_h - 1 - MIN(oy * step, img_h - 1);  /* y-flip */
+		guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
+		for (int ox = 0; ox < out_w; ox++) {
+			const int ix = MIN(ox * step, img_w - 1);
+			const size_t si = (size_t)iy * img_w + ix;
+			BYTE v[3];
+			for (int c = 0; c < 3; c++) {
+				BYTE val;
+				if (gfit->type == DATA_USHORT) {
+					const WORD sv = gfit->pdata[c][si];
+					val = hd_mode ? idx[c][(guint)sv * hd_max / USHRT_MAX]
+					              : idx[c][sv];
+				} else {
+					const float fv = gfit->fpdata[c][si];
+					val = hd_mode ? idx[c][float_to_max_range(fv, hd_max)]
+					              : idx[c][roundf_to_WORD(fv * USHRT_MAX_SINGLE)];
+				}
+				if (inverted) val = UCHAR_MAX - val;
+				v[c] = val;
+			}
+			lb_r[ox] = v[0]; lb_g[ox] = v[1]; lb_b[ox] = v[2];
+		}
+		if (do_icc)
+			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
+		for (int ox = 0; ox < out_w; ox++)
+			row_out[ox] = ((guint32)lb_r[ox] << 16)
+				| ((guint32)lb_g[ox] << 8) | (guint32)lb_b[ox];
+	}
+	free(lb);
+}
+
+/* (Re)build the lazy-mode proxy for `view` from the current LUTs if it's dirty
+ * or missing.  No-op (and frees any stale proxy) in eager mode.  The LUT-slot
+ * selection mirrors the materialise_tile dispatcher exactly so the proxy and
+ * the real tiles agree on which remap_index slot each channel reads.  Must be
+ * called with gui.cairo_mutex held. */
+static void ensure_proxy(struct image_view *view, int vport) {
+	if (!view->lazy) {
+		if (view->proxy) { g_object_unref(view->proxy); view->proxy = NULL; }
+		return;
+	}
+	if (view->proxy && !view->proxy_dirty) return;
+
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	if (img_w <= 0 || img_h <= 0) return;
+
+	int m = 0;
+	while ((img_w >> m) > SIRIL_PROXY_MAX || (img_h >> m) > SIRIL_PROXY_MAX)
+		m++;
+	const int pw = MAX(1, img_w >> m);
+	const int ph = MAX(1, img_h >> m);
+	const int step = 1 << m;
+	const gsize bytes_len = (gsize)pw * ph * 4;
+	guchar *data = malloc(bytes_len);
+	if (!data) return;
+
+	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
+		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	gboolean neg = FALSE;
+	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win),
+	                                                  "negative-view");
+	if (action_neg) {
+		GVariant *st = g_action_get_state(action_neg);
+		neg = g_variant_get_boolean(st);
+		g_variant_unref(st);
+	}
+
+	if (vport == RGB_VPORT) {
+		const BYTE *idx[3];
+		for (int c = 0; c < 3; c++) {
+			const int slot = (gui.rendering_mode == STF_DISPLAY
+			                  && gui.unlink_channels) ? c : 0;
+			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
+		}
+		const gboolean do_icc = (gfit->color_managed
+			&& com.gui_icc.proofing_transform && !identical
+			&& !com.gui_icc.same_primaries);
+		fill_proxy_rgb(view, idx, hd_mode, neg, do_icc, data, pw, ph, step);
+	} else if (vport >= 0 && vport <= 2) {
+		const int target_index = (gui.rendering_mode == STF_DISPLAY
+			&& gui.unlink_channels) ? vport : 0;
+		const BYTE *lut = hd_mode ? gui.hd_remap_index[target_index]
+		                          : gui.remap_index[target_index];
+		fill_proxy_gray(view, vport, lut, hd_mode, neg, data, pw, ph, step);
+	} else {
+		free(data);
+		return;
+	}
+
+	GBytes *bytes = g_bytes_new_with_free_func(data, bytes_len, free, data);
+	GdkTexture *tex = gdk_memory_texture_new(pw, ph, GDK_MEMORY_B8G8R8X8,
+	                                          bytes, pw * 4);
+	g_bytes_unref(bytes);
+
+	if (view->proxy) g_object_unref(view->proxy);
+	view->proxy = tex;
+	view->proxy_mip = m;
+	view->proxy_w = pw;
+	view->proxy_h = ph;
+	view->proxy_dirty = FALSE;
+}
+
+/* True when a tile materialised at `mip` is good enough to *display* at the
+ * current target without re-materialising.  Any tile at least as dense as the
+ * target (mip <= target_mip) is fine: an equal-or-finer texture just gets
+ * downscaled by GSK and looks correct.  We deliberately do NOT reject
+ * finer-than-needed tiles here — re-materialising a visible tile purely to
+ * coarsen it (e.g. after a multi-octave zoom-out) is pure latency on the
+ * snapshot/render thread for zero visual gain, and was a real source of zoom
+ * jerk.  Over-fine tiles are reclaimed lazily for memory via LRU eviction in
+ * materialise_tile, not synchronously on the draw path.  Only mip > target_mip
+ * (too coarse / aliased) is unacceptable for display. */
 static inline gboolean tile_mip_acceptable(int mip, int target_mip) {
-	const int lo = target_mip > 0 ? target_mip - 1 : 0;
-	return mip >= lo && mip <= target_mip;
+	return mip <= target_mip;
 }
 
 /* LRU eviction: free tile bytes (and their texture) starting from the
@@ -797,35 +988,40 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
 
 /* ── Background mip prefetch ──────────────────────────────────────────────
  *
- * After the snapshot has materialised visible tiles at `target_mip` we kick
- * a low-priority idle that walks the tile grid and steps one tile per tick
- * down from target_mip to (target_mip − 1), starting with the most-recently-
- * used candidate.  This means the *next* zoom-in step (where target_mip
- * decreases by 1) finds those tiles already at the new target and the
- * snapshot path doesn't need to stall on a fresh materialise.  When the user
- * zooms in again, target_mip drops further and the idle starts over at the
- * new target_mip − 1, cascading toward mip 0 as long as the user keeps
- * zooming.  On zoom-out the snapshot coarsens stale-finer tiles back to the
- * new target — the prefetched bytes are reclaimed via the usual LRU path.
+ * A low-priority idle that does at most ONE tile per main-loop tick (to keep
+ * input responsive) and self-removes once there's nothing left to do.  It has
+ * two jobs, in priority order:
+ *
+ *  1. Deferred fill.  When a fast zoom-out makes many never-materialised tiles
+ *     visible at once, the snapshot doesn't block to materialise them — it
+ *     draws the low-res proxy backdrop instead and leaves them unready.  This
+ *     idle materialises those still-unready visible tiles up to target_mip,
+ *     one per tick, queueing a redraw each time so the sharp tile is appended
+ *     over the proxy.  This is what makes a fast zoom-out *resolve* smoothly
+ *     instead of stalling the render thread.
+ *
+ *  2. Prefetch.  Once everything visible is at target_mip, step the most-
+ *     recently-used tile one level finer (target_mip − 1).  The *next* zoom-in
+ *     octave then finds those tiles already dense enough and the snapshot
+ *     doesn't have to stall on a fresh materialise.  No redraw is queued for
+ *     this step (see the note at the prefetch site).
  *
  * Memory cost: at steady state with prefetch complete, visible tiles hold
  * ~4× the bytes of a strict-target materialisation.  Still bounded by the
- * zoom_fit cap and the global SIRIL_LAZY_BUDGET.
- *
- * The idle does at most ONE tile per main-loop tick to keep input
- * responsive; it self-removes once nothing is left to upgrade. */
+ * zoom_fit cap and the global SIRIL_LAZY_BUDGET. */
 
 static gboolean prefetch_idle_cb(gpointer data);
 
-/* Schedule the prefetch idle for a viewport if one isn't already running
- * and there's plausibly work to do (lazy mode, target_mip > 0).  The idle
- * itself rechecks both conditions under the mutex before doing anything,
- * so this is just a cheap "maybe-kick" test. */
+/* Schedule the refine idle for a viewport if one isn't already running and
+ * there's plausibly work to do: either some visible tile is still unready and
+ * being covered by the proxy (have_deferred), or there's a finer prefetch to
+ * do (target_mip > 0).  The idle rechecks everything under the mutex, so this
+ * is just a cheap "maybe-kick" test. */
 static void schedule_view_prefetch_idle(struct image_view *view, int vport,
-                                         int target_mip) {
+                                         int target_mip, gboolean have_deferred) {
 	if (view->prefetch_idle_id != 0) return;
 	if (!view->lazy) return;
-	if (target_mip <= 0) return;
+	if (!have_deferred && target_mip <= 0) return;
 	view->prefetch_idle_id = g_idle_add_full(G_PRIORITY_LOW,
 	                                          prefetch_idle_cb,
 	                                          GINT_TO_POINTER(vport), NULL);
@@ -865,15 +1061,47 @@ static gboolean prefetch_idle_cb(gpointer data) {
 	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
 	const int prefetch_mip = target_mip > 0 ? target_mip - 1 : 0;
 
-	if (!view->lazy || !view->tiles || target_mip <= 0) {
+	if (!view->lazy || !view->tiles) {
 		view->prefetch_idle_id = 0;
 		g_mutex_unlock(&gui.cairo_mutex);
 		return G_SOURCE_REMOVE;
 	}
 
-	/* Find the most-recently-used tile that's currently above prefetch_mip
-	 * (i.e. could be stepped one level finer) and isn't dirty.  Skipping
-	 * dirty tiles avoids racing the next snapshot's own re-materialise. */
+	/* Priority 1 — deferred fill.  Materialise one still-unready visible tile
+	 * up to target_mip so the proxy backdrop is progressively replaced by
+	 * sharp tiles.  We scan the visible range the last snapshot recorded, in
+	 * raster order, and DO queue a redraw afterwards so the new tile actually
+	 * lands on screen.  This is the work that makes a fast zoom-out resolve. */
+	if (view->vis_valid) {
+		const int tx0 = CLAMP(view->vis_tx0, 0, view->tile_cols - 1);
+		const int tx1 = CLAMP(view->vis_tx1, 0, view->tile_cols - 1);
+		const int ty0 = CLAMP(view->vis_ty0, 0, view->tile_rows - 1);
+		const int ty1 = CLAMP(view->vis_ty1, 0, view->tile_rows - 1);
+		for (int ty = ty0; ty <= ty1; ty++) {
+			for (int tx = tx0; tx <= tx1; tx++) {
+				struct image_tile *t = &view->tiles[ty * view->tile_cols + tx];
+				const gboolean ready = t->texture && !t->dirty
+					&& tile_mip_acceptable(t->mip, target_mip);
+				if (ready) continue;
+				const gboolean ok = materialise_tile(view, vport, tx, ty, target_mip);
+				g_mutex_unlock(&gui.cairo_mutex);
+				if (!ok) {            /* allocation refusal — back off */
+					view->prefetch_idle_id = 0;
+					return G_SOURCE_REMOVE;
+				}
+				/* This tile was covered by the proxy; queue a redraw so the
+				 * snapshot appends the sharp texture over it. */
+				if (view->drawarea)
+					gtk_widget_queue_draw(view->drawarea);
+				return G_SOURCE_CONTINUE;
+			}
+		}
+	}
+
+	/* Priority 2 — prefetch.  Find the most-recently-used tile that's currently
+	 * above prefetch_mip (i.e. could be stepped one level finer) and isn't
+	 * dirty.  Skipping dirty tiles avoids racing the next snapshot's own
+	 * re-materialise. */
 	int best_tx = -1, best_ty = -1;
 	guint64 best_last = 0;
 	gboolean have_best = FALSE;
@@ -907,15 +1135,14 @@ static gboolean prefetch_idle_cb(gpointer data) {
 		return G_SOURCE_REMOVE;
 	}
 
-	/* Deliberately NOT queueing a redraw here: the freshly-built
-	 * GdkMemoryTexture lives CPU-side only until the next user-driven
-	 * snapshot (zoom, pan, exposure event) actually appends it to the
-	 * render tree, at which point GSK does a single GPU upload.  Queueing
-	 * a redraw per tick would force GSK to upload each prefetched tile
-	 * as it lands, producing a stream of small uploads that contend with
-	 * the very zoom snapshots they're meant to accelerate.  The accept
-	 * range will still pick the finer texture up on the next legitimate
-	 * redraw. */
+	/* Deliberately NOT queueing a redraw for the prefetch step: the freshly-
+	 * built GdkMemoryTexture lives CPU-side only until the next user-driven
+	 * snapshot (zoom, pan, exposure event) actually appends it to the render
+	 * tree, at which point GSK does a single GPU upload.  Queueing a redraw
+	 * per tick would force GSK to upload each prefetched tile as it lands,
+	 * producing a stream of small uploads that contend with the very zoom
+	 * snapshots they're meant to accelerate.  The accept range will still pick
+	 * the finer texture up on the next legitimate redraw. */
 	return G_SOURCE_CONTINUE;  /* more candidates may remain — keep going */
 }
 
@@ -2031,48 +2258,109 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
 
 	GdkTexture **tiles_snapshot = NULL;
+	GdkTexture *proxy_ref = NULL;
+	gboolean draw_proxy = FALSE;
 	if (view->tiles && tile_cols > 0 && tile_rows > 0) {
 		tiles_snapshot = g_new0(GdkTexture *, tile_cols * tile_rows);
+
+		/* Pass 1: find the visible tile range and count how many visible
+		 * tiles still need materialising.  A tile is "ready" if it carries a
+		 * clean texture at least as dense as the target mip
+		 * (tile_mip_acceptable — equal-or-finer is fine, GSK downscales it). */
+		gboolean have_vis = FALSE;
+		int vtx0 = 0, vty0 = 0, vtx1 = 0, vty1 = 0;
+		int unready = 0;
 		for (int ty = 0; ty < tile_rows; ty++) {
 			for (int tx = 0; tx < tile_cols; tx++) {
 				const int x0 = tx * tile_dim;
 				const int y0 = ty * tile_dim;
 				/* Display-space y → image-space y is flipped, but the
-				 * visible rect was computed in image-space, so the
-				 * tile's stored display position (x0, y0) and visible
-				 * (vis_xmin..vis_xmax, vis_ymin..vis_ymax) compare
-				 * directly. */
+				 * visible rect was computed in image-space, so the tile's
+				 * stored display position (x0, y0) and visible bounds
+				 * compare directly. */
 				if (x0 + tile_dim < vis_xmin) continue;
 				if (y0 + tile_dim < vis_ymin) continue;
 				if (x0 > vis_xmax) continue;
 				if (y0 > vis_ymax) continue;
-				if (view->lazy && !suppressed) {
-					/* Accept the prefetched mip (target_mip − 1) without
-					 * re-materialising, so the background prefetch idle's
-					 * work isn't undone here.  Only force a re-materialise
-					 * when the tile is dirty, missing, or outside the
-					 * accepted [target − 1, target] mip range — i.e. too
-					 * coarse (aliased) or wastefully fine (zoom-out). */
-					struct image_tile *t = &view->tiles[ty * tile_cols + tx];
-					const gboolean ok = !t->dirty && t->texture
-					                   && tile_mip_acceptable(t->mip, target_mip);
-					if (!ok)
-						materialise_tile(view, vport, tx, ty, target_mip);
-					else
-						t->last_used = ++view->lazy_epoch;
+				if (!have_vis) {
+					vtx0 = vtx1 = tx; vty0 = vty1 = ty; have_vis = TRUE;
+				} else {
+					if (tx < vtx0) vtx0 = tx;
+					if (tx > vtx1) vtx1 = tx;
+					if (ty < vty0) vty0 = ty;
+					if (ty > vty1) vty1 = ty;
 				}
-				GdkTexture *t = view->tiles[ty * tile_cols + tx].texture;
-				if (t) {
-					tiles_snapshot[ty * tile_cols + tx] = t;
-					g_object_ref(t);
+				if (view->lazy && !suppressed) {
+					const struct image_tile *t = &view->tiles[ty * tile_cols + tx];
+					const gboolean ready = t->texture && !t->dirty
+						&& tile_mip_acceptable(t->mip, target_mip);
+					if (!ready) unready++;
 				}
 			}
 		}
+
+		/* Hand the visible range to the refine idle so it only works on
+		 * on-screen tiles. */
+		view->vis_tx0 = vtx0; view->vis_ty0 = vty0;
+		view->vis_tx1 = vtx1; view->vis_ty1 = vty1;
+		view->vis_valid = have_vis;
+
+		/* Few unready tiles (the zoomed-in case that was never the problem):
+		 * materialise them inline so they're sharp immediately.  Many unready
+		 * tiles (the fast zoom-out case): don't block the render thread —
+		 * draw the proxy backdrop and let the refine idle materialise the real
+		 * tiles over the next few frames. */
+		const gboolean defer = (unready > SIRIL_SYNC_MATERIALISE_BUDGET);
+
+		/* Pass 2: materialise (unless deferring) and ref the textures we draw. */
+		gboolean any_unready = FALSE;
+		for (int ty = vty0; have_vis && ty <= vty1; ty++) {
+			for (int tx = vtx0; tx <= vtx1; tx++) {
+				const int x0 = tx * tile_dim;
+				const int y0 = ty * tile_dim;
+				if (x0 + tile_dim < vis_xmin) continue;
+				if (y0 + tile_dim < vis_ymin) continue;
+				if (x0 > vis_xmax) continue;
+				if (y0 > vis_ymax) continue;
+				struct image_tile *t = &view->tiles[ty * tile_cols + tx];
+				if (view->lazy && !suppressed) {
+					gboolean ready = t->texture && !t->dirty
+						&& tile_mip_acceptable(t->mip, target_mip);
+					if (!ready && !defer) {
+						materialise_tile(view, vport, tx, ty, target_mip);
+						ready = t->texture && !t->dirty
+							&& tile_mip_acceptable(t->mip, target_mip);
+					}
+					if (ready)
+						t->last_used = ++view->lazy_epoch;
+					else
+						any_unready = TRUE;
+				}
+				if (t->texture) {
+					tiles_snapshot[ty * tile_cols + tx] = t->texture;
+					g_object_ref(t->texture);
+				}
+			}
+		}
+
+		/* If any visible tile is still missing its target texture, make sure
+		 * the resident proxy is current and ref it for the backdrop pass. */
+		if (view->lazy && !suppressed && any_unready) {
+			ensure_proxy(view, vport);
+			if (view->proxy) {
+				proxy_ref = g_object_ref(view->proxy);
+				draw_proxy = TRUE;
+			}
+		}
+
+		/* Kick the refine idle: it materialises still-unready visible tiles up
+		 * to target (replacing the proxy as they land), then prefetches one
+		 * level finer for the next zoom-in step.  No-op if already running, if
+		 * not lazy, or if there's neither deferred work nor a finer prefetch
+		 * to do. */
+		if (!suppressed)
+			schedule_view_prefetch_idle(view, vport, target_mip, any_unready);
 	}
-	/* Kick the background prefetch idle (no-op if one is already running,
-	 * if we're not in lazy mode, or if target_mip is already 0). */
-	if (!suppressed)
-		schedule_view_prefetch_idle(view, vport, target_mip);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	if (tiles_snapshot && img_w > 0 && img_h > 0) {
@@ -2117,6 +2405,17 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			? GSK_SCALING_FILTER_TRILINEAR
 			: GSK_SCALING_FILTER_NEAREST;
 
+		/* Proxy backdrop: a single scaled-texture node covering the whole
+		 * image, drawn *under* the real tiles.  Any visible tile that hasn't
+		 * been materialised yet (fast zoom-out) shows the low-res proxy here
+		 * instead of a hole; the refine idle then paints sharp tiles over it
+		 * frame by frame.  Same widget-space rect convention as the tiles. */
+		if (draw_proxy && proxy_ref) {
+			gtk_snapshot_append_scaled_texture(snapshot, proxy_ref, filter,
+				&GRAPHENE_RECT_INIT(0.0f, 0.0f,
+					(float)(img_w * xx), (float)(img_h * yy)));
+		}
+
 		for (int ty = 0; ty < tile_rows; ty++) {
 			for (int tx = 0; tx < tile_cols; tx++) {
 				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
@@ -2146,6 +2445,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		}
 		g_free(tiles_snapshot);
 	}
+	if (proxy_ref)
+		g_object_unref(proxy_ref);
 
 	/* Overlays: open a Cairo subnode covering the full widget, apply
 	 * display_matrix so overlay drawing functions operate in image-space

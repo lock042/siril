@@ -129,6 +129,27 @@ struct image_view {
 	gboolean          lazy;
 	gsize             lazy_bytes_used;
 	guint64           lazy_epoch;
+
+	/* Lazy-mode low-resolution proxy: a single point-sampled downscale of the
+	 * whole image (long edge <= SIRIL_PROXY_MAX), built from the current LUTs
+	 * and kept resident as an always-available fallback.  When a fast zoom-out
+	 * makes many never-materialised tiles visible at once, the snapshot draws
+	 * this proxy as a full-image backdrop instead of blocking to materialise
+	 * each tile — the real, sharp tiles then fill in over the next few frames
+	 * via the refine idle.  proxy_mip / proxy_w / proxy_h describe the current
+	 * texture; proxy_dirty is set on every lazy remap and grid realloc so the
+	 * next snapshot rebuilds it.  Not counted against lazy_bytes_used (small,
+	 * always resident).  NULL / unused in eager mode. */
+	GdkTexture       *proxy;
+	int               proxy_mip;
+	int               proxy_w, proxy_h;
+	gboolean          proxy_dirty;
+
+	/* Inclusive visible tile-index range recorded by the most recent snapshot,
+	 * consumed by the refine idle so it only does work for on-screen tiles.
+	 * vis_valid is FALSE until the first snapshot populates it. */
+	int               vis_tx0, vis_ty0, vis_tx1, vis_ty1;
+	gboolean          vis_valid;
 };
 
 /* ── draw callback context ────────────────────────────────────────────────── */
