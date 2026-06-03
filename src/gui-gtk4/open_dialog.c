@@ -538,13 +538,6 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	 * this handler, but downstream code passes the pointer into idles
 	 * that may run after we return — copy onto the heap to be safe. */
 	gchar *path_copy = g_strdup(path);
-	gchar *image_dir = g_path_get_dirname(path_copy);
-	if (image_dir) {
-		siril_change_dir(image_dir, NULL);
-		g_free(image_dir);
-	}
-	if (!com.script)
-		gui_function(set_GUI_CWD, NULL);
 	open_single_image(path_copy);
 	g_free(path_copy);
 }
