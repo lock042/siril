@@ -697,7 +697,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	if (fit->mask) {
 		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
-			siril_log_color_message(_("Error binning mask\n"), "red");
+			siril_log_error(_("Error binning mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -769,7 +769,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 
 	if (retvalue == 0 && image->mask) {
 		if (resize_mask(image->mask, old_rx, old_ry, toX, toY, interpolation)) {
-			siril_log_color_message(_("Error resizing mask\n"), "red");
+			siril_log_error(_("Error resizing mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -838,7 +838,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	if (image->mask) {
 		// OPENCV_NEAREST is fine because we are rotating by a multiple of 90 \deg
 		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
-			siril_log_color_message(_("Error rotating mask\n"), "red");
+			siril_log_error(_("Error rotating mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
 			set_mask_active(image, FALSE);
@@ -879,7 +879,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 
 	if (image->mask) {
 		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_CUBIC)) {
-			siril_log_color_message(_("Error rotating mask\n"), "red");
+			siril_log_error(_("Error rotating mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -907,7 +907,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	// given how long flipping an image takes, I think we can remove all the verbose code, also because of the weird naming of horizontal and vertical mirrors
 	if (verbose) {
-		siril_log_color_message(_("Horizontal mirror: processing...\n"), "green");
+		siril_log_info(_("Horizontal mirror: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 	fits_flip_top_to_bottom(fit);
@@ -918,7 +918,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	if (fit->mask) {
 		if (mirrorx_mask(fit->mask, fit->rx, fit->ry)) {
-			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			siril_log_error(_("Error mirroring mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -953,7 +953,7 @@ void mirrory(fits *fit, gboolean verbose) {
 	struct timeval t_start, t_end;
 
 	if (verbose) {
-		siril_log_color_message(_("Vertical mirror: processing...\n"), "green");
+		siril_log_info(_("Vertical mirror: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 
@@ -964,7 +964,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		// For vertical mirror: flip top-to-bottom then rotate 180
 		if (mirrorx_mask(fit->mask, fit->rx, fit->ry) ||
 		    rotate_mask_pi(fit->mask, fit->rx, fit->ry)) {
-			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			siril_log_error(_("Error mirroring mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -1180,7 +1180,7 @@ int crop(fits *fit, rectangle *bounds) {
 
 	if (fit->mask) {
 		if (crop_mask(fit->mask, bounds, orig_rx, orig_ry)) {
-			siril_log_color_message(_("Error cropping mask\n"), "red");
+			siril_log_error(_("Error cropping mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
 			gui_iface.on_mask_state_changed();
@@ -1237,10 +1237,10 @@ int crop_finalize_hook(struct generic_seq_args *args) {
 int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit) {
         int x1, y1, x2, y2, retval;
         double dx1, dy1, dx2, dy2;
-        siril_debug_print("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
+        siril_log_debug("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
         if (margin_asec != DBL_MAX) {
                 margin_px = round_to_int(margin_asec / (get_wcs_image_resolution(fit) * 3600.0));
-                siril_debug_print("margin in pixels: %d\n", margin_px);
+                siril_log_debug("margin in pixels: %d\n", margin_px);
         }
         retval = wcs2pix(fit, ra1, dec1, &dx1, &dy1);
         retval += wcs2pix(fit, ra2, dec2, &dx2, &dy2);
@@ -1289,7 +1289,7 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
                 area.y = y1;
                 area.h = y2 - y1 + 1;
         }
-        siril_debug_print("Before checking size: (%d, %d) to (%d, %d)\n", x1, y1, x2, y2);
+        siril_log_debug("Before checking size: (%d, %d) to (%d, %d)\n", x1, y1, x2, y2);
 
         // grow area from the centre if it's too small
         if (area.w < minsize) {
@@ -1306,7 +1306,7 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
                         area.x, area.y, area.w, area.h);
 
         if (crop(fit, &area)) {
-                siril_log_color_message(_("Cropping failed\n"), "red");
+                siril_log_error(_("Cropping failed\n"));
                 return -1;
         }
 
@@ -1355,8 +1355,7 @@ int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_wr
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -1367,7 +1366,7 @@ int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_wr
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)

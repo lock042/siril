@@ -310,7 +310,7 @@ int register_shift_dft(struct registration_args *args) {
 		normalizeQualityData(args, q_min, q_max);
 
 		siril_log_message(_("Registration finished.\n"));
-		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
+		siril_log_bold(_("Best frame: #%d.\n"), q_index + 1);
 	} else {
 		free(args->seq->regparam[args->layer]);
 		args->seq->regparam[args->layer] = NULL;
@@ -455,7 +455,7 @@ int register_kombat(struct registration_args *args) {
 #endif
 
 			if (seq_read_frame_part(args->seq, args->layer, frame, &cur_fit, &full, FALSE, thread_id)) {
-				siril_log_message(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
+				siril_log_error(_("Cannot perform KOMBAT alignment for frame %d\n"), frame + 1);
 				/* we exclude this frame */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
@@ -475,7 +475,7 @@ int register_kombat(struct registration_args *args) {
 			reg_kombat cur_align;
 			if (kombat_find_template(frame, args, &fit_templ, &cur_fit,
 					&cur_align, &ref_align, &(caches[thread_id + 1]))) {
-				siril_log_color_message(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"),	"red", frame);
+				siril_log_error(_("Register: KOMBAT could not find alignment pattern on image #%d.\n"), frame);
 				/* we exclude this frame too */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 			} else {
@@ -512,7 +512,7 @@ int register_kombat(struct registration_args *args) {
 	clearfits(&fit_templ);
 	clearfits(&fit_ref);
 
-	siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
+	siril_log_bold(_("Best frame: #%d.\n"), q_index + 1);
 
 	for (int i = 0; i < max_threads; i++)
 		kombat_done(&caches[i]);
@@ -596,7 +596,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	}
 
 	siril_log_message(_("Registration finished.\n"));
-	siril_log_color_message(_("Best frame: #%d with fwhm=%.3g.\n"), "bold",
+	siril_log_bold(_("Best frame: #%d with fwhm=%.3g.\n"),
 			fwhm_index + 1, fwhm_min);
 	return 0;
 }

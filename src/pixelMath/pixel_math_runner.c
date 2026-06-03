@@ -37,6 +37,8 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/conversion.h"
+#include "algos/demosaicing.h"
 
 #include "tinyexpr.h"
 #include "pixel_math_runner.h"
@@ -228,7 +230,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 				g_free(temp);
 				g_free(replace);
 				replaced = TRUE;
-				siril_debug_print("Expression%d: %s\n", c, result);
+				siril_log_debug("Expression%d: %s\n", c, result);
 			}
 
 			g_free(full_match);
@@ -245,7 +247,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 		const gchar *test = g_strrstr(result, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
-			siril_debug_print("found image name %s in the expression %s\n", image[j], result);
+			siril_log_debug("found image name %s in the expression %s\n", image[j], result);
 		}
 	}
 
@@ -323,7 +325,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 			if (omp_get_thread_num() == 0)
 #endif
-				siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression1, err);
+				siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression1, err);
 			failed = TRUE;
 			goto failure;
 		}
@@ -334,7 +336,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression2, err);
+					siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression2, err);
 				failed = TRUE;
 				goto failure;
 			}
@@ -344,7 +346,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression3, err);
+					siril_log_error(_("Error in pixel math expression '%s' at character %d\n"), args->expression3, err);
 				failed = TRUE;
 				goto failure;
 			}
@@ -519,10 +521,20 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 		return 1;
 	}
 
-	if (readfits(var, &var_fit[index], NULL, TRUE)) {
+	image_type imagetype;
+	char *realname = NULL;
+	if (stat_file(var, &imagetype, &realname)) {
+		siril_log_error(_("File not found or not supported: %s\n"), var);
 		*w = *h = *c = -1;
 		return 1;
 	}
+	int load_retval = any_to_fits(imagetype, realname, &var_fit[index], FALSE, TRUE);
+	free(realname);
+	if (load_retval) {
+		*w = *h = *c = -1;
+		return 1;
+	}
+	debayer_if_needed(imagetype, &var_fit[index], FALSE);
 	*w = var_fit[index].rx;
 	*h = var_fit[index].ry;
 	*c = var_fit[index].naxes[2];

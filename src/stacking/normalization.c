@@ -103,7 +103,7 @@ static int _compute_estimators_for_image(struct stacking_args *args, int i,
 	g_assert(nb_layers <= 3);
 	g_assert(threading > 0);
 
-	siril_debug_print("computing stats for image %d, %d threads, lite: %d\n", i, threading, args->lite_norm);
+	siril_log_debug("computing stats for image %d, %d threads, lite: %d\n", i, threading, args->lite_norm);
 	retval = compute_all_channels_statistics_seqimage(args->seq, args->image_indices[i], NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, threading, image_thread_id, stats);
 
 	for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
@@ -152,7 +152,7 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 		scale0[layer] = pscale[layer][ref_index];
 	}
 #ifdef DEBUG_NORM
-	siril_debug_print("Normalization coeeficients\n");
+	siril_log_debug("Normalization coeeficients\n");
 #endif
 	int reglayer = (args->reglayer > -1) ? args->reglayer : 1;
 	for (int layer = 0; layer < nb_layers; ++layer) {
@@ -174,7 +174,7 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 					break;
 			}
 #ifdef DEBUG_NORM
-			siril_debug_print("%2d %d %+8.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
+			siril_log_debug("%2d %d %+8.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
 #endif
 		}
 	}
@@ -203,7 +203,7 @@ static int normalization_get_max_number_of_threads(sequence *seq) {
 	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
 
 	if (memory_per_image_MB > max_memory_MB) {
-		siril_log_color_message(_("Your system does not have enough memory to normalize images for stacking operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_image_MB);
+		siril_log_error(_("Your system does not have enough memory to normalize images for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_image_MB);
 		return 0;
 	}
 
@@ -237,8 +237,8 @@ static int compute_normalization(struct stacking_args *args) {
 	ref_image_filtred_idx = find_refimage_in_indices(args->image_indices,
 			args->nb_images_to_stack, args->ref_image);
 	if (ref_image_filtred_idx == -1) {
-		siril_log_color_message(_("The reference image is not in the selected set of images. "
-				"Please choose another reference image.\n"), "red");
+		siril_log_error(_("The reference image is not in the selected set of images. "
+				"Please choose another reference image.\n"));
 		return ST_GENERIC_ERROR;
 	}
 
@@ -274,7 +274,7 @@ static int compute_normalization(struct stacking_args *args) {
 			threads = threads_per_thread[thread_id];
 #endif
 			if (_compute_estimators_for_image(args, i, threads, thread_id)) {
-				siril_log_color_message(_("%s Check image %d first.\n"), "red",
+				siril_log_error(_("%s Check image %d first.\n"),
 						error_msg, args->image_indices[i] + 1);
 				gui_iface.set_progress(PROGRESS_NONE, error_msg);
 				retval = 1;
@@ -324,16 +324,16 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_
 	if (additive) {
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < N; j++) {
-				siril_debug_print("%10d ", (int)A[j + i * N]);
+				siril_log_debug("%10d ", (int)A[j + i * N]);
 			}
-			siril_debug_print("; %16.6f\n", B[i]);
+			siril_log_debug("; %16.6f\n", B[i]);
 		} 
 	} else {
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < N; j++) {
-				siril_debug_print("%+10.3f ", A[j + i * N]);
+				siril_log_debug("%+10.3f ", A[j + i * N]);
 			}
-			siril_debug_print("; %10.6f\n", B[i]);
+			siril_log_debug("; %10.6f\n", B[i]);
 		}
 	}
 #endif
@@ -426,11 +426,11 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	dx = round_to_int(dxj - dxi);
 	dy = round_to_int(dyi - dyj);
 	if (dx == INT_MIN) { // mainly to avoid static checker warning
-		siril_debug_print("Error: images #%d and #%d have a wrong dx value\n", i, j);
+		siril_log_debug("Error: images #%d and #%d have a wrong dx value\n", i, j);
 		dx += 1;
 	}
 	if (dy == INT_MIN) { // mainly to avoid static checker warning
-		siril_debug_print("Error: images #%d and #%d have a wrong dy value\n", i, j);
+		siril_log_debug("Error: images #%d and #%d have a wrong dy value\n", i, j);
 		dy += 1;
 	}
 	int rxi = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
@@ -477,7 +477,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		was_cached = TRUE;
 	} else {
 		args->seq->needs_saving = TRUE;
-		siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
+		siril_log_debug("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
 		nbdata = compute_overlap(args, i, j, &areai, &areaj);
 		// we cache it for all layers
 		// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
@@ -494,10 +494,10 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	}
 
 	if (nbdata > 0) {
-		siril_debug_print("image %d: boxselect %d %d %d %d\n", i + 1, areai.x, areai.y, areai.w, areai.h);
-		siril_debug_print("image %d: boxselect %d %d %d %d\n", j + 1, areaj.x, areaj.y, areaj.w, areaj.h);
+		siril_log_debug("image %d: boxselect %d %d %d %d\n", i + 1, areai.x, areai.y, areai.w, areai.h);
+		siril_log_debug("image %d: boxselect %d %d %d %d\n", j + 1, areaj.x, areaj.y, areaj.w, areaj.h);
 	} else {
-		siril_debug_print("No overlap between image %d and %d\n", i + 1, j + 1);
+		siril_log_debug("No overlap between image %d and %d\n", i + 1, j + 1);
 		return ST_OK; // no overlap
 	}
 
@@ -529,7 +529,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	}
 
 	if (!needs_recalc) {
-		siril_debug_print("Data for %d and %d were cached, re-using\n", i + 1, j + 1);
+		siril_log_debug("Data for %d and %d were cached, re-using\n", i + 1, j + 1);
 		return ST_OK;
 	}
 	args->seq->needs_saving = TRUE;
@@ -539,7 +539,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	fit_sequence_get_image_filename_checkext(seq, j, file_j);
 	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
 		readfits_partial_all_layers(file_j, &fitj, &areaj)) {
-		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
+		siril_log_error(_("Could not read overlap data between image %d and %d\n"), i + 1, j + 1);
 		clearfits(&fiti);
 		clearfits(&fitj);
 		free(datai);
@@ -567,13 +567,13 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		if (Nij > 3) { // we want at least 3 pixels with non-zero data to compute stats
 			seq->ostats[n][ijth].Nij = Nij;
 			if (needs_recalc_lite[n]) {
-				siril_debug_print("%lu pixels for images %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
+				siril_log_debug("%lu pixels for images %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
 				seq->ostats[n][ijth].medij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
 				seq->ostats[n][ijth].medji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
 				seq->ostats[n][ijth].madij = (float)siril_stats_float_mad(datai, Nij, seq->ostats[n][ijth].medij, SINGLE_THREADED, NULL);
 				seq->ostats[n][ijth].madji = (float)siril_stats_float_mad(dataj, Nij, seq->ostats[n][ijth].medji, SINGLE_THREADED, NULL);
 			} else {
-				siril_debug_print("Lite overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
+				siril_log_debug("Lite overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
 			}
 			if (needs_recalc_detailed[n]) {
 				double li = 0., lj = 0., si = 1., sj = 1.;
@@ -584,11 +584,11 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 				seq->ostats[n][ijth].scaij = (float)si;
 				seq->ostats[n][ijth].scaji = (float)sj;
 			}  else {
-				siril_debug_print("Detailed overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
-				siril_debug_print("Should not happen\n");
+				siril_log_debug("Detailed overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
+				siril_log_debug("Should not happen\n");
 			}
 		} else {
-			siril_debug_print("No overlap data between image %d and %d on layer %d\n", i + 1, j + 1, n);
+			siril_log_debug("No overlap data between image %d and %d on layer %d\n", i + 1, j + 1, n);
 		}
 	}
 	free(datai);
@@ -624,7 +624,7 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 			} else {
 				args->seq->needs_saving = TRUE;
 				rectangle areai, areaj;
-				siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", ii + 1, ij + 1, args->lite_norm);
+				siril_log_debug("computing stats for overlap between image %d and image %d, lite: %d\n", ii + 1, ij + 1, args->lite_norm);
 				nbdata = compute_overlap(args, ii, ij, &areai, &areaj);
 				// we cache it for all layers
 				// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
@@ -652,7 +652,7 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 	fprintf(stdout, "Memory per pair: %u MB. Max memory: %d MB\n", memory_per_pair_MB, max_memory_MB);
 
 	if (memory_per_pair_MB > max_memory_MB) {
-		siril_log_color_message(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_pair_MB);
+		siril_log_error(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), max_memory_MB, memory_per_pair_MB);
 		return 0;
 	}
 
@@ -690,8 +690,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	index_ref = find_refimage_in_indices(args->image_indices,
 										 args->nb_images_to_stack, args->ref_image);
 	if (index_ref == -1) {
-		siril_log_color_message(_("The reference image is not in the selected set of images. "
-		"Please choose another reference image.\n"), "red");
+		siril_log_error(_("The reference image is not in the selected set of images. "
+		"Please choose another reference image.\n"));
 		return ST_GENERIC_ERROR;
 	}
 
@@ -701,12 +701,12 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	// #ifdef DEBUG_NORM
 	//      for (int n = 0; n < nb_layers; n++) {
 	//          if (args->lite_norm)
-	//              siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
+	//              siril_log_debug("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
 	//          else
-	//              siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
+	//              siril_log_debug("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
 	//      }
 	// #endif
-	//      siril_log_color_message(_("Could not compute statistics of reference image"), "red");
+	//      siril_log_error(_("Could not compute statistics of reference image"));
 	//      retval = 1;
 	//      return ST_GENERIC_ERROR;
 	//  }
@@ -790,7 +790,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 				int ij = args->image_indices[j];
 				int ijth = get_ijth_pair_index(args->seq->number, ii, ij);
 				if (_compute_estimators_for_images(args, ii, ij)) {
-					siril_log_color_message(_("%s Check image %d first.\n"), "red",
+					siril_log_error(_("%s Check image %d first.\n"),
 											error_msg, args->image_indices[i] + 1);
 					gui_iface.set_progress(PROGRESS_NONE, error_msg);
 					#ifdef _OPENMP
@@ -834,41 +834,41 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i ++) {
 			for (int j = i + 1; j < nb_frames; ++j) {
-				siril_debug_print("%d;%d;%lu;%.6f;%.6f;%.6f;%.6f\n", i + 1, j + 1, Nij[n][i][j], Mij[n][i][j], Mij[n][j][i], Sij[n][i][j], Sij[n][j][i]);
+				siril_log_debug("%d;%d;%lu;%.6f;%.6f;%.6f;%.6f\n", i + 1, j + 1, Nij[n][i][j], Mij[n][i][j], Mij[n][j][i], Sij[n][i][j], Sij[n][j][i]);
 			}
 		}
 	}
 	for (int n = 0; n < nb_layers; n++) {
-		siril_debug_print("Nij-%d\n", n);
+		siril_log_debug("Nij-%d\n", n);
 		for (int i = 0; i < nb_frames; i ++) {
 			for (int j = 0; j < nb_frames; ++j) {
-				siril_debug_print("%10d ", (int)Nij[n][i][j]);
+				siril_log_debug("%10d ", (int)Nij[n][i][j]);
 			}
-			siril_debug_print("\n");
+			siril_log_debug("\n");
 		}
-		siril_debug_print("\n");
-	}
-
-	for (int n = 0; n < nb_layers; n++) {
-		siril_debug_print("Mij-%d\n", n);
-		for (int i = 0; i < nb_frames; i ++) {
-			for (int j = 0; j < nb_frames; ++j) {
-				siril_debug_print("%.6f ", Mij[n][i][j]);
-			}
-			siril_debug_print("\n");
-		}
-		siril_debug_print("\n");
+		siril_log_debug("\n");
 	}
 
 	for (int n = 0; n < nb_layers; n++) {
-		siril_debug_print("Sij-%d\n", n);
+		siril_log_debug("Mij-%d\n", n);
 		for (int i = 0; i < nb_frames; i ++) {
 			for (int j = 0; j < nb_frames; ++j) {
-				siril_debug_print("%.6f ", Sij[n][i][j]);
+				siril_log_debug("%.6f ", Mij[n][i][j]);
 			}
-			siril_debug_print("\n");
+			siril_log_debug("\n");
 		}
-		siril_debug_print("\n");
+		siril_log_debug("\n");
+	}
+
+	for (int n = 0; n < nb_layers; n++) {
+		siril_log_debug("Sij-%d\n", n);
+		for (int i = 0; i < nb_frames; i ++) {
+			for (int j = 0; j < nb_frames; ++j) {
+				siril_log_debug("%.6f ", Sij[n][i][j]);
+			}
+			siril_log_debug("\n");
+		}
+		siril_log_debug("\n");
 	}
 	#endif
 

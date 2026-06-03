@@ -86,17 +86,17 @@ static void *write_worker(void *a) {
 			if (stored_task->index == current_index) {
 				task = stored_task;
 				next_images = g_list_delete_link(next_images, stored);
-				siril_debug_print("writer: image %d obtained from waiting list\n", task->index);
+				siril_log_debug("writer: image %d obtained from waiting list\n", task->index);
 				break;
 			}
 		}
 
 		if (!task) {	// if not in the waiting list, try to get it from processing threads
 			do {
-				siril_debug_print("writer: waiting for message %d\n", current_index);
+				siril_log_debug("writer: waiting for message %d\n", current_index);
 				task = g_async_queue_pop(writer->writes_queue);	// blocking
 				if (task == ABORT_TASK) {
-					siril_debug_print("writer: abort message\n");
+					siril_log_debug("writer: abort message\n");
 					retval = SEQ_INCOMPLETE;
 					break;
 				}
@@ -112,7 +112,7 @@ static void *write_worker(void *a) {
 					(writer->output_type == SEQ_SER && memcmp(task->image->naxes, writer->naxes, 2 * sizeof writer->naxes[0])) ||
 					task->image->naxes[2] != writer->naxes[2] ||
 					task->image->bitpix != writer->bitpix)) {
-					siril_log_color_message(_("Cannot add an image with different properties to an existing sequence.\n"), "red");
+					siril_log_error(_("Cannot add an image with different properties to an existing sequence.\n"));
 					retval = SEQ_WRITE_ERROR;
 					break;
 				}
@@ -121,15 +121,15 @@ static void *write_worker(void *a) {
 
 				if (task->index >= 0 && task->index != current_index) {
 					if (task->index < current_index) {
-						siril_log_color_message(_("Invalid image index requested for write, aborting file creation\n"), "red");
+						siril_log_error(_("Invalid image index requested for write, aborting file creation\n"));
 						retval = SEQ_WRITE_ERROR;
 						break;
 					}
-					siril_debug_print("writer: image %d put stored for later use\n", task->index);
+					siril_log_debug("writer: image %d put stored for later use\n", task->index);
 					next_images = g_list_append(next_images, task);
 					task = NULL;
 				}
-				else siril_debug_print("writer: image %d received\n", task->index);
+				else siril_log_debug("writer: image %d received\n", task->index);
 			} while (!task);
 		}
 		if (!task)
@@ -137,7 +137,7 @@ static void *write_worker(void *a) {
 		if (retval == SEQ_INCOMPLETE)
 			break;
 		if (retval == SEQ_WRITE_ERROR) {
-			siril_debug_print("writer: failed image %d, aborting\n", task->index);
+			siril_log_debug("writer: failed image %d, aborting\n", task->index);
 			if (task->image)
 				clearfits(task->image);
 			notify_data_freed(writer, task->index);
@@ -146,7 +146,7 @@ static void *write_worker(void *a) {
 		}
 		if (!task->image) {
 			// failed image, hole in sequence, skip it
-			siril_debug_print("writer: skipping image %d\n", task->index);
+			siril_log_debug("writer: skipping image %d\n", task->index);
 			notify_data_freed(writer, task->index);
 			current_index++;
 			writer->frame_count--;
@@ -174,7 +174,7 @@ static void *write_worker(void *a) {
 
 	if (retval == SEQ_INCOMPLETE) {
 		if (next_images) {
-			siril_log_color_message(_("Incomplete file creation: %d file(s) remained to be written\n"), "red", g_list_length(next_images));
+			siril_log_error(_("Incomplete file creation: %d file(s) remained to be written\n"), g_list_length(next_images));
 			if (writer->frame_count <= 0)
 				writer->frame_count = nb_frames_written;
 		}
@@ -183,12 +183,12 @@ static void *write_worker(void *a) {
 			retval = SEQ_OK;
 			siril_log_message(ngettext("Saved %d image in the sequence\n", "Saved %d images in the sequence\n", nb_frames_written), nb_frames_written);
 		} else {
-			siril_debug_print("writer: write aborted, expected %d images, got %d.\n",
+			siril_log_debug("writer: write aborted, expected %d images, got %d.\n",
 					writer->frame_count, nb_frames_written);
 		}
 	}
 
-	siril_debug_print("writer exits with retval %d (0: ok, 1: error, 2: incomplete)\n", retval);
+	siril_log_debug("writer exits with retval %d (0: ok, 1: error, 2: incomplete)\n", retval);
 	g_atomic_int_set(&writer->failed, retval);
 	return GINT_TO_POINTER(retval);
 }
@@ -203,7 +203,7 @@ void start_writer(struct seqwriter_data *writer, int frame_count) {
 	writer->naxes[0] = 0;
 	writer->frame_count = frame_count;
 	if (frame_count > 0)
-		siril_debug_print("writer: starting with expected frame count\n");
+		siril_log_debug("writer: starting with expected frame count\n");
 	writer->writes_queue = g_async_queue_new();
 	writer->write_thread = g_thread_new("writer", write_worker, writer);
 }
@@ -221,12 +221,12 @@ int stop_writer(struct seqwriter_data *writer, gboolean aborting) {
 			g_async_queue_push_front(writer->writes_queue, ABORT_TASK);
 		}
 		else g_async_queue_push(writer->writes_queue, ABORT_TASK);
-		siril_debug_print("writer thread notified, waiting for exit...\n");
+		siril_log_debug("writer thread notified, waiting for exit...\n");
 		gpointer ret = g_thread_join(writer->write_thread);
 		writer->write_thread = NULL;
 		g_async_queue_unref(writer->writes_queue);
 		retval = GPOINTER_TO_INT(ret);
-		siril_debug_print("writer thread joined (retval: %d)\n", retval);
+		siril_log_debug("writer thread joined (retval: %d)\n", retval);
 	}
 	return retval;
 }
@@ -279,14 +279,14 @@ void seqwriter_set_max_active_blocks(int max) {
 void seqwriter_wait_for_memory() {
 	if (configured_max_active_blocks <= 0)
 		return;
-	siril_debug_print("entering the wait function\n");
+	siril_log_debug("entering the wait function\n");
 	g_mutex_lock(&pool_mutex);
 	while (nb_blocks_active >= configured_max_active_blocks) {
-		siril_debug_print("  waiting for free memory slot (%d active)\n", nb_blocks_active);
+		siril_log_debug("  waiting for free memory slot (%d active)\n", nb_blocks_active);
 		g_cond_wait(&pool_cond, &pool_mutex);
 	}
 	nb_blocks_active++;
-	siril_debug_print("got the slot!\n");
+	siril_log_debug("got the slot!\n");
 	g_mutex_unlock(&pool_mutex);
 }
 
@@ -300,7 +300,7 @@ static int get_output_for_seq(void *seq) {
 		if (outputs[i].seq == seq)
 			return i;
 	}
-	siril_debug_print("### seqwriter get_output_for_seq: not found! should never happen ###\n");
+	siril_log_debug("### seqwriter get_output_for_seq: not found! should never happen ###\n");
 	return -1;
 }
 
@@ -311,7 +311,7 @@ static gboolean all_outputs_to_index(int index) {
 		if (outputs[i].index < index)
 			return FALSE;
 	}
-	siril_debug_print("\tgot all outputs notified for index %d, signaling\n", index);
+	siril_log_debug("\tgot all outputs notified for index %d, signaling\n", index);
 	return TRUE;
 }
 
@@ -345,7 +345,7 @@ static void notify_data_freed(struct seqwriter_data *writer, int index) {
 }
 
 void seqwriter_set_number_of_outputs(int number_of_outputs) {
-	siril_debug_print("seqwriter number of outputs: %d\n", number_of_outputs);
+	siril_log_debug("seqwriter number of outputs: %d\n", number_of_outputs);
 	nb_outputs = number_of_outputs;
 	if (number_of_outputs > 1) {
 		outputs = calloc(number_of_outputs, sizeof(struct _outputs_struct));

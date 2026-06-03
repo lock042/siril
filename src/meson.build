@@ -21,6 +21,15 @@ configure_file(output : 'config.h',
 
 src_files = [
   'algos/anscombe.c',
+  'algos/img_t/better_than_std.hpp',
+  'algos/img_t/fftw_allocator.hpp',
+  'algos/img_t/image.hpp',
+  'algos/img_t/image_boundary.hpp',
+  'algos/img_t/image_dft.hpp',
+  'algos/img_t/image_expr.hpp',
+  'algos/img_t/image_ops.hpp',
+  'algos/img_t/img_fits.hpp',
+  'algos/img_t/vec2.hpp',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
   'algos/ccd-inspector.c',
@@ -129,7 +138,6 @@ src_files = [
   'filters/wavelets.c',
 
   'filters/da3d/DA3D.cpp',
-  'filters/da3d/Utils.cpp',
   'filters/da3d/WeightMap.cpp',
   'filters/nlbayes/call_nlbayes.cpp',
   'filters/nlbayes/LibImages.cpp',
@@ -138,22 +146,17 @@ src_files = [
   'filters/nlbayes/Utilities.cpp',
 
   'filters/deconvolution/angleSet.cpp',
-  'filters/deconvolution/better_than_std.hpp',
   'filters/deconvolution/deconvolution.h',
   'filters/deconvolution/deconvolve.cpp',
   'filters/deconvolution/deconvolve.hpp',
   'filters/deconvolution/edgetaper.hpp',
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',
-  'filters/deconvolution/fftw_allocator.hpp',
   'filters/deconvolution/gf_estimate.cpp',
-  'filters/deconvolution/image_expr.hpp',
-  'filters/deconvolution/image.hpp',
   'filters/deconvolution/labeling.hpp',
   'filters/deconvolution/optimization.hpp',
   'filters/deconvolution/options.hpp',
   'filters/deconvolution/utils.hpp',
-  'filters/deconvolution/vec2.hpp',
 
   'io/aavso_extended.c',
   'io/annotation_catalogues.c',
@@ -176,7 +179,10 @@ src_files = [
   'io/FITS_symlink.c',
   'io/gps_parser.c',
   'io/healpix/healpix.cpp',
+  'io/healpix/healpix_image.cpp',
   'io/healpix/fluxcache.cpp',
+  'io/healpix/xp_continuous.cpp',
+  'io/healpix/gaia_xp_design.c',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
@@ -239,7 +245,7 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
-# GUI-only source files (require GTK; excluded when -Dgui=disabled).
+# GUI-only source files (require GTK; excluded when -Dgtk=false).
 src_files_gui = [
   'gui/livestacking_gui.c',
   'gui/about_dialog.c',
@@ -331,7 +337,7 @@ src_files_gui = [
   'gui/wavelets.c',
 ]
 
-# enable_gui is defined in the top-level meson.build
+# enable_gtk is defined in the top-level meson.build
 #
 # Build strategy:
 #
@@ -350,12 +356,13 @@ src_files_gui = [
 #
 #  siril             — link_whole: siril_lib  +  src_files_gui compiled directly.
 #                      gui_iface_impl.c (in src_files_gui) provides real GTK
-#                      implementations; main.c defines guiinfo gui.
+#                      implementations; main.c defines guiinfo gui.  Only built
+#                      when -Dgtk=true (the default).
 #
 #  siril-cli         — link_whole: siril_lib  +  siril_headless_lib (on demand).
 #                      gui_iface_impl.c is NEVER linked here; gui_iface_stubs.c
 #                      (in siril_lib) provides headless no-ops for all slots.
-#                      main-cli.c does NOT define guiinfo gui.
+#                      main-cli.c does NOT define guiinfo gui.  Always built.
 
 # Define the resource file
 gnome = import('gnome')
@@ -385,9 +392,9 @@ siril_dep = declare_dependency(link_with: [siril_lib, siril_headless_lib],
 # Custom target for glib-compile-resources
 
 ################################################################################
-# Build gui executable (only when -Dgui=enabled, the default)
+# Build gui executable (only when -Dgtk=true, the default)
 
-if enable_gui
+if enable_gtk
 siril_gui = executable('siril', siril_resources[1], 'main.c', src_files_gui, win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,

@@ -54,7 +54,7 @@
 #endif
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
-#define siril_debug_print(fmt, ...) \
+#define siril_log_debug(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
@@ -456,6 +456,10 @@ struct sequ {
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
+	gboolean ext_ref;	// H matrices are absolute (relative to an external reference image)
+	gchar *ext_ref_path;	// path to the external reference image used for registration
+	unsigned int ext_ref_rx;	// external reference image width (or ref if set)
+	unsigned int ext_ref_ry;	// external reference image height (or ref if set)
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -924,7 +928,8 @@ struct cominf {
 	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
-	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
+	gchar *spcc_remote_catalogue;	// Current preferred mirror for the remote xp_sampled catalogue
+	gchar *spcc_remote_catalogue_xpcts;	// Current preferred mirror for the remote xp_continuous catalogue (NULL until configured)
 
 	/* Repository / script state (not display state; lives here, not in guiinfo) */
 	GSList   *repo_scripts;          // list of scripts from the remote repository

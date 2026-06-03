@@ -96,24 +96,24 @@ static void get_denoise_values(struct denoise_args *params) {
 /* Validate parameter combinations */
 static gboolean validate_denoise_params(struct denoise_args *params) {
 	if (params->modulation <= 0.f || params->modulation > 1.f) {
-		siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
+		siril_log_error(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 		return FALSE;
 	}
 
 	if (params->rho == 1.f) {
-		siril_log_message(_("Warning: rho = 1 will cause SOS to do nothing. Adjusting to 0.99...\n"));
+		siril_log_warning(_("Warning: rho = 1 will cause SOS to do nothing. Adjusting to 0.99...\n"));
 		params->rho = 0.99f;
 		gtk_spin_button_set_value(spin_rho, 0.99);
 	}
 
 	if (params->rho == 0.f) {
-		siril_log_message(_("Warning: rho = 0 means SOS will never converge. Adjusting to 0.01...\n"));
+		siril_log_warning(_("Warning: rho = 0 means SOS will never converge. Adjusting to 0.01...\n"));
 		params->rho = 0.01f;
 		gtk_spin_button_set_value(spin_rho, 0.01);
 	}
 
 	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
-		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected.\n"), "red");
+		siril_log_error(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected.\n"));
 		return FALSE;
 	}
 

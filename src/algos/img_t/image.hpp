@@ -52,6 +52,7 @@ free-astro 2022-2023.
 #include "core/siril.h"
 #include <fftw3.h>
 #include "fftw_allocator.hpp"
+#include "image_boundary.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -189,10 +190,10 @@ public:
         return data.data()[i];
     }
     inline T& operator()(int x, int y, int dd=0) {
-        return data.data()[dd+d*(x+y*w)];
+        return data.data()[x + w*(y + h*dd)];
     }
     inline const T& operator()(int x, int y, int dd=0) const {
-        return data.data()[dd+d*(x+y*w)];
+        return data.data()[x + w*(y + h*dd)];
     }
 
     void set_value(const T& v) {
@@ -415,7 +416,7 @@ public:
                 break;
         }
         int adjustment = overlap << 1;
-        siril_debug_print("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
+        siril_log_debug("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
         process_in_slices(output, slice_size.width - adjustment, slice_size.height - adjustment, overlap, process_func);
     }
 
@@ -460,14 +461,10 @@ public:
 #endif
                 for (int y = -pad_top; y < actual_height + pad_bottom; ++y) {
                     for (int x = -pad_left; x < actual_width + pad_right; ++x) {
-                        int src_x = start_x + x;
-                        int src_y = start_y + y;
-
-                        // Handle padding at image borders
-                        if (src_x < 0) src_x = -src_x;
-                        else if (src_x >= w) src_x = 2*w - src_x - 2;
-                        if (src_y < 0) src_y = -src_y;
-                        else if (src_y >= h) src_y = 2*h - src_y - 2;
+                        // Handle padding at image borders (whole-sample
+                        // reflection; shared with imgops boundary helpers)
+                        int src_x = imgops::reflect_whole_sample(start_x + x, w);
+                        int src_y = imgops::reflect_whole_sample(start_y + y, h);
 
                         for (int z = 0; z < d; ++z) {
                             padded_slice(x + pad_left, y + pad_top, z) = (*this)(src_x, src_y, z);
@@ -1359,7 +1356,7 @@ public:
         for (int i = 0; i < size; i++) {
             T val(0);
             for (int dd = 0; dd < color.d; dd++) {
-                val += color[i * color.d + dd];
+                val += color[i + dd * color.w * color.h];
             }
             (*this)[i] = val / color.d;
         }

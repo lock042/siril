@@ -101,6 +101,20 @@ struct is_img_expr : std::is_base_of<dummy_img_expr_t, T> {};
 template<typename T>
 inline constexpr bool is_img_expr_v = is_img_expr<T>::value;
 
+// "Image-like" = an expression (derived from dummy_img_expr_t) OR an img_t.
+// Used to constrain the arithmetic operators below so they only participate in
+// overload resolution when an operand is image-like. Without this, the
+// unconstrained operator templates greedily match unrelated types (e.g. a
+// std::vector iterator minus an int), which breaks any TU that both includes
+// this header and instantiates std::vector<img_t<T>> reallocation.
+template<typename T> struct is_img_t_trait : std::false_type {};
+template<typename T> struct is_img_t_trait<img_t<T>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_imglike_v =
+    is_img_expr_v<typename std::decay<T>::type> ||
+    is_img_t_trait<typename std::decay<T>::type>::value;
+
 template <typename T>
 class func0_img_expr_t : public img_expr_t<T> {
 public:
@@ -213,7 +227,7 @@ public: \
     } \
 }; \
 \
-template <typename E> \
+template <typename E, typename std::enable_if_t<is_imglike_v<E>, int> = 0> \
 name<decltype(to_expr(std::declval<E>()))> operator operand(const E& e) { \
     return name<decltype(to_expr(e))>(to_expr(e)); \
 }; \
@@ -242,7 +256,8 @@ public: \
     } \
 }; \
 \
-template <typename E1, typename E2> \
+template <typename E1, typename E2, \
+          typename std::enable_if_t<is_imglike_v<E1> || is_imglike_v<E2>, int> = 0> \
 name<decltype(to_expr(std::declval<E1>())), decltype(to_expr(std::declval<E2>()))> operator operand(const E1& e1, const E2& e2) { \
     return name<decltype(to_expr(e1)), decltype(to_expr(e2))>(to_expr(e1), to_expr(e2)); \
 }; \
@@ -487,14 +502,14 @@ public:
     }
 
     T operator[](int i) const {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + e.d * (x + e.w * y);
+        int j = (x + e.w * y) + dd * e.w * e.h;
         return e[j];
     }
 
@@ -527,26 +542,26 @@ public:
     }
 
     T operator[](int i) const {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + img->d * (x + img->w * y);
+        int j = (x + img->w * y) + dd * img->w * img->h;
         return (*img)[j];
     }
 
     T& operator[](int i) {
-        int dd = i % d;
-        int xy = i / d;
+        int dd = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
         x += _w.s;
         y += _h.s;
         dd += _d.s;
-        int j = dd + img->d * (x + img->w * y);
+        int j = (x + img->w * y) + dd * img->w * img->h;
         return (*img)[j];
     }
 
@@ -624,7 +639,7 @@ REDUCE_HEAD(reduce1_img_expr_t)
 REDUCE_BODY
         T val = e[i];
         for (int d = 1; d < e.d; d++) {
-            val = reductor(val, e[i*e.d + d]);
+            val = reductor(val, e[i + d * e.w * e.h]);
         }
 REDUCE_TAIL
 
@@ -632,6 +647,113 @@ template <typename E>
 auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value_type, typename E::value_type)> reductor)
 {
     return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
+}
+
+// Axis identifiers for reduce_axis / broadcast_axis.
+//   AXIS_X = 0 (width / columns), AXIS_Y = 1 (height / rows), AXIS_D = 2 (channels)
+enum { AXIS_X = 0, AXIS_Y = 1, AXIS_D = 2 };
+
+/*
+ * Reduce an expression along a single axis with an arbitrary reductor, leaving
+ * that axis with extent 1. This generalises reduce_d (which is reduce along
+ * AXIS_D). Lazy like the other expressions: operator[] recomputes the reduction
+ * for the element, so materialise via to_img()/map() before reusing heavily.
+ */
+template <typename E>
+class reduce_axis_img_expr_t : public img_expr_t<typename E::value_type> {
+    using T = typename E::value_type;
+public:
+    E e;
+    std::function<T(T, T)> reductor;
+    T init;
+    int axis;
+    int size, w, h, d;
+
+    reduce_axis_img_expr_t(const E& e, int axis, std::function<T(T, T)> reductor, T init)
+            : e(e), reductor(reductor), init(init), axis(axis) {
+        w = (axis == AXIS_X) ? 1 : e.w;
+        h = (axis == AXIS_Y) ? 1 : e.h;
+        d = (axis == AXIS_D) ? 1 : e.d;
+        size = w * h * d;
+    }
+
+    T operator[](int i) const {
+        // decode i in the (reduced) output dims, planar
+        const int c = i / (w * h);
+        const int rem = i % (w * h);
+        const int y = rem / w;
+        const int x = rem % w;
+        T val = init;
+        if (axis == AXIS_X) {
+            for (int xx = 0; xx < e.w; ++xx)
+                val = reductor(val, e[xx + e.w * (y + e.h * c)]);
+        } else if (axis == AXIS_Y) {
+            for (int yy = 0; yy < e.h; ++yy)
+                val = reductor(val, e[x + e.w * (yy + e.h * c)]);
+        } else {
+            for (int cc = 0; cc < e.d; ++cc)
+                val = reductor(val, e[x + e.w * (y + e.h * cc)]);
+        }
+        return val;
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return w == o.w && h == o.h && d == o.d;
+    }
+};
+
+template <typename E>
+auto reduce_axis(const E& e, int axis,
+                 std::function<typename decltype(to_expr(e))::value_type(
+                     typename decltype(to_expr(e))::value_type,
+                     typename decltype(to_expr(e))::value_type)> reductor,
+                 typename decltype(to_expr(e))::value_type init =
+                     typename decltype(to_expr(e))::value_type(0)) {
+    return reduce_axis_img_expr_t<decltype(to_expr(e))>(to_expr(e), axis, reductor, init);
+}
+
+/*
+ * Broadcast an expression that has extent 1 along `axis` up to extent `n`,
+ * repeating its single slice. Inverse direction of reduce_axis; cheap (the
+ * operator[] just clamps the broadcast coordinate to 0).
+ */
+template <typename E>
+class broadcast_axis_img_expr_t : public img_expr_t<typename E::value_type> {
+    using T = typename E::value_type;
+public:
+    E e;
+    int axis, n;
+    int size, w, h, d;
+
+    broadcast_axis_img_expr_t(const E& e, int axis, int n) : e(e), axis(axis), n(n) {
+        w = (axis == AXIS_X) ? n : e.w;
+        h = (axis == AXIS_Y) ? n : e.h;
+        d = (axis == AXIS_D) ? n : e.d;
+        size = w * h * d;
+    }
+
+    T operator[](int i) const {
+        const int c = i / (w * h);
+        const int rem = i % (w * h);
+        int y = rem / w;
+        int x = rem % w;
+        int cc = c;
+        if (axis == AXIS_X) x = 0;
+        else if (axis == AXIS_Y) y = 0;
+        else cc = 0;
+        return e[x + e.w * (y + e.h * cc)];
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return w == o.w && h == o.h && d == o.d;
+    }
+};
+
+template <typename E>
+auto broadcast_axis(const E& e, int axis, int n) {
+    return broadcast_axis_img_expr_t<decltype(to_expr(e))>(to_expr(e), axis, n);
 }
 
 /*
@@ -665,8 +787,8 @@ public:
     gradientx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -674,7 +796,7 @@ public:
             return T(0);
         } else {
             int current_idx = i;
-            int next_idx = z + d * ((x + 1) + w * y);
+            int next_idx = ((x + 1) + w * y) + z * w * h;
             return e[next_idx] - e[current_idx];
         }
     }
@@ -701,8 +823,8 @@ public:
     gradienty_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -710,7 +832,7 @@ public:
             return T(0);  // Handle the edge case when at the bottom-most row
         } else {
             int current_idx = i;
-            int next_idx = z + d * (x + w * (y + 1));  // Move to the next row in the same column
+            int next_idx = (x + w * (y + 1)) + z * w * h;  // Move to the next row in the same column
             return e[next_idx] - e[current_idx];
         }
     }
@@ -740,32 +862,32 @@ public:
 
     // Compute divergence at the index i (flattened)
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         // Convert 3D coordinates to 1D indices
-        int idx = z + d * (x + w * y);           // Current pixel
-        int idx_xm1 = z + d * ((x - 1) + w * y); // (x-1, y)
-        int idx_ym1 = z + d * (x + w * (y - 1)); // (x, y-1)
+        int idx = (x + w * y) + z * w * h;           // Current pixel
+        int idx_xm1 = ((x - 1) + w * y) + z * w * h; // (x-1, y)
+        int idx_ym1 = (x + w * (y - 1)) + z * w * h; // (x, y-1)
 
         if (x == 0 && y == 0) {
-            return gx[z] + gy[z];  // Top-left corner
+            return gx[z * w * h] + gy[z * w * h];  // Top-left corner
         } else if (x == w - 1 && y == 0) {
-            return -gx[z + d * (w - 2)] + gy[z + d * (w - 1)];  // Top-right corner
+            return -gx[(w - 2) + z * w * h] + gy[(w - 1) + z * w * h];  // Top-right corner
         } else if (x == 0 && y == h - 1) {
-            return gx[z + d * (h - 1)] - gy[z + d * (h - 2)];  // Bottom-left corner
+            return gx[(h - 1) + z * w * h] - gy[(h - 2) + z * w * h];  // Bottom-left corner
         } else if (x == w - 1 && y == h - 1) {
-            return -gx[z + d * (w - 2 + w * (h - 1))] - gy[z + d * (w - 1 + w * (h - 2))];  // Bottom-right corner
+            return -gx[(w - 2 + w * (h - 1)) + z * w * h] - gy[(w - 1 + w * (h - 2)) + z * w * h];  // Bottom-right corner
         } else if (x == 0) {
             return gx[idx] + gy[idx] - gy[idx_ym1];  // Left edge
         } else if (y == 0) {
             return gx[idx] - gx[idx_xm1] + gy[idx];  // Top edge
         } else if (x == w - 1) {
-            return -gx[z + d * (w - 2 + w * y)] + gy[idx] - gy[idx_ym1];  // Right edge
+            return -gx[(w - 2 + w * y) + z * w * h] + gy[idx] - gy[idx_ym1];  // Right edge
         } else if (y == h - 1) {
-            return gx[idx] - gx[idx_xm1] - gy[z + d * (x + w * (h - 2))];  // Bottom edge
+            return gx[idx] - gx[idx_xm1] - gy[(x + w * (h - 2)) + z * w * h];  // Bottom edge
         } else {
             return gx[idx] - gx[idx_xm1] + gy[idx] - gy[idx_ym1];  // Interior
         }
@@ -795,17 +917,17 @@ public:
     gradientxx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         if (x == 0 || x == w - 1) {
             return T(0);  // Handle boundary cases where no second derivative can be computed
         } else {
-            int left_idx = z + d * ((x - 1) + w * y);
-            int current_idx = z + d * (x + w * y);
-            int right_idx = z + d * ((x + 1) + w * y);
+            int left_idx = ((x - 1) + w * y) + z * w * h;
+            int current_idx = (x + w * y) + z * w * h;
+            int right_idx = ((x + 1) + w * y) + z * w * h;
             return e[right_idx] - 2 * e[current_idx] + e[left_idx];
         }
     }
@@ -832,17 +954,17 @@ public:
     gradientyy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
         if (y == 0 || y == h - 1) {
             return T(0);  // Handle boundary cases where no second derivative can be computed
         } else {
-            int top_idx = z + d * (x + w * (y - 1));
-            int current_idx = z + d * (x + w * y);
-            int bottom_idx = z + d * (x + w * (y + 1));
+            int top_idx = (x + w * (y - 1)) + z * w * h;
+            int current_idx = (x + w * y) + z * w * h;
+            int bottom_idx = (x + w * (y + 1)) + z * w * h;
             return e[bottom_idx] - 2 * e[current_idx] + e[top_idx];
         }
     }
@@ -869,8 +991,8 @@ public:
     gradientxy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
 
     T operator[](int i) const {
-        int z = i % d;
-        int xy = i / d;
+        int z = i / (w * h);
+        int xy = i % (w * h);
         int x = xy % w;
         int y = xy / w;
 
@@ -878,10 +1000,10 @@ public:
         if (x == w - 1 || y == h - 1) {
             return T(0);  // Handle boundary cases as in the gradientxy function
         } else {
-            int top_left_idx = z + d * (x + w * y);
-            int top_right_idx = z + d * ((x + 1) + w * y);
-            int bottom_left_idx = z + d * (x + w * (y + 1));
-            int bottom_right_idx = z + d * ((x + 1) + w * (y + 1));
+            int top_left_idx = (x + w * y) + z * w * h;
+            int top_right_idx = ((x + 1) + w * y) + z * w * h;
+            int bottom_left_idx = (x + w * (y + 1)) + z * w * h;
+            int bottom_right_idx = ((x + 1) + w * (y + 1)) + z * w * h;
             return e[bottom_right_idx] - e[top_right_idx] - e[bottom_left_idx] + e[top_left_idx];
         }
     }

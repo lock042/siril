@@ -31,6 +31,7 @@
 #include "gui/callbacks.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "algos/statistics.h"
 
 
 #define PREVIEW_DELAY 200
@@ -49,7 +50,7 @@ static gboolean update_preview(gpointer user_data) {
 	update_image *im = (update_image*) user_data;
 
 	if (im->show_preview) {
-		siril_debug_print("update preview\n");
+		siril_log_debug("update preview\n");
 		set_cursor_waiting(TRUE);
 		im->update_preview_fn();
 	}
@@ -93,7 +94,7 @@ static void clear_backup_icc() {
 int backup_roi() {
 	int retval;
 	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
-		siril_debug_print("Image copy error in ROI\n");
+		siril_log_debug("Image copy error in ROI\n");
 
 	return retval;
 }
@@ -101,7 +102,7 @@ int backup_roi() {
 int restore_roi() {
 	int retval;
 	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
-		siril_debug_print("Image copy error in ROI\n");
+		siril_log_debug("Image copy error in ROI\n");
 
 	return retval;
 }
@@ -109,19 +110,19 @@ int restore_roi() {
 void copy_gfit_to_backup() {
 	guint64 gfit_size = gfit->rx * gfit->ry * gfit->naxes[2] * gfit->type == DATA_FLOAT ? 4 : 2;
 	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
-		siril_log_color_message(_("Warning: insufficient memory available to create a preview.\n"), "salmon");
+		siril_log_warning(_("Warning: insufficient memory available to create a preview.\n"));
 		return;
 	}
 	// We need the backup to have the mask state copied to it, because image operations start from the backup if a preview is active
 	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_COPYMASK | CP_FORMAT, -1)) {
-		siril_debug_print("Image copy error in previews\n");
+		siril_log_debug("Image copy error in previews\n");
 		return;
 	}
 	copy_fits_metadata(gfit, &preview_gfit_backup);
 	if (!com.script)
 		copy_gfit_icc_to_backup();
 	if (gui.roi.active && backup_roi()) {
-		siril_debug_print("Image copy error in ROI\n");
+		siril_log_debug("Image copy error in ROI\n");
 		return;
 	}
 	preview_is_active = TRUE;
@@ -134,14 +135,19 @@ int copy_backup_to_gfit() {
 	else {
 		// Restore the mask state too
 		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA | CP_COPYMASK, -1)) {
-			siril_debug_print("Image copy error in previews\n");
+			siril_log_debug("Image copy error in previews\n");
 			retval = 1;
 		} else if (!com.script) {
 			copy_backup_icc_to_gfit();
 		}
-		if (retval == 0) copy_fits_metadata(&preview_gfit_backup, gfit);
+		if (retval == 0) {
+			copy_fits_metadata(&preview_gfit_backup, gfit);
+			/* Stats were computed on preview-modified pixels; invalidate them
+			 * so stale values are never saved back to the input sequence. */
+			invalidate_stats_from_fit(gfit);
+		}
 		if (gui.roi.active && restore_roi()) {
-			siril_debug_print("Image copy error in ROI\n");
+			siril_log_debug("Image copy error in ROI\n");
 			retval = 1;
 		}
 	}

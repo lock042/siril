@@ -131,7 +131,12 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	}
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(image, text);
-	siril_log_color_message("%s\n", colortext, text);
+	if (colortext[0] == 'g')
+		siril_log_info("%s\n", text);
+	else if (colortext[0] == 's')
+		siril_log_warning("%s\n", text);
+	else
+		siril_log_error("%s\n", text);
 	g_free(text);
 	return FALSE;
 }
@@ -162,13 +167,13 @@ gpointer gaia_check(gpointer user_data) {
     for (int i = 0; i < num_mirrors; i++) {
         if (response_times[i] > -1) {
             working_mirrors++;
-            siril_debug_print("Mirror %s: %d ms\n", spcc_mirrors[i], response_times[i]);
+            siril_log_debug("Mirror %s: %d ms\n", spcc_mirrors[i], response_times[i]);
             if (response_times[i] < best_responsetime) {
                 best_mirror_index = i;
                 best_responsetime = response_times[i];
             }
         } else {
-            siril_log_color_message(_("Mirror %s: Not responding\n"), "salmon", spcc_mirrors[i]);
+            siril_log_warning(_("Mirror %s: Not responding\n"), spcc_mirrors[i]);
         }
     }
 
@@ -191,7 +196,7 @@ void check_gaia_archive_status() {
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		const gchar *text = N_("Siril is offline or built without networking. The remote Gaia catalogue is unavailable.\n");
 		gtk_widget_set_tooltip_text(image, text);
-		siril_log_color_message("%s", "red", text);
+		siril_log_error("%s", text);
 		return;
 	}
 	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, NULL));
@@ -201,7 +206,7 @@ static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
 	if (!has_wcs(gfit)) {
-		siril_log_color_message(_("There is no valid WCS information in the header. Please platesolve first.\n"), "red");
+		siril_log_error(_("There is no valid WCS information in the header. Please platesolve first.\n"));
 		return;
 	}
 
@@ -209,7 +214,7 @@ static void start_photometric_cc(gboolean spcc) {
 	set_bg_sigma(pcc_args);
 	if (spcc) {
 		pcc_args->catalog = get_spcc_catalog_from_GUI();
-		siril_debug_print(_("Using Gaia DR3 for SPCC\n"));
+		siril_log_debug(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		if (set_spcc_args(pcc_args)) {
 			free(pcc_args);
@@ -467,9 +472,12 @@ int get_photometry_catalog_from_GUI() {
 int get_spcc_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxSPCCCatalog"));
 	if (gtk_combo_box_get_active(box) == 1) {
+		/* Local. The loader auto-detects xpsamp vs xpcts in the photometric dir,
+		 * so requesting CAT_LOCAL_GAIA_XPSAMP routes to either kind transparently. */
 		return CAT_LOCAL_GAIA_XPSAMP;
 	} else {
-		return CAT_REMOTE_GAIA_XPSAMP;
+		/* Remote. Prefer xp_continuous mirrors when configured. */
+		return siril_select_remote_gaia_xp_kind();
 	}
 }
 /*****
@@ -633,14 +641,14 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 		if (args->selected_sensor_m == -1 || args->selected_filter_r == -1 ||
 						args->selected_filter_g == -1 || args->selected_filter_b == -1 ||
 						args->selected_white_ref == -1) {
-			siril_log_color_message(_("Error: ensure mono sensor, R, G and B filters and white reference are selected.\n"), "red");
+			siril_log_error(_("Error: ensure mono sensor, R, G and B filters and white reference are selected.\n"));
 			return 1;
 		}
 	} else {
 		if (args->selected_sensor_osc == -1 || (args->selected_filter_osc == -1 && !args->nb_mode) ||
 					(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
 					args->selected_white_ref == -1) {
-			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter or NB filter values, and white reference are selected.\n"), "red");
+			siril_log_error(_("Error: ensure OSC sensor, OSC filter or NB filter values, and white reference are selected.\n"));
 			return 1;
 		}
 	}
@@ -706,18 +714,18 @@ static gboolean is_valid_string(const char *str) {
 void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gchar *favourite) {
 	// Input validation
 	if (!widget) {
-		siril_debug_print("fill_combo_from_glist: widget is NULL\n");
+		siril_log_debug("fill_combo_from_glist: widget is NULL\n");
 		return;
 	}
 
 	if (!GTK_IS_COMBO_BOX_TEXT(widget)) {
-		siril_debug_print("fill_combo_from_glist: widget is not a combo box text widget\n");
+		siril_log_debug("fill_combo_from_glist: widget is not a combo box text widget\n");
 		return;
 	}
 
 	// Critical: Check if list is NULL
 	if (!list) {
-		siril_debug_print("fill_combo_from_glist: list is NULL, cannot populate combo\n");
+		siril_log_debug("fill_combo_from_glist: list is NULL, cannot populate combo\n");
 		return;
 	}
 
@@ -725,7 +733,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 
 	// Validate that the combo box is still valid
 	if (!GTK_IS_COMBO_BOX_TEXT(combo)) {
-		siril_debug_print("fill_combo_from_glist: combo cast failed\n");
+		siril_log_debug("fill_combo_from_glist: combo cast failed\n");
 		return;
 	}
 
@@ -733,7 +741,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 	// Find the specific handler ID instead of using function-based blocking
 	guint signal_id = g_signal_lookup("changed", GTK_TYPE_COMBO_BOX);
 	if (signal_id == 0) {
-		siril_debug_print("fill_combo_from_glist: failed to lookup 'changed' signal\n");
+		siril_log_debug("fill_combo_from_glist: failed to lookup 'changed' signal\n");
 		return;
 	}
 
@@ -759,7 +767,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 	}
 
 	if (list_length >= max_items) {
-		siril_debug_print("fill_combo_from_glist: list appears to be corrupted (too long or circular)\n");
+		siril_log_debug("fill_combo_from_glist: list appears to be corrupted (too long or circular)\n");
 		goto cleanup;
 	}
 
@@ -769,7 +777,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 		while (iterator && item_count < max_items) {
 			// Validate iterator and its data
 			if (!iterator->data) {
-				siril_debug_print("fill_combo_from_glist: NULL data in osc_sensors list at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: NULL data in osc_sensors list at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
@@ -779,14 +787,14 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 
 			// Comprehensive validation of osc_sensor object
 			if (!object) {
-				siril_debug_print("fill_combo_from_glist: NULL osc_sensor object at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: NULL osc_sensor object at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
 			}
 
 			if (!object->channel[0].model) {
-				siril_debug_print("fill_combo_from_glist: NULL model string in osc_sensor at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: NULL model string in osc_sensor at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
@@ -794,7 +802,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 
 			// Validate string
 			if (!is_valid_string(object->channel[0].model)) {
-				siril_debug_print("fill_combo_from_glist: invalid string in osc_sensor at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: invalid string in osc_sensor at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
@@ -834,7 +842,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 					listname = g_strdup("mono filters (green)");
 				else if (list == com.spcc_data.mono_filters[BLAYER])
 					listname = g_strdup("mono filters (blue)");
-				siril_debug_print("fill_combo_from_glist: NULL data in spcc_object list %s at item %d\n", listname, item_count);
+				siril_log_debug("fill_combo_from_glist: NULL data in spcc_object list %s at item %d\n", listname, item_count);
 				g_free(listname);
 				iterator = iterator->next;
 				item_count++;
@@ -845,14 +853,14 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 
 			// Comprehensive validation of spcc_object
 			if (!object) {
-				siril_debug_print("fill_combo_from_glist: NULL spcc_object at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: NULL spcc_object at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
 			}
 
 			if (!object->name) {
-				siril_debug_print("fill_combo_from_glist: NULL name in spcc_object at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: NULL name in spcc_object at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
@@ -860,7 +868,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 
 			// Validate string
 			if (!is_valid_string(object->name)) {
-				siril_debug_print("fill_combo_from_glist: invalid string in spcc_object at item %d\n", item_count);
+				siril_log_debug("fill_combo_from_glist: invalid string in spcc_object at item %d\n", item_count);
 				iterator = iterator->next;
 				item_count++;
 				continue;
@@ -894,107 +902,107 @@ cleanup:
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active_index);
 		spcc_debug_print("fill_combo_from_glist: set active index to %d\n", active_index);
 	} else if (active_index >= 0) {
-		siril_debug_print("fill_combo_from_glist: favourite index %d is out of range (max: %d)\n", active_index, item_count - 1);
+		siril_log_debug("fill_combo_from_glist: favourite index %d is out of range (max: %d)\n", active_index, item_count - 1);
 	}
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
-	siril_debug_print("populate_spcc_combos: starting\n");
+	siril_log_debug("populate_spcc_combos: starting\n");
 
 	// Validate we're on the main thread
 	if (!g_main_context_is_owner(g_main_context_default())) {
-		siril_debug_print("populate_spcc_combos: ERROR - not called from main thread!\n");
+		siril_log_debug("populate_spcc_combos: ERROR - not called from main thread!\n");
 		goto end;
 	}
 
 	// Comprehensive validation of critical data structures before use
 	if (!com.spcc_data.osc_sensors) {
-		siril_debug_print("populate_spcc_combos: ERROR - osc_sensors is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - osc_sensors is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.mono_sensors) {
-		siril_debug_print("populate_spcc_combos: ERROR - mono_sensors is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - mono_sensors is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.osc_filters) {
-		siril_debug_print("populate_spcc_combos: ERROR - osc_filters is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - osc_filters is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.wb_ref) {
-		siril_debug_print("populate_spcc_combos: ERROR - wb_ref is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - wb_ref is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.osc_lpf) {
-		siril_debug_print("populate_spcc_combos: ERROR - osc_lpf is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - osc_lpf is NULL\n");
 		goto end;
 	}
 	// Check individual filter arrays
 	if (!com.spcc_data.mono_filters[RLAYER]) {
-		siril_debug_print("populate_spcc_combos: ERROR - red filters (RLAYER) is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - red filters (RLAYER) is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.mono_filters[GLAYER]) {
-		siril_debug_print("populate_spcc_combos: ERROR - green filters (GLAYER) is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - green filters (GLAYER) is NULL\n");
 		goto end;
 	}
 	if (!com.spcc_data.mono_filters[BLAYER]) {
-		siril_debug_print("populate_spcc_combos: ERROR - blue filters (BLAYER) is NULL\n");
+		siril_log_debug("populate_spcc_combos: ERROR - blue filters (BLAYER) is NULL\n");
 		goto end;
 	}
 	// Look up all the widgets here with validation
 	GtkWidget *oscfilters = lookup_widget("combo_spcc_filters_osc");
 	if (!oscfilters) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_osc widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_filters_osc widget\n");
 		goto end;
 	}
 	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
 	if (!rfilters) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_r widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_filters_r widget\n");
 		goto end;
 	}
 	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
 	if (!gfilters) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_g widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_filters_g widget\n");
 		goto end;
 	}
 	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
 	if (!bfilters) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_b widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_filters_b widget\n");
 		goto end;
 	}
 	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
 	if (!lpfilters) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_lpf widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_filters_lpf widget\n");
 		goto end;
 	}
 	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
 	if (!monosensors) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_mono widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_mono widget\n");
 		goto end;
 	}
 	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
 	if (!oscsensors) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_osc widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_osc widget\n");
 		goto end;
 	}
 	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
 	if (!whitepoint) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_whitepoint widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find combo_spcc_whitepoint widget\n");
 		goto end;
 	}
 	GtkWidget *switch_widget_lookup = lookup_widget("spcc_sensor_switch");
 	if (!switch_widget_lookup) {
-		siril_debug_print("populate_spcc_combos: ERROR - could not find spcc_sensor_switch widget\n");
+		siril_log_debug("populate_spcc_combos: ERROR - could not find spcc_sensor_switch widget\n");
 		goto end;
 	}
 	GtkSwitch *switch_widget = GTK_SWITCH(switch_widget_lookup);
 	if (!GTK_IS_SWITCH(switch_widget)) {
-		siril_debug_print("populate_spcc_combos: ERROR - spcc_sensor_switch is not a GtkSwitch\n");
+		siril_log_debug("populate_spcc_combos: ERROR - spcc_sensor_switch is not a GtkSwitch\n");
 		goto end;
 	}
 	// Validate preferences exist (basic check)
 	if (!com.pref.spcc.oscfilterpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - oscfilterpref is NULL\n");
+		siril_log_debug("populate_spcc_combos: WARNING - oscfilterpref is NULL\n");
 	}
 
 	// Initialize filters with error handling
@@ -1025,7 +1033,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	spcc_debug_print("populate_spcc_combos: setting switch state\n");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 
-	siril_debug_print("populate_spcc_combos: completed successfully\n");
+	siril_log_debug("populate_spcc_combos: completed successfully\n");
 end:
 	return FALSE;
 }

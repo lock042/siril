@@ -87,7 +87,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 			args->dest_width = g_ascii_strtoll(gtk_entry_get_text(widthEntry), NULL, 10);
 			args->dest_height = g_ascii_strtoll(gtk_entry_get_text(heightEntry), NULL, 10);
 			if (args->dest_height == 0 || args->dest_width == 0) {
-				siril_log_message(_("Width or height cannot be null. Not resizing.\n"));
+				siril_log_warning(_("Width or height cannot be null. Not resizing.\n"));
 				gtk_toggle_button_set_active(checkResize, FALSE);
 				args->resample = FALSE;
 			} else if (args->dest_height == args->seq->ry && args->dest_width == args->seq->rx) {

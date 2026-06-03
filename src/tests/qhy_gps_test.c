@@ -44,7 +44,7 @@
 #define LOCK(retval) \
 	int fd_lock = open(LOCK_FILE_FOR_DOWNLOAD, O_RDWR | O_CREAT, 0640); \
 	if (fd_lock < 0) { \
-		siril_debug_print("could not create lock file\n"); \
+		siril_log_debug("could not create lock file\n"); \
 		return retval; \
 	} \
 	flock(fd_lock, LOCK_EX)
@@ -68,7 +68,7 @@ static void init_download() {
 	const gchar *cache_dir_path = g_get_user_cache_dir();
 	gchar *test_files_dir_path = g_strdup_printf("%s/%s", cache_dir_path, TEST_FILES_DOWNLOAD_DIR);
 	if (g_mkdir_with_parents(test_files_dir_path, 0700)) {
-		siril_debug_print("failed to create dir %s\n", test_files_dir_path);
+		siril_log_debug("failed to create dir %s\n", test_files_dir_path);
 	} else {
 		directory_created = TRUE;
 	}
@@ -85,17 +85,17 @@ static gchar *check_or_download_test_file(const char *filename) {
 		return file_path;
 	}
 	if (!directory_created) {
-		siril_debug_print("cannot download to expected directory which creation failed\n");
+		siril_log_debug("cannot download to expected directory which creation failed\n");
 		g_free(file_path);
 		UNLOCK;
 		return NULL;
 	}
 #ifdef HAVE_LIBCURL
-	siril_debug_print("test file %s is missing, downloading...\n", file_path);
+	siril_log_debug("test file %s is missing, downloading...\n", file_path);
 	FILE *dest_file = g_fopen(file_path, "wb");
 	if (!dest_file) {
 		perror("fopen");
-		siril_debug_print("failed to create file %s for downloads\n", file_path);
+		siril_log_debug("failed to create file %s for downloads\n", file_path);
 		UNLOCK;
 		return NULL;
 	}
@@ -111,7 +111,7 @@ static gchar *check_or_download_test_file(const char *filename) {
 		CURLcode res = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
 		if (res != CURLE_OK) {
-			siril_debug_print("failed to download from %s\n", file_url);
+			siril_log_debug("failed to download from %s\n", file_url);
 			g_unlink(file_path);
 			g_free(file_path);
 			file_path = NULL;
@@ -119,9 +119,9 @@ static gchar *check_or_download_test_file(const char *filename) {
 	}
 	fclose(dest_file);
 	g_free(file_url);
-	//siril_debug_print("test file %s was downloaded\n", file_path);
+	//siril_log_debug("test file %s was downloaded\n", file_path);
 #else
-	siril_debug_print("test file %s is missing and cannot be doawnloaded (libcurl missing)\n", file_path);
+	siril_log_debug("test file %s is missing and cannot be doawnloaded (libcurl missing)\n", file_path);
 #endif
 	UNLOCK;
 	return file_path;
@@ -168,8 +168,8 @@ void test_metadata_reading() {
 	double new_exposure = fit.keywords.exposure;
 	GDateTime *new_dateobs = g_date_time_ref(fit.keywords.date_obs);
 	gchar *new_dateobs_str = date_time_to_FITS_date(new_dateobs);
-	siril_debug_print("exp %f -> %f\n", original_exposure, new_exposure);
-	siril_debug_print("date-obs %s -> %s\n", date_time_to_FITS_date(original_dateobs), new_dateobs_str);
+	siril_log_debug("exp %f -> %f\n", original_exposure, new_exposure);
+	siril_log_debug("date-obs %s -> %s\n", date_time_to_FITS_date(original_dateobs), new_dateobs_str);
 	cr_assert(fabs(original_exposure - new_exposure) < original_exposure * 0.001);
 	cr_assert(timediff_in_s(original_dateobs, new_dateobs) < 1.0);
 	cr_assert(!strcmp("2023-08-31T20:20:12.854125", new_dateobs_str));
@@ -215,7 +215,7 @@ void test_rsgps_timestamp_computation() {
 	cr_assert(fabs(timediff_in_s(date_start1, date_end1) - fit.keywords.exposure) < 1e-3);
 
 	double rolling_shutter_duration = timediff_in_s(date_start1, date_start0);
-	siril_debug_print("rolling shutter duration: %f\n", rolling_shutter_duration);
+	siril_log_debug("rolling shutter duration: %f\n", rolling_shutter_duration);
 	cr_assert(rolling_shutter_duration > 0.2);
 	cr_assert(rolling_shutter_duration < 0.3);
 
@@ -237,7 +237,7 @@ void test_rsgps_binning() {
 
 	cr_assert(fit.keywords.gps_data->binning == 4);
 	GDateTime *date_after = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, row / 2);
-	siril_debug_print("timestamp change after binning: %s -> %s, diff = %f\n",
+	siril_log_debug("timestamp change after binning: %s -> %s, diff = %f\n",
 			date_time_to_FITS_date(date_before), date_time_to_FITS_date(date_after),
 			timediff_in_s(date_before, date_after));
 	cr_assert(fabs(timediff_in_s(date_before, date_after)) < 1e-4);
@@ -276,7 +276,7 @@ void test_rsgps_crop() {
 	cr_assert(fit.keywords.gps_data->crop_offset_y == 0);
 	rectangle area = { 300, 500, 200, 200 };
 	crop(&fit, &area);
-	siril_debug_print("new offset: %d\n", fit.keywords.gps_data->crop_offset_y);
+	siril_log_debug("new offset: %d\n", fit.keywords.gps_data->crop_offset_y);
 	cr_assert(fit.keywords.gps_data->crop_offset_y == 3194 - 500 - 200);
 	GDateTime *date_after = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 0);
 	cr_assert(fabs(timediff_in_s(date_before, date_after)) < 1e-6);

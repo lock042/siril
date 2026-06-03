@@ -440,7 +440,7 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(binning,       on_combobinning_changed, NULL);
-	siril_debug_print("free_image_data_idle() complete\n");
+	siril_log_debug("free_image_data_idle() complete\n");
 
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
@@ -460,7 +460,7 @@ static gboolean free_image_data_gui(gpointer p) {
 	}
 	clear_previews();
 	free_reference_image();
-	siril_debug_print("free_image_data_gui() complete\n");
+	siril_log_debug("free_image_data_gui() complete\n");
 	return FALSE;
 }
 

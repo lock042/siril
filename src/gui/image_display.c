@@ -131,7 +131,7 @@ static int allocate_full_surface(struct image_view *view) {
 	if (stride != view->full_surface_stride
 				|| sh != view->full_surface_height
 				|| !view->full_surface || !view->buf) {
-		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
+		siril_log_debug("display buffers and full_surface (re-)allocation %p\n", view);
 
 		guchar *tmp = realloc(view->buf, (size_t)stride * sh * sizeof(guchar));
 		if (!tmp) {
@@ -157,7 +157,7 @@ static int allocate_full_surface(struct image_view *view) {
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
 					CAIRO_FORMAT_RGB24, sw, sh, stride);
 		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
+			siril_log_debug("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
 			view->full_surface = NULL;
 			free(view->buf);
@@ -175,7 +175,7 @@ static int allocate_full_surface(struct image_view *view) {
 void check_gfit_profile_identical_to_monitor() {
 	if (!com.headless && gfit->icc_profile && gfit->color_managed)
 		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
-	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
+	siril_log_debug("gfit profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
@@ -184,7 +184,7 @@ static void remaprgb(void) {
 	gint i;
 	int nbdata;
 
-	siril_debug_print("remaprgb\n");
+	siril_log_debug("remaprgb\n");
 	if (!isrgb(gfit))
 		return;
 
@@ -200,7 +200,7 @@ static void remaprgb(void) {
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
 	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
 	if (bufr == NULL || bufg == NULL || bufb == NULL) {
-		siril_debug_print("remaprgb: gray buffers not allocated for display\n");
+		siril_log_debug("remaprgb: gray buffers not allocated for display\n");
 		g_mutex_unlock(&gui.cairo_mutex);
 		return;
 	}
@@ -232,7 +232,7 @@ void allocate_hd_remap_indices() {
 			free(gui.hd_remap_index[i]);
 		gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
 		if (gui.hd_remap_index[i] == NULL) {
-			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
+			siril_log_error(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"));
 			gui.use_hd_remap = FALSE;
 			image_display_init_statics();
 			gtk_check_menu_item_set_active(imgdisp_autohd_item, FALSE);
@@ -258,7 +258,7 @@ static int make_hd_index_for_current_display(int vport);
 static int make_index_for_rainbow(BYTE index[][3]);
 
 static void remap_mask(mask_t *mask) {
-	siril_debug_print("mask remap\n");
+	siril_log_debug("mask remap\n");
 
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
@@ -337,7 +337,7 @@ static void remap_mask(mask_t *mask) {
 				break;
 			}
 			default:
-				siril_debug_print("Error: invalid mask bitpix\n");
+				siril_log_debug("Error: invalid mask bitpix\n");
 				break;
 		}
 	} else {
@@ -408,7 +408,7 @@ static void remap_mask(mask_t *mask) {
 		}
 
 		default: {
-			siril_debug_print("Error: invalid mask bitpix\n");
+			siril_log_debug("Error: invalid mask bitpix\n");
 			break;
 		}
 	}
@@ -444,13 +444,13 @@ static void remap(int vport) {
 	WORD *src;
 	float *fsrc;
 	gboolean inverted;
-	siril_debug_print("HISTEQ / STF remap %d\n", vport);
+	siril_log_debug("HISTEQ / STF remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
 	}
 	if (gfit->type == DATA_UNSUPPORTED) {
-		siril_debug_print("data is not loaded yet\n");
+		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
 
@@ -710,7 +710,7 @@ static void remap_all_vports() {
 	float *fsrc[3];
 
 	if (gfit->type == DATA_UNSUPPORTED) {
-		siril_debug_print("data is not loaded yet\n");
+		siril_log_debug("data is not loaded yet\n");
 		return;
 	}
 
@@ -777,7 +777,7 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_debug_print((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		siril_log_debug((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
 		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
 
 		if (do_transform)
@@ -1024,7 +1024,7 @@ static int make_hd_index_for_current_display(int vport) {
 	 * to cause noticeable quantization of levels */
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
-	siril_debug_print("Rebuilding HD remap_index\n");
+	siril_log_debug("Rebuilding HD remap_index\n");
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gui.unlink_channels ? vport : 0;
 	index = gui.hd_remap_index[target_index];
 
@@ -1080,12 +1080,12 @@ static int make_index_for_current_display(int vport) {
 
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
-		siril_debug_print("Re-using previous gui.remap_index\n");
+		siril_log_debug("Re-using previous gui.remap_index\n");
 		return 0;
 	}
 
 	/************* Building the remap_index **************/
-	siril_debug_print("Rebuilding gui.remap_index %d\n", vport);
+	siril_log_debug("Rebuilding gui.remap_index %d\n", vport);
 	// target_index only used for STF mode
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[vport];
@@ -1172,7 +1172,7 @@ typedef struct label_point_struct {
 } label_point;
 
 static void request_gtk_redraw_of_cvport() {
-	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
+	//siril_log_debug("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
 }
@@ -1442,7 +1442,7 @@ static void draw_vport(const draw_data_t* dd) {
 		view->disp_surface = cairo_surface_create_similar_image(target, CAIRO_FORMAT_ARGB32,
 					dd->window_width, dd->window_height);
 		if (cairo_surface_status(view->disp_surface) != CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
+			siril_log_debug("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
 			cairo_surface_destroy(view->disp_surface);
 			view->disp_surface = NULL;
 			g_mutex_unlock(&gui.cairo_mutex);
@@ -1488,7 +1488,7 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_destroy(cached_cr);
 		}
 
-//		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
+//		siril_log_debug("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
 //				view->view_width, view->view_height);
 	}
 	cairo_set_source_surface(dd->cr, view->disp_surface, 0, 0);
@@ -2581,28 +2581,47 @@ static void draw_regframe(const draw_data_t* dd) {
 		image_display_init_statics();
 	if (!gtk_toggle_button_get_active(drawframe)) return;
 	int activelayer = gtk_combo_box_get_active(seqcombo);
-	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (!layer_has_registration(&com.seq, activelayer)) {
+		activelayer = seq_has_any_regdata(&com.seq);
+		if (activelayer < 0) return;
+	}
 	if (com.seq.reg_invalidated) return;
 	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
 	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
-			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
-		return; // reference or current image H matrix is null matrix
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+		return; // current image H matrix is null matrix
+
+	// For ext_ref sequences, H matrices are absolute (relative to external ref).
+	// Use identity as Href so the frame shows the external reference boundary.
+	// For normal sequences, use H[reference_image] so the frame shows the sequence reference.
+	Homography Href = { 0 };
+	int ref_rx, ref_ry;
+	if (com.seq.ext_ref) {
+		cvGetEye(&Href);
+		ref_rx = com.seq.ext_ref_rx;
+		ref_ry = com.seq.ext_ref_ry;
+	} else {
+		if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION)
+			return;
+		Href = com.seq.regparam[activelayer][com.seq.reference_image].H;
+		ref_rx = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].rx : com.seq.rx;
+		ref_ry = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].ry : com.seq.ry;
+	}
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
 	framing.pt[0].y = 0.;
-	framing.pt[1].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[1].x = (double)ref_rx;
 	framing.pt[1].y = 0.;
-	framing.pt[2].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
-	framing.pt[2].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[2].x = (double)ref_rx;
+	framing.pt[2].y = (double)ref_ry;
 	framing.pt[3].x = 0.;
-	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[3].y = (double)ref_ry;
 	double cogx = 0., cogy = 0., cx, cy;
 	for (int i = 0; i < 4; i++) {
-		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H, 1.);
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, Href, com.seq.regparam[activelayer][com.seq.current].H, 1.);
 		cogx += framing.pt[i].x;
 		cogy += framing.pt[i].y;
 	}
@@ -2652,7 +2671,7 @@ static void draw_regframe(const draw_data_t* dd) {
 
 void initialize_image_display() {
 	int i;
-	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth);
+	siril_log_debug("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth);
 	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
 		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
@@ -2698,7 +2717,7 @@ static void invalidate_image_render_cache(int vport) {
 		gui.view[i].view_width = -1;
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
-	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
+	//siril_log_debug("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
 void adjust_vport_size_to_image() {
@@ -2707,7 +2726,7 @@ void adjust_vport_size_to_image() {
 	if (zoom <= 0.0) return;
 	/* Init display matrix from current display state */
 	cairo_matrix_t new_matrix;
-	/*siril_debug_print("computing matrix for zoom %g and offset [%g, %g]\n",
+	/*siril_log_debug("computing matrix for zoom %g and offset [%g, %g]\n",
 			zoom, gui.display_offset.x, gui.display_offset.y);*/
 	cairo_matrix_init(&new_matrix,
 			zoom, 0, 0, zoom,
@@ -2720,7 +2739,7 @@ void adjust_vport_size_to_image() {
 		/* Compute the inverse display matrix used for coordinate transformation */
 		gui.image_matrix = gui.display_matrix;
 		cairo_matrix_invert(&gui.image_matrix);
-		//siril_debug_print("  matrix changed\n");
+		//siril_log_debug("  matrix changed\n");
 	}
 }
 
@@ -2811,7 +2830,7 @@ void redraw(remap_type doremap) {
 			redraw_aberration_inspector();
 			break;
 		default:
-			siril_debug_print("UNKNOWN REMAP\n\n");
+			siril_log_debug("UNKNOWN REMAP\n\n");
 	}
 	request_gtk_redraw_of_cvport();
 }
@@ -2905,7 +2924,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	if (dd.window_width != gui.view[dd.vport].view_width ||
 			dd.window_height != gui.view[dd.vport].view_height) {
-		//siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
+		//siril_log_debug("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
 		//		dd.window_width, dd.window_height,
 		//		gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
 		invalidate_image_render_cache(dd.vport);

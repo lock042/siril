@@ -130,7 +130,7 @@ static int calcH_from_corners(int rx, int ry, int ry_ref, wcsprm_t *prm_img, wcs
 	}
 	int ret = cvCalcH_from_corners(corner_x, corner_y, corner_ref_x, corner_ref_y, H);
 	if (ret < 0) {
-		siril_log_color_message(_("Failed to compute homography from corners\n"), "red");
+		siril_log_error(_("Failed to compute homography from corners\n"));
 		return -1;
 	}
 	return 0;
@@ -201,7 +201,7 @@ static int optimize_max_framing(double *framingref, optim_params_t *params) {
 	s = gsl_min_fminimizer_alloc(T);
 	gsl_min_fminimizer_set(s, &F, m, a, b);
 
-	siril_debug_print("%5s [%9s, %9s] %9s %10s %9s %10s\n",
+	siril_log_debug("%5s [%9s, %9s] %9s %10s %9s %10s\n",
 		"iter", "lower", "upper", "min",
 		"err", "err(est)", "val");
 
@@ -213,14 +213,14 @@ static int optimize_max_framing(double *framingref, optim_params_t *params) {
 		b = gsl_min_fminimizer_x_upper(s);
 		double v = GSL_FN_EVAL(&F, m);
 		status = gsl_min_test_interval(a, b, 0.001, 0.0);
-		siril_debug_print("%5d [%.7f, %.7f] "
+		siril_log_debug("%5d [%.7f, %.7f] "
 				"%.7f %.7f %.0f\n",
 				iter, a, b,
 				m, b - a, v);
 	} while (status == GSL_CONTINUE && iter < max_iter);
 	
 	if (status == GSL_SUCCESS) {
-		siril_debug_print("Converged\n");
+		siril_log_debug("Converged\n");
 		double optimval = gsl_min_fminimizer_x_minimum(s);
 		// TODO: should we correct to make sure the image is always horizontal?
 		// int width = 0, height = 0;
@@ -307,7 +307,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 			goto free_all;
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rstmp + i);
-		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
+		siril_log_debug("Image #%d - rot:%.3f\n", i + 1, angles[2]);
 		if (framing == FRAMING_CURRENT && i == refindex) {
 			framingref = angles[2];
 			anglecount++;
@@ -319,7 +319,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"), i + 1, RA[i], DEC[i], angles[2]);
 	}
 	if (!anglecount) {
-		siril_log_color_message(_("No image selected after computing transformations, aborting\n"), "red");
+		siril_log_error(_("No image selected after computing transformations, aborting\n"));
 		goto free_all;
 	}
 	framingref /= anglecount;
@@ -338,7 +338,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 		Kref.h02 = Ks[refindex].h02;
 		Kref.h12 = Ks[refindex].h12;
 #ifdef DEBUG_ASTROREG
-		siril_debug_print("Scale: %.3f\n", fscale);
+		siril_log_debug("Scale: %.3f\n", fscale);
 		print_H(&Kref);
 #endif
 		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
@@ -373,7 +373,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	}
 
 	if (!wcsref) {
-		siril_log_color_message(_("Could not create WCS structure for framing, aborting\n"), "red");
+		siril_log_error(_("Could not create WCS structure for framing, aborting\n"));
 		retval = 1;
 		goto free_all;
 	}
@@ -394,17 +394,17 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 		framing_roi roi = { 0 };
 		compute_roi(&H, rx, ry, &roi);
 		current_regdata[i].H = H;
-		siril_debug_print("Image %d\n", i + 1);
+		siril_log_debug("Image %d\n", i + 1);
 #ifdef DEBUG_ASTROREG
 		print_H(&H);
-		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
+		siril_log_debug("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
 #endif
 		xmin = min(xmin, roi.x);
 		ymin = min(ymin, roi.y);
 		xmax = max(xmax, roi.x + roi.w);
 		ymax = max(ymax, roi.y + roi.h);
 	}
-	siril_debug_print("Framing: %d,%d,%d,%d\n", xmin, ymin, xmax - xmin, ymax - ymin);
+	siril_log_debug("Framing: %d,%d,%d,%d\n", xmin, ymin, xmax - xmin, ymax - ymin);
 	seq->reference_image = refindex;
 
 	if (prmout)
@@ -437,7 +437,7 @@ int collect_sequence_astrometry(struct registration_args *regargs, int *included
 		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
-			siril_log_message(_("Could not load image %d from sequence %s\n"),
+			siril_log_error(_("Could not load image %d from sequence %s\n"),
 			i + 1, regargs->seq->seqname);
 			retval = 1;
 			break;

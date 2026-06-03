@@ -78,6 +78,7 @@ static const char *receiver_status(BYTE flag, gboolean shifted) {
 
 static gboolean time_is_accurate(int shifted_flag) {
 	return shifted_flag == 3 || shifted_flag == 2; // data->flag is already shifted
+						       // DO NOT MERGE THAT! = 3 only
 }
 
 void print_qhy_data(struct _qhy_struct *qhy) {
@@ -143,7 +144,7 @@ int parse_gps_image(fits *fit, struct _qhy_struct *qhy_header) {
 
 	struct _qhy_struct_raw raw_header = { 0 };
 	memcpy(&raw_header, fit->data, sizeof raw_header);
-	siril_debug_print("header size: %zd\n", sizeof raw_header);
+	siril_log_debug("header size: %zd\n", sizeof raw_header);
 	qhy_header->sequence_number = be32_to_cpu(raw_header.sequence_number);
 	qhy_header->image_width = be16_to_cpu(raw_header.image_width);
 	qhy_header->image_height = be16_to_cpu(raw_header.image_height);
@@ -157,7 +158,7 @@ int parse_gps_image(fits *fit, struct _qhy_struct *qhy_header) {
 	qhy_header->longitude = (lon % 1000000000) / 1000000;
 	qhy_header->longitude += (lon % 1000000) / 600000.0;
 	if (lon > 1000000000) qhy_header->longitude = -qhy_header->longitude;
-	siril_debug_print("lat: %u\tlon: %u\n", lat, lon);
+	siril_log_debug("lat: %u\tlon: %u\n", lat, lon);
 
 	qhy_header->start_flag = raw_header.start_flag;
 	uint32_t js_start = be32_to_cpu(raw_header.start_seconds);
@@ -214,7 +215,7 @@ int parse_gps_from_header(fits *fit, const char *filename, struct _qhy_struct *q
 	char date[FLEN_VALUE] = { 0 };
 	int status = 0, s = 0, flag = 0;
 	if (filename) {
-		siril_debug_print("reading GPS data from header for %s\n", filename);
+		siril_log_debug("reading GPS data from header for %s\n", filename);
 		siril_fits_open_diskfile_img(&(fit->fptr), filename, READONLY, &status);
 	}
 	fits_read_key(fit->fptr, TINT, "GPS_W", &qhy_header->image_width, NULL, &status);
@@ -233,7 +234,7 @@ int parse_gps_from_header(fits *fit, const char *filename, struct _qhy_struct *q
 	if (filename)
 		fits_close_file(fit->fptr, &s);
 	if (status || !qhy_header->start || !qhy_header->end) {
-		siril_debug_print("Image does not have the expected GPS keywords\n");
+		siril_log_debug("Image does not have the expected GPS keywords\n");
 		return -1;
 	}
 
@@ -349,7 +350,7 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 		qhy_header->count_of_PPS > 9999000 && qhy_header->count_of_PPS < 10000000;
 	if (is_locked)
 		siril_log_message(_("DATE-OBS and EXPTIME overwritten by GPS metadata. GPS_* keys untouched\n"));
-	else siril_log_color_message(_("DATE-OBS and EXPTIME overwritten by GPS metadata, but GPS was not locked. GPS_* keys untouched\n"), "salmon");
+	else siril_log_warning(_("DATE-OBS and EXPTIME overwritten by GPS metadata, but GPS was not locked. GPS_* keys untouched\n"));
 	fit->keywords.date_and_exp_from_gps = TRUE;
 	fit->history = g_slist_append(fit->history, strdup("DATE-OBS and EXPTIME overwritten by GPS metadata"));
 	return 0;
@@ -379,7 +380,7 @@ GDateTime *get_timestamp_for_pixel(struct gps_rs_data *data, enum timestamp_type
 		y = data->ry - y - 1;
 	y += data->crop_offset_y;	// from siril crops, in binned coordinates
 	y *= data->binning;
-	siril_debug_print("FITS y: %d (ry: %d)\n", y, data->ry);
+	siril_log_debug("FITS y: %d (ry: %d)\n", y, data->ry);
 
 	/* compute offset */
 	double y_offset;
@@ -413,7 +414,7 @@ void apply_flip_to_gps_data(fits *fit) {
 	if (!fit->keywords.gps_data)
 		return;
 	fit->keywords.gps_data->top_down = !g_strcmp0(fit->keywords.row_order, "TOP-DOWN");
-	siril_debug_print("Image is now %s\n", fit->keywords.row_order);
+	siril_log_debug("Image is now %s\n", fit->keywords.row_order);
 }
 
 // to call after changing fit->keywords.binning_x
@@ -424,7 +425,7 @@ void apply_binning_to_gps_data(fits *fit) {
 		fit->keywords.gps_data->crop_offset_x = fit->keywords.gps_data->crop_offset_x * fit->keywords.gps_data->binning / fit->keywords.binning_x;
 		fit->keywords.gps_data->crop_offset_y = fit->keywords.gps_data->crop_offset_y * fit->keywords.gps_data->binning / fit->keywords.binning_x;
 	}
-	siril_debug_print("updated binning value for GPS metadata from %d to %d\n",
+	siril_log_debug("updated binning value for GPS metadata from %d to %d\n",
 			fit->keywords.gps_data->binning, fit->keywords.binning_x);
 	fit->keywords.gps_data->binning = fit->keywords.binning_x;
 	fit->keywords.gps_data->ry = fit->ry;

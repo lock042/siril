@@ -1305,7 +1305,7 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 
 /* Initialize histogram overlay */
 void init_histogram_overlay(void) {
-	siril_debug_print("Initializing histogram overlay...\n");
+	siril_log_debug("Initializing histogram overlay...\n");
 
 	/* Get all 4 drawing area widgets */
 	histo_state.rgb_area = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareargb"));
@@ -1317,17 +1317,17 @@ void init_histogram_overlay(void) {
 
 	/* Log which widgets were found */
 	if (!histo_state.rgb_area)
-		siril_debug_print("drawingareargb not found\n");
+		siril_log_debug("drawingareargb not found\n");
 	if (!histo_state.r_area)
-		siril_debug_print("drawingarear not found\n");
+		siril_log_debug("drawingarear not found\n");
 	if (!histo_state.g_area)
-		siril_debug_print("drawingareag not found\n");
+		siril_log_debug("drawingareag not found\n");
 	if (!histo_state.b_area)
-		siril_debug_print("drawingareab not found\n");
+		siril_log_debug("drawingareab not found\n");
 
 	if (!histo_state.rgb_area && !histo_state.r_area &&
 	    !histo_state.g_area && !histo_state.b_area) {
-		siril_debug_print("ERROR: Cannot find any drawing area widgets!\n");
+		siril_log_debug("ERROR: Cannot find any drawing area widgets!\n");
 		return;
 	}
 
@@ -1340,7 +1340,7 @@ void init_histogram_overlay(void) {
 		/* Position at bottom-left with margin */
 		histo_state.x = 20;
 		histo_state.y = widget_height - histo_state.height - 20;
-		siril_debug_print("Initial histogram position: %dx%d at (%d,%d)\n",
+		siril_log_debug("Initial histogram position: %dx%d at (%d,%d)\n",
 		                  histo_state.width, histo_state.height,
 		                  histo_state.x, histo_state.y);
 	} else {
@@ -1405,7 +1405,7 @@ void init_histogram_overlay(void) {
 		                 G_CALLBACK(on_histogram_motion_notify), NULL);
 	}
 
-	siril_debug_print("Histogram overlay initialized successfully!\n");
+	siril_log_debug("Histogram overlay initialized successfully!\n");
 }
 
 void set_histogram_overlay_visible(gboolean visible) {

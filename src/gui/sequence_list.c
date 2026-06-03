@@ -52,6 +52,7 @@ static GtkComboBoxText *seqlist_dialog_combo = NULL;
 static GtkHeaderBar *seqlist_headerbar = NULL;
 static GtkWidget *seqlist_buttonbar = NULL;
 static GtkWidget *seqlist_refframe2 = NULL;
+static GtkWidget *seqlist_ext_ref_label = NULL;
 static GtkEntry *seqlist_search_entry = NULL;
 static GtkTreeView *seqlist_treeview1 = NULL;
 static GtkWidget *seqlist_drawframe_check = NULL;
@@ -64,6 +65,7 @@ static void sequence_list_init_statics(void) {
 	seqlist_headerbar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "seqlistbar"));
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
+	seqlist_ext_ref_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ext_ref"));
 	seqlist_search_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "seqlistsearch"));
 	seqlist_treeview1 = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview1"));
 	seqlist_drawframe_check = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check"));
@@ -169,7 +171,7 @@ static void update_seqlist_dialog_combo(int layer) {
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
 
-	// siril_debug_print("Resetting cached filename and index\n");
+	// siril_log_debug("Resetting cached filename and index\n");
 	g_free(cached_original_filename);
 	cached_original_filename = NULL;
 	cached_real_index = -1;
@@ -189,6 +191,16 @@ static void initialize_title() {
 	gtk_widget_set_sensitive(seqlist_buttonbar, sequence_is_loaded());
 	gtk_widget_set_sensitive(GTK_WIDGET(seqlist_dialog_combo), sequence_is_loaded());
 	gtk_widget_set_sensitive(seqlist_refframe2, sequence_is_loaded());
+	gboolean has_ext_ref = sequence_is_loaded() && com.seq.ext_ref && com.seq.ext_ref_path;
+	gtk_widget_set_visible(seqlist_ext_ref_label, has_ext_ref);
+	if (has_ext_ref) {
+		gchar *basename = g_path_get_basename(com.seq.ext_ref_path);
+		gchar *label_text = g_strdup_printf(_("External Reference: %s"), basename);
+		gtk_label_set_text(GTK_LABEL(seqlist_ext_ref_label), label_text);
+		gtk_widget_set_tooltip_text(seqlist_ext_ref_label, com.seq.ext_ref_path);
+		g_free(basename);
+		g_free(label_text);
+	}
 
 	g_free(seq_basename);
 }
@@ -311,7 +323,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			COLUMN_CURRENT, index == seq->current ? 800 : 400,
 			// weight value is 400 by default "normal":
 			// http://developer.gnome.org/gtk3/stable/GtkCellRendererText.html#GtkCellRendererText--weight
-			COLUMN_REFERENCE, index == seq->reference_image ?
+			COLUMN_REFERENCE, (index == seq->reference_image) ?
 			ref_bg_colour[color] : bg_colour[color],
 			COLUMN_INDEX, (index + 1),
 			-1);
@@ -1072,7 +1084,7 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 		}
 	} else {
 		original_filename = g_strdup(cached_original_filename);
-		// siril_debug_print("Re-using cached filename\n");
+		// siril_log_debug("Re-using cached filename\n");
 	}
 
 	if (original_filename == NULL) return FALSE;

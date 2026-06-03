@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef DECONV_BREGMAN_H
 #define DECONV_BREGMAN_H
 
-#include "image.hpp"
+#include "algos/img_t/image.hpp"
 
 template <typename T>
 void pad_and_taper(img_t<T>& u, const img_t<T>& f, const img_t<T>& K);

@@ -671,6 +671,78 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error sending log message {message_bytes}: {e}") from e
 
+    def log_error(self, my_string: str) -> bool:
+        """
+        Send a red error message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.RED)``; prefer this when the intent
+        is to report an error.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.RED)
+
+    def log_warning(self, my_string: str) -> bool:
+        """
+        Send a salmon warning message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.SALMON)``; prefer this when the intent
+        is to report a non-fatal warning.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.SALMON)
+
+    def log_info(self, my_string: str) -> bool:
+        """
+        Send a green completion / success message to the Siril log.
+        Equivalent to ``log(my_string, LogColor.GREEN)``; prefer this
+        when the intent is to announce successful completion of a step.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.GREEN)
+
+    def log_status(self, my_string: str) -> bool:
+        """
+        Send a blue status / technical message to the Siril log.
+        Equivalent to ``log(my_string, LogColor.BLUE)``; prefer this
+        for technical detail such as equations, fit coefficients,
+        timings or other diagnostics.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.BLUE)
+
+    def log_bold(self, my_string: str) -> bool:
+        """
+        Send a bold white message to the Siril log. Equivalent to
+        ``log(my_string, LogColor.BOLD)``; prefer this for section
+        headings or other text that needs emphasis without conveying
+        an error / warning / success status.
+
+        Args:
+            my_string: The message to log
+
+        Raises:
+            SirilError: if the command fails
+        """
+        return self.log(my_string, LogColor.BOLD)
+
     def _claim_thread(self) -> None:
         """
         Claim the processing thread. This prevents other processes using the
