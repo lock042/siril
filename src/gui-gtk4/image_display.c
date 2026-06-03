@@ -988,14 +988,18 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
  *
  * The heavy per-pixel tile fill runs on a shared single-thread GThreadPool, so
  * neither the fill itself nor cairo_mutex contention can stall the GTK main
- * thread during a zoom.  A worker job for a viewport loops, doing one tile per
- * iteration, in the same priority order the old main-thread idle used:
+ * thread during a zoom.  A worker job for a viewport loops, materialising one
+ * still-unready visible tile up to target_mip per iteration and queueing a
+ * redraw, so the proxy backdrop is progressively replaced by sharp tiles — this
+ * is what makes a fast zoom *resolve*.  It exits as soon as every visible tile
+ * is ready, so a settled view (e.g. while only an overlay like the selection
+ * rubber-band is being redrawn) schedules no worker at all.
  *
- *   1. Deferred fill — materialise a still-unready visible tile up to
- *      target_mip and queue a redraw, so the proxy backdrop is progressively
- *      replaced by sharp tiles.  This is what makes a fast zoom-out *resolve*.
- *   2. Prefetch — step the MRU tile one level finer (target_mip − 1) so the
- *      next zoom-in octave is already dense enough.  No redraw queued.
+ * There is deliberately NO speculative prefetch of finer mips: stepping visible
+ * tiles one level finer costs 4× the memory, which on a large zoomed-out view
+ * blows SIRIL_LAZY_BUDGET and sends the LRU into evict/re-materialise thrash
+ * that never settles while redraws keep coming (overlay drags).  On-demand fill
+ * plus the resident proxy already make zoom smooth without it.
  *
  * Locking (critical):
  *   - Lock order is gfit->rwlock reader THEN gui.cairo_mutex, matching
@@ -1229,11 +1233,12 @@ static void materialise_worker(gpointer data, gpointer user) {
 		const int cols = view->tile_cols;
 		const int rows = view->tile_rows;
 		const int target = view->wk_target_mip;
-		const int prefetch = target > 0 ? target - 1 : 0;
 
-		/* Phase 1a — pick the next job. */
-		int jtx = -1, jty = -1, jmip = 0;
-		gboolean redraw = FALSE, found = FALSE;
+		/* Phase 1a — pick the next still-unready visible tile (raster order
+		 * within the range the last snapshot recorded). */
+		int jtx = -1, jty = -1;
+		const int jmip = target;
+		gboolean found = FALSE;
 		if (view->vis_valid) {
 			const int tx0 = CLAMP(view->vis_tx0, 0, cols - 1);
 			const int tx1 = CLAMP(view->vis_tx1, 0, cols - 1);
@@ -1245,23 +1250,10 @@ static void materialise_worker(gpointer data, gpointer user) {
 					const gboolean ready = t->texture && !t->dirty
 						&& tile_mip_acceptable(t->mip, target);
 					if (!ready) {
-						jtx = tx; jty = ty; jmip = target;
-						redraw = TRUE; found = TRUE;
+						jtx = tx; jty = ty;
+						found = TRUE;
 						break;
 					}
-				}
-			}
-		}
-		if (!found) {
-			guint64 best = 0;
-			const int n = cols * rows;
-			for (int i = 0; i < n; i++) {
-				const struct image_tile *t = &view->tiles[i];
-				if (!t->texture || t->dirty || t->mip <= prefetch) continue;
-				if (!found || t->last_used > best) {
-					best = t->last_used;
-					jtx = i % cols; jty = i / cols; jmip = prefetch;
-					found = TRUE;
 				}
 			}
 		}
@@ -1331,7 +1323,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 
 		if (!assigned)
 			g_object_unref(tex);   /* discard; frees buf via the GBytes free func */
-		else if (redraw)
+		else
 			g_idle_add(wk_queue_draw_idle, GINT_TO_POINTER(vport));
 
 		/* Loop for the next job. */
@@ -1339,15 +1331,14 @@ static void materialise_worker(gpointer data, gpointer user) {
 }
 
 /* Kick the materialise worker for a viewport if one isn't already churning it
- * and there's plausibly work to do: a visible tile still on the proxy
- * (have_deferred) or a finer prefetch (target_mip > 0).  Called with
- * gui.cairo_mutex held (from the snapshot); the worker re-checks under the lock
- * before doing anything. */
-static void schedule_view_prefetch_idle(struct image_view *view, int vport,
-                                         int target_mip, gboolean have_deferred) {
+ * and there's deferred work to do (a visible tile still showing the proxy).
+ * Called with gui.cairo_mutex held (from the snapshot); the worker re-checks
+ * under the lock before doing anything. */
+static void schedule_view_worker(struct image_view *view, int vport,
+                                 gboolean have_deferred) {
 	if (!view->lazy) return;
 	if (vport < 0 || vport > RGB_VPORT) return;  /* mask vport has no materialiser */
-	if (!have_deferred && target_mip <= 0) return;
+	if (!have_deferred) return;
 	if (view->worker_active) return;
 	if (!materialise_pool) {
 		/* One dedicated worker thread: the job function loops until the view is
@@ -2585,13 +2576,12 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			}
 		}
 
-		/* Kick the refine idle: it materialises still-unready visible tiles up
-		 * to target (replacing the proxy as they land), then prefetches one
-		 * level finer for the next zoom-in step.  No-op if already running, if
-		 * not lazy, or if there's neither deferred work nor a finer prefetch
-		 * to do. */
+		/* Kick the materialise worker to fill any still-unready visible tiles
+		 * up to target (replacing the proxy as they land).  No-op if already
+		 * running, if not lazy, or if nothing is unready — so a settled view
+		 * (e.g. an overlay-only redraw) schedules no background work. */
 		if (!suppressed)
-			schedule_view_prefetch_idle(view, vport, target_mip, any_unready);
+			schedule_view_worker(view, vport, any_unready);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
