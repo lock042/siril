@@ -154,15 +154,6 @@ static void invalidate_image_render_cache(int vport);
  * O(proxy area) — a few megapixels — regardless of how large the source is. */
 #define SIRIL_PROXY_MAX      2048
 
-/* When this many or fewer visible tiles still need materialising, the snapshot
- * does it synchronously (sharp immediately — this is the zoomed-in, few-tiles
- * case that was never the problem).  Above this count — the fast-zoom-out case
- * where many tiles appear at once — the snapshot stops blocking, draws the
- * proxy backdrop instead, and lets the refine idle materialise the real tiles
- * over the next frames.  Tunable: higher = sharper sooner but more per-frame
- * stall risk; lower = smoother but leans on the proxy more. */
-#define SIRIL_SYNC_MATERIALISE_BUDGET 4
-
 /* Choose the mip level we want to materialise tiles at, given the current
  * display zoom.  At mip M each texture pixel covers 2^M × 2^M source pixels;
  * the coarsest mip that still keeps the texture at least as dense as the
@@ -314,25 +305,27 @@ static void view_refresh_tile_textures_eager(struct image_view *view) {
 	}
 }
 
-/* Lazy mode: mark every tile as needing re-materialisation on next
- * snapshot.  Does NOT free any already-materialised bytes — those stay
- * resident under LRU so the snapshot path can re-use what's there.
+/* Lazy mode: mark every tile as needing re-materialisation on next snapshot.
+ *
+ * We deliberately KEEP each tile's existing texture (just flag it dirty)
+ * instead of dropping it.  The stale texture — built from the previous LUT —
+ * is a perfectly good thing to display for the one or few frames it takes the
+ * background worker to rebuild it, and showing it avoids both a blank/proxy
+ * "blur flash" and, more importantly, any synchronous main-thread re-fill.
+ * That matters on big lazy images where a single full-resolution tile re-fill
+ * (per-channel LUT, ×3 for RGB, plus ICC) is tens to hundreds of milliseconds:
+ * a remap triggered by e.g. clearing a selection used to freeze the UI while
+ * the visible tiles were rebuilt inline.  Now the snapshot shows the stale
+ * textures immediately and the worker refreshes them off-thread.
+ *
  * Must be called with gui.cairo_mutex held. */
 static void view_invalidate_tiles_lazy(struct image_view *view) {
 	if (!view->tiles) return;
 	const int n = view->tile_cols * view->tile_rows;
-	for (int i = 0; i < n; i++) {
-		/* Drop the texture (its GPU upload is keyed on object identity);
-		 * keep tile->data so we can refill it in-place. */
-		if (view->tiles[i].texture) {
-			g_object_unref(view->tiles[i].texture);
-			view->tiles[i].texture = NULL;
-		}
+	for (int i = 0; i < n; i++)
 		view->tiles[i].dirty = TRUE;
-	}
-	/* The LUT changed, so the resident proxy is stale too — rebuild it on
-	 * the next snapshot.  Keep the old texture around until then so there's
-	 * still a backdrop to draw in the meantime. */
+	/* The LUT changed, so the resident proxy is stale too — rebuild it on the
+	 * next snapshot that actually needs it. */
 	view->proxy_dirty = TRUE;
 }
 
@@ -2486,13 +2479,18 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	if (view->tiles && tile_cols > 0 && tile_rows > 0) {
 		tiles_snapshot = g_new0(GdkTexture *, tile_cols * tile_rows);
 
-		/* Pass 1: find the visible tile range and count how many visible
-		 * tiles still need materialising.  A tile is "ready" if it carries a
-		 * clean texture at least as dense as the target mip
-		 * (tile_mip_acceptable — equal-or-finer is fine, GSK downscales it). */
+		/* Single pass over the tile grid.  We NEVER materialise on the render
+		 * thread — a full-resolution tile re-fill is far too slow to do during
+		 * a frame on a big image.  Instead we ref and display whatever texture
+		 * each visible tile already has (even a stale/dirty one from the
+		 * previous LUT, or a too-coarse one from a prior zoom — both beat a
+		 * blank or a blurry proxy), record whether anything needs the worker,
+		 * and whether any tile is entirely missing (the only case needing the
+		 * proxy backdrop). */
 		gboolean have_vis = FALSE;
 		int vtx0 = 0, vty0 = 0, vtx1 = 0, vty1 = 0;
-		int unready = 0;
+		gboolean any_work = FALSE;     /* a visible tile is dirty / missing / too coarse */
+		gboolean any_missing = FALSE;  /* a visible tile has no texture at all */
 		for (int ty = 0; ty < tile_rows; ty++) {
 			for (int tx = 0; tx < tile_cols; tx++) {
 				const int x0 = tx * tile_dim;
@@ -2513,62 +2511,31 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 					if (ty < vty0) vty0 = ty;
 					if (ty > vty1) vty1 = ty;
 				}
-				if (view->lazy && !suppressed) {
-					const struct image_tile *t = &view->tiles[ty * tile_cols + tx];
-					const gboolean ready = t->texture && !t->dirty
-						&& tile_mip_acceptable(t->mip, target_mip);
-					if (!ready) unready++;
-				}
-			}
-		}
-
-		/* Hand the visible range to the refine idle so it only works on
-		 * on-screen tiles. */
-		view->vis_tx0 = vtx0; view->vis_ty0 = vty0;
-		view->vis_tx1 = vtx1; view->vis_ty1 = vty1;
-		view->vis_valid = have_vis;
-
-		/* Few unready tiles (the zoomed-in case that was never the problem):
-		 * materialise them inline so they're sharp immediately.  Many unready
-		 * tiles (the fast zoom-out case): don't block the render thread —
-		 * draw the proxy backdrop and let the refine idle materialise the real
-		 * tiles over the next few frames. */
-		const gboolean defer = (unready > SIRIL_SYNC_MATERIALISE_BUDGET);
-
-		/* Pass 2: materialise (unless deferring) and ref the textures we draw. */
-		gboolean any_unready = FALSE;
-		for (int ty = vty0; have_vis && ty <= vty1; ty++) {
-			for (int tx = vtx0; tx <= vtx1; tx++) {
-				const int x0 = tx * tile_dim;
-				const int y0 = ty * tile_dim;
-				if (x0 + tile_dim < vis_xmin) continue;
-				if (y0 + tile_dim < vis_ymin) continue;
-				if (x0 > vis_xmax) continue;
-				if (y0 > vis_ymax) continue;
 				struct image_tile *t = &view->tiles[ty * tile_cols + tx];
 				if (view->lazy && !suppressed) {
-					gboolean ready = t->texture && !t->dirty
-						&& tile_mip_acceptable(t->mip, target_mip);
-					if (!ready && !defer) {
-						materialise_tile(view, vport, tx, ty, target_mip);
-						ready = t->texture && !t->dirty
-							&& tile_mip_acceptable(t->mip, target_mip);
-					}
-					if (ready)
-						t->last_used = ++view->lazy_epoch;
-					else
-						any_unready = TRUE;
+					if (t->dirty || !t->texture
+					    || !tile_mip_acceptable(t->mip, target_mip))
+						any_work = TRUE;
+					if (!t->texture)
+						any_missing = TRUE;
 				}
 				if (t->texture) {
 					tiles_snapshot[ty * tile_cols + tx] = t->texture;
 					g_object_ref(t->texture);
+					t->last_used = ++view->lazy_epoch;
 				}
 			}
 		}
 
-		/* If any visible tile is still missing its target texture, make sure
-		 * the resident proxy is current and ref it for the backdrop pass. */
-		if (view->lazy && !suppressed && any_unready) {
+		/* Hand the visible range to the worker so it only works on-screen. */
+		view->vis_tx0 = vtx0; view->vis_ty0 = vty0;
+		view->vis_tx1 = vtx1; view->vis_ty1 = vty1;
+		view->vis_valid = have_vis;
+
+		/* Proxy backdrop only when a visible tile has NO texture at all (a
+		 * never-materialised region just revealed by a zoom/pan).  A stale or
+		 * coarse existing texture is displayed directly instead. */
+		if (view->lazy && !suppressed && any_missing) {
 			ensure_proxy(view, vport);
 			if (view->proxy) {
 				proxy_ref = g_object_ref(view->proxy);
@@ -2576,12 +2543,12 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			}
 		}
 
-		/* Kick the materialise worker to fill any still-unready visible tiles
-		 * up to target (replacing the proxy as they land).  No-op if already
-		 * running, if not lazy, or if nothing is unready — so a settled view
-		 * (e.g. an overlay-only redraw) schedules no background work. */
+		/* Kick the worker to (re)materialise any visible tile that's dirty,
+		 * missing, or too coarse.  No-op if already running, not lazy, or
+		 * nothing needs work — so a settled view (e.g. an overlay-only redraw
+		 * such as moving the selection) schedules no background work. */
 		if (!suppressed)
-			schedule_view_worker(view, vport, any_unready);
+			schedule_view_worker(view, vport, any_work);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
