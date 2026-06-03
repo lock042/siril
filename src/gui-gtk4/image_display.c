@@ -134,10 +134,13 @@ static void invalidate_image_render_cache(int vport);
  *  2. Soft cap on lazy-mode resident tile bytes for the pathological
  *     outliers (huge mosaics) that don't fit eager.  materialise_tile
  *     evicts the LRU tile(s) until back under budget.
- * Four lazy viewports × 128 MB = ~512 MB worst-case across all vports
- * (R, G, B, RGB).  Mono images use only one view; RGB cycles materialise
- * R/G/B/RGB on demand. */
-#define SIRIL_LAZY_BUDGET    ((gsize)128 * 1024 * 1024)
+ * User-configurable via Preferences → Performance (com.pref.lazy_tile_cache_mb,
+ * default 128 MB, up to 4 GB): a larger value loads more images eagerly (no
+ * glitching) and lets the lazy cache hold the whole visible set of a big mosaic
+ * so the LRU never has to blank a visible tile.  Read live so a settings change
+ * takes effect on the next image (re)allocation.  Worst case across the four
+ * vports (R, G, B, RGB) is 4× this; mono images use one view. */
+#define SIRIL_LAZY_BUDGET    ((gsize)com.pref.lazy_tile_cache_mb * 1024 * 1024)
 
 /* Cap on the downsample level a tile may be materialised at.  At mip M the
  * texture is 1/(2^M)² of the source area; at mip 6 a 2048-pixel tile yields
@@ -327,6 +330,12 @@ static void view_invalidate_tiles_lazy(struct image_view *view) {
 	/* The LUT changed, so the resident proxy is stale too — rebuild it on the
 	 * next snapshot that actually needs it. */
 	view->proxy_dirty = TRUE;
+	/* Advance the invalidate sequence so a worker job that captured the old LUT
+	 * and is mid-fill discards its (now stale) texture instead of clearing the
+	 * dirty flag we just set.  Without this, a remap landing during a tile fill
+	 * leaves that tile clean-but-stale, and zoom-out never refreshes it because
+	 * its mip stays "acceptable" — only a zoom-in forces the rebuild. */
+	view->invalidate_seq++;
 }
 
 /* Compatibility wrapper called from every remap exit point.  In eager
@@ -953,6 +962,27 @@ static inline gboolean tile_mip_acceptable(int mip, int target_mip) {
 	return mip <= target_mip;
 }
 
+/* How many levels finer than the target a tile may stay before the *background
+ * worker* reclaims it by rebuilding at the target mip.  The display path keeps
+ * accepting any-finer tile (tile_mip_acceptable above) — this only governs
+ * memory.  A tile at mip M holds 4^(target-M) times the target's bytes, so a
+ * full-resolution tile (M=0) left visible after a multi-octave zoom-out is ~17
+ * MB; a handful of them blow SIRIL_LAZY_BUDGET, and the LRU then perpetually
+ * evicts the tiles it can't fit (a static black block on the last-built corner,
+ * un-rebuilt because their fine version won't fit and their coarse version is
+ * never made).  Allowing ONE finer level keeps single-octave zoom-in prefetch
+ * cheap (the reason compute_target_mip already targets one level fine) while
+ * capping the resident working set near the target resolution. */
+#define SIRIL_MIP_COARSEN_SLACK 1
+
+/* True when a visible tile is so much finer than the target that the worker
+ * should rebuild it coarser to reclaim memory.  Multi-octave jump only: a
+ * normal single-step zoom never trips this, so it adds no churn to ordinary
+ * panning/zooming. */
+static inline gboolean tile_mip_too_fine(int mip, int target_mip) {
+	return mip < target_mip - SIRIL_MIP_COARSEN_SLACK;
+}
+
 /* LRU eviction: free tile bytes (and their texture) starting from the
  * least-recently-used tile until the viewport has at least `headroom`
  * bytes of budget remaining.  The currently-being-materialised tile is
@@ -1237,11 +1267,45 @@ static void materialise_worker(gpointer data, gpointer user) {
 			const int tx1 = CLAMP(view->vis_tx1, 0, cols - 1);
 			const int ty0 = CLAMP(view->vis_ty0, 0, rows - 1);
 			const int ty1 = CLAMP(view->vis_ty1, 0, rows - 1);
+			/* Pass 1 — reclaim before consume.  Coarsen an over-fine resident
+			 * tile first: rebuilding a tile that is 4^n-too-large at the target
+			 * mip FREES its excess bytes with no eviction (wk_assign_tile credits
+			 * the old size before reserving the new).  This is what stops a
+			 * budget-full view from livelocking: building a missing tile would
+			 * otherwise have to evict, but the giant over-fine tiles hogging the
+			 * budget are immune to LRU (visible → last_used bumped every frame),
+			 * so the worker would ping-pong the few small tiles forever.  Draining
+			 * the over-fine tiles first opens enough budget for every missing tile
+			 * to build cleanly.
+			 *
+			 * The threshold adapts to memory pressure: with headroom we only
+			 * reclaim tiles finer than the prefetch level (target − SLACK), so a
+			 * single-octave zoom-in still finds tiles ready; when the budget is
+			 * nearly full we reclaim every tile finer than the target itself, so
+			 * the resident set converges to the target-resolution working set —
+			 * which always fits as long as that set alone fits the budget. */
+			const gboolean pressure =
+				view->lazy_bytes_used > (SIRIL_LAZY_BUDGET * 3) / 4;
+			const int reclaim_below =
+				pressure ? target : target - SIRIL_MIP_COARSEN_SLACK;
+			for (int ty = ty0; !found && ty <= ty1; ty++) {
+				for (int tx = tx0; tx <= tx1; tx++) {
+					const struct image_tile *t = &view->tiles[ty * cols + tx];
+					if (t->texture && t->mip < reclaim_below) {
+						jtx = tx; jty = ty;
+						found = TRUE;
+						break;
+					}
+				}
+			}
+			/* Pass 2 — otherwise the first not-ready tile (missing / dirty /
+			 * too coarse), raster order. */
 			for (int ty = ty0; !found && ty <= ty1; ty++) {
 				for (int tx = tx0; tx <= tx1; tx++) {
 					const struct image_tile *t = &view->tiles[ty * cols + tx];
 					const gboolean ready = t->texture && !t->dirty
-						&& tile_mip_acceptable(t->mip, target);
+						&& tile_mip_acceptable(t->mip, target)
+						&& !tile_mip_too_fine(t->mip, target);
 					if (!ready) {
 						jtx = tx; jty = ty;
 						found = TRUE;
@@ -1262,6 +1326,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 		 * race a remap, see the section note); gfit pixel pointers stay valid
 		 * under the reader lock. */
 		const guint gen = view->generation;
+		const guint seq = view->invalidate_seq;
 		int gx0, gy0, gtw, gth, gtex_w, gtex_h;
 		tile_dims_padded(view, jtx, jty, &gx0, &gy0, &gtw, &gth, &gtex_w, &gtex_h);
 		const int img_w = view->buf_stride / 4;
@@ -1303,10 +1368,15 @@ static void materialise_worker(gpointer data, gpointer user) {
 			GDK_MEMORY_B8G8R8X8, bytes, out_w * 4);
 		g_bytes_unref(bytes);
 
-		/* Phase 3 — assign, but only if the grid hasn't moved under us. */
+		/* Phase 3 — assign, but only if neither the grid moved (generation) nor
+		 * the LUT changed (invalidate_seq) under us.  A seq mismatch means a
+		 * remap re-dirtied this tile mid-fill: drop our stale texture and leave
+		 * the dirty flag set so the next loop iteration rebuilds it with the
+		 * current LUT. */
 		g_mutex_lock(&gui.cairo_mutex);
 		gboolean assigned = FALSE;
-		if (view->generation == gen && view->lazy && view->tiles
+		if (view->generation == gen && view->invalidate_seq == seq
+		    && view->lazy && view->tiles
 		    && view->tile_cols == cols && view->tile_rows == rows) {
 			wk_assign_tile(view, jtx, jty, jmip, tex, buf, tile_bytes);
 			assigned = TRUE;
@@ -2514,7 +2584,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				struct image_tile *t = &view->tiles[ty * tile_cols + tx];
 				if (view->lazy && !suppressed) {
 					if (t->dirty || !t->texture
-					    || !tile_mip_acceptable(t->mip, target_mip))
+					    || !tile_mip_acceptable(t->mip, target_mip)
+					    || tile_mip_too_fine(t->mip, target_mip))
 						any_work = TRUE;
 					if (!t->texture)
 						any_missing = TRUE;

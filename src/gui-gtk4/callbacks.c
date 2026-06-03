@@ -3356,6 +3356,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(g_object_ref(store)));
 	GtkColumnView *cv = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
+	gtk_widget_add_css_class(GTK_WIDGET(cv), "siril-dense-rows");
 
 	GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 	g_signal_connect(fname, "setup", G_CALLBACK(child_task_setup_cb),     NULL);

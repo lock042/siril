@@ -428,6 +428,7 @@ static void seq_build_columnview(void) {
 	g_signal_connect(seq_selection, "selection-changed",
 			G_CALLBACK(on_seq_selection_changed_model), NULL);
 	seq_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(seq_selection))));
+	gtk_widget_add_css_class(GTK_WIDGET(seq_columnview), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
 	#define ADD_LBL_COLUMN(title, bind_cb, with_sort) do { \

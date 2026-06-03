@@ -128,6 +128,12 @@ struct image_view {
 	 * records them under cairo_mutex each frame for the worker to read. */
 	gboolean          worker_active;
 	guint             generation;
+	/* Bumped by every lazy invalidate (LUT change).  A worker job captures it
+	 * alongside its LUT pointers and discards its finished texture if it changed
+	 * during the unlocked fill — otherwise the worker would clear the tile's
+	 * dirty flag that the mid-flight invalidate just set, leaving the tile
+	 * clean-but-stale until a later zoom-in changes its target mip. */
+	guint             invalidate_seq;
 	int               wk_target_mip;
 	gboolean          render_neg;
 

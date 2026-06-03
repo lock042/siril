@@ -141,6 +141,7 @@ static void ensure_stat_view(void) {
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(g_object_ref(stat_store)));
 	GtkColumnView *cv = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
 	gtk_widget_set_name(GTK_WIDGET(cv), "statTreeView");
+	gtk_widget_add_css_class(GTK_WIDGET(cv), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
 	c = gtk_column_view_column_new(N_("Name"),  make_stat_factory(STAT_COL_NAME)); gtk_column_view_column_set_resizable(c, TRUE); gtk_column_view_column_set_fixed_width(c, 100); gtk_column_view_append_column(cv, c); g_object_unref(c);
