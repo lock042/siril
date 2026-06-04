@@ -204,6 +204,7 @@ typedef enum {
 #define CP_FORMAT	0x08	// copy metadata
 #define CP_COPYMASK	0x10	// copy the mask
 #define CP_EXPAND	0x20	// expands a one-channel to a three channels
+#define CP_DEEPCOPY	0x40	// full deep copy of every field (implies CP_ALLOC|CP_FORMAT|CP_COPYA|CP_COPYMASK plus all heap-owned metadata: WCS, history, header, unknown keys, dates)
 
 #define PREVIEW_NB 2
 

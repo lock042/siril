@@ -2083,6 +2083,12 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
 
+	/* CP_DEEPCOPY is a convenience covering every copyable field: run the
+	 * full data + metadata + mask machinery, then deep-copy the remaining
+	 * heap-owned metadata (WCS, header, history, ...) at the end. */
+	if ((oper & CP_DEEPCOPY))
+		oper |= CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK;
+
 	if ((oper & CP_EXPAND))
 		depth = 3;
 	else depth = from->naxes[2];
@@ -2243,6 +2249,30 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 			to->icc_profile = NULL;
 		}
 		color_manage(to, to->color_managed);
+	}
+
+	if ((oper & CP_DEEPCOPY)) {
+		/* CP_FORMAT cloned the keyword scalars but nulled every heap-owned
+		 * pointer (and CP_COPYA only restores icc_profile/stats); deep-copy
+		 * the rest so `to` is a fully independent image. */
+		if (from->keywords.wcslib) {
+			int status = -1;
+			to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
+		}
+		if (from->header)
+			to->header = strdup(from->header);
+		if (from->unknown_keys)
+			to->unknown_keys = g_strdup(from->unknown_keys);
+		if (from->history) {
+			GSList *copy = NULL;
+			for (GSList *l = from->history; l; l = l->next)
+				copy = g_slist_prepend(copy, g_strdup(l->data));
+			to->history = g_slist_reverse(copy);
+		}
+		if (from->keywords.date_obs)
+			to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
+		if (from->keywords.date)
+			to->keywords.date = g_date_time_ref(from->keywords.date);
 	}
 
 	return 0;
