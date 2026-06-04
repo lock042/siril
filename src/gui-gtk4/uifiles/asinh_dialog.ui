@@ -183,7 +183,6 @@
     <property name="resizable">0</property>
     <property name="title" translatable="yes">Asinh Transformation</property>
     <property name="width-request">400</property>
-    <signal name="close-request" handler="on_asinh_dialog_close"/>
     <signal name="close-request" handler="asinh_hide_on_delete"/>
     <signal name="show" handler="on_asinh_dialog_show"/>
   </object>
