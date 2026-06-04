@@ -360,8 +360,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 			}
 		}
 	}
-	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	copy_fits_metadata(destfit, fit);
+	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 	clearfits(destfit);
 	return 0;
 }
