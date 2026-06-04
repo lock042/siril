@@ -1601,7 +1601,10 @@ gpointer generic_image_worker(gpointer p) {
 			goto the_end;
 		}
 		g_rw_lock_reader_lock(&gfit->rwlock);
-		int rc = copyfits(gfit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1);
+		/* CP_DEEPCOPY gives the hook a fully independent snapshot,
+		 * including WCS — WCS-dependent hooks (e.g. SPCC/PCC) read it
+		 * via has_wcs(). A plain CP_COPYA copy would leave it NULL. */
+		int rc = copyfits(gfit, orig, CP_DEEPCOPY, -1);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		if (rc) {
 			siril_log_error(_("Failed to copy original image.\n"));
