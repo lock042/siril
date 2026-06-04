@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-02 11:27+0200\n"
-"PO-Revision-Date: 2026-06-01 08:43+0000\n"
+"PO-Revision-Date: 2026-06-04 11:07+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -5003,9 +5003,8 @@ msgid "Height"
 msgstr "重み付き FWHM"
 
 #: src/gui/uifiles/pixelmath.ui:473
-#, fuzzy
 msgid "Function"
-msgstr "引き算"
+msgstr "関数"
 
 #: src/gui/uifiles/pixelmath.ui:488
 msgid "index"
@@ -8797,11 +8796,11 @@ msgstr "CFA チャンネルを分離…"
 
 #: src/gui/uifiles/siril.ui:1870
 msgid "Split Channels..."
-msgstr "チャンネルを分離…"
+msgstr "チャンネルを分割…"
 
 #: src/gui/uifiles/siril.ui:1884
 msgid "Split CFA Channels..."
-msgstr "CFA チャンネルを分離…"
+msgstr "CFA チャンネルを分割…"
 
 #: src/gui/uifiles/siril.ui:1898
 msgid "Wavelet Layers..."
@@ -11143,11 +11142,11 @@ msgstr "ログをエクスポート"
 
 #: src/gui/uifiles/siril.ui:9829 src/gui/progress_and_log.c:332
 msgid "Clear the log"
-msgstr "ログをクリア"
+msgstr "ログを消去"
 
 #: src/gui/uifiles/siril.ui:9866
 msgid "This tab shows the Siril logs."
-msgstr "このタブはSirilのログを表示します."
+msgstr "このタブはSirilのログを表示します。"
 
 #: src/gui/uifiles/siril.ui:9869
 msgid "Console"
@@ -11437,7 +11436,7 @@ msgstr "適用したい方法を選択."
 
 #: src/gui/uifiles/split_cfa_dialog.ui:159
 msgid "Split CFA Channels"
-msgstr "Split CFA チャンネル"
+msgstr "CFAチャンネルの分割"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:160 src/algos/extraction.c:356
 #: src/core/command.c:9258
@@ -26646,12 +26645,11 @@ msgstr "ログファイル (*.log)"
 
 #: src/gui/progress_and_log.c:333
 msgid "Are you sure you want to clear the log? There is no possible undo."
-msgstr ""
+msgstr "ログを消去してよろしいですか？この操作は元に戻せません。"
 
 #: src/gui/progress_and_log.c:333
-#, fuzzy
 msgid "Clear the Log"
-msgstr "Log ファイルをクリア"
+msgstr "ログを消去"
 
 #: src/gui/python_gui.c:691 src/gui/python_gui.c:719 src/gui/python_gui.c:730
 #: src/gui/python_gui.c:759 src/gui/python_gui.c:785 src/gui/python_gui.c:856
@@ -27890,11 +27888,11 @@ msgstr ""
 
 #: src/gui/statistics_list.c:65
 msgid "min"
-msgstr "最小"
+msgstr "min"
 
 #: src/gui/statistics_list.c:66
 msgid "max"
-msgstr "最大"
+msgstr "max"
 
 #: src/gui/statistics_list.c:196
 #, c-format
@@ -28951,12 +28949,12 @@ msgstr ""
 #: src/io/image_formats_libraries.c:2192
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
-msgstr ""
+msgstr "%s %s ファイル(ISO=%g, 露出=1/%0.1f 秒)をデコードしています\n"
 
 #: src/io/image_formats_libraries.c:2195
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
-msgstr ""
+msgstr "%s %s ファイル(ISO=%g, 露出=%0.1f 秒)をデコードしています\n"
 
 #: src/io/image_formats_libraries.c:2218
 #, c-format
@@ -29301,7 +29299,7 @@ msgstr ""
 #: src/io/sequence.c:173
 #, c-format
 msgid "Checking sequences in the directory: %s.\n"
-msgstr ""
+msgstr "以下のディレクトリ内のシーケンスを確認しています: %s 。\n"
 
 #: src/io/sequence.c:176 src/io/sequence.c:371
 msgid "Current working directory is not set, aborting.\n"
@@ -29369,7 +29367,7 @@ msgstr "リファレンス画像の読み込み失敗\n"
 #: src/io/sequence.c:603
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
-msgstr ""
+msgstr "シーケンスが読み込まれました: %s (%d->%d)\n"
 
 #: src/io/sequence.c:831 src/io/sequence.c:967
 #: src/registration/astrometric.c:440
@@ -29414,7 +29412,7 @@ msgstr ""
 #: src/io/sequence.c:1608
 #, c-format
 msgid "Closing sequence %s\n"
-msgstr ""
+msgstr "シーケンス %s を閉じています\n"
 
 #: src/io/sequence.c:1717
 #, fuzzy, c-format
@@ -29613,19 +29611,19 @@ msgstr ""
 
 #: src/io/sequence_export.c:612
 msgid "Sequence export failed. Check the log."
-msgstr "画像シーケンスのエクスポート失敗. ログを確認してください."
+msgstr "シーケンスのエクスポートに失敗しました。ログを確認してください。"
 
 #: src/io/sequence_export.c:613
 msgid "Sequence export failed\n"
-msgstr "画像シーケンスのエクスポート失敗\n"
+msgstr "シーケンスのエクスポートに失敗しました\n"
 
 #: src/io/sequence_export.c:616
 msgid "Sequence export succeeded."
-msgstr "画像シーケンスのエクスポート成功."
+msgstr "シーケンスのエクスポートに成功しました。"
 
 #: src/io/sequence_export.c:617
 msgid "Sequence export succeeded.\n"
-msgstr "画像シーケンスのエクスポート成功.\n"
+msgstr "シーケンスのエクスポートに成功しました。\n"
 
 #: src/io/seqwriter.c:115
 msgid ""
