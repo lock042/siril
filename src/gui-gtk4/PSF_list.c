@@ -207,6 +207,7 @@ static void psf_build_columnview(void) {
 	g_signal_connect(psf_selection, "selection-changed",
 			G_CALLBACK(on_psf_selection_changed_model), NULL);
 	psf_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(psf_selection))));
+	gtk_widget_add_css_class(GTK_WIDGET(psf_columnview), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
 

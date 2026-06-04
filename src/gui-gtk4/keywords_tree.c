@@ -187,6 +187,15 @@ static void key_string_bind_cb(GtkSignalListItemFactory *f, GtkListItem *li, gpo
 	gboolean edit_ok = row && !row->protected_flag && row->editable;
 	g_object_set(lbl, "editable", edit_ok, NULL);
 
+	/* Protected cards are shown with their keyword name in salmon, as in the
+	 * GTK3 build (which bound COLUMN_COLOR="salmon" to the Keyword column's
+	 * foreground).  Labels are recycled by the factory, so toggle the class on
+	 * every bind.  Only the Keyword column carries the colour. */
+	if (kind == KEY_COL_KEY && row && row->protected_flag)
+		gtk_widget_add_css_class(GTK_WIDGET(lbl), "siril-protected-keyword");
+	else
+		gtk_widget_remove_css_class(GTK_WIDGET(lbl), "siril-protected-keyword");
+
 	KeyEditCtx *ctx = g_new0(KeyEditCtx, 1);
 	ctx->li = li;
 	ctx->kind = kind;
@@ -285,6 +294,7 @@ static void ensure_keyword_view(void) {
 
 	key_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(key_selection_model));
 	gtk_column_view_set_show_column_separators(key_columnview, TRUE);
+	gtk_widget_add_css_class(GTK_WIDGET(key_columnview), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
 	c = gtk_column_view_column_new(N_("Keyword"), make_key_string_factory(KEY_COL_KEY));
