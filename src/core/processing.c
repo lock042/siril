@@ -46,6 +46,7 @@
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
+#include "algos/siril_wcs.h"
 #include "registration/registration.h"
 
 static GMutex child_mutex = { 0 };
@@ -1602,6 +1603,15 @@ gpointer generic_image_worker(gpointer p) {
 		}
 		g_rw_lock_reader_lock(&gfit->rwlock);
 		int rc = copyfits(gfit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1);
+		/* copyfits leaves orig->keywords.wcslib NULL (the keyword struct
+		 * is shallow-copied, so a shared pointer would double-free).
+		 * Deep-copy it so the snapshot is faithful — WCS-dependent hooks
+		 * (e.g. SPCC/PCC) read it via has_wcs(). wcs_deepcopy frees and
+		 * returns NULL on failure, leaving orig WCS-less. */
+		if (!rc && gfit->keywords.wcslib) {
+			int wcsstatus = -1;
+			orig->keywords.wcslib = wcs_deepcopy(gfit->keywords.wcslib, &wcsstatus);
+		}
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		if (rc) {
 			siril_log_error(_("Failed to copy original image.\n"));
