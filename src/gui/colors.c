@@ -414,7 +414,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 	args->fit = calloc(1, sizeof(fits));
 	set_cursor_waiting(TRUE);
-	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1)) {
 		siril_log_error(_("Could not copy the input image, aborting.\n"));
 		clearfits(args->fit);
 		free(args->fit);
@@ -423,7 +423,6 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args->channel[2]);
 		free(args);
 	} else {
-		copy_fits_metadata(gfit, args->fit);
 		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
 			free(args->fit);
