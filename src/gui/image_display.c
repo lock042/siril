@@ -2600,28 +2600,47 @@ static void draw_regframe(const draw_data_t* dd) {
 		image_display_init_statics();
 	if (!gtk_toggle_button_get_active(drawframe)) return;
 	int activelayer = gtk_combo_box_get_active(seqcombo);
-	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (!layer_has_registration(&com.seq, activelayer)) {
+		activelayer = seq_has_any_regdata(&com.seq);
+		if (activelayer < 0) return;
+	}
 	if (com.seq.reg_invalidated) return;
 	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
 	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
-			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
-		return; // reference or current image H matrix is null matrix
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+		return; // current image H matrix is null matrix
+
+	// For ext_ref sequences, H matrices are absolute (relative to external ref).
+	// Use identity as Href so the frame shows the external reference boundary.
+	// For normal sequences, use H[reference_image] so the frame shows the sequence reference.
+	Homography Href = { 0 };
+	int ref_rx, ref_ry;
+	if (com.seq.ext_ref) {
+		cvGetEye(&Href);
+		ref_rx = com.seq.ext_ref_rx;
+		ref_ry = com.seq.ext_ref_ry;
+	} else {
+		if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION)
+			return;
+		Href = com.seq.regparam[activelayer][com.seq.reference_image].H;
+		ref_rx = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].rx : com.seq.rx;
+		ref_ry = com.seq.is_variable ? com.seq.imgparam[com.seq.reference_image].ry : com.seq.ry;
+	}
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
 	framing.pt[0].y = 0.;
-	framing.pt[1].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
+	framing.pt[1].x = (double)ref_rx;
 	framing.pt[1].y = 0.;
-	framing.pt[2].x = (double)com.seq.imgparam[com.seq.reference_image].rx;
-	framing.pt[2].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[2].x = (double)ref_rx;
+	framing.pt[2].y = (double)ref_ry;
 	framing.pt[3].x = 0.;
-	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
+	framing.pt[3].y = (double)ref_ry;
 	double cogx = 0., cogy = 0., cx, cy;
 	for (int i = 0; i < 4; i++) {
-		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H, 1.);
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, Href, com.seq.regparam[activelayer][com.seq.current].H, 1.);
 		cogx += framing.pt[i].x;
 		cogy += framing.pt[i].y;
 	}
