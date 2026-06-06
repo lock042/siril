@@ -2400,6 +2400,39 @@ static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
 	return y + radius * sin(angle);
 }
 
+static void draw_arrow(cairo_t *cr, double x1, double y1, double x2, double y2, double ratio) {
+	double length = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+	if (length < 1e-6) return;  // Avoid division by zero
+	if (ratio > 1.0) ratio = 1.0;
+	if (ratio < 0.0) ratio = 0.0;
+	
+	// Draw the line
+	cairo_move_to(cr, x1, y1);
+	cairo_line_to(cr, x2, y2);
+	cairo_stroke(cr);
+	
+	// Draw the arrowhead
+	double arrowhead_length = length * ratio;
+	double dx = (x2 - x1) / length;  // normalized direction vector
+	double dy = (y2 - y1) / length;
+	double px = -dy;  // perpendicular vector
+	double py = dx;
+	
+	// Arrowhead base (perpendicular to trajectory)
+	double base_x1 = x2 - dx * arrowhead_length + px * arrowhead_length * 0.5;
+	double base_y1 = y2 - dy * arrowhead_length + py * arrowhead_length * 0.5;
+	double base_x2 = x2 - dx * arrowhead_length - px * arrowhead_length * 0.5;
+	double base_y2 = y2 - dy * arrowhead_length - py * arrowhead_length * 0.5;
+	
+	// Draw arrowhead lines
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x1, base_y1);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x2, base_y2);
+	cairo_stroke(cr);
+}
+
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	gdouble resolution = get_wcs_image_resolution(gfit);
@@ -2466,17 +2499,9 @@ static void draw_annotates(const draw_data_t* dd) {
 		} else if ((catalog == CAT_AN_USER_TEMP || catalog == CAT_AN_USER_SSO) && (x1 != 0 || y1 != 0)) {
 			// Handle sso moving
 			if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
-				cairo_move_to(cr, x1, y1);
-				cairo_line_to(cr, x2, y2);
-				cairo_stroke(cr);
-				cairo_arc(cr, x2, y2, radius * 0.5 , 0., 2. * M_PI);
-				cairo_stroke(cr);
+				draw_arrow(cr, x1, y1, x2, y2, 0.1);
 			} else {
-				cairo_move_to(cr, x, y);
-				cairo_line_to(cr, x1, y1);
-				cairo_stroke(cr);
-				cairo_arc(cr, x1, y1, radius * 0.5 , 0., 2. * M_PI);
-				cairo_stroke(cr);
+				draw_arrow(cr, x, y, x1, y1, 0.2);
 			}
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 			cairo_stroke(cr);
