@@ -597,6 +597,7 @@ static gboolean fill_mouse_actions_list_idle(gpointer data) {
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(g_object_ref(store)));
 	GtkColumnView *cv = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
 	gtk_widget_set_name(GTK_WIDGET(cv), "mouse_actions_columnview");
+	gtk_widget_add_css_class(GTK_WIDGET(cv), "siril-dense-rows");
 
 	GtkListItemFactory *fname = make_factory(G_CALLBACK(name_setup_cb),    G_CALLBACK(name_bind_cb),    G_CALLBACK(name_unbind_cb));
 	GtkListItemFactory *fbtn  = make_factory(G_CALLBACK(button_setup_cb),  G_CALLBACK(button_bind_cb),  G_CALLBACK(button_unbind_cb));
@@ -743,6 +744,7 @@ static gboolean fill_scroll_actions_list_idle(gpointer data) {
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(g_object_ref(store)));
 	GtkColumnView *cv = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
 	gtk_widget_set_name(GTK_WIDGET(cv), "scroll_actions_columnview");
+	gtk_widget_add_css_class(GTK_WIDGET(cv), "siril-dense-rows");
 
 	GtkListItemFactory *fname = make_factory(G_CALLBACK(scroll_name_setup_cb),      G_CALLBACK(scroll_name_bind_cb),      G_CALLBACK(scroll_name_unbind_cb));
 	GtkListItemFactory *fdir  = make_factory(G_CALLBACK(scroll_direction_setup_cb), G_CALLBACK(scroll_direction_bind_cb), G_CALLBACK(scroll_direction_unbind_cb));

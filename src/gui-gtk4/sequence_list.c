@@ -52,6 +52,7 @@ static GtkDropDown *seqlist_dialog_combo = NULL;
 static GtkHeaderBar *seqlist_headerbar = NULL;
 static GtkWidget *seqlist_buttonbar = NULL;
 static GtkWidget *seqlist_refframe2 = NULL;
+static GtkWidget *seqlist_ext_ref_label = NULL;
 /* GTK4: GtkSearchEntry no longer derives from GtkEntry — both implement
  * GtkEditable instead.  Hold a GtkEditable* and use the editable API. */
 static GtkEditable *seqlist_search_entry = NULL;
@@ -76,6 +77,7 @@ static void sequence_list_init_statics(void) {
 #endif
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
+	seqlist_ext_ref_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ext_ref"));
 	seqlist_search_entry = GTK_EDITABLE(gtk_builder_get_object(gui.builder, "seqlistsearch"));
 	seqlist_scrolled = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow1"));
 	seqlist_drawframe_check = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check"));
@@ -361,6 +363,16 @@ static void initialize_title() {
 	gtk_widget_set_sensitive(seqlist_buttonbar, sequence_is_loaded());
 	gtk_widget_set_sensitive(GTK_WIDGET(seqlist_dialog_combo), sequence_is_loaded());
 	gtk_widget_set_sensitive(seqlist_refframe2, sequence_is_loaded());
+	gboolean has_ext_ref = sequence_is_loaded() && com.seq.ext_ref && com.seq.ext_ref_path;
+	gtk_widget_set_visible(seqlist_ext_ref_label, has_ext_ref);
+	if (has_ext_ref) {
+		gchar *basename = g_path_get_basename(com.seq.ext_ref_path);
+		gchar *label_text = g_strdup_printf(_("External Reference: %s"), basename);
+		gtk_label_set_text(GTK_LABEL(seqlist_ext_ref_label), label_text);
+		gtk_widget_set_tooltip_text(seqlist_ext_ref_label, com.seq.ext_ref_path);
+		g_free(basename);
+		g_free(label_text);
+	}
 
 	g_free(seq_basename);
 }
@@ -416,6 +428,7 @@ static void seq_build_columnview(void) {
 	g_signal_connect(seq_selection, "selection-changed",
 			G_CALLBACK(on_seq_selection_changed_model), NULL);
 	seq_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(seq_selection))));
+	gtk_widget_add_css_class(GTK_WIDGET(seq_columnview), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
 	#define ADD_LBL_COLUMN(title, bind_cb, with_sort) do { \

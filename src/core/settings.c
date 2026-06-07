@@ -41,6 +41,7 @@ preferences pref_init = {
 	.memory_ratio = 0.9,
 	.memory_amount = 10,
 	.hd_bitdepth = 20,
+	.lazy_tile_cache_mb = 128,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
  #ifdef SIRIL_UNSTABLE
@@ -359,6 +360,7 @@ struct settings_access all_settings[] = {
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
 	{ "core", "mem_amount", STYPE_DOUBLE, N_("amount of memory in GB"), &com.pref.memory_amount, { .range_double = { 0.1, 1000000. } } },
 	{ "core", "hd_bitdepth", STYPE_INT, N_("HD AutoStretch bit depth"), &com.pref.hd_bitdepth, { .range_int = { 17, 24 } } },
+	{ "core", "lazy_tile_cache_mb", STYPE_INT, N_("RAM budget in MB for displaying very large images"), &com.pref.lazy_tile_cache_mb, { .range_int = { 128, 4096 } } },
 	{ "core", "script_check_requires", STYPE_BOOL, N_("need requires cmd in script"), &com.pref.script_check_requires },
 	{ "core", "pipe_check_requires", STYPE_BOOL, N_("need requires cmd in pipe"), &com.pref.pipe_check_requires },
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },

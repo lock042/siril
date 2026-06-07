@@ -524,8 +524,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 	gui_iface.set_progress(0.5, msg);
 	g_free(msg);
 
-	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
-	copy_fits_metadata(com.uniq->fit, &fit);
+	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, 0);
 
 	struct generic_seq_args generic = { .user = args };
 	ret = prepro_prepare_hook(&generic);

@@ -34,6 +34,7 @@ void snapshot_action_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void script_getscripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void script_pythonpad_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void script_pythondebug_change_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void redo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void quit_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

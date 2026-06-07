@@ -115,20 +115,54 @@ struct image_view {
 	guchar           *buf;
 	GBytes           *buf_gbytes;
 
-	/* Background prefetch idle: GLib source id (0 = none) of an idle that
-	 * walks visible tiles whose current mip is one coarser than the target
-	 * prefetch level and re-materialises them at target_mip - 1, so that
-	 * the *next* zoom-in step finds them already at the right resolution
-	 * and doesn't have to stall the snapshot path.  Scheduled at the end
-	 * of the snapshot vfunc; auto-removes when no more candidates remain.
-	 * Cancelled when the tile grid is reallocated. */
-	guint             prefetch_idle_id;
+	/* Background materialise worker (lazy mode).  The heavy per-pixel tile
+	 * fill runs on a shared single-thread GThreadPool rather than the GTK
+	 * main thread, so neither the fill nor cairo_mutex contention can stall
+	 * rendering.  worker_active (set under cairo_mutex) is a dedupe flag: the
+	 * snapshot pushes a job only when no worker is already churning this view.
+	 * generation is bumped whenever the tile grid is reallocated; the worker
+	 * stamps each job with it and discards a finished texture whose generation
+	 * no longer matches (the grid moved under it).  wk_target_mip and
+	 * render_neg are the bits of render state the worker can't compute itself
+	 * off the main thread (zoom/widget size, GAction state); the snapshot
+	 * records them under cairo_mutex each frame for the worker to read. */
+	gboolean          worker_active;
+	guint             generation;
+	/* Bumped by every lazy invalidate (LUT change).  A worker job captures it
+	 * alongside its LUT pointers and discards its finished texture if it changed
+	 * during the unlocked fill — otherwise the worker would clear the tile's
+	 * dirty flag that the mid-flight invalidate just set, leaving the tile
+	 * clean-but-stale until a later zoom-in changes its target mip. */
+	guint             invalidate_seq;
+	int               wk_target_mip;
+	gboolean          render_neg;
 
 	/* Lazy mode: tile bytes are allocated on demand by materialise_tile and
 	 * may be freed by LRU eviction once lazy_bytes_used exceeds the budget. */
 	gboolean          lazy;
 	gsize             lazy_bytes_used;
 	guint64           lazy_epoch;
+
+	/* Lazy-mode low-resolution proxy: a single point-sampled downscale of the
+	 * whole image (long edge <= SIRIL_PROXY_MAX), built from the current LUTs
+	 * and kept resident as an always-available fallback.  When a fast zoom-out
+	 * makes many never-materialised tiles visible at once, the snapshot draws
+	 * this proxy as a full-image backdrop instead of blocking to materialise
+	 * each tile — the real, sharp tiles then fill in over the next few frames
+	 * via the refine idle.  proxy_mip / proxy_w / proxy_h describe the current
+	 * texture; proxy_dirty is set on every lazy remap and grid realloc so the
+	 * next snapshot rebuilds it.  Not counted against lazy_bytes_used (small,
+	 * always resident).  NULL / unused in eager mode. */
+	GdkTexture       *proxy;
+	int               proxy_mip;
+	int               proxy_w, proxy_h;
+	gboolean          proxy_dirty;
+
+	/* Inclusive visible tile-index range recorded by the most recent snapshot,
+	 * consumed by the materialise worker so it only does work for on-screen
+	 * tiles.  vis_valid is FALSE until the first snapshot populates it. */
+	int               vis_tx0, vis_ty0, vis_tx1, vis_ty1;
+	gboolean          vis_valid;
 };
 
 /* ── draw callback context ────────────────────────────────────────────────── */

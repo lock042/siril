@@ -25,6 +25,12 @@
                   </object>
                 </child>
                 <child>
+                  <!-- Spacer: push the per-CFA toggle to the end of the row (GTK3 used pack-type=end). -->
+                  <object class="GtkBox">
+                    <property name="hexpand">1</property>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkCheckButton" id="cfastatsCheckButton">
                     <property name="active">1</property>
                     <property name="focusable">1</property>

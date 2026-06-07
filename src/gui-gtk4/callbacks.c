@@ -2186,43 +2186,71 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
-static gboolean paned_first_resize = TRUE;
-
-static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
-	if (paned_first_resize) {
-		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
-			gtk_paned_set_position(paned, com.pref.gui.pan_position);
-		}
-		paned_first_resize = FALSE;
-	}
-}
-
-/* Force paned position restore (called after window is shown) */
 void force_paned_restore() {
 	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-		gtk_paned_set_position(paned, com.pref.gui.pan_position);
+		if (paned)
+			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 	}
 }
 
-gboolean on_main_panel_button_release_event(GtkWidget *widget,
-		GdkEventButton *event, gpointer user_data) {
-	int position = gtk_paned_get_position((GtkPaned*) widget);
-	if (com.pref.gui.remember_windows) {
-		com.pref.gui.pan_position = position;
+/* Smooth panel show/hide animation using the display's frame clock.
+ * Animating GtkPaned position gives a true slide with image expanding/shrinking. */
+typedef struct {
+	GtkPaned *paned;
+	int       start_pos;
+	int       target_pos;
+	gint64    start_time;   /* GdkFrameClock epoch, in microseconds */
+	gboolean  hiding;
+} PanelAnimData;
+
+#define PANEL_ANIM_DURATION_US  (220 * G_USEC_PER_SEC / 1000)   /* 220 ms */
+
+static gboolean panel_anim_tick(GtkWidget *widget, GdkFrameClock *clock, gpointer data) {
+	PanelAnimData *anim = data;
+	gint64 now = gdk_frame_clock_get_frame_time(clock);
+	double t = (double)(now - anim->start_time) / PANEL_ANIM_DURATION_US;
+	t = CLAMP(t, 0.0, 1.0);
+
+	/* Ease-out cubic: fast start, gentle end */
+	double eased = 1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t);
+	int pos = anim->start_pos + (int)((anim->target_pos - anim->start_pos) * eased);
+	gtk_paned_set_position(anim->paned, pos);
+
+	if (t >= 1.0) {
+		if (anim->hiding)
+			gtk_widget_set_visible(gtk_paned_get_end_child(anim->paned), FALSE);
+		g_free(anim);
+		return G_SOURCE_REMOVE;
 	}
-	int max_position;
-	g_object_get(G_OBJECT(widget), "max-position", &max_position, NULL);
-	if (position == max_position) {
-		GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-		com.pref.gui.pan_position = -1;
-		// hide it
-		GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
-		g_action_activate(action_panel, NULL);
-		gtk_paned_set_position((GtkPaned*) widget, -1);	// reset to default
+	return G_SOURCE_CONTINUE;
+}
+
+void panel_animate(gboolean show) {
+	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+	if (!paned) return;
+
+	GtkWidget *end_child = gtk_paned_get_end_child(paned);
+	PanelAnimData *anim = g_new0(PanelAnimData, 1);
+	anim->paned = paned;
+	anim->hiding = !show;
+	anim->start_time = gdk_frame_clock_get_frame_time(
+	                       gtk_widget_get_frame_clock(GTK_WIDGET(paned)));
+
+	if (show) {
+		int total_w = gtk_widget_get_width(GTK_WIDGET(paned));
+		gtk_paned_set_position(paned, total_w);   /* start: panel at 0 width */
+		gtk_widget_set_visible(end_child, TRUE);
+		anim->start_pos = total_w;
+		anim->target_pos = (com.pref.gui.pan_position > 0)
+		                   ? com.pref.gui.pan_position : total_w - 420;
+	} else {
+		com.pref.gui.pan_position = gtk_paned_get_position(paned);
+		anim->start_pos  = gtk_paned_get_position(paned);
+		anim->target_pos = gtk_widget_get_width(GTK_WIDGET(paned));
 	}
 
-	return FALSE;
+	gtk_widget_add_tick_callback(GTK_WIDGET(paned), panel_anim_tick, anim, NULL);
 }
 
 static gboolean gui_ready = FALSE;
@@ -2576,12 +2604,23 @@ void initialize_all_GUI(gchar *supported_files) {
 	                 G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "notify::fullscreened",
 	                 G_CALLBACK(on_control_window_window_state_event), NULL);
-	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 
 	/* GTK4 GtkExpander state-flag quirk: scan every expander in the
 	 * builder (main UI and all dialog .ui files) and clear any stuck
 	 * GTK_STATE_FLAG_INSENSITIVE bits in their child subtrees. */
 	clear_stuck_insensitive_in_builder(gui.builder);
+
+	siril_register_css_for_display("siril-main-panel",
+		/* Thin separator that widens on hover — easy to grab, unobtrusive otherwise */
+		"paned#main_panel > separator {"
+		"  min-width: 1px;"
+		"  background: alpha(currentColor, 0.12);"
+		"  transition: min-width 120ms, background 120ms;"
+		"}"
+		"paned#main_panel > separator:hover {"
+		"  min-width: 5px;"
+		"  background: alpha(currentColor, 0.28);"
+		"}");
 
 	gui_ready = TRUE;
 }
@@ -2856,23 +2895,13 @@ gboolean load_main_window_state(gpointer user_data) {
 		/* Now we handle the main panel */
 		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
 		GtkImage *image = GTK_IMAGE(gtk_button_get_child(GTK_BUTTON(lookup_widget("button_paned"))));
-		GtkWidget *widget = gtk_paned_get_end_child(paned);
 
-		gtk_widget_set_visible(widget, com.pref.gui.is_extended);
-		if (com.pref.gui.is_extended) {
-			gtk_image_set_from_icon_name(image, "pan-end-symbolic");
-		} else {
-			gtk_image_set_from_icon_name(image, "pan-start-symbolic");
-		}
-	}
-	return FALSE;
-}
-
-/* Restore paned position after window is visible */
-gboolean restore_paned_position(gpointer user_data) {
-	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
-		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-		gtk_paned_set_position(paned, com.pref.gui.pan_position);
+		/* Restore visibility instantly (no animation at startup) */
+		gtk_widget_set_visible(gtk_paned_get_end_child(paned), com.pref.gui.is_extended);
+		if (com.pref.gui.is_extended && com.pref.gui.pan_position > 0)
+			gtk_paned_set_position(paned, com.pref.gui.pan_position);
+		gtk_image_set_from_icon_name(image, com.pref.gui.is_extended
+			? "pan-end-symbolic" : "pan-start-symbolic");
 	}
 	return FALSE;
 }
@@ -3380,6 +3409,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(g_object_ref(store)));
 	GtkColumnView *cv = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(sel)));
+	gtk_widget_add_css_class(GTK_WIDGET(cv), "siril-dense-rows");
 
 	GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 	g_signal_connect(fname, "setup", G_CALLBACK(child_task_setup_cb),     NULL);

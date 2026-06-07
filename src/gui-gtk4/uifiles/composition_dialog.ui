@@ -152,7 +152,9 @@
                     <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
                     <signal name="toggled" handler="on_centerbutton_toggled"/>
                     <child>
-                      <object class="GtkImage"/>
+                      <object class="GtkImage">
+                        <property name="icon-name">mark-location-symbolic</property>
+                      </object>
                     </child>
                     <layout>
                       <property name="column">7</property>
@@ -207,6 +209,8 @@
                 </child>
                 <child>
                   <object class="GtkDropDown" id="composition_combo_coloringtype">
+                    <!-- Fill the remaining row width as in GTK3 (the combo was pack-type=end + expand). -->
+                    <property name="hexpand">1</property>
                     <property name="model">
                       <object class="GtkStringList">
                         <items>

@@ -170,7 +170,7 @@ GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
  * @return the GtkWidget of popover
  */
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPaintable *paintable) {
-	GtkWidget *popover, *box, *image, *label;
+	GtkWidget *popover, *scrolled, *box, *image, *label;
 
 	popover = gtk_popover_new();
 	/* The supplied `widget` is sometimes a GtkMenuButton (e.g. the
@@ -248,14 +248,26 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPaint
 	gtk_widget_set_margin_top(label, 10);
 	gtk_widget_set_margin_bottom(label, 10);
 	gtk_box_append(GTK_BOX(box), label);
-	gtk_popover_set_child(GTK_POPOVER(popover), box);
+
+	scrolled = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+			GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scrolled), 600);
+	gtk_widget_set_margin_start(scrolled, 6);
+	gtk_widget_set_margin_end(scrolled, 6);
+	gtk_widget_set_margin_top(scrolled, 6);
+	gtk_widget_set_margin_bottom(scrolled, 6);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scrolled), box);
+	gtk_popover_set_child(GTK_POPOVER(popover), scrolled);
 
 	/* make all sensitive in case where parent is not */
 	gtk_widget_set_sensitive(label, TRUE);
 	gtk_widget_set_sensitive(box, TRUE);
 	gtk_widget_set_sensitive(popover, TRUE);
 
-	gtk_widget_set_visible(box, TRUE);
+	gtk_widget_set_visible(scrolled, TRUE);
 
 	return popover;
 }

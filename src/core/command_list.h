@@ -186,7 +186,7 @@ static command commands[] = {
 
 	{"register", 1, "register sequencename [-2pass] [-selected] [-prefix=] [-scale=]\n"
 					"register sequencename ... [-layer=] [-transf=] [-minpairs=] [-maxstars=] [-nostarlist] [-disto=]\n"
-					"register sequencename ... [-interp=] [-noclamp]\n"
+					"register sequencename ... [-interp=] [-noclamp] [-extref=filepath]\n"
 					"register sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},

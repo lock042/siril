@@ -57,7 +57,7 @@
   <ui filename="savepopup.ui" sha256="142f434f21c6deff22c58691dde4e460b3aa175f609e215c986b7fca604f8358"/>
   <ui filename="SCNR_dialog.ui" sha256="16ca1bb7b320f241811a72ddc68acedd98dde1e5500f5188dafc6f333f90b2b9"/>
   <ui filename="seqlist_dialog.ui" sha256="c93dcef68fb4a1b3ef2c0a961b6e46b753406ce3885580f3ad5ea8cc03cacf87"/>
-  <ui filename="settings_window.ui" sha256="3347f513f204f8a86f7b73f36a1efc15047d877803db56165ceacfa877e3a7da"/>
+  <ui filename="settings_window.ui" sha256="268538f9b24760d756732a9cb2d8c999ebde0620b0a49726e9ed8eb29398a8e5"/>
   <ui filename="spcc_details.ui" sha256="2d1b9b494645213444ad4d55564eee6fa8e77ee67461d868c9c049dc1c71ad0d"/>
   <ui filename="split_cfa_dialog.ui" sha256="5d9e7b7be14cd91e2f95a87713017f9603462971805d206fafa759149602ca7f"/>
   <ui filename="starnet_dialog.ui" sha256="a025c29653bd0723a25601f803257c4aa7e282dfdc9c819c41548f1bb3a9c391"/>
@@ -65,12 +65,12 @@
   <ui filename="StatWindow.ui" sha256="132632c4f8048f955d0c132f7e78866fd363911caef9ad77aef081b6bbfa8dbd"/>
   <ui filename="unpurple_dialog.ui" sha256="c17be5ce7bd0ddfd29c81eebd39f20d3342cf32e6bb71e315de61f82cc8054ad"/>
   <ui filename="wavelets_dialog.ui" sha256="85f7b9c0da52743b24edad509043d3a702e839f2aee44bc6ee1f768160e2620b"/>
-  <ui filename="siril.ui" sha256="90b9fea0849efad3e630fc7b3797fc844ff4d0b2f905924f6448d89852b6fcab"/>
-  <ui filename="siril_conversion.ui" sha256="aba6d48ac58c7af8b1544a8dd603912000ea0fd1567beeedcb4cc9c94c7d032b"/>
-  <ui filename="siril_sequence.ui" sha256="f6d67dc58050172104170f33d9539404437897bd90917d1072ee425181331232"/>
-  <ui filename="siril_calibration.ui" sha256="a722f7e1efbd3286ee007774974d38b84b4a690d3a8fe7d314fb8958d42eba5e"/>
-  <ui filename="siril_registration.ui" sha256="a6e76bd91e5b4df416e6663772a2a25770c027ff77f7f664ac69be992d688491"/>
-  <ui filename="siril_plot.ui" sha256="cc9544495c0bdeca93b584edfe52ae3c55c187bf4ec3adfb9b6904871a376586"/>
-  <ui filename="siril_stacking.ui" sha256="c24c8e0eb81c25815361823aefb13dc461cb34a77b5b19b6438d8d5f0dbbee48"/>
-  <ui filename="siril_console.ui" sha256="823cc2d7e6cca21e59f9b364bed923cb73e15d51332b5f0b877595e007d04352"/>
+  <ui filename="siril.ui" sha256="c0111e75d390322ebeba322e2c5eed880d216e555dcd23513f38e3fab8deec9d"/>
+  <ui filename="siril_conversion.ui" sha256="011347112c02da7df2db22fcf96e4ef84ba04a26db94bcf52f39e954fbeec2aa"/>
+  <ui filename="siril_sequence.ui" sha256="1e4c24619607a11b8eb0e4e41b8fa5fc6c812530a175e8c872cccbf511b9ddd9"/>
+  <ui filename="siril_calibration.ui" sha256="48ffac84761b506897aef379c91420a024f99b75ecb2bfd0ac4dc6a1aadc32b3"/>
+  <ui filename="siril_registration.ui" sha256="2a0a2fdb5e18f9cb7ea86f3d2cbf05753fb627e2f85e6cb1bb528db326a1b2bf"/>
+  <ui filename="siril_plot.ui" sha256="5b593d3b8c67d935a06c38a66f85560143654bbbac856c7ce7bb990e678df7da"/>
+  <ui filename="siril_stacking.ui" sha256="68647028ca8f1b9aa9a4aed26e9694d6263e6ba96fac1a9446810780647053b3"/>
+  <ui filename="siril_console.ui" sha256="65026af32b14ad492997baef3271d2bf974df4c9f3df334ae3dc19f377dd946a"/>
 </cambalache-project>

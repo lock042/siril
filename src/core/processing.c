@@ -621,8 +621,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 
 static int generic_save_internal(struct generic_seq_args *args, int in_index, fits *fit) {
 	clearfits_header(args->seq->internal_fits[in_index]);
-	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
-	copy_fits_metadata(fit, args->seq->internal_fits[in_index]);
+	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 	if (fit->type == DATA_USHORT) {
 		args->seq->internal_fits[in_index]->data = fit->data;
 		args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
@@ -998,6 +997,15 @@ void kill_child_process(GPid pid, gboolean onexit) {
 #else
 					kill((pid_t) child->childpid, SIGKILL);
 #endif
+					/* A Python script may be blocked in processcommand() on its
+					 * comm-worker thread waiting for a processing job (e.g. a
+					 * calibration) to finish.  Killing the Python process alone
+					 * does not abort that job, so the worker would never return
+					 * to its socket read to notice the dead client.  Cancel the
+					 * job so the worker unwinds, reaches the closed socket and
+					 * tears its connection down cleanly. */
+					if (child->program == EXT_PYTHON)
+						stop_processing_thread();
 				} else if (child->program == EXT_ASNET) {
 					FILE* fp = g_fopen("stop", "w");
 					if (fp != NULL)
@@ -1615,7 +1623,12 @@ gpointer generic_image_worker(gpointer p) {
 			goto the_end;
 		}
 		g_rw_lock_reader_lock(&gfit->rwlock);
-		int rc = copyfits(gfit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1);
+		/* CP_DEEPCOPY gives the hook a fully independent snapshot,
+		 * including WCS — WCS-dependent hooks (e.g. SPCC/PCC) read it
+		 * via has_wcs(). A plain CP_COPYA copy would leave it NULL.
+		 * CP_DEEPCOPY omits CP_ALLOC, so OR it in: orig is freshly
+		 * calloc'd and its data buffer still needs allocating. */
+		int rc = copyfits(gfit, orig, CP_DEEPCOPY | CP_ALLOC, -1);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		if (rc) {
 			siril_log_error(_("Failed to copy original image.\n"));

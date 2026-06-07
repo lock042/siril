@@ -3,7 +3,7 @@
 <interface>
   <!-- interface-name settings_window.ui -->
   <requires lib="gtk" version="4.0"/>
-<object class="GtkAdjustment" id="adjFlux">
+  <object class="GtkAdjustment" id="adjFlux">
     <property name="lower">3</property>
     <property name="page-increment">10</property>
     <property name="step-increment">1</property>
@@ -164,6 +164,13 @@
     <property name="step-increment">1</property>
     <property name="upper">24</property>
     <property name="value">20</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_lazy_tile_cache">
+    <property name="lower">128</property>
+    <property name="page-increment">512</property>
+    <property name="step-increment">128</property>
+    <property name="upper">4096</property>
+    <property name="value">128</property>
   </object>
   <object class="GtkAdjustment" id="xbayeroff_adj">
     <property name="page-increment">1</property>
@@ -1719,8 +1726,8 @@
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="halign">start</property>
-                                        <property name="valign">start</property>
                                         <property name="label" translatable="yes">AF pixels:</property>
+                                        <property name="valign">start</property>
                                         <layout>
                                           <property name="column">0</property>
                                           <property name="row">0</property>
@@ -1731,10 +1738,6 @@
                                       <object class="GtkGrid">
                                         <property name="column-spacing">6</property>
                                         <property name="row-spacing">6</property>
-                                        <layout>
-                                          <property name="column">1</property>
-                                          <property name="row">0</property>
-                                        </layout>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
@@ -1819,13 +1822,17 @@
                                             </layout>
                                           </object>
                                         </child>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="halign">start</property>
-                                        <property name="valign">start</property>
                                         <property name="label" translatable="yes">Sample pixels:</property>
+                                        <property name="valign">start</property>
                                         <layout>
                                           <property name="column">0</property>
                                           <property name="row">1</property>
@@ -1836,10 +1843,6 @@
                                       <object class="GtkGrid">
                                         <property name="column-spacing">6</property>
                                         <property name="row-spacing">6</property>
-                                        <layout>
-                                          <property name="column">1</property>
-                                          <property name="row">1</property>
-                                        </layout>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
@@ -1924,6 +1927,10 @@
                                             </layout>
                                           </object>
                                         </child>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                       </object>
                                     </child>
                                   </object>
@@ -4174,6 +4181,54 @@
                                 <child type="label">
                                   <object class="GtkLabel">
                                     <property name="label" translatable="yes">HD AutoStretch</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="margin-top">10</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="child">
+                                  <object class="GtkGrid">
+                                    <property name="column-homogeneous">1</property>
+                                    <property name="column-spacing">6</property>
+                                    <property name="margin-start">6</property>
+                                    <property name="row-homogeneous">1</property>
+                                    <property name="row-spacing">6</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Display cache budget (MB)</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_lazy_tile_cache">
+                                        <property name="adjustment">adj_lazy_tile_cache</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text">128</property>
+                                        <property name="tooltip-text" translatable="yes">RAM budget, in megabytes, used to display very large images. Images whose display buffer fits within this budget are shown directly with no tiling or glitching on zoom; larger images use a tiled renderer that keeps at most this many megabytes resident per channel and pages the rest in on demand. Raise this if a huge mosaic shows missing (black) tiles when zooming out quickly. Takes effect from the next image (re)load.</property>
+                                        <property name="value">128</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </property>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Large image display</property>
                                     <property name="margin-bottom">10</property>
                                     <property name="margin-top">10</property>
                                     <attributes>

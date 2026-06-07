@@ -432,6 +432,7 @@ static void init_widgets() {
 		pm_var_sel = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(pm_var_store)));
 		g_signal_connect(pm_var_sel, "selection-changed", G_CALLBACK(on_pm_var_selection_changed), NULL);
 		pm_var_view = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(pm_var_sel))));
+		gtk_widget_add_css_class(GTK_WIDGET(pm_var_view), "siril-dense-rows");
 		g_signal_connect(pm_var_view, "activate", G_CALLBACK(on_pm_var_activate), NULL);
 
 		GtkSignalListItemFactory *facvar = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
@@ -459,6 +460,7 @@ static void init_widgets() {
 		pm_preset_store = gtk_string_list_new(NULL);
 		pm_preset_sel = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(pm_preset_store)));
 		pm_preset_view = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(pm_preset_sel))));
+		gtk_widget_add_css_class(GTK_WIDGET(pm_preset_view), "siril-dense-rows");
 		gtk_column_view_set_show_column_separators(pm_preset_view, FALSE);
 		g_signal_connect(pm_preset_view, "activate", G_CALLBACK(on_pm_preset_activate), NULL);
 
@@ -485,6 +487,7 @@ static void init_widgets() {
 		gtk_single_selection_set_can_unselect(op_sel, TRUE);
 		gtk_single_selection_set_autoselect(op_sel, FALSE);
 		pm_op_view = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(op_sel)));
+		gtk_widget_add_css_class(GTK_WIDGET(pm_op_view), "siril-dense-rows");
 		g_signal_connect(pm_op_view, "activate", G_CALLBACK(on_pm_op_activate), NULL);
 
 		GtkSignalListItemFactory *facop = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
@@ -503,6 +506,7 @@ static void init_widgets() {
 		gtk_single_selection_set_can_unselect(fn_sel, TRUE);
 		gtk_single_selection_set_autoselect(fn_sel, FALSE);
 		pm_fn_view = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(fn_sel)));
+		gtk_widget_add_css_class(GTK_WIDGET(pm_fn_view), "siril-dense-rows");
 		g_signal_connect(pm_fn_view, "activate", G_CALLBACK(on_pm_fn_activate), NULL);
 
 		GtkSignalListItemFactory *facfn = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());

@@ -769,10 +769,10 @@ void enable_iso12646_conditions() {
 	GtkImage *image = GTK_IMAGE(gtk_button_get_child(GTK_BUTTON(lookup_widget("button_paned"))));
 	gtk_image_set_from_icon_name(image, "pan-start-symbolic");
 	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-	GtkWidget *widget = gtk_paned_get_end_child(paned);
-	panel_state = gtk_widget_get_visible(widget);
+	GtkWidget *end_child = gtk_paned_get_end_child(paned);
+	panel_state = gtk_widget_get_visible(end_child);
 	if (panel_state)
-		gtk_widget_set_visible(widget, FALSE);
+		gtk_widget_set_visible(end_child, FALSE);
 	// Set the sliders to min/max
 	gboolean is_8bit = gfit->orig_bitpix == BYTE_IMG;
 	gboolean remap = ((gui.lo == 0 && gui.hi == 65535) || (is_8bit && (gui.lo == 0 && gui.hi == 255))) || mode_changed;
@@ -816,12 +816,11 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 	if (revert_panel) {
 		// Return the panel to its previous state
 		GtkImage *image = GTK_IMAGE(gtk_button_get_child(GTK_BUTTON(lookup_widget("button_paned"))));
+		GtkWidget *end_child = gtk_paned_get_end_child(GTK_PANED(lookup_widget("main_panel")));
 		if (!panel_state)
 			gtk_image_set_from_icon_name(image, "pan-end-symbolic");
-		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
-		GtkWidget *widget = gtk_paned_get_end_child(paned);
 		if (panel_state)
-			gtk_widget_set_visible(widget, TRUE);
+			gtk_widget_set_visible(end_child, TRUE);
 	}
 	if (revert_zoom)
 		gui.zoom_value = prior_zoom;

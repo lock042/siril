@@ -204,13 +204,24 @@ typedef enum {
 #define MAXMASKVPORT	1	// 1 vport supported for mask display
 #define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
-/* defines for copyfits actions */
-#define CP_INIT		0x01	// initialize data array with 0s
-#define CP_ALLOC	0x02	// reallocs data array
-#define CP_COPYA	0x04	// copy data array content
-#define CP_FORMAT	0x08	// copy metadata
-#define CP_COPYMASK	0x10	// copy the mask
-#define CP_EXPAND	0x20	// expands a one-channel to a three channels
+/* defines for copyfits actions — a bitmask (passed as unsigned int).
+ * Individual bits select one element to copy; the groupings below the
+ * line are just OR-combinations, not new bits. */
+#define CP_INIT		0x0001	// initialize data array with 0s
+#define CP_ALLOC	0x0002	// reallocs data array
+#define CP_COPYA	0x0004	// copy data array content (also stats and ICC profile)
+#define CP_FORMAT	0x0008	// copy the scalar metadata keywords (clones them, then nulls the heap-owned pointers — copy those with the CP_* below)
+#define CP_COPYMASK	0x0010	// copy the mask
+#define CP_EXPAND	0x0020	// expands a one-channel to a three channels
+/* heap-owned metadata elements, each deep-copied independently */
+#define CP_WCS		0x0040	// deep-copy the WCS solution (wcslib)
+#define CP_HEADER	0x0080	// copy the raw FITS header text
+#define CP_HISTORY	0x0100	// copy the HISTORY list
+#define CP_UNKNOWNKEYS	0x0200	// copy the unparsed ("unknown") keywords
+#define CP_DATES	0x0400	// copy DATE and DATE-OBS
+/* convenience groupings */
+#define CP_METADATA_HEAP	(CP_WCS | CP_HEADER | CP_HISTORY | CP_UNKNOWNKEYS | CP_DATES)	// every heap-owned metadata element
+#define CP_DEEPCOPY		(CP_COPYA | CP_FORMAT | CP_COPYMASK | CP_METADATA_HEAP)	// deep-copy every element into an already-sized destination; OR with CP_ALLOC to also (re)allocate its data buffer (e.g. a fresh or stack-allocated fits)
 
 #define PREVIEW_NB 2
 
@@ -471,6 +482,10 @@ struct sequ {
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
+	gboolean ext_ref;	// H matrices are absolute (relative to an external reference image)
+	gchar *ext_ref_path;	// path to the external reference image used for registration
+	unsigned int ext_ref_rx;	// external reference image width (or ref if set)
+	unsigned int ext_ref_ry;	// external reference image height (or ref if set)
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence

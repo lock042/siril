@@ -29,6 +29,40 @@ frame {
     padding: 1px;
 }
 
+/* Restore the inter-cell gap that GTK3 gave "label + control" rows.  In the
+ * GTK3 build these rows filled the width with the label halign=start and the
+ * control packed to the end, leaving a clear gap between them; the GTK4 port
+ * dropped fill/pack-end so the label and control now sit flush against each
+ * other (e.g. "Stretch factor[0.0]" / "Black Point[0.00000]" in the Asinh
+ * dialog).  Add a left margin to any control that immediately follows a label
+ * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) and grids
+ * so a control stacked *under* a label in a vertical box doesn't get an odd
+ * left indent.  6px matches the column-spacing GTK3 used on these grids. */
+box.horizontal > label + button,
+box.horizontal > label + spinbutton,
+box.horizontal > label + entry,
+box.horizontal > label + dropdown,
+box.horizontal > label + combobox,
+box.horizontal > label + menubutton,
+box.horizontal > label + scale,
+box.horizontal > label + switch,
+box.horizontal > label + checkbutton,
+box.horizontal > label + togglebutton,
+box.horizontal > label + colorbutton,
+grid > label + button,
+grid > label + spinbutton,
+grid > label + entry,
+grid > label + dropdown,
+grid > label + combobox,
+grid > label + menubutton,
+grid > label + scale,
+grid > label + switch,
+grid > label + checkbutton,
+grid > label + togglebutton,
+grid > label + colorbutton {
+    margin-left: 6px;
+}
+
 .toolbar {
    background-color: transparent;
 }
@@ -60,6 +94,20 @@ button.menu-nav image {
 }
 button.menu-nav:hover image {
    opacity: 0.9;
+}
+/* Forward submenu rows wrap their label in a GtkBox (label + arrow), whereas
+ * plain menu-item rows use the GtkButton `label` property (a bare label).  On
+ * newer GTK a box-wrapped label sits ~3px right of a bare button label, so
+ * submenu labels don't line up with the menu-item labels.  A negative margin
+ * on the label doesn't help: it is halign=start, already pinned at its cell's
+ * start edge, so a margin pushing it further left is clamped to no-op.  Instead
+ * trim the row's left padding so the whole row shifts left to the same edge as
+ * the plain rows (which keep the 10px from the popover button rule below).  The
+ * selector must out-specify that rule — which carries a :not(#id), i.e.
+ * id-level specificity — hence the matching popover:not(#popover_catalogs)
+ * prefix here. */
+popover:not(#popover_catalogs) button.menu-nav {
+   padding-left: 7px;
 }
 
 /* Menus in this build are GtkPopover + GtkBox + GtkButton (rather than
@@ -154,12 +202,14 @@ popover:not(#popover_catalogs) separator {
    opacity: 0.9;
 }
 
-/* SirilFileBrowser column view: dense rows so the picker shows many files
- * at a glance rather than acres of whitespace.  GTK4 Adwaita uses ~32 px
- * rows by default; we squeeze that down by removing the vertical padding
- * on the inner listview's rows and on each cell, and pinning a low
- * min-height.  Marked via .siril-dense-rows on the columnview only so
- * other GtkColumnViews in the app keep the default spacing. */
+/* Dense GtkColumnView rows so tables show many entries at a glance rather
+ * than acres of whitespace.  GTK4 Adwaita uses ~32 px rows by default; we
+ * squeeze that down by removing the vertical padding on the inner listview's
+ * rows and on each cell, and pinning a low min-height.  Shared utility class:
+ * applied (via gtk_widget_add_css_class) to the app's GtkColumnViews — the
+ * file browser, conversion list, FITS-header keywords, sequence/PSF/stats
+ * lists, etc.  Opt-in via the class so anything that wants default spacing
+ * simply doesn't add it. */
 columnview.siril-dense-rows row,
 columnview.siril-dense-rows listview > row {
    min-height: 22px;
@@ -170,6 +220,17 @@ columnview.siril-dense-rows row > cell,
 columnview.siril-dense-rows listview > row > cell {
    padding-top: 0;
    padding-bottom: 0;
+}
+
+/* Protected FITS-header keywords (cannot be edited) are shown with their
+ * keyword name in salmon, restoring the GTK3 look (COLUMN_COLOR="salmon"
+ * bound to the Keyword column foreground).  The class is toggled on the
+ * per-cell GtkEditableLabel in keywords_tree.c; colour inherits to its inner
+ * label/text node. */
+.siril-protected-keyword,
+.siril-protected-keyword label,
+.siril-protected-keyword text {
+   color: salmon;
 }
 
 /* SirilFileBrowser breadcrumb path bar — the framed cell-list to the

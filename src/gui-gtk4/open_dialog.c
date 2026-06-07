@@ -538,13 +538,6 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	 * this handler, but downstream code passes the pointer into idles
 	 * that may run after we return — copy onto the heap to be safe. */
 	gchar *path_copy = g_strdup(path);
-	gchar *image_dir = g_path_get_dirname(path_copy);
-	if (image_dir) {
-		siril_change_dir(image_dir, NULL);
-		g_free(image_dir);
-	}
-	if (!com.script)
-		gui_function(set_GUI_CWD, NULL);
 	open_single_image(path_copy);
 	g_free(path_copy);
 }
@@ -585,7 +578,8 @@ void populate_recent_files_menu(void) {
 	}
 	GList *items = g_list_sort(gtk_recent_manager_get_items(mgr),
 	                           recent_info_cmp_modified_desc);
-	GMenu *menu = g_menu_new();
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	int count = 0;
 	const int max_items = 12;
 	for (GList *l = items; l && count < max_items; l = l->next) {
@@ -598,19 +592,25 @@ void populate_recent_files_menu(void) {
 			g_free(path);
 			continue;
 		}
-		/* Restrict to FITS and TIFF only — the formats users actually want
-		 * to reopen quickly, and the ones Siril adds via add_full(). */
+		/* Restrict to FITS and TIFF only */
 		image_type t = get_type_from_filename(path);
 		if (t != TYPEFITS && t != TYPETIFF) {
 			g_free(path);
 			continue;
 		}
 		gchar *display = g_path_get_basename(path);
-		GMenuItem *item = g_menu_item_new(display, NULL);
-		g_menu_item_set_action_and_target_value(item, "app.open-recent",
-			g_variant_new_string(path));
-		g_menu_append_item(menu, item);
-		g_object_unref(item);
+		GtkWidget *button = gtk_button_new_with_label(display);
+		gtk_widget_add_css_class(button, "flat");
+		/* Left-align the label like a menu item */
+		gtk_label_set_xalign(GTK_LABEL(gtk_button_get_child(GTK_BUTTON(button))), 0.0);
+		/* Tooltip matches the GTK3 behaviour: "Open '<path>'" */
+		gchar *tip = g_strdup_printf(_("Open '%s'"), path);
+		gtk_widget_set_tooltip_text(button, tip);
+		g_free(tip);
+		/* Wire to the app action so the same code path is used */
+		gtk_actionable_set_action_name(GTK_ACTIONABLE(button), "app.open-recent");
+		gtk_actionable_set_action_target_value(GTK_ACTIONABLE(button), g_variant_new_string(path));
+		gtk_box_append(GTK_BOX(box), button);
 		g_free(display);
 		g_free(path);
 		count++;
@@ -618,11 +618,12 @@ void populate_recent_files_menu(void) {
 	g_list_free_full(items, (GDestroyNotify) gtk_recent_info_unref);
 
 	if (count > 0) {
-		gtk_menu_button_set_menu_model(btn, G_MENU_MODEL(menu));
+		GtkWidget *popover = gtk_popover_new();
+		gtk_popover_set_child(GTK_POPOVER(popover), box);
+		gtk_menu_button_set_popover(btn, popover);
 		gtk_widget_set_sensitive(GTK_WIDGET(btn), TRUE);
 	} else {
-		gtk_menu_button_set_menu_model(btn, NULL);
+		gtk_menu_button_set_popover(btn, NULL);
 		gtk_widget_set_sensitive(GTK_WIDGET(btn), FALSE);
 	}
-	g_object_unref(menu);
 }

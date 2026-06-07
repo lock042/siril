@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name siril_console.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkScrolledWindow" id="console_tab">
-    <property name="focusable">1</property>
-    <property name="hscrollbar-policy">never</property>
     <property name="child">
       <object class="GtkViewport">
         <property name="child">
@@ -11,24 +11,24 @@
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkScrolledWindow" id="scrolledconsolewindow">
-                <property name="vexpand">1</property>
-                <property name="focusable">1</property>
-                <property name="vscrollbar-policy">always</property>
                 <property name="child">
                   <object class="GtkTextView" id="output">
-                    <property name="focusable">1</property>
-                    <property name="tooltip-text" translatable="1">Siril output window, displays messages about what has been done and in response to command inputs.</property>
-                    <property name="pixels-above-lines">2</property>
-                    <property name="editable">0</property>
-                    <property name="wrap-mode">word</property>
-                    <property name="cursor-visible">0</property>
                     <property name="accepts-tab">0</property>
+                    <property name="cursor-visible">0</property>
+                    <property name="editable">0</property>
+                    <property name="focusable">1</property>
                     <property name="monospace">1</property>
+                    <property name="pixels-above-lines">2</property>
+                    <property name="tooltip-text" translatable="yes">Siril output window, displays messages about what has been done and in response to command inputs.</property>
+                    <property name="wrap-mode">word</property>
                     <style>
-                      <class name="monospace" />
+                      <class name="monospace"/>
                     </style>
                   </object>
                 </property>
+                <property name="focusable">1</property>
+                <property name="vexpand">1</property>
+                <property name="vscrollbar-policy">always</property>
               </object>
             </child>
             <child>
@@ -36,19 +36,19 @@
                 <property name="name">box_console_bar</property>
                 <child>
                   <object class="GtkLabel" id="image_log">
-                    <property name="name">image_log</property>
                     <property name="label">●</property>
+                    <property name="name">image_log</property>
                   </object>
                 </child>
                 <child>
                   <object class="GtkLabel" id="statusbar_script">
-                    <property name="hexpand">1</property>
                     <property name="halign">start</property>
-                    <property name="xalign">0</property>
-                    <property name="margin-start">6</property>
-                    <property name="margin-end">6</property>
-                    <property name="margin-top">2</property>
+                    <property name="hexpand">1</property>
                     <property name="margin-bottom">2</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-top">2</property>
+                    <property name="xalign">0</property>
                   </object>
                 </child>
                 <child>
@@ -58,18 +58,18 @@
                     <property name="valign">center</property>
                     <child>
                       <object class="GtkButton" id="export_log_button">
-                        <property name="tooltip-text" translatable="1">Export the log</property>
-                        <property name="use-underline">1</property>
                         <property name="icon-name">document-save-as-symbolic</property>
-                        <signal name="clicked" handler="on_export_log_button_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Export the log</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_export_log_button_clicked"/>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="clear_log_button">
-                        <property name="tooltip-text" translatable="1">Clear the log</property>
-                        <property name="use-underline">1</property>
                         <property name="icon-name">edit-clear-symbolic</property>
-                        <signal name="clicked" handler="on_clear_log_button_clicked" swapped="no" />
+                        <property name="tooltip-text" translatable="yes">Clear the log</property>
+                        <property name="use-underline">1</property>
+                        <signal name="clicked" handler="on_clear_log_button_clicked"/>
                       </object>
                     </child>
                   </object>
@@ -80,12 +80,14 @@
         </property>
       </object>
     </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
   </object>
   <object class="GtkLabel" id="label21">
-    <property name="tooltip-text" translatable="1">This tab shows the Siril logs.</property>
-    <property name="margin-top">2</property>
-    <property name="margin-bottom">2</property>
-    <property name="label" translatable="1">Console</property>
     <property name="justify">center</property>
+    <property name="label" translatable="yes">Console</property>
+    <property name="margin-bottom">2</property>
+    <property name="margin-top">2</property>
+    <property name="tooltip-text" translatable="yes">This tab shows the Siril logs.</property>
   </object>
 </interface>

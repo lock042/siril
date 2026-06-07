@@ -1,67 +1,67 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk" version="4.0" />
+  <!-- interface-name siril_registration.ui -->
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkAdjustment" id="adj_driz_dropsize">
     <property name="lower">0.10</property>
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
     <property name="upper">10</property>
     <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adj_kombat_percent">
     <property name="lower">5</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">25</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment4">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment5">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment6">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
     <property name="upper">100</property>
     <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_scaling">
     <property name="lower">0.10</property>
+    <property name="page-increment">0.20</property>
+    <property name="step-increment">0.10</property>
     <property name="upper">3</property>
     <property name="value">1</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">0.20</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_shiftx">
     <property name="lower">-3000</property>
-    <property name="upper">3000</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">3000</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_shifty">
     <property name="lower">-3000</property>
-    <property name="upper">3000</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">3000</property>
   </object>
   <object class="GtkAdjustment" id="register_minpairs">
     <property name="lower">4</property>
+    <property name="page-increment">1</property>
+    <property name="step-increment">1</property>
     <property name="upper">2000</property>
     <property name="value">10</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
   </object>
   <object class="GtkScrolledWindow" id="registration_tab">
-    <property name="focusable">1</property>
-    <property name="hscrollbar-policy">never</property>
     <property name="child">
       <object class="GtkViewport">
         <property name="child">
@@ -70,8 +70,8 @@
             <property name="spacing">10</property>
             <child>
               <object class="GtkExpander" id="autoreg_expander">
-                <property name="focusable">1</property>
                 <property name="expanded">1</property>
+                <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
                     <property name="margin-top">5</property>
@@ -86,7 +86,7 @@
                             <property name="spacing">5</property>
                             <child>
                               <object class="GtkDropDown" id="comboboxregmethod">
-                                <signal name="notify::selected" handler="on_comboboxregmethod_changed" swapped="no" />
+                                <signal name="notify::selected" handler="on_comboboxregmethod_changed"/>
                               </object>
                             </child>
                             <child>
@@ -94,48 +94,43 @@
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="1">Registration channel: </property>
+                                    <property name="label" translatable="yes">Registration channel: </property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="comboboxreglayer">
-                                    <property name="tooltip-text" translatable="1">Layer on which the registration is done. It can only be done on one layer at a time, so on monochrome images.
+                                    <property name="tooltip-text" translatable="yes">Layer on which the registration is done. It can only be done on one layer at a time, so on monochrome images.
 The (*) sign appearing after the layer's name means that registration data is already available for this layer.
 When processing images, registration data is taken from the default layer if available (for RGB images: Green, else fallback to Blue then Red).</property>
-                                    <signal name="notify::selected" handler="on_comboboxreglayer_changed" swapped="no" />
+                                    <signal name="notify::selected" handler="on_comboboxreglayer_changed"/>
                                   </object>
-                                </child>
-                                <child>
-                                  <placeholder />
                                 </child>
                               </object>
                             </child>
                             <child>
                               <object class="GtkNotebook" id="notebook_registration">
-                                <property name="valign">start</property>
                                 <property name="margin-top">10</property>
-                                <property name="show-tabs">0</property>
                                 <property name="show-border">0</property>
+                                <property name="show-tabs">0</property>
+                                <property name="valign">start</property>
                                 <child>
                                   <object class="GtkNotebookPage">
                                     <property name="child">
                                       <object class="GtkGrid" id="global_page">
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-top">6</property>
-                                        <property name="margin-bottom">6</property>
-                                        <property name="row-spacing">5</property>
                                         <property name="column-spacing">5</property>
+                                        <property name="margin-bottom">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="row-spacing">5</property>
                                         <child>
                                           <object class="GtkCheckButton" id="checkStarSelect">
-                                            <property name="label" translatable="1">Match stars in selection</property>
                                             <property name="focusable">1</property>
-                                            <property name="tooltip-markup" translatable="1">Check this box if you want to perform the Global Star Alignment algorithm within the selected area in the reference image. If no selection are done, this option is ignored.
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Match stars in selection</property>
+                                            <property name="tooltip-markup" translatable="yes">Check this box if you want to perform the Global Star Alignment algorithm within the selected area in the reference image. If no selection are done, this option is ignored.
 
 &lt;b&gt;WARNING&lt;/b&gt;: Make sure to draw a selection with a sufficient number of stars.</property>
-                                            <property name="halign">start</property>
                                             <layout>
                                               <property name="column">2</property>
                                               <property name="row">2</property>
@@ -145,7 +140,7 @@ When processing images, registration data is taken from the default layer if ava
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Minimum Star Pairs:</property>
+                                            <property name="label" translatable="yes">Minimum Star Pairs:</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">1</property>
@@ -154,16 +149,16 @@ When processing images, registration data is taken from the default layer if ava
                                         </child>
                                         <child>
                                           <object class="GtkSpinButton" id="spinbut_minpairs">
-                                            <property name="focusable">1</property>
-                                            <property name="tooltip-text" translatable="1">The minimum number of star pairs a given frame can have in relation with the reference frame. If a given light frame has less star pairs, it will not be registered.</property>
-                                            <property name="width-chars">4</property>
-                                            <property name="max-width-chars">4</property>
-                                            <property name="text">10</property>
                                             <property name="adjustment">register_minpairs</property>
+                                            <property name="focusable">1</property>
+                                            <property name="max-width-chars">4</property>
                                             <property name="numeric">1</property>
+                                            <property name="text">10</property>
+                                            <property name="tooltip-text" translatable="yes">The minimum number of star pairs a given frame can have in relation with the reference frame. If a given light frame has less star pairs, it will not be registered.</property>
                                             <property name="value">10</property>
+                                            <property name="width-chars">4</property>
                                             <style>
-                                              <class name="small-spinbutton" />
+                                              <class name="small-spinbutton"/>
                                             </style>
                                             <layout>
                                               <property name="column">1</property>
@@ -174,7 +169,7 @@ When processing images, registration data is taken from the default layer if ava
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Maximum Stars Fitted:</property>
+                                            <property name="label" translatable="yes">Maximum Stars Fitted:</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">2</property>
@@ -194,8 +189,8 @@ When processing images, registration data is taken from the default layer if ava
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-text" translatable="1">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
                                             <property name="selected">4</property>
+                                            <property name="tooltip-text" translatable="yes">The maximum number of stars to be searched for in each frame (default 2000). The larger this value, the more stars will potentially be detected, resulting in a longer detection but more accurate registration.</property>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">2</property>
@@ -214,7 +209,8 @@ When processing images, registration data is taken from the default layer if ava
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-markup" translatable="1">&lt;b&gt;Shift&lt;/b&gt; is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-suited for images with no distortion, no scaling and no field rotation. It needs at least 1 pair of stars to be matched to define the transformation.
+                                            <property name="selected">3</property>
+                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Shift&lt;/b&gt; is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-suited for images with no distortion, no scaling and no field rotation. It needs at least 1 pair of stars to be matched to define the transformation.
 
 &lt;b&gt;Similarity&lt;/b&gt; is a 4 degree-of-freedom (one scale, one rotation and x/y shifts) more rigid mapping than homography, well-suited for images with no distortion. It needs at least 2 pairs of stars to be matched to define the transformation.
 
@@ -223,8 +219,7 @@ When processing images, registration data is taken from the default layer if ava
 &lt;b&gt;Homography&lt;/b&gt; is the default transformation which uses an 8-degree-of-freedom transform to warp the images onto the reference frame. This is well-suited for the general case and strongly recommended for wide-field images. It needs at least 4 pairs of stars to be matched to define the transformation.
 
 &lt;b&gt;WARNING&lt;/b&gt;: The initial star matching uses triangle similarity algorithm, in consequence the minimum of star pairs must be at least of 3 for &lt;b&gt;Shift&lt;/b&gt;, &lt;b&gt;Similarity&lt;/b&gt; and &lt;b&gt;Affine&lt;/b&gt; and of 4 for &lt;b&gt;Homography&lt;/b&gt;.</property>
-                                            <property name="selected">3</property>
-                                            <signal name="notify::selected" handler="on_comboreg_transfo_changed" swapped="no" />
+                                            <signal name="notify::selected" handler="on_comboreg_transfo_changed"/>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">0</property>
@@ -234,7 +229,7 @@ When processing images, registration data is taken from the default layer if ava
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Transformation:</property>
+                                            <property name="label" translatable="yes">Transformation:</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">0</property>
@@ -243,11 +238,11 @@ When processing images, registration data is taken from the default layer if ava
                                         </child>
                                         <child>
                                           <object class="GtkButton">
-                                            <property name="focusable">1</property>
-                                            <property name="receives-default">1</property>
-                                            <property name="tooltip-text" translatable="1">Hit this button for star detection settings</property>
-                                            <property name="halign">start</property>
                                             <property name="action-name">win.dyn-psf</property>
+                                            <property name="focusable">1</property>
+                                            <property name="halign">start</property>
+                                            <property name="receives-default">1</property>
+                                            <property name="tooltip-text" translatable="yes">Hit this button for star detection settings</property>
                                             <child>
                                               <object class="GtkImage">
                                                 <property name="icon-name">applications-system-symbolic</property>
@@ -261,13 +256,13 @@ When processing images, registration data is taken from the default layer if ava
                                         </child>
                                         <child>
                                           <object class="GtkCheckButton" id="reg_2pass">
-                                            <property name="label" translatable="1">2pass registration</property>
                                             <property name="focusable">1</property>
-                                            <property name="tooltip-markup" translatable="1">When this box is checked, the transformed images are not saved as a newly registered sequence. The transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.
+                                            <property name="halign">end</property>
+                                            <property name="label" translatable="yes">2pass registration</property>
+                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence. The transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.
 
 When this box is unchecked, the global star registration will be calculated and immediately applied using the output registration options selected below.</property>
-                                            <property name="halign">end</property>
-                                            <signal name="toggled" handler="on_reg_2pass_toggled" swapped="no" />
+                                            <signal name="toggled" handler="on_reg_2pass_toggled"/>
                                             <layout>
                                               <property name="column">3</property>
                                               <property name="row">0</property>
@@ -276,12 +271,12 @@ When this box is unchecked, the global star registration will be calculated and 
                                         </child>
                                         <child>
                                           <object class="GtkGrid" id="grid_reg_wcs">
-                                            <property name="row-spacing">5</property>
                                             <property name="column-spacing">5</property>
+                                            <property name="row-spacing">5</property>
                                             <child>
                                               <object class="GtkLabel">
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="1">Undistortion:</property>
+                                                <property name="label" translatable="yes">Undistortion:</property>
                                                 <layout>
                                                   <property name="column">0</property>
                                                   <property name="row">0</property>
@@ -300,12 +295,12 @@ When this box is unchecked, the global star registration will be calculated and 
                                                     </items>
                                                   </object>
                                                 </property>
-                                                <property name="tooltip-markup" translatable="1">To correct images for distortions, you can either select:
+                                                <property name="selected">0</property>
+                                                <property name="tooltip-markup" translatable="yes">To correct images for distortions, you can either select:
 - distortion solution from current platesolved image
 - distortion solution from an existing WCS file
 - distortion solution from distortions masters</property>
-                                                <property name="selected">0</property>
-                                                <signal name="notify::selected" handler="on_comboreg_undistort_changed" swapped="no" />
+                                                <signal name="notify::selected" handler="on_comboreg_undistort_changed"/>
                                                 <layout>
                                                   <property name="column">1</property>
                                                   <property name="row">0</property>
@@ -317,20 +312,20 @@ When this box is unchecked, the global star registration will be calculated and 
                                                 <child>
                                                   <object class="GtkEntry" id="reg_wcsfile_entry">
                                                     <property name="focusable">1</property>
-                                                    <property name="tooltip-text" translatable="1">Select a file to read distortion information from:
+                                                    <property name="hexpand">1</property>
+                                                    <property name="input-hints">no-emoji|none</property>
+                                                    <property name="tooltip-text" translatable="yes">Select a file to read distortion information from:
 - a FITS file which has been platesolved with distortion.
 - a wcs file which was written by a previous registration with distortions.</property>
-                                                    <property name="hexpand">1</property>
-                                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                   </object>
                                                 </child>
                                                 <child>
                                                   <object class="GtkButton" id="reg_wcsfile_button">
                                                     <property name="focusable">1</property>
-                                                    <property name="tooltip-text" translatable="1">The bias/offset master image will be removed from all images in the sequence.</property>
                                                     <property name="halign">start</property>
+                                                    <property name="tooltip-text" translatable="yes">The bias/offset master image will be removed from all images in the sequence.</property>
                                                     <property name="use-underline">1</property>
-                                                    <signal name="clicked" handler="on_reg_wcsfile_button_clicked" swapped="no" />
+                                                    <signal name="clicked" handler="on_reg_wcsfile_button_clicked"/>
                                                     <child>
                                                       <object class="GtkImage">
                                                         <property name="icon-name">document-open-symbolic</property>
@@ -340,98 +335,121 @@ When this box is unchecked, the global star registration will be calculated and 
                                                 </child>
                                                 <layout>
                                                   <property name="column">1</property>
-                                                  <property name="row">1</property>
                                                   <property name="column-span">3</property>
+                                                  <property name="row">1</property>
                                                 </layout>
                                               </object>
                                             </child>
                                             <child>
-                                              <placeholder />
+                                              <object class="GtkCheckButton" id="reg_reference_checkbutton">
+                                                <property name="label" translatable="yes">Use Ext. Ref</property>
+                                                <property name="focusable">1</property>
+                                                <property name="tooltip-text" translatable="yes">Use an external reference image (from a different night or sequence) instead of an image from the current sequence.</property>
+                                                <property name="halign">start</property>
+                                                <signal name="toggled" handler="on_reg_reference_checkbutton_toggled"/>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
                                             </child>
                                             <child>
-                                              <placeholder />
-                                            </child>
-                                            <child>
-                                              <placeholder />
+                                              <object class="GtkBox" id="reg_referencefilechooser_box">
+                                                <property name="sensitive">False</property>
+                                                <child>
+                                                  <object class="GtkEntry" id="reg_reference_entry">
+                                                    <property name="focusable">1</property>
+                                                    <property name="hexpand">1</property>
+                                                    <property name="input-hints">no-emoji|none</property>
+                                                    <property name="tooltip-text" translatable="yes">Path to the external reference FITS image.</property>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="reg_reference_button">
+                                                    <property name="focusable">1</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="tooltip-text" translatable="yes">Browse for the external reference FITS image.</property>
+                                                    <property name="use-underline">1</property>
+                                                    <signal name="clicked" handler="on_reg_reference_button_clicked"/>
+                                                    <child>
+                                                      <object class="GtkImage">
+                                                        <property name="icon-name">document-open-symbolic</property>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="column-span">3</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
                                             </child>
                                             <layout>
                                               <property name="column">0</property>
-                                              <property name="row">3</property>
                                               <property name="column-span">4</property>
+                                              <property name="row">3</property>
                                             </layout>
                                           </object>
-                                        </child>
-                                        <child>
-                                          <placeholder />
-                                        </child>
-                                        <child>
-                                          <placeholder />
-                                        </child>
-                                        <child>
-                                          <placeholder />
                                         </child>
                                       </object>
                                     </property>
                                     <property name="tab">
                                       <object class="GtkLabel">
-                                        <property name="valign">start</property>
                                         <property name="label">page 1</property>
+                                        <property name="valign">start</property>
                                       </object>
                                     </property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkNotebookPage">
-                                    <property name="position">1</property>
-                                    <property name="tab-fill">False</property>
                                     <property name="child">
                                       <object class="GtkBox" id="comet_page">
-                                        <property name="valign">start</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-top">6</property>
                                         <property name="margin-bottom">7</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-top">6</property>
                                         <property name="orientation">vertical</property>
                                         <property name="spacing">5</property>
+                                        <property name="valign">start</property>
                                         <child>
                                           <object class="GtkGrid">
-                                            <property name="row-spacing">5</property>
-                                            <property name="column-spacing">5</property>
                                             <property name="column-homogeneous">1</property>
+                                            <property name="column-spacing">5</property>
+                                            <property name="row-spacing">5</property>
                                             <child>
                                               <object class="GtkBox">
                                                 <child>
                                                   <object class="GtkLabel">
-                                                    <property name="hexpand">1</property>
-                                                    <property name="tooltip-text" translatable="1">Comet velocity in pixel per hour.</property>
                                                     <property name="halign">end</property>
-                                                    <property name="label" translatable="1">Velocity: </property>
+                                                    <property name="hexpand">1</property>
+                                                    <property name="label" translatable="yes">Velocity: </property>
+                                                    <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
                                                   </object>
                                                 </child>
                                                 <child>
                                                   <object class="GtkLabel" id="label1_comet">
-                                                    <property name="hexpand">1</property>
-                                                    <property name="tooltip-text" translatable="1">Comet velocity in pixel per hour.</property>
                                                     <property name="halign">start</property>
+                                                    <property name="hexpand">1</property>
                                                     <property name="label">Δx: 0.00, Δy: 0.00</property>
+                                                    <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
                                                   </object>
                                                 </child>
                                                 <layout>
                                                   <property name="column">0</property>
-                                                  <property name="row">3</property>
                                                   <property name="column-span">3</property>
+                                                  <property name="row">3</property>
                                                 </layout>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkButton" id="button1_comet">
-                                                <property name="label" translatable="1">Pick object in #1</property>
                                                 <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Pick object in #1</property>
                                                 <property name="receives-default">1</property>
-                                                <property name="tooltip-text" translatable="1">Select an area around the asteroid or the comet core in the first selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                <signal name="clicked" handler="on_button_comet_clicked" swapped="no" />
+                                                <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the first selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
+                                                <signal name="clicked" handler="on_button_comet_clicked"/>
                                                 <layout>
                                                   <property name="column">0</property>
                                                   <property name="row">0</property>
@@ -440,11 +458,11 @@ When this box is unchecked, the global star registration will be calculated and 
                                             </child>
                                             <child>
                                               <object class="GtkButton" id="button2_comet">
-                                                <property name="label" translatable="1">Pick object in #2</property>
                                                 <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Pick object in #2</property>
                                                 <property name="receives-default">1</property>
-                                                <property name="tooltip-text" translatable="1">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                <signal name="clicked" handler="on_button_comet_clicked" swapped="no" />
+                                                <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
+                                                <signal name="clicked" handler="on_button_comet_clicked"/>
                                                 <layout>
                                                   <property name="column">0</property>
                                                   <property name="row">1</property>
@@ -454,12 +472,12 @@ When this box is unchecked, the global star registration will be calculated and 
                                             <child>
                                               <object class="GtkEntry" id="entry1_x_comet">
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Core X-coordinates of the first image.</property>
-                                                <property name="width-chars">7</property>
-                                                <property name="text">0.00</property>
+                                                <property name="input-hints">no-emoji|none</property>
                                                 <property name="input-purpose">number</property>
-                                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                <signal name="changed" handler="on_entry_comet_changed" swapped="no" />
+                                                <property name="text">0.00</property>
+                                                <property name="tooltip-text" translatable="yes">Core X-coordinates of the first image.</property>
+                                                <property name="width-chars">7</property>
+                                                <signal name="changed" handler="on_entry_comet_changed"/>
                                                 <layout>
                                                   <property name="column">1</property>
                                                   <property name="row">0</property>
@@ -469,12 +487,12 @@ When this box is unchecked, the global star registration will be calculated and 
                                             <child>
                                               <object class="GtkEntry" id="entry2_x_comet">
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Core X-coordinates of the second image.</property>
-                                                <property name="width-chars">7</property>
-                                                <property name="text">0.00</property>
+                                                <property name="input-hints">no-emoji|none</property>
                                                 <property name="input-purpose">number</property>
-                                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                <signal name="changed" handler="on_entry_comet_changed" swapped="no" />
+                                                <property name="text">0.00</property>
+                                                <property name="tooltip-text" translatable="yes">Core X-coordinates of the second image.</property>
+                                                <property name="width-chars">7</property>
+                                                <signal name="changed" handler="on_entry_comet_changed"/>
                                                 <layout>
                                                   <property name="column">1</property>
                                                   <property name="row">1</property>
@@ -484,11 +502,11 @@ When this box is unchecked, the global star registration will be calculated and 
                                             <child>
                                               <object class="GtkEntry" id="entry1_y_comet">
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Core Y-coordinates of the first image.</property>
-                                                <property name="width-chars">7</property>
-                                                <property name="text">0.00</property>
                                                 <property name="input-purpose">number</property>
-                                                <signal name="changed" handler="on_entry_comet_changed" swapped="no" />
+                                                <property name="text">0.00</property>
+                                                <property name="tooltip-text" translatable="yes">Core Y-coordinates of the first image.</property>
+                                                <property name="width-chars">7</property>
+                                                <signal name="changed" handler="on_entry_comet_changed"/>
                                                 <layout>
                                                   <property name="column">2</property>
                                                   <property name="row">0</property>
@@ -498,37 +516,28 @@ When this box is unchecked, the global star registration will be calculated and 
                                             <child>
                                               <object class="GtkEntry" id="entry2_y_comet">
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Core Y-coordinates of the second image.</property>
-                                                <property name="width-chars">7</property>
-                                                <property name="text">0.00</property>
                                                 <property name="input-purpose">number</property>
-                                                <signal name="changed" handler="on_entry_comet_changed" swapped="no" />
+                                                <property name="text">0.00</property>
+                                                <property name="tooltip-text" translatable="yes">Core Y-coordinates of the second image.</property>
+                                                <property name="width-chars">7</property>
+                                                <signal name="changed" handler="on_entry_comet_changed"/>
                                                 <layout>
                                                   <property name="column">2</property>
                                                   <property name="row">1</property>
                                                 </layout>
                                               </object>
                                             </child>
-                                            <child>
-                                              <placeholder />
-                                            </child>
-                                            <child>
-                                              <placeholder />
-                                            </child>
-                                            <child>
-                                              <placeholder />
-                                            </child>
                                           </object>
                                         </child>
                                         <child>
                                           <object class="GtkGrid">
-                                            <property name="row-spacing">5</property>
                                             <property name="column-spacing">5</property>
+                                            <property name="row-spacing">5</property>
                                             <child>
                                               <object class="GtkLabel">
-                                                <property name="tooltip-text" translatable="1">Comet velocity in pixel per hour.</property>
                                                 <property name="halign">end</property>
-                                                <property name="label" translatable="1">Prefix: </property>
+                                                <property name="label" translatable="yes">Prefix: </property>
+                                                <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
                                                 <layout>
                                                   <property name="column">0</property>
                                                   <property name="row">0</property>
@@ -538,11 +547,11 @@ When this box is unchecked, the global star registration will be calculated and 
                                             <child>
                                               <object class="GtkEntry" id="cometseqname_entry">
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Prefix of the sequence resulting from the registration. Only the seq file is created, not new images.</property>
+                                                <property name="input-hints">no-emoji|none</property>
                                                 <property name="max-length">10</property>
-                                                <property name="width-chars">10</property>
                                                 <property name="text">comet_</property>
-                                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                <property name="tooltip-text" translatable="yes">Prefix of the sequence resulting from the registration. Only the seq file is created, not new images.</property>
+                                                <property name="width-chars">10</property>
                                                 <layout>
                                                   <property name="column">1</property>
                                                   <property name="row">0</property>
@@ -553,68 +562,72 @@ When this box is unchecked, the global star registration will be calculated and 
                                         </child>
                                       </object>
                                     </property>
+                                    <property name="position">1</property>
                                     <property name="tab">
                                       <object class="GtkLabel">
-                                        <property name="valign">start</property>
                                         <property name="label">page 2</property>
+                                        <property name="valign">start</property>
                                       </object>
                                     </property>
+                                    <property name="tab-fill">False</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkNotebookPage">
-                                    <property name="position">2</property>
-                                    <property name="tab-fill">False</property>
                                     <property name="child">
                                       <object class="GtkBox" id="123star_page">
-                                        <property name="valign">start</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-top">6</property>
                                         <property name="margin-bottom">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-top">6</property>
                                         <property name="orientation">vertical</property>
+                                        <property name="valign">start</property>
                                         <child>
                                           <object class="GtkBox">
                                             <property name="spacing">5</property>
                                             <child>
                                               <object class="GtkButton" id="pickstar1">
-                                                <property name="label" translatable="1">Pick 1st star</property>
                                                 <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Pick 1st star</property>
                                                 <property name="receives-default">1</property>
                                                 <property name="valign">center</property>
-                                                <signal name="clicked" handler="on_select_star_button_clicked" swapped="no" />
+                                                <signal name="clicked" handler="on_select_star_button_clicked"/>
                                                 <style>
-                                                  <class name="suggested-action" />
+                                                  <class name="suggested-action"/>
                                                 </style>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkButton" id="pickstar2">
-                                                <property name="label" translatable="1">Pick 2nd star</property>
                                                 <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Pick 2nd star</property>
                                                 <property name="receives-default">1</property>
                                                 <property name="valign">center</property>
-                                                <signal name="clicked" handler="on_select_star_button_clicked" swapped="no" />
+                                                <signal name="clicked" handler="on_select_star_button_clicked"/>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkButton" id="pickstar3">
-                                                <property name="label" translatable="1">Pick 3rd star</property>
                                                 <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Pick 3rd star</property>
                                                 <property name="receives-default">1</property>
                                                 <property name="valign">center</property>
-                                                <signal name="clicked" handler="on_select_star_button_clicked" swapped="no" />
+                                                <signal name="clicked" handler="on_select_star_button_clicked"/>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <!-- Spacer: push the Star #N grid to the end of the row (GTK3 used pack-type=end). -->
+                                              <object class="GtkBox">
+                                                <property name="hexpand">1</property>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkGrid">
-                                                <property name="row-spacing">5</property>
                                                 <property name="column-spacing">5</property>
+                                                <property name="row-spacing">5</property>
                                                 <child>
                                                   <object class="GtkLabel">
-                                                    <property name="label" translatable="1">Star #1:</property>
+                                                    <property name="label" translatable="yes">Star #1:</property>
                                                     <layout>
                                                       <property name="column">0</property>
                                                       <property name="row">0</property>
@@ -623,7 +636,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                 </child>
                                                 <child>
                                                   <object class="GtkLabel">
-                                                    <property name="label" translatable="1">Star #2:</property>
+                                                    <property name="label" translatable="yes">Star #2:</property>
                                                     <layout>
                                                       <property name="column">0</property>
                                                       <property name="row">1</property>
@@ -632,7 +645,7 @@ When this box is unchecked, the global star registration will be calculated and 
                                                 </child>
                                                 <child>
                                                   <object class="GtkLabel">
-                                                    <property name="label" translatable="1">Star #3:</property>
+                                                    <property name="label" translatable="yes">Star #3:</property>
                                                     <layout>
                                                       <property name="column">0</property>
                                                       <property name="row">2</property>
@@ -666,79 +679,68 @@ When this box is unchecked, the global star registration will be calculated and 
                                                     </layout>
                                                   </object>
                                                 </child>
-                                                <child>
-                                                  <placeholder />
-                                                </child>
-                                                <child>
-                                                  <placeholder />
-                                                </child>
-                                                <child>
-                                                  <placeholder />
-                                                </child>
                                               </object>
                                             </child>
                                           </object>
                                         </child>
                                         <child>
                                           <object class="GtkBox">
-                                            <property name="valign">center</property>
                                             <property name="spacing">5</property>
+                                            <property name="valign">center</property>
                                             <child>
                                               <object class="GtkCheckButton" id="followStarCheckButton">
-                                                <property name="label" translatable="1">Follow star movement</property>
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
-WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
                                                 <property name="halign">start</property>
-                                                <signal name="toggled" handler="on_regfollowStar_toggled" swapped="no" />
+                                                <property name="label" translatable="yes">Follow star movement</property>
+                                                <property name="tooltip-text" translatable="yes">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
+WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
+                                                <signal name="toggled" handler="on_regfollowStar_toggled"/>
                                               </object>
                                             </child>
                                             <child>
                                               <object class="GtkCheckButton" id="onlyshift_checkbutton">
-                                                <property name="label" translatable="1">Shift only</property>
                                                 <property name="focusable">1</property>
-                                                <property name="tooltip-text" translatable="1">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
                                                 <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Shift only</property>
+                                                <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
                                               </object>
                                             </child>
                                           </object>
                                         </child>
                                       </object>
                                     </property>
+                                    <property name="position">2</property>
                                     <property name="tab">
                                       <object class="GtkLabel">
-                                        <property name="valign">start</property>
                                         <property name="label">page 3</property>
+                                        <property name="valign">start</property>
                                       </object>
                                     </property>
+                                    <property name="tab-fill">False</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkNotebookPage">
-                                    <property name="position">3</property>
-                                    <property name="tab-fill">False</property>
                                     <property name="child">
                                       <object class="GtkGrid" id="kombat_page">
-                                        <property name="valign">start</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-start">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="margin-top">6</property>
-                                        <property name="margin-bottom">6</property>
                                         <property name="column-homogeneous">1</property>
+                                        <property name="margin-bottom">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="valign">start</property>
                                         <child>
                                           <object class="GtkSpinButton" id="spin_kombat_percent">
+                                            <property name="adjustment">adj_kombat_percent</property>
+                                            <property name="digits">2</property>
                                             <property name="focusable">1</property>
-                                            <property name="tooltip-text" translatable="1">Indicate relative distance (in percentage vs total image size) over which to look for the alignment pattern.
+                                            <property name="text">25.00</property>
+                                            <property name="tooltip-text" translatable="yes">Indicate relative distance (in percentage vs total image size) over which to look for the alignment pattern.
 
 By default, the pattern is only searched on 25% of the total image size around the zone where it has been located on reference frame.
 
 Higher values give more tolerance in alignment and smaller numbers lead to faster computations.</property>
                                             <property name="valign">center</property>
-                                            <property name="text">25.00</property>
-                                            <property name="adjustment">adj_kombat_percent</property>
-                                            <property name="digits">2</property>
                                             <property name="value">25</property>
                                             <layout>
                                               <property name="column">1</property>
@@ -749,34 +751,30 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Size of alignment region(%):</property>
+                                            <property name="label" translatable="yes">Size of alignment region(%):</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">0</property>
                                             </layout>
                                           </object>
                                         </child>
-                                        <child>
-                                          <placeholder />
-                                        </child>
                                       </object>
                                     </property>
+                                    <property name="position">3</property>
+                                    <property name="tab-fill">False</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkNotebookPage">
-                                    <property name="position">4</property>
-                                    <property name="tab-fill">False</property>
                                     <property name="child">
                                       <object class="GtkLabel">
+                                        <property name="label" translatable="yes"> </property>
                                         <property name="valign">start</property>
-                                        <property name="label" translatable="1"> </property>
                                       </object>
                                     </property>
+                                    <property name="position">4</property>
+                                    <property name="tab-fill">False</property>
                                   </object>
-                                </child>
-                                <child>
-                                  <placeholder />
                                 </child>
                               </object>
                             </child>
@@ -784,9 +782,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                         </property>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Registration method:</property>
+                            <property name="label" translatable="yes">Registration method:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -801,6 +799,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkDropDown" id="reg_sel_all_combobox">
+                                <property name="margin-top">5</property>
                                 <property name="model">
                                   <object class="GtkStringList">
                                     <items>
@@ -809,21 +808,20 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </items>
                                   </object>
                                 </property>
-                                <property name="margin-top">5</property>
                                 <property name="selected">0</property>
-                                <signal name="notify::selected" handler="on_comboreg_sel_all_combobox_changed" swapped="no" />
+                                <signal name="notify::selected" handler="on_comboreg_sel_all_combobox_changed"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkBox" id="seq_filters_box_reg">
-                                <property name="visible">0</property>
                                 <property name="margin-top">5</property>
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">5</property>
+                                <property name="visible">0</property>
                                 <child>
                                   <object class="GtkLabel" id="regfilter_label">
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="1">Registering 0 images of the 0 of the sequence</property>
+                                    <property name="label" translatable="yes">Registering 0 images of the 0 of the sequence</property>
                                     <property name="wrap">1</property>
                                   </object>
                                 </child>
@@ -846,7 +844,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="tooltip-markup" translatable="1">Select the set of images to be registered:
+                                        <property name="selected">0</property>
+                                        <property name="tooltip-markup" translatable="yes">Select the set of images to be registered:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used
 
@@ -863,27 +862,26 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                        <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin4">
-                                        <property name="focusable">1</property>
-                                        <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="width-chars">6</property>
-                                        <property name="max-width-chars">5</property>
-                                        <property name="text">90.00</property>
                                         <property name="adjustment">adjustment4</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">end</property>
+                                        <property name="max-width-chars">5</property>
                                         <property name="numeric">1</property>
+                                        <property name="text">90.00</property>
+                                        <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                         <property name="value">90</property>
-                                        <signal name="changed" handler="on_regspinbut_percent_change" swapped="no" />
-                                        <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no" />
+                                        <property name="width-chars">6</property>
+                                        <signal name="changed" handler="on_regspinbut_percent_change"/>
+                                        <signal name="value-changed" handler="on_regspinbut_percent_change"/>
                                         <style>
-                                          <class name="small-spinbutton" />
+                                          <class name="small-spinbutton"/>
                                         </style>
                                       </object>
                                     </child>
@@ -897,10 +895,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="visible">0</property>
-                                        <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                         <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                        <property name="visible">0</property>
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
@@ -911,19 +909,16 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     <child>
                                       <object class="GtkButton" id="filter_add4">
                                         <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Add another filter</property>
                                         <property name="halign">end</property>
-                                        <signal name="clicked" handler="on_filter_add4_clicked" swapped="no" />
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">Add another filter</property>
+                                        <signal name="clicked" handler="on_filter_add4_clicked"/>
                                         <child>
                                           <object class="GtkImage" id="addfilter3">
                                             <property name="icon-name">list-add-symbolic</property>
                                           </object>
                                         </child>
                                       </object>
-                                    </child>
-                                    <child>
-                                      <placeholder />
                                     </child>
                                   </object>
                                 </child>
@@ -946,8 +941,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="visible">0</property>
-                                        <property name="tooltip-markup" translatable="1">Select the set of images to be stacked:
+                                        <property name="selected">0</property>
+                                        <property name="tooltip-markup" translatable="yes">Select the set of images to be stacked:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used in the stack
 
@@ -964,28 +959,28 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                        <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <property name="visible">0</property>
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin5">
-                                        <property name="visible">0</property>
-                                        <property name="focusable">1</property>
-                                        <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="width-chars">6</property>
-                                        <property name="max-width-chars">5</property>
-                                        <property name="text">90.00</property>
                                         <property name="adjustment">adjustment5</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">end</property>
+                                        <property name="max-width-chars">5</property>
                                         <property name="numeric">1</property>
+                                        <property name="text">90.00</property>
+                                        <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                         <property name="value">90</property>
-                                        <signal name="changed" handler="on_regspinbut_percent_change" swapped="no" />
-                                        <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no" />
+                                        <property name="visible">0</property>
+                                        <property name="width-chars">6</property>
+                                        <signal name="changed" handler="on_regspinbut_percent_change"/>
+                                        <signal name="value-changed" handler="on_regspinbut_percent_change"/>
                                         <style>
-                                          <class name="small-spinbutton" />
+                                          <class name="small-spinbutton"/>
                                         </style>
                                       </object>
                                     </child>
@@ -999,10 +994,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="visible">0</property>
-                                        <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                         <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                        <property name="visible">0</property>
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
@@ -1012,12 +1007,12 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_add5">
-                                        <property name="visible">0</property>
                                         <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Add another filter</property>
                                         <property name="halign">end</property>
-                                        <signal name="clicked" handler="on_filter_add5_clicked" swapped="no" />
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">Add another filter</property>
+                                        <property name="visible">0</property>
+                                        <signal name="clicked" handler="on_filter_add5_clicked"/>
                                         <child>
                                           <object class="GtkImage" id="addfilter4">
                                             <property name="icon-name">list-add-symbolic</property>
@@ -1027,12 +1022,12 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_rem5">
-                                        <property name="visible">0</property>
                                         <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Remove this filter</property>
                                         <property name="halign">end</property>
-                                        <signal name="clicked" handler="on_filter_rem5_clicked" swapped="no" />
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">Remove this filter</property>
+                                        <property name="visible">0</property>
+                                        <signal name="clicked" handler="on_filter_rem5_clicked"/>
                                         <child>
                                           <object class="GtkImage" id="removefilter1">
                                             <property name="icon-name">list-remove-symbolic</property>
@@ -1061,8 +1056,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="visible">0</property>
-                                        <property name="tooltip-markup" translatable="1">Select the set of images to be stacked:
+                                        <property name="selected">0</property>
+                                        <property name="tooltip-markup" translatable="yes">Select the set of images to be stacked:
 
 &lt;b&gt;all&lt;/b&gt;: all images of the sequence are used in the stack
 
@@ -1079,28 +1074,28 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
 &lt;b&gt;nb stars&lt;/b&gt;: images with best number of stars detected (star-based registration only)
 
 &lt;b&gt;quality&lt;/b&gt;: images with best quality (planetary DFT or Kombat registrations)</property>
-                                        <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <property name="visible">0</property>
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin6">
-                                        <property name="visible">0</property>
-                                        <property name="focusable">1</property>
-                                        <property name="tooltip-text" translatable="1">Percents of the images of the sequence.</property>
-                                        <property name="halign">end</property>
-                                        <property name="width-chars">6</property>
-                                        <property name="max-width-chars">5</property>
-                                        <property name="text">90.00</property>
                                         <property name="adjustment">adjustment6</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
+                                        <property name="focusable">1</property>
+                                        <property name="halign">end</property>
+                                        <property name="max-width-chars">5</property>
                                         <property name="numeric">1</property>
+                                        <property name="text">90.00</property>
+                                        <property name="tooltip-text" translatable="yes">Percents of the images of the sequence.</property>
                                         <property name="value">90</property>
-                                        <signal name="changed" handler="on_regspinbut_percent_change" swapped="no" />
-                                        <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no" />
+                                        <property name="visible">0</property>
+                                        <property name="width-chars">6</property>
+                                        <signal name="changed" handler="on_regspinbut_percent_change"/>
+                                        <signal name="value-changed" handler="on_regspinbut_percent_change"/>
                                         <style>
-                                          <class name="small-spinbutton" />
+                                          <class name="small-spinbutton"/>
                                         </style>
                                       </object>
                                     </child>
@@ -1114,10 +1109,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                             </items>
                                           </object>
                                         </property>
-                                        <property name="visible">0</property>
-                                        <property name="tooltip-text" translatable="1">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                         <property name="selected">0</property>
-                                        <signal name="notify::selected" handler="on_regsel_changed" swapped="no" />
+                                        <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                        <property name="visible">0</property>
+                                        <signal name="notify::selected" handler="on_regsel_changed"/>
                                       </object>
                                     </child>
                                     <child>
@@ -1126,16 +1121,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                       </object>
                                     </child>
                                     <child>
-                                      <placeholder />
-                                    </child>
-                                    <child>
                                       <object class="GtkButton" id="filter_rem6">
-                                        <property name="visible">0</property>
                                         <property name="focusable">1</property>
-                                        <property name="receives-default">1</property>
-                                        <property name="tooltip-text" translatable="1">Remove this filter</property>
                                         <property name="halign">end</property>
-                                        <signal name="clicked" handler="on_filter_rem6_clicked" swapped="no" />
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">Remove this filter</property>
+                                        <property name="visible">0</property>
+                                        <signal name="clicked" handler="on_filter_rem6_clicked"/>
                                         <child>
                                           <object class="GtkImage" id="removefilter4">
                                             <property name="icon-name">list-remove-symbolic</property>
@@ -1151,9 +1143,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                         </property>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Image selection:</property>
+                            <property name="label" translatable="yes">Image selection:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -1168,11 +1160,11 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkGrid" id="grid_reg_framing">
-                                <property name="valign">center</property>
-                                <property name="vexpand">1</property>
-                                <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
                                 <property name="row-homogeneous">1</property>
+                                <property name="row-spacing">6</property>
+                                <property name="valign">center</property>
+                                <property name="vexpand">1</property>
                                 <child>
                                   <object class="GtkImage" id="framing-image">
                                     <property name="halign">end</property>
@@ -1188,6 +1180,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="comboreg_framing">
+                                    <property name="hexpand">1</property>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -1198,15 +1191,14 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         </items>
                                       </object>
                                     </property>
-                                    <property name="tooltip-text" translatable="1">Specifies the framing method to be used:
+                                    <property name="selected">0</property>
+                                    <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
 - "current" uses the current reference image
 - "maximum" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
 - "minimum" (common area) crops each image to the area it has in common with all images of the sequence.
 - "center of gravity" determines the best framing position as the center of gravity (cog) of all the images</property>
                                     <property name="valign">center</property>
-                                    <property name="hexpand">1</property>
-                                    <property name="selected">0</property>
-                                    <signal name="notify::selected" handler="on_comboreg_framing_changed" swapped="no" />
+                                    <signal name="notify::selected" handler="on_comboreg_framing_changed"/>
                                     <layout>
                                       <property name="column">1</property>
                                       <property name="row">0</property>
@@ -1216,8 +1208,8 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Framing method</property>
                                     <property name="valign">center</property>
-                                    <property name="label" translatable="1">Framing method</property>
                                     <layout>
                                       <property name="column">0</property>
                                       <property name="row">0</property>
@@ -1226,16 +1218,16 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="proj_estimate">
-                                    <property name="label" translatable="1">Estimate</property>
                                     <property name="focusable">1</property>
-                                    <property name="receives-default">1</property>
-                                    <property name="tooltip-text" translatable="1">Estimates the final size and space used by the stacked image.</property>
                                     <property name="halign">start</property>
-                                    <property name="valign">start</property>
+                                    <property name="label" translatable="yes">Estimate</property>
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
                                     <property name="use-underline">1</property>
-                                    <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no" />
+                                    <property name="valign">start</property>
+                                    <signal name="clicked" handler="on_seqregister_button_clicked"/>
                                     <style>
-                                      <class name="suggested-action" />
+                                      <class name="suggested-action"/>
                                     </style>
                                     <layout>
                                       <property name="column">0</property>
@@ -1262,36 +1254,33 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="1">Scaling:</property>
+                                    <property name="label" translatable="yes">Scaling:</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="reg_scaling_spin">
-                                    <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">Scaling of the output images. Use Estimate button to determine the final image size.</property>
-                                    <property name="halign">end</property>
-                                    <property name="width-chars">6</property>
-                                    <property name="max-width-chars">5</property>
-                                    <property name="text">1.00</property>
                                     <property name="adjustment">adjustment_scaling</property>
                                     <property name="climb-rate">0.10</property>
                                     <property name="digits">2</property>
+                                    <property name="focusable">1</property>
+                                    <property name="halign">end</property>
+                                    <property name="max-width-chars">5</property>
                                     <property name="numeric">1</property>
+                                    <property name="text">1.00</property>
+                                    <property name="tooltip-text" translatable="yes">Scaling of the output images. Use Estimate button to determine the final image size.</property>
                                     <property name="value">1</property>
+                                    <property name="width-chars">6</property>
                                     <style>
-                                      <class name="small-spinbutton" />
+                                      <class name="small-spinbutton"/>
                                     </style>
                                   </object>
-                                </child>
-                                <child>
-                                  <placeholder />
                                 </child>
                               </object>
                             </child>
                             <child>
                               <object class="GtkStackSwitcher" id="interp_drizzle_stack_switcher">
-                                <property name="tooltip-text" translatable="1">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>
                                 <property name="stack">interp_drizzle_stack</property>
+                                <property name="tooltip-text" translatable="yes">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>
                               </object>
                             </child>
                             <child>
@@ -1299,17 +1288,15 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                 <property name="transition-type">slide-up-down</property>
                                 <child>
                                   <object class="GtkStackPage">
-                                    <property name="name">page0</property>
-                                    <property name="title" translatable="1">Use interpolation</property>
                                     <property name="child">
                                       <object class="GtkGrid" id="grid_interp_controls">
+                                        <property name="column-spacing">6</property>
                                         <property name="name">grid_interp_controls</property>
                                         <property name="row-spacing">6</property>
-                                        <property name="column-spacing">6</property>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Algorithm: </property>
+                                            <property name="label" translatable="yes">Algorithm: </property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">0</property>
@@ -1318,6 +1305,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         </child>
                                         <child>
                                           <object class="GtkDropDown" id="ComboBoxRegInter">
+                                            <property name="halign">start</property>
                                             <property name="model">
                                               <object class="GtkStringList">
                                                 <items>
@@ -1330,11 +1318,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-text" translatable="1">Set the interpolation algorithm</property>
-                                            <property name="halign">start</property>
-                                            <property name="valign">center</property>
                                             <property name="selected">3</property>
-                                            <signal name="notify::selected" handler="on_ComboBoxRegInter_changed" swapped="no" />
+                                            <property name="tooltip-text" translatable="yes">Set the interpolation algorithm</property>
+                                            <property name="valign">center</property>
+                                            <signal name="notify::selected" handler="on_ComboBoxRegInter_changed"/>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">0</property>
@@ -1343,54 +1330,54 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         </child>
                                         <child>
                                           <object class="GtkCheckButton" id="toggle_reg_clamp">
-                                            <property name="label" translatable="1">Interpolation clamping</property>
+                                            <property name="active">1</property>
                                             <property name="focusable">1</property>
-                                            <property name="tooltip-text" translatable="1">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Interpolation clamping</property>
+                                            <property name="tooltip-text" translatable="yes">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms
 
 The main issue with Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
 
 In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images.</property>
-                                            <property name="halign">start</property>
-                                            <property name="active">1</property>
-                                            <signal name="toggled" handler="on_toggle_reg_clamp_toggled" swapped="no" />
+                                            <signal name="toggled" handler="on_toggle_reg_clamp_toggled"/>
                                             <layout>
                                               <property name="column">0</property>
-                                              <property name="row">1</property>
                                               <property name="column-span">2</property>
+                                              <property name="row">1</property>
                                             </layout>
                                           </object>
                                         </child>
                                       </object>
                                     </property>
+                                    <property name="name">page0</property>
+                                    <property name="title" translatable="yes">Use interpolation</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkStackPage">
-                                    <property name="name">page1</property>
-                                    <property name="title" translatable="1">Use drizzle</property>
                                     <property name="child">
                                       <object class="GtkGrid" id="grid_drizzle_controls">
+                                        <property name="column-spacing">6</property>
                                         <property name="name">grid_drizzle_controls</property>
                                         <property name="row-spacing">6</property>
-                                        <property name="column-spacing">6</property>
                                         <child>
                                           <object class="GtkCheckButton" id="driz_use_flats">
-                                            <property name="label" translatable="1">Include master flat in initial pixel weighting</property>
                                             <property name="focusable">1</property>
-                                            <property name="tooltip-text" translatable="1">Check this to include the master flat in the initial pixel weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas, where they land on the same output pixel. This is at best a minor gain.
+                                            <property name="label" translatable="yes">Include master flat in initial pixel weighting</property>
+                                            <property name="tooltip-text" translatable="yes">Check this to include the master flat in the initial pixel weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas, where they land on the same output pixel. This is at best a minor gain.
 
 The master flat must be set in the Calibration tab.</property>
                                             <layout>
                                               <property name="column">0</property>
-                                              <property name="row">2</property>
                                               <property name="column-span">3</property>
+                                              <property name="row">2</property>
                                             </layout>
                                           </object>
                                         </child>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Droplet Model</property>
+                                            <property name="label" translatable="yes">Droplet Model</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">1</property>
@@ -1400,7 +1387,7 @@ The master flat must be set in the Calibration tab.</property>
                                         <child>
                                           <object class="GtkLabel">
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="1">Pixel Fraction</property>
+                                            <property name="label" translatable="yes">Pixel Fraction</property>
                                             <layout>
                                               <property name="column">0</property>
                                               <property name="row">0</property>
@@ -1421,8 +1408,8 @@ The master flat must be set in the Calibration tab.</property>
                                                 </items>
                                               </object>
                                             </property>
-                                            <property name="tooltip-text" translatable="1">Select the droplet model. See the documentation for details of when to use each model.</property>
                                             <property name="selected">0</property>
+                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details of when to use each model.</property>
                                             <layout>
                                               <property name="column">1</property>
                                               <property name="row">1</property>
@@ -1431,11 +1418,11 @@ The master flat must be set in the Calibration tab.</property>
                                         </child>
                                         <child>
                                           <object class="GtkSpinButton" id="spin_driz_dropsize">
-                                            <property name="focusable">1</property>
-                                            <property name="tooltip-text" translatable="1">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
-                                            <property name="text">1.00</property>
                                             <property name="adjustment">adj_driz_dropsize</property>
                                             <property name="digits">5</property>
+                                            <property name="focusable">1</property>
+                                            <property name="text">1.00</property>
+                                            <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
                                             <property name="value">1</property>
                                             <layout>
                                               <property name="column">1</property>
@@ -1443,14 +1430,10 @@ The master flat must be set in the Calibration tab.</property>
                                             </layout>
                                           </object>
                                         </child>
-                                        <child>
-                                          <placeholder />
-                                        </child>
-                                        <child>
-                                          <placeholder />
-                                        </child>
                                       </object>
                                     </property>
+                                    <property name="name">page1</property>
+                                    <property name="title" translatable="yes">Use drizzle</property>
                                   </object>
                                 </child>
                               </object>
@@ -1460,22 +1443,19 @@ The master flat must be set in the Calibration tab.</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel">
-                                    <property name="label" translatable="1">Prefix:</property>
                                     <property name="justify">center</property>
+                                    <property name="label" translatable="yes">Prefix:</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkEntry" id="regseqname_entry">
                                     <property name="focusable">1</property>
-                                    <property name="tooltip-text" translatable="1">Prefix of the image names resulting from the registration.</property>
+                                    <property name="input-hints">no-emoji|none</property>
                                     <property name="max-length">10</property>
-                                    <property name="width-chars">10</property>
                                     <property name="text">r_</property>
-                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the registration.</property>
+                                    <property name="width-chars">10</property>
                                   </object>
-                                </child>
-                                <child>
-                                  <placeholder />
                                 </child>
                               </object>
                             </child>
@@ -1483,9 +1463,9 @@ The master flat must be set in the Calibration tab.</property>
                         </property>
                         <child type="label">
                           <object class="GtkLabel">
-                            <property name="label" translatable="1">Output registration:</property>
+                            <property name="label" translatable="yes">Output registration:</property>
                             <attributes>
-                              <attribute name="weight" value="bold" />
+                              <attribute name="weight" value="bold"/>
                             </attributes>
                           </object>
                         </child>
@@ -1493,25 +1473,25 @@ The master flat must be set in the Calibration tab.</property>
                     </child>
                     <child>
                       <object class="GtkButton" id="goregister_button">
-                        <property name="valign">center</property>
-                        <property name="label" translatable="1">Go register</property>
-                        <property name="sensitive">0</property>
                         <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Go register</property>
                         <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="1">Start the registration process. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
+                        <property name="sensitive">0</property>
+                        <property name="tooltip-text" translatable="yes">Start the registration process. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
                         <property name="use-underline">1</property>
-                        <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no" />
+                        <property name="valign">center</property>
+                        <signal name="clicked" handler="on_seqregister_button_clicked"/>
                         <style>
-                          <class name="suggested-action" />
+                          <class name="suggested-action"/>
                         </style>
                       </object>
                     </child>
                     <child>
                       <object class="GtkLabel" id="labelregisterinfo">
                         <property name="halign">end</property>
-                        <property name="label" translatable="1">Load a sequence first</property>
+                        <property name="label" translatable="yes">Load a sequence first</property>
                         <style>
-                          <class name="label-info" />
+                          <class name="label-info"/>
                         </style>
                       </object>
                     </child>
@@ -1519,9 +1499,9 @@ The master flat must be set in the Calibration tab.</property>
                 </child>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Automatic image registration</property>
+                    <property name="label" translatable="yes">Automatic image registration</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -1529,13 +1509,13 @@ The master flat must be set in the Calibration tab.</property>
             </child>
             <child>
               <object class="GtkExpander" id="manualreg_expander">
-                <property name="vexpand">1</property>
                 <property name="focusable">1</property>
+                <property name="vexpand">1</property>
                 <child>
                   <object class="GtkBox">
-                    <property name="vexpand">1</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
+                    <property name="vexpand">1</property>
                     <child>
                       <object class="GtkBox">
                         <property name="orientation">vertical</property>
@@ -1543,19 +1523,25 @@ The master flat must be set in the Calibration tab.</property>
                           <object class="GtkBox">
                             <child>
                               <object class="GtkCheckButton" id="checkbutton_displayref">
-                                <property name="label" translatable="1">Display reference image</property>
-                                <property name="sensitive">0</property>
                                 <property name="focusable">1</property>
-                                <property name="tooltip-text" translatable="1">Display the reference image over the current image using a 50% transparency.
+                                <property name="label" translatable="yes">Display reference image</property>
+                                <property name="sensitive">0</property>
+                                <property name="tooltip-text" translatable="yes">Display the reference image over the current image using a 50% transparency.
 To be enabled, the reference image must have been explicitly set and already displayed once on the selected registration layer.</property>
-                                <signal name="toggled" handler="on_checkbutton_displayref_toggled" swapped="no" />
+                                <signal name="toggled" handler="on_checkbutton_displayref_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <!-- Spacer: push the reference-image label to the end (GTK3 used pack-type=end). -->
+                              <object class="GtkBox">
+                                <property name="hexpand">1</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="labelRegRef">
-                                <property name="label" translatable="1">Set reference image first</property>
+                                <property name="label" translatable="yes">Set reference image first</property>
                                 <style>
-                                  <class name="label-info" />
+                                  <class name="label-info"/>
                                 </style>
                               </object>
                             </child>
@@ -1563,46 +1549,46 @@ To be enabled, the reference image must have been explicitly set and already dis
                         </child>
                         <child>
                           <object class="GtkBox">
-                            <property name="vexpand">1</property>
                             <property name="halign">center</property>
                             <property name="spacing">10</property>
+                            <property name="vexpand">1</property>
                             <child>
                               <object class="GtkLabel">
-                                <property name="tooltip-text" translatable="1">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the X axis.</property>
-                                <property name="label" translatable="1">X translation:</property>
+                                <property name="label" translatable="yes">X translation:</property>
+                                <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the X axis.</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkSpinButton" id="spinbut_shiftx">
-                                <property name="focusable">1</property>
-                                <property name="width-chars">4</property>
-                                <property name="max-width-chars">3</property>
-                                <property name="text">0</property>
                                 <property name="adjustment">adjustment_shiftx</property>
+                                <property name="focusable">1</property>
+                                <property name="max-width-chars">3</property>
                                 <property name="numeric">1</property>
-                                <signal name="value-changed" handler="on_spinbut_shift_value_change" swapped="no" />
+                                <property name="text">0</property>
+                                <property name="width-chars">4</property>
+                                <signal name="value-changed" handler="on_spinbut_shift_value_change"/>
                                 <style>
-                                  <class name="small-spinbutton" />
+                                  <class name="small-spinbutton"/>
                                 </style>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel">
-                                <property name="tooltip-text" translatable="1">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the Y axis.</property>
-                                <property name="label" translatable="1">Y translation:</property>
+                                <property name="label" translatable="yes">Y translation:</property>
+                                <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the Y axis.</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkSpinButton" id="spinbut_shifty">
-                                <property name="focusable">1</property>
-                                <property name="width-chars">4</property>
-                                <property name="max-width-chars">3</property>
-                                <property name="text">0</property>
                                 <property name="adjustment">adjustment_shifty</property>
+                                <property name="focusable">1</property>
+                                <property name="max-width-chars">3</property>
                                 <property name="numeric">1</property>
-                                <signal name="value-changed" handler="on_spinbut_shift_value_change" swapped="no" />
+                                <property name="text">0</property>
+                                <property name="width-chars">4</property>
+                                <signal name="value-changed" handler="on_spinbut_shift_value_change"/>
                                 <style>
-                                  <class name="small-spinbutton" />
+                                  <class name="small-spinbutton"/>
                                 </style>
                               </object>
                             </child>
@@ -1612,9 +1598,9 @@ To be enabled, the reference image must have been explicitly set and already dis
                     </child>
                     <child>
                       <object class="GtkBox">
-                        <property name="vexpand">1</property>
                         <property name="margin-top">5</property>
                         <property name="spacing">2</property>
+                        <property name="vexpand">1</property>
                         <child>
                           <object class="GtkBox">
                             <property name="hexpand">1</property>
@@ -1622,19 +1608,19 @@ To be enabled, the reference image must have been explicitly set and already dis
                             <property name="spacing">5</property>
                             <child>
                               <object class="GtkToggleButton" id="toggle_reg_manual1">
-                                <property name="valign">center</property>
-                                <property name="label" translatable="1">Set first preview</property>
                                 <property name="focusable">1</property>
-                                <property name="receives-default">1</property>
-                                <property name="tooltip-text" translatable="1">Allows a preview area to be displayed just below. After clicking on this button, click on the image to position the preview area's centre</property>
                                 <property name="halign">center</property>
-                                <signal name="toggled" handler="on_toggle_preview_toggled" swapped="no" />
+                                <property name="label" translatable="yes">Set first preview</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">Allows a preview area to be displayed just below. After clicking on this button, click on the image to position the preview area's centre</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_toggle_preview_toggled"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview1">
-                                <property name="vexpand">1</property>
                                 <property name="height-request">200</property>
+                                <property name="vexpand">1</property>
                               </object>
                             </child>
                           </object>
@@ -1646,19 +1632,19 @@ To be enabled, the reference image must have been explicitly set and already dis
                             <property name="spacing">5</property>
                             <child>
                               <object class="GtkToggleButton" id="toggle_reg_manual2">
-                                <property name="valign">center</property>
-                                <property name="label" translatable="1">Set second preview</property>
                                 <property name="focusable">1</property>
-                                <property name="receives-default">1</property>
-                                <property name="tooltip-text" translatable="1">Allows a preview area to be displayed just below. After clicking on this button, click on the image to position the preview area's centre</property>
                                 <property name="halign">center</property>
-                                <signal name="toggled" handler="on_toggle_preview_toggled" swapped="no" />
+                                <property name="label" translatable="yes">Set second preview</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">Allows a preview area to be displayed just below. After clicking on this button, click on the image to position the preview area's centre</property>
+                                <property name="valign">center</property>
+                                <signal name="toggled" handler="on_toggle_preview_toggled"/>
                               </object>
                             </child>
                             <child>
                               <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview2">
-                                <property name="vexpand">1</property>
                                 <property name="height-request">200</property>
+                                <property name="vexpand">1</property>
                               </object>
                             </child>
                           </object>
@@ -1669,9 +1655,9 @@ To be enabled, the reference image must have been explicitly set and already dis
                 </child>
                 <child type="label">
                   <object class="GtkLabel">
-                    <property name="label" translatable="1">Manual registration</property>
+                    <property name="label" translatable="yes">Manual registration</property>
                     <attributes>
-                      <attribute name="weight" value="bold" />
+                      <attribute name="weight" value="bold"/>
                     </attributes>
                   </object>
                 </child>
@@ -1681,12 +1667,14 @@ To be enabled, the reference image must have been explicitly set and already dis
         </property>
       </object>
     </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
   </object>
   <object class="GtkLabel" id="label28">
-    <property name="tooltip-text" translatable="1">Registration is basically aligning the images from a sequence to be able to process them afterwards.</property>
-    <property name="margin-top">2</property>
-    <property name="margin-bottom">2</property>
-    <property name="label" translatable="1">Registration</property>
     <property name="justify">center</property>
+    <property name="label" translatable="yes">Registration</property>
+    <property name="margin-bottom">2</property>
+    <property name="margin-top">2</property>
+    <property name="tooltip-text" translatable="yes">Registration is basically aligning the images from a sequence to be able to process them afterwards.</property>
   </object>
 </interface>

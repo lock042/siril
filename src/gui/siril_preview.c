@@ -114,11 +114,10 @@ void copy_gfit_to_backup() {
 		return;
 	}
 	// We need the backup to have the mask state copied to it, because image operations start from the backup if a preview is active
-	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_COPYMASK | CP_FORMAT, -1)) {
+	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_COPYMASK | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1)) {
 		siril_log_debug("Image copy error in previews\n");
 		return;
 	}
-	copy_fits_metadata(gfit, &preview_gfit_backup);
 	if (!com.script)
 		copy_gfit_icc_to_backup();
 	if (gui.roi.active && backup_roi()) {

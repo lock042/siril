@@ -130,7 +130,7 @@ GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
  * @return the GtkWidget of popover
  */
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf) {
-	GtkWidget *popover, *box, *image, *label;
+	GtkWidget *popover, *scrolled, *box, *image, *label;
 
 	popover = gtk_popover_new(widget);
 	label = gtk_label_new(NULL);
@@ -153,14 +153,27 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 
 	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 10);
 	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);
-	gtk_container_add(GTK_CONTAINER(popover), box);
+
+	scrolled = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+			GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scrolled), 600);
+	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled), GTK_SHADOW_ETCHED_IN);
+	gtk_widget_set_margin_start(scrolled, 6);
+	gtk_widget_set_margin_end(scrolled, 6);
+	gtk_widget_set_margin_top(scrolled, 6);
+	gtk_widget_set_margin_bottom(scrolled, 6);
+	gtk_container_add(GTK_CONTAINER(scrolled), box);
+	gtk_container_add(GTK_CONTAINER(popover), scrolled);
 
 	/* make all sensitive in case where parent is not */
 	gtk_widget_set_sensitive(label, TRUE);
 	gtk_widget_set_sensitive(box, TRUE);
 	gtk_widget_set_sensitive(popover, TRUE);
 
-	gtk_widget_show_all(box);
+	gtk_widget_show_all(scrolled);
 
 	return popover;
 }

@@ -58,6 +58,13 @@
     <property name="icon-name">edit-find-symbolic</property>
   </object>
   <object class="GtkWindow" id="astrometry_dialog">
+    <!-- GTK4 opens the window at its natural width (~720px); GTK4 widgets
+         (search entry, entries, spin/dropdown buttons) are intrinsically
+         wider than their GTK3 equivalents for the same width-chars, leaving
+         a lot of empty horizontal space.  Open at a compact width to match
+         the GTK3 dialog; it stays resizable and won't go below the content
+         minimum (~530px). -->
+    <property name="default-width">560</property>
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">vertical</property>
@@ -236,11 +243,28 @@
                         <child>
                           <object class="GtkButton" id="GtkButtonIPS">
                             <property name="focusable">1</property>
-                            <property name="label" translatable="yes">Find</property>
                             <property name="receives-default">1</property>
                             <property name="tooltip-text" translatable="yes">Start searching the coordinates of named object. This feature requires an Internet connection (asks SIMBAD by default or the selected server at the right).
     If coordinates are already filled when clicking on the Get Metadata From Image button below, this is probably not required.</property>
                             <signal name="clicked" handler="on_GtkButtonIPS_clicked"/>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="halign">center</property>
+                                <property name="spacing">6</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">edit-find-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label" translatable="yes">Find</property>
+                                    <property name="use-underline">1</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
                             <layout>
                               <property name="column">1</property>
                               <property name="row">0</property>
