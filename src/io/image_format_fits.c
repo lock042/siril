@@ -1563,8 +1563,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->data holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
@@ -1590,8 +1591,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->fdata holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
