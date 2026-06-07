@@ -36,7 +36,6 @@
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec or 1s in hrs
 
 static GSList *siril_annot_catalogue_list = NULL; // loaded data from all annotation catalogues
-static gboolean get_annotation_visibility(siril_cat_index cat_index);
 
 static const gchar *cat[] = {
 	"messier.csv",
@@ -227,7 +226,7 @@ void set_annotation_visibility(siril_cat_index cat_index, gboolean visible) {
 	com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET] = visible;
 }
 
-static gboolean get_annotation_visibility(siril_cat_index cat_index) {
+gboolean get_annotation_visibility(siril_cat_index cat_index) {
 	return com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET];
 }
 
@@ -410,6 +409,10 @@ GSList *find_objects_in_field(fits *fit) {
 			siril_log_debug("Could not read the dates of the first and last frames of the sequence\n");
 			is_seq_with_dates = FALSE;
 		}
+	} else if (fit->keywords.expstart != 0. && fit->keywords.expend != 0.) {
+		tstart = fit->keywords.expstart;
+		tend = fit->keywords.expend;
+		is_seq_with_dates = TRUE;
 	}
 	for (GSList *l = list; l; l = l->next) {
 		annotations_catalogue_t *curcat = l->data;

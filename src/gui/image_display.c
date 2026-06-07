@@ -37,6 +37,7 @@
 #include "algos/sorting.h"
 #include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
+#include "io/annotation_catalogues.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -2445,6 +2446,7 @@ static void draw_annotates(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
+	gboolean show_sso_vectors = get_annotation_visibility(CAT_AN_SSO_VECTORS);
 
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
@@ -2498,10 +2500,12 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_stroke(cr);
 		} else if ((catalog == CAT_AN_USER_TEMP || catalog == CAT_AN_USER_SSO) && (x1 != 0 || y1 != 0)) {
 			// Handle sso moving
-			if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
-				draw_arrow(cr, x1, y1, x2, y2, 0.1);
-			} else {
-				draw_arrow(cr, x, y, x1, y1, 0.2);
+			if (show_sso_vectors) {
+				if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
+					draw_arrow(cr, x1, y1, x2, y2, 0.1);
+				} else {
+					draw_arrow(cr, x, y, x1, y1, 0.2);
+				}
 			}
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 			cairo_stroke(cr);

@@ -39,7 +39,8 @@ static gchar *astro_catalogue[] = {
 		N_("IAU Constellations Catalogue"),
 		N_("IAU Constellations Names"),
 		N_("User Deep Sky Objects Catalogue"),
-		N_("User Solar System Objects Catalogue")
+		N_("User Solar System Objects Catalogue"),
+		N_("Velocity vectors for Solar System Objects")
 };
 // update the size of gui_config.catalog if changed
 
