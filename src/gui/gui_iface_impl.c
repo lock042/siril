@@ -159,8 +159,11 @@ static void impl_on_stack_complete(void) {
 	clear_stars_list(TRUE);
 	initialize_display_mode();
 	sliders_mode_set_state(gui.sliders);
-	/* Writer lock: set_cutoff_sliders_max_values() reads gfit->type/orig_bitpix
-	 * and we also write hi/lo keyword fields here, so we need exclusive access. */
+	/* Writer lock: this section reads gfit (set_cutoff_sliders_max_values()
+	 * reads gfit->type/orig_bitpix) and also writes it (the hi/lo assignment).
+	 * The lock must be acquired and released as a writer on both counts -
+	 * mixing reader_lock with writer_unlock corrupts the lock on platforms
+	 * where the two unlock primitives differ (e.g. Windows SRWLOCK). */
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	display_filename();
 	gui_function(set_precision_switch, NULL);

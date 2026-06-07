@@ -775,24 +775,22 @@ gpointer do_starnet(gpointer p) {
 			} else {
 				if (args->starmask_fit)
 					clearfits(args->starmask_fit);
-				retval = copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
+				retval = copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 				if (retval) {
 					siril_log_error(_("Error: image copy failed...\n"));
 					goto CLEANUP;
 				}
-				copy_fits_metadata(&fit, args->starmask_fit);
 			}
 		}
 	}
 
 	// All done, now copy the working image back into gfit
 	clearfits(current_fit);
-	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
+	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 	if (retval) {
 		siril_log_error(_("Error: image copy failed...\n"));
 		goto CLEANUP;
 	}
-	copy_fits_metadata(&workingfit, current_fit);
 	if (workingfit.header) {
 		current_fit->header = malloc(strlen(workingfit.header)+1);
 		memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
@@ -808,20 +806,18 @@ gpointer do_starnet(gpointer p) {
 			blendargs = calloc(1, sizeof(struct remixargs));
 			blendargs->fit1 = calloc(1, sizeof(fits));
 			blendargs->fit2 = calloc(1, sizeof(fits));
-			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), -1);
 			if (retval) {
 				siril_log_error(_("Error: image copy failed...\n"));
 				goto CLEANUP;
 			}
-			copy_fits_metadata(&workingfit, blendargs->fit1);
 			update_fits_header(blendargs->fit1);
 
-			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), -1);
 			if (retval) {
 				siril_log_error(_("Error: image copy failed...\n"));
 				goto CLEANUP;
 			}
-			copy_fits_metadata(&fit, blendargs->fit2);
 			update_fits_header(blendargs->fit2);
 		}
 	}

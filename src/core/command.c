@@ -9121,7 +9121,7 @@ int process_split(int nb){
 	args->channel[2] = g_strdup_printf("%s%s", word[3], com.pref.ext);
 
 	args->fit = calloc(1, sizeof(fits));
-	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1)) {
 		siril_log_error(_("Could not copy the input image, aborting.\n"));
 		clearfits(args->fit);
 		free(args->fit);
@@ -9150,8 +9150,6 @@ int process_split(int nb){
 		args->type = EXTRACT_RGB;
 		args->str_type = _("RGB");
 	}
-
-	copy_fits_metadata(gfit, args->fit);
 
 	args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 
