@@ -418,8 +418,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
-			/* Rolling-shutter GPS (QHY Pro via NINA) — QHY_EXP read handler triggers
-			 * read_qhy_gps_data(); each keyword has its own save handler. */
+			// Rolling-shutter GPS (QHY Pro): the keywords are declared to not be put in the
+			// unknown keys list but all are managed by the read and save handlers for QHY_EXP
 			KEYWORD_GPS( "gps", "QHY_EXP", KTYPE_DOUBLE, "GPS/QHY exposure (s)", qhy_gps_handler_read, qhy_gps_handler_save),
 			KEYWORD_GPS( "gps", "QHY_LP", KTYPE_INT, "linePeriod (ns)", NULL, NULL),
 			KEYWORD_GPS( "gps", "QHY_OFF0", KTYPE_DOUBLE, "RollingShutterEndOffset row 0 (us)", NULL, NULL),
@@ -428,30 +428,10 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_GPS( "gps", "CROPOFFX", KTYPE_INT, "X offset from the sensor origin", NULL, NULL),
 			KEYWORD_GPS( "gps", "CROPOFFY", KTYPE_INT, "Y offset from the sensor origin", NULL, NULL),
 			KEYWORD_GPS( "gps", "READOUTM", KTYPE_STR, "Sensor readout mode", NULL, NULL),
-			/* Global-shutter GPS marker written by Siril */
-			// KEYWORD_GPS( "gps", "DATE-GPS", KTYPE_BOOL, "DATE-OBS and EXPTIME come from GPS", date_gps_handler_read, date_gps_handler_save),
+			// Global-shutter GPS: only one key is written to mark that the date and exposure
+			// come from GPS data
+			// TODO perhaps not save it when it's false or at least when it's not a GPS image?
 			KEYWORD_PRIMARY("gps", "GPS-DATE", KTYPE_BOOL, "DATE-OBS and EXPTIME come from GPS", &(fit->keywords.date_and_exp_from_gps), NULL, NULL),
-			/* NINA global-shutter GPS keywords — read by parse_gps_from_header, not re-saved */
-			KEYWORD_GPS( "gps", "GPS_PPS", KTYPE_INT, "QHY pps", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SEQ", KTYPE_INT, "QHY sequence nr", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_W", KTYPE_INT, "QHY width", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_H", KTYPE_INT, "QHY height", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_LAT", KTYPE_DOUBLE, "latitude", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_LON", KTYPE_DOUBLE, "longitude", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SFLG", KTYPE_INT, "QHY start_flag", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SST", KTYPE_STR, "QHY start_flag status", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SSEC", KTYPE_INT, "QHY start seconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SUS", KTYPE_INT, "QHY start microseconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_SUTC", KTYPE_STR, "QHY start_time", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_EST", KTYPE_STR, "QHY end_flag status", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_ESEC", KTYPE_INT, "QHY end seconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_EUS", KTYPE_INT, "QHY end microseconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_NFLG", KTYPE_INT, "QHY now_flag", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_NST", KTYPE_STR, "QHY now_flag status", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_NSEC", KTYPE_INT, "QHY now seconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_NUS", KTYPE_INT, "QHY now microseconds", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_NUTC", KTYPE_STR, "QHY now_time", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_EXP", KTYPE_INT, "QHY exposure (us)", NULL, NULL),
 
 			/* This group must be the last one !!
 			 * It is not used. We write keywords just so that Siril knows about them
@@ -623,7 +603,7 @@ int save_fits_keywords(fits *fit) {
 			keys->special_handler_save(fit, keys);
 		}
 
-		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
+		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) { // wcslib keys already have is_saved
 			keys++;
 			continue;
 		}
@@ -764,7 +744,7 @@ int save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg","Unit of coordinates", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->keywords.wcslib->equinox),	"Equatorial equinox", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->keywords.wcslib->equinox), "Equatorial equinox", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->keywords.wcslib->crpix[0]), "Axis1 reference pixel", &status);
 		status = 0;
@@ -946,9 +926,9 @@ static void save_gps_keywords(fits *fit) {
 		return;
 	int status = 0;
 	fits_update_key(fit->fptr, TDOUBLE, "QHY_EXP", &fit->keywords.gps_data->exposure,
-			"Actual exposure time in seconds", &status);
-	fits_update_key(fit->fptr, TINT, "QHY_LP", &fit->keywords.gps_data->line_period, "linePeriod (ns)", &status);
-	fits_update_key(fit->fptr, TDOUBLE, "QHY_OFF0", &fit->keywords.gps_data->end_offset0, "RollingShutterEndOffset row 0 (us)", &status);
+			"[s] Actual exposure time", &status);
+	fits_update_key(fit->fptr, TINT, "QHY_LP", &fit->keywords.gps_data->line_period, "[ns] linePeriod", &status);
+	fits_update_key(fit->fptr, TDOUBLE, "QHY_OFF0", &fit->keywords.gps_data->end_offset0, "[us] RollingShutterEndOffset row 0", &status);
 	gchar *formatted_date = date_time_to_FITS_date(fit->keywords.gps_data->end_vsync_date);
 	fits_update_key(fit->fptr, TSTRING, "GPS_EUTC", formatted_date, "QHY end time of first row", &status);
 	g_free(formatted_date);
