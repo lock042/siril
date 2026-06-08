@@ -48,8 +48,8 @@ have_fftw3fthreadsnolinkerarg = false
 
 # -Dgtk is a 3-way combo: 'false' / 'gtk3' / 'gtk4'.
 #   - 'false' → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
-#   - 'gtk3'  → builds the GTK3 GUI from src/gui (current default).
-#   - 'gtk4'  → builds the parallel GTK4 GUI from src/gui-gtk4.
+#   - 'gtk3'  → builds the GTK3 GUI from src/gui.
+#   - 'gtk4'  → builds the parallel GTK4 GUI from src/gui-gtk4 (current default).
 gtk_option       = get_option('gtk')
 enable_gtk       = (gtk_option != 'false')
 use_gtk4         = (gtk_option == 'gtk4')
