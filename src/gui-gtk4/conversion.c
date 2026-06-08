@@ -35,6 +35,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "algos/sorting.h"
+#include "registration/mpp/mpp_config.h"   /* enum mpp_avi_bayer */
 
 static char *destroot = NULL;
 
@@ -84,6 +85,8 @@ static GtkEntry *conv_start_entry = NULL;
 static GtkWidget *conv_go_button = NULL;
 static GtkLabel *conv_status_label = NULL;
 static GtkEntry *conv_root_entry = NULL;
+static GtkComboBox *conv_avi_bayer_combo = NULL;
+static GtkWidget *conv_avi_bayer_label = NULL;
 
 static void conversion_init_statics(void) {
 	if (conv_multiple_seq) return;
@@ -94,6 +97,12 @@ static void conversion_init_statics(void) {
 	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
 	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
 	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
+	conv_avi_bayer_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_convert_avi_bayer"));
+	conv_avi_bayer_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_convert_avi_bayer"));
+	/* GTK4 GtkComboBoxText applies the .ui "active" before its <items> are
+	 * added, leaving it blank; set the default (Auto) in code. */
+	if (conv_avi_bayer_combo)
+		gtk_combo_box_set_active(conv_avi_bayer_combo, 0);
 }
 
 static void check_for_conversion_form_completeness();
@@ -409,6 +418,13 @@ static void initialize_convert() {
 	args->make_link = symbolic_link;
 	args->output_type = output_type;
 	args->multiple_output = multiple;
+	{
+		const int ab = (there_is_a_film && conv_avi_bayer_combo)
+		             ? gtk_combo_box_get_active(conv_avi_bayer_combo)
+		             : MPP_AVI_BAYER_AUTO;
+		args->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
+		                       ? ab : MPP_AVI_BAYER_AUTO;
+	}
 	gettimeofday(&(args->t_start), NULL);
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
@@ -565,11 +581,38 @@ static void check_for_conversion_form_completeness() {
 	gtk_widget_set_sensitive(conv_go_button, destroot && destroot[0] != '\0' && valid);
 }
 
+/* Scan the input list for AVI / film entries so the AVI-Bayer combo can be
+ * shown only when relevant. We can't cheaply distinguish mono-encoded from
+ * RGB-encoded AVIs without opening each file, so the visibility heuristic is
+ * just "any AVI present"; the per-frame apply step in io/conversion.c skips
+ * the pattern when the autodetected fit happens to be 3-channel colour. */
+static gboolean input_list_has_any_film(void) {
+	if (!liststore_convert) return FALSE;
+	const guint n = g_list_model_get_n_items(G_LIST_MODEL(liststore_convert));
+	for (guint i = 0; i < n; i++) {
+		SirilConvertRow *row = SIRIL_CONVERT_ROW(g_list_model_get_item(G_LIST_MODEL(liststore_convert), i));
+		const char *src_ext = row->filename_full ? get_filename_ext(row->filename_full) : NULL;
+		const image_type type = src_ext ? get_type_for_extension(src_ext) : TYPEUNDEF;
+		g_object_unref(row);
+		if (type == TYPEAVI) return TRUE;
+	}
+	return FALSE;
+}
+
+static void update_avi_bayer_combo_visibility(void) {
+	conversion_init_statics();
+	if (!conv_avi_bayer_combo || !conv_avi_bayer_label) return;
+	const gboolean show = input_list_has_any_film();
+	gtk_widget_set_visible(GTK_WIDGET(conv_avi_bayer_combo), show);
+	gtk_widget_set_visible(conv_avi_bayer_label, show);
+}
+
 static void on_input_files_change() {
 	/* Sort functions are now per-column GtkSorters wired in
 	 * ensure_convert_view(); nothing else to do here besides
 	 * refreshing the status. */
 	update_statusbar_convert();
+	update_avi_bayer_combo_visibility();
 }
 
 /******************************* Callback functions ***********************************/

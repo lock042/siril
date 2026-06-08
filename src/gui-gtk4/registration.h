@@ -25,7 +25,8 @@ typedef enum {
 	REG_PAGE_COMET,
 	REG_PAGE_3_STARS,
 	REG_PAGE_KOMBAT,
-	REG_PAGE_MISC
+	REG_PAGE_MISC,
+	REG_PAGE_MPP   /* multipoint planetary — inserted after the misc page */
 } reg_notebook_page;
 
 // 3 stars GUI
@@ -40,5 +41,9 @@ void registration_update_label(const gchar *msg);
 void update_reg_interface(gboolean dont_change_reg_radio);
 gboolean end_register_idle(gpointer p);
 void initialize_registration_methods();
+
+/* Enable/disable the "Edit APs" button on the multipoint registration
+ * sub-panel from the presence of a cached run. Defined in registration.c. */
+void mpp_update_edit_button_sensitivity(void);
 
 #endif /* SRC_GUI_REGISTRATION_H_ */

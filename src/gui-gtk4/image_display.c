@@ -38,6 +38,12 @@
 #include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_interactions.h"
@@ -2445,6 +2451,7 @@ static void draw_analysis(const draw_data_t *dd);
 static void draw_brg_boxes(const draw_data_t* dd);
 static void draw_regframe(const draw_data_t* dd);
 static void draw_rgb_centers(const draw_data_t* dd);
+static void draw_mpp_aps(const draw_data_t* dd);
 
 /* ── SirilImageView: GTK4 snapshot-based image viewport ───────────────────
  *
@@ -2809,6 +2816,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	draw_annotates(&dd);
 	draw_analysis(&dd);
 	draw_brg_boxes(&dd);
+	/* multipoint planetary alignment-point grid (active after Analyze) */
+	draw_mpp_aps(&dd);
 	draw_regframe(&dd);
 	draw_rgb_centers(&dd);
 	if (gui.draw_extra)
@@ -3583,6 +3592,179 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_show_text(cr, text);
 				cairo_stroke(cr);
 				g_free(text);
+			}
+		}
+	}
+}
+
+/* Draw alignment-point boxes from the cached MPP run (com.mpp_run).
+ * Called from the snapshot overlay pass right after draw_brg_boxes so APs
+ * sit in the same overlay stratum as bgext samples.
+ *
+ * AP records hold mean-frame coordinates. When gfit shows the mean ref
+ * frame (== analyze just ran or user re-clicked it), no shift compensation
+ * is needed; otherwise, the user is viewing a source frame and we apply
+ * the per-frame offset (intersection - global_shift) so AP boxes track
+ * the same physical features as they slew through the sequence.
+ *
+ * Hovered AP (mpp_ap_editor_get_hover_idx) is drawn in orange with a
+ * thicker line so the user knows which AP a click would affect. */
+static void draw_mpp_aps(const draw_data_t* dd) {
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
+	/* Only paint the AP overlay while the user is on the Registration
+	 * tab — the overlay is a registration-workflow tool, and once the
+	 * user has switched to Plot / Stacking / etc. the boxes are visual
+	 * clutter that confuses what they're looking at. */
+	{
+		static GtkNotebook *center_notebook = NULL;
+		if (!center_notebook)
+			center_notebook = GTK_NOTEBOOK(gtk_builder_get_object(
+			    gui.builder, "notebook_center_box"));
+		if (center_notebook
+		    && gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
+			return;
+	}
+	/* AP coordinates live in the run's mean-frame space. Show them
+	 * when gfit's dimensions match a known coordinate system in the
+	 * run — either the mean frame itself (the Analyse-painted ref
+	 * image, where ap.{x,y} maps directly), or a sequence frame at
+	 * the run's frame_cols/_rows (where per-frame shift compensates).
+	 * Hide otherwise (stacking result at non-mean-frame dims, an
+	 * unrelated single image the user has loaded, etc.). The check
+	 * is dim-based rather than com.seq.current-based so APs reappear
+	 * after re-Analyse even when com.seq.current is still RESULT_IMAGE
+	 * from a prior stack run. */
+	const gboolean showing_ref = (gfit
+	    && (int) gfit->rx == run->mean_frame_cols
+	    && (int) gfit->ry == run->mean_frame_rows);
+	const gboolean showing_seq_frame = (gfit
+	    && com.seq.current >= 0
+	    && com.seq.current < run->num_frames
+	    && (int) gfit->rx == run->frame_cols
+	    && (int) gfit->ry == run->frame_rows
+	    && run->global_shifts
+	    && sequence_is_loaded());
+	if (!showing_ref && !showing_seq_frame) return;
+
+	int dx = 0, dy = 0;
+	if (showing_seq_frame) {
+		const int i = com.seq.current;
+		/* mean_frame row r maps to frame row
+		 *   r + intersection[0] - global_shifts[i]
+		 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
+		 * gives the AP's pdata-row position on frame i. The
+		 * global_shifts are now sub-pixel (for Bayer drizzle's
+		 * CFA-phase coverage); the overlay only needs integer
+		 * placement so round to nearest pixel. */
+		dy = (int) lround((double) run->intersection[0] - run->global_shifts[2 * i + 0]);
+		dx = (int) lround((double) run->intersection[2] - run->global_shifts[2 * i + 1]);
+	}
+
+	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata
+	 * convention has row 0 at the bottom of the displayed scene for
+	 * both native FITS and SER-after-load-time-flip). The Cairo
+	 * overlay context has y=0 at the TOP of the surface, so the row
+	 * index has to be flipped to draw at the correct vertical position. */
+	const int H = (int) gfit->ry;
+	const int hover = mpp_ap_editor_get_hover_idx();
+	const int selected = mpp_ap_editor_get_selected_idx();
+
+	/* Optional patch overlay — gated by the persistent "Show stacking
+	 * patches" toggle in the AP editor dialog. Drawn underneath the
+	 * boxes so the box outlines stay on top. Dashed cyan emphasises
+	 * that adjacent patches overlap (~25 % per neighbour), which is
+	 * where Stage C's per-AP weighted shifts cross-fade. */
+	if (mpp_ap_editor_show_patches()) {
+		cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+		cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.55);   /* cyan-ish */
+		const double dashes[2] = { 4.0 / dd->zoom, 3.0 / dd->zoom };
+		cairo_set_dash(dd->cr, dashes, 2, 0.0);
+		for (int i = 0; i < run->aps->count; ++i) {
+			const mpp_ap_record_t *ap = &run->aps->records[i];
+			const int pw = ap->patch_x_high - ap->patch_x_low;
+			const int ph = ap->patch_y_high - ap->patch_y_low;
+			if (pw <= 0 || ph <= 0) continue;
+			const int patch_y_top = (H - 1) - (ap->patch_y_low + dy) - (ph - 1);
+			cairo_rectangle(dd->cr, ap->patch_x_low + dx, patch_y_top, pw, ph);
+			cairo_stroke(dd->cr);
+		}
+		cairo_set_dash(dd->cr, NULL, 0, 0.0);   /* reset for subsequent strokes */
+	}
+
+	for (int i = 0; i < run->aps->count; ++i) {
+		const mpp_ap_record_t *ap = &run->aps->records[i];
+		if (i == selected) {
+			cairo_set_line_width(dd->cr, 2.5 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.2, 1.0, 1.0);   /* magenta — selected */
+		} else if (i == hover) {
+			cairo_set_line_width(dd->cr, 2.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange — hover */
+		} else {
+			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
+		}
+		/* Draw each AP's actual (per-AP, possibly resized/clamped) box,
+		 * not a fixed global size. Same pdata-row→display-y flip as the
+		 * patch overlay above. */
+		const int bw = ap->box_x_high - ap->box_x_low;
+		const int bh = ap->box_y_high - ap->box_y_low;
+		if (bw <= 0 || bh <= 0) continue;
+		const int box_y_top = (H - 1) - (ap->box_y_low + dy) - (bh - 1);
+		cairo_rectangle(dd->cr, ap->box_x_low + dx, box_y_top, bw, bh);
+		cairo_stroke(dd->cr);
+	}
+
+	/* Diagnostic: only when the shift viewer is open do we overlay
+	 * per-AP shift arrows. Green = Stage B converged, red = fell back
+	 * to zero shift. */
+	if (mpp_shift_viewer_is_open() && run->shifts && run->shifts->shifts) {
+		const int fv = mpp_shift_viewer_get_frame();
+		const double scale = mpp_shift_viewer_get_scale();
+		const int M = run->shifts->num_aps;
+		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
+			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);
+			const double dot_r = 1.8 / dd->zoom;
+			for (int a = 0; a < M; ++a) {
+				const mpp_ap_record_t *ap = &run->aps->records[a];
+				const size_t k = (size_t) fv * M + a;
+				const double sdy = run->shifts->shifts[2 * k + 0];
+				const double sdx = run->shifts->shifts[2 * k + 1];
+				const uint8_t ok = run->shifts->success[k];
+				if (ok)
+					cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.3, 0.9);
+				else
+					cairo_set_source_rgba(dd->cr, 1.0, 0.2, 0.2, 0.9);
+				const double x0 = ap->x + dx;
+				/* Same pdata-row→display-y flip as the box draw above;
+				 * sdy is a pdata-row delta so its display contribution
+				 * is also negated. */
+				const double y0 = (double)(H - 1) - (double)(ap->y + dy);
+				const double x1 = x0 + sdx * scale;
+				const double y1 = y0 - sdy * scale;
+				cairo_move_to(dd->cr, x0, y0);
+				cairo_line_to(dd->cr, x1, y1);
+				cairo_stroke(dd->cr);
+				/* Arrowhead: filled triangle at (x1, y1) pointing along
+				 * the arrow direction. Skip when shift is sub-pixel
+				 * tiny (would be a degenerate triangle anyway). */
+				const double mag = hypot(x1 - x0, y1 - y0);
+				if (mag > 1.5 / dd->zoom) {
+					const double ux = (x1 - x0) / mag;
+					const double uy = (y1 - y0) / mag;
+					const double head = 7.0 / dd->zoom;
+					cairo_move_to(dd->cr, x1, y1);
+					cairo_line_to(dd->cr, x1 - head * ux - 0.5 * head * uy,
+					                       y1 - head * uy + 0.5 * head * ux);
+					cairo_line_to(dd->cr, x1 - head * ux + 0.5 * head * uy,
+					                       y1 - head * uy - 0.5 * head * ux);
+					cairo_close_path(dd->cr);
+					cairo_fill(dd->cr);
+				}
+				/* Always paint a small filled dot at the AP centre so
+				 * zero/sub-pixel-shift APs are still visible. */
+				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * M_PI);
+				cairo_fill(dd->cr);
 			}
 		}
 	}

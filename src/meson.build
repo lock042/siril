@@ -313,6 +313,8 @@ gui_filenames_shared = [
   'message_dialog.c',
   'mouse_action_functions.c',
   'mouse_action_preferences.c',
+  'mpp_ap_editor.c',
+  'mpp_shift_viewer.c',
   'newdeconv.c',
   'nina_light_curve.c',
   'open_dialog.c',
@@ -360,12 +362,8 @@ gui_filenames_gtk4_only = [
   'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
 ]
 
-# Files that exist only in src/gui/ (no GTK4 counterpart).
-# The PSS planetary AP editor and shift viewer have not been ported to GTK4 yet.
-gui_filenames_gtk3_only = [
-  'mpp_ap_editor.c',
-  'mpp_shift_viewer.c',
-]
+# Files that exist only in src/gui/ (no GTK4 counterpart).  Currently none.
+gui_filenames_gtk3_only = []
 
 gui_filenames = gui_filenames_shared + (use_gtk4
   ? gui_filenames_gtk4_only

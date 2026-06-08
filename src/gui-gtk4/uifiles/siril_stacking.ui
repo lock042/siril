@@ -3,6 +3,18 @@
 <interface>
   <!-- interface-name siril_stacking.ui -->
   <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_mpp_bg_blend">
+    <property name="upper">1</property>
+    <property name="value">0.20</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_bg_fraction">
+    <property name="upper">1</property>
+    <property name="value">0.29999999999999999</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_stack_blending">
     <property name="page-increment">100</property>
     <property name="step-increment">20</property>
@@ -68,6 +80,7 @@
                                   <item translatable="yes">Median stacking</item>
                                   <item translatable="yes">Pixel maximum stacking</item>
                                   <item translatable="yes">Pixel minimum stacking</item>
+                                  <item translatable="yes">Multipoint (planetary)</item>
                                 </items>
                               </object>
                             </property>
@@ -441,6 +454,168 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             </property>
                           </object>
                         </child>
+                                                            <child>
+                                                              <object class="GtkNotebookPage">
+                                                                <property name="position">5</property>
+                                                                <property name="child">
+                                                                  <object class="GtkGrid" id="mpp_stack_page">
+                                                                    <property name="margin-start">6</property>
+                                                                    <property name="margin-end">6</property>
+                                                                    <property name="margin-top">6</property>
+                                                                    <property name="margin-bottom">6</property>
+                                                                    <property name="row-spacing">5</property>
+                                                                    <property name="column-spacing">10</property>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Scale:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">0</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkComboBoxText" id="combo_mpp_drizzle">
+                                                                        <property name="tooltip-text" translatable="1">Output scale factor. 1x produces a stack at the input resolution; 1.5x / 2x / 3x upscale during the stack. The scaling method combo below chooses how — a drizzle kernel (one-shot-colour input is debayered first) or the plain Upscale fallback.</property>
+                                                                        <property name="active">0</property>
+                                                                        <items>
+                                                                          <item translatable="yes">1x</item>
+                                                                          <item translatable="yes">1.5x</item>
+                                                                          <item translatable="yes">2x</item>
+                                                                          <item translatable="yes">3x</item>
+                                                                        </items>
+                                                                        <signal name="changed" handler="on_combo_mpp_drizzle_changed" swapped="no"/>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">0</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Stack percent:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_stack_percent">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Keep the best N% of frames for each alignment point. Default 100 — keep every included frame. Lower it for automatic culling if you haven&apos;t already filtered in the Plot tab.</property>
+                                                                        <property name="adjustment">adj_mpp_stack_percent</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">100</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Stack frames:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_stack_frames">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Exact number of best frames per alignment point; a positive value overrides Stack percent. -1 disables (use the percentage). Default -1.</property>
+                                                                        <property name="adjustment">adj_mpp_stack_frames</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">-1</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Background fraction:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">3</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_bg_fraction">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Decides full-frame vs patch-based background composition. Default 0.3.</property>
+                                                                        <property name="adjustment">adj_mpp_bg_fraction</property>
+                                                                        <property name="digits">2</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">0.29999999999999999</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">3</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Background blend:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">4</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_bg_blend">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Controls the soft fg/bg blend ramp. Default 0.2.</property>
+                                                                        <property name="adjustment">adj_mpp_bg_blend</property>
+                                                                        <property name="digits">2</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">0.20</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">4</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                  </object>
+                                                                </property>
+                                                                <property name="tab">
+                                                                  <object class="GtkLabel" id="label_mpp_stack">
+                                                                    <property name="label">page 6</property>
+                                                                  </object>
+                                                                </property>
+                                                              </object>
+                                                            </child>
                       </object>
                     </child>
                     <child>

@@ -42,6 +42,9 @@
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/keywords_tree.h"
 #include "gui-gtk4/registration.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
+#include "registration/mpp.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/stacking.h"
 #include "gui-gtk4/python_gui.h"
@@ -1069,11 +1072,24 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* undo and redo */
 	GAction *action_undo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "undo");
 	GAction *action_redo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "redo");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	/* While the AP editor is open the Undo/Redo actions are diverted to the
+	 * AP grid, so drive their enabled-state from the AP stacks; otherwise
+	 * from the image-processing history. */
+	if (mpp_ap_editor_is_open()) {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), mpp_ap_editor_can_undo());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), mpp_ap_editor_can_redo());
+	} else {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	}
 
 	/* update undo/redo button tooltips */
-	if (is_undo_available()) {
+	if (mpp_ap_editor_is_open()) {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"),
+		    mpp_ap_editor_can_undo() ? _("Undo alignment-point edit") : _("Nothing to undo"));
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"),
+		    mpp_ap_editor_can_redo() ? _("Redo alignment-point edit") : _("Nothing to redo"));
+	} else if (is_undo_available()) {
 		historic *h = (historic *) com.undo_stack->data;
 		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
@@ -1081,13 +1097,15 @@ gboolean update_MenuItem(gpointer user_data) {
 	} else {
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
-	if (is_redo_available()) {
-		historic *h = (historic *) com.redo_stack->data;
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
-		g_free(str);
-	} else {
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+	if (!mpp_ap_editor_is_open()) {
+		if (is_redo_available()) {
+			historic *h = (historic *) com.redo_stack->data;
+			gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+			g_free(str);
+		} else {
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+		}
 	}
 
 	/* save and save as */
@@ -1726,7 +1744,17 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
+	/* When a single image is loaded (incl. the stacking result), the
+	 * displayed image is gfit, which may have a different channel count
+	 * than com.seq — Bayer-drizzle/multipoint in particular produces a
+	 * 3-channel result from a mono Bayer SER sequence. Otherwise (sequence
+	 * load before gfit is updated to a frame), com.seq.nb_layers is the
+	 * authoritative count. Keying off com.seq.nb_layers here would force the
+	 * mono viewport for an RGB result whose source sequence is mono. */
+	const int displayed_layers = single_image_is_loaded()
+		? (int) gfit->naxes[2]
+		: com.seq.nb_layers;
+	if (displayed_layers == 1) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_set_visible(page, FALSE);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
@@ -2651,6 +2679,28 @@ void on_maxscale_changed(GtkRange *range, gpointer user_data) {
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
 }
 
+/* Apply a display-slider change: a slider only alters the lo/hi display
+ * cutoffs, not gfit pixel content, so we remap the display LUT and repaint —
+ * we must NOT call gfit_modified_update_gui()/end_gfit_operation(), which
+ * would call stop_processing_thread() and cancel any running background job
+ * (e.g. an in-progress registration/analysis).  remap_all() rebuilds the
+ * Cairo buffers from gfit using the current gui.lo/gui.hi; the reader trylock
+ * mirrors try_remap_for_mode_change_idle() and lets the restretch work even
+ * while a job that only reads gfit is active. (REDRAW_ALL no longer remaps
+ * since the REMAP_ALL->REDRAW_ALL rename, so the explicit remap is required.) */
+static void apply_display_slider_change(void) {
+	if (gui.sliders != USER) {
+		gui.sliders = USER;
+		sliders_mode_set_state(gui.sliders);
+	}
+	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
+		remap_all();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+}
+
 /* End-of-drag redraw for the display sliders.  Phase 18 stripped the
  * GTK3 <signal name="button-release-event"/> binding, so the user-visible
  * effect was "sliders don't do anything".  GtkScale internally claims
@@ -2663,12 +2713,7 @@ static gboolean on_display_scale_legacy_event(GtkEventControllerLegacy *ctrl,
 	(void) ctrl; (void) user_data;
 	if (gdk_event_get_event_type(event) != GDK_BUTTON_RELEASE)
 		return FALSE;   /* let the scale handle it normally */
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
@@ -2691,24 +2736,14 @@ void attach_display_scale_release_handlers(void) {
 gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	(void) widget; (void) event; (void) user_data;
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
 gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	(void) widget; (void) event; (void) user_data;
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
@@ -3140,6 +3175,15 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 		update_display_fwhm();
 }
 
+/* Repaint the overlay when the centre notebook tab changes so the MPP AP
+ * overlay (which is gated on the Registration tab in draw_mpp_aps) appears
+ * or clears immediately rather than on the next unrelated redraw. */
+void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
+		guint page_num, gpointer user_data) {
+	(void) notebook; (void) page; (void) page_num; (void) user_data;
+	redraw(REDRAW_OVERLAY);
+}
+
 struct checkSeq_filter_data {
 	int retvalue;
 };
@@ -3220,12 +3264,14 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 	gboolean cleanreg = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_reg"))));
 	gboolean cleanstat = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_stat"))));
 	gboolean cleansel = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_sel"))));
+	gboolean cleanmpp = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_mpp"))));
 
-	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
+	if ((cleanreg || cleanstat || cleansel || cleanmpp) && sequence_is_loaded()) {
 		GString *warning = g_string_new(_("This erases the following data, and there's no possible undo:\n"));
 		if (cleanreg) warning = g_string_append(warning, _("\n- Registration"));
 		if (cleanstat) warning = g_string_append(warning, _("\n- Statistics"));
 		if (cleansel) warning = g_string_append(warning, _("\n- Selection"));
+		if (cleanmpp) warning = g_string_append(warning, _("\n- Multipoint registration data (.mpp sidecar)"));
 
 		gchar *str = g_string_free(warning, FALSE);
 
@@ -3233,7 +3279,17 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		g_free(str);
 
 		if (clear) {
-			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel, cleanmpp);
+			if (cleanmpp) {
+				/* Forget any in-memory Stage-A run so the AP overlay and a
+				 * subsequent Multipoint stack don't use the deleted sidecar. */
+				mpp_clear_cached_run();
+				/* No cached run left → grey out the Edit-APs / View-shifts
+				 * buttons that depend on it. */
+				mpp_update_edit_button_sensitivity();
+				mpp_shift_viewer_update_button_sensitivity();
+				redraw(REDRAW_OVERLAY);
+			}
 			update_stack_interface(TRUE);
 			update_reg_interface(FALSE);
 			adjust_sellabel();

@@ -399,6 +399,100 @@ gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, FALSE, NULL);
 }
 
+/* Same as siril_confirm_dialog, but embeds an AVI Bayer-pattern dropdown in
+ * a custom modal window (GTK4 has no gtk_dialog_run / GtkDialog content-area
+ * append idiom). On Accept, *avi_bayer_pattern receives the selected
+ * enum mpp_avi_bayer value (0..5; 0 = Auto). Runs a nested main loop, the
+ * same synchronous pattern as run_custom_message_window. */
+gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
+		gchar *button_accept, int *avi_bayer_pattern) {
+	if (com.headless || com.script)
+		return FALSE;
+
+	GtkWindow *parent = siril_get_active_window();
+	if (!GTK_IS_WINDOW(parent)) {
+		message_dialog_init_statics();
+		parent = msg_control_window;
+	}
+	strip_last_ret_char(title);
+	strip_last_ret_char(msg);
+
+	struct custom_dlg_state st = { g_main_loop_new(NULL, FALSE), 0, NULL, FALSE };
+
+	GtkWidget *win = gtk_window_new();
+	gtk_window_set_modal(GTK_WINDOW(win), TRUE);
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(win), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(win), parent);
+	gtk_window_set_title(GTK_WINDOW(win), title ? title : "");
+	gtk_window_set_default_size(GTK_WINDOW(win), 480, -1);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+	gtk_widget_set_margin_start(vbox, 18);
+	gtk_widget_set_margin_end(vbox, 18);
+	gtk_widget_set_margin_top(vbox, 18);
+	gtk_widget_set_margin_bottom(vbox, 18);
+	gtk_window_set_child(GTK_WINDOW(win), vbox);
+
+	GtkWidget *primary = gtk_label_new(NULL);
+	gchar *primary_markup = g_markup_printf_escaped("<big><b>%s</b></big>", title ? title : "");
+	gtk_label_set_markup(GTK_LABEL(primary), primary_markup);
+	g_free(primary_markup);
+	gtk_label_set_xalign(GTK_LABEL(primary), 0);
+	gtk_label_set_wrap(GTK_LABEL(primary), TRUE);
+	gtk_box_append(GTK_BOX(vbox), primary);
+
+	if (msg) {
+		GtkWidget *sec = gtk_label_new(msg);
+		gtk_label_set_xalign(GTK_LABEL(sec), 0);
+		gtk_label_set_wrap(GTK_LABEL(sec), TRUE);
+		gtk_box_append(GTK_BOX(vbox), sec);
+	}
+
+	/* Bayer-pattern row: label + dropdown. Items mirror enum mpp_avi_bayer
+	 * ordering so the selected index is the persisted value. */
+	const char *patterns[] = { N_("Auto"), N_("None (mono)"), "RGGB", "BGGR",
+	                           "GBRG", "GRBG", NULL };
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget *label = gtk_label_new(_("AVI Bayer pattern:"));
+	GtkWidget *dropdown = gtk_drop_down_new_from_strings(patterns);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(dropdown), 0);
+	gtk_widget_set_tooltip_text(dropdown,
+		_("AVI containers carry no Bayer marker. Pick the camera's "
+		  "Bayer pattern to stamp it onto the converted SER file "
+		  "(or leave Auto for no override)."));
+	gtk_box_append(GTK_BOX(hbox), label);
+	gtk_box_append(GTK_BOX(hbox), dropdown);
+	gtk_box_append(GTK_BOX(vbox), hbox);
+
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	gtk_box_append(GTK_BOX(vbox), bbox);
+
+	GtkWidget *btn_cancel = gtk_button_new_with_mnemonic(_("_Cancel"));
+	gtk_box_append(GTK_BOX(bbox), btn_cancel);
+	g_signal_connect(btn_cancel, "clicked", G_CALLBACK(custom_dlg_cancel_cb), &st);
+
+	GtkWidget *btn_accept = gtk_button_new_with_mnemonic(button_accept ? button_accept : _("_OK"));
+	gtk_widget_add_css_class(btn_accept, "suggested-action");
+	gtk_box_append(GTK_BOX(bbox), btn_accept);
+	g_signal_connect(btn_accept, "clicked", G_CALLBACK(custom_dlg_accept_cb), &st);
+	gtk_window_set_default_widget(GTK_WINDOW(win), btn_accept);
+
+	g_signal_connect(win, "close-request", G_CALLBACK(custom_dlg_close_request_cb), &st);
+
+	gtk_window_present(GTK_WINDOW(win));
+	g_main_loop_run(st.loop);
+	g_main_loop_unref(st.loop);
+
+	if (st.result == 1 && avi_bayer_pattern) {
+		const guint v = gtk_drop_down_get_selected(GTK_DROP_DOWN(dropdown));
+		*avi_bayer_pattern = (v <= 5) ? (int) v : 0;
+	}
+
+	gtk_window_destroy(GTK_WINDOW(win));
+	return st.result == 1;
+}
+
 struct confirm_dialog_data {
     gchar *title;
     gchar *msg;

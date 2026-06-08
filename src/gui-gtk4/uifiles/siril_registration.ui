@@ -3,6 +3,65 @@
 <interface>
   <!-- interface-name siril_registration.ui -->
   <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_mpp_half_box">
+    <property name="lower">4</property>
+    <property name="upper">96</property>
+    <property name="value">24</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_brightness">
+    <property name="upper">100</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_contrast">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_min_structure">
+    <property name="upper">1</property>
+    <property name="value">0.04</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.05</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_ref_percent">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">5</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_search_global">
+    <property name="lower">4</property>
+    <property name="upper">64</property>
+    <property name="value">34</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_search_width">
+    <property name="lower">4</property>
+    <property name="upper">32</property>
+    <property name="value">14</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">2</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_stack_frames">
+    <property name="lower">-1</property>
+    <property name="upper">10000</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_stack_percent">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
   <object class="GtkAdjustment" id="adj_driz_dropsize">
     <property name="lower">0.10</property>
     <property name="page-increment">0.10</property>
@@ -776,6 +835,418 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     <property name="tab-fill">False</property>
                                   </object>
                                 </child>
+                                                                    <child>
+                                                                      <object class="GtkNotebookPage">
+                                                                        <property name="position">5</property>
+                                                                        <property name="tab-fill">False</property>
+                                                                        <property name="child">
+                                                                          <object class="GtkGrid" id="mpp_page">
+                                                                            <property name="valign">start</property>
+                                                                            <property name="margin-start">6</property>
+                                                                            <property name="margin-end">6</property>
+                                                                            <property name="margin-top">6</property>
+                                                                            <property name="margin-bottom">6</property>
+                                                                            <property name="row-spacing">5</property>
+                                                                            <property name="column-spacing">10</property>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Half-box width:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">0</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_half_box">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Per-AP half-box in pixels; the AP-grid step and half-patch derive from this. Default 24.</property>
+                                                                                <property name="adjustment">adj_mpp_half_box</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">24</property>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">0</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">AP search width:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">1</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_search_width">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Per-AP correlation search radius in pixels. Default 14.</property>
+                                                                                <property name="adjustment">adj_mpp_search_width</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">14</property>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">1</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Global search width:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_search_global">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Stage-A global alignment correlation search radius in pixels. Default 34.</property>
+                                                                                <property name="adjustment">adj_mpp_search_global</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">34</property>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Reference frame %:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">3</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_ref_percent">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Percentage of the sequence&apos;s best frames averaged into the reference frame. Applies whether or not &quot;Object is changing fast&quot; is set. Default 5.</property>
+                                                                                <property name="adjustment">adj_mpp_ref_percent</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">5</property>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">3</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkCheckButton" id="check_mpp_fast_changing">
+                                                                                <property name="label" translatable="1">Object is changing fast</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Build the reference frame from the best frames within a short contiguous interval, so a fast-changing object (e.g. a rotating planet) is less blurred. Off by default.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">3</property>
+                                                                                  <property name="column-span">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Min brightness:</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">0</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_min_brightness">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">APs whose brightest pixel falls below this are rejected. 0..255 scale, auto-scaled for 16-bit input. Default 10.</property>
+                                                                                <property name="adjustment">adj_mpp_min_brightness</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">10</property>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">0</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Min contrast:</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">1</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_min_contrast">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Minimum (max - min) over an AP box; APs below this contrast are rejected. 0..255 scale. Default 0 (off).</property>
+                                                                                <property name="adjustment">adj_mpp_min_contrast</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">1</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Min structure:</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_min_structure">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Normalised gradient magnitude minimum (0..1) — APs with weaker structure are rejected. Default 0.04.</property>
+                                                                                <property name="adjustment">adj_mpp_min_structure</property>
+                                                                                <property name="digits">3</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">0.04</property>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel" id="label_mpp_avi_bayer">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">AVI Bayer pattern:</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">5</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkComboBoxText" id="combo_mpp_avi_bayer">
+                                                                                <property name="tooltip-text" translatable="1">AVI files carry no colour-filter (Bayer) marker, so Siril can&apos;t tell a mono video from a one-shot-colour one. Auto lets Siril guess. None forces mono. The four Bayer values mark the video as raw one-shot-colour with that filter pattern, so Siril debayers it to colour before stacking.</property>
+                                                                                <property name="active">0</property>
+                                                                                <items>
+                                                                                  <item translatable="yes">Auto</item>
+                                                                                  <item translatable="yes">None (mono)</item>
+                                                                                  <item translatable="yes">RGGB</item>
+                                                                                  <item translatable="yes">BGGR</item>
+                                                                                  <item translatable="yes">GBRG</item>
+                                                                                  <item translatable="yes">GRBG</item>
+                                                                                </items>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">5</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkCheckButton" id="check_mpp_dewarp">
+                                                                                <property name="label" translatable="1">De-warp per-AP shifts</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">When off, all APs use the same single best-frame shift instead of per-AP shifts. Default on.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <property name="active">1</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">6</property>
+                                                                                  <property name="column-span">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkCheckButton" id="check_mpp_normalize">
+                                                                                <property name="label" translatable="1">Brightness-normalise quality</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Make each frame&apos;s quality score independent of exposure and transparency changes by normalising it against the frame&apos;s brightness. Default on.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <property name="active">1</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">6</property>
+                                                                                  <property name="column-span">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Stack percent:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">4</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_reg_stack_percent">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Percentage of the best frames each alignment point stacks, applied during registration. Shares its value with the Stack tab&apos;s Stack percent — setting a smaller value here makes registration do less work and produces a smaller saved file. You can reduce it further at stack time, but not increase it.</property>
+                                                                                <property name="adjustment">adj_mpp_stack_percent</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">100</property>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">4</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Stack frames:</property>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">4</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkSpinButton" id="spin_mpp_reg_stack_frames">
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Exact number of best frames each alignment point stacks, applied during registration. A positive value overrides Stack percent; -1 disables (use the percentage). Shares its value with the Stack tab&apos;s Stack frames.</property>
+                                                                                <property name="adjustment">adj_mpp_stack_frames</property>
+                                                                                <property name="numeric">1</property>
+                                                                                <property name="value">-1</property>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">4</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkLabel" id="label_mpp_align_mode">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="label" translatable="1">Alignment mode:</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">5</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkComboBoxText" id="combo_mpp_align_mode">
+                                                                                <property name="tooltip-text" translatable="1">Global frame alignment. Planet (default) aligns on the brightness centroid — robust for a full disc on a dark background. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface).</property>
+                                                                                <property name="active">1</property>
+                                                                                <items>
+                                                                                  <item translatable="yes">Surface (detail)</item>
+                                                                                  <item translatable="yes">Planet (disc)</item>
+                                                                                </items>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">5</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkCheckButton" id="check_mpp_seed">
+                                                                                <property name="label" translatable="1">Seed from existing registration</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Use the sequence&apos;s existing shift registration data (if any) to pre-centre each frame&apos;s global-alignment search. Lets jumpy video whose drift exceeds the global search width align correctly. Default on; ignored when the sequence has no registration data.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <property name="active">1</property>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">7</property>
+                                                                                  <property name="column-span">4</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkButton" id="button_mpp_analyze">
+                                                                                <property name="label" translatable="1">Analyze</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="receives-default">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Run the first pass only: rank frames by quality, align them, build the reference frame, and place alignment points automatically. This fills in the per-frame quality (shown in the frame selector / plot tab) so you can review and filter before running the heavier per-alignment-point step with Go register.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <signal name="clicked" handler="on_seqmpp_analyze_button_clicked" swapped="no"/>
+                                                                                <style>
+                                                                                  <class name="suggested-action"/>
+                                                                                </style>
+                                                                                <layout>
+                                                                                  <property name="column">0</property>
+                                                                                  <property name="row">8</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkButton" id="button_mpp_edit_aps">
+                                                                                <property name="label" translatable="1">Edit APs…</property>
+                                                                                <property name="sensitive">0</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="receives-default">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Open the Alignment Points editor. Available after Analyze has placed an AP grid. Lets you re-run automatic placement with different parameters, clear all APs, or (in the editor) add/remove/move individual APs by clicking on the reference image.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <signal name="clicked" handler="on_seqmpp_edit_aps_button_clicked" swapped="no"/>
+                                                                                <layout>
+                                                                                  <property name="column">1</property>
+                                                                                  <property name="row">8</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkButton" id="button_mpp_view_shifts">
+                                                                                <property name="label" translatable="1">View shifts…</property>
+                                                                                <property name="sensitive">0</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="receives-default">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Open the shift viewer. Available after Register has computed the per-alignment-point shifts. Draws an arrow on each alignment point showing where its content was found in the selected frame (with an adjustable scale). Green = a match was found; red = fell back to no shift.</property>
+                                                                                <property name="halign">start</property>
+                                                                                <signal name="clicked" handler="on_seqmpp_view_shifts_button_clicked" swapped="no"/>
+                                                                                <layout>
+                                                                                  <property name="column">2</property>
+                                                                                  <property name="row">8</property>
+                                                                                  <property name="column-span">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                            <child>
+                                                                              <placeholder/>
+                                                                            </child>
+                                                                          </object>
+                                                                        </property>
+                                                                      </object>
+                                                                    </child>
                               </object>
                             </child>
                           </object>

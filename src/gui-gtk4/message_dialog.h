@@ -29,4 +29,9 @@ gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept);
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data);
 gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text, gchar *button_accept, gchar *data);
 gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_accept);
+/* Same as siril_confirm_dialog, but also embeds an AVI Bayer-pattern
+ * dropdown. On Accept, fills *avi_bayer_pattern with an `enum mpp_avi_bayer`
+ * value (0..5; 0 = Auto). */
+gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
+		gchar *button_accept, int *avi_bayer_pattern);
 #endif
