@@ -953,10 +953,6 @@ static void impl_free_reference_image_display(void) {
 		free(gui.refimage_regbuffer);
 		gui.refimage_regbuffer = NULL;
 	}
-	if (gui.refimage_surface) {
-		cairo_surface_destroy(gui.refimage_surface);
-		gui.refimage_surface = NULL;
-	}
 }
 
 static psf_star *impl_get_qphot_result(void) {

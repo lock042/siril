@@ -2,8 +2,8 @@
 option('gtk',
  type : 'combo',
  choices : ['false', 'gtk3', 'gtk4'],
- value : 'gtk3',
- description: 'GTK GUI build: gtk3 (default) or gtk4 builds the siril GUI executable against that toolkit; false produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps).  The gtk4 backend lives in src/gui-gtk4 and is a parallel implementation; src/gui is the gtk3 default.'
+ value : 'gtk4',
+ description: 'GTK GUI build: gtk4 (default) or gtk3 builds the siril GUI executable against that toolkit; false produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps).  The gtk4 backend lives in src/gui-gtk4 and is a parallel implementation; src/gui is the gtk3 build.'
 )
 
 option('relocatable-bundle',

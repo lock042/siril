@@ -23,12 +23,20 @@
 #include "io/sequence.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/registration_preview.h"
 #include "gui-gtk4/sequence_list.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
+
+/* Dimensions of the persisted reference-frame pixel buffer
+ * (gui.refimage_regbuffer).  The buffer holds the whole reference frame's
+ * display pixels (a plain malloc — no Cairo size limit); only small windows
+ * of it are ever turned into Cairo surfaces, in make_ref_window().  Valid
+ * only while gui.refimage_regbuffer != NULL. */
+static int ref_w = 0, ref_h = 0, ref_stride = 0;
 
 static GtkCheckButton *regprev_check_display_ref = NULL;
 static GtkWidget *regprev_label_regref = NULL;
@@ -51,6 +59,54 @@ static void registration_preview_init_statics(void) {
 	regprev_seq_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
 }
 
+/* Build a w×h RGB24 surface holding the image-space window (ox, oy) of
+ * viewport `vport`'s live display buffer, materialising only the tiles it
+ * covers.  Pixels outside the image stay black.  Caller owns the surface. */
+static cairo_surface_t *make_view_window(int vport, int ox, int oy, int w, int h) {
+	if (w <= 0 || h <= 0)
+		return NULL;
+	cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+	if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(surf);
+		return NULL;
+	}
+	cairo_surface_flush(surf);
+	guchar *data = cairo_image_surface_get_data(surf);
+	const int stride = cairo_image_surface_get_stride(surf);
+	memset(data, 0, (size_t) stride * h);
+	siril_image_view_copy_region(vport, ox, oy, w, h, data, stride);
+	cairo_surface_mark_dirty(surf);
+	return surf;
+}
+
+/* As make_view_window, but the source is the persisted reference buffer
+ * (gui.refimage_regbuffer) rather than a live viewport. */
+static cairo_surface_t *make_ref_window(int ox, int oy, int w, int h) {
+	if (!gui.refimage_regbuffer || ref_w <= 0 || ref_h <= 0 || w <= 0 || h <= 0)
+		return NULL;
+	cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+	if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(surf);
+		return NULL;
+	}
+	cairo_surface_flush(surf);
+	guchar *data = cairo_image_surface_get_data(surf);
+	const int stride = cairo_image_surface_get_stride(surf);
+	memset(data, 0, (size_t) stride * h);
+	const int ix0 = MAX(0, ox);
+	const int ix1 = MIN(ref_w, ox + w);
+	for (int row = 0; row < h; row++) {
+		const int iy = oy + row;
+		if (iy < 0 || iy >= ref_h || ix1 <= ix0)
+			continue;
+		memcpy(data + (size_t) row * stride + (size_t)(ix0 - ox) * 4,
+		       gui.refimage_regbuffer + (size_t) iy * ref_stride + (size_t) ix0 * 4,
+		       (size_t)(ix1 - ix0) * 4);
+	}
+	cairo_surface_mark_dirty(surf);
+	return surf;
+}
+
 /* GtkDrawingAreaDrawFunc — was the GTK3 "draw" signal handler bound
  * from siril.ui on drawingarea_reg_manual_preview1/2.  GTK4 dropped
  * that signal; the new way is gtk_drawing_area_set_draw_func() with
@@ -60,14 +116,11 @@ void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
                     int width, int height, gpointer data) {
 	GtkWidget *widget = GTK_WIDGET(area);
 	int current_preview, shiftx = 0, shifty = 0;
-	guint area_width = (guint) width;
-	guint area_height = (guint) height;
+	const int area_width = width;
+	const int area_height = height;
 	gboolean display_ref_image;
 
 	registration_preview_init_statics();
-	display_ref_image = gui.refimage_regbuffer && gui.refimage_surface
-			&& siril_toggle_get_active(GTK_WIDGET(regprev_check_display_ref))
-							&& !gtk_widget_get_visible(regprev_label_regref);
 
 	if (widget == gui.preview_area[0]) current_preview = 0;
 	else if (widget == gui.preview_area[1]) current_preview = 1;
@@ -79,12 +132,12 @@ void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
 	com.seq.previewW[current_preview] = area_width;
 	com.seq.previewH[current_preview] = area_height;
 
-	/* fill preview bacground */
+	/* fill preview background */
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
 
-	/* display current image with shifts */
-	if (!gui.preview_surface[current_preview]) {
+	/* No preview centre selected yet: show the placeholder label. */
+	if (com.seq.previewX[current_preview] < 0) {
 		(void) gtk_widget_get_state_flags(widget);
 		PangoLayout *layout;
 		gchar *msg;
@@ -122,8 +175,11 @@ void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
 		g_object_unref(layout);
 		return;
 	}
-	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
-			area_height/2.0-com.seq.previewY[current_preview]);
+
+	display_ref_image = gui.refimage_regbuffer
+			&& siril_toggle_get_active(GTK_WIDGET(regprev_check_display_ref))
+			&& !gtk_widget_get_visible(regprev_label_regref);
+
 	int cvport = select_vport(gui.cvport);
 	if (com.seq.regparam && com.seq.regparam[cvport]) {
 		double dx, dy;
@@ -139,20 +195,36 @@ void redraw_preview(GtkDrawingArea *area, cairo_t *cr,
 			shifty += 1;
 		}
 	}
-	if (shiftx || shifty)
-		cairo_translate(cr, shiftx, -shifty);
-	cairo_set_source_surface(cr, gui.preview_surface[current_preview], 0, 0);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
 
-	/* display reference image */
-	if (display_ref_image) {
-		/* already translated above but undo the shift translate */
-		if (shiftx || shifty)
-			cairo_translate(cr, -shiftx, shifty);
-		cairo_set_source_surface(cr, gui.refimage_surface, 0, 0);
+	const int pX = com.seq.previewX[current_preview];
+	const int pY = com.seq.previewY[current_preview];
+
+	/* Current image: render exactly the visible window from the live
+	 * display buffer.  The window origin folds in the registration shift so
+	 * the geometry matches the former full-image-surface + translate path. */
+	cairo_surface_t *cur_surf = make_view_window(gui.cvport,
+			pX - shiftx - area_width / 2,
+			pY + shifty - area_height / 2,
+			area_width, area_height);
+	if (cur_surf) {
+		cairo_set_source_surface(cr, cur_surf, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-		cairo_paint_with_alpha(cr, 0.5);
+		cairo_paint(cr);
+		cairo_surface_destroy(cur_surf);
+	}
+
+	/* Reference overlay (unshifted), from the persisted reference buffer. */
+	if (display_ref_image) {
+		cairo_surface_t *ref_surf = make_ref_window(
+				pX - area_width / 2,
+				pY - area_height / 2,
+				area_width, area_height);
+		if (ref_surf) {
+			cairo_set_source_surface(cr, ref_surf, 0, 0);
+			cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
+			cairo_paint_with_alpha(cr, 0.5);
+			cairo_surface_destroy(ref_surf);
+		}
 	}
 }
 
@@ -164,45 +236,35 @@ void test_and_allocate_reference_image(int vport) {
 
 	if (sequence_is_loaded() && com.seq.current == com.seq.reference_image
 			&& gtk_drop_down_get_selected(regprev_layer_combo) == vport && vport < gfit->naxes[2]) {
-		/* this is the registration layer and the reference frame,
-		 * save the buffer for alignment preview */
-		struct image_view *view = &gui.view[vport];
-		/* Use actual surface dimensions — may be smaller than gfit when the
-		 * image exceeds Cairo's 32767-px limit (gui.surface_scale < 1.0). */
-		const int surf_h = view->buf_height;
-		const int surf_w = view->buf_stride / 4; /* stride = sw*4 for RGB24 */
-		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
-			guchar *oldbuf = gui.refimage_regbuffer;
-			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
-					view->buf_stride * surf_h * sizeof(guchar));
-			if (gui.refimage_regbuffer == NULL) {
-				PRINT_ALLOC_ERR;
-				if (oldbuf)
-					free(oldbuf);
-				return;
-			}
-
-			if (gui.refimage_surface)
-				cairo_surface_destroy(gui.refimage_surface);
-			gui.refimage_surface = cairo_image_surface_create_for_data(
-					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, surf_w,
-					surf_h, view->buf_stride);
-			if (cairo_surface_status(gui.refimage_surface)
-					!= CAIRO_STATUS_SUCCESS) {
-				fprintf(stderr,
-						"Error creating the Cairo image surface for the reference image.\n");
-				cairo_surface_destroy(gui.refimage_surface);
-				gui.refimage_surface = NULL;
-			} else {
-				fprintf(stdout,
-						"Saved the reference frame buffer for alignment preview.\n");
-				enable_view_reference_checkbox(TRUE);
-			}
+		/* This is the registration layer and the reference frame: persist
+		 * its display pixels for the alignment preview.  We keep a full
+		 * pixel copy (a plain malloc, no Cairo size limit) and assemble it
+		 * with siril_image_view_copy_region so it works in lazy mode too
+		 * (where there is no contiguous view->buf); only small windows of
+		 * it are later turned into Cairo surfaces in make_ref_window(). */
+		const int rx = (int) gfit->rx;
+		const int ry = (int) gfit->ry;
+		const int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, rx);
+		guchar *newbuf = realloc(gui.refimage_regbuffer, (size_t) stride * ry);
+		if (newbuf == NULL) {
+			PRINT_ALLOC_ERR;
+			return;
 		}
-		memcpy(gui.refimage_regbuffer, view->buf,
-				view->buf_stride * surf_h * sizeof(guchar));
-		cairo_surface_flush(gui.refimage_surface);
-		cairo_surface_mark_dirty(gui.refimage_surface);
+		gui.refimage_regbuffer = newbuf;
+		ref_w = rx;
+		ref_h = ry;
+		ref_stride = stride;
+		memset(gui.refimage_regbuffer, 0, (size_t) stride * ry);
+		if (!siril_image_view_copy_region(vport, 0, 0, rx, ry,
+				gui.refimage_regbuffer, stride)) {
+			fprintf(stderr, "Error capturing the reference image for alignment preview.\n");
+			free(gui.refimage_regbuffer);
+			gui.refimage_regbuffer = NULL;
+			ref_w = ref_h = ref_stride = 0;
+			return;
+		}
+		fprintf(stdout, "Saved the reference frame buffer for alignment preview.\n");
+		enable_view_reference_checkbox(TRUE);
 	}
 }
 
@@ -215,57 +277,30 @@ gboolean redraw_previews(gpointer user_data) {
 }
 
 void clear_previews() {
-	/* free alignment preview data */
-	for (int i = 0; i < PREVIEW_NB; i++) {
-		if (gui.preview_surface[i]) {
-			cairo_surface_destroy(gui.preview_surface[i]);
-			gui.preview_surface[i] = NULL;
-		}
-	}
-
 	registration_preview_init_statics();
+	for (int i = 0; i < PREVIEW_NB; i++) {
+		com.seq.previewX[i] = -1;
+		com.seq.previewY[i] = -1;
+		com.seq.previewW[i] = 0;
+		com.seq.previewH[i] = 0;
+		if (gui.preview_area[i])
+			gtk_widget_queue_draw(gui.preview_area[i]);
+	}
 	siril_toggle_set_active(GTK_WIDGET(regprev_toggle1), FALSE);
 	siril_toggle_set_active(GTK_WIDGET(regprev_toggle2), FALSE);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {
-	/* equivalent to remap() for full image visualization, called in the
-	 * mouse click callback and image change.
-	 * load the preview area from reference image, from current image,
-	 * sets the cairo_surface_t */
-	guint area_width = gtk_widget_get_width (gui.preview_area[preview_area]);
-	guint area_height = gtk_widget_get_height (gui.preview_area[preview_area]);
-
+	/* Records the preview centre; the visible window is rendered on demand
+	 * in redraw_preview() from the live display buffer (and, for the
+	 * overlay, the persisted reference buffer).  Called from the mouse
+	 * click callback and on image change. */
 	com.seq.previewX[preview_area] = centerX;
 	com.seq.previewY[preview_area] = centerY;
-	com.seq.previewW[preview_area] = area_width;
-	com.seq.previewH[preview_area] = area_height;
+	com.seq.previewW[preview_area] = gtk_widget_get_width(gui.preview_area[preview_area]);
+	com.seq.previewH[preview_area] = gtk_widget_get_height(gui.preview_area[preview_area]);
 
-	struct image_view *view = &gui.view[gui.cvport];
-	/* Surface dimensions may be smaller than gfit when gui.surface_scale < 1. */
-	const int surf_h = view->buf_height;
-	const int surf_w = view->buf_stride / 4;
-	if (!gui.preview_surface[preview_area] ||
-			cairo_image_surface_get_width(gui.preview_surface[preview_area]) != surf_w ||
-			cairo_image_surface_get_height(gui.preview_surface[preview_area]) != surf_h) {
-		if (gui.preview_surface[preview_area])
-			cairo_surface_destroy(gui.preview_surface[preview_area]);
-		gui.preview_surface[preview_area] =
-			cairo_image_surface_create_for_data(view->buf,
-					CAIRO_FORMAT_RGB24,
-					surf_w, surf_h,
-					view->buf_stride);
-		if (cairo_surface_status(gui.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
-			fprintf(stderr, "Error creating the Cairo image surface for preview %d\n", preview_area);
-			cairo_surface_destroy(gui.preview_surface[preview_area]);
-			gui.preview_surface[preview_area] = NULL;
-		}
-	}
-	// queue for redraw
 	gtk_widget_queue_draw(gui.preview_area[preview_area]);
-	// flush to ensure all writing to the image was done and redraw the surface
-	//cairo_surface_flush (com.preview_surface[preview_area]);
-	//cairo_surface_mark_dirty (com.preview_surface[preview_area]);
 }
 
 void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
@@ -286,8 +321,6 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 				preview_area = 0;
 			else
 				preview_area = 1;
-			cairo_surface_destroy(gui.preview_surface[preview_area]);
-			gui.preview_surface[preview_area] = NULL;
 			com.seq.previewX[preview_area] = -1;
 			com.seq.previewY[preview_area] = -1;
 			com.seq.previewH[preview_area] = 0;

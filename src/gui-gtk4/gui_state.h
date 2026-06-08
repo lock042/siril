@@ -89,6 +89,10 @@ struct image_tile {
 	gsize       bytes;       /* size in bytes of tile->data when materialised; tracks the
 	                          * actual allocation so tile_release returns the right amount
 	                          * to lazy_bytes_used regardless of mip/edge size. */
+	gboolean    building;    /* lazy-mode claim: a materialise worker has picked this tile
+	                          * and is filling it.  Set/cleared under gui.cairo_mutex so
+	                          * parallel workers never grab the same tile.  The existing
+	                          * texture (if any) stays displayable while building. */
 };
 
 struct image_view {
@@ -115,18 +119,23 @@ struct image_view {
 	guchar           *buf;
 	GBytes           *buf_gbytes;
 
-	/* Background materialise worker (lazy mode).  The heavy per-pixel tile
-	 * fill runs on a shared single-thread GThreadPool rather than the GTK
-	 * main thread, so neither the fill nor cairo_mutex contention can stall
-	 * rendering.  worker_active (set under cairo_mutex) is a dedupe flag: the
-	 * snapshot pushes a job only when no worker is already churning this view.
+	/* Background materialise workers (lazy mode).  The heavy per-pixel tile
+	 * fill runs on a GThreadPool rather than the GTK main thread, so neither
+	 * the fill nor cairo_mutex contention can stall rendering.  Several workers
+	 * run in parallel: each holds only gfit's reader lock during the fill and
+	 * claims a tile via image_tile.building under cairo_mutex, so they fill
+	 * different tiles concurrently.  workers_active (maintained under
+	 * cairo_mutex) counts this view's in-flight jobs; the snapshot tops it up
+	 * to the desired thread count.  redraw_pending (atomic) coalesces the
+	 * per-tile "tile landed, redraw" requests into at most one queued redraw.
 	 * generation is bumped whenever the tile grid is reallocated; the worker
 	 * stamps each job with it and discards a finished texture whose generation
 	 * no longer matches (the grid moved under it).  wk_target_mip and
 	 * render_neg are the bits of render state the worker can't compute itself
 	 * off the main thread (zoom/widget size, GAction state); the snapshot
 	 * records them under cairo_mutex each frame for the worker to read. */
-	gboolean          worker_active;
+	int               workers_active;
+	gint              redraw_pending;
 	guint             generation;
 	/* Bumped by every lazy invalidate (LUT change).  A worker job captures it
 	 * alongside its LUT pointers and discards its finished texture if it changed
@@ -231,10 +240,12 @@ struct guiinf {
 	double            rotation;
 
 	/*** alignment preview ***/
-	cairo_surface_t  *preview_surface[PREVIEW_NB];
 	GtkWidget        *preview_area[PREVIEW_NB];
+	/* Whole reference frame's display pixels (plain malloc, no Cairo size
+	 * limit).  Small windows of it are turned into surfaces on demand in
+	 * registration_preview.c; the preview/current windows are likewise built
+	 * per-redraw, so no full-image Cairo surface is ever allocated. */
 	guchar           *refimage_regbuffer;
-	cairo_surface_t  *refimage_surface;
 
 	int               file_ext_filter;
 

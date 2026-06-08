@@ -2864,6 +2864,10 @@ void gtk_main_quit() {
 	 * idle, main thread waits for the write lock. */
 	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
 	siril_log_status(_("### Application Quit ###\n\nShutting down the processing subsystem..."));
+	/* Suppress display refreshes (histogram recompute + full remap) triggered
+	 * by the teardown below — the window is going away, so they are wasted work
+	 * and noticeably laggy with a large image loaded. */
+	com.quitting = TRUE;
 	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
 		if (g_main_context_pending(g_main_context_default()))
 			g_main_context_iteration(g_main_context_default(), FALSE);
