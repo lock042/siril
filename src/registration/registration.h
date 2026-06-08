@@ -144,6 +144,10 @@ struct registration_args {
 	gboolean load_new_sequence;	// load the new sequence if success
 	struct wcsprm* wcsref;	// wcslib struct of the reference image, to recompute values for registered images
 	gchar *new_seq_name;
+	gchar *external_ref_path;	// path to external reference image (global reg only)
+	gboolean use_external_ref;	// TRUE: all sequence images aligned to external ref
+	unsigned int external_ref_rx, external_ref_ry; // dimensions of the external reference image (for global/apply reg only)
+	disto_data *disto_ext;			// undistortion information for an external reference
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,

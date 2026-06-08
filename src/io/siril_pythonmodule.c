@@ -1838,6 +1838,11 @@ static gboolean handle_client_communication(Connection *conn) {
 			conn->is_connected = FALSE;
 			g_mutex_unlock(&conn->mutex);
 
+			/* A client disconnect is not necessarily the end of the script:
+			 * a single Python process may disconnect and reconnect on the same
+			 * socket (e.g. an early CLI-mode probe).  Loop back into
+			 * wait_for_client() and only stop when the process actually exits
+			 * (signalled via should_stop by the teardown path). */
 			DisconnectNamedPipe(conn->pipe_handle);
 			return TRUE;
 		}
@@ -1861,6 +1866,11 @@ static gboolean handle_client_communication(Connection *conn) {
 			conn->is_connected = FALSE;
 			g_mutex_unlock(&conn->mutex);
 
+			/* A client disconnect is not necessarily the end of the script:
+			 * a single Python process may disconnect and reconnect on the same
+			 * socket (e.g. an early CLI-mode probe).  Loop back into
+			 * wait_for_client() and only stop when the process actually exits
+			 * (signalled via should_stop by the teardown path). */
 			close(conn->client_fd);
 			conn->client_fd = -1;
 			return TRUE;
@@ -1902,17 +1912,105 @@ static void cleanup_connection(Connection *conn) {
 	g_free(conn);
 }
 
+/* Ask a running connection_worker to exit.  Does NOT free conn — that is done
+ * by teardown_connection() once the worker has been joined.  Sets should_stop
+ * and breaks a blocking wait_for_client()/read() so the worker leaves its loop.
+ * Safe to call concurrently with the worker because the teardown owner holds
+ * conn alive until after it joins the worker. */
+static void signal_connection_stop(Connection *conn) {
+	if (!conn)
+		return;
+	g_mutex_lock(&conn->mutex);
+	conn->should_stop = TRUE;
+	conn->is_connected = FALSE;
+	g_mutex_unlock(&conn->mutex);
+#ifdef _WIN32
+	/* Cancel a blocking ConnectNamedPipe()/ReadFile() so the worker wakes. */
+	if (conn->pipe_handle != INVALID_HANDLE_VALUE)
+		CancelIoEx(conn->pipe_handle, NULL);
+#else
+	/* Break a blocking accept() on the listening socket, and a blocking read()
+	 * on a still-connected client, so the worker re-checks should_stop. */
+	if (conn->server_fd > 0)
+		shutdown(conn->server_fd, SHUT_RDWR);
+	if (conn->client_fd > 0)
+		shutdown(conn->client_fd, SHUT_RDWR);
+#endif
+}
+
+/* Final teardown of conn.  MUST be called only after the connection_worker
+ * thread has been joined, so this is the sole remaining user of conn.  Releases
+ * the processing thread if the script died holding it, frees shm and frees conn.
+ */
+static void teardown_connection(Connection *conn) {
+	if (!conn)
+		return;
+	if (conn->thread_claimed) {
+		/* Script exited/was killed without releasing the processing thread;
+		 * release it now so the queue can drain and the busy state clears. */
+		python_releases_thread();
+		conn->thread_claimed = FALSE;
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	}
+	cleanup_shm_resources(conn);
+	cleanup_connection(conn);  /* closes sockets, unlinks, clears mutex/cond, frees conn */
+}
+
+typedef struct {
+	Connection *conn;
+	GThread *worker;
+} python_teardown_data;
+
+/* Detached helper: stop the worker, join it, then tear conn down.  Used when
+ * teardown is triggered from the GTK main loop (the child-watch), where joining
+ * inline would deadlock a worker blocked in execute_idle_and_wait_for_it. */
+static gpointer python_teardown_worker(gpointer p) {
+	python_teardown_data *d = (python_teardown_data*)p;
+	signal_connection_stop(d->conn);
+	if (d->worker)
+		g_thread_join(d->worker);
+	teardown_connection(d->conn);
+	g_free(d);
+	return NULL;
+}
+
+/* Tear down a connection + its worker thread.  conn is never freed by the
+ * worker itself; this is the single owner of the free, and it always joins the
+ * worker first so nothing can use conn afterwards.  When called on the GTK main
+ * thread the join is deferred to a detached helper to avoid deadlocking against
+ * a processing job that needs the main loop. */
+static void teardown_connection_and_worker(Connection *conn, GThread *worker) {
+	if (!conn)
+		return;
+	if (g_main_context_is_owner(g_main_context_default())) {
+		python_teardown_data *d = g_new0(python_teardown_data, 1);
+		d->conn = conn;
+		d->worker = worker;
+		g_thread_unref(g_thread_new("python-teardown", python_teardown_worker, d));
+	} else {
+		signal_connection_stop(conn);
+		if (worker)
+			g_thread_join(worker);
+		teardown_connection(conn);
+	}
+}
+
 static gpointer connection_worker(gpointer data) {
 	Connection *conn = (Connection*)data;
 	siril_log_debug("Python communication initialized...\n");
 	while (!conn->should_stop) {
 		if (wait_for_client(conn)) {
 			handle_client_communication(conn);
-		} else {
+		} else if (!conn->should_stop) {
 			// Wait before retrying
 			g_usleep(1000000);  // 1 second
 		}
 	}
+	/* Do NOT free conn here: a single owner (teardown_connection_and_worker)
+	 * frees it after joining this thread.  The worker keeps looping back into
+	 * wait_for_client() across client disconnects (reconnection is supported)
+	 * and only leaves the loop when should_stop is set by the teardown path on
+	 * process exit. */
 	siril_log_message(_("Python communication worker finished...\n"));
 	return NULL;
 }
@@ -5022,49 +5120,12 @@ void initialize_python_venv_in_thread() {
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {
-	if (commstate->python_conn) {
-		cleanup_connection(commstate->python_conn);
-		commstate->python_conn = NULL;
-	}
-
-	if (commstate->worker_thread) {
-		g_thread_join(commstate->worker_thread);
-		commstate->worker_thread = NULL;
-	}
-}
-
-// Synchronously tear down the python comms in execute_python_script's
-// error paths.
-//
-// Without this, the error branches that ran AFTER `g_thread_new(
-// "python-comm", connection_worker, commstate.python_conn)` would call
-// `free(commstate.python_conn)` while the worker thread was still alive
-// and reading from that same pointer — a UAF window. The fix is the
-// standard signal-and-join pattern:
-//
-//   1. cleanup_connection() signals conn->should_stop = TRUE and closes
-//      the pipe / socket FDs the worker is blocked on, so the worker's
-//      next read returns and it exits its loop.
-//   2. g_thread_join() blocks until the worker has fully returned.
-//   3. Only then is it safe to release SHM tracking and free the conn
-//      struct.
-//
-// Safe to call with worker_thread == NULL (early failure before the
-// worker was spawned) and with python_conn == NULL (defensive).
-static void teardown_python_comms_in_error_path(CommunicationState *cs) {
-	if (!cs) return;
-	if (cs->python_conn) {
-		cleanup_connection(cs->python_conn);
-	}
-	if (cs->worker_thread) {
-		g_thread_join(cs->worker_thread);
-		cs->worker_thread = NULL;
-	}
-	if (cs->python_conn) {
-		cleanup_shm_resources(cs->python_conn);
-		free(cs->python_conn);
-		cs->python_conn = NULL;
-	}
+	/* Single-owner teardown: stop the worker, join it, then free conn.  When
+	 * called on the GTK main thread the join is deferred to a detached helper
+	 * to avoid deadlocking against a processing job that needs the main loop. */
+	teardown_connection_and_worker(commstate->python_conn, commstate->worker_thread);
+	commstate->python_conn = NULL;
+	commstate->worker_thread = NULL;
 }
 
 typedef struct {
@@ -5072,6 +5133,7 @@ typedef struct {
     GPid child_pid;        // Process ID of the spawned Python process
     gboolean is_temp_file; // Flag indicating if file should be deleted after execution
     Connection *python_conn; // Python connection for cleanup
+    GThread *worker_thread;  // Comm worker to join before freeing python_conn
 } python_cleanup_info;
 
 static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
@@ -5113,20 +5175,14 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 			}
 		}
 
-		// Clean up shared memory resources if connection exists
-		if (cleanup->python_conn) {
-			// If we had the python thread lock and failed to release it, release it now
-			if (cleanup->python_conn->thread_claimed) {
-				python_releases_thread(); /* also calls set_cursor_waiting(FALSE) */
-				gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-			}
-
-			// Clean up shared memory resources
-			cleanup_shm_resources(cleanup->python_conn);
-
-			// Clean up the Connection
-			free(cleanup->python_conn);
-		}
+		/* The Python process has exited, so the comm worker can be stopped and
+		 * conn torn down.  teardown_connection_and_worker() joins the worker
+		 * before freeing conn (deferred to a helper thread when we are on the
+		 * GTK main loop, as we are here in the async child-watch), so no command
+		 * still executing on the worker can use freed memory. */
+		teardown_connection_and_worker(cleanup->python_conn, cleanup->worker_thread);
+		cleanup->python_conn = NULL;
+		cleanup->worker_thread = NULL;
 
 		// Remove from children list
 		remove_child_from_children(cleanup->child_pid);
@@ -5292,10 +5348,8 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (!commstate.worker_thread) {
 		siril_log_error(_("Error: Python worker thread not available.\n"));
 		// teardown handles the conn struct free (the worker never started
-		// so there's no thread to join). Previously we only called
-		// cleanup_connection here, which signalled stop + closed FDs but
-		// leaked the conn struct itself.
-		teardown_python_comms_in_error_path(&commstate);
+		// so there's no thread to join, and worker_thread is NULL here).
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
@@ -5309,7 +5363,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	gchar** env = g_get_environ();
 	if (!env) {
 		siril_log_error(_("Error: failed to get environment variables.\n"));
-		teardown_python_comms_in_error_path(&commstate);
+		/* The worker thread is running (idle in accept(), no command in
+		 * flight); stop it, join it and free conn. */
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 		}
@@ -5414,8 +5470,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	gint stdout_fd, stderr_fd;
 	if (!python_path) {
 		siril_log_error(_("Error finding venv python path, unable to spawn python.\n"));
-		// Clean up on error
-		teardown_python_comms_in_error_path(&commstate);
+		// Clean up on error.  The worker thread is running (idle in accept(),
+		// no command in flight); stop it, join it and free conn.
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		g_strfreev(env);
 		g_free(venv_path);
 		if (is_temp_file && script_name) {
@@ -5490,8 +5547,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	}
 
 	if (!success) {
-		// Clean up on error
-		teardown_python_comms_in_error_path(&commstate);
+		// Clean up on error.  The worker thread is running (idle in accept(),
+		// no command in flight); stop it, join it and free conn.
+		teardown_connection_and_worker(commstate.python_conn, commstate.worker_thread);
 		g_strfreev(env);
 		g_free(venv_path);
 		if (is_temp_file && script_name) {
@@ -5517,6 +5575,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;
 	cleanup->python_conn = commstate.python_conn;
+	cleanup->worker_thread = commstate.worker_thread;
 	// Function owns script_name; the cleanup struct keeps its own copy
 	// when needed (temp_filename above). Free the original now that the
 	// spawn has consumed its argv references.
@@ -5524,6 +5583,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	script_name = NULL;
 
 	if (sync) {
+		/* sync mode only ever runs on the dedicated pyscript_thread (see
+		 * execute_python_script_wrapper), never on the GTK main thread, so the
+		 * teardown join inside python_process_cleanup() runs inline and cannot
+		 * deadlock the main loop. */
 		// Cross-platform process waiting
 #ifdef _WIN32
 		// Use Windows-specific waiting
@@ -5537,10 +5600,13 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		gint status;
 		waitpid(child_pid, &status, 0);
 #endif
-		// Handle cleanup directly
+		// Handle cleanup directly (joins the worker and frees conn inline).
 		python_process_cleanup(child_pid, 0, cleanup);
 	} else {
-		// Set up child process monitoring with cleanup
+		/* Async: the child-watch fires python_process_cleanup() on the GTK main
+		 * loop when the process exits; it tears the worker + conn down via a
+		 * detached helper.  The worker GThread is joined there, so we must NOT
+		 * unref it here. */
 		g_child_watch_add(child_pid, python_process_cleanup, cleanup);
 	}
 

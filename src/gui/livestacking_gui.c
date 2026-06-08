@@ -165,7 +165,7 @@ void update_debayer_button_status(gboolean new_state) {
 gboolean livestacking_first_result_idle(gpointer p) {
 	gui_function(set_precision_switch, NULL); // set precision on screen
 	remap_all();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -182,7 +182,7 @@ void enable_debayer(gboolean arg) {
 }
 
 gboolean end_image_loading(gpointer arg) {
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 

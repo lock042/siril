@@ -166,6 +166,19 @@ siril-deb-meson:
         path: ${BUILD_DIR}/coverage.xml
 
 
+siril-deb-meson-gtk4:
+  extends: .siril-debian/testing-base
+  script:
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=gtk4 -Db_coverage=true -Dcriterion=true
+    - ninja -C ${BUILD_DIR} install
+    - meson test -C ${BUILD_DIR} -v --no-suite perfs
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/meson-logs/testlog.junit.xml
+    reports:
+      junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
+
+
 siril-headless-build:
   extends: .siril-debian/testing-base
   script:
@@ -215,7 +228,7 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: b36e7eba5dd191caf7e7017c3fd5eaf3c5ee5640
+    SM_REPO_REF: 95c4429a9b2ba6ab13c981d895ce8845f3fb5c75
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -234,7 +247,7 @@ macos:
       PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
         sm/build_toolset.sh
-        rm $VER_DIR/var/cache/pkg/.skip
+        rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
         sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
@@ -270,7 +283,10 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 63
+    # SDW_VERSION must point at a build that ships GTK4 + GtkSourceView5
+    # (not GTK3 + GtkSourceView4) — see build/windows/native-gitlab-ci/
+    # siril-deps.sh for the package list the deps image must contain.
+    SDW_VERSION: 66
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python

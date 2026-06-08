@@ -628,10 +628,8 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
@@ -816,10 +814,8 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);

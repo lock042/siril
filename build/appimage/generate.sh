@@ -20,7 +20,8 @@ PROJECT_ROOT="$PWD"
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
-    -Drelocatable-bundle=yes
+    -Drelocatable-bundle=yes \
+    -Dgtk=gtk4
 
 
 ninja -C ${BUILDDIR} -j$(nproc)
@@ -55,6 +56,25 @@ apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
 sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
+
+# Bundle the OpenGL / EGL stack: GTK4 defaults to GskGLRenderer /
+# GskNglRenderer, both of which need libEGL.so.1 to come up.  Because
+# the bundled ld-linux is patched to block /usr (see the sed above),
+# every part of the GL stack has to live inside the AppImage.
+#
+# - libegl1/libgl1/libgles2/libglx0/libglvnd0 are the libglvnd dispatch
+#   libraries (the libEGL.so.1 / libGL.so.1 entry points).
+# - libegl-mesa0/libglx-mesa0/libglapi-mesa are Mesa's actual EGL/GLX
+#   implementation that GLVND dispatches to.
+# - libgl1-mesa-dri provides the DRI driver modules (incl. swrast for
+#   the software fallback when no GPU driver matches the host).
+apt_bundle libegl1 libgl1 libgles2 libglx0 libglvnd0 \
+           libegl-mesa0 libglx-mesa0 libglapi-mesa libgl1-mesa-dri
+
+# Ensure the gio modules directory exists (empty) so the bundled glib
+# enumerates a known-empty path and never falls through to the host's
+# /usr/lib/.../gio/modules.  AppRun sets GIO_MODULE_DIR to point here.
+mkdir -p usr/lib/x86_64-linux-gnu/gio/modules
 
 # Bundle fontconfig settings
 mkdir -p etc/fonts/

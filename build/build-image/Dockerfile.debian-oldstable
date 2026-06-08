@@ -20,6 +20,22 @@ RUN if [ ! -f /etc/apt/sources.list ]; then \
         libgsl-dev \
         libgtksourceview-4-dev \
         librsvg2-dev \
+        libgraphene-1.0-dev \
+        libxkbcommon-dev \
+        libwayland-dev \
+        wayland-protocols \
+        libfribidi-dev \
+        sassc \
+        libxml2-utils \
+        libx11-dev \
+        libdrm-dev \
+        libpcre2-dev \
+        libffi-dev \
+        libopencv-dev \
+        libjxl-dev \
+        libegl-dev \
+        libgl-dev \
+        libgles-dev \
         libffms2-dev \
         libtiff-dev \
         libturbojpeg0 \
@@ -60,17 +76,7 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && ./configure --disable-examples --disable-static --prefix /usr \
     && make install \
     && cd .. \
-    && rm -rf LibRaw \
-    && git clone --branch v0.7.0 --single-branch https://github.com/libjxl/libjxl \
-    && cd libjxl \
-    && ./deps.sh \
-    && mkdir -p build && cd build \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF .. \
-    && cmake --build . -- \
-    && cmake --build . -- -j$(nproc) \
-    && cmake --install . \
-    && cd ../.. \
-    && rm -rf libjxl
+    && rm -rf LibRaw
 
 RUN git clone https://github.com/mm2/Little-CMS \
     && cd Little-CMS \
@@ -87,37 +93,6 @@ RUN git clone --branch v0.2.12 --single-branch https://gitea.nouspiro.space/nou/
     && make install \
     && cd ../.. \
     && rm -rf libXISF
-
-RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
-    && unzip opencv.zip && cd opencv-4.5.3 \
-    && mkdir -p build && cd build \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-        -DOPENCV_GENERATE_PKGCONFIG=ON \
-        -DBUILD_DOCS=OFF \
-        -DBUILD_EXAMPLES=OFF \
-        -DBUILD_opencv_apps=OFF \
-        -DBUILD_opencv_python2=OFF \
-        -DBUILD_opencv_python3=OFF \
-        -DBUILD_PERF_TESTS=OFF \
-        -DBUILD_SHARED_LIBS=ON \
-        -DBUILD_TESTS=OFF \
-        -DCMAKE_BUILD_TYPE=RELEASE \
-        -DENABLE_PRECOMPILED_HEADERS=OFF \
-        -DFORCE_VTK=OFF \
-        -DWITH_FFMPEG=OFF \
-        -DWITH_GDAL=OFF \
-        -DWITH_IPP=OFF \
-        -DWITH_OPENEXR=OFF \
-        -DWITH_OPENGL=OFF \
-        -DWITH_QT=OFF \
-        -DWITH_TBB=OFF \
-        -DWITH_XINE=OFF \
-        -DBUILD_JPEG=ON \
-        -DBUILD_TIFF=ON \
-        -DBUILD_PNG=ON ..\
-    && make install \
-    && cd ../.. \
-    && rm -rf opencv-4.5.3 opencv.zip
 
 RUN pip install meson==1.9.1 ninja!=1.11.1
 
@@ -137,3 +112,62 @@ RUN wget -O /tmp/uv.tar.gz \
     && install -m 0755 /tmp/uv-x86_64-unknown-linux-gnu/uvx /usr/local/bin/uvx \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
     && uv --version
+
+# Debian bookworm (oldstable) ships GTK 4.8.3 and glib 2.74, but
+# Siril's gtk4 backend uses GtkColumnView APIs introduced in GTK 4.12,
+# which itself requires glib >= 2.76.  Build glib, GTK4 and
+# GtkSourceView5 from pinned stable releases so the oldstable image —
+# used to build the AppImage — can produce a GTK4 binary.  Remove once
+# oldstable advances to trixie (Debian 13), which ships GTK 4.14+ and
+# glib 2.78+ as system packages.
+RUN git clone --branch 2.76.6 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/glib.git \
+    && cd glib \
+    && meson setup _build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Dman=false \
+        -Dgtk_doc=false \
+        -Dtests=false \
+        -Dinstalled_tests=false \
+        -Dsysprof=disabled \
+    && meson compile -C _build \
+    && meson install -C _build \
+    && cd .. \
+    && rm -rf glib \
+    && git clone --branch 4.14.5 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtk.git \
+    && cd gtk \
+    && meson setup _build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Dintrospection=disabled \
+        -Ddocumentation=false \
+        -Dman-pages=false \
+        -Dbuild-tests=false \
+        -Dbuild-testsuite=false \
+        -Dbuild-demos=false \
+        -Dbuild-examples=false \
+        -Dmedia-gstreamer=disabled \
+        -Dprint-cups=disabled \
+        -Dprint-cpdb=disabled \
+        -Dvulkan=disabled \
+        -Dcolord=disabled \
+        -Dcloudproviders=disabled \
+        -Dsysprof=disabled \
+        -Dtracker=disabled \
+    && meson compile -C _build \
+    && meson install -C _build \
+    && cd .. \
+    && rm -rf gtk \
+    && git clone --branch 5.10.0 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtksourceview.git \
+    && cd gtksourceview \
+    && meson setup _build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Dintrospection=disabled \
+        -Dvapi=false \
+        -Dgtk_doc=false \
+        -Dinstall_tests=false \
+    && meson compile -C _build \
+    && meson install -C _build \
+    && cd .. \
+    && rm -rf gtksourceview
