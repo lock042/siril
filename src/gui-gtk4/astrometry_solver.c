@@ -494,7 +494,6 @@ gboolean end_process_catsearch(gpointer p) {
 	sky_object_query_args *args = (sky_object_query_args*)p;
 	if (!com.script && !args->retval) {
 		GtkToggleButton *button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
-		// purge_user_catalogue(CAT_AN_USER_TEMP);
 		refresh_annotation_visibility();
 		if (!siril_toggle_get_active(GTK_WIDGET(button))) {
 			siril_toggle_set_active(GTK_WIDGET(button), TRUE);
