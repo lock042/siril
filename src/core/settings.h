@@ -409,6 +409,10 @@ struct pref_struct {
 
 	int hd_bitdepth; // Default bit depth for HD AutoStretch
 
+	int lazy_tile_cache_mb; // RAM budget (MB) for displaying very large images: images
+	                        // whose display buffer fits go eager (no tiling); larger ones
+	                        // use the tiled lazy renderer capped at this many MB resident
+
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes
 

@@ -1563,8 +1563,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->data holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
@@ -1590,8 +1591,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->fdata holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
@@ -2079,7 +2081,7 @@ static inline void ffit_clone_without_lock(fits *dst, const fits *src) {
  *
  */
 
-int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
+int copyfits(fits *from, fits *to, unsigned int oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
 
@@ -2243,6 +2245,41 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 			to->icc_profile = NULL;
 		}
 		color_manage(to, to->color_managed);
+	}
+
+	/* Heap-owned metadata: CP_FORMAT clones the scalar keywords but nulls
+	 * each of these pointers, so they get their own bits. Every block frees
+	 * any existing value in `to` first, so the flags compose cleanly whether
+	 * or not CP_FORMAT ran alongside them. */
+	if ((oper & CP_WCS)) {
+		free_wcs(to);
+		if (from->keywords.wcslib) {
+			int status = -1;
+			to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
+		}
+	}
+	if ((oper & CP_HEADER)) {
+		free(to->header);
+		to->header = from->header ? strdup(from->header) : NULL;
+	}
+	if ((oper & CP_UNKNOWNKEYS)) {
+		g_free(to->unknown_keys);
+		to->unknown_keys = from->unknown_keys ? g_strdup(from->unknown_keys) : NULL;
+	}
+	if ((oper & CP_HISTORY)) {
+		g_slist_free_full(to->history, g_free);
+		GSList *copy = NULL;
+		for (GSList *l = from->history; l; l = l->next)
+			copy = g_slist_prepend(copy, g_strdup(l->data));
+		to->history = g_slist_reverse(copy);
+	}
+	if ((oper & CP_DATES)) {
+		if (to->keywords.date_obs)
+			g_date_time_unref(to->keywords.date_obs);
+		to->keywords.date_obs = from->keywords.date_obs ? g_date_time_ref(from->keywords.date_obs) : NULL;
+		if (to->keywords.date)
+			g_date_time_unref(to->keywords.date);
+		to->keywords.date = from->keywords.date ? g_date_time_ref(from->keywords.date) : NULL;
 	}
 
 	return 0;

@@ -115,6 +115,7 @@ static void ensure_ips_columnview(void) {
 	g_signal_connect(selection_model, "notify::selected", G_CALLBACK(on_IPS_selection_changed), NULL);
 
 	columnview_IPS = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(selection_model))));
+	gtk_widget_add_css_class(GTK_WIDGET(columnview_IPS), "siril-dense-rows");
 
 	GtkSignalListItemFactory *fr = GTK_SIGNAL_LIST_ITEM_FACTORY(gtk_signal_list_item_factory_new());
 	g_signal_connect(fr, "setup", G_CALLBACK(ips_setup_cb),         NULL);

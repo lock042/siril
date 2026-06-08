@@ -28,11 +28,14 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/utils.h"
 
-static cairo_surface_t *edge_surface = NULL;
-static int image_width = -1;
-static int image_height = -1;
+/* One small surface per panel, each holding only the corner/edge/centre
+ * region that panel displays — never a full-image surface.  Built in
+ * set_edge_square() via siril_image_view_copy_region(), so arbitrarily
+ * large images (and lazy-mode images with no contiguous view->buf) work. */
+static cairo_surface_t *edge_surfaces[9] = { NULL };
 
 static char *edge_w[] = {
 		"left_top",
@@ -49,26 +52,19 @@ static char *edge_w[] = {
 static GtkWidget *edge_panels[9] = { NULL };
 static GtkWidget *edge_dialog_widget = NULL;
 
-/* GTK4 draw_func for each of the 9 inspector panels.  Picks the source
- * offset on the global edge_surface from the panel's position (left /
- * center / right horizontally, top / center / bottom vertically), which
- * is encoded as a 0..8 index passed via user_data.  Replaces the nine
- * GTK3 on_*_draw handlers — Phase 18 removed the .ui "draw" signals
- * but never wired up replacements, leaving the inspector blank. */
+/* GTK4 draw_func for each of the 9 inspector panels.  Each panel owns a
+ * surface holding exactly the region it shows (set in set_edge_square), so
+ * it just paints that surface at the origin.  The panel index 0..8 is
+ * passed via user_data.  Replaces the nine GTK3 on_*_draw handlers —
+ * Phase 18 removed the .ui "draw" signals but never wired up replacements,
+ * leaving the inspector blank. */
 static void inspector_panel_draw_cb(GtkDrawingArea *area, cairo_t *cr,
                                     int width, int height, gpointer user_data) {
 	int idx = GPOINTER_TO_INT(user_data);
-	int col = idx % 3;   /* 0=left, 1=center, 2=right */
-	int row = idx / 3;   /* 0=top,  1=center, 2=bottom */
-	double sx = 0.0, sy = 0.0;
-	if (col == 1) sx = (width  - image_width)  * 0.5;
-	if (col == 2) sx =  width  - image_width;
-	if (row == 1) sy = (height - image_height) * 0.5;
-	if (row == 2) sy =  height - image_height;
 	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_fill(cr);
-	if (edge_surface) {
-		cairo_set_source_surface(cr, edge_surface, sx, sy);
+	if (idx >= 0 && idx < 9 && edge_surfaces[idx]) {
+		cairo_set_source_surface(cr, edge_surfaces[idx], 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 		cairo_paint(cr);
 	}
@@ -90,158 +86,52 @@ static void ccd_inspector_init_statics(void) {
 static void set_edge_square(gchar **panel) {
 	int cvport = gfit->naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
-	struct image_view *view = &gui.view[cvport];
-
 	siril_open_dialog("edge_dialog");
-	if (edge_surface)
-		cairo_surface_destroy(edge_surface);
 
-	image_width = gfit->rx;
-	image_height = gfit->ry;
-	/* New surface as we modify it */
-	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->buf_stride);
-
-	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
-		cairo_surface_destroy(edge_surface);
-		edge_surface = NULL;
-		return;
-	}
-	int widget_size = com.pref.analysis.mosaic_window / 3;
+	const int rx = (int) gfit->rx;
+	const int ry = (int) gfit->ry;
+	const int widget_size = com.pref.analysis.mosaic_window / 3;
 	double scale = (double) com.pref.analysis.mosaic_panel / widget_size;
 	if (scale < 1.0) scale = 1.0;
-	cairo_surface_set_device_scale(edge_surface, scale, scale);
-	image_width = (int) ((double)image_width / scale);
-	image_height = (int) ((double) image_height / scale);
+	/* Number of native image pixels each panel shows; displayed shrunk to
+	 * widget_size via the surface device scale. */
+	const int region = (int) (widget_size * scale);
+	if (region <= 0)
+		return;
 
 	ccd_inspector_init_statics();
+
+	for (int i = 0; i < 9; i++) {
+		const int col = i % 3;   /* 0=left, 1=centre, 2=right  */
+		const int row = i / 3;   /* 0=top,  1=centre, 2=bottom */
+		int src_x = (col == 0) ? 0 : (col == 1) ? (rx - region) / 2 : rx - region;
+		int src_y = (row == 0) ? 0 : (row == 1) ? (ry - region) / 2 : ry - region;
+
+		if (edge_surfaces[i])
+			cairo_surface_destroy(edge_surfaces[i]);
+		cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+		                                                   region, region);
+		if (cairo_surface_status(surf) != CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(surf);
+			edge_surfaces[i] = NULL;
+			continue;
+		}
+		cairo_surface_flush(surf);
+		guchar *data = cairo_image_surface_get_data(surf);
+		const int stride = cairo_image_surface_get_stride(surf);
+		/* Pre-clear: regions of the panel past the image edge stay black,
+		 * and small images are centred by copy_region's negative-origin
+		 * handling. */
+		memset(data, 0, (size_t) stride * region);
+		siril_image_view_copy_region(cvport, src_x, src_y, region, region,
+		                             data, stride);
+		cairo_surface_mark_dirty(surf);
+		cairo_surface_set_device_scale(surf, scale, scale);
+		edge_surfaces[i] = surf;
+	}
+
 	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
 		gtk_widget_queue_draw(edge_panels[i]);
-}
-
-gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, 0, 0);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, 0);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - image_width, 0);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, 0, (area_height - image_height) * 0.5);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, (area_height - image_height) * 0.5);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - image_width, (area_height - image_height) * 0.5);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, 0, area_height - image_height);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, (area_width - image_width) * 0.5, area_height - image_height);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
-}
-
-gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_width(widget);
-	int area_height = gtk_widget_get_height(widget);
-
-	cairo_rectangle(cr, 0, 0, area_width, area_height);
-	cairo_fill(cr);
-
-	cairo_set_source_surface(cr, edge_surface, area_width - image_width, area_height - image_height);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
-	cairo_paint(cr);
-
-	return FALSE;
 }
 
 void compute_aberration_inspector(void) {

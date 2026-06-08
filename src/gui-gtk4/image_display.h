@@ -48,6 +48,14 @@ double get_zoom_val();	// for image_interactions
 point get_center_of_vport();
 void add_image_and_label_to_cairo(cairo_t *cr, int vport);
 
+/* Copy the image-space rect (sx,sy,w,h) of viewport `vport` into `dst`
+ * (CAIRO_FORMAT_RGB24, w×h, dst_stride bytes/row), materialising only the
+ * overlapping tiles.  Out-of-image pixels are left untouched (pre-clear dst).
+ * Lets inspection views render arbitrary windows without a full-image
+ * surface.  Returns FALSE if the viewport has no image. */
+gboolean siril_image_view_copy_region(int vport, int sx, int sy,
+                                      int w, int h, guchar *dst, int dst_stride);
+
 gboolean get_context_rotation_matrix(double rotation, cairo_matrix_t *transform, gboolean invert); //computes rotation matrix about center of com.selection
 
 #endif

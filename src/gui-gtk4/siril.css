@@ -202,12 +202,14 @@ popover:not(#popover_catalogs) separator {
    opacity: 0.9;
 }
 
-/* SirilFileBrowser column view: dense rows so the picker shows many files
- * at a glance rather than acres of whitespace.  GTK4 Adwaita uses ~32 px
- * rows by default; we squeeze that down by removing the vertical padding
- * on the inner listview's rows and on each cell, and pinning a low
- * min-height.  Marked via .siril-dense-rows on the columnview only so
- * other GtkColumnViews in the app keep the default spacing. */
+/* Dense GtkColumnView rows so tables show many entries at a glance rather
+ * than acres of whitespace.  GTK4 Adwaita uses ~32 px rows by default; we
+ * squeeze that down by removing the vertical padding on the inner listview's
+ * rows and on each cell, and pinning a low min-height.  Shared utility class:
+ * applied (via gtk_widget_add_css_class) to the app's GtkColumnViews — the
+ * file browser, conversion list, FITS-header keywords, sequence/PSF/stats
+ * lists, etc.  Opt-in via the class so anything that wants default spacing
+ * simply doesn't add it. */
 columnview.siril-dense-rows row,
 columnview.siril-dense-rows listview > row {
    min-height: 22px;
@@ -218,6 +220,17 @@ columnview.siril-dense-rows row > cell,
 columnview.siril-dense-rows listview > row > cell {
    padding-top: 0;
    padding-bottom: 0;
+}
+
+/* Protected FITS-header keywords (cannot be edited) are shown with their
+ * keyword name in salmon, restoring the GTK3 look (COLUMN_COLOR="salmon"
+ * bound to the Keyword column foreground).  The class is toggled on the
+ * per-cell GtkEditableLabel in keywords_tree.c; colour inherits to its inner
+ * label/text node. */
+.siril-protected-keyword,
+.siril-protected-keyword label,
+.siril-protected-keyword text {
+   color: salmon;
 }
 
 /* SirilFileBrowser breadcrumb path bar — the framed cell-list to the

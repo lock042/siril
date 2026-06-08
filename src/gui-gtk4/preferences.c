@@ -458,6 +458,7 @@ static void update_performances_preferences() {
 	com.pref.max_slice_size = max_slice_size == 0 ? 32769 : 1 << (max_slice_size + 8);
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
+	com.pref.lazy_tile_cache_mb = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_lazy_tile_cache")));
 }
 
 static void update_misc_preferences() {
@@ -920,6 +921,7 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->memory_amount);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")), pref->hd_bitdepth);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_lazy_tile_cache")), pref->lazy_tile_cache_mb);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fftw_plan_timelimit")), pref->fftw_conf.timelimit);
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("pref_fftw_plan_strategy")), pref->fftw_conf.strategy);
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("pref_fftw_multithreaded"))), pref->fftw_conf.multithreaded);
