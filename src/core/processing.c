@@ -996,6 +996,15 @@ void kill_child_process(GPid pid, gboolean onexit) {
 #else
 					kill((pid_t) child->childpid, SIGKILL);
 #endif
+					/* A Python script may be blocked in processcommand() on its
+					 * comm-worker thread waiting for a processing job (e.g. a
+					 * calibration) to finish.  Killing the Python process alone
+					 * does not abort that job, so the worker would never return
+					 * to its socket read to notice the dead client.  Cancel the
+					 * job so the worker unwinds, reaches the closed socket and
+					 * tears its connection down cleanly. */
+					if (child->program == EXT_PYTHON)
+						stop_processing_thread();
 				} else if (child->program == EXT_ASNET) {
 					FILE* fp = g_fopen("stop", "w");
 					if (fp != NULL)

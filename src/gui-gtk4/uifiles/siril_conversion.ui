@@ -36,9 +36,7 @@
                             <child>
                               <object class="GtkButton" id="select_convert_button">
                                 <property name="icon-name">list-add-symbolic</property>
-                                <property name="label" translatable="yes">Add</property>
                                 <property name="tooltip-text" translatable="yes">Add files to convert</property>
-                                <property name="use-underline">1</property>
                                 <property name="valign">center</property>
                                 <signal name="clicked" handler="on_select_convert_button_clicked"/>
                               </object>
@@ -46,9 +44,7 @@
                             <child>
                               <object class="GtkButton" id="remove_convert_button">
                                 <property name="icon-name">list-remove-symbolic</property>
-                                <property name="label" translatable="yes">Remove</property>
                                 <property name="tooltip-text" translatable="yes">Remove selected files</property>
-                                <property name="use-underline">1</property>
                                 <property name="valign">center</property>
                                 <signal name="clicked" handler="on_remove_convert_button_clicked"/>
                               </object>
@@ -56,9 +52,7 @@
                             <child>
                               <object class="GtkButton" id="clear_convert_button">
                                 <property name="icon-name">edit-clear-symbolic</property>
-                                <property name="label" translatable="yes">Clear</property>
                                 <property name="tooltip-text" translatable="yes">Remove all files from the list</property>
-                                <property name="use-underline">1</property>
                                 <property name="valign">center</property>
                                 <signal name="clicked" handler="on_clear_convert_button_clicked"/>
                               </object>

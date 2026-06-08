@@ -152,7 +152,9 @@
                     <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
                     <signal name="toggled" handler="on_centerbutton_toggled"/>
                     <child>
-                      <object class="GtkImage"/>
+                      <object class="GtkImage">
+                        <property name="icon-name">mark-location-symbolic</property>
+                      </object>
                     </child>
                     <layout>
                       <property name="column">7</property>
