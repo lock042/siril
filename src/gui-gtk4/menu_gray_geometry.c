@@ -1,0 +1,838 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+#include "core/siril.h"
+#include "algos/geometry.h"
+#include "core/undo.h"
+#include "core/processing.h"
+#include "core/siril_log.h"
+#include "io/single_image.h"
+#include "algos/astrometry_solver.h"
+
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/PSF_list.h"
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/utils.h"
+#include "menu_gray_geometry.h"
+
+static void menu_gray_geometry_init_statics(void);
+
+static GtkSpinButton *mgm_rotation_spin = NULL;
+static GtkDropDown *mgm_rotation_interp_combo = NULL;
+static GtkCheckButton *mgm_rotation_crop_btn = NULL;
+static GtkWidget *mgm_rot_clamp_toggle = NULL;
+static GtkDropDown *mgm_binning_combo = NULL;
+static GtkSpinButton *mgm_binning_spin = NULL;
+static GtkEntry *mgm_crop_entry = NULL;
+static GtkWidget *spinbutton_resample_X = NULL, *spinbutton_resample_Y = NULL,
+	*spinbutton_resample_X_px = NULL, *spinbutton_resample_Y_px = NULL,
+	*button_sample_ratio = NULL, *combo_interpolation = NULL, *toggle_scale_clamp = NULL;
+
+/**
+ *  ROTATION
+ */
+
+/* Idle function for rotation completion */
+static gboolean rotation_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		// Reset selection to current image size and reset rotation
+		rectangle area = {0, 0, gfit->rx, gfit->ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		menu_gray_geometry_init_statics();
+		gtk_spin_button_set_value(mgm_rotation_spin, 0.);
+		gui_function(new_selection_zone, NULL);
+
+		update_zoom_label();
+		gui_function(redraw_previews, NULL);
+		gfit_modified_update_gui();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/* Star-coordinate transforms matching the *actual* effect of siril's
+ * mirrorx() / mirrory() in algos/geometry.c (which is the opposite of
+ * what the names superficially suggest):
+ *
+ *   mirrorx: TOP-DOWN flip — swaps lines vertically — so a pixel at
+ *            (x, y) ends up at (x, ry-1-y).  The Y coordinate flips.
+ *   mirrory: LEFT-RIGHT flip — implemented as flip-top-down + rotate-pi —
+ *            so a pixel at (x, y) ends up at (rx-1-x, y).  The X coord flips.
+ */
+static void mirror_stars_x(fits *fit) {
+	if (!fit) return;
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (com.stars) {
+		for (int i = 0; com.stars[i]; i++) {
+			com.stars[i]->ypos = (fit->ry - 1) - com.stars[i]->ypos;
+			com.stars[i]->angle = -com.stars[i]->angle;
+		}
+	}
+	g_rw_lock_writer_unlock(&com.stars_lock);
+}
+
+static void mirror_stars_y(fits *fit) {
+	if (!fit) return;
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (com.stars) {
+		for (int i = 0; com.stars[i]; i++) {
+			com.stars[i]->xpos = (fit->rx - 1) - com.stars[i]->xpos;
+			com.stars[i]->angle = -com.stars[i]->angle;
+		}
+	}
+	g_rw_lock_writer_unlock(&com.stars_lock);
+}
+
+/* Rotate cached star coordinates 90° to match a rotate-90 of the image.
+ * (x, y) -> (ry-1-y, x) for clockwise; the inverse for anticlockwise.
+ * fwhmx<->fwhmy swap; angle adjusted by ±90°. */
+static void rotate_stars_90(fits *fit, gboolean clockwise) {
+	if (!fit) return;
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (com.stars) {
+		for (int i = 0; com.stars[i]; i++) {
+			double x = com.stars[i]->xpos;
+			double y = com.stars[i]->ypos;
+			if (clockwise) {
+				com.stars[i]->xpos = (fit->ry - 1) - y;
+				com.stars[i]->ypos = x;
+				com.stars[i]->angle += 90.0;
+			} else {
+				com.stars[i]->xpos = y;
+				com.stars[i]->ypos = (fit->rx - 1) - x;
+				com.stars[i]->angle -= 90.0;
+			}
+			double tmp = com.stars[i]->fwhmx;
+			com.stars[i]->fwhmx = com.stars[i]->fwhmy;
+			com.stars[i]->fwhmy = tmp;
+		}
+	}
+	g_rw_lock_writer_unlock(&com.stars_lock);
+}
+
+static void rotate_gui(fits *fit) {
+	if (!check_ok_if_cfa())
+		return;
+	if (com.selection.w == 0 || com.selection.h == 0) return;
+
+	menu_gray_geometry_init_statics();
+	double angle = gtk_spin_button_get_value(mgm_rotation_spin);
+	int interpolation = gtk_drop_down_get_selected(mgm_rotation_interp_combo);
+	int cropped;
+
+	cropped = siril_toggle_get_active(GTK_WIDGET(mgm_rotation_crop_btn));
+	if ((!cropped) & (com.selection.w < gfit->rx || com.selection.h < gfit->ry)) {
+		cropped = siril_confirm_dialog(_("Crop confirmation"),
+			("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"),
+			_("Crop"));
+		if (cropped)
+			siril_toggle_set_active(GTK_WIDGET(mgm_rotation_crop_btn), TRUE);
+	}
+	gboolean clamp = siril_toggle_get_active(GTK_WIDGET(mgm_rot_clamp_toggle));
+
+	/* Arbitrary-angle rotation can't be cheaply applied to the cached
+	 * star coordinates, so fall back to clearing the list — the user
+	 * will need to re-run star detection after a free-angle rotation. */
+	clear_stars_list(TRUE);
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = com.selection;
+	params->angle = angle;
+	params->interpolation = interpolation;
+	params->cropped = cropped;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 2.0f;  // Rotation needs space for transformation
+	args->image_hook = rotation_image_hook;
+	args->log_hook = rotation_log_hook;
+	args->idle_function = rotation_idle;
+	args->description = _("Rotation");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+}
+
+/* Idle function for fast rotation */
+static gboolean fast_rotation_idle(gpointer p)
+{
+    struct generic_img_args *args = (struct generic_img_args *)p;
+    stop_processing_thread();
+
+    if (args->retval == 0) {
+        /* If the hook expanded a selection to the full image, notify the GUI
+         * now that Cairo buffers are up to date (avoids a stale-buffer redraw
+         * that would otherwise happen via gui_function() from the worker). */
+        if (com.selection.w > 0 && com.selection.h > 0)
+            new_selection_zone(NULL);
+        gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
+                                     refreshes previews — all in one call  */
+        update_zoom_label();      /* reads the now-correct zoom state       */
+    }
+
+    free_generic_img_args(args);
+    return FALSE;
+}
+
+void siril_rotate90() {
+	rotate_stars_90(gfit, TRUE);   /* see mirrorx_gui */
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = 90.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->log_hook = rotation_log_hook;
+	args->idle_function = fast_rotation_idle;
+	args->description = _("Rotation 90°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;  // Fast rotation doesn't benefit from threading
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void siril_rotate270() {
+	rotate_stars_90(gfit, FALSE);   /* see mirrorx_gui */
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = -90.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->log_hook = rotation_log_hook;
+	args->idle_function = fast_rotation_idle;
+	args->description = _("Rotation -90°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
+	delete_selected_area();
+	siril_close_dialog("rotation_dialog");
+}
+
+gboolean rotation_hide_on_delete(GtkWidget *widget) {
+	delete_selected_area();
+	siril_close_dialog("rotation_dialog");
+	return TRUE;
+}
+
+void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
+	rotate_gui(gfit);
+}
+
+void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		gui.rotation = gtk_spin_button_get_value(button);
+		redraw(REDRAW_OVERLAY);
+	}
+}
+
+void on_checkbutton_rotation_crop_toggled(GtkCheckButton *button, gpointer user_data) {
+	if (!siril_toggle_get_active(GTK_WIDGET(button))) {
+		rectangle area = {0, 0, gfit->rx, gfit->ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		gui_function(new_selection_zone, NULL);
+	}
+}
+
+void on_combo_interpolation_rotation_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	GtkDropDown *combo_box = GTK_DROP_DOWN(obj);
+	(void)pspec;
+	gint idx = gtk_drop_down_get_selected(combo_box);
+	menu_gray_geometry_init_statics();
+	gtk_widget_set_sensitive(mgm_rot_clamp_toggle,
+	                         idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+}
+
+/******
+ * MIRROR
+ */
+
+/* Idle function for mirror operations */
+static gboolean mirror_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_data_modified();
+		gui_function(redraw_previews, NULL);
+		gfit_modified_update_gui();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void on_menuitem_mirrorx_activate(GtkWidget *menuitem, gpointer user_data) {
+	mirrorx_gui(gfit);
+}
+
+void on_mirrorx_button_clicked(GtkButton *button, gpointer user_data) {
+	mirrorx_gui(gfit);
+}
+
+void on_menuitem_mirrory_activate(GtkWidget *menuitem, gpointer user_data) {
+	mirrory_gui(gfit);
+}
+
+void on_mirrory_button_clicked(GtkButton *button, gpointer user_data) {
+	mirrory_gui(gfit);
+}
+
+void mirrorx_gui(fits *fit) {
+	/* Geometry transforms invalidate the cached star coordinates in
+	 * com.stars.  Reflect them so the overlay circles follow the actual
+	 * stars rather than staying at stale positions or disappearing. */
+	mirror_stars_x(fit);
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->x_axis = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 1.0f;  // Mirror needs minimal extra memory
+	args->image_hook = mirrorx_image_hook;
+	args->idle_function = mirror_idle;
+	args->description = _("Mirror X");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void mirrory_gui(fits *fit) {
+	mirror_stars_y(fit);     /* see mirrorx_gui */
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->x_axis = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrory_image_hook;
+	args->idle_function = mirror_idle;
+	args->description = _("Mirror Y");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+/*************
+ * BINNING
+ */
+
+/* Idle function for binning */
+static gboolean binning_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
+		gfit_modified_update_gui();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
+
+	/* Switch to console tab */
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	menu_gray_geometry_init_statics();
+	gboolean mean = gtk_drop_down_get_selected(mgm_binning_combo) == 0;
+	int factor = gtk_spin_button_get_value_as_int(mgm_binning_spin);
+
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct binning_args *params = new_binning_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->factor = factor;
+	params->mean = mean;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_binning_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;  // Binning needs space for the new buffer
+	args->image_hook = binning_image_hook;
+	args->log_hook = binning_log_hook;
+	args->idle_function = binning_idle;
+	args->description = _("Binning");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void on_button_binning_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("binxy_dialog");
+}
+
+gboolean binxy_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("binxy_dialog");
+	return TRUE;
+}
+
+/*************
+ * RESAMPLE
+ */
+
+
+void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
+
+	/* Switch to console tab */
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	double sample[2];
+	menu_gray_geometry_init_statics();
+	sample[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
+	sample[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y));
+	int interpolation = gtk_drop_down_get_selected(GTK_DROP_DOWN(combo_interpolation));
+	gboolean clamp = siril_toggle_get_active(GTK_WIDGET(toggle_scale_clamp));
+
+	if (sample[0] != sample[1] && !confirm_delete_wcs_keywords(gfit))
+		return;
+	set_cursor_waiting(TRUE);
+	int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
+	int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
+
+	// Allocate parameters
+	struct resample_args *params = new_resample_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->toX = toX;
+	params->toY = toY;
+	params->interpolation = interpolation;
+	params->clamp = clamp;
+	params->update_wcs = sample[0] == sample[1];
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_resample_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Resample needs space for transformation
+	args->image_hook = resample_image_hook;
+	args->idle_function = binning_idle;
+	args->description = _("Resample");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("resample_dialog");
+}
+
+gboolean resample_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("resample_dialog");
+	return TRUE;
+}
+
+void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+
+static void menu_gray_geometry_init_statics(void) {
+	if (spinbutton_resample_X) return;
+	spinbutton_resample_X = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_X"));
+	spinbutton_resample_Y = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_Y"));
+	spinbutton_resample_X_px = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_X_px"));
+	spinbutton_resample_Y_px = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_Y_px"));
+	button_sample_ratio = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_sample_ratio"));
+	combo_interpolation = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_interpolation"));
+	toggle_scale_clamp = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_scale_clamp"));
+	mgm_rotation_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_rotation"));
+	mgm_rotation_interp_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_interpolation_rotation"));
+	mgm_rotation_crop_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_rotation_crop"));
+	mgm_rot_clamp_toggle = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_rot_clamp"));
+	mgm_binning_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combobox_binning"));
+	mgm_binning_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_binning"));
+	mgm_crop_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "cropped_entry"));
+}
+
+static void initialize_resample_widgets_if_needed(void) {
+	menu_gray_geometry_init_statics();
+}
+
+static void pause_resample_signal_handlers() {
+	g_signal_handlers_block_by_func(spinbutton_resample_X, on_spinbutton_resample_X_value_changed, NULL);
+	g_signal_handlers_block_by_func(spinbutton_resample_Y, on_spinbutton_resample_Y_value_changed, NULL);
+	g_signal_handlers_block_by_func(spinbutton_resample_X_px, on_spinbutton_resample_X_px_value_changed, NULL);
+	g_signal_handlers_block_by_func(spinbutton_resample_Y_px, on_spinbutton_resample_Y_px_value_changed, NULL);
+}
+
+static void restart_resample_signal_handlers() {
+	g_signal_handlers_unblock_by_func(spinbutton_resample_X, on_spinbutton_resample_X_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(spinbutton_resample_Y, on_spinbutton_resample_Y_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(spinbutton_resample_X_px, on_spinbutton_resample_X_px_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(spinbutton_resample_Y_px, on_spinbutton_resample_Y_px_value_changed, NULL);
+}
+
+void on_resample_dialog_show(GtkWidget *dialog, gpointer user_data) {
+	initialize_resample_widgets_if_needed();
+	pause_resample_signal_handlers();
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), gfit->rx);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), gfit->ry);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), 100.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), 100.0);
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
+
+	if (siril_toggle_get_active(button_sample_ratio)) {
+		double yvalue = xvalue;
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), yvalue);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	double yvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
+
+	if (siril_toggle_get_active(button_sample_ratio)) {
+		double xvalue = yvalue;
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), xvalue);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	double xpix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px));
+	double ratio = xpix / gfit->rx;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
+
+	if (siril_toggle_get_active(button_sample_ratio)) {
+		double ypix = round_to_int(gfit->ry * ratio);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), ypix);
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	double ypix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px));
+	double ratio = ypix / gfit->ry;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
+
+	if (siril_toggle_get_active(button_sample_ratio)) {
+		double xpix = round_to_int(gfit->rx * ratio);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), xpix);
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_button_sample_ratio_toggled(GtkCheckButton *button, gpointer user_data) {
+	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
+
+	if (siril_toggle_get_active(GTK_WIDGET(button)))
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), xvalue);
+}
+
+void on_combo_interpolation_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	GtkDropDown *combo_box = GTK_DROP_DOWN(obj);
+	(void)pspec;
+	gint idx = gtk_drop_down_get_selected(combo_box);
+	gtk_widget_set_sensitive(toggle_scale_clamp, idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+}
+
+/**************
+ * CROP
+ */
+
+/* Idle function for crop */
+static gboolean crop_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		delete_selected_area();
+		reset_display_offset();
+		update_zoom_label();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+		gui_function(redraw_previews, NULL);
+		if (args->fit == gfit && gfit->mask_active)
+			queue_redraw_mask();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void siril_crop() {
+	if (is_preview_active()) {
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Image backup is active"),
+				_("It is impossible to crop the image when the image backup is active. "
+				"This occurs when a filter has a live preview active or when a filter with "
+				"on-demand ROI preview is open. Please close the filter dialog before "
+				"cropping."));
+		return;
+	}
+	clear_stars_list(TRUE);
+
+	set_cursor_waiting(TRUE);
+
+	// Allocate parameters
+	struct crop_args *params = new_crop_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = com.selection;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_crop_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Crop is in-place
+	args->image_hook = crop_image_hook_single;
+	args->idle_function = crop_idle;
+	args->description = _("Crop");
+	args->log_hook = crop_log_hook;
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;  // Crop doesn't benefit from threading
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if (processing_is_job_active()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return;
+	}
+
+#ifdef HAVE_FFMS2
+	if (com.seq.type == SEQ_AVI) {
+		siril_log_message(_("Crop does not work with "
+				"avi film. Please, convert your file to SER first.\n"));
+		return;
+	}
+#endif
+	if (com.seq.type == SEQ_INTERNAL) {
+		siril_log_message(_("Not a valid sequence for cropping.\n"));
+	}
+
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
+
+	menu_gray_geometry_init_statics();
+	GtkEntry *cropped_entry = mgm_crop_entry;
+
+	args->seq = &com.seq;
+	memcpy(&args->area, &com.selection, sizeof(rectangle));
+	args->prefix = strdup(gtk_editable_get_text(GTK_EDITABLE(cropped_entry)));
+
+	set_cursor_waiting(TRUE);
+	crop_sequence(args);
+}
+
+void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("crop_dialog");
+}
+
+gboolean crop_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("crop_dialog");
+	return TRUE;
+}

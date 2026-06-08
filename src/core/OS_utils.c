@@ -1131,6 +1131,151 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 
 #endif
 
+/* siril_system_is_dark_mode()  - returns TRUE when the OS is in Dark Mode.
+ * siril_watch_system_appearance_changes(cb) - registers cb to be called on
+ *   the GTK main thread whenever the OS appearance changes.
+ * Three independent backends follow the same #ifdef chain used elsewhere in
+ * this file: macOS (ObjC), Windows (registry + polling), Linux/Unix (GSettings
+ * for org.gnome.desktop.interface, which KDE 6 and most GNOME desktops expose
+ * via the xdg-desktop-portal; returns FALSE/no-op on other desktops). */
+
+#ifdef OS_OSX
+
+gboolean siril_system_is_dark_mode(void) {
+	NSAppearanceName name = [[NSApp effectiveAppearance]
+		bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua,
+		                                    NSAppearanceNameDarkAqua]];
+	return [name isEqualToString:NSAppearanceNameDarkAqua];
+}
+
+static void (*s_appearance_cb)(gboolean dark) = NULL;
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_appearance_cb = callback;
+	[[NSDistributedNotificationCenter defaultCenter]
+		addObserverForName:@"AppleInterfaceThemeChangedNotification"
+		object:nil
+		queue:[NSOperationQueue mainQueue]
+		usingBlock:^(NSNotification *note) {
+			if (s_appearance_cb)
+				s_appearance_cb(siril_system_is_dark_mode());
+		}];
+}
+
+#elif defined(_WIN32)
+
+gboolean siril_system_is_dark_mode(void) {
+	HKEY hKey;
+	DWORD value = 1; /* default: light */
+	DWORD size = sizeof(value);
+	if (RegOpenKeyExA(HKEY_CURRENT_USER,
+			"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+		RegQueryValueExA(hKey, "AppsUseLightTheme", NULL, NULL,
+		                 (LPBYTE) &value, &size);
+		RegCloseKey(hKey);
+	}
+	return value == 0; /* 0 = dark apps */
+}
+
+static void (*s_win_cb)(gboolean dark) = NULL;
+static gboolean s_win_last_dark = FALSE;
+
+static gboolean win_poll_appearance(gpointer data) {
+	(void) data;
+	gboolean dark = siril_system_is_dark_mode();
+	if (dark != s_win_last_dark) {
+		s_win_last_dark = dark;
+		if (s_win_cb)
+			s_win_cb(dark);
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_win_cb = callback;
+	s_win_last_dark = siril_system_is_dark_mode();
+	g_timeout_add_seconds(5, win_poll_appearance, NULL);
+}
+
+#else /* Linux / Unix */
+
+static void (*s_linux_cb)(gboolean dark) = NULL;
+
+static void on_gsettings_color_scheme_changed(GSettings *settings,
+		const gchar *key, gpointer data) {
+	(void) key; (void) data;
+	gchar *scheme = g_settings_get_string(settings, "color-scheme");
+	gboolean dark = g_strcmp0(scheme, "prefer-dark") == 0;
+	g_free(scheme);
+	if (s_linux_cb)
+		s_linux_cb(dark);
+}
+
+gboolean siril_system_is_dark_mode(void) {
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	GSettingsSchema *schema = g_settings_schema_source_lookup(
+		src, "org.gnome.desktop.interface", TRUE);
+	if (!schema) return FALSE;
+	g_settings_schema_unref(schema);
+	GSettings *settings = g_settings_new("org.gnome.desktop.interface");
+	gchar *scheme = g_settings_get_string(settings, "color-scheme");
+	gboolean dark = g_strcmp0(scheme, "prefer-dark") == 0;
+	g_free(scheme);
+	g_object_unref(settings);
+	return dark;
+}
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_linux_cb = callback;
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	GSettingsSchema *schema = g_settings_schema_source_lookup(
+		src, "org.gnome.desktop.interface", TRUE);
+	if (!schema) return; /* desktop doesn't expose this schema — no-op */
+	g_settings_schema_unref(schema);
+	static GSettings *s_iface_settings = NULL;
+	if (!s_iface_settings)
+		s_iface_settings = g_settings_new("org.gnome.desktop.interface");
+	g_signal_connect(s_iface_settings, "changed::color-scheme",
+	                 G_CALLBACK(on_gsettings_color_scheme_changed), NULL);
+}
+
+#endif /* OS_OSX / _WIN32 / Linux */
+
+#ifdef OS_OSX
+/* GTK4's GdkMacosView does not override performKeyEquivalent:, unlike GTK3's
+ * GdkQuartzView which forwarded Cmd+key events directly to GDK.  As a result,
+ * Command+key shortcuts never reach GTK4's shortcut controller.
+ *
+ * Fix: local NSEvent monitor that catches Cmd+key in GDK windows and forwards
+ * them via keyDown: so GDK processes them.  Accel strings are registered with
+ * <Meta> on macOS (see set_accel_map) so GDK_META_MASK (Command) matches.
+ *
+ * Native macOS panels (NSOpenPanel, NSAlert …) are left untouched: their
+ * content views do not carry the "Gdk" class-name prefix. */
+void siril_macos_fix_keyboard_shortcuts(void) {
+	[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+	                                      handler:^NSEvent *(NSEvent *event) {
+		if (!([event modifierFlags] & NSEventModifierFlagCommand))
+			return event;
+
+		NSWindow *win = [NSApp keyWindow];
+		if (!win)
+			return event;
+
+		/* Only intercept GTK/GDK windows. */
+		NSString *cls = NSStringFromClass([win.contentView class]);
+		if (![cls hasPrefix:@"Gdk"])
+			return event;
+
+		/* Forward as-is: accels are registered with <Meta> on macOS so
+		 * GDK_META_MASK (Command) already matches without any modifier swap. */
+		[win.contentView keyDown:event];
+		return nil;
+	}];
+}
+#endif /* OS_OSX */
+
 gchar *get_siril_version_string() {
 #ifdef _WIN32
 #ifdef SIRIL_UNSTABLE

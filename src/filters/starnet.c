@@ -979,7 +979,12 @@ int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 			params->upscale ? _("yes") : _("no"),
 			params->customstride ? params->stride : _("default"));
 		undo_save_state((fits*)gui_iface.get_preview_gfit_backup(), undo_msg);
-		gfit->history = g_slist_append(gfit->history, g_strdup(undo_msg));
+		/* Append to fit->history rather than gfit->history: the worker passes
+		 * the hook a private buffer (eventually swapped into gfit) under the
+		 * generic_image_worker contract.  Writing through `fit` keeps the hook
+		 * compatible with that contract; today fit == gfit so behaviour is
+		 * unchanged. */
+		fit->history = g_slist_append(fit->history, g_strdup(undo_msg));
 		g_free(undo_msg);
 	}
 

@@ -38,7 +38,6 @@
 #include "algos/ccd-inspector.h"
 #include "gui/ccd-inspector.h"
 #include "gui/cut.h"
-#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
 #include "gui/keywords_tree.h"
@@ -167,7 +166,7 @@ static void impl_on_stack_complete(void) {
 	gfit_modified_update_gui();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	sequence_list_change_current();
 	update_stack_interface(TRUE);
@@ -331,7 +330,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	drawPlot();
 	return FALSE;
 }
