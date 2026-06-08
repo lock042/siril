@@ -1,0 +1,451 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name wavelets_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_plans_w">
+    <property name="lower">2</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">6</property>
+    <property name="value">6</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w0">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w1">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w2">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w3">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w4">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_w5">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">99</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkWindow" id="wavelets_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox25">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkBox" id="box62">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkFrame" id="frame32">
+                    <child>
+                      <object class="GtkGrid" id="grid33">
+                        <property name="column-spacing">5</property>
+                        <property name="row-homogeneous">1</property>
+                        <property name="row-spacing">10</property>
+                        <child>
+                          <object class="GtkDropDown" id="combobox_type_w">
+                            <property name="halign">start</property>
+                            <property name="hexpand">1</property>
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Linear</item>
+                                  <item translatable="yes">BSpline</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">1</property>
+                            <property name="tooltip-text" translatable="yes">Select an algorithm type to perform wavelets</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label131">
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Type:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label132">
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Nb of layers:</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spinbutton_plans_w">
+                            <property name="adjustment">adj_plans_w</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">start</property>
+                            <property name="hexpand">0</property>
+                            <property name="max-width-chars">2</property>
+                            <property name="numeric">1</property>
+                            <property name="snap-to-ticks">1</property>
+                            <property name="text">6</property>
+                            <property name="tooltip-text" translatable="yes">Number of wavelet layers that will be used</property>
+                            <property name="value">6</property>
+                            <property name="width-chars">1</property>
+                            <signal name="value-changed" handler="on_spinbutton_plans_w_value_changed"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_compute_w">
+                            <property name="focusable">1</property>
+                            <property name="halign">center</property>
+                            <property name="label" translatable="yes">Execute</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Compute wavelets</property>
+                            <signal name="clicked" handler="on_button_compute_w_clicked"/>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel" id="label130">
+                        <property name="label" translatable="yes">Compute wavelets</property>
+                        <property name="margin-bottom">10</property>
+                        <property name="margin-top">10</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="frame_wavelets">
+                <property name="sensitive">0</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkBox" id="box_w0">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label121">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_w0">
+                                <property name="adjustment">adj_w0</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">0.99</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w0_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w0">
+                            <property name="adjustment">adj_w0</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box_w1">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label125">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 2</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_w1">
+                                <property name="adjustment">adj_w1</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">1.00</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w1_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w1">
+                            <property name="adjustment">adj_w1</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box_w2">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label126">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 3</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_w2">
+                                <property name="adjustment">adj_w2</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">1.00</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w2_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w2">
+                            <property name="adjustment">adj_w2</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box_w3">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label127">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_3">
+                                <property name="adjustment">adj_w3</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">1.00</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w3_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w3">
+                            <property name="adjustment">adj_w3</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box_w4">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label128">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 5</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_w4">
+                                <property name="adjustment">adj_w4</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">1.00</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w4_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w4">
+                            <property name="adjustment">adj_w4</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box_w5">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkLabel" id="label129">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Layer 6</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_w5">
+                                <property name="adjustment">adj_w5</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">1.00</property>
+                                <property name="value">1</property>
+                                <signal name="value-changed" handler="on_spin_w5_value_changed"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_w5">
+                            <property name="adjustment">adj_w5</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel" id="label133">
+                    <property name="label" translatable="yes">Adjust</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="margin-top">10</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="wavelet_preview">
+                <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Preview</property>
+                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area27">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="button_reset_w">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reset</property>
+                <property name="receives-default">1</property>
+                <property name="sensitive">0</property>
+                <property name="tooltip-text" translatable="yes">Reset changes</property>
+                <signal name="clicked" handler="on_button_reset_w_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_close_w">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Cancel all changes applied</property>
+                <signal name="clicked" handler="on_button_cancel_w_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_ok_w">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_ok_w_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Wavelets control</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="on_button_cancel_w_clicked"/>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_wavelets_dialog_hide"/>
+    <signal name="show" handler="on_wavelets_dialog_show"/>
+  </object>
+</interface>

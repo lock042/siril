@@ -841,6 +841,7 @@ struct common_icc {
 struct cominf {
 	GResource *resource; // resources
 	gboolean headless;		// pure console, no GUI
+	gboolean quitting;		// application is shutting down; suppress display refreshes during teardown
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings

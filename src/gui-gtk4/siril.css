@@ -1,0 +1,605 @@
+/* don't change this first line without updating siril_css.c */
+* { -gtk-icon-style: regular; } window, popover { font-size: 1.0em; }
+
+/* The X11 drop-fallback in single_image.c swallows GDK_DROP_START so
+ * the underlying GtkDropTarget never clears its :drop(active) state,
+ * leaving a stuck green outline around the drawing area after a drop.
+ * The .siril-x11-dnd-fallback class is added at runtime only when the
+ * fallback is active (X11 + HAVE_X11_DND_FALLBACK); on Wayland the
+ * default :drop(active) feedback continues to work normally. */
+.siril-x11-dnd-fallback:drop(active) {
+    outline: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
+grid {
+    margin: 0;
+    padding: 1px;
+    border-width: 0;
+    border-style: none;
+    border-radius: 0;
+}
+
+frame {
+    border-width: 0;
+    border-color: #303030;
+    border-radius: 0;
+    border-style: solid;
+    padding: 1px;
+}
+
+/* Restore the inter-cell gap that GTK3 gave "label + control" rows.  In the
+ * GTK3 build these rows filled the width with the label halign=start and the
+ * control packed to the end, leaving a clear gap between them; the GTK4 port
+ * dropped fill/pack-end so the label and control now sit flush against each
+ * other (e.g. "Stretch factor[0.0]" / "Black Point[0.00000]" in the Asinh
+ * dialog).  Add a left margin to any control that immediately follows a label
+ * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) and grids
+ * so a control stacked *under* a label in a vertical box doesn't get an odd
+ * left indent.  6px matches the column-spacing GTK3 used on these grids. */
+box.horizontal > label + button,
+box.horizontal > label + spinbutton,
+box.horizontal > label + entry,
+box.horizontal > label + dropdown,
+box.horizontal > label + combobox,
+box.horizontal > label + menubutton,
+box.horizontal > label + scale,
+box.horizontal > label + switch,
+box.horizontal > label + checkbutton,
+box.horizontal > label + togglebutton,
+box.horizontal > label + colorbutton,
+grid > label + button,
+grid > label + spinbutton,
+grid > label + entry,
+grid > label + dropdown,
+grid > label + combobox,
+grid > label + menubutton,
+grid > label + scale,
+grid > label + switch,
+grid > label + checkbutton,
+grid > label + togglebutton,
+grid > label + colorbutton {
+    margin-left: 6px;
+}
+
+.toolbar {
+   background-color: transparent;
+}
+
+/* ISO 12646 viewing conditions: D50 gray surround on the four viewport
+ * vboxes and a white background under the drawingarea so the image sits
+ * on a paper-white target.  Toggled via icc_profile.c
+ * enable/disable_iso12646_conditions(). */
+box.iso12646-bg {
+   background-color: rgb(195, 195, 195);
+}
+drawingarea.iso12646-bg {
+   background-color: white;
+   border: 1px solid rgb(195, 195, 195);
+}
+
+/* Submenu navigation buttons inside our processing/tools popovers.
+ * They are GtkButtons (so they don't auto-dismiss the popover) but we
+ * want them to render like menu rows: full-width, flat, slightly padded,
+ * arrow indicator hugging the edge.  Vertical padding matches the
+ * GtkPopoverMenu modelbutton default (~3px) so custom popovers don't
+ * look loose next to the GMenu-driven Scripts / script-editor menus. */
+button.menu-nav {
+   padding: 3px 8px;
+   border-radius: 4px;
+}
+button.menu-nav image {
+   opacity: 0.55;
+}
+button.menu-nav:hover image {
+   opacity: 0.9;
+}
+/* Forward submenu rows wrap their label in a GtkBox (label + arrow), whereas
+ * plain menu-item rows use the GtkButton `label` property (a bare label).  On
+ * newer GTK a box-wrapped label sits ~3px right of a bare button label, so
+ * submenu labels don't line up with the menu-item labels.  A negative margin
+ * on the label doesn't help: it is halign=start, already pinned at its cell's
+ * start edge, so a margin pushing it further left is clamped to no-op.  Instead
+ * trim the row's left padding so the whole row shifts left to the same edge as
+ * the plain rows (which keep the 10px from the popover button rule below).  The
+ * selector must out-specify that rule — which carries a :not(#id), i.e.
+ * id-level specificity — hence the matching popover:not(#popover_catalogs)
+ * prefix here. */
+popover:not(#popover_catalogs) button.menu-nav {
+   padding-left: 7px;
+}
+
+/* Menus in this build are GtkPopover + GtkBox + GtkButton (rather than
+ * the GMenu / GtkPopoverMenu pair).  Without this CSS the children
+ * render with the default button chrome — visible border, rounded
+ * background — so each row looks like a button.  Strip the chrome and
+ * give them a subtle hover so they read as menu rows.
+ * popover_catalogs is excluded; it hosts a list of catalog toggles, not
+ * a menu, and should keep its native widget appearance. */
+popover:not(#popover_catalogs) button,
+popover:not(#popover_catalogs) checkbutton {
+   background: none;
+   background-color: transparent;
+   border: none;
+   box-shadow: none;
+   border-radius: 4px;
+   /* Vertical padding tightened from 6px so the Image Processing,
+    * Tools and hamburger popovers (GtkPopover + GtkBox + GtkButton
+    * rows) match the line-height of the GMenu-driven Scripts and
+    * script-editor menus. */
+   padding: 3px 10px;
+   margin: 0;
+   font-weight: normal;
+   outline: none;
+}
+popover:not(#popover_catalogs) button:hover,
+popover:not(#popover_catalogs) checkbutton:hover {
+   background-color: alpha(currentColor, 0.10);
+}
+popover:not(#popover_catalogs) button:active,
+popover:not(#popover_catalogs) checkbutton:active {
+   background-color: alpha(currentColor, 0.18);
+}
+popover:not(#popover_catalogs) separator {
+   margin: 4px 4px;
+}
+
+/* GTK4 ports the bottom toolbar from the GTK3 single-row design but the
+ * default Adwaita scale + entry have larger min-heights, which combined
+ * with the stacked max/min scales doubles the toolbar height.  Constrain
+ * the toolbar's scales/entries to a compact height so the natural size
+ * stays close to the GTK3 layout.*/
+#toolbarbox {
+   margin: 0;
+   padding: 0;
+}
+#toolbarbox scale {
+   padding: 0;
+   margin: 0;
+   min-height: 18px;
+}
+#toolbarbox scale > trough {
+   padding: 0;
+   margin: 0;
+   min-height: 6px;
+}
+#toolbarbox scale > trough > slider {
+   min-width: 12px;
+   min-height: 14px;
+   margin: -4px 0;
+   padding: 0;
+}
+#toolbarbox entry,
+#toolbarbox button,
+#toolbarbox menubutton,
+#toolbarbox menubutton > button {
+   min-height: 20px;
+   padding-top: 0;
+   padding-bottom: 0;
+   margin-top: 0;
+   margin-bottom: 0;
+}
+
+.small-spinbutton button,
+.small-spinbutton entry {
+   padding: 0px 3px;
+}
+
+.main-toolbar button {
+   padding: 6px;
+}
+
+/* SirilFileBrowser sidebar: unmounted-volume rows render dimmer than the
+ * fully-available entries so the user can tell at a glance which devices
+ * are ready to navigate into vs. which require a mount click first.  The
+ * "Not mounted" subtitle inside the row carries the same hint textually
+ * for theming-agnostic feedback. */
+.siril-unmounted {
+   opacity: 0.6;
+}
+.siril-unmounted:hover {
+   opacity: 0.9;
+}
+
+/* Dense GtkColumnView rows so tables show many entries at a glance rather
+ * than acres of whitespace.  GTK4 Adwaita uses ~32 px rows by default; we
+ * squeeze that down by removing the vertical padding on the inner listview's
+ * rows and on each cell, and pinning a low min-height.  Shared utility class:
+ * applied (via gtk_widget_add_css_class) to the app's GtkColumnViews — the
+ * file browser, conversion list, FITS-header keywords, sequence/PSF/stats
+ * lists, etc.  Opt-in via the class so anything that wants default spacing
+ * simply doesn't add it. */
+columnview.siril-dense-rows row,
+columnview.siril-dense-rows listview > row {
+   min-height: 22px;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+columnview.siril-dense-rows row > cell,
+columnview.siril-dense-rows listview > row > cell {
+   padding-top: 0;
+   padding-bottom: 0;
+}
+
+/* Protected FITS-header keywords (cannot be edited) are shown with their
+ * keyword name in salmon, restoring the GTK3 look (COLUMN_COLOR="salmon"
+ * bound to the Keyword column foreground).  The class is toggled on the
+ * per-cell GtkEditableLabel in keywords_tree.c; colour inherits to its inner
+ * label/text node. */
+.siril-protected-keyword,
+.siril-protected-keyword label,
+.siril-protected-keyword text {
+   color: salmon;
+}
+
+/* SirilFileBrowser breadcrumb path bar — the framed cell-list to the
+ * right of the back/forward/up navigation in the file dialog.  Render
+ * the whole bar as a single recessed "trough" so the segment buttons
+ * look like cells of one widget rather than a row of independent
+ * buttons.  Layout: [ ← arrow ][ scrolling segment list ][ → arrow ]. */
+.siril-breadcrumb-bar {
+   background-color: alpha(@theme_fg_color, 0.06);
+   border: 1px solid alpha(@theme_fg_color, 0.18);
+   border-radius: 6px;
+   padding: 1px;
+   min-height: 28px;
+}
+
+/* Inner scrolled window — neutralise its default background/border so it
+ * inherits the trough look from .siril-breadcrumb-bar.  Same for the
+ * implicit viewport that wraps non-scrollable children. */
+.siril-breadcrumb-bar scrolledwindow,
+.siril-breadcrumb-bar scrolledwindow > viewport {
+   background: transparent;
+   border: none;
+}
+
+/* The segments box itself — kill any inherited horizontal padding so
+ * the leftmost / rightmost segment kisses the bar edge. */
+.siril-breadcrumb {
+   padding: 0;
+}
+
+/* Individual segment button.  Render with a subtle always-on background
+ * (not flat) so each segment looks clickable at rest — the bar should
+ * invite clicks to navigate, not read as a row of labels.  Hover adds
+ * contrast.  The current-folder segment is marked with .siril-current
+ * (set from C) and renders bold + a slightly stronger background, in
+ * neutral foreground colour rather than the suggested-action blue. */
+.siril-breadcrumb-segment {
+   background-color: alpha(@theme_fg_color, 0.08);
+   background-image: none;
+   border: none;
+   border-radius: 4px;
+   padding: 2px 8px;
+   margin: 0 1px;
+   min-height: 22px;
+   min-width: 0;
+   box-shadow: none;
+   color: @theme_fg_color;
+}
+.siril-breadcrumb-segment:hover {
+   background-color: alpha(@theme_fg_color, 0.18);
+}
+.siril-breadcrumb-segment:active {
+   background-color: alpha(@theme_fg_color, 0.25);
+}
+.siril-breadcrumb-segment.siril-current,
+.siril-breadcrumb-segment.siril-current:hover {
+   font-weight: bold;
+   background-color: alpha(@theme_fg_color, 0.20);
+   color: @theme_fg_color;
+}
+
+/* The scroll-arrow buttons at the ends of the bar.  Match segment
+ * heights, lose the default button chrome so they read as part of
+ * the bar rather than extra controls. */
+.siril-breadcrumb-bar > button {
+   background: transparent;
+   background-image: none;
+   border: none;
+   box-shadow: none;
+   border-radius: 4px;
+   padding: 2px 4px;
+   min-height: 22px;
+   min-width: 22px;
+}
+.siril-breadcrumb-bar > button:hover {
+   background-color: alpha(@theme_fg_color, 0.12);
+}
+.siril-breadcrumb-bar > button:disabled {
+   opacity: 0.35;
+}
+
+/* Window header bar: normalise heights across GtkButton (Open, Home,
+ * Livestacking, Undo, Redo, Save, Save-As) and GtkMenuButton (Recent,
+ * Image Processing, Tools, Scripts, hamburger, Precision, Snapshot).
+ * Target height is the small spinbutton in the header (e.g. `spinCPU`
+ * which renders with `.small-spinbutton`'s zero vertical padding): the
+ * row should be no taller than that.
+ *
+ * SPECIFICITY: Adwaita styles header-bar children via `.titlebar button`
+ * (0,1,1) which beats a bare `headerbar button` (0,0,2).  We use the
+ * widget's id selector `#siril-headerbar` (0,1,0,2) instead — ID outweighs
+ * any class, so our overrides land.  The CSS name is set on the
+ * GtkHeaderBar via `<property name="name">siril-headerbar</property>`
+ * in siril.ui (the `id="headerbar"` attribute on the .ui object is for
+ * GtkBuilder lookup only and is NOT visible to CSS — that mistake is
+ * what made the previous override attempts silently no-op).
+ * windowcontrols (the −/□/× cluster) also lives inside the header and
+ * contributes to the row height, so we shrink those buttons too. */
+#siril-headerbar,
+#siril-headerbar > windowhandle,
+#siril-headerbar > windowhandle > box {
+   min-height: 0;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+
+/* One uniform inter-widget gap across the ENTIRE headerbar.
+ *
+ * Background: GTK4 GtkHeaderBar lays its children out in an internal
+ * structure roughly headerbar > windowhandle > box > {.start, .title,
+ * .end} where .start and .end are themselves boxes holding the top-level
+ * children.  Setting `border-spacing` on those internal zones via CSS
+ * proved unreliable across themes — Adwaita's default leaks through on
+ * some selectors and not others, leaving top-level gaps wider than
+ * nested-sub-box gaps no matter how aggressively we matched their
+ * CSS node names.
+ *
+ * Robust approach: zero out container-side spacing and produce the gap
+ * with horizontal margins on the WIDGETS themselves.  Margins on
+ * adjacent GTK siblings simply add up (no collapsing in GTK4 box
+ * layout), so 3 px on each side of every header child yields exactly
+ * 6 px between any two — whether they're top-level children of the
+ * start/end zone or buried inside one of our (Open+Recent /
+ * Undo+Redo / Save+SaveAs+Snapshot) sub-boxes.
+ *
+ * `padding: 0` defeats the global `box { padding: 1px }` earlier in
+ * this file: without it, every nesting level adds a stray horizontal
+ * pixel and the gaps drift apart again. */
+#siril-headerbar box {
+   border-spacing: 0;
+   padding: 0;
+   margin: 0;
+}
+
+/* Pin EVERY header-bar button to the same min-height so label-bearing
+ * buttons (Open, Save, Image Processing, …) don't end up taller than
+ * icon-only buttons (Recent, hamburger, Undo, Redo, Save-As, …).
+ *
+ * 24 px matches the natural height of a label at the default Adwaita font
+ * size, so label-bearing and icon-only buttons share the same row height.
+ * Font scaling is applied once at the `window` / `popover` root (see
+ * siril_css.c), so the font shrinks or grows uniformly and the 24 px floor
+ * remains an appropriate common baseline. Menubuttons wrap an inner button
+ * with the same constraints and render at the same 24 px — so a standalone
+ * GtkButton and a GtkMenuButton inner `button` match height. */
+#siril-headerbar button,
+#siril-headerbar menubutton,
+#siril-headerbar menubutton > button,
+#siril-headerbar windowcontrols button {
+   min-height: 24px;
+   padding-top: 0;
+   padding-bottom: 0;
+   padding-left: 6px;
+   padding-right: 6px;
+}
+
+/* Icon-only buttons (Home, Livestacking, Undo, Redo, Save-As, hamburger,
+ * Recent dropdown, title-bar window controls) carry the `.image-button`
+ * class — applied explicitly in siril.ui so we don't depend on GTK4's
+ * auto-detection (which is unreliable for GtkMenuButton with a single
+ * image child).  Square them up: matching min-width and min-height with
+ * symmetric padding so the 16 px icon sits dead-centre in a square
+ * hit target.
+ *
+ * For GtkMenuButton, set the size on BOTH the menubutton itself and its
+ * inner toggle button — the menubutton sizes the slot, the inner button
+ * is what actually renders. */
+#siril-headerbar button.image-button,
+#siril-headerbar menubutton.image-button,
+#siril-headerbar menubutton.image-button > button,
+#siril-headerbar windowcontrols button {
+   min-height: 24px;
+   min-width: 24px;
+   /* Match the horizontal padding of label-bearing buttons (6 px each
+    * side) so the visual gap between any two consecutive toolbar widgets
+    * is identical regardless of whether the neighbours are icon-only or
+    * carry text.  Vertical padding stays at zero — min-height already
+    * sets the floor, the icon centres in whatever space is left. */
+   padding-top: 0;
+   padding-bottom: 0;
+   padding-left: 3px;
+   padding-right: 3px;
+}
+
+/* Uniform 3 px horizontal margin on every direct child of every box in
+ * the headerbar.  Adjacent siblings sum to a 6 px visual gap regardless
+ * of which box they live in (the headerbar's own start / end zones, or
+ * one of our Open+Recent / Undo+Redo / Save+SaveAs+Snapshot sub-boxes).
+ *
+ * Placed AFTER the per-button rules above so it wins on later-rule
+ * precedence at the same specificity — earlier rules deliberately don't
+ * set `margin` so this one is the only voice on horizontal margins. */
+#siril-headerbar box > button,
+#siril-headerbar box > menubutton,
+#siril-headerbar box > spinbutton,
+#siril-headerbar box > entry,
+#siril-headerbar box > box,
+#siril-headerbar box > label {
+   margin-left: 3px;
+   margin-right: 3px;
+}
+
+/* Pair specific buttons flush against their neighbour with zero gap:
+ *   Open  + Recent-dropdown  (file-open cluster)
+ *   Undo  + Redo             (history cluster)
+ * Zero both adjacent margins so 3 + 3 = 0 instead of the usual 6 px gap.
+ * Higher specificity than the uniform-margin rule above (ID selector
+ * inside #siril-headerbar) so this wins.
+ *
+ * GtkMenuButton (Recent) wraps its visible widget in an inner `button`
+ * node; Adwaita gives that inner button its own horizontal margin which
+ * leaves a small residual gap even when the outer menubutton is
+ * margin-zeroed.  Zero the inner button too. */
+#siril-headerbar #open-button,
+#siril-headerbar #undo-button {
+   margin-right: 0;
+}
+#siril-headerbar #recent-button,
+#siril-headerbar #redo-button {
+   margin-left: 0;
+}
+/* Recent is a GtkMenuButton: only the inner <button> node paints in
+ * Adwaita, so any padding on the outer menubutton (3 px from the
+ * .image-button rule above) shows through as headerbar background ===
+ * visible gap.  Zero its left padding so the inner button starts flush
+ * against the Open button's right edge. */
+#siril-headerbar #recent-button {
+   padding-left: 0;
+}
+#siril-headerbar #recent-button > button {
+   margin-left: 0;
+   margin-right: 0;
+}
+
+/* Restore icon sizes that the GTK3 build set explicitly on toolbars but that
+ * the GTK4 conversion lost when GtkToolbar was replaced by GtkBox.toolbar.
+ *   GtkToolMainBar (inside #toolbarbox)  GTK3: icon_size=5 (DND, 32 px)
+ *   #convert_toolbar                     GTK3: icon_size=2 (small toolbar, 18 px)
+ *   #toolbar_log + #image_log            GTK3: icon_size=2 (small toolbar, 18 px)
+ * GTK4 has no icon-size property on its toolbar replacement, so every icon
+ * falls back to the GtkImage default of 16 px. Force the historical sizes via
+ * -gtk-icon-size on those nodes.*/
+#toolbarbox image,
+#GtkToolMainBar image {
+   -gtk-icon-size: 24px;
+}
+#convert_toolbar image,
+#toolbar_log image,
+#image_log {
+   -gtk-icon-size: 24px;
+}
+
+/* Script-status traffic light: image_log is a GtkLabel showing the
+ * Unicode BLACK CIRCLE (U+25CF), tinted red while idle and green while
+ * a script is running.  Painting the dot as text rather than as a
+ * symbolic icon sidesteps GTK4's symbolic-paintable code path, which
+ * doesn't pick up the widget's CSS `color` on every theme — observed
+ * concretely as a white circle on a dark theme even though Inspector
+ * confirmed `color: #d62f2f` resolved correctly on the widget.  Label
+ * text obeys `color` straightforwardly.  The .script-running class is
+ * toggled from script_console.c::update_log_icon. */
+label#image_log {
+   color: #d62f2f;
+   font-size: 18px;
+}
+label#image_log.script-running {
+   color: #26b246;
+}
+
+.small-button {
+   padding: 0;
+   outline-width: 0;
+}
+
+.label-info {
+   color: #ff0000;
+   font-weight: bold;
+   padding: 0px 0px 8px 0px;
+   text-shadow: 1px 1px @theme_bg_color;
+}
+
+.label-data {
+    font-family: monospace;
+}
+
+progressbar {
+    min-width: 10px;
+    min-height: 10px;
+}
+
+drawingarea {
+    border-radius: 0;
+    background-color: #363636;
+    border: 1px solid #252525;
+}
+
+drawingarea:selected {
+    background-color: #565656;
+    border-radius: 10px;
+}
+
+image {
+    padding: 1px;
+}
+
+scale slider {
+    margin: 1px;
+}
+
+/* The global `label { margin: 0 1px }` and `button { padding: 0;
+ * margin: 1px }` rules that used to be here were removed (Phase 1 of
+ * the clipped-text cleanup).  The button rule in particular was
+ * stripping Adwaita's default ~6 px top/bottom button padding from
+ * every GtkButton in the app — including notebook tab labels — and
+ * caused text clipping in places like the header-bar Open button and
+ * the colour-layer notebook tabs ("B&W", "RGB", "Red", …).
+ * Restoring Adwaita's defaults fixes the clipping.  The header-bar's
+ * compact look is preserved by the `#siril-headerbar`-scoped rules
+ * later in this file, which have higher specificity than Adwaita's
+ * own button styling. */
+
+#siril-preferences box.title,
+#siril-preferences label.title {
+  background-color: @theme_selected_bg_color;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 2px 2px 3px gray;
+}
+
+#siril-preferences label.title {
+  color: white;
+  font-size: 14pt;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+}
+
+@keyframes blinker {
+  50% { opacity: 0; }
+}
+
+#livestacking-blinking label.record {
+  color: red;
+  font-weight: bold;
+  animation: blinker 1s linear infinite;
+}
+
+/* Siril Intro */
+
+@keyframes widget-highlight {
+  from { box-shadow: 0px 0px 10px @theme_selected_bg_color, inset 0px 0px 4px  @theme_selected_bg_color; }
+  to   { box-shadow: 0px 0px 4px  @theme_selected_bg_color, inset 0px 0px 10px @theme_selected_bg_color; }
+}
+
+button.siril-intro-highlight,
+box.toolbar.siril-intro-highlight > button,
+entry.siril-intro-highlight,
+label.siril-intro-highlight,
+.toolbar.siril-intro-highlight {
+  animation: widget-highlight 1s infinite alternate;
+}
+
+entry.header_unset,
+spinbutton.header_unset {
+  color: salmon;
+}
+
+entry.search_empty {
+ border-color: red;
+ box-shadow: none;
+ outline: none;
+ border-image: none;
+}

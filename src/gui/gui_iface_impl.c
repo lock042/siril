@@ -38,7 +38,6 @@
 #include "algos/ccd-inspector.h"
 #include "gui/ccd-inspector.h"
 #include "gui/cut.h"
-#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
 #include "gui/keywords_tree.h"
@@ -179,7 +178,7 @@ static void impl_on_stack_complete(void) {
 	 * 3-channel result, so the R/G/B/RGB tabs need to be re-shown. */
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	sequence_list_change_current();
 	update_stack_interface(TRUE);
@@ -345,7 +344,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	mpp_update_edit_button_sensitivity();         /* sidecar auto-load may have populated com.mpp_run */
 	mpp_shift_viewer_update_button_sensitivity();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	drawPlot();
 	return FALSE;
 }

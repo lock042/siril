@@ -163,6 +163,8 @@ src_files = [
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
+  'io/avi_preview.c',
+  'io/avi_preview.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
   'io/avi_pipp/pipp_avi_write_dib.h',
   'io/avi_pipp/pipp_utf8.h',
@@ -256,100 +258,125 @@ src_files = [
 ]
 
 # GUI-only source files (require GTK; excluded when -Dgtk=false).
-src_files_gui = [
-  'gui/livestacking_gui.c',
-  'gui/about_dialog.c',
-  'gui/annotate.c',
-  'gui/asinh.c',
-  'gui/banding.c',
-  'gui/clahe.c',
-  'gui/cosmetic_correction.c',
-  'gui/fft.c',
-  'gui/rgradient.c',
-  'gui/saturation.c',
-  'gui/scnr.c',
-  'gui/annotations_pref.c',
-  'gui/astrometry_solver.c',
-  'gui/denoisegui.c',
-  'gui/background_extraction.c',
-  'gui/callbacks.c',
-  'gui/undo_gui.c',
-  'gui/ccd-inspector.c',
-  'gui/colors.c',
-  'gui/catmag.c',
-  'gui/compstars.c',
-  'gui/conversion.c',
-  'gui/curves.c',
-  'gui/cut.c',
-  'gui/dialog_preview.c',
-  'gui/dialogs.c',
-  'gui/documentation.c',
-  'gui/epf.c',
-  'gui/gui_iface_impl.c',
-  'gui/fix_xtrans_af.c',
-  'gui/geometry.c',
-  'gui/git_gui.c',
-  'gui/histo_display.c',
-  'gui/histogram.c',
-  'gui/histogram_utils.c',
-  'gui/keywords_tree.c',
-  'gui/icc_profile.c',
-  'gui/image_display.c',
-  'gui/image_interactions.c',
-  'gui/linear_match.c',
-  'gui/masks_gui.c',
-  'gui/median.c',
-  'gui/menu_gray_geometry.c',
-  'gui/menu_gray_selection.c',
-  'gui/merge_cfa.c',
-  'gui/message_dialog.c',
-  'gui/mouse_action_functions.c',
-  'gui/mouse_action_preferences.c',
-  'gui/mpp_ap_editor.c',
-  'gui/mpp_shift_viewer.c',
-  'gui/newdeconv.c',
-  'gui/nina_light_curve.c',
-  'gui/open_dialog.c',
-  'gui/photometric_cc.c',
-  'gui/plot.c',
-  'gui/preferences.c',
-  'gui/progress_and_log.c',
-  'gui/PSF_list.c',
-  'gui/python_gui.c',
-  'gui/registration.c',
-  'gui/registration_preview.c',
-  'gui/remixer.c',
-  'gui/save_dialog.c',
-  'gui/script_console.c',
-  'gui/script_menu.c',
-  'gui/search_objects.c',
-  'gui/sequence_list.c',
-  'gui/single_image.c',
-  'gui/statistics.c',
-  'gui/siril_css.c',
-  'gui/siril_intro.c',
-  'gui/siril_preview.c',
-  'gui/siril_plot.c',
-  'gui/siril-window.c',
-  'gui/splashscreen.c',
-  'gui/split_cfa.c',
-  'gui/stacking.c',
-  'gui/star_finder.c',
-  'gui/starnetgui.c',
-  'gui/statistics_list.c',
-  'gui/compositing.c',
-  'gui/unpurple.c',
-  'gui/user_polygons.c',
-  'gui/pixelmath.c',
-  'gui/preprocess.c',
-  'gui/sequence_export.c',
-  'gui/siril_actions.c',
-  'gui/siril_cmd_help.c',
-  'gui/utils.c',
-  'gui/wavelets.c',
+#
+# gui_subdir is set in the top-level meson.build to either 'gui' (gtk3,
+# default) or 'gui-gtk4' (gtk4).  The two trees are physically separated
+# and only one is compiled into a given build.  As the GTK4 migration
+# progresses, some files exist in only one tree; this is captured by
+# splitting the file list into shared + per-tree extras.
+gui_filenames_shared = [
+  'livestacking_gui.c',
+  'about_dialog.c',
+  'annotate.c',
+  'asinh.c',
+  'banding.c',
+  'clahe.c',
+  'cosmetic_correction.c',
+  'fft.c',
+  'rgradient.c',
+  'saturation.c',
+  'scnr.c',
+  'annotations_pref.c',
+  'astrometry_solver.c',
+  'denoisegui.c',
+  'background_extraction.c',
+  'callbacks.c',
+  'undo_gui.c',
+  'ccd-inspector.c',
+  'colors.c',
+  'catmag.c',
+  'compstars.c',
+  'conversion.c',
+  'curves.c',
+  'cut.c',
+  'dialog_preview.c',
+  'dialogs.c',
+  'documentation.c',
+  'epf.c',
+  'gui_iface_impl.c',
+  'fix_xtrans_af.c',
+  'geometry.c',
+  'git_gui.c',
+  'histo_display.c',
+  'histogram.c',
+  'histogram_utils.c',
+  'keywords_tree.c',
+  'icc_profile.c',
+  'image_display.c',
+  'image_interactions.c',
+  'linear_match.c',
+  'masks_gui.c',
+  'median.c',
+  'menu_gray_geometry.c',
+  'menu_gray_selection.c',
+  'merge_cfa.c',
+  'message_dialog.c',
+  'mouse_action_functions.c',
+  'mouse_action_preferences.c',
+  'newdeconv.c',
+  'nina_light_curve.c',
+  'open_dialog.c',
+  'photometric_cc.c',
+  'plot.c',
+  'preferences.c',
+  'progress_and_log.c',
+  'PSF_list.c',
+  'python_gui.c',
+  'registration.c',
+  'registration_preview.c',
+  'remixer.c',
+  'save_dialog.c',
+  'script_console.c',
+  'script_menu.c',
+  'search_objects.c',
+  'sequence_list.c',
+  'single_image.c',
+  'statistics.c',
+  'siril_css.c',
+  'siril_intro.c',
+  'siril_preview.c',
+  'siril_plot.c',
+  'siril-window.c',
+  'splashscreen.c',
+  'split_cfa.c',
+  'stacking.c',
+  'star_finder.c',
+  'starnetgui.c',
+  'statistics_list.c',
+  'compositing.c',
+  'unpurple.c',
+  'user_polygons.c',
+  'pixelmath.c',
+  'preprocess.c',
+  'sequence_export.c',
+  'siril_actions.c',
+  'siril_cmd_help.c',
+  'utils.c',
+  'wavelets.c',
 ]
 
-# enable_gtk is defined in the top-level meson.build
+# Files that exist only in src/gui-gtk4/ (no GTK3 counterpart).
+gui_filenames_gtk4_only = [
+  'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
+]
+
+# Files that exist only in src/gui/ (no GTK4 counterpart).
+# The PSS planetary AP editor and shift viewer have not been ported to GTK4 yet.
+gui_filenames_gtk3_only = [
+  'mpp_ap_editor.c',
+  'mpp_shift_viewer.c',
+]
+
+gui_filenames = gui_filenames_shared + (use_gtk4
+  ? gui_filenames_gtk4_only
+  : gui_filenames_gtk3_only)
+
+src_files_gui = []
+foreach f : gui_filenames
+  src_files_gui += gui_subdir / f
+endforeach
+
+# enable_gtk / use_gtk4 / gui_subdir are defined in the top-level meson.build
 #
 # Build strategy:
 #
@@ -376,10 +403,12 @@ src_files_gui = [
 #                      (in siril_lib) provides headless no-ops for all slots.
 #                      main-cli.c does NOT define guiinfo gui.  Always built.
 
-# Define the resource file
+# Define the resource file.  The gtk4 backend uses a parallel xml that
+# points at gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
 gnome = import('gnome')
+resource_xml = use_gtk4 ? 'siril_resource_gtk4.xml' : 'siril_resource.xml'
 siril_resources = gnome.compile_resources(
-  'siril_resource', 'siril_resource.xml',
+  'siril_resource', resource_xml,
   source_dir : [ '..', '.' ],
   c_name : 'siril_resource')
 
