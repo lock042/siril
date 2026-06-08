@@ -63,6 +63,126 @@ static GtkWidget *script_toolbarbox = NULL;
 static GtkStack *script_stack_pref = NULL;
 static GtkWidget *script_scripts_page = NULL;
 
+typedef struct {
+	gchar *display_name;
+	gchar *full_path;
+} ScriptEntry;
+
+static GSList *script_search_entries = NULL;
+static GtkWidget *script_search_entry_widget = NULL;
+static GtkWidget *script_search_listbox = NULL;
+static GtkWidget *script_search_scroll = NULL;
+
+static void script_dispatch(const gchar *user_data);
+
+static void free_script_entry(gpointer data) {
+	ScriptEntry *e = data;
+	if (!e) return;
+	g_free(e->display_name);
+	g_free(e->full_path);
+	g_free(e);
+}
+
+static void add_to_script_search_list(const gchar *display_name, const gchar *full_path) {
+	ScriptEntry *e = g_new(ScriptEntry, 1);
+	e->display_name = g_strdup(display_name);
+	e->full_path = g_strdup(full_path);
+	script_search_entries = g_slist_prepend(script_search_entries, e);
+}
+
+static void on_script_search_row_activated(GtkListBox *box, GtkListBoxRow *row,
+                                            gpointer user_data) {
+	(void)user_data;
+	if (!row) return;
+	const gchar *path = g_object_get_data(G_OBJECT(row), "script-path");
+	if (!path) return;
+	GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(box), GTK_TYPE_POPOVER);
+	if (popover)
+		gtk_popover_popdown(GTK_POPOVER(popover));
+	script_dispatch(path);
+}
+
+static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) {
+	(void)user_data;
+	if (!script_search_listbox || !script_search_scroll)
+		return;
+
+	const gchar *text = gtk_editable_get_text(GTK_EDITABLE(entry));
+
+	GtkWidget *child;
+	while ((child = gtk_widget_get_first_child(script_search_listbox)) != NULL)
+		gtk_list_box_remove(GTK_LIST_BOX(script_search_listbox), child);
+
+	if (!text || !*text) {
+		gtk_widget_set_visible(script_search_scroll, FALSE);
+		return;
+	}
+
+	gchar *needle = g_utf8_casefold(text, -1);
+	gint count = 0;
+
+	for (GSList *l = script_search_entries; l; l = l->next) {
+		ScriptEntry *e = l->data;
+		if (!e) continue;
+		gchar *haystack = g_utf8_casefold(e->display_name, -1);
+		if (g_strstr_len(haystack, -1, needle)) {
+			GtkWidget *label = gtk_label_new(e->display_name);
+			gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+			gtk_widget_set_margin_start(label, 6);
+			gtk_widget_set_margin_end(label, 6);
+			gtk_widget_set_margin_top(label, 3);
+			gtk_widget_set_margin_bottom(label, 3);
+			GtkWidget *lrow = gtk_list_box_row_new();
+			gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(lrow), label);
+			gtk_widget_set_tooltip_text(lrow, e->full_path);
+			g_object_set_data_full(G_OBJECT(lrow), "script-path",
+			                       g_strdup(e->full_path), g_free);
+			gtk_list_box_append(GTK_LIST_BOX(script_search_listbox), lrow);
+			count++;
+		}
+		g_free(haystack);
+	}
+
+	g_free(needle);
+	gtk_widget_set_visible(script_search_scroll, count > 0);
+}
+
+static GtkWidget *create_script_search_widget(void) {
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 6);
+
+	script_search_entry_widget = gtk_search_entry_new();
+	gtk_search_entry_set_placeholder_text(GTK_SEARCH_ENTRY(script_search_entry_widget),
+	                                      _("Search scripts\xe2\x80\xa6"));
+	gtk_box_append(GTK_BOX(box), script_search_entry_widget);
+
+	script_search_listbox = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(script_search_listbox),
+	                                GTK_SELECTION_NONE);
+	g_signal_connect(script_search_listbox, "row-activated",
+	                 G_CALLBACK(on_script_search_row_activated), NULL);
+
+	script_search_scroll = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(script_search_scroll),
+	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_max_content_height(
+	    GTK_SCROLLED_WINDOW(script_search_scroll), 250);
+	gtk_scrolled_window_set_propagate_natural_height(
+	    GTK_SCROLLED_WINDOW(script_search_scroll), TRUE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(script_search_scroll),
+	                              script_search_listbox);
+	gtk_widget_set_visible(script_search_scroll, FALSE);
+	gtk_box_append(GTK_BOX(box), script_search_scroll);
+
+	g_signal_connect(script_search_entry_widget, "search-changed",
+	                 G_CALLBACK(on_script_search_changed), NULL);
+
+	return box;
+}
+
 static void script_menu_init_statics(void) {
 	if (menuscript) return;
 	menuscript = GTK_WIDGET(gtk_builder_get_object(gui.builder, "header_scripts_button"));
@@ -483,6 +603,8 @@ static void append_script_entries(const gchar *display_name, const gchar *full_p
 	                  || !g_strcmp0(extension, PYCSCRIPT_EXT);
 	if (!match_ssf && !match_py) return;
 
+	add_to_script_search_list(display_name, full_path);
+
 	GMenuItem *run = g_menu_item_new(display_name, NULL);
 	g_menu_item_set_action_and_target_value(run, "win.script-execute",
 	                                        g_variant_new_string(full_path));
@@ -499,6 +621,14 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GSList *list, *script_paths, *s;
 
 	script_menu_init_statics();
+
+	if (script_search_entries) {
+		g_slist_free_full(script_search_entries, free_script_entry);
+		script_search_entries = NULL;
+	}
+	script_search_entry_widget = NULL;
+	script_search_listbox = NULL;
+	script_search_scroll = NULL;
 
 	/* Phase 15: install GAction backers once on the control window. */
 	GtkWidget *control_window = lookup_widget("control_window");
@@ -536,6 +666,14 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	g_menu_append(tail, _("Enable Python debug mode"), "win.script-pythondebug");
 	g_menu_append_section(menu, NULL, G_MENU_MODEL(tail));
 	g_object_unref(tail);
+
+	GMenu *search_section = g_menu_new();
+	GMenuItem *search_placeholder = g_menu_item_new(NULL, NULL);
+	g_menu_item_set_attribute(search_placeholder, "custom", "s", "scripts-search");
+	g_menu_append_item(search_section, search_placeholder);
+	g_object_unref(search_placeholder);
+	g_menu_append_section(menu, NULL, G_MENU_MODEL(search_section));
+	g_object_unref(search_section);
 
 	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
@@ -636,6 +774,14 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 
 	// Phase 15: install the populated GMenuModel on the menu button.
 	gtk_menu_button_set_menu_model(GTK_MENU_BUTTON(menuscript), G_MENU_MODEL(menu));
+
+	GtkPopover *search_popover = gtk_menu_button_get_popover(GTK_MENU_BUTTON(menuscript));
+	if (GTK_IS_POPOVER_MENU(search_popover)) {
+		GtkWidget *search_widget = create_script_search_widget();
+		gtk_popover_menu_add_child(GTK_POPOVER_MENU(search_popover),
+		                           search_widget, "scripts-search");
+	}
+
 	install_script_popover_rmb();
 
 	g_object_unref(menu_ssf);

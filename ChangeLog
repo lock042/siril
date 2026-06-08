@@ -24,6 +24,7 @@ siril-1.5.0
 * Adding TIFF support in Pixelmath (#1726)
 * Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
 * Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
+* Added Search Entry in the Script menu to filter scripts by name (!1042)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
