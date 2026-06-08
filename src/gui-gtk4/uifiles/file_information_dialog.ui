@@ -1,0 +1,224 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name file_information_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="file_information">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="justify">center</property>
+                <property name="label" translatable="yes">Information related to the image, extracted from the file if available, from the preferences otherwise.
+    Modified data can be saved in a FITS file.</property>
+                <property name="wrap">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="grid4">
+                <property name="column-homogeneous">1</property>
+                <property name="column-spacing">10</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel" id="label64">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Pixel size (micron): </property>
+                    <property name="tooltip-text" translatable="yes">Non-square pixels can be entered but will not be used in most cases.</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="focal_entry">
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="input-purpose">number</property>
+                    <property name="invisible-char">●</property>
+                    <property name="tooltip-text" translatable="yes">If the focal length is not automatically loaded, using file's header, you can update the field by yourself.</property>
+                    <property name="width-chars">10</property>
+                    <signal name="changed" handler="on_focal_entry_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="column-span">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="pitchX_entry">
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="input-purpose">number</property>
+                    <property name="invisible-char">●</property>
+                    <property name="tooltip-text" translatable="yes">If the Pixel X size is not automatically loaded, using file's header, you can update the field by yourself.</property>
+                    <property name="width-chars">10</property>
+                    <signal name="changed" handler="on_pitchX_entry_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label63">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Focal length (mm): </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="pitchY_entry">
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="input-purpose">number</property>
+                    <property name="invisible-char">●</property>
+                    <property name="tooltip-text" translatable="yes">If the Pixel Y size is not automatically loaded, using file's header, you can update the field by yourself.</property>
+                    <property name="width-chars">10</property>
+                    <signal name="changed" handler="on_pitchY_entry_changed"/>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_clear_sample">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Clear</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Clear all the fields. If you save your image after, the header will not contain any data about the focal length or sensor size.</property>
+                    <signal name="clicked" handler="on_button_clear_sample_clicked"/>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">4</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Computed sampling (arcsec/pixel):</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="column-span">2</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label67">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Binning: </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combobinning">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item>1x1</item>
+                          <item>2x2</item>
+                          <item>3x3</item>
+                          <item>4x4</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">If the binning is not automatically loaded, using file's header, you can update this combo box.</property>
+                    <signal name="notify::selected" handler="on_combobinning_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="toggleButtonUnbinned">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Real pixel size</property>
+                    <property name="tooltip-text" translatable="yes">Check this button if binning is not taken into account in the pixel size value. In this case, the binning value will be used to compute the sampling.
+    WARNING: checking this stores it as a preference, also available in the FITS option preferences section.</property>
+                    <signal name="toggled" handler="on_toggleButtonUnbinned_toggled"/>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="info_sampling_label">
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="saveinfo_toggle">
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Save as default values</property>
+                    <property name="tooltip-text" translatable="yes">Save focal length and pixel size as default values in the settings to be used for images that do not contain these metadata</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="column-span">2</property>
+                      <property name="row">4</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkButton" id="file_information_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_file_information_close_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Information</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+  </object>
+</interface>

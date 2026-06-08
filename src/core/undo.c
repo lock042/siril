@@ -500,7 +500,7 @@ int undo_display_data(int dir) {
 				 * copy_roi_into_gfit() which acquires the writer lock —
 				 * mirrors the contract redraw_mask_idle relies on. */
 				notify_gfit_data_modified();
-				gui_iface.redraw_image(REMAP_ALL);
+				gui_iface.redraw_image(REDRAW_ALL);
 			}
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
@@ -571,7 +571,7 @@ int undo_display_data(int dir) {
 				/* No reader lock: notify_gfit_data_modified() may call
 				 * copy_roi_into_gfit() which acquires the writer lock. */
 				notify_gfit_data_modified();
-				gui_iface.redraw_image(REMAP_ALL);
+				gui_iface.redraw_image(REDRAW_ALL);
 			}
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);

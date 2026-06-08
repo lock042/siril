@@ -2912,11 +2912,14 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	} while(0)
 
 /**
- * Create a preview of a FITS file in a GdkPixbuf (color if available)
- * @param filename
- * @return a GdkPixbuf containing the preview or NULL
+ * Build a downsampled RGB888 thumbnail from a FITS file.
+ * Returns a malloc'd 3-channel RGB byte buffer (caller frees with free()),
+ * or NULL on error.  *description is set to a freshly-allocated g_free()
+ * string with image dimensions / channel count.  *width_out and
+ * *height_out are set to the thumbnail's dimensions on success.
  */
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
+                                     int *width_out, int *height_out) {
 	fitsfile *fp;
 	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
@@ -3125,16 +3128,22 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	free(ima_data);
 	free(preview_data);
 
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
-			GDK_COLORSPACE_RGB,
-			FALSE,
-			8,
-			Ws, Hs,
-			Ws * 3,
-			(GdkPixbufDestroyNotify) free_preview_data,
-			NULL);
 	*descr = description;
-	return pixbuf;
+	if (width_out) *width_out = Ws;
+	if (height_out) *height_out = Hs;
+	return pixbuf_data;
+}
+
+/* Pixbuf-returning shim around extract_thumbnail_from_fits, kept for the
+ * GTK3 build and for any caller that still wants a GdkPixbuf.  Ownership
+ * of the byte buffer is transferred to the pixbuf via free_preview_data. */
+GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+	int w = 0, h = 0;
+	guchar *data = extract_thumbnail_from_fits(filename, descr, &w, &h);
+	if (!data) return NULL;
+	return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
+			w, h, w * 3,
+			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
@@ -3858,6 +3867,28 @@ int fits_swap_image_data(fits *a, fits *b) {
 	a->neg_ratio = b->neg_ratio;
 	b->neg_ratio = tmpf;
 
+	return 0;
+}
+
+/* Swap every member of the fits struct except the trailing rwlock.
+ * Relies on the static_assert in core/siril.h that pins GRWLock as the
+ * last field of struct ffit, so memcpy of offsetof(fits, rwlock) bytes
+ * covers everything in front of the lock and nothing behind it.  Each
+ * struct keeps the same rwlock identity / address, so readers/writers
+ * that hold the lock on `a` or `b` are unaffected by the swap.
+ *
+ * Used by generic_image_worker to install an image_hook's result into
+ * gfit under a microsecond writer-lock window — far cheaper than
+ * holding the writer lock for the duration of the hook itself. */
+int fits_swap_all_except_rwlock(fits *a, fits *b) {
+	if (a == NULL || b == NULL)
+		return 1;
+	const size_t swap_size = offsetof(fits, rwlock);
+	void *tmp = g_malloc(swap_size);
+	memcpy(tmp, a,   swap_size);
+	memcpy(a,   b,   swap_size);
+	memcpy(b,   tmp, swap_size);
+	g_free(tmp);
 	return 0;
 }
 

@@ -666,7 +666,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		gui_iface.remap_all_vports();
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 		if (seq->is_variable)
 			gui_iface.clear_previews();
 		else

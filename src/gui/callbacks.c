@@ -585,7 +585,7 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
 		remap_all();
 		g_rw_lock_reader_unlock(&gfit->rwlock);
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	return FALSE;
 }
@@ -631,7 +631,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 			siril_add_idle(try_remap_for_mode_change_idle, NULL);
 		} else {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -642,7 +642,7 @@ void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	gfit->mask_active = state;
 	if (com.pref.gui.mask_tints_vports) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL); // draw or remove the red tint from the image
+		redraw(REDRAW_ALL); // draw or remove the red tint from the image
 	}
 }
 
@@ -651,7 +651,7 @@ void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.gui.mask_tints_vports = state;
 	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 }
 
 void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
@@ -786,7 +786,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -801,7 +801,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -859,7 +859,7 @@ void set_unlink_channels(gboolean unlinked) {
 	siril_log_debug("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -1370,7 +1370,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				notify_gfit_data_modified();
-				redraw(REMAP_ALL);
+				redraw(REDRAW_ALL);
 			}
 		} else if (gfit->type == DATA_USHORT) {
 			if (is_preview_active()) {
@@ -1381,7 +1381,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 		}
 	}
 	gui_function(set_precision_switch, NULL);
@@ -1989,6 +1989,13 @@ gboolean first_start_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
+/* GTK3 build currently has no toolkit-specific GApplication-level
+ * actions; the function is still defined so main.c can call it
+ * unconditionally regardless of which GUI tree is compiled in. */
+void register_toolkit_app_actions(GApplication *app) {
+	(void)app;
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -2190,7 +2197,7 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
@@ -2202,7 +2209,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
@@ -2211,7 +2218,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 /* gamut check was toggled. */
@@ -2224,7 +2231,7 @@ void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 		unlock_display_transform();
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -2463,7 +2470,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2478,7 +2485,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2515,7 +2522,7 @@ void setup_stretch_sliders() {
 	if (changed) {
 		set_cutoff_sliders_values();
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2535,7 +2542,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2585,7 +2592,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }

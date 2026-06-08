@@ -29,6 +29,11 @@ void lock_roi_mutex();
 void unlock_roi_mutex();
 void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);
+/* Registers any GApplication-level actions that exist only in this
+ * toolkit's build of the GUI tree.  Called once from siril_app_startup
+ * after the shared `app_entries` array is registered.  GTK3 build
+ * implements this as a no-op. */
+void register_toolkit_app_actions(GApplication *app);
 void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax

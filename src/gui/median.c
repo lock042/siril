@@ -162,8 +162,6 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
-	if (!for_preview)
-		args->populate_roi_on_complete = TRUE;
 
 	generic_image_worker(args);
 }

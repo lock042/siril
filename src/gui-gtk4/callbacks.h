@@ -1,0 +1,140 @@
+#ifndef CALLBACKS_H
+#include <gtk/gtk.h>
+#include "gui-gtk4/gtk3_event_compat.h"
+#define CALLBACKS_H
+
+#include <sys/time.h>
+#include "core/siril.h"	// for sliders_mode
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+gboolean first_start_cb(gpointer user_data);
+
+void handle_owner_change(GdkClipboard *clipboard, gpointer data);
+void on_press_seq_field();
+gboolean launch_clipboard_survey(gpointer user_data);
+
+// Region of Interest processing
+typedef void (*ROICallback)();
+int populate_roi();
+gpointer on_set_roi();
+gpointer on_clear_roi();
+void add_roi_callback(ROICallback func);
+void remove_roi_callback(ROICallback func);
+void update_roi_config();
+
+gboolean is_gui_ready();
+void lock_roi_mutex();
+void unlock_roi_mutex();
+void roi_supported(gboolean state);
+void initialize_all_GUI(gchar *files);
+/* Registers any GApplication-level actions that exist only in this
+ * toolkit's build of the GUI tree.  Called once from siril_app_startup
+ * after the shared `app_entries` array is registered.  GTK3 build
+ * implements this as a no-op. */
+void register_toolkit_app_actions(GApplication *app);
+void siril_set_theme(int active);
+void load_prefered_theme(gint theme);
+gboolean siril_current_theme_is_dark(void);
+void set_cutoff_sliders_max_values();		// was set_upper_minmax
+void set_cutoff_sliders_values();		// was set_ranges
+gboolean set_cutoff_sliders_values_idle(gpointer p);
+void set_sliders_value_to_gfit();
+void set_accel_map(const gchar * const *accelmap);
+void initialize_display_mode();
+void set_display_mode();
+gboolean set_display_mode_idle(gpointer user_data);
+void set_unlink_channels(gboolean unlinked);
+void adjust_exclude(int n, gboolean changed);
+void adjust_sellabel();
+gpointer update_seq_gui_idle_thread_func(gpointer data);
+gboolean set_GUI_CWD(gpointer user_data);
+void set_icon_entry(GtkEntry *entry, gchar *string);
+gboolean update_MenuItem(gpointer user_data);
+void sliders_mode_set_state(sliders_mode);
+gboolean sliders_mode_set_state_idle(gpointer p);
+display_mode get_display_mode_from_menu();
+int copy_rendering_settings();
+
+void clear_sampling_setting_box();
+void set_GUI_CAMERA();
+void show_or_hide_mask_tab();
+gboolean show_or_hide_mask_tab_idle(gpointer p);
+
+int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
+void update_display_selection();
+void update_display_fwhm();
+void display_filename();
+gboolean set_precision_switch(gpointer user_data);
+void set_layers_for_assign();
+int set_layers_for_registration();
+void show_dialog(const char *text, const char *title, const char *icon);
+void show_txt_and_data_dialog(const char *text, const char *data, const char *title, const char *icon);
+void show_data_dialog(char *text, char *title, gchar *parent, gchar *extra_button);
+GtkWindow *siril_get_active_window();
+void initialize_FITS_name_entries();
+
+void adjust_vport_size_to_image();
+void set_output_filename_to_sequence_name();
+gboolean close_tab(gpointer user_data);
+void activate_tab(int vport);
+gboolean init_right_tab(gpointer user_data);
+
+void update_prepro_interface(gboolean allow_debayer);
+
+/* Phase 11: signature changed; legacy GtkTreeSelection* replaced by the
+ * GtkSelectionModel of the convert GtkColumnView. */
+void on_treeview_selection_convert_changed(GObject *sm, gpointer user_data);
+void update_statusbar_convert();
+
+gboolean update_spinCPU(gpointer user_data);
+
+gpointer update_scripts(gpointer user_data);
+gpointer update_spcc(gpointer user_data);
+gpointer initialize_scripts(gpointer user_data);
+gpointer initialize_spcc(gpointer user_data);
+
+gboolean save_main_window_state(gpointer user_data);
+gboolean load_main_window_state(gpointer user_data);
+GPid show_child_process_selection_dialog(GSList *children);
+gboolean set_seq_browser_active(gpointer user_data);
+gboolean siril_quit(void);
+
+/* for image_display */
+void set_viewer_mode_widgets_sensitive(gboolean sensitive);
+
+int seq_qphot(sequence *seq, int layer);
+
+void on_mask_enable_toggled(GtkCheckButton *button, gpointer user_data);
+
+/*****************************************************************************
+*      P U B L I C      C A L L B A C K      F U N C T I O N S               *
+ ****************************************************************************/
+void setup_stretch_sliders();
+void on_radiobutton_minmax_toggled(GtkCheckButton *togglebutton, gpointer user_data);
+void on_radiobutton_hilo_toggled(GtkCheckButton *togglebutton, gpointer user_data);
+void on_radiobutton_user_toggled(GtkCheckButton *togglebutton, gpointer user_data);
+void on_max_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_min_entry_changed(GtkEditable *editable, gpointer user_data);
+
+void on_seqproc_entry_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);
+void on_excludebutton_toggled(GtkToggleButton *togglebutton, gpointer user_data);
+void on_ref_frame_toggled(GtkCheckButton *togglebutton, gpointer user_data);
+
+void on_spin_w_changed(GtkSpinButton *spinbutton, gpointer user_data);
+
+void on_focal_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
+void on_combobinning_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);
+
+void ensure_seqlist_dialog_closed();
+gboolean in_gtk_thread(void);
+void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data);
+#ifdef __cplusplus
+}
+#endif
+
+#endif

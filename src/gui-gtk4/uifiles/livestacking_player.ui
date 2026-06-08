@@ -1,0 +1,278 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name livestacking_player.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkApplicationWindow" id="livestacking_player">
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Live Stacking</property>
+    <property name="width-request">500</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_livestacking_player_hide"/>
+    <child>
+      <object class="GtkBox">
+        <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
+        <property name="name">livestacking-blinking</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkGrid">
+            <property name="column-homogeneous">1</property>
+            <property name="column-spacing">2</property>
+            <property name="row-spacing">2</property>
+            <child>
+              <object class="GtkBox">
+                <property name="css-classes">toolbar</property>
+                <child>
+                  <object class="GtkButton" id="livestacking_playpause">
+                    <property name="icon-name">media-playback-start-symbolic</property>
+                    <property name="use-underline">1</property>
+                    <signal name="clicked" handler="on_livestacking_playpause_clicked"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="livestacking_stop">
+                    <property name="icon-name">media-playback-stop-symbolic</property>
+                    <property name="use-underline">1</property>
+                    <signal name="clicked" handler="on_livestacking_stop_clicked" swapped="False" object="livestacking_player"/>
+                  </object>
+                </child>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                  <property name="row-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_debayer">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="inconsistent">1</property>
+                <property name="label" translatable="yes">debayer</property>
+                <property name="margin-end">6</property>
+                <property name="sensitive">0</property>
+                <property name="tooltip-text" translatable="yes">for now only detected in files and automatically enabled</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_shiftonly">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">shift-only registration</property>
+                <property name="tooltip-text" translatable="yes">Only shift images instead of using rotation on registration. This should be unchecked for alt-az or heavily drifting mounts. This makes one image processing much faster.</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_lbgr">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">remove gradient</property>
+                <property name="sensitive">0</property>
+                <property name="tooltip-text" translatable="yes">Apply a linear background gradient removal on calibrated input frames.</property>
+                <property name="visible">0</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_32bits">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">use 32 bits</property>
+                <property name="tooltip-text" translatable="yes">Use 32 bits for image processing. This is slower and generally useless in terms of quality for live stacking.</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-top">5</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkLabel" id="ls_stats_label">
+                    <property name="halign">end</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="wrap">1</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Statistics</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-top">5</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkLabel" id="ls_cumul_label">
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">waiting for input files</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="wrap">1</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Stacking</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="focusable">1</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-top">5</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="column-spacing">10</property>
+                    <property name="halign">end</property>
+                    <property name="row-spacing">10</property>
+                    <child>
+                      <object class="GtkLabel" id="ls_reg_config_label">
+                        <property name="halign">start</property>
+                        <property name="wrap">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="ls_masterdark">
+                        <property name="icon-name">process-stop-symbolic</property>
+                        <property name="name">ls_masterdark</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="ls_masterflat">
+                        <property name="icon-name">process-stop-symbolic</property>
+                        <property name="name">ls_masterflat</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Master-dark and cosmetic correction</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Master-flat</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Stacking with weighted mean</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="ls_weighted_mean">
+                        <property name="icon-name">emblem-ok-symbolic</property>
+                        <property name="name">ls_masterflat</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="ls_reg_config">
+                        <property name="icon-name">process-stop-symbolic</property>
+                        <property name="name">ls_masterflat</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Configuration</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="livest_label1">
+            <property name="label" translatable="yes">Idle</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="single-line-mode">1</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
