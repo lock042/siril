@@ -142,6 +142,12 @@ static void invalidate_image_render_cache(int vport);
  * vports (R, G, B, RGB) is 4× this; mono images use one view. */
 #define SIRIL_LAZY_BUDGET    ((gsize)com.pref.lazy_tile_cache_mb * 1024 * 1024)
 
+/* Upper bound on concurrent tile-materialise worker threads.  The per-tile
+ * fill is memory-bandwidth bound, so returns diminish past a handful of
+ * threads; this caps the burst regardless of how many cores com.max_thread
+ * reports. */
+#define SIRIL_MATERIALISE_MAX_THREADS  16
+
 /* Cap on the downsample level a tile may be materialised at.  At mip M the
  * texture is 1/(2^M)² of the source area; at mip 6 a 2048-pixel tile yields
  * a 32-pixel texture (4 KB), and there's no useful saving past that point.
@@ -1009,14 +1015,17 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
 
 /* ── Background materialise worker ────────────────────────────────────────
  *
- * The heavy per-pixel tile fill runs on a shared single-thread GThreadPool, so
- * neither the fill itself nor cairo_mutex contention can stall the GTK main
- * thread during a zoom.  A worker job for a viewport loops, materialising one
- * still-unready visible tile up to target_mip per iteration and queueing a
- * redraw, so the proxy backdrop is progressively replaced by sharp tiles — this
- * is what makes a fast zoom *resolve*.  It exits as soon as every visible tile
- * is ready, so a settled view (e.g. while only an overlay like the selection
- * rubber-band is being redrawn) schedules no worker at all.
+ * The heavy per-pixel tile fill runs on a GThreadPool, so neither the fill
+ * itself nor cairo_mutex contention can stall the GTK main thread during a
+ * zoom.  Several worker jobs for a viewport run in parallel; each loops,
+ * claiming one still-unready visible tile (via image_tile.building, under
+ * cairo_mutex, so peers skip it), materialising it up to target_mip, and
+ * queueing a redraw, so the proxy backdrop is progressively replaced by sharp
+ * tiles — this is what makes a fast zoom *resolve*, and a full re-materialise
+ * (e.g. after a display-mode change) uses every available core instead of one.
+ * A worker exits as soon as no unclaimed not-ready tile remains, so a settled
+ * view (e.g. while only an overlay like the selection rubber-band is being
+ * redrawn) schedules no worker at all.
  *
  * There is deliberately NO speculative prefetch of finer mips: stepping visible
  * tiles one level finer costs 4× the memory, which on a large zoomed-out view
@@ -1220,8 +1229,13 @@ static void wk_assign_tile(struct image_view *view, int tx, int ty, int mip,
  * the viewport whose deferred tile just landed. */
 static gboolean wk_queue_draw_idle(gpointer p) {
 	const int vport = GPOINTER_TO_INT(p);
-	if (vport >= 0 && vport < MAXVPORT && gui.view[vport].drawarea)
-		gtk_widget_queue_draw(gui.view[vport].drawarea);
+	if (vport >= 0 && vport < MAXVPORT) {
+		/* Clear the coalescing latch before drawing so a tile that lands
+		 * after this point re-arms a fresh redraw. */
+		g_atomic_int_set(&gui.view[vport].redraw_pending, 0);
+		if (gui.view[vport].drawarea)
+			gtk_widget_queue_draw(gui.view[vport].drawarea);
+	}
 	return G_SOURCE_REMOVE;
 }
 
@@ -1236,7 +1250,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 	for (;;) {
 		if (!gfit) {
 			g_mutex_lock(&gui.cairo_mutex);
-			gui.view[vport].worker_active = FALSE;
+			gui.view[vport].workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return;
 		}
@@ -1247,7 +1261,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 
 		if (!view->lazy || !view->tiles
 		    || g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
-			view->worker_active = FALSE;
+			view->workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			return;
@@ -1291,6 +1305,7 @@ static void materialise_worker(gpointer data, gpointer user) {
 			for (int ty = ty0; !found && ty <= ty1; ty++) {
 				for (int tx = tx0; tx <= tx1; tx++) {
 					const struct image_tile *t = &view->tiles[ty * cols + tx];
+					if (t->building) continue;   /* another worker owns it */
 					if (t->texture && t->mip < reclaim_below) {
 						jtx = tx; jty = ty;
 						found = TRUE;
@@ -1299,10 +1314,11 @@ static void materialise_worker(gpointer data, gpointer user) {
 				}
 			}
 			/* Pass 2 — otherwise the first not-ready tile (missing / dirty /
-			 * too coarse), raster order. */
+			 * too coarse), raster order, skipping tiles a peer worker owns. */
 			for (int ty = ty0; !found && ty <= ty1; ty++) {
 				for (int tx = tx0; tx <= tx1; tx++) {
 					const struct image_tile *t = &view->tiles[ty * cols + tx];
+					if (t->building) continue;   /* another worker owns it */
 					const gboolean ready = t->texture && !t->dirty
 						&& tile_mip_acceptable(t->mip, target)
 						&& !tile_mip_too_fine(t->mip, target);
@@ -1315,11 +1331,14 @@ static void materialise_worker(gpointer data, gpointer user) {
 			}
 		}
 		if (!found) {
-			view->worker_active = FALSE;
+			view->workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			return;
 		}
+
+		/* Claim the tile so peer workers skip it (still under cairo_mutex). */
+		view->tiles[jty * cols + jtx].building = TRUE;
 
 		/* Phase 1b — snapshot every input the fill needs, so phase 2 touches no
 		 * shared mutable state.  LUT *pointers* are captured here (contents may
@@ -1350,7 +1369,10 @@ static void materialise_worker(gpointer data, gpointer user) {
 		if (!buf) {
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 			g_mutex_lock(&gui.cairo_mutex);
-			gui.view[vport].worker_active = FALSE;
+			if (view->generation == gen && view->tiles
+			    && view->tile_cols == cols && view->tile_rows == rows)
+				view->tiles[jty * cols + jtx].building = FALSE;  /* release claim */
+			view->workers_active--;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return;
 		}
@@ -1375,18 +1397,28 @@ static void materialise_worker(gpointer data, gpointer user) {
 		 * current LUT. */
 		g_mutex_lock(&gui.cairo_mutex);
 		gboolean assigned = FALSE;
-		if (view->generation == gen && view->invalidate_seq == seq
-		    && view->lazy && view->tiles
+		gboolean arm_redraw = FALSE;
+		if (view->generation == gen && view->lazy && view->tiles
 		    && view->tile_cols == cols && view->tile_rows == rows) {
-			wk_assign_tile(view, jtx, jty, jmip, tex, buf, tile_bytes);
-			assigned = TRUE;
+			/* Grid intact: release the claim either way.  A seq mismatch means
+			 * a remap re-dirtied this tile mid-fill — drop our stale texture and
+			 * leave it dirty so a later iteration rebuilds it with the current
+			 * LUT; clearing building lets any worker re-pick it. */
+			view->tiles[jty * cols + jtx].building = FALSE;
+			if (view->invalidate_seq == seq) {
+				wk_assign_tile(view, jtx, jty, jmip, tex, buf, tile_bytes);
+				assigned = TRUE;
+				/* Coalesce: arm at most one queued redraw per view. */
+				arm_redraw = g_atomic_int_compare_and_exchange(
+					&view->redraw_pending, 0, 1);
+			}
 		}
 		g_mutex_unlock(&gui.cairo_mutex);
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 
 		if (!assigned)
 			g_object_unref(tex);   /* discard; frees buf via the GBytes free func */
-		else
+		else if (arm_redraw)
 			g_idle_add(wk_queue_draw_idle, GINT_TO_POINTER(vport));
 
 		/* Loop for the next job. */
@@ -1398,21 +1430,47 @@ static void materialise_worker(gpointer data, gpointer user) {
  * Called with gui.cairo_mutex held (from the snapshot); the worker re-checks
  * under the lock before doing anything. */
 static void schedule_view_worker(struct image_view *view, int vport,
-                                 gboolean have_deferred) {
+                                 int n_work) {
 	if (!view->lazy) return;
 	if (vport < 0 || vport > RGB_VPORT) return;  /* mask vport has no materialiser */
-	if (!have_deferred) return;
-	if (view->worker_active) return;
+	if (n_work <= 0) return;
+
+	/* Parallel materialisation.  The heavy phase-2 fill holds only gfit's
+	 * reader lock (shared), so N workers fill N different tiles at once and
+	 * serialise only on the short pick/assign critical sections under
+	 * cairo_mutex.  Each worker loops until no unclaimed not-ready tile
+	 * remains; here we top this view up to `want` in-flight jobs.  Called
+	 * with cairo_mutex held, so workers_active is consistent with the
+	 * worker's own decrements. */
+	int want = com.max_thread > 0 ? com.max_thread : (int) g_get_num_processors();
+	want = CLAMP(want, 1, SIRIL_MATERIALISE_MAX_THREADS);
+
+	/* Never spawn more workers than there are tiles to fill: with one worker
+	 * per tile, surplus workers would only scan, find every tile claimed, and
+	 * exit — wasted dispatch plus brief cairo_mutex contention with the
+	 * productive ones.
+	 *
+	 * TODO: when n_work < want (e.g. zoomed in to a few full-resolution
+	 * tiles) the leftover threads sit idle.  Each tile's fill is row-parallel,
+	 * so a future optimisation could hand those spare threads to the active
+	 * tiles (workers = min(want, n_work), threads_per_tile = want / workers,
+	 * OMP-splitting wk_fill_{gray,rgb} over output rows — note wk_fill_rgb's
+	 * per-row ICC scratch would have to become per-thread).  Skipped for now:
+	 * the benefit is confined to the zoomed-in regime and adds nested
+	 * GThread+OpenMP complexity. */
+	if (want > n_work) want = n_work;
+
 	if (!materialise_pool) {
-		/* One dedicated worker thread: the job function loops until the view is
-		 * drained, and all jobs contend on cairo_mutex anyway, so extra threads
-		 * would only add contention. */
 		materialise_pool = g_thread_pool_new(materialise_worker, NULL,
-		                                     1, TRUE, NULL);
+		                                     want, TRUE, NULL);
 		if (!materialise_pool) return;
 	}
-	view->worker_active = TRUE;
-	g_thread_pool_push(materialise_pool, GINT_TO_POINTER(vport), NULL);
+	g_thread_pool_set_max_threads(materialise_pool, want, NULL);
+
+	while (view->workers_active < want) {
+		view->workers_active++;
+		g_thread_pool_push(materialise_pool, GINT_TO_POINTER(vport), NULL);
+	}
 }
 
 void check_gfit_profile_identical_to_monitor() {
@@ -2559,7 +2617,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		 * proxy backdrop). */
 		gboolean have_vis = FALSE;
 		int vtx0 = 0, vty0 = 0, vtx1 = 0, vty1 = 0;
-		gboolean any_work = FALSE;     /* a visible tile is dirty / missing / too coarse */
+		int n_work = 0;                /* count of visible tiles dirty / missing / too coarse */
 		gboolean any_missing = FALSE;  /* a visible tile has no texture at all */
 		for (int ty = 0; ty < tile_rows; ty++) {
 			for (int tx = 0; tx < tile_cols; tx++) {
@@ -2586,7 +2644,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 					if (t->dirty || !t->texture
 					    || !tile_mip_acceptable(t->mip, target_mip)
 					    || tile_mip_too_fine(t->mip, target_mip))
-						any_work = TRUE;
+						n_work++;
 					if (!t->texture)
 						any_missing = TRUE;
 				}
@@ -2614,12 +2672,13 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			}
 		}
 
-		/* Kick the worker to (re)materialise any visible tile that's dirty,
-		 * missing, or too coarse.  No-op if already running, not lazy, or
-		 * nothing needs work — so a settled view (e.g. an overlay-only redraw
-		 * such as moving the selection) schedules no background work. */
+		/* Kick the workers to (re)materialise visible tiles that are dirty,
+		 * missing, or too coarse.  No-op if not lazy or nothing needs work — so
+		 * a settled view (e.g. an overlay-only redraw such as moving the
+		 * selection) schedules no background work.  n_work caps how many
+		 * workers we spawn (no point in more workers than tiles). */
 		if (!suppressed)
-			schedule_view_worker(view, vport, any_work);
+			schedule_view_worker(view, vport, n_work);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
@@ -2990,6 +3049,81 @@ static void draw_main_image(const draw_data_t* dd) {
 	} else {
 		draw_empty_image(dd);
 	}
+}
+
+/* Copy the image-space rectangle (sx, sy, w, h) of viewport `vport` into
+ * `dst` (CAIRO_FORMAT_RGB24 / B8G8R8X8, w×h pixels, dst_stride bytes per
+ * row).  Only the tiles overlapping the rectangle are touched — eager mode
+ * copies straight from view->buf, lazy mode materialises each overlapping
+ * tile at mip 0 on demand.  Pixels of the rectangle that fall outside the
+ * image are left untouched, so callers must pre-clear `dst` if the rect can
+ * extend past the image edge.  This is what lets the small inspection views
+ * (CCD inspector, registration preview) render arbitrary windows of an
+ * arbitrarily large image without ever building a full-image Cairo surface.
+ *
+ * Returns FALSE only if the viewport has no image. */
+gboolean siril_image_view_copy_region(int vport, int sx, int sy,
+                                      int w, int h, guchar *dst, int dst_stride) {
+	if (vport < 0 || vport >= MAXVPORT || !dst || w <= 0 || h <= 0)
+		return FALSE;
+
+	g_mutex_lock(&gui.cairo_mutex);
+	struct image_view *view = &gui.view[vport];
+	const int img_w = view->buf_stride > 0 ? view->buf_stride / 4 : 0;
+	const int img_h = view->buf_height;
+	if (img_w <= 0 || img_h <= 0 || !view->tiles) {
+		g_mutex_unlock(&gui.cairo_mutex);
+		return FALSE;
+	}
+
+	if (!view->lazy) {
+		/* Eager: one contiguous buffer, copy the in-image rows directly. */
+		const int ix0 = MAX(0, sx);
+		const int ix1 = MIN(img_w, sx + w);
+		for (int row = 0; row < h; row++) {
+			const int iy = sy + row;
+			if (iy < 0 || iy >= img_h || ix1 <= ix0)
+				continue;
+			memcpy(dst + (size_t)row * dst_stride + (size_t)(ix0 - sx) * 4,
+			       view->buf + (size_t)iy * view->buf_stride + (size_t)ix0 * 4,
+			       (size_t)(ix1 - ix0) * 4);
+		}
+		g_mutex_unlock(&gui.cairo_mutex);
+		return TRUE;
+	}
+
+	/* Lazy: materialise and copy only the tiles overlapping the rect. */
+	const int tile_dim = view->tile_dim;
+	const int tx_lo = MAX(0, sx) / tile_dim;
+	const int ty_lo = MAX(0, sy) / tile_dim;
+	const int tx_hi = MIN(img_w - 1, sx + w - 1) / tile_dim;
+	const int ty_hi = MIN(img_h - 1, sy + h - 1) / tile_dim;
+	for (int ty = ty_lo; ty <= ty_hi; ty++) {
+		for (int tx = tx_lo; tx <= tx_hi; tx++) {
+			if (!materialise_tile(view, vport, tx, ty, 0))
+				continue;
+			int x0, y0, tw, th, tex_w, tex_h;
+			tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th, &tex_w, &tex_h);
+			const guchar *p = view->tiles[ty * view->tile_cols + tx].data;
+			if (!p)
+				continue;
+			const int tstride = tex_w * 4;   /* lazy tiles use padded stride */
+			/* Intersect the tile's unpadded content with the requested rect. */
+			const int cx0 = MAX(x0, sx);
+			const int cx1 = MIN(x0 + tw, sx + w);
+			const int cy0 = MAX(y0, sy);
+			const int cy1 = MIN(y0 + th, sy + h);
+			if (cx1 <= cx0 || cy1 <= cy0)
+				continue;
+			for (int iy = cy0; iy < cy1; iy++) {
+				memcpy(dst + (size_t)(iy - sy) * dst_stride + (size_t)(cx0 - sx) * 4,
+				       p + (size_t)(iy - y0) * tstride + (size_t)(cx0 - x0) * 4,
+				       (size_t)(cx1 - cx0) * 4);
+			}
+		}
+	}
+	g_mutex_unlock(&gui.cairo_mutex);
+	return TRUE;
 }
 
 gboolean get_context_rotation_matrix(double rotation, cairo_matrix_t *transform, gboolean invert) {

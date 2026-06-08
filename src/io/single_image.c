@@ -399,6 +399,11 @@ void gfit_modified_update_gui() {
  * as dirty and recompute them on demand.  execute_script() calls this function
  * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
+	/* During application shutdown the loaded image is being torn down and the
+	 * display is going away, so recomputing the histogram and remapping the
+	 * (about-to-be-freed) pixels is pure waste — and laggy on a large image. */
+	if (com.quitting)
+		return;
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
