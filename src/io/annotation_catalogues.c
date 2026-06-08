@@ -239,15 +239,6 @@ void refresh_annotation_visibility() {
 	}
 }
 
-void refresh_annotation_to_temp() {
-	GSList *cur = siril_annot_catalogue_list;
-	while (cur) {
-		annotations_catalogue_t *curcat = cur->data;
-		curcat->show = (curcat->cat->cat_index == CAT_AN_USER_TEMP);
-		cur = cur->next;
-	}
-}
-
 int load_siril_cat_to_temp(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 1;

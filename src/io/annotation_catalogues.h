@@ -51,7 +51,6 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args);
 void set_annotation_visibility(siril_cat_index cat_index, gboolean visible);
 gboolean get_annotation_visibility(siril_cat_index cat_index);
 void refresh_annotation_visibility();
-void refresh_annotation_to_temp();
 void cleanup_annotation_catalogues(gboolean purge_temp);
 void refresh_annotations(gboolean purge_temp);
 
