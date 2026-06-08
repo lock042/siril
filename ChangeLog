@@ -3,6 +3,7 @@ siril-1.4.4
 
 **Fixes**
 * Fixed seq file corruption (#1204)
+* Fixed crash when loading a sequence with an out-of-range reference image, e.g. after preprocessing (#1950)
 
 siril-1.4.3
 05/07/26

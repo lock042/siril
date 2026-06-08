@@ -1725,8 +1725,16 @@ void close_sequence(int loading_sequence_from_combo) {
  * selected in the sequence, the best of the first registration data found if
  * any, the first otherwise */
 int sequence_find_refimage(sequence *seq) {
-	if (seq->reference_image != -1)
-		return seq->reference_image;
+	if (seq->reference_image != -1) {
+		// guard against a corrupted/out-of-range reference stored in the .seq
+		// file: returning it as-is would set seq->current out of bounds and
+		// lead to out-of-bounds accesses on imgparam/regparam (see #1950)
+		if (seq->reference_image >= 0 && seq->reference_image < seq->number)
+			return seq->reference_image;
+		siril_log_color_message(_("Invalid reference image (%d) in sequence, resetting it\n"),
+				"salmon", seq->reference_image);
+		seq->reference_image = -1;
+	}
 	if (seq->type == SEQ_INTERNAL)
 		return 1; // green channel
 	int layer, image, best = -1;
