@@ -2352,6 +2352,40 @@ static void reassemble_center_notebook(void) {
 	}
 }
 
+/* GtkHeaderBar wraps its contents in a GtkWindowHandle that maximizes /
+ * restores the window on a double-click.  GTK4 skips insensitive children
+ * when picking the event target, so double-clicking a disabled header
+ * control (undo/redo, the CPU spin button at its limit, ...) falls through
+ * to the window handle and toggles the window state.  Catch the double
+ * press in the capture phase before the window handle sees it: if the
+ * pointer is over an insensitive descendant, claim the sequence so the
+ * maximize gesture is denied.  Clicks on the empty header area pick a
+ * sensitive widget and are left alone, preserving double-click-to-maximize. */
+static void on_headerbar_pressed(GtkGestureClick *gesture, int n_press,
+                                 double x, double y, gpointer user_data) {
+	if (n_press < 2)
+		return;
+	GtkWidget *headerbar = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	GtkWidget *picked = gtk_widget_pick(headerbar, x, y,
+	                                    GTK_PICK_INSENSITIVE | GTK_PICK_NON_TARGETABLE);
+	for (GtkWidget *w = picked; w && w != headerbar; w = gtk_widget_get_parent(w)) {
+		if (!gtk_widget_get_sensitive(w)) {
+			gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+			return;
+		}
+	}
+}
+
+static void guard_headerbar_insensitive_double_click(void) {
+	GtkWidget *headerbar = lookup_widget("headerbar");
+	if (!headerbar)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed", G_CALLBACK(on_headerbar_pressed), NULL);
+	gtk_widget_add_controller(headerbar, GTK_EVENT_CONTROLLER(click));
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* Re-attach the notebook tabs that were split into separate .ui files
 	 * before anything inspects notebook_center_box. */
@@ -2425,6 +2459,11 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * GTK3 used a button-press-event on a GtkButton with custom
 	 * left/right dispatch; that signal doesn't exist in GTK4. */
 	icc_main_window_button_attach_gesture();
+
+	/* Stop double-clicks on disabled header-bar controls (undo/redo, the
+	 * CPU spin button at its limit) from toggling the window's maximized
+	 * state via the header bar's built-in GtkWindowHandle. */
+	guard_headerbar_insensitive_double_click();
 
 	/* Wire GtkGestureClick "released" on scalemin / scalemax so the
 	 * end-of-drag REDRAW_ALL redraw fires (Phase 18 stripped the

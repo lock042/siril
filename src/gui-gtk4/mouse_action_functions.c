@@ -1061,13 +1061,14 @@ gboolean scroll_zooms(scroll_data *data) {
 				}
 			}
 			break;
-			// Fallthrough intentional
-		case GDK_SCROLL_DOWN:
-		case GDK_SCROLL_LEFT:
-			return update_zoom(data->x, data->y, ZOOM_IN);
-			// Fallthrough intentional
+			// Discrete (mouse-wheel) events: match the sign convention of
+			// the smooth branch above (scroll up / right zooms in) so a
+			// physical wheel behaves the same as a trackpad.
 		case GDK_SCROLL_UP:
 		case GDK_SCROLL_RIGHT:
+			return update_zoom(data->x, data->y, ZOOM_IN);
+		case GDK_SCROLL_DOWN:
+		case GDK_SCROLL_LEFT:
 			return update_zoom(data->x, data->y, ZOOM_OUT);
 		default:
 			break;
