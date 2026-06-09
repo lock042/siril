@@ -665,7 +665,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		gui_iface.remap_all_vports();
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 		if (seq->is_variable)
 			gui_iface.clear_previews();
 		else
@@ -883,8 +883,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
 			// copyfits copies ICC profile so internal sequences do retain ICC profiles
-			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
-			copy_fits_metadata(seq->internal_fits[index], dest);
+			copyfits(seq->internal_fits[index], dest, CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 			if (seq->internal_fits[index]->type == DATA_FLOAT) {
 				dest->fdata = seq->internal_fits[index]->fdata;
 				dest->fpdata[0] = seq->internal_fits[index]->fpdata[0];

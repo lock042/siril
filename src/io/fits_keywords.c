@@ -1019,19 +1019,22 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 	}
 }
 
+static void fix_keywords_defaults(fits *fit) {
+	if (fit->keywords.stackcnt == DEFAULT_UINT_VALUE)
+		fit->keywords.stackcnt = 1;
+	if (fit->keywords.binning_x == DEFAULT_UINT_VALUE)
+		fit->keywords.binning_x = 1;
+	if (fit->keywords.binning_y == DEFAULT_UINT_VALUE)
+		fit->keywords.binning_y = 1;
+	// Add any other special cases here...
+}
+
 void set_all_keywords_default(fits *fit) {
 	GHashTable *keys_hash;
 	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
 
 	set_to_default_not_used(fit, keys_hash);
-
-	/* Special cases */
-	if (fit->keywords.stackcnt == DEFAULT_UINT_VALUE) {
-		// DEFAULT_UINT_VALUE doesn't make any sense for a default stack count.
-		// Change it to 1.
-		fit->keywords.stackcnt = 1;
-	}
-	// Add any other special cases here...
+	fix_keywords_defaults(fit);
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
@@ -1268,6 +1271,7 @@ int read_fits_keywords(fits *fit) {
 	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
 
 	set_to_default_not_used(fit, keys_hash);
+	fix_keywords_defaults(fit);
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);

@@ -1627,9 +1627,13 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	// If a selection is set, expand it to cover the entire (rotated) image.
 	// The GUI update (new_selection_zone) is deferred to the completion idle so
 	// it runs after remap_all() has refreshed the Cairo buffers.
+	// Use fit->rx/ry (the post-rotation dimensions of the hook's working
+	// buffer) rather than gfit->rx/ry: under the planned worker swap refactor
+	// gfit still holds the pre-rotation dimensions at this point.  Today
+	// fit == gfit so the values are identical.
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		g_mutex_lock(&com.mutex);
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
+		com.selection = (rectangle){ 0, 0, fit->rx, fit->ry };
 		g_mutex_unlock(&com.mutex);
 	}
 	gui_iface.update_status_bar();

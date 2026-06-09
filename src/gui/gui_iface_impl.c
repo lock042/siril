@@ -38,7 +38,6 @@
 #include "algos/ccd-inspector.h"
 #include "gui/ccd-inspector.h"
 #include "gui/cut.h"
-#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
 #include "gui/keywords_tree.h"
@@ -152,10 +151,12 @@ static void impl_on_stack_complete(void) {
 	clear_stars_list(TRUE);
 	initialize_display_mode();
 	sliders_mode_set_state(gui.sliders);
-	/* Reader lock guards set_cutoff_sliders_max_values() which reads
-	 * gfit->type/orig_bitpix.  The hi/lo assignment writes keyword fields
-	 * that were set on the worker thread by notify_gfit_data_modified(). */
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	/* Writer lock: this section reads gfit (set_cutoff_sliders_max_values()
+	 * reads gfit->type/orig_bitpix) and also writes it (the hi/lo assignment).
+	 * The lock must be acquired and released as a writer on both counts -
+	 * mixing reader_lock with writer_unlock corrupts the lock on platforms
+	 * where the two unlock primitives differ (e.g. Windows SRWLOCK). */
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	display_filename();
 	gui_function(set_precision_switch, NULL);
 	set_cutoff_sliders_max_values();
@@ -165,7 +166,7 @@ static void impl_on_stack_complete(void) {
 	gfit_modified_update_gui();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	sequence_list_change_current();
 	update_stack_interface(TRUE);
@@ -329,7 +330,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	drawPlot();
 	return FALSE;
 }

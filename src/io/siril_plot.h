@@ -61,7 +61,7 @@ typedef struct siril_plot_legend_struct {
 
 typedef struct siril_plot_bkg_struct {
 	gchar *bkgfilepath;
-	GdkPixbuf *img;
+	cairo_surface_t *img;
 	double width, height;
 } splbkg;
 
