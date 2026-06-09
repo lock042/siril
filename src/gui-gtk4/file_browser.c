@@ -2205,6 +2205,9 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	 * just below, on the same line as the path breadcrumb. */
 	GtkWidget *header = gtk_header_bar_new();
 	gtk_header_bar_set_show_title_buttons(GTK_HEADER_BAR(header), TRUE);
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+	gtk_header_bar_set_use_native_controls(GTK_HEADER_BAR(header), TRUE);
+#endif
 	gtk_window_set_titlebar(fb->window, header);
 
 	/* Toolbar (single row): Cancel | breadcrumb path | edit | search | Open.
