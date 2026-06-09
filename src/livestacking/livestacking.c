@@ -25,12 +25,11 @@
 #include <sys/time.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/preprocess.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/PSF_list.h"	// clear_stars_list
 #include "io/conversion.h"
 #include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
@@ -46,8 +45,6 @@
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
-#include "gui/image_display.h"
-#include "gui/callbacks.h"
 #include "livestacking.h"
 #include "gui.h"
 
@@ -152,11 +149,8 @@ void stop_live_stacking_engine() {
 	first_stacking_result = TRUE;
 	unreserve_thread();
 
-	if (!com.headless) {
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
-		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
-		set_cursor_waiting(FALSE);
-	}
+	gui_iface.livestacking_teardown_gui();
+	gui_iface.set_busy(FALSE);
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
@@ -179,7 +173,7 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 			g_object_unref(fd);
 			return 1;
 		}
-		siril_debug_print("image size: %d MB\n", (int )(size / 1000000));
+		siril_log_debug("image size: %d MB\n", (int )(size / 1000000));
 		if (last_size == 0 || size != last_size)
 			last_size = size;
 		else break;
@@ -195,7 +189,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		return;
 	}
 	gchar *filename = g_file_get_basename(file);
-	siril_debug_print("File %s added\n", filename);
+	siril_log_debug("File %s added\n", filename);
 	if (filename[0] == '.' || // hidden files
 			paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
 		g_free(filename);
@@ -204,7 +198,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 
 	image_type type;
 	if (stat_file(filename, &type, NULL)) {
-		siril_debug_print("Filename is not canonical\n");
+		siril_log_debug("Filename is not canonical\n");
 	}
 	if (type != TYPEFITS) {
 		if (type == TYPERAW) {
@@ -239,19 +233,13 @@ void livestacking_queue_file(char *file) {
 	g_async_queue_push(new_files_queue, file);
 }
 
-/* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
+/* for fullscreen, see livestacking_action_activate() in gui/siril_actions.c */
 int start_livestacking(gboolean with_filewatcher) {
 	if (live_stacker_thread)
 		return 1;
 	livestacking_display(_("Starting live stacking"), FALSE);
-	if (!com.headless) {
-		gui.rendering_mode = STF_DISPLAY;
-		set_display_mode();
-		force_unlinked_channels();
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
-		if (gtk_widget_is_visible(toolbar)) show_hide_toolbox();
-		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
-	}
+	if (!com.headless)
+		gui_iface.livestacking_setup_gui(prepro && prepro->use_dark, prepro && prepro->use_flat, (int)reg_type);
 
 	do_links = test_if_symlink_is_ok(TRUE);
 
@@ -280,7 +268,7 @@ int start_livestacking(gboolean with_filewatcher) {
 			return 1;
 		}
 
-		siril_debug_print("file watcher active for CWD (%s)\n", com.wd);
+		siril_log_debug("file watcher active for CWD (%s)\n", com.wd);
 	}
 
 	live_stacker_thread = g_thread_new("live stacker", live_stacker, NULL);
@@ -292,7 +280,7 @@ static void init_preprocessing_from_command(char *dark, char *flat, gboolean use
 	if (dark) {
 		prepro->dark = calloc(1, sizeof(fits));
 		if (readfits(dark, prepro->dark, NULL, FALSE)) {
-			siril_log_message(_("NOT USING DARK: cannot open file '%s'\n"), dark);
+			siril_log_warning(_("NOT USING DARK: cannot open file '%s'\n"), dark);
 			free(prepro->dark);
 			prepro->use_dark = FALSE;
 			prepro->use_cosmetic_correction = FALSE;
@@ -402,7 +390,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 	int nb_stars;
 
 	stars = peaker(fit, registration_layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, MAXSTARS, com.pref.starfinder_conf.profile, com.max_thread);
-	siril_debug_print("Found %d stars in new image\n", nb_stars);
+	siril_log_debug("Found %d stars in new image\n", nb_stars);
 
 	if (!ref_stars) {
 		if (nb_stars < AT_MATCH_MINPAIRS || !stars) {
@@ -429,13 +417,11 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 		}
 		free_fitted_stars(stars);
 		if (retvalue) {
-			siril_log_color_message(_("Cannot perform star matching: try #%d. Image skipped\n"),
-					"red", attempt);
+			siril_log_error(_("Cannot perform star matching: try #%d. Image skipped\n"), attempt);
 			return 1;
 		}
 		if (H.pair_matched < AT_MATCH_MINPAIRS) {
-			siril_log_color_message(_("Not enough star pairs (%d): Image skipped\n"),
-					"red", H.pair_matched);
+			siril_log_error(_("Not enough star pairs (%d): Image skipped\n"), H.pair_matched);
 			return 1;
 		}
 
@@ -549,7 +535,7 @@ static int preprocess_image(char *filename, char *target) {
 		ret = savefits(target, &fit);
 	clearfits(&fit);
 	if (ret) {
-		char *msg = siril_log_message(_("preprocessing failed\n"));
+		char *msg = siril_log_error(_("preprocessing failed\n"));
 		msg[strlen(msg) - 1] = '\0';
 		livestacking_display(msg, FALSE);
 	}
@@ -564,7 +550,7 @@ static gpointer live_stacker(gpointer arg) {
 	do {
 		gchar *filename = g_async_queue_pop(new_files_queue); // blocking
 		if (!strcmp(filename, EXIT_TOKEN)) {
-			siril_debug_print("Exiting thread\n");
+			siril_log_debug("Exiting thread\n");
 			break;
 		}
 		struct timeval tv_start, tv_tmp, tv_end;
@@ -601,11 +587,13 @@ static gpointer live_stacker(gpointer arg) {
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			if (!com.headless)
-				execute_idle_and_wait_for_it(end_image_loading, NULL);
+			if (!com.headless) {
+				notify_gfit_data_modified();
+				gui_iface.execute_idle_sync(end_image_loading, NULL);
+			}
 		}
 
-		siril_debug_print("Adding file to input sequence\n");
+		siril_log_debug("Adding file to input sequence\n");
 		gchar *target = g_strdup_printf("live_stack_%05d%s", index, get_com_ext(com.pref.comp.fits_enabled));
 		/* Preprocess image */
 		if (!preprocess_image(filename, target)) {
@@ -641,7 +629,7 @@ static gpointer live_stacker(gpointer arg) {
 		g_free(target);
 
 		/* Create the sequence */
-		siril_debug_print("Creating sequence %d\n", index);
+		siril_log_debug("Creating sequence %d\n", index);
 		sequence seq;
 		initialize_sequence(&seq, FALSE);
 
@@ -681,14 +669,14 @@ static gpointer live_stacker(gpointer arg) {
 			seq_rx = seq.rx;
 			seq_ry = seq.ry;
 			if (prepro && prepro->dark && (prepro->dark->rx != seq_rx || prepro->dark->ry != seq_ry)) {
-				char *msg = siril_log_color_message(_("Dark image is not the same size, not using (%dx%d)\n"), "salmon", prepro->dark->rx, prepro->dark->ry);
+				char *msg = siril_log_warning(_("Dark image is not the same size, not using (%dx%d)\n"), prepro->dark->rx, prepro->dark->ry);
 				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				clearfits(prepro->dark);
 				prepro->use_dark = FALSE;
 			}
 			if (prepro && prepro->flat && (prepro->flat->rx != seq_rx || prepro->flat->ry != seq_ry)) {
-				char *msg = siril_log_color_message(_("Flat image is not the same size, not using (%dx%d)\n"), "salmon", prepro->flat->rx, prepro->flat->ry);
+				char *msg = siril_log_warning(_("Flat image is not the same size, not using (%dx%d)\n"), prepro->flat->rx, prepro->flat->ry);
 				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				clearfits(prepro->flat);
@@ -700,7 +688,7 @@ static gpointer live_stacker(gpointer arg) {
 			}
 		} else {
 			if (seq_rx != seq.rx || seq_ry != seq.ry) {
-				char *msg = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+				char *msg = siril_log_error(_("Images must have same dimensions.\n"));
 				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				break;
@@ -717,7 +705,7 @@ static gpointer live_stacker(gpointer arg) {
 		gchar *result_filename = g_strdup_printf("live_stack_00001%s", get_com_ext(com.pref.comp.fits_enabled));
 
 		/* Stack the sequence */
-		siril_debug_print("Stacking image %d\n", index);
+		siril_log_debug("Stacking image %d\n", index);
 
 		/*sequence *r_seq = readseqfile("r_live_stack_.seq");
 		if (!r_seq || seq_check_basic_data(r_seq, FALSE) < 0) {
@@ -769,10 +757,10 @@ static gpointer live_stacker(gpointer arg) {
 		/* and hacking the stats for good normalization: the reference is the first image stacked */
 		if (!retval && !refimage_stats[0]) {
 			if (copy_cached_stats_for_image(&r_seq, 0, refimage_stats)) {
-				siril_log_color_message(_("Reference image statistics not found\n"), "red");
+				siril_log_error(_("Reference image statistics not found\n"));
 				stackparam.normalize = NO_NORM;
 			}
-			else siril_debug_print("saved statistics of reference image, using normalization\n");
+			else siril_log_debug("saved statistics of reference image, using normalization\n");
 		}
 		clean_end_stacking(&stackparam);
 		free_sequence(&r_seq, FALSE);
@@ -784,12 +772,11 @@ static gpointer live_stacker(gpointer arg) {
 			livestacking_display(str, TRUE);
 			break;
 		}
-		clear_stars_list(FALSE);
+		gui_iface.clear_star_list();
 		bgnoise_async(&stackparam.result, TRUE);
 
 		if (savefits(result_filename, &stackparam.result)) {
-			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
-					"red", result_filename);
+			char *msg = siril_log_error(_("Could not save the stacking result %s, aborting\n"), result_filename);
 			msg[strlen(msg) - 1] = '\0';
 			livestacking_display(msg, FALSE);
 			bgnoise_await();
@@ -805,11 +792,11 @@ static gpointer live_stacker(gpointer arg) {
 				com.seq.current = RESULT_IMAGE;
 				com.uniq->nb_layers = gfit->naxes[2];
 				com.uniq->fit = gfit;
-				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
+				siril_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
-				remap_all();
-				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
+				gui_iface.remap_all_vports();
+				gui_iface.redraw_image_async(REDRAW_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}
 		g_free(result_filename);
@@ -824,12 +811,11 @@ static gpointer live_stacker(gpointer arg) {
 		gettimeofday(&tv_end, NULL);
 		show_time_msg(tv_tmp, tv_end, "stacking");
 		const char *total_time = format_time_diff(tv_start, tv_end);
-		siril_log_color_message(_("Time to process the last image for live stacking: %s\n"),
-				"green", total_time);
+		siril_log_info(_("Time to process the last image for live stacking: %s\n"), total_time);
 		livestacking_update_number_of_images(number_of_images_stacked, gfit->keywords.livetime, noise, total_time);
 	} while (1);
 
-	siril_debug_print("===== exiting live stacking thread =====\n");
+	siril_log_debug("===== exiting live stacking thread =====\n");
 
 	// TODO: clean exit
 	g_async_queue_unref(new_files_queue);

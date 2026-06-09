@@ -36,10 +36,7 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
-#include "gui/callbacks.h"
-#include "gui/PSF_list.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
+#include "core/gui_iface.h"
 
 #include "geometry.h"
 
@@ -555,7 +552,7 @@ static void fits_rotate_pi_float(fits *fit) {
 }
 
 static void fits_rotate_pi(fits *fit) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_rotate_pi_ushort(fit);
 	} else if (fit->type == DATA_FLOAT) {
@@ -682,7 +679,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
@@ -697,19 +694,26 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	if (fit->mask) {
 		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
-			siril_log_color_message(_("Error binning mask\n"), "red");
+			siril_log_error(_("Error binning mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			return -1;
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
 	}
 
-	free_wcs(fit);
-	reset_wcsdata(fit);
-	refresh_annotations(TRUE);
+	if (has_wcs(fit)) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = 1. / factor;
+		H.h11 = 1. / factor;
+		cvApplyFlips(&H, old_ry, fit->ry);
+		reframe_astrometry_data(fit, &H);
+		update_fits_header(fit);
+		refresh_annotations(FALSE);
+	}
 
 	return 0;
 }
@@ -744,7 +748,7 @@ const char* interp_to_str(int interpolation) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp, gboolean update_wcs) {
 	int retvalue;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
@@ -757,15 +761,15 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	int old_rx = image->rx;
 	int old_ry = image->ry;
 
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 
 	if (retvalue == 0 && image->mask) {
 		if (resize_mask(image->mask, old_rx, old_ry, toX, toY, interpolation)) {
-			siril_log_color_message(_("Error resizing mask\n"), "red");
+			siril_log_error(_("Error resizing mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(image, tmp_mask_active);
 		}
@@ -773,9 +777,23 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
-	free_wcs(image);
-	reset_wcsdata(image);
-	refresh_annotations(TRUE);
+
+	if (has_wcs(image)) {
+		if (update_wcs) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h00 = 1. / factor_X;
+			H.h11 = 1. / factor_Y;
+			cvApplyFlips(&H, old_ry, toY);
+			reframe_astrometry_data(image, &H);
+			update_fits_header(image);
+			refresh_annotations(FALSE);
+		} else {
+			free_wcs(image);
+			reset_wcsdata(image);
+			refresh_annotations(TRUE);
+		}
+	}
 
 	return retvalue;
 }
@@ -798,7 +816,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
 		tmp_mask_active = image->mask_active;
@@ -817,11 +835,11 @@ int verbose_rotate_fast(fits *image, int angle) {
 	if (image->mask) {
 		// OPENCV_NEAREST is fine because we are rotating by a multiple of 90 \deg
 		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
-			siril_log_color_message(_("Error rotating mask\n"), "red");
+			siril_log_error(_("Error rotating mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
 			set_mask_active(image, FALSE);
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(image, tmp_mask_active);
 		}
@@ -839,7 +857,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped, gboolean clamp) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
 		tmp_mask_active = image->mask_active;
@@ -858,10 +876,10 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 
 	if (image->mask) {
 		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_CUBIC)) {
-			siril_log_color_message(_("Error rotating mask\n"), "red");
+			siril_log_error(_("Error rotating mask\n"));
 			free_mask(image->mask);
 			image->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			set_mask_active(image, FALSE);
 		} else {
 			set_mask_active(image, tmp_mask_active);
@@ -884,7 +902,7 @@ static void mirrorx_ushort(fits *fit, gboolean verbose) {
 	struct timeval t_start, t_end;
 
 	if (verbose) {
-		siril_log_color_message(_("Horizontal mirror: processing...\n"), "red");
+		siril_log_error(_("Horizontal mirror: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 
@@ -918,7 +936,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 	struct timeval t_start, t_end;
 
 	if (verbose) {
-		siril_log_color_message(_("Horizontal mirror: processing...\n"), "green");
+		siril_log_info(_("Horizontal mirror: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 
@@ -947,7 +965,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 }
 
 void mirrorx(fits *fit, gboolean verbose) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
@@ -959,10 +977,10 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	if (fit->mask) {
 		if (mirrorx_mask(fit->mask, fit->rx, fit->ry)) {
-			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			siril_log_error(_("Error mirroring mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
@@ -987,14 +1005,14 @@ void mirrorx(fits *fit, gboolean verbose) {
 }
 
 void mirrory(fits *fit, gboolean verbose) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
 	struct timeval t_start, t_end;
 
 	if (verbose) {
-		siril_log_color_message(_("Vertical mirror: processing...\n"), "green");
+		siril_log_info(_("Vertical mirror: processing...\n"));
 		gettimeofday(&t_start, NULL);
 	}
 
@@ -1005,10 +1023,10 @@ void mirrory(fits *fit, gboolean verbose) {
 		// For vertical mirror: flip top-to-bottom then rotate 180
 		if (mirrorx_mask(fit->mask, fit->rx, fit->ry) ||
 		    rotate_mask_pi(fit->mask, fit->rx, fit->ry)) {
-			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			siril_log_error(_("Error mirroring mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
@@ -1167,7 +1185,7 @@ static int crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
@@ -1220,10 +1238,10 @@ int crop(fits *fit, rectangle *bounds) {
 
 	if (fit->mask) {
 		if (crop_mask(fit->mask, bounds, orig_rx, orig_ry)) {
-			siril_log_color_message(_("Error cropping mask\n"), "red");
+			siril_log_error(_("Error cropping mask\n"));
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			return -1;
 		} else {
 			set_mask_active(fit, tmp_mask_active);
@@ -1277,10 +1295,10 @@ int crop_finalize_hook(struct generic_seq_args *args) {
 int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit) {
         int x1, y1, x2, y2, retval;
         double dx1, dy1, dx2, dy2;
-        siril_debug_print("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
+        siril_log_debug("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
         if (margin_asec != DBL_MAX) {
                 margin_px = round_to_int(margin_asec / (get_wcs_image_resolution(fit) * 3600.0));
-                siril_debug_print("margin in pixels: %d\n", margin_px);
+                siril_log_debug("margin in pixels: %d\n", margin_px);
         }
         retval = wcs2pix(fit, ra1, dec1, &dx1, &dy1);
         retval += wcs2pix(fit, ra2, dec2, &dx2, &dy2);
@@ -1329,7 +1347,7 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
                 area.y = y1;
                 area.h = y2 - y1 + 1;
         }
-        siril_debug_print("Before checking size: (%d, %d) to (%d, %d)\n", x1, y1, x2, y2);
+        siril_log_debug("Before checking size: (%d, %d) to (%d, %d)\n", x1, y1, x2, y2);
 
         // grow area from the centre if it's too small
         if (area.w < minsize) {
@@ -1346,7 +1364,7 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
                         area.x, area.y, area.w, area.h);
 
         if (crop(fit, &area)) {
-                siril_log_color_message(_("Cropping failed\n"), "red");
+                siril_log_error(_("Cropping failed\n"));
                 return -1;
         }
 
@@ -1395,8 +1413,7 @@ int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_wr
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -1407,7 +1424,7 @@ int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_wr
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -1431,7 +1448,7 @@ int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
 	int toX = fit->rx * s_args->scale;
 	int toY = fit->ry * s_args->scale;
-	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp);
+	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp, TRUE);
 	return s_args->retvalue;
 }
 
@@ -1617,20 +1634,12 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	return fits_binning(fit, params->factor, params->mean);
 }
 
-gboolean crop_gui_updates(gpointer user) {
-	clear_stars_list(TRUE);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	return FALSE;
-}
-
 int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct crop_args *params = (struct crop_args *)args->user;
 	if (!params)
 		return 1;
 	int retval = crop(fit, &params->area);
-	gui_function(crop_gui_updates, NULL);
+	gui_iface.on_crop_complete();
 	return retval;
 }
 
@@ -1650,8 +1659,8 @@ int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		return 1;
 
 	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
-	                                params->interpolation, params->clamp);
-	gui_function(update_MenuItem, NULL);
+	                                params->interpolation, params->clamp, params->update_wcs);
+	gui_iface.update_menu_state();
 	return retval;
 }
 
@@ -1673,11 +1682,18 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	                             params->clamp);
 	}
 
-	// If a selection is set, we set it to the entire image
+	// If a selection is set, expand it to cover the entire (rotated) image.
+	// The GUI update (new_selection_zone) is deferred to the completion idle so
+	// it runs after remap_all() has refreshed the Cairo buffers.
+	// Use fit->rx/ry (the post-rotation dimensions of the hook's working
+	// buffer) rather than gfit->rx/ry: under the planned worker swap refactor
+	// gfit still holds the pre-rotation dimensions at this point.  Today
+	// fit == gfit so the values are identical.
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
-		gui_function(new_selection_zone, NULL);
+		g_mutex_lock(&com.mutex);
+		com.selection = (rectangle){ 0, 0, fit->rx, fit->ry };
+		g_mutex_unlock(&com.mutex);
 	}
-	update_zoom_label();
+	gui_iface.update_status_bar();
 	return retval;
 }

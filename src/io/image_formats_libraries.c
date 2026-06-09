@@ -65,8 +65,8 @@
 #include "io/fits_keywords.h"
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
+/* gui_calls.h removed: heif_dialog now routes through gui_iface */
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {
@@ -122,7 +122,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -149,7 +149,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 				nsamples = 3;
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j), buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -163,7 +163,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -205,7 +205,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -232,7 +232,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j),
 						buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -246,7 +246,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -288,7 +288,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
-				siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+				siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 				retval = OPEN_IMAGE_ERROR;
 				break;
 			}
@@ -315,7 +315,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 			for (int j = 0; j < nsamples; j++) {	//loop on the layer
 				if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, j),
 						buf, nrow * scanline) < 0) {
-					siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+					siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
@@ -329,7 +329,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 			}
 			break;
 		default:
-			siril_log_color_message(_("Unknown TIFF file.\n"), "red");
+			siril_log_error(_("Unknown TIFF file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 	}
@@ -380,22 +380,13 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			}
 		}
 		else {
-			siril_log_color_message(_("An unexpected error was encountered while trying to read the file.\n"), "red");
+			siril_log_error(_("An unexpected error was encountered while trying to read the file.\n"));
 			retval = OPEN_IMAGE_ERROR;
 		}
 		_TIFFfree(raster);
 	}
 	else retval = OPEN_IMAGE_ERROR;
 	return retval;
-}
-
-gboolean get_tiff_compression() {
-	if (!com.headless) {
-		GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
-		if (gtk_toggle_button_get_active(button))
-			return TRUE;
-	}
-	return FALSE;
 }
 
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
@@ -433,7 +424,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
-		siril_log_message(_("Could not open the TIFF file %s\n"), name);
+		siril_log_error(_("Could not open the TIFF file %s\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -497,13 +488,13 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			} else if (sampleformat == SAMPLEFORMAT_UINT) {
 				retval = readtifstrip32uint(tif, width, height, nsamples, color, &fdata);
 			} else {
-				siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
+				siril_log_error(_("Siril cannot read this TIFF format.\n"));
 				retval = OPEN_IMAGE_ERROR;
 			}
 			break;
 
 		default :
-			siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
+			siril_log_error(_("Siril cannot read this TIFF format.\n"));
 			retval = OPEN_IMAGE_ERROR;
 	}
 
@@ -594,7 +585,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		} else if (orientation == ORIENTATION_BOTLEFT) {
 			; // do nothing
 		} else {
-			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+			siril_log_debug(_("TIFFTAG Orientation not handled.\n"));
 		}
 		break;
 	case 32:
@@ -610,7 +601,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		} else if (orientation == ORIENTATION_BOTLEFT) {
 			; // do nothing
 		} else {
-			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+			siril_log_debug(_("TIFFTAG Orientation not handled.\n"));
 		}
 	}
 	fit->orig_bitpix = fit->bitpix;
@@ -628,12 +619,12 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	if (description) {
 		if (g_str_has_prefix(description, "SIMPLE  =")) {
 			// It is FITS header, copy it
-			siril_debug_print("ASTRO-TIFF detected.\n");
+			siril_log_debug("ASTRO-TIFF detected.\n");
 			if (fit->header) free(fit->header);
 			fit->header = description;
 			int ret = fits_parse_header_str(fit, description);
 			if (ret) {
-				siril_debug_print("ASTRO-TIFF is not well formed.\n");
+				siril_log_debug("ASTRO-TIFF is not well formed.\n");
 			}
 		} else {
 			free(description);
@@ -654,31 +645,6 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	return retval;
 }
 
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
-	if (!com.script && !com.headless) {
-		/*******************************************************************
-		 * If the user saves a tif from the graphical menu, he can set
-		 * the Description and the Copyright of the Image
-		 ******************************************************************/
-
-		GtkTextIter itDebut;
-		GtkTextIter itFin;
-
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
-		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-		gtk_text_buffer_get_end_iter(desbuf, &itFin);
-		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
-		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
-		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
-		gtk_text_buffer_get_end_iter(copybuf, &itFin);
-		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-
-	}
-}
-
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const gchar *description, const gchar *copyright,
@@ -696,7 +662,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
 	if (!tif) {
-		siril_log_color_message(_("Siril cannot create TIFF file.\n"), "red");
+		siril_log_error(_("Siril cannot create TIFF file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -732,7 +698,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 	} else {
 		TIFFClose(tif);
-		siril_log_color_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"), "red");
+		siril_log_error(_("TIFF file has unexpected number of channels (not 1 or 3).\n"));
 		free(filename);
 		return 1;
 	}
@@ -880,7 +846,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 	switch (bitspersample) {
 	case 8:
-		siril_debug_print("Saving 8-bit TIFF file.\n");
+		siril_log_debug("Saving 8-bit TIFF file.\n");
 		BYTE *buf8 = _TIFFmalloc(width * sizeof(unsigned char) * nsamples);
 		if (!buf8) {
 			PRINT_ALLOC_ERR;
@@ -901,7 +867,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf8, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -910,7 +876,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		_TIFFfree(buf8);
 		break;
 	case 16:
-		siril_debug_print("Saving 16-bit TIFF file.\n");
+		siril_log_debug("Saving 16-bit TIFF file.\n");
 		WORD *buf16 = _TIFFmalloc(width * sizeof(WORD) * nsamples);
 		if (!buf16) {
 			PRINT_ALLOC_ERR;
@@ -931,7 +897,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf16, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -940,7 +906,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		_TIFFfree(buf16);
 		break;
 	case 32:
-		siril_debug_print("Saving 32-bit TIFF file.\n");
+		siril_log_debug("Saving 32-bit TIFF file.\n");
 		float *buf32 = _TIFFmalloc(width * sizeof(float) * nsamples);
 		if (!buf32) {
 			PRINT_ALLOC_ERR;
@@ -960,7 +926,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 			if (TIFFWriteScanline(tif, buf32, height - 1 - row, 0) < 0) {
-				siril_debug_print("Error while writing in TIFF File.\n");
+				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
 				write_ok = FALSE;
 				break;
@@ -980,7 +946,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFClose(tif);
 
 	if (!write_ok) {
-		siril_log_color_message(_("Saving TIFF: Cannot write TIFF file.\n"), "red");
+		siril_log_error(_("Saving TIFF: Cannot write TIFF file.\n"));
 		retval = OPEN_IMAGE_ERROR;
 		if (g_remove(filename))
 			fprintf(stderr, "Error removing file\n");
@@ -1281,16 +1247,16 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		fit->header = formatted_header;
 		int ret = fits_parse_header_str(fit, formatted_header);
 		if (ret) {
-			siril_debug_print("XISF Header cannot be read despite formatting.\n");
+			siril_log_debug("XISF Header cannot be read despite formatting.\n");
 		}
 	} else {
 		// If formatting fails, use the original header
 		fit->header = strdup(xdata->fitsHeader);
-		siril_debug_print("Failed to format XISF header, using original.\n");
+		siril_log_debug("Failed to format XISF header, using original.\n");
 
 		int ret = fits_parse_header_str(fit, fit->header);
 		if (ret) {
-			siril_debug_print("XISF Header cannot be read.\n");
+			siril_log_debug("XISF Header cannot be read.\n");
 		}
 	}
 
@@ -1316,7 +1282,7 @@ int readjpg(const char* name, fits *fit){
 
 	FILE *f = g_fopen(name, "rb");
 	if (f == NULL) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 	cinfo.err = jpeg_std_error(&jerr);
@@ -1359,7 +1325,7 @@ int readjpg(const char* name, fits *fit){
 		siril_log_message(_("Read ICC profile from JPEG.\n"));
 	}
 	else if (cinfo.err->msg_code != JWRN_BOGUS_ICC) {
-		siril_log_message(_("Cannot read an ICC profile from this JPEG, assuming sRGB.\n"));
+		siril_log_warning(_("Cannot read an ICC profile from this JPEG, assuming sRGB.\n"));
 	}
 #else
 	siril_log_message(_("JPEG ICC profile support unavailable, assuming sRGB.\n"));
@@ -1421,7 +1387,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	//## OPEN FILE FOR DATA DESTINATION:
 	FILE *f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		siril_log_color_message(_("Siril cannot create JPG file.\n"), "red");
+		siril_log_error(_("Siril cannot create JPG file.\n"));
 		free(filename);
 		return 1;
 	}
@@ -1571,7 +1537,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	if (profile)
 		jpeg_write_icc_profile(&cinfo, (const JOCTET*) profile, profile_len);
 	else
-		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
+		siril_log_error(_("Error: failed to write ICC profile to JPG\n"));
 #endif
 
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
@@ -1610,7 +1576,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 int readpng(const char *name, fits* fit) {
 	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL,	NULL);
 	if (!png) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1624,7 +1590,7 @@ int readpng(const char *name, fits* fit) {
 
 	FILE *f = g_fopen(name, "rb");
 	if (!f) {
-		siril_log_color_message(_("Error opening the file %s\n"), "red", name);
+		siril_log_error(_("Error opening the file %s\n"), name);
 		return OPEN_IMAGE_ERROR;
 	}
 	png_init_io(png, f);
@@ -2180,13 +2146,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int ret = siril_libraw_open_file(raw, name);
 	if (ret) {
-		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
+		siril_log_error("Error in libraw %s\n", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
 	ret = libraw_unpack(raw);
 	if (ret) {
-		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
+		siril_log_error("Error in libraw %s\n", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2194,8 +2160,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	 * the case for DNG built from lightroom for example */
 	if (raw->rawdata.raw_image == NULL
 			&& (raw->rawdata.color3_image || raw->rawdata.color4_image)) {
-		siril_log_color_message(_("Siril cannot open this file in CFA mode: "
-				"no RAW data available.\n"), "red");
+		siril_log_error(_("Siril cannot open this file in CFA mode: "
+				"no RAW data available.\n"));
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2341,255 +2307,6 @@ int open_raw_files(const char *name, fits *fit) {
 #endif
 
 #ifdef HAVE_LIBHEIF
-#define MAX_THUMBNAIL_SIZE com.pref.gui.thumbnail_size
-
-struct HeifImage {
-	uint32_t ID;
-	char caption[100]; // image text (filled with resolution description)
-	struct heif_image *thumbnail;
-	int width, height;
-};
-
-static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *images) {
-	int numImages = heif_context_get_number_of_top_level_images(heif);
-
-	// get list of all (top level) image IDs
-
-	uint32_t *IDs = malloc(numImages * sizeof(uint32_t));
-	heif_context_get_list_of_top_level_image_IDs(heif, IDs, numImages);
-
-	// --- Load a thumbnail for each image.
-
-	for (int i = 0; i < numImages; i++) {
-
-		images[i].ID = IDs[i];
-		images[i].caption[0] = 0;
-		images[i].thumbnail = NULL;
-
-		// get image handle
-
-		struct heif_image_handle *handle;
-		struct heif_error err = heif_context_get_image_handle(heif, IDs[i],
-				&handle);
-		if (err.code) {
-			g_printf("%s\n", err.message);
-			continue;
-		}
-
-		// generate image caption
-
-		int width = heif_image_handle_get_width(handle);
-		int height = heif_image_handle_get_height(handle);
-
-		if (heif_image_handle_is_primary_image(handle)) {
-			sprintf(images[i].caption, "%dx%d (%s)", width, height,
-					_("primary"));
-		} else {
-			sprintf(images[i].caption, "%dx%d", width, height);
-		}
-
-		// get handle to thumbnail image
-		// if there is no thumbnail image, just the the image itself (will be scaled down later)
-
-		struct heif_image_handle *thumbnail_handle;
-		heif_item_id thumbnail_ID;
-
-		int nThumbnails = heif_image_handle_get_list_of_thumbnail_IDs(handle,
-				&thumbnail_ID, 1);
-
-		if (nThumbnails > 0) {
-			err = heif_image_handle_get_thumbnail(handle, thumbnail_ID,
-					&thumbnail_handle);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-		} else {
-			err = heif_context_get_image_handle(heif, IDs[i],
-					&thumbnail_handle);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-		}
-
-		// decode the thumbnail image
-
-		struct heif_image *thumbnail_img;
-		err = heif_decode_image(thumbnail_handle, &thumbnail_img,
-				heif_colorspace_RGB, heif_chroma_interleaved_RGB,
-				NULL);
-		if (err.code) {
-			g_printf("%s\n", err.message);
-			continue;
-		}
-
-		// if thumbnail image size exceeds the maximum, scale it down
-
-		int thumbnail_width = heif_image_handle_get_width(thumbnail_handle);
-		int thumbnail_height = heif_image_handle_get_height(thumbnail_handle);
-
-		if (thumbnail_width > MAX_THUMBNAIL_SIZE
-				|| thumbnail_height > MAX_THUMBNAIL_SIZE) {
-
-			// compute scaling factor to fit into a max sized box
-
-			float factor_h = thumbnail_width / (float) MAX_THUMBNAIL_SIZE;
-			float factor_v = thumbnail_height / (float) MAX_THUMBNAIL_SIZE;
-
-			int new_width, new_height;
-
-			if (factor_v > factor_h) {
-				new_height = MAX_THUMBNAIL_SIZE;
-				new_width = thumbnail_width / factor_v;
-			} else {
-				new_height = thumbnail_height / factor_h;
-				new_width = MAX_THUMBNAIL_SIZE;
-			}
-
-			// scale the image
-
-			struct heif_image *scaled_img = NULL;
-
-			err = heif_image_scale_image(thumbnail_img,
-					&scaled_img, new_width, new_height,
-					NULL);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-
-			// release the old image and only keep the scaled down version
-
-			heif_image_release(thumbnail_img);
-			thumbnail_img = scaled_img;
-
-			thumbnail_width = new_width;
-			thumbnail_height = new_height;
-		}
-
-		heif_image_handle_release(thumbnail_handle);
-		heif_image_handle_release(handle);
-
-		// remember the HEIF thumbnail image (we need it for the GdkPixbuf)
-
-		images[i].thumbnail = thumbnail_img;
-
-		images[i].width = thumbnail_width;
-		images[i].height = thumbnail_height;
-	}
-
-	return TRUE;
-}
-
-static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
-	int numImages = heif_context_get_number_of_top_level_images(heif);
-
-	struct HeifImage *heif_images = malloc(numImages * sizeof(struct HeifImage));
-	gboolean success = load_thumbnails(heif, heif_images);
-	if (!success) {
-		free(heif_images);
-		return FALSE;
-	}
-
-	GtkWidget *dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
-			GTK_WINDOW(lookup_widget("control_window")), GTK_DIALOG_MODAL,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
-
-	GtkContainer *content_area = GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dlg)));
-	gtk_container_set_border_width(GTK_CONTAINER(content_area), 12);
-
-	GtkWidget *frame = gtk_frame_new(_("Select image"));
-	gtk_container_add(content_area, GTK_WIDGET(frame));
-	gtk_widget_show(frame);
-
-// prepare list store with all thumbnails and caption
-
-	GtkListStore *liststore;
-	GtkTreeIter iter;
-
-	liststore = gtk_list_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
-
-	for (int i = 0; i < numImages; i++) {
-		gtk_list_store_append(liststore, &iter);
-		gtk_list_store_set(liststore, &iter, 0, heif_images[i].caption, -1);
-
-		int stride;
-		const uint8_t *data = heif_image_get_plane_readonly(
-				heif_images[i].thumbnail, heif_channel_interleaved, &stride);
-
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB,
-				FALSE, 8, heif_images[i].width, heif_images[i].height, stride,
-				NULL, NULL);
-		gtk_list_store_set(liststore, &iter, 1, pixbuf, -1);
-	}
-
-	GtkWidget *iconview = gtk_icon_view_new();
-	gtk_icon_view_set_model((GtkIconView*) iconview, (GtkTreeModel*) liststore);
-	gtk_icon_view_set_text_column((GtkIconView*) iconview, 0);
-	gtk_icon_view_set_pixbuf_column((GtkIconView*) iconview, 1);
-	gtk_icon_view_set_item_width((GtkIconView*) iconview, MAX_THUMBNAIL_SIZE);
-
-	GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-	gtk_widget_set_size_request(scroll, -1, 400);
-	g_object_set(scroll, "expand", TRUE, NULL);
-
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),	GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-
-	gtk_container_add(GTK_CONTAINER(frame), scroll);
-	gtk_container_add(GTK_CONTAINER(scroll), iconview);
-
-	gtk_widget_show(scroll);
-	gtk_widget_show(iconview);
-
-// pre-select the primary image
-
-	int selected_idx = -1;
-	for (int i = 0; i < numImages; i++) {
-		if (heif_images[i].ID == *selected_image) {
-			selected_idx = i;
-			break;
-		}
-	}
-
-	if (selected_idx != -1) {
-		GtkTreePath *path = gtk_tree_path_new_from_indices(selected_idx, -1);
-		gtk_icon_view_select_path((GtkIconView*) iconview, path);
-		gtk_tree_path_free(path);
-	}
-
-	gtk_widget_show(dlg);
-
-	gboolean run = (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_OK);
-
-	if (run) {
-		GList *selected_items = gtk_icon_view_get_selected_items(
-				(GtkIconView*) iconview);
-
-		if (selected_items) {
-			GtkTreePath *path = (GtkTreePath*) (selected_items->data);
-			const gint *indices = gtk_tree_path_get_indices(path);
-
-			*selected_image = heif_images[indices[0]].ID;
-
-			g_list_free_full(selected_items,
-					(GDestroyNotify) gtk_tree_path_free);
-		}
-	}
-
-	gtk_widget_destroy(dlg);
-
-// release thumbnail images
-
-	for (int i = 0; i < numImages; i++) {
-		heif_image_release(heif_images[i].thumbnail);
-	}
-
-	free(heif_images);
-
-	return run;
-}
 
 static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nclx) {
 	const gchar *primaries_name = "";
@@ -2715,9 +2432,9 @@ static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nc
 			trc_name = "sRGB-TRC RGB";
 			break;
 		default:
-			siril_log_color_message(_("Error: the specified NCLX TRC is not yet supported in Siril. "
+			siril_log_error(_("Error: the specified NCLX TRC is not yet supported in Siril. "
 										"A linear TRC will be used: you may need to fix this file "
-										"up manually.\n"), "red");
+										"up manually.\n"));
 			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
 			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
 			cmsFreeToneCurve (curve[0]);
@@ -2763,7 +2480,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	// analyze image content
 	int num = heif_context_get_number_of_top_level_images(ctx);
 	if (num == 0) {
-		siril_log_color_message(_("Input file contains no readable images.\n"), "red");
+		siril_log_error(_("Input file contains no readable images.\n"));
 		heif_context_free(ctx);
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 		heif_deinit();
@@ -2799,7 +2516,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			siril_log_message(_("This is a sequence of %d images: "
 					"loading the primary one.\n"), num);
 		} else {
-			if (!heif_dialog(ctx, &selected_image)) {
+			if (!gui_iface.heif_dialog(ctx, &selected_image)) {
 				heif_context_free(ctx);
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 				heif_deinit();
@@ -2831,7 +2548,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			icc_buffer = malloc(icc_length);
 			err = heif_image_handle_get_raw_color_profile(handle, icc_buffer);
 			if (err.code) {
-				siril_log_color_message(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"), "red");
+				siril_log_error(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"));
 			}
 		}
 	} else if (cp_type == heif_color_profile_type_nclx) {
@@ -2844,10 +2561,10 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			cmsCloseProfile(profile);
 		}
 	} else if (cp_type == heif_color_profile_type_not_present) {
-		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
+		siril_log_debug("HEIF does not contain any color profile. Assuming sRGB.\n");
 		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
 	}
-	siril_debug_print("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
+	siril_log_debug("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
 	int bit_depth;
@@ -2856,13 +2573,13 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
 	if (bit_depth < 0) {
-		siril_log_color_message(_("Input image has undefined bit-depth.\n"), "red");
+		siril_log_error(_("Input image has undefined bit-depth.\n"));
 		heif_image_handle_release (handle);
 		heif_context_free (ctx);
 
 		return OPEN_IMAGE_ERROR;
 	} else {
-		siril_debug_print("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
+		siril_log_debug("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
 	}
 
 	if (bit_depth == 8) {
@@ -3027,7 +2744,7 @@ int readjxl(const char* name, fits *fit) {
 	uint8_t* jxl_data = NULL;
 	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
 	if (!success) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		siril_log_error(_("Sorry but Siril cannot open the file: %s.\n"), name);
 		g_error_free(error);
 		return OPEN_IMAGE_ERROR;
 	}
@@ -3042,10 +2759,10 @@ int readjxl(const char* name, fits *fit) {
 			&xsize, &ysize, &zsize, &extra_channels, &bitdepth,
 			&icc_profile, &icc_profile_length, &internal_icc_profile,
 			&internal_icc_profile_length)) {
-		siril_debug_print("Error while decoding the jxl file\n");
+		siril_log_debug("Error while decoding the jxl file\n");
 		return 1;
 	}
-	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
+	siril_log_debug("Image decoded as %d bits per pixel\n", bitdepth);
 	clearfits(fit);
 
 	set_all_keywords_default(fit);
@@ -3085,7 +2802,7 @@ int readjxl(const char* name, fits *fit) {
 		}
 	} else {
 		const uint32_t totchans = zsize + extra_channels;
-		siril_debug_print("Channels: total %u, extra %lu\n", totchans, extra_channels);
+		siril_log_debug("Channels: total %u, extra %lu\n", totchans, extra_channels);
 		if (fit->type == DATA_FLOAT) {
 			for (size_t i = 0 ; i < xsize * ysize ; i++) {
 				size_t pixel = i * totchans;
@@ -3110,7 +2827,7 @@ int readjxl(const char* name, fits *fit) {
 		fit->color_managed = TRUE; // Don't use color_manage() here as we don't want the GUI updated yet
 		gchar* orig_desc = siril_color_profile_get_description(original);
 		gchar* int_desc = siril_color_profile_get_description(internal);
-		siril_debug_print("Transforming from %s to %s\n", int_desc, orig_desc);
+		siril_log_debug("Transforming from %s to %s\n", int_desc, orig_desc);
 		g_free(orig_desc);
 		g_free(int_desc);
 		siril_colorspace_transform(fit, original);
@@ -3148,7 +2865,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 	void *buffer = NULL;
 	int bitdepth;
 	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, FALSE)) {
-		siril_log_color_message(_("Error interleaving image\n"), "red");
+		siril_log_error(_("Error interleaving image\n"));
 	}
 
 	uint32_t profile_len = 0;
@@ -3269,7 +2986,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					&compressed, &compressed_length, effort,
 					quality, profile, profile_len);
 
-	siril_log_color_message(_("Save complete.\n"), "green");
+	siril_log_info(_("Save complete.\n"));
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
 	free(buffer);

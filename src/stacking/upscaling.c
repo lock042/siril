@@ -29,8 +29,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
-#include "gui/image_interactions.h"
+#include "core/gui_iface.h"
 #include "opencv/opencv.h"
 
 #include "stacking.h"
@@ -55,9 +54,9 @@ void remove_tmp_upscaled_files(struct stacking_args *args) {
 	int len = strlen(basename) + 5;
 	seqname = malloc(len);
 	g_snprintf(seqname, len, "%s.seq", basename);
-	siril_debug_print("Removing %s\n", seqname);
+	siril_log_debug("Removing %s\n", seqname);
 	if (g_unlink(seqname))
-		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
+		siril_log_debug("g_unlink() failed\n"); // removing the seqfile
 	free(seqname);
 	g_free(basename);
 
@@ -70,21 +69,21 @@ void remove_tmp_upscaled_files(struct stacking_args *args) {
 			// don't use the fit_sequence_get_image_filename_checkext function here as these
 			// temp files are created with the preferred extension anyway.
 			fit_sequence_get_image_filename(args->seq, args->image_indices[i], filename, TRUE);
-			siril_debug_print("Removing %s\n", filename);
+			siril_log_debug("Removing %s\n", filename);
 			if (g_unlink(filename))
-				siril_debug_print("g_unlink() failed\n");
+				siril_log_debug("g_unlink() failed\n");
 		}
 		break;
 	case SEQ_SER:
-		siril_debug_print("Removing %s\n", args->seq->ser_file->filename);
+		siril_log_debug("Removing %s\n", args->seq->ser_file->filename);
 		if (g_unlink(args->seq->ser_file->filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 		ser_close_file(args->seq->ser_file);
 		break;
 	case SEQ_FITSEQ:
-		siril_debug_print("Removing %s\n", args->seq->fitseq_file->filename);
+		siril_log_debug("Removing %s\n", args->seq->fitseq_file->filename);
 		if (g_unlink(args->seq->fitseq_file->filename))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 		fitseq_close_file(args->seq->fitseq_file);
 		break;
 	}
@@ -146,7 +145,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	// check memory here, failure is not an error
 	int nb_threads = seq_compute_mem_limits(args, FALSE);
 	if (nb_threads == 0) {
-		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
+		siril_log_error(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"));
 		stackargs->upscale_at_stacking = FALSE;
 		free(upargs);
 		free_generic_seq_args(args, TRUE);
@@ -167,7 +166,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		char *seqname = malloc(strlen(TMP_UPSCALED_PREFIX) + strlen(basename) + 5);
 		sprintf(seqname, "%s%s.seq", TMP_UPSCALED_PREFIX, basename);
 		if (g_unlink(seqname))
-			siril_debug_print("g_unlink() failed\n");
+			siril_log_debug("g_unlink() failed\n");
 		g_free(basename);
 
 		// replace active sequence by upscaled
@@ -219,7 +218,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 
 		// don't free oldseq, it's either still com.seq with GUI or freed in
 		// stack_one_seq in scripts
-		delete_selected_area();
+		gui_iface.delete_selection();
 	}
 	return stackargs->retval;
 }

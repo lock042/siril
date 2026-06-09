@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
@@ -53,7 +54,7 @@ void load_css_style_sheet () {
 
 		gtk_css_provider_load_from_data(css_provider, updated_css, -1, NULL);
 
-		siril_debug_print("Successfully loaded /org/siril/ui/siril.css\n");
+		siril_log_debug("Successfully loaded /org/siril/ui/siril.css\n");
 		g_free(first_line);
 		g_bytes_unref(css_buffer);
 		g_free(updated_css);

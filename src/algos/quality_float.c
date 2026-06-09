@@ -28,7 +28,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "algos/quality.h"
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);
@@ -214,7 +213,7 @@ static double Gradient(const float *buf, int width, int height) {
 			}
 	}
 	if (pixels == 0) {
-		siril_debug_print("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
+		siril_log_debug("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
 		val = -1.0;
 		goto end;
 	}

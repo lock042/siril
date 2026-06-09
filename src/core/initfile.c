@@ -30,7 +30,6 @@
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
 #include "io/sequence.h"
-#include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 
 #include "initfile.h"
@@ -52,7 +51,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -63,7 +62,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -83,7 +82,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
-				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
+				siril_log_error(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
@@ -112,8 +111,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				return 1;
 			}
 			if (desc->type == STYPE_STRDIR && !g_file_test(strval, G_FILE_TEST_IS_DIR)) {
-				siril_log_color_message(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"),
-						"salmon", strval, desc->group, desc->key);
+				siril_log_warning(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"), strval, desc->group, desc->key);
 				g_free(strval);
 				return 1;
 			}
@@ -165,7 +163,7 @@ static gchar *get_initfile(const gchar *pathname) {
 	GError *error = NULL;
 	GRegex *regex = g_regex_new("^config(?:\\.(\\d+)\\.(\\d+))?\\.ini$", 0, 0, &error);
 	if (!regex) {
-		siril_log_message(_("Error creating regex: %s\n"), error->message);
+		siril_log_error(_("Error creating regex: %s\n"), error->message);
 		g_clear_error(&error);
 		return NULL;
 	}
@@ -260,7 +258,7 @@ int read_keyfile(GKeyFile *kf) {
 		g_strfreev(keys);
 	}
 	g_strfreev(groups);
-	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
+	siril_log_debug("read %zd keys from key file\n", nb_keys_read);
 	return nb_keys_read;
 }
 
@@ -269,14 +267,14 @@ int readinitfile(gchar *fname) {
 	GError *error = NULL;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		if (error != NULL) {
-			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+			siril_log_error(_("Settings could not be loaded from %s: %s\n"), fname, error->message);
 			g_clear_error(&error);
 		}
 		return 1;
 	}
 	com.pref.check_update = FALSE;
 	if (read_keyfile(kf) == 0)
-		siril_log_message(_("Warning: nothing could be read from the settings file\n"));
+		siril_log_warning(_("Warning: nothing could be read from the settings file\n"));
 	g_key_file_free(kf);
 	return 0;
 }
@@ -323,10 +321,10 @@ int checkinitfile() {
 
 int writeinitfile() {
 	if (!com.initfile) {
-		siril_debug_print("not saving settings, file not available\n");
+		siril_log_debug("not saving settings, file not available\n");
 		return 0;
 	}
-	siril_debug_print("saving ini file %s\n", com.initfile);
+	siril_log_debug("saving ini file %s\n", com.initfile);
 
 	GKeyFile *kf = g_key_file_new();
 	struct settings_access *desc = get_all_settings();
@@ -371,7 +369,7 @@ int writeinitfile() {
 
 	GError *error = NULL;
 	if (!g_key_file_save_to_file(kf, com.initfile, &error)) {
-		siril_log_color_message(_("Could not save the settings in %s: %s\n"), "salmon", com.initfile, error->message);
+		siril_log_warning(_("Could not save the settings in %s: %s\n"), com.initfile, error->message);
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);

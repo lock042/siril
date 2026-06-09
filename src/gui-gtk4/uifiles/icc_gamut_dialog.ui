@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name icc_gamut_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="icc_gamut_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">2</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkPicture" id="colorspace_comparison">
+                    <property name="can-shrink">1</property>
+                    <property name="content-fit">contain</property>
+                    <property name="hexpand">1</property>
+                    <property name="tooltip-text" translatable="yes">This image shows a comparison of the various working gamuts available in Siril. (Note P3 is not available in Siril: it is shown for reference, and you can provide a P3 ICC profile if desired.)
+    The CIE1931 xy space represents all the colors visible to human eyesight.
+    sRGB is a standard for web publication and corresponds to the gamut of most monitors.
+    Other color spaces offer larger gamuts covering more of the CIE1931 space. Rec2020 has the largest gamut that does not include imaginary colors; ProPhoto RGB has an even larger gamut especially in the green / blue region, but does include some imaginary colors.
+    Printed photographs can offer richer, deeper colors if produced from a color space with a larger gamut. Specialist monitors are also available with larger gamuts than sRGB, and you will probably want to use a gamut at least as large as your monitor can display.</property>
+                    <property name="vexpand">1</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">By Myndex - Own work, CC BY-SA 4.0, &lt;a href="https://commons.wikimedia.org/w/index.php?curid=116654642"&gt;https://commons.wikimedia.org/w/index.php?curid=116654642&lt;/a&gt;</property>
+                    <property name="use-markup">1</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkButton" id="icc_gamut_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_icc_gamut_close_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="destroy-with-parent">1</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Gamut visualisation</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+  </object>
+</interface>

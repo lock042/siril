@@ -27,6 +27,7 @@ struct resample_args {
 	int toY;
 	opencv_interpolation interpolation;
 	gboolean clamp;
+	gboolean update_wcs;
 };
 
 struct rotation_args {
@@ -82,11 +83,9 @@ int fits_binning(fits *fit, int factor, gboolean mean);
 int crop(fits *fit, rectangle *bounds);
 void mirrorx(fits *fit, gboolean verbose);
 void mirrory(fits *fit, gboolean verbose);
-int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp, gboolean update_wcs);
 int verbose_rotate_fast(fits *image, int angle);
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation, int cropped, gboolean clamp);
-
-gboolean crop_gui_updates(gpointer user); // used by the command
 
 /* crop sequence data from GUI */
 struct crop_sequence_data {
@@ -105,22 +104,8 @@ struct scale_sequence_data {
 	int retvalue;
 };
 
-int fits_binning(fits *fit, int factor, gboolean mean);
-
-int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
-
-int verbose_rotate_image(fits *, rectangle, double, int, int, gboolean);
-int verbose_rotate_fast(fits *image, int angle);
-
-void mirrorx(fits *fit, gboolean verbose);
-void mirrory(fits *fit, gboolean verbose);
-
-int crop(fits *fit, rectangle *bounds);
-
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
-
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
-
 int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit);
 
 const char *interp_to_str(int interpolation);

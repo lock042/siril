@@ -66,6 +66,7 @@ typedef enum {
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
 	CAT_REMOTE_GAIA_XPSAMP = 41, // exact equivalent of 101 but using HTTP RANGE instead of local disk reads
+	CAT_REMOTE_GAIA_XPCTS = 42,  // xp_continuous variant of 41, converts to xp_sampled at load time
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
 
@@ -90,6 +91,7 @@ typedef enum {
 	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
 	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_GAIA_XPCTS = 102,  // siril local with xp_continuous data; converts to xp_sampled at load time
 	CAT_LOCAL_TRIX = 103, // for trixel query
 } siril_cat_index;
 
@@ -297,8 +299,7 @@ void free_sky_object_query(void *p);
 int check_conesearch_args(conesearch_args *args);
 conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
-int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads);
-// int execute_conesearch(conesearch_params *params);
+int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
 
 #ifdef __cplusplus

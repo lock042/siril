@@ -32,7 +32,6 @@ struct {
 extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 
 gboolean image_cfa_warning_check();
-gboolean get_followstar_idle(gpointer user_data);
 
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
@@ -99,6 +98,7 @@ int	process_gauss(int nb);
 int	process_getref(int nb);
 int	process_grey_flat(int nb);
 
+int	process_healpix(int nb);
 int	process_help(int nb);
 int	process_histo(int nb);
 

@@ -43,8 +43,9 @@
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
+#include "core/arithm.h"
+#include "algos/statistics.h"
 #include "io/single_image.h"
 
 #if GLIB_CHECK_VERSION(2,68,0)
@@ -58,7 +59,7 @@
 * @return
 */
 WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -77,7 +78,7 @@ WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 * @return
 */
 signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -96,7 +97,7 @@ signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 * @return
 */
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -115,7 +116,7 @@ signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 * @return
 */
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -134,7 +135,7 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
 * @return
 */
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -153,7 +154,7 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 * @return
 */
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
-	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	if (!buffer) { siril_log_debug("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -369,7 +370,7 @@ gint siril_mkdir_with_parents(const gchar* pathname, gint mode) {
 	gint result = g_mkdir_with_parents(pathname, mode);
 	if (result != 0) {
 		int saved_errno = errno;
-		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", pathname, g_strerror(saved_errno));
+		siril_log_error(_("Failed to create directory '%s': %s\n"), pathname, g_strerror(saved_errno));
 	}
 	return result;
 }
@@ -490,6 +491,20 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
 		(magic[0] == 0xFF && magic[1] == 0x0A)))
 		return TYPEJXL;
+#ifdef HAVE_FFMS2
+	// Film containers — all routed to TYPEAVI since films.c handles every flavor via FFMS2.
+	// The image-bearing ISOBMFF variants (HEIF/AVIF) are matched above, so any remaining
+	// "ftyp" at offset 4 is a video MP4/MOV/M4V.
+	if (bytes_read >= 12 && memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "AVI ", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 8 && memcmp(magic + 4, "ftyp", 4) == 0)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x1A && magic[1] == 0x45 && magic[2] == 0xDF && magic[3] == 0xA3)
+		return TYPEAVI;
+	if (bytes_read >= 4 && magic[0] == 0x00 && magic[1] == 0x00 && magic[2] == 0x01 &&
+			(magic[3] == 0xBA || magic[3] == 0xB3))
+		return TYPEAVI;
+#endif
 	return TYPEUNDEF;
 }
 
@@ -531,12 +546,17 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
 		fclose(file);
 
-		*type = determine_image_type_from_magic(magic, bytes_read);
-		if (*type != TYPEUNDEF) {
-			if (realname) *realname = strdup(filename);
-			return 0;
-		}
-		return 1;
+		// Magic wins when it gives a definite answer (handles renamed files),
+		// but a TYPEUNDEF result must not clobber a valid extension-derived
+		// type — otherwise any container we don't sniff (e.g. an old MOV with
+		// no ftyp atom at the head) would be rejected despite a known extension.
+		image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+		if (magic_type != TYPEUNDEF)
+			*type = magic_type;
+		else if (*type == TYPEUNDEF)
+			return 1;
+		if (realname) *realname = strdup(filename);
+		return 0;
 	}
 
 	// Case 2: No extension - test candidates
@@ -755,8 +775,8 @@ int siril_change_dir(const char *dir, gchar **err) {
 		error = siril_log_message(_("'%s' is not a directory\n"), dir);
 		retval = 3;
 	} else if (g_access(dir, W_OK)) {
-		error = siril_log_color_message(_("You don't have permission "
-				"to write in this directory: '%s'\n"), "red", dir);
+		error = siril_log_error(_("You don't have permission "
+				"to write in this directory: '%s'\n"), dir);
 		retval = 4;
 	} else {
 		/* sequences are invalidate when cwd is changed */
@@ -781,7 +801,7 @@ int siril_change_dir(const char *dir, gchar **err) {
 		retval = 0;
 		} else {
 			int saved_errno = errno;
-			error = siril_log_message(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
+			error = siril_log_error(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
 			retval = 1;
 		}
 	}
@@ -854,7 +874,7 @@ gchar* str_append(gchar** data, const gchar* newdata) {
 	*data = p;
 	gsize destsize = len + strlen(newdata);
 	if (g_strlcpy(*data + len, newdata, destsize) >= destsize) {
-		siril_debug_print("FIXME: truncation occurred in str_append()\n");
+		siril_log_debug("FIXME: truncation occurred in str_append()\n");
 	}
 	return *data;
 }
@@ -892,40 +912,14 @@ char *format_basename(char *root, gboolean can_free) {
 * @return the computed slope
 */
 float compute_slope(WORD *lo, WORD *hi) {
-	*lo = gui.lo;
-	*hi = gui.hi;
+	int ilo, ihi;
+	gui_iface.get_display_lo_hi(&ilo, &ihi);
+	*lo = (WORD)ilo;
+	*hi = (WORD)ihi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
-/**
-* Try to get file info, i.e width and height
-* @param filename name of the file
-* @param pixbuf
-* @return a newly allocated and formatted string containing dimension information or NULL
-*/
-gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
-	int width, height;
-	int n_channel = 0;
-
-	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
-
-	if (pixbuf) {
-		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
-	}
-
-	if (pixbuf_file_info != NULL) {
-		/* Pixel size of image: width x height in pixel */
-		if (n_channel > 0) {
-			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
-					ngettext("pixel", "pixels", height), n_channel,
-					ngettext("channel", "channels", n_channel));
-		} else {
-			return g_strdup_printf("%d x %d %s", width, height,
-				ngettext("pixel", "pixels", height));
-		}
-	}
-	return NULL;
-}
+/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
 
 /**
 * Truncate a string str to not exceed an length of size
@@ -1373,50 +1367,11 @@ int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
 	return 0;
 }
 
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
-	gchar *filename = NULL;
-	gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
-
-	if (uri != NULL) {
-		filename = g_filename_from_uri(uri, NULL, NULL);
-		if (filename != NULL) {
-			char *scheme = g_uri_parse_scheme(uri);
-			if (g_strcmp0(scheme, "file") == 0) {
-				printf("The URI points to a local file.\n");
-			} else {
-				printf("The URI is non-local (scheme: %s).\n", uri);
-			}
-			g_free(scheme);
-		}
-		g_free(uri);
-	}
-	return filename;
-}
-
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
-	GSList *filenames = NULL;
-	GSList *uris = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(chooser));
-
-	for (GSList *iter = uris; iter != NULL; iter = g_slist_next(iter)) {
-		const gchar *uri = (const gchar *)iter->data;
-		gchar *filename = g_filename_from_uri(uri, NULL, NULL);
-
-		if (filename != NULL) {
-			printf("filename=%s\n", filename);
-			filenames = g_slist_append(filenames, filename);
-		}
-	}
-
-	g_slist_free(uris);
-
-	return filenames;
-}
-
 // This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
 // It returns 0 on success and a non-zero value on failure.
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even) {
 	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_FLOAT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
-		siril_debug_print("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
+		siril_log_debug("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
 		max_bitdepth = 8;
 	}
 	uint8_t *image_buffer = NULL;
@@ -2347,4 +2302,35 @@ ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
 			return result;
 		}
 	}
+}
+
+/* Apply pixel range correction and notify the GUI.
+ * Pixel operations are done in core; gfit_modified_update_gui() dispatches
+ * the display-refresh idle callback through gui_iface. */
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
+	switch (method) {
+		case RESPONSE_CLIP:;
+			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
+			clip(fit);
+			break;
+		case RESPONSE_RESCALE_CLIPNEG:;
+			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
+			clipneg(fit);
+			if (maxval > 1.0)
+				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
+			break;
+		case RESPONSE_RESCALE_ALL:;
+			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
+			double range = maxval - minval;
+			if (minval < 0.0)
+				soper(fit, minval, OPER_SUB, TRUE);
+			if (range > 1.0)
+				soper(fit, (1.0 / range), OPER_MUL, TRUE);
+			break;
+		default:
+			method = RESPONSE_CANCEL;
+	}
+	if (fit == gfit)
+		gfit_modified_update_gui();
+	return method;
 }

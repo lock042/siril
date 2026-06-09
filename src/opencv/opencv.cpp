@@ -39,7 +39,7 @@
 #include "core/masks.h"
 #include "core/siril_log.h"
 #include "core/settings.h"
-#include "gui/callbacks.h"
+#include "core/gui_iface.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
@@ -630,7 +630,7 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	/* 3rd argument: Gaussian kernel size. When width and height are zeros
 	 * they are computed from sigma.
 	 */
-	siril_debug_print("using opencv GaussianBlur (CPU)\n");
+	siril_log_debug("using opencv GaussianBlur (CPU)\n");
 	GaussianBlur(in, out, Size(), sigma);
 	if (fabs(amount) > 0.0) {
 		out = in * (1 + amount) + out * (-amount);
@@ -644,7 +644,7 @@ int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spac
 	void *bgr = NULL;
 	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
 		return 1;
-	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
+	siril_log_debug("using opencv Bilateral Filter (CPU)\n");
 	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
 	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
@@ -681,7 +681,7 @@ int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
 	}
 	if (guide_mat.channels() != in.channels())
 		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
-	siril_debug_print("using Guided Filter (CPU)\n");
+	siril_log_debug("using Guided Filter (CPU)\n");
 	Mat result = guidedFilter(guide_mat, in, r, eps, -1);
 	result.copyTo(out);
 	guide_mat.release();
@@ -1058,7 +1058,7 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 	Rect frame;
 	Point2f pt(center.x, center.y);
 	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect2f();
-	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
+	siril_log_debug("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
 	*w = (int)frame.width;
 	*h = (int)frame.height;
 }
@@ -1216,11 +1216,11 @@ int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_
 // Apply Gaussian blur to the mask
 int mask_apply_gaussian_blur(fits *fit, float radius) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_apply_gaussian_blur: invalid mask\n");
+		siril_log_debug("mask_apply_gaussian_blur: invalid mask\n");
 		return 1;
 	}
 	if (radius <= 0.f) {
-		siril_debug_print("mask_apply_gaussian_blur: radius must be positive\n");
+		siril_log_debug("mask_apply_gaussian_blur: radius must be positive\n");
 		return 1;
 	}
 
@@ -1239,7 +1239,7 @@ int mask_apply_gaussian_blur(fits *fit, float radius) {
 			cv_type = CV_32FC1;
 			break;
 		default:
-			siril_debug_print("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
+			siril_log_debug("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
 			return 1;
 	}
 
@@ -1309,12 +1309,12 @@ void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
 
 int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_feather: invalid mask\n");
+		siril_log_debug("mask_feather: invalid mask\n");
 		return 1;
 	}
 
 	if (feather_dist <= 0.f) {
-		siril_debug_print("mask_feather: feather_dist must be positive\n");
+		siril_log_debug("mask_feather: feather_dist must be positive\n");
 		return 1;
 	}
 
@@ -1630,7 +1630,7 @@ FAST_MATH_PUSH
 int mask_update_with_gradient(fits *fit) {
     if (!fit) return 1;
     if (!fit->mask || !fit->mask->data) {
-        siril_log_message(_("Error: no existing mask to update\n"));
+        siril_log_error(_("Error: no existing mask to update\n"));
         return 1;
     }
 
@@ -1688,7 +1688,7 @@ int mask_update_with_gradient(fits *fit) {
 
     // Avoid division by zero
     if (max_mag == 0.0f) {
-        siril_log_message(_("Warning: gradient magnitude is zero everywhere\n"));
+        siril_log_warning(_("Warning: gradient magnitude is zero everywhere\n"));
         max_mag = 1.0f;
     }
 
@@ -1720,7 +1720,7 @@ int mask_update_with_gradient(fits *fit) {
     }
 
     set_mask_active(fit, TRUE);
-    show_or_hide_mask_tab();
+    gui_iface.on_mask_state_changed();
     siril_log_message(_("Mask updated with its gradient (max gradient: %.3f)\n"), max_mag);
 
     return 0;

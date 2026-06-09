@@ -1,4 +1,5 @@
 #ifndef CALLBACKS_H
+#include <gtk/gtk.h>
 #define CALLBACKS_H
 
 #include <sys/time.h>
@@ -28,6 +29,11 @@ void lock_roi_mutex();
 void unlock_roi_mutex();
 void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);
+/* Registers any GApplication-level actions that exist only in this
+ * toolkit's build of the GUI tree.  Called once from siril_app_startup
+ * after the shared `app_entries` array is registered.  GTK3 build
+ * implements this as a no-op. */
+void register_toolkit_app_actions(GApplication *app);
 void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
@@ -53,6 +59,7 @@ int copy_rendering_settings();
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 void show_or_hide_mask_tab();
+gboolean show_or_hide_mask_tab_idle(gpointer p);
 
 int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
 void update_display_selection();

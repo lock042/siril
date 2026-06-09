@@ -11,7 +11,6 @@
 extern "C" {
 #endif
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #ifdef __cplusplus
 }
 #endif
@@ -123,7 +122,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		blue[i] = blue[i - 1] + rx;
 
 	// 3. process
-	siril_debug_print("calling librtprocess ushort (%d)\n", interpolation);
+	siril_log_debug("calling librtprocess ushort (%d)\n", interpolation);
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:
@@ -240,7 +239,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	range = max - min;
 	if (range == 0.) {
 		free(rawdata);
-		siril_debug_print("Normalisation for debayering: min = max (%f)\n", min);
+		siril_log_debug("Normalisation for debayering: min = max (%f)\n", min);
 		return NULL;
 	}
 	factor = normvalue / range;
@@ -281,7 +280,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		blue[i] = blue[i - 1] + rx;
 
 	// 3. process
-	siril_debug_print("calling librtprocess float (%d)\n", interpolation);
+	siril_log_debug("calling librtprocess float (%d)\n", interpolation);
 	rpError retval;
 	switch (interpolation) {
 		case BAYER_VNG:

@@ -244,7 +244,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 		////////////////////////////
 		case CAT_IMCCE:
 			if (!siril_cat->dateobs) { // should have been caught before... just in case
-				siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+				siril_log_error(_("This command only works on images that have observation date information\n"));
 				return NULL;
 			}
 			url = g_string_new(IMCCE_QUERY);
@@ -256,7 +256,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			g_free(fmtstr);
 			g_string_append_printf(url,"&-observer=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
 			gchar *urlstring = g_string_free(url, FALSE);
-			siril_debug_print("%s\n", urlstring);
+			siril_log_debug("%s\n", urlstring);
 			return urlstring;
 		default:
 			break;
@@ -270,12 +270,12 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
 		return FALSE;
 	if (!g_str_has_prefix(buffer, "# Flag: 1") && !g_str_has_prefix(buffer, "# Flag: 0")) {
-		siril_log_color_message(_("IMCCE server returned:\n"), "red");
+		siril_log_error(_("IMCCE server returned:\n"));
 		gchar **err_lines = g_strsplit(buffer, "\n", -1);
 		int n_err = min(g_strv_length(err_lines), 3); // displaying max 3 lines
 		for (int i = 0; i < n_err; i++) {
 			if (err_lines[i][0] != '\0')
-				siril_log_color_message("%s\n", "red", err_lines[i]);
+				siril_log_error("%s\n", err_lines[i]);
 		}
 		g_strfreev(err_lines);
 		return FALSE;
@@ -288,7 +288,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	int nb_lines = g_strv_length(token);
 	int nstars = nb_lines - 3;
 	if (g_str_has_prefix(buffer, "# Flag: 0") || !nstars) {
-		siril_debug_print("No items in the IMCCE catalog, will just write header\n");
+		siril_log_debug("No items in the IMCCE catalog, will just write header\n");
 		nstars = 0;
 	}
 	cat_item *cat_items = NULL;
@@ -349,7 +349,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	yyjson_read_err err = { 0 };
 	yyjson_doc *doc = yyjson_read(buffer, strlen(buffer), YYJSON_READ_NOFLAG);
 	if (!doc) {
-		siril_log_color_message(_("Could not parse AAVSO chart buffer: %s\n"), "red", err.msg);
+		siril_log_error(_("Could not parse AAVSO chart buffer: %s\n"), err.msg);
 		return FALSE;
 	}
 
@@ -485,7 +485,7 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 			break;
 		case CAT_IMCCE:
 			if (!siril_cat->IAUcode || !siril_cat->dateobs) {
-				siril_debug_print("Queries for solar system should pass date and location code\n");
+				siril_log_debug("Queries for solar system should pass date and location code\n");
 				g_free(ext);
 				return NULL;
 			}
@@ -504,7 +504,7 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 			return filename;
 			break;
 		default:
-			siril_debug_print("should not happen, download_catalog should only be called for online calls\n");
+			siril_log_debug("should not happen, download_catalog should only be called for online calls\n");
 			g_free(ext);
 			break;
 	}
@@ -521,7 +521,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
 	gchar *filename = parse_remote_catalogue_filename(siril_cat, datalink_product);
 	if (!filename)
 		return NULL;
-	siril_debug_print("Catalogue file: %s\n", filename);
+	siril_log_debug("Catalogue file: %s\n", filename);
 
 	// check if download_cache folder exists, create it otherwise
 	gchar *root = g_build_filename(siril_get_config_dir(), PACKAGE, "download_cache", NULL);
@@ -541,7 +541,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
 		GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_TIME_MODIFIED "," G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, NULL);
 		if ((g_file_info_get_size(info)) == 0) { // test if not empty and delete in case it is
 			if (!g_file_delete(file, NULL, &error)) {
-				siril_log_color_message(_("A corrupted version of %s was found in cache but cannot be deleted, aborting\n"), "red", filepath);
+				siril_log_error(_("A corrupted version of %s was found in cache but cannot be deleted, aborting\n"), filepath);
 				g_free(filepath);
 				return NULL;
 			}
@@ -584,7 +584,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		return NULL;
 	}
 	if (!is_online()) {
-		siril_log_message(_("Offline: cannot download catalog\n"));
+		siril_log_warning(_("Offline: cannot download catalog\n"));
 		return NULL;
 	}
 
@@ -601,7 +601,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
-	siril_debug_print("URL: %s\n", url);
+	siril_log_debug("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
@@ -643,20 +643,20 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 
 download_error:
 	if (fetch_url_error) {
-		siril_log_color_message(_("Error: unable to retrieve the remote catalogue from the server at %s. "
+		siril_log_error(_("Error: unable to retrieve the remote catalogue from the server at %s. "
 			"This is not a Siril bug. It means the catalogue server is unavailable. This is usually a "
 			"short-lived problem however this server is not affiliated with Siril and the Siril team do "
 			"not control it. We highly recommend using a local server such as the optimized Siril extract "
 			"from Gaia DR3, installable using the Catalog_Installer.py script. This is faster and does not "
-			"rely on third party servers.\n"), "red", url);
+			"rely on third party servers.\n"), url);
 	}
 	g_free(url);
 
 	if (error) {
-		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
+		siril_log_error(_("Cannot create catalogue file %s (%s)\n"), filepath, error->message);
 		g_clear_error(&error);
 	} else {
-		siril_log_color_message(_("Cannot create catalogue file %s (generic error)\n"), "red", filepath);
+		siril_log_error(_("Cannot create catalogue file %s (generic error)\n"), filepath);
 	}
 	g_free(buffer);
 	if (output_stream)
@@ -664,7 +664,7 @@ download_error:
 	if (file) {
 		if (remove_file)
 			if (g_unlink(g_file_peek_path(file)))
-				siril_debug_print(("Cannot delete catalogue file %s\n"), filepath);
+				siril_log_debug(("Cannot delete catalogue file %s\n"), filepath);
 		g_object_unref(file);
 	}
 	if (filepath)
@@ -685,7 +685,7 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
 	if (siril_cat->cat_index >= CAT_AN_MESSIER) {
-		siril_debug_print("Online cat query - Should not happen\n");
+		siril_log_debug("Online cat query - Should not happen\n");
 		return 0;
 	}
 
@@ -711,6 +711,35 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 				float d = half_to_float(stars[i].flux[j]);
 				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
 			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
+	if (siril_cat->cat_index == CAT_REMOTE_GAIA_XPCTS) {
+		uint32_t nb_stars;
+		double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+		double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
+		SourceEntryXPcts *stars = NULL;
+		if (get_raw_stars_from_remote_gaia_xpcontinuous_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			/* Reconstruct xp_sampled flux from continuous coefficients via the
+			 * baked external-calibration design matrix. Samples past 1018 nm
+			 * (where the response is undefined) are baked as 0.0. */
+			xpcts_to_xpsampled(&stars[i], 0 /* full bases */, siril_cat->cat_items[i].xp_sampled);
 			siril_cat->cat_items[i].included = TRUE;
 		}
 		free(stars);

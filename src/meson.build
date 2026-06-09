@@ -21,6 +21,15 @@ configure_file(output : 'config.h',
 
 src_files = [
   'algos/anscombe.c',
+  'algos/img_t/better_than_std.hpp',
+  'algos/img_t/fftw_allocator.hpp',
+  'algos/img_t/image.hpp',
+  'algos/img_t/image_boundary.hpp',
+  'algos/img_t/image_dft.hpp',
+  'algos/img_t/image_expr.hpp',
+  'algos/img_t/image_ops.hpp',
+  'algos/img_t/img_fits.hpp',
+  'algos/img_t/vec2.hpp',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
   'algos/ccd-inspector.c',
@@ -72,7 +81,6 @@ src_files = [
   'algos/lcms_acceleration/threaded_split.c',
 
   'compositing/align_rgb.c',
-  'compositing/compositing.c',
   'compositing/filters.c',
 
   'core/arithm.c',
@@ -91,12 +99,11 @@ src_files = [
   'core/settings.c',
   'core/signals.c',
   'core/siril.c',
-  'core/siril_actions.c',
   'core/siril_alloc.c',
   'core/siril_app_dirs.c',
-  'core/siril_cmd_help.c',
   'core/siril_date.c',
   'core/siril_language.c',
+  'core/gui_iface_stubs.c',
   'core/siril_log.c',
   'core/siril_networking.c',
   'core/siril_spawn.c',
@@ -104,6 +111,7 @@ src_files = [
   'core/siril_world_cs.c',
   'core/undo.c',
   'core/utils.c',
+  'core/cut.c',
 
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',
@@ -130,7 +138,6 @@ src_files = [
   'filters/wavelets.c',
 
   'filters/da3d/DA3D.cpp',
-  'filters/da3d/Utils.cpp',
   'filters/da3d/WeightMap.cpp',
   'filters/nlbayes/call_nlbayes.cpp',
   'filters/nlbayes/LibImages.cpp',
@@ -139,28 +146,25 @@ src_files = [
   'filters/nlbayes/Utilities.cpp',
 
   'filters/deconvolution/angleSet.cpp',
-  'filters/deconvolution/better_than_std.hpp',
   'filters/deconvolution/deconvolution.h',
   'filters/deconvolution/deconvolve.cpp',
   'filters/deconvolution/deconvolve.hpp',
   'filters/deconvolution/edgetaper.hpp',
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',
-  'filters/deconvolution/fftw_allocator.hpp',
   'filters/deconvolution/gf_estimate.cpp',
-  'filters/deconvolution/image_expr.hpp',
-  'filters/deconvolution/image.hpp',
   'filters/deconvolution/labeling.hpp',
   'filters/deconvolution/optimization.hpp',
   'filters/deconvolution/options.hpp',
   'filters/deconvolution/utils.hpp',
-  'filters/deconvolution/vec2.hpp',
 
   'io/aavso_extended.c',
   'io/annotation_catalogues.c',
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
+  'io/avi_preview.c',
+  'io/avi_preview.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
   'io/avi_pipp/pipp_avi_write_dib.h',
   'io/avi_pipp/pipp_utf8.h',
@@ -176,7 +180,10 @@ src_files = [
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
   'io/healpix/healpix.cpp',
+  'io/healpix/healpix_image.cpp',
   'io/healpix/fluxcache.cpp',
+  'io/healpix/xp_continuous.cpp',
+  'io/healpix/gaia_xp_design.c',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
@@ -199,7 +206,6 @@ src_files = [
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',
 
-  'livestacking/gui.c',
   'livestacking/livestacking.c',
 
   'opencv/opencv.cpp',
@@ -208,71 +214,6 @@ src_files = [
   'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
-
-  'gui/about_dialog.c',
-  'gui/annotate.c',
-  'gui/annotations_pref.c',
-  'gui/astrometry_solver.c',
-  'gui/denoisegui.c',
-  'gui/background_extraction.c',
-  'gui/callbacks.c',
-  'gui/colors.c',
-  'gui/catmag.c',
-  'gui/compstars.c',
-  'gui/conversion.c',
-  'gui/curves.c',
-  'gui/cut.c',
-  'gui/dialog_preview.c',
-  'gui/dialogs.c',
-  'gui/documentation.c',
-  'gui/epf.c',
-  'gui/fix_xtrans_af.c',
-  'gui/git_gui.c',
-  'gui/histo_display.c',
-  'gui/histogram.c',
-  'gui/histogram_utils.c',
-  'gui/keywords_tree.c',
-  'gui/icc_profile.c',
-  'gui/image_display.c',
-  'gui/image_interactions.c',
-  'gui/linear_match.c',
-  'gui/masks_gui.c',
-  'gui/menu_gray_geometry.c',
-  'gui/menu_gray_selection.c',
-  'gui/merge_cfa.c',
-  'gui/message_dialog.c',
-  'gui/mouse_action_functions.c',
-  'gui/mouse_action_preferences.c',
-  'gui/newdeconv.c',
-  'gui/nina_light_curve.c',
-  'gui/open_dialog.c',
-  'gui/photometric_cc.c',
-  'gui/plot.c',
-  'gui/preferences.c',
-  'gui/progress_and_log.c',
-  'gui/PSF_list.c',
-  'gui/python_gui.c',
-  'gui/registration.c',
-  'gui/registration_preview.c',
-  'gui/remixer.c',
-  'gui/save_dialog.c',
-  'gui/script_menu.c',
-  'gui/sequence_list.c',
-  'gui/single_image.c',
-  'gui/siril_css.c',
-  'gui/siril_intro.c',
-  'gui/siril_preview.c',
-  'gui/siril_plot.c',
-  'gui/siril-window.c',
-  'gui/splashscreen.c',
-  'gui/split_cfa.c',
-  'gui/stacking.c',
-  'gui/star_finder.c',
-  'gui/starnetgui.c',
-  'gui/statistics_list.c',
-  'gui/unpurple.c',
-  'gui/user_polygons.c',
-  'gui/utils.c',
 
   'pixelMath/pixel_math_runner.c',
   'pixelMath/tinyexpr.c',
@@ -305,30 +246,182 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
-# Define the resource file
+# GUI-only source files (require GTK; excluded when -Dgtk=false).
+#
+# gui_subdir is set in the top-level meson.build to either 'gui' (gtk3,
+# default) or 'gui-gtk4' (gtk4).  The two trees are physically separated
+# and only one is compiled into a given build.  As the GTK4 migration
+# progresses, some files exist in only one tree; this is captured by
+# splitting the file list into shared + per-tree extras.
+gui_filenames_shared = [
+  'livestacking_gui.c',
+  'about_dialog.c',
+  'annotate.c',
+  'asinh.c',
+  'banding.c',
+  'clahe.c',
+  'cosmetic_correction.c',
+  'fft.c',
+  'rgradient.c',
+  'saturation.c',
+  'scnr.c',
+  'annotations_pref.c',
+  'astrometry_solver.c',
+  'denoisegui.c',
+  'background_extraction.c',
+  'callbacks.c',
+  'undo_gui.c',
+  'ccd-inspector.c',
+  'colors.c',
+  'catmag.c',
+  'compstars.c',
+  'conversion.c',
+  'curves.c',
+  'cut.c',
+  'dialog_preview.c',
+  'dialogs.c',
+  'documentation.c',
+  'epf.c',
+  'gui_iface_impl.c',
+  'fix_xtrans_af.c',
+  'geometry.c',
+  'git_gui.c',
+  'histo_display.c',
+  'histogram.c',
+  'histogram_utils.c',
+  'keywords_tree.c',
+  'icc_profile.c',
+  'image_display.c',
+  'image_interactions.c',
+  'linear_match.c',
+  'masks_gui.c',
+  'median.c',
+  'menu_gray_geometry.c',
+  'menu_gray_selection.c',
+  'merge_cfa.c',
+  'message_dialog.c',
+  'mouse_action_functions.c',
+  'mouse_action_preferences.c',
+  'newdeconv.c',
+  'nina_light_curve.c',
+  'open_dialog.c',
+  'photometric_cc.c',
+  'plot.c',
+  'preferences.c',
+  'progress_and_log.c',
+  'PSF_list.c',
+  'python_gui.c',
+  'registration.c',
+  'registration_preview.c',
+  'remixer.c',
+  'save_dialog.c',
+  'script_console.c',
+  'script_menu.c',
+  'search_objects.c',
+  'sequence_list.c',
+  'single_image.c',
+  'statistics.c',
+  'siril_css.c',
+  'siril_intro.c',
+  'siril_preview.c',
+  'siril_plot.c',
+  'siril-window.c',
+  'splashscreen.c',
+  'split_cfa.c',
+  'stacking.c',
+  'star_finder.c',
+  'starnetgui.c',
+  'statistics_list.c',
+  'compositing.c',
+  'unpurple.c',
+  'user_polygons.c',
+  'pixelmath.c',
+  'preprocess.c',
+  'sequence_export.c',
+  'siril_actions.c',
+  'siril_cmd_help.c',
+  'utils.c',
+  'wavelets.c',
+]
+
+# Files that exist only in src/gui-gtk4/ (no GTK3 counterpart).
+gui_filenames_gtk4_only = [
+  'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
+]
+
+# Files that exist only in src/gui/ (no GTK4 counterpart).  Currently none.
+gui_filenames_gtk3_only = []
+
+gui_filenames = gui_filenames_shared + (use_gtk4
+  ? gui_filenames_gtk4_only
+  : gui_filenames_gtk3_only)
+
+src_files_gui = []
+foreach f : gui_filenames
+  src_files_gui += gui_subdir / f
+endforeach
+
+# enable_gtk / use_gtk4 / gui_subdir are defined in the top-level meson.build
+#
+# Build strategy:
+#
+#  siril_lib         — core (non-GUI) sources only: src_files.  Contains
+#                      gui_iface_stubs.c which provides no-op vtable entries.
+#                      Never contains gui_iface_impl.c or headless_stubs.c.
+#
+#  siril_headless_lib — headless_stubs.c alone; always built.  Provides no-op
+#                      implementations of GUI functions still called directly
+#                      from core code (pending full gui_iface routing).
+#                      Linked on-demand (link_with, not link_whole) so its
+#                      symbols are only pulled in when unresolved: in siril-cli
+#                      and tests they satisfy the calls from core; in siril the
+#                      same symbols are already defined by src_files_gui so the
+#                      stubs are never included (no duplicate-symbol risk).
+#
+#  siril             — link_whole: siril_lib  +  src_files_gui compiled directly.
+#                      gui_iface_impl.c (in src_files_gui) provides real GTK
+#                      implementations; main.c defines guiinfo gui.  Only built
+#                      when -Dgtk=true (the default).
+#
+#  siril-cli         — link_whole: siril_lib  +  siril_headless_lib (on demand).
+#                      gui_iface_impl.c is NEVER linked here; gui_iface_stubs.c
+#                      (in siril_lib) provides headless no-ops for all slots.
+#                      main-cli.c does NOT define guiinfo gui.  Always built.
+
+# Define the resource file.  The gtk4 backend uses a parallel xml that
+# points at gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
 gnome = import('gnome')
+resource_xml = use_gtk4 ? 'siril_resource_gtk4.xml' : 'siril_resource.xml'
 siril_resources = gnome.compile_resources(
-  'siril_resource', 'siril_resource.xml',
+  'siril_resource', resource_xml,
   source_dir : [ '..', '.' ],
   c_name : 'siril_resource')
 
 siril_lib = static_library('siril',
                            siril_resources[0], src_files,
-                           dependencies: externals_dep,
+                           dependencies: core_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
-siril_dep = declare_dependency(link_with: siril_lib,
+siril_headless_lib = static_library('siril_headless',
+                                    'core/headless_stubs.c',
+                                    dependencies: core_dep,
+                                    include_directories: siril_inc_dir,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+siril_dep = declare_dependency(link_with: [siril_lib, siril_headless_lib],
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
 # Custom target for glib-compile-resources
 
 ################################################################################
-# Build gui executable
+# Build gui executable (only when -Dgtk=true, the default)
 
-siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
+if enable_gtk
+siril_gui = executable('siril', siril_resources[1], 'main.c', src_files_gui, win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
@@ -337,9 +430,13 @@ siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        install : true,
                        win_subsystem : 'console',
                       )
+endif
 
 ################################################################################
 # Build cli executable
+# siril-cli links siril_lib (core + gui_iface_stubs) and siril_headless_lib
+# (on-demand stubs for remaining direct GUI calls from core code).
+# gui_iface_impl.c is never linked here.  main-cli.c does not define guiinfo gui.
 
 siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        dependencies: siril_dep,

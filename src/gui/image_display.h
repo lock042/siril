@@ -1,13 +1,13 @@
 #ifndef _IMAGE_DISPLAY_H_
 #define _IMAGE_DISPLAY_H_
 
+#include <gtk/gtk.h>
 #include "core/siril.h"
+#include "core/gui_iface.h"   /* SirilRedrawType, REDRAW_OVERLAY/REDRAW_IMAGE/REDRAW_ALL */
 
-typedef enum {
-	REDRAW_OVERLAY, // only overlays changed
-	REDRAW_IMAGE,   // the image changed, render it and overlays
-	REMAP_ALL       // the image data changed, remap and render all
-} remap_type;
+/* Backward-compatibility alias: existing callers use remap_type; new code
+ * should use SirilRedrawType from core/gui_iface.h directly. */
+typedef SirilRedrawType remap_type;
 
 void check_gfit_profile_identical_to_monitor();
 
@@ -27,6 +27,8 @@ void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
 gboolean redraw_mask_idle(gpointer p);
 void queue_redraw_mask(); // queue a redraw of the mask only
+void block_drawarea_handlers(void);   // block viewport draw signal handlers (GTK main thread only)
+void unblock_drawarea_handlers(void); // unblock viewport draw signal handlers (GTK main thread only)
 
 double get_zoom_val();	// for image_interactions
 

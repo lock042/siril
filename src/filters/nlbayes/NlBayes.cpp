@@ -29,7 +29,7 @@
 #include "Utilities.h"
 #include "algos/anscombe.h"
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -56,17 +56,19 @@ void initializeNlbParameters(
 	nlbParams &o_paramStep1
 ,	nlbParams &o_paramStep2
 ,   const float p_sigma
-,	const ImageSize &p_imSize
+,	const img_t<float> &p_imNoisy
 ,	const bool p_useArea1
 ,   const bool p_useArea2
 ,   const bool p_verbose
 ){
+	const unsigned nChannels = p_imNoisy.d;
+
 	//! Standard deviation of the noise
 	o_paramStep1.sigma = p_sigma;
 	o_paramStep2.sigma = p_sigma;
 
 	//! Size of patches
-	if (p_imSize.nChannels == 1) {
+	if (nChannels == 1) {
 		o_paramStep1.sizePatch = (p_sigma < 30.f ? 5 : 7);
 		o_paramStep2.sizePatch = 5;
 	}
@@ -78,7 +80,7 @@ void initializeNlbParameters(
 	}
 
 	//! Number of similar patches
-	if (p_imSize.nChannels == 1) {
+	if (nChannels == 1) {
 		o_paramStep1.nSimilarPatches =	(p_sigma < 10.f ? 35 :
 										(p_sigma < 30.f ? 45 :
 										(p_sigma < 80.f ? 90 : 100)));
@@ -118,7 +120,7 @@ void initializeNlbParameters(
 	o_paramStep2.gamma = 1.05f;
 
 	//! Parameter used to estimate the covariance matrix
-	if (p_imSize.nChannels == 1) {
+	if (nChannels == 1) {
 		o_paramStep1.beta = (p_sigma < 15.f ? 1.1f :
                             (p_sigma < 70.f ? 1.f : 0.9f));
 		o_paramStep2.beta = (p_sigma < 15.f ? 1.1f :
@@ -130,7 +132,7 @@ void initializeNlbParameters(
 	}
 
 	//! Parameter used to determine similar patches
-	o_paramStep2.tau = 16.f * o_paramStep2.sizePatch * o_paramStep2.sizePatch * p_imSize.nChannels;
+	o_paramStep2.tau = 16.f * o_paramStep2.sizePatch * o_paramStep2.sizePatch * nChannels;
 
 	//! Print information?
 	o_paramStep1.verbose = p_verbose;
@@ -153,19 +155,20 @@ void initializeNlbParameters(
  *
  * @return sanitized image data.
  **/
-vector<float> sanitize(vector<float> input, const ImageSize size) {
+img_t<float> sanitize(img_t<float> input) {
 #define EPSILON 1.e-29f
-	for (size_t i = 0; i < input.size(); i++) {
+	const unsigned width = input.w;
+	for (size_t i = 0; i < (size_t) input.size; i++) {
 		// Check only this pixel — using a cumulative counter was a bug that
 		// caused every pixel after the first bad one to be overwritten.
 		bool is_bad = (input[i] != input[i]) || isinf(input[i]);
 		if (is_bad) {
 			if (i == 0)
 				input[i] = EPSILON;
-			else if (i % size.width > 0)   // has a left neighbour
+			else if (i % width > 0)   // has a left neighbour
 				input[i] = input[i - 1];
 			else                            // left edge: use pixel above
-				input[i] = input[i - size.width];
+				input[i] = input[i - width];
 		}
 		if (input[i] < 0.f)
 			input[i] = EPSILON;
@@ -189,17 +192,16 @@ vector<float> sanitize(vector<float> input, const ImageSize size) {
  **/
 
 int runNlBayes(
-	std::vector<float> const& i_imNoisy
-,   std::vector<float> &o_imBasic
-,	std::vector<float> &o_imFinal
-,	const ImageSize &p_imSize
+	img_t<float> const& i_imNoisy
+,   img_t<float> &o_imBasic
+,	img_t<float> &o_imFinal
 ,	const bool p_useArea1
 ,	const bool p_useArea2
 ,	const float p_sigma
 ,   const bool p_verbose
 ){
 	//! Only 1, 3 or 4-channels images can be processed.
-	const unsigned chnls = p_imSize.nChannels;
+	const unsigned chnls = i_imNoisy.d;
 	if (! (chnls == 1 || chnls == 3 || chnls == 4)) {
 		cout << "Wrong number of channels. Must be 1 or 3!!" << endl;
 		return EXIT_FAILURE;
@@ -216,12 +218,12 @@ int runNlBayes(
 #endif
 
 	//! Initialization
-	o_imBasic.resize(i_imNoisy.size());
-	o_imFinal.resize(i_imNoisy.size());
+	o_imBasic.resize(i_imNoisy.w, i_imNoisy.h, i_imNoisy.d);
+	o_imFinal.resize(i_imNoisy.w, i_imNoisy.h, i_imNoisy.d);
 
 	//! Parameters Initialization
 	nlbParams paramStep1, paramStep2;
-	initializeNlbParameters(paramStep1, paramStep2, p_sigma, p_imSize, p_useArea1, p_useArea2,
+	initializeNlbParameters(paramStep1, paramStep2, p_sigma, i_imNoisy, p_useArea1, p_useArea2,
                          p_verbose);
 
 	//! Step 1
@@ -230,14 +232,13 @@ int runNlBayes(
 	}
 
 	//! RGB to YUV
-	vector<float> imNoisy = sanitize(i_imNoisy, p_imSize);
-	transformColorSpace(imNoisy, p_imSize, true);
+	img_t<float> imNoisy = sanitize(i_imNoisy);
+	transformColorSpace(imNoisy, true);
 
 	//! Divide the noisy image into sub-images in order to easier parallelize the process
 	const unsigned nbParts = 2 * nbThreads;
-	vector<vector<float> > imNoisySub(nbParts), imBasicSub(nbParts), imFinalSub(nbParts);
-	ImageSize imSizeSub;
-	if (subDivide(imNoisy, imNoisySub, p_imSize, imSizeSub, paramStep1.boundary, nbParts)
+	vector<img_t<float> > imNoisySub(nbParts), imBasicSub(nbParts), imFinalSub(nbParts);
+	if (subDivide(imNoisy, imNoisySub, paramStep1.boundary, nbParts)
 		!= EXIT_SUCCESS) {
         cout << "runNlBayes: error in subDivide";
 		return EXIT_FAILURE;
@@ -250,7 +251,7 @@ int runNlBayes(
 	//! Process all sub-images
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
-            shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub, retval, passset, threadcomplete) \
+            shared(imNoisySub, imBasicSub, imFinalSub, retval, passset, threadcomplete) \
 			private(thread, pass) firstprivate(paramStep1)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
@@ -266,7 +267,7 @@ int runNlBayes(
 			pass = passset ? 1 : 0;
 		}
 #endif
-		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1, thread, pass);
+		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], paramStep1, thread, pass);
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
@@ -279,14 +280,14 @@ int runNlBayes(
     }
 
 	//! Get the basic estimate
-	if (subBuild(o_imBasic, imBasicSub, p_imSize, imSizeSub, paramStep1.boundary)
+	if (subBuild(o_imBasic, imBasicSub, paramStep1.boundary)
 		!= EXIT_SUCCESS) {
         cout << "runNlBayes: error in subBuild...";
 		return EXIT_FAILURE;
 	}
 	//! YUV to RGB
-	transformColorSpace(o_imBasic, p_imSize, false);
-	o_imBasic = sanitize(o_imBasic, p_imSize);
+	transformColorSpace(o_imBasic, false);
+	o_imBasic = sanitize(o_imBasic);
 
 	if (paramStep1.verbose) {
 		cout << "done." << endl;
@@ -298,12 +299,12 @@ int runNlBayes(
 	}
 
 	//! Divide the noisy and basic images into sub-images in order to easier parallelize the process
-	if (subDivide(i_imNoisy, imNoisySub, p_imSize, imSizeSub, paramStep2.boundary, nbParts)
+	if (subDivide(i_imNoisy, imNoisySub, paramStep2.boundary, nbParts)
         != EXIT_SUCCESS) {
         cout << "runNlBayes: error in subDivide...";
 		return EXIT_FAILURE;
 	}
-	if (subDivide(o_imBasic, imBasicSub, p_imSize, imSizeSub, paramStep2.boundary, nbParts)
+	if (subDivide(o_imBasic, imBasicSub, paramStep2.boundary, nbParts)
 		!= EXIT_SUCCESS) {
         cout << "runNlBayes: error in subDivide...";
 		return EXIT_FAILURE;
@@ -329,7 +330,7 @@ int runNlBayes(
 			pass = passset ? 1 : 0;
 		}
 #endif
-		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2, thread, pass);
+		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], paramStep2, thread, pass);
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
@@ -342,7 +343,7 @@ int runNlBayes(
     }
 
 	//! Get the final result
-	if (subBuild(o_imFinal, imFinalSub, p_imSize, imSizeSub, paramStep2.boundary)
+	if (subBuild(o_imFinal, imFinalSub, paramStep2.boundary)
 		!= EXIT_SUCCESS) {
         cout << "runNlBayes: error in subBuild...";
 		return EXIT_FAILURE;
@@ -367,32 +368,35 @@ int runNlBayes(
  * @return none.
  **/
 int processNlBayes(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> &io_imBasic
-,	std::vector<float> &o_imFinal
-,	const ImageSize &p_imSize
+	img_t<float> const& i_imNoisy
+,	img_t<float> &io_imBasic
+,	img_t<float> &o_imFinal
 ,	nlbParams &p_params
 ,	int thread
 ,	int pass
 ){
 	//! Parameters initialization
+	const unsigned width	= i_imNoisy.w;
+	const unsigned height	= i_imNoisy.h;
+	const unsigned chnls	= i_imNoisy.d;
+	const unsigned wh		= width * height;
 	const unsigned sW		= p_params.sizeSearchWindow;
 	const unsigned sP		= p_params.sizePatch;
 	const unsigned sP2		= sP * sP;
-	const unsigned sPC		= sP2 * p_imSize.nChannels;
+	const unsigned sPC		= sP2 * chnls;
 	const unsigned nSP		= p_params.nSimilarPatches;
 	unsigned nInverseFailed	= 0;
 	const float threshold	= p_params.sigma * p_params.sigma * p_params.gamma *
-                                (p_params.isFirstStep ? p_imSize.nChannels : 1.f);
+                                (p_params.isFirstStep ? chnls : 1.f);
 
 	//! Allocate Sizes
 	if (p_params.isFirstStep) {
-		io_imBasic.resize(p_imSize.whc);
+		io_imBasic.resize(width, height, chnls);
 	}
-	o_imFinal.resize(p_imSize.whc);
+	o_imFinal.resize(width, height, chnls);
 
 	//! Used matrices during Bayes' estimate
-	vector<vector<float> > group3d(p_imSize.nChannels, vector<float> (nSP * sP2));
+	vector<vector<float> > group3d(chnls, vector<float> (nSP * sP2));
 	vector<float> group3dNoisy(sW * sW * sPC), group3dBasic(sW * sW * sPC);
 	vector<unsigned> index(p_params.isFirstStep ? nSP : sW * sW);
 	matParams mat;
@@ -403,20 +407,21 @@ int processNlBayes(
 	mat.covMatTmp       .resize(p_params.isFirstStep ? sP2 * sP2 : sPC * sPC);
 
 	//! ponderation: weight sum per pixel
-	vector<float> weight(i_imNoisy.size(), 0.f);
+	img_t<float> weight(width, height, chnls);
+	weight.set_value(0.f);
 
 	//! Mask: non-already processed patches
-	vector<bool> mask(p_imSize.wh, false);
+	vector<bool> mask(wh, false);
 
 	//! Only pixels of the center of the image must be processed (not the boundaries)
-	for (unsigned i = sW; i < p_imSize.height - sW; i++) {
-		for (unsigned j = sW; j < p_imSize.width - sW; j++) {
-			mask[i * p_imSize.width + j] = true;
+	for (unsigned i = sW; i < height - sW; i++) {
+		for (unsigned j = sW; j < width - sW; j++) {
+			mask[i * width + j] = true;
 		}
 	}
 	unsigned lastupdate = 0;
 	float offset = 0;
-	for (unsigned ij = 0; ij < p_imSize.wh; ij += p_params.offSet) {
+	for (unsigned ij = 0; ij < wh; ij += p_params.offSet) {
 		if (!processing_should_continue())
 			return 1;
 		//! Only non-seen patches are processed
@@ -424,11 +429,11 @@ int processNlBayes(
 			//! Search for similar patches around the reference one
 			unsigned nSimP = p_params.nSimilarPatches;
 			if (p_params.isFirstStep) {
-				estimateSimilarPatchesStep1(i_imNoisy, group3d, index, ij, p_imSize, p_params);
+				estimateSimilarPatchesStep1(i_imNoisy, group3d, index, ij, p_params);
 			}
 			else {
 				nSimP = estimateSimilarPatchesStep2(i_imNoisy, io_imBasic, group3dNoisy,
-					group3dBasic, index, ij, p_imSize, p_params);
+					group3dBasic, index, ij, p_params);
 				nSimP = (nSimP < 1 ? 1 : nSimP);
 			}
 
@@ -439,11 +444,11 @@ int processNlBayes(
 			if (p_params.useHomogeneousArea) {
 				if (p_params.isFirstStep) {
 					doBayesEstimate = !computeHomogeneousAreaStep1(group3d, sP, nSP,
-						threshold, p_imSize);
+						threshold, chnls);
 				}
 				else {
 					doBayesEstimate = !computeHomogeneousAreaStep2(group3dNoisy, group3dBasic,
-						sP, nSimP, threshold, p_imSize);
+						sP, nSimP, threshold, chnls);
 				}
 			}
 
@@ -454,33 +459,33 @@ int processNlBayes(
 				}
 				else {
 					computeBayesEstimateStep2(group3dNoisy, group3dBasic, mat, nInverseFailed,
-						p_imSize, p_params, nSimP);
+						chnls, p_params, nSimP);
 				}
 			}
 
 			//! Aggregation
 			if (p_params.isFirstStep) {
-				computeAggregationStep1(io_imBasic, weight, mask, group3d, index, p_imSize,
+				computeAggregationStep1(io_imBasic, weight, mask, group3d, index,
 					p_params);
 			}
 			else {
-				computeAggregationStep2(o_imFinal, weight, mask, group3dBasic, index, p_imSize,
+				computeAggregationStep2(o_imFinal, weight, mask, group3dBasic, index,
 					p_params, nSimP);
 			}
 		}
 		if (thread == 0) {
-			if (ij - lastupdate > p_imSize.wh >> 4) {
+			if (ij - lastupdate > wh >> 4) {
 				lastupdate = ij;
 				float second;
 				second = (p_params.isFirstStep ? 0.f : 2.f);
 				offset = (pass + second) / 4.f;
-				set_progress_bar_data("NL-Bayes denoising...", offset + ((double)ij / (4.f * p_imSize.wh)));
+				gui_iface.set_progress(offset + ((double)ij / (4.f * wh)), _("NL-Bayes denoising..."));
 			}
 		}
 	}
 
 	//! Weighted aggregation
-	computeWeightedAggregation(i_imNoisy, io_imBasic, o_imFinal, weight, p_params, p_imSize);
+	computeWeightedAggregation(i_imNoisy, io_imBasic, o_imFinal, weight, p_params);
 
 	if (nInverseFailed > 0 && p_params.verbose) {
 		cout << "nInverseFailed = " << nInverseFailed << endl;
@@ -501,19 +506,18 @@ int processNlBayes(
  * @return none.
  **/
 void estimateSimilarPatchesStep1(
-	std::vector<float> const& i_im
+	img_t<float> const& i_im
 ,	std::vector<std::vector<float> > &o_group3d
 ,	std::vector<unsigned> &o_index
 ,	const unsigned p_ij
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 ){
 	//! Initialization
 	const unsigned sW		= p_params.sizeSearchWindow;
 	const unsigned sP		= p_params.sizePatch;
-	const unsigned width	= p_imSize.width;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned wh		= width * p_imSize.height;
+	const unsigned width	= i_im.w;
+	const unsigned chnls	= i_im.d;
+	const unsigned wh		= width * i_im.h;
 	const unsigned ind		= p_ij - (sW - 1) * (width + 1) / 2;
 	const unsigned nSimP	= p_params.nSimilarPatches;
 	vector<pair<float, unsigned> > distance(sW * sW);
@@ -581,19 +585,18 @@ void estimateSimilarPatchesStep1(
  * @return number of similar patches kept.
  **/
 unsigned estimateSimilarPatchesStep2(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> const& i_imBasic
+	img_t<float> const& i_imNoisy
+,	img_t<float> const& i_imBasic
 ,	std::vector<float> &o_group3dNoisy
 ,	std::vector<float> &o_group3dBasic
 ,	std::vector<unsigned> &o_index
 ,	const unsigned p_ij
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 ){
 	//! Initialization
-	const unsigned width	= p_imSize.width;
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned wh		= width * p_imSize.height;
+	const unsigned width	= i_imNoisy.w;
+	const unsigned chnls	= i_imNoisy.d;
+	const unsigned wh		= width * i_imNoisy.h;
 	const unsigned sP		= p_params.sizePatch;
 	const unsigned sW		= p_params.sizeSearchWindow;
 	const unsigned ind		= p_ij - (sW - 1) * (width + 1) / 2;
@@ -670,20 +673,20 @@ int computeHomogeneousAreaStep1(
 ,	const unsigned p_sP
 ,	const unsigned p_nSimP
 ,	const float p_threshold
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 ){
 	//! Initialization
 	const unsigned N = p_sP * p_sP * p_nSimP;
 
 	//! Compute the standard deviation of the set of patches
 	float stdDev = 0.f;
-	for (unsigned c = 0; c < p_imSize.nChannels; c++) {
+	for (unsigned c = 0; c < p_nChannels; c++) {
 		stdDev += computeStdDeviation(io_group3d[c], p_sP * p_sP, p_nSimP, 1);
 	}
 
 	//! If we are in an homogeneous area
 	if (stdDev < p_threshold) {
-		for (unsigned c = 0; c < p_imSize.nChannels; c++) {
+		for (unsigned c = 0; c < p_nChannels; c++) {
 			float mean = 0.f;
 			for (unsigned k = 0; k < N; k++)
 				mean += io_group3d[c][k];
@@ -716,18 +719,18 @@ int computeHomogeneousAreaStep2(
 ,	const unsigned p_sP
 ,	const unsigned p_nSimP
 ,	const float p_threshold
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 ){
 	//! Parameters
 	const unsigned sP2	= p_sP * p_sP;
-	const unsigned sPC = sP2 * p_imSize.nChannels;
+	const unsigned sPC = sP2 * p_nChannels;
 
 	//! Compute the standard deviation of the set of patches
-	const float stdDev = computeStdDeviation(i_group3dNoisy, sP2, p_nSimP, p_imSize.nChannels);
+	const float stdDev = computeStdDeviation(i_group3dNoisy, sP2, p_nSimP, p_nChannels);
 
 	//! If we are in an homogeneous area
 	if (stdDev < p_threshold) {
-		for (unsigned c = 0; c < p_imSize.nChannels; c++) {
+		for (unsigned c = 0; c < p_nChannels; c++) {
             float mean = 0.f;
 
             for (unsigned n = 0; n < p_nSimP; n++) {
@@ -785,11 +788,11 @@ int computeHomogeneousAreaStep2(
 		centerData(io_group3d[c], i_mat.baricenter, nSimP, sP2);
 
 		//! Compute the covariance matrix of the set of similar patches
-		covarianceMatrix(io_group3d[c], i_mat.covMat, nSimP, sP2);
+		covarianceMatrix(io_group3d[c].data(), i_mat.covMat.data(), nSimP, sP2);
 
 		//! Bayes' Filtering
-		if (inverseMatrix(i_mat.covMat, sP2) == EXIT_SUCCESS) {
-            productMatrix(i_mat.group3dTranspose, i_mat.covMat, io_group3d[c], sP2, sP2, nSimP);
+		if (inverseMatrix(i_mat.covMat.data(), sP2) == EXIT_SUCCESS) {
+            productMatrix(i_mat.group3dTranspose.data(), i_mat.covMat.data(), io_group3d[c].data(), sP2, sP2, nSimP);
             for (unsigned k = 0; k < sP2 * nSimP; k++) {
                 io_group3d[c][k] -= valDiag * i_mat.group3dTranspose[k];
             }
@@ -831,20 +834,20 @@ void computeBayesEstimateStep2(
 ,	std::vector<float> &io_group3dBasic
 ,	matParams &i_mat
 ,	unsigned &io_nInverseFailed
-,	const ImageSize &p_imSize
+,	const unsigned p_nChannels
 ,	nlbParams p_params
 ,	const unsigned p_nSimP
 ){
 	//! Parameters initialization
 	const float diagVal = p_params.beta * p_params.sigma * p_params.sigma;
-	const unsigned sPC  = p_params.sizePatch * p_params.sizePatch * p_imSize.nChannels;
+	const unsigned sPC  = p_params.sizePatch * p_params.sizePatch * p_nChannels;
 
 	//! Center 3D groups around their baricenter
 	centerData(io_group3dBasic, i_mat.baricenter, p_nSimP, sPC);
 	centerData(i_group3dNoisy, i_mat.baricenter, p_nSimP, sPC);
 
 	//! Compute the covariance matrix of the set of similar patches
-	covarianceMatrix(io_group3dBasic, i_mat.covMat, p_nSimP, sPC);
+	covarianceMatrix(io_group3dBasic.data(), i_mat.covMat.data(), p_nSimP, sPC);
 
 	//! Bayes' Filtering
     for (unsigned k = 0; k < sPC; k++) {
@@ -852,8 +855,8 @@ void computeBayesEstimateStep2(
     }
 
 	//! Compute the estimate
-	if (inverseMatrix(i_mat.covMat, sPC) == EXIT_SUCCESS) {
-        productMatrix(io_group3dBasic, i_mat.covMat, i_group3dNoisy, sPC, sPC, p_nSimP);
+	if (inverseMatrix(i_mat.covMat.data(), sPC) == EXIT_SUCCESS) {
+        productMatrix(io_group3dBasic.data(), i_mat.covMat.data(), i_group3dNoisy.data(), sPC, sPC, p_nSimP);
         for (unsigned k = 0; k < sPC * p_nSimP; k++) {
             io_group3dBasic[k] = i_group3dNoisy[k] - diagVal * io_group3dBasic[k];
         }
@@ -884,18 +887,17 @@ void computeBayesEstimateStep2(
  * @return none.
  **/
 void computeAggregationStep1(
-	std::vector<float> &io_im
-,	std::vector<float> &io_weight
+	img_t<float> &io_im
+,	img_t<float> &io_weight
 ,	std::vector<bool> &io_mask
 ,	std::vector<std::vector<float> > const& i_group3d
 ,	std::vector<unsigned> const& i_index
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 ){
 	//! Parameters initializations
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned width	= p_imSize.width;
-	const unsigned height	= p_imSize.height;
+	const unsigned chnls	= io_im.d;
+	const unsigned width	= io_im.w;
+	const unsigned height	= io_im.h;
 	const unsigned sP		= p_params.sizePatch;
 	const unsigned nSimP	= p_params.nSimilarPatches;
 
@@ -939,19 +941,18 @@ void computeAggregationStep1(
  * @return none.
  **/
 void computeAggregationStep2(
-	std::vector<float> &io_im
-,	std::vector<float> &io_weight
+	img_t<float> &io_im
+,	img_t<float> &io_weight
 ,	std::vector<bool> &io_mask
 ,	std::vector<float> const& i_group3d
 ,	std::vector<unsigned> const& i_index
-,	const ImageSize &p_imSize
 ,	const nlbParams &p_params
 ,	const unsigned p_nSimP
 ){
 	//! Parameters initializations
-	const unsigned chnls	= p_imSize.nChannels;
-	const unsigned width	= p_imSize.width;
-	const unsigned wh		= width * p_imSize.height;
+	const unsigned chnls	= io_im.d;
+	const unsigned width	= io_im.w;
+	const unsigned wh		= width * io_im.h;
 	const unsigned sP		= p_params.sizePatch;
 
 	//! Aggregate estimates
@@ -989,16 +990,15 @@ void computeAggregationStep2(
  * @return : none.
  **/
 void computeWeightedAggregation(
-	std::vector<float> const& i_imNoisy
-,	std::vector<float> &io_imBasic
-,	std::vector<float> &io_imFinal
-,	std::vector<float> const& i_weight
+	img_t<float> const& i_imNoisy
+,	img_t<float> &io_imBasic
+,	img_t<float> &io_imFinal
+,	img_t<float> const& i_weight
 ,	const nlbParams &p_params
-,	const ImageSize &p_imSize
 ){
-	for (unsigned c = 0, k = 0; c < p_imSize.nChannels; c++) {
+	for (unsigned c = 0, k = 0; c < (unsigned) i_imNoisy.d; c++) {
 
-		for (unsigned ij = 0; ij < p_imSize.wh; ij++, k++) {
+		for (unsigned ij = 0; ij < (unsigned)(i_imNoisy.w * i_imNoisy.h); ij++, k++) {
 
 			//! To avoid weighting problem (particularly near boundaries of the image)
 			if (i_weight[k] > 0.f) {

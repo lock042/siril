@@ -25,8 +25,8 @@
 #include "core/command_line_processor.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
+#include "gui/search_objects.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
@@ -133,7 +133,7 @@ static siril_cat_index get_cat_index_from_combo() {
 	else if (g_str_has_prefix(cat_char, "solsys")) {
 		cat = CAT_IMCCE;
 		if (!gfit->keywords.date_obs) {
-			siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
+			siril_log_error(_("This option only works on images that have observation date information\n"));
 			return CAT_AUTO;
 		}
 	} else {
@@ -255,8 +255,8 @@ void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 					ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
 					dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
 
-					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_ra_entry")), ra);
-					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_dec_entry")), dec);
+					gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(gui.builder, "show_ra_entry")), ra);
+					gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(gui.builder, "show_dec_entry")), dec);
 
 					g_free(ra), g_free(dec);
 					siril_world_cs_unref(world_cs);
@@ -291,7 +291,7 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	double ra, dec;
 	gchar *name = NULL;
 	if (collect_single_coords_and_name(&ra, &dec, &name) || !name) {
-		siril_log_color_message(_("Could not parse coordinates or name, aborting\n"), "red");
+		siril_log_error(_("Could not parse coordinates or name, aborting\n"));
 		return;
 	}
 	cat_item *item = calloc(1, sizeof(cat_item));
@@ -388,28 +388,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
 		}
-		// Allocate and initialize generic_img_args
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		if (!args) {
-			free_conesearch_params(params_cone);
-			PRINT_ALLOC_ERR;
-			return;
-		}
-		args->fit = gfit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = conesearch_image_hook;
-		args->description = _("Cone search");
-		args->verbose = TRUE;
-		args->command_updates_gfit = FALSE;
-		args->command = FALSE;
-		args->user = params_cone;
-		args->log_hook = NULL;
-
-		if (!start_in_new_thread(generic_image_worker, args)) {
-			siril_log_color_message(_("Error: failed to start conesearch image worker\n"), "red");
-			free_generic_img_args(args);
-			return;
-		}
+		execute_conesearch(params_cone);
 		break;
 	case SHOW_PAGE:
 		params_show = parse_show_ui();

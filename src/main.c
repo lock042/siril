@@ -34,7 +34,11 @@
 #include <unistd.h>
 #include <fftw3.h>
 
+#ifdef USE_GTK4
+#include "gui-gtk4/histo_display.h"
+#else
 #include "gui/histo_display.h"
+#endif
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -61,10 +65,20 @@
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/gui_state.h"
+#else
+#include "gui/gui_state.h"
+#endif
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
-#include "core/siril_actions.h"
+#include "algos/photometric_cc.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/siril_actions.h"
+#else
+#include "gui/siril_actions.h"
+#endif
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/processing_thread.h"
@@ -75,40 +89,77 @@
 #include "core/siril_networking.h"
 #include "io/siril_pythonmodule.h"
 #include "core/siril_update.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/ui_files.h"
+#include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/siril_css.h"
+#include "gui-gtk4/splashscreen.h"
+#else
 #include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/siril_css.h"
 #include "gui/splashscreen.h"
+#endif
 
-// Forward decl to avoid including all of photometric_cc.h
-void initialize_spcc_mirrors();
+/* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui/photometric_cc.h) */
 void force_paned_restore();
-
-/* Callback to close splash screen and show main window after delay */
-static gboolean close_splash_and_show_window_cb(gpointer user_data) {
-	close_splash_screen();
-
-	/* Make window visible */
-	GtkWidget *control_window = lookup_widget("control_window");
-	gtk_widget_set_opacity(control_window, 1.0);
-
-	force_paned_restore();
-
-	g_idle_add(first_start_cb, NULL);
-
-	return G_SOURCE_REMOVE;
-}
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
 fits *gfit = NULL;	// currently loaded image
+
+/* File passed by the OS via the GApplication "open" signal (e.g. Finder's
+ * "Open With" on macOS, or a file argument on Linux).  On macOS the "open"
+ * signal fires re-entrantly inside the GApplication "startup" emission —
+ * GTK's quartz backend calls [NSApp finishLaunching] from its startup handler
+ * and the launch Apple Event is dispatched there — i.e. before the main loop
+ * runs and before the window is mapped.  Opening the image straight from the
+ * handler then renders into a surface that is never shown, leaving a blank
+ * window.  We therefore stash the path here and open it from
+ * close_splash_and_show_window_cb, after the window is actually visible and
+ * on a normal main-loop iteration. */
+static gchar *pending_open_path = NULL;
+static gboolean main_window_shown = FALSE;
+static gboolean process_pending_open_idle(gpointer user_data);
+
+/* Callback to close splash screen and show main window after delay */
+static gboolean close_splash_and_show_window_cb(gpointer user_data) {
+	close_splash_screen();
+
+	/* Make window visible.  GTK4: the .ui no longer carries visible=1 on
+	 * GtkApplicationWindow (that triggered realisation before the
+	 * <child type="titlebar"> was attached, producing the
+	 * "gtk_window_set_titlebar() called on a realized window" warning).
+	 * Show the window explicitly here. */
+	GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	gtk_widget_set_opacity(control_window, 1.0);
+	gtk_widget_set_visible(control_window, TRUE);
+
+	force_paned_restore();
+
+	g_idle_add(first_start_cb, NULL);
+
+	/* Now that the window is visible, open any file the OS handed us at
+	 * launch.  Scheduling it as an idle (rather than running it inline)
+	 * lets the window-show above complete first, so the image renders into
+	 * a realised, on-screen surface.  The flag also tells siril_app_open
+	 * that a later-arriving "open" can schedule itself directly. */
+	main_window_shown = TRUE;
+	if (pending_open_path)
+		g_idle_add(process_pending_open_idle, NULL);
+
+	return G_SOURCE_REMOVE;
+}
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -116,6 +167,7 @@ static gchar *main_option_initfile = NULL;
 static gchar *main_option_rpipe_path = NULL;
 static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
+static gboolean main_option_sync_spcc = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
@@ -155,6 +207,7 @@ static GOptionEntry main_option[] = {
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
+	{ "sync_spcc", 0, 0, G_OPTION_ARG_NONE, &main_option_sync_spcc, N_("fetch the current SPCC mirror list from the internet and cache it locally, then exit"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -162,6 +215,11 @@ static GOptionEntry main_option[] = {
 	{ NULL },
 };
 
+/* App-level actions available in every build.  Toolkit-specific extras
+ * (e.g. GTK4's "open-recent" parameterised action) are registered by
+ * register_toolkit_app_actions(), implemented per-toolkit in
+ * src/gui/callbacks.c or src/gui-gtk4/callbacks.c, so main.c never
+ * references symbols that live in only one of the two GUI trees. */
 static GActionEntry app_entries[] = {
 	{ "quit", quit_action_activate },
 	{ "preferences", preferences_action_activate },
@@ -223,7 +281,7 @@ void load_ui_files() {
 		exit(EXIT_FAILURE);
 	}
 #ifdef DEBUG_MAIN
-	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+	siril_log_debug("Successfully loaded '%s'\n", ui_files[0]);
 #endif
 
 	uint32_t i = 1;
@@ -238,7 +296,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 #ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 #endif
 		i++;
 	}
@@ -256,7 +314,7 @@ void load_ui_files() {
 			exit(EXIT_FAILURE);
 		}
 		#ifdef DEBUG_MAIN
-		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		siril_log_debug("Successfully loaded '%s'\n", ui_files[i]);
 		#endif
 		i++;
 	}
@@ -281,11 +339,12 @@ static void global_initialization() {
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
 	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
+	com.spcc_remote_catalogue_xpcts = NULL;	/* No xp_continuous catalogue published yet; remains NULL until initialize_spcc_mirrors() supplies one. */
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
-	gui.repo_scripts = NULL;
+	com.repo_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
@@ -297,7 +356,7 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
-	siril_debug_print("Initializing processing thread...\n");
+	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref
@@ -324,6 +383,11 @@ static void global_initialization() {
 }
 
 static void siril_app_startup(GApplication *application) {
+	/* Hybrid: this fires before siril_register_gui_iface() runs (inside
+	 * activate), so siril_log_warning() hits the no-op log stub and never
+	 * reaches the GUI log.  Keep an stderr copy too — on a macOS Finder
+	 * launch that lands in Console.app / the unified log
+	 * (log stream --predicate 'process == "siril"'). */
 	signals_init();
 	/*
 	 * Force C locale for numbers to avoid "," being used as decimal separator.
@@ -338,16 +402,49 @@ static void siril_app_startup(GApplication *application) {
 #endif
 
 	g_set_application_name(PACKAGE_NAME);
+	/* Register our pixmaps resource directory with the icon theme so
+	 * that named-icon lookups (e.g. "siril" for the window's titlebar
+	 * icon) find /org/siril/ui/pixmaps/siril.svg.  Without this, a
+	 * stock-iconless dev build falls back to the broken-image / no-entry
+	 * placeholder.  The accessor differs between GTK versions:
+	 *   GTK3 — gtk_icon_theme_get_default()
+	 *   GTK4 — gtk_icon_theme_get_for_display(...)
+	 */
+#ifdef USE_GTK4
+	gtk_icon_theme_add_resource_path(
+		gtk_icon_theme_get_for_display(gdk_display_get_default()),
+		"/org/siril/ui/pixmaps");
+#else
+	gtk_icon_theme_add_resource_path(
+		gtk_icon_theme_get_default(),
+		"/org/siril/ui/pixmaps");
+#endif
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
-	// Initialize GtkSource
+	register_toolkit_app_actions(application);
+	// Initialize GtkSource (only needed for gtksourceview-4; v5 auto-initialises).
+#ifndef USE_GTK4
 	gtk_source_init();
+#endif
+
+#if defined(USE_GTK4) && defined(OS_OSX)
+	/* GTK4's macOS backend dropped the GTK3 quartz workaround that forwarded
+	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
+	 * reach GTK4's shortcut controller without requiring a native menu bar. */
+	siril_macos_fix_keyboard_shortcuts();
+#endif
 }
 
+static gboolean siril_app_activated = FALSE;
+
 static void siril_app_activate(GApplication *application) {
+	/* Hybrid (see siril_app_startup): the BEGIN line precedes
+	 * siril_register_gui_iface(), so keep an stderr copy. */
+	if (siril_app_activated) return;
+	siril_app_activated = TRUE;
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
@@ -473,15 +570,41 @@ static void siril_app_activate(GApplication *application) {
 
 		/* Load UI files */
 		update_splash_progress(_("Loading user interface..."), 0.65);
+#ifdef USE_GTK4
+		/* Register custom widget types before the builder reads any XML
+		 * that references them. */
+		siril_image_view_register();
+#endif
 		load_ui_files();
 		init_histogram_overlay();
+		siril_register_gui_iface();
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
-		GtkWidget *control_window = lookup_widget("control_window");
+		GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 		gtk_widget_set_opacity(control_window, 0.0);
 
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
+
+#if defined(USE_GTK4) && defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+		/* Enable macOS-native traffic-light window controls on the headerbar.
+		 * Available since GTK 4.18; renders the close/minimise/maximise buttons
+		 * as native Cocoa widgets in the top-left corner instead of GTK-drawn
+		 * ones on the right. */
+		GtkHeaderBar *bar = GTK_HEADER_BAR(gtk_builder_get_object(gui.builder, "headerbar"));
+		gtk_header_bar_set_use_native_controls(bar, TRUE);
+#endif
+
+#if defined(USE_GTK4) && defined(OS_OSX)
+		/* GTK4's macOS backend automatically adds app.preferences and app.about
+		 * to the native Application menu, so hide them from the hamburger menu
+		 * to avoid duplicates. The separator between Preferences and the help
+		 * items is also hidden since it would otherwise appear at the top of the
+		 * menu with nothing above it. */
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_preferences")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_separator")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_about")), FALSE);
+#endif
 
 		/* Load state of the main windows (position and maximized) */
 		update_splash_progress(_("Restoring window state..."), 0.75);
@@ -500,14 +623,16 @@ static void siril_app_activate(GApplication *application) {
 		}
 
 #else
-		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
-		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_updates")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame24")), FALSE);
 #endif
 	}
 
 	if (!com.headless) {
 		update_splash_progress(_("Initializing interface components..."), 0.90);
-		gtk_builder_connect_signals(gui.builder, NULL);
+		/* GTK4: gtk_builder_connect_signals removed; the default GtkBuilderCScope
+		 * auto-resolves <signal handler="..."> entries via GModule when widgets
+		 * are constructed. */
 
 		gchar *version_string = get_siril_version_string();
 		siril_log_message(_("Welcome to %s - GUI\n"), version_string);
@@ -525,46 +650,94 @@ static void siril_app_activate(GApplication *application) {
 	/* last initialization because now, GUI is built and logs can be displayed */
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
+	if (main_option_sync_spcc) {
+		siril_check_spcc_mirrors(TRUE, TRUE);
+		exit(EXIT_SUCCESS);
+	}
 	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
 }
 
+/* Actually open the file the OS handed us (a sequence or a single image).
+ * Split out of siril_app_open so it can be deferred to after the window is
+ * shown — see pending_open_path. */
+static void do_open_file(gchar *path) {
+	if (!path)
+		return;
+	const char *ext = get_filename_ext(path);
+	if (ext && !strncmp(ext, "seq", 4)) {
+		gchar *sequence_dir = g_path_get_dirname(path);
+		if (!siril_change_dir(sequence_dir, NULL)) {
+			if (check_seq()) {
+				siril_log_message(_("No sequence `%s' found.\n"), path);
+			} else {
+				set_seq(path);
+				if (!com.script) {
+					gui_iface.populate_seq_combo(path);
+					gui_iface.set_gui_cwd();
+				}
+			}
+			g_free(sequence_dir);
+		}
+	} else {
+		image_type type = get_type_from_filename(path);
+		if (!main_option_directory && type != TYPEAVI && type != TYPESER
+				&& type != TYPEUNDEF) {
+			gchar *image_dir = g_path_get_dirname(path);
+			siril_change_dir(image_dir, NULL);
+			g_free(image_dir);
+		}
+		if (!com.script)
+			gui_function(set_GUI_CWD, NULL);
+		open_single_image(path);
+	}
+}
+
+/* Idle scheduled from close_splash_and_show_window_cb once the window is
+ * visible.  Opens the file stashed by siril_app_open. */
+static gboolean process_pending_open_idle(gpointer user_data) {
+	gchar *path = g_steal_pointer(&pending_open_path);
+	do_open_file(path);
+	g_free(path);
+	return G_SOURCE_REMOVE;
+}
+
 static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
-#if !defined(OS_OSX)
+	/* NB: gui_iface.redraw_image is always non-NULL — it defaults to a no-op
+	 * stub (gui_iface_stubs.c) and is only swapped for the real GUI impl by
+	 * siril_register_gui_iface(), which runs inside siril_app_activate().  So
+	 * "activated" (has activate run yet?) is the meaningful signal here, not
+	 * the pointer. */
+	/* Hybrid (see siril_app_startup): this entry line can fire before
+	 * activate has registered the real GUI logger (activated=0), so keep an
+	 * stderr copy.  This is the line that proves the open/activate ordering
+	 * on macOS. */
+	/* Always activate first — on macOS, GApplication emits startup→open without
+	 * activate when files are passed as arguments.  siril_app_activate() is
+	 * guarded by siril_app_activated so a double call is a no-op. */
 	g_application_activate(application);
-#endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
-		const char *ext = get_filename_ext(path);
-		if (ext && !strncmp(ext, "seq", 4)) {
-			gchar *sequence_dir = g_path_get_dirname(path);
-			if (!siril_change_dir(sequence_dir, NULL)) {
-				if (check_seq()) {
-					siril_log_message(_("No sequence `%s' found.\n"), path);
-				} else {
-					set_seq(path);
-					if (!com.script) {
-						populate_seqcombo(path);
-						gui_function(set_GUI_CWD, NULL);
-					}
-				}
-				g_free(sequence_dir);
-			}
+		/* In GUI mode, defer the open until the window is shown
+		 * (close_splash_and_show_window_cb picks up pending_open_path).
+		 * Opening inline here would render into a not-yet-mapped surface on
+		 * macOS, where "open" fires re-entrantly during startup, giving a
+		 * blank window.  In headless/script mode there is no window to wait
+		 * for, so open immediately. */
+		if (com.headless) {
+			do_open_file(path);
+			g_free(path);
 		} else {
-			image_type type = get_type_from_filename(path);
-			if (!main_option_directory && type != TYPEAVI && type != TYPESER
-					&& type != TYPEUNDEF) {
-				gchar *image_dir = g_path_get_dirname(path);
-				siril_change_dir(image_dir, NULL);
-				g_free(image_dir);
-			}
-			if (!com.script)
-				gui_function(set_GUI_CWD, NULL);
-			open_single_image(path);
+			g_free(pending_open_path);
+			pending_open_path = path;  /* ownership transferred */
+			/* If the window was already shown (activate ran and its splash
+			 * timer fired before this "open" arrived), schedule the open
+			 * now — close_splash_and_show_window_cb won't run again. */
+			if (main_window_shown)
+				g_idle_add(process_pending_open_idle, NULL);
 		}
-		g_free(path);
 	}
 }
 
@@ -664,11 +837,40 @@ static void siril_macos_setenv(const char *progname) {
 #endif
 
 
+/* GTK4 emits a sustained storm of internal GtkDropTarget(Async)
+ * assertion warnings ("self->drop == crossing->drop") during external
+ * file-drags.  On X11 this comes from the upstream X11-backend DnD bug
+ * that breaks our own drop target after a window state change (see
+ * dnd-investigation.md).  On Wayland it comes from GTK's own internal
+ * GtkDropTargetAsync controllers attached to stock widgets
+ * (GtkListView etc.) that the drag passes over en route to our target
+ * — the drop on our target still succeeds.  Either way the warnings
+ * are harmless noise; suppressed at the log-writer level so other
+ * criticals still surface normally. */
+static GLogWriterOutput siril_log_writer_filter(GLogLevelFlags log_level,
+                                                const GLogField *fields,
+                                                gsize n_fields,
+                                                gpointer user_data) {
+	(void)user_data;
+	for (gsize i = 0; i < n_fields; i++) {
+		if (g_strcmp0(fields[i].key, "MESSAGE") != 0) continue;
+		const char *msg = fields[i].value;
+		if (msg && (strstr(msg, "gtk_drop_target_handle_crossing") ||
+		            strstr(msg, "gtk_drop_target_handle_event") ||
+		            strstr(msg, "gtk_drop_target_async_handle_crossing") ||
+		            strstr(msg, "gtk_drop_target_async_handle_event")))
+			return G_LOG_WRITER_HANDLED;
+		break;
+	}
+	return g_log_writer_default(log_level, fields, n_fields, NULL);
+}
+
 int main(int argc, char *argv[]) {
 	GtkApplication *app;
 	const gchar *dir;
 	gint status;
 	gfit = calloc(1, sizeof(fits));
+	g_log_set_writer_func(siril_log_writer_filter, NULL, NULL);
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
@@ -723,16 +925,11 @@ int main(int argc, char *argv[]) {
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
 
-	{	/* Setting the 'register-session' property is for macOS
-		 * - to enable DnD via dock icon
-		 * - to enable system menu "Quit"
-		 */
-		GValue value = G_VALUE_INIT;
-		g_value_init(&value, G_TYPE_BOOLEAN);
-		g_value_set_boolean(&value, TRUE);
-		g_object_set_property(G_OBJECT(app), "register-session", &value);
-		g_value_unset(&value);
-	}
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, G_TYPE_BOOLEAN);
+	g_value_set_boolean(&value, TRUE);
+	g_object_set_property(G_OBJECT(app), "register-session", &value);
+	g_value_unset(&value);
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {

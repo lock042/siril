@@ -54,7 +54,7 @@ enum {
 static void on_mark_set(GtkTextBuffer *buffer, GtkTextIter *iter, GtkTextMark *mark, gpointer user_data) {
     GtkTextIter start, end;
 
-    GtkWidget *widget = lookup_widget("export_keywords_button");
+    GtkWidget *widget = key_export_button;
     gtk_widget_set_sensitive(widget, gtk_text_buffer_get_selection_bounds(buffer, &start, &end));
 }
 
@@ -62,10 +62,10 @@ static void init_static_ui() {
 	if (key_liststore == NULL) {
 		key_liststore = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "key_liststore"));
 		key_treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "key_treeview"));
-		key_textview = GTK_TEXT_VIEW(lookup_widget("FITS_header_txt"));
-		key_notebook = GTK_NOTEBOOK(lookup_widget("notebook-keywords"));
+		key_textview = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "FITS_header_txt"));
+		key_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook-keywords"));
 		key_selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "key_selection"));
-		key_export_button = lookup_widget("export_keywords_button");
+		key_export_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "export_keywords_button"));
 
 	    g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(key_textview)), "mark-set", G_CALLBACK(on_mark_set), NULL);
 	}
@@ -264,7 +264,7 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS keyname */
 		if (g_strcmp0(old_keyname, new_val)) {
 			if (strlen(new_val) > 8) {
-				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
+				siril_log_error(_("Keyname can contain a maximum of 8 characters.\n"));
 			} else {
 				if (!updateFITSKeyword(gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
 					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
@@ -314,7 +314,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 		/* update FITS comment */
 		gsize len = g_strlcpy(commentstring, new_comment, FLEN_COMMENT);
 		if (len >= FLEN_COMMENT) {
-			siril_debug_print("Exceeded FITS COMMENT length\n");
+			siril_log_debug("Exceeded FITS COMMENT length\n");
 		}
 		if (g_strcmp0(original_comment, new_comment)) {
 			if (!updateFITSKeyword(gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {

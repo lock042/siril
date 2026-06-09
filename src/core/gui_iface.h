@@ -1,0 +1,608 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * Abstract GUI interface (vtable) for the Siril processing core.
+ *
+ * This header is GTK-free and may be included from any translation unit.
+ * It defines the residual "bridge" between the processing core and the
+ * GUI toolkit, covering the interface groups described in the
+ * GUI-separation plan (groups A–D initially; E–G added incrementally in
+ * phase 2.4 onwards as later phases demand them).
+ *
+ * All slots default to no-op stub implementations defined in
+ * src/core/gui_iface_stubs.c.  The GUI build overrides them by calling
+ * siril_register_gui_iface() from main.c after GTK initialisation.
+ *
+ * Usage in processing code:
+ *   #include "core/gui_iface.h"
+ *   gui_iface.set_progress(0.5, _("Half done"));
+ *   if (gui_iface.confirm_dialog(...)) { ... }
+ */
+
+#ifndef SRC_CORE_GUI_IFACE_H_
+#define SRC_CORE_GUI_IFACE_H_
+
+#include <stdint.h>        /* uint32_t — used by heif_dialog slot */
+#include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
+#include "core/settings.h" /* rectangle — used by Group H ROI slots */
+
+/* Forward declaration for Group K — avoids including siril.h or PSF.h */
+struct fwhm_struct;
+typedef struct fwhm_struct psf_star;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ── Group A: Progress bar constants ─────────────────────────────────────── */
+/* Moved here from gui/progress_and_log.h so processing code can use them
+ * without pulling in GTK headers. */
+#define PROGRESS_NONE     -2.0  /* do not update the progress bar fraction */
+#define PROGRESS_PULSATE  -1.0  /* pulsate (indeterminate) mode */
+#define PROGRESS_RESET     0.0  /* reset progress bar to zero */
+#define PROGRESS_DONE      1.0  /* fill progress bar to 100 % */
+#define PROGRESS_TEXT_RESET ""  /* reset the progress bar text to "Ready." */
+
+/* ── Group D: Redraw type ────────────────────────────────────────────────── */
+/*
+ * Defines what must be regenerated before the next paint.  Moved here from
+ * gui/image_display.h so non-GUI code can name these values without
+ * including GTK headers.  gui/image_display.h aliases this as remap_type
+ * for backward compatibility.
+ */
+/* SirilRedrawType — what to refresh on the next paint pass.  All three
+ * cases queue a GtkWidget redraw; the differences are what other
+ * housekeeping piggy-backs on the call:
+ *
+ *   REDRAW_OVERLAY — Cairo buffers are assumed fresh; only the overlay
+ *                    (selection rect, annotations, etc.) needs repainting.
+ *   REDRAW_IMAGE   — Cairo image-render cache is stale; invalidate it
+ *                    first, then queue paint.  Use when pixel data
+ *                    changed but no other panels need refreshing.
+ *   REDRAW_ALL     — Like REDRAW_OVERLAY plus a refresh of subordinate
+ *                    panels (currently the aberration-inspector mosaic).
+ *                    Used at end-of-operation when the actual gfit remap
+ *                    has already been done by notify_gfit_data_modified
+ *                    so the Cairo cache is fresh — only the side panels
+ *                    need a nudge.
+ *
+ * Historically this enum had a REMAP_ALL case that called
+ * remap_all_vports() directly.  When the remap moved into
+ * notify_gfit_data_modified (so the worker thread could do it without
+ * a GUI roundtrip) REMAP_ALL stopped remapping anything — it became
+ * "paint-time housekeeping that includes side panels."  Renamed to
+ * REDRAW_ALL to reflect what it actually does. */
+typedef enum {
+	REDRAW_OVERLAY,
+	REDRAW_IMAGE,
+	REDRAW_ALL,
+} SirilRedrawType;
+
+/* ── ActionResult — returned by activate_action() ───────────────────────── */
+typedef enum {
+    ACTION_SUCCESS        = 0,
+    ACTION_NOT_FOUND      = 1,
+    ACTION_DISABLED       = 2,
+    ACTION_WINDOW_MISSING = 3,
+    ACTION_NULL_DATA      = 4,
+} ActionResult;
+
+/* ── Group C: Message type ───────────────────────────────────────────────── */
+/* Toolkit-neutral replacement for GtkMessageType used in the dialog slot. */
+typedef enum {
+	SIRIL_MSG_INFO,
+	SIRIL_MSG_WARNING,
+	SIRIL_MSG_ERROR,
+	SIRIL_MSG_QUESTION,
+} SirilMessageType;
+
+/* ── GUI interface vtable ────────────────────────────────────────────────── */
+/*
+ * All slots are initialised to no-op stubs (gui_iface_stubs.c).
+ * The GUI build replaces them with GTK implementations via
+ * siril_register_gui_iface() (gui/gui_iface_impl.c).
+ *
+ * Convention for callers: just call the slot directly — the stubs are
+ * always valid function pointers, so no NULL guard is needed.
+ */
+typedef struct {
+	/* A – Progress / status ------------------------------------------------ */
+	/* fraction: PROGRESS_* constant or [0.0, 1.0]; msg may be NULL */
+	void     (*set_progress)(double fraction, const char *msg);
+	/* busy=TRUE: show "waiting" cursor; busy=FALSE: restore normal cursor */
+	void     (*set_busy)(gboolean busy);
+
+	/* B – Logging ---------------------------------------------------------- */
+	/* Append msg to the GUI script-log widget in the given colour.
+	 * color is a Pango colour name string (e.g. "red"), or NULL for default. */
+	void     (*log_message)(const char *msg, const char *color);
+
+	/* C – Modal dialogs ---------------------------------------------------- */
+	void     (*message_dialog)(SirilMessageType type, const char *title,
+	                           const char *text);
+	/* Returns TRUE if the user clicked the accept button. */
+	gboolean (*confirm_dialog)(const char *title, const char *msg,
+	                           const char *button_accept);
+	/* id is the GtkBuilder identifier of the dialog widget. */
+	void     (*open_dialog)(const char *id);
+	void     (*close_dialog)(const char *id);
+	/* Returns TRUE if an image-processing dialog is currently open. */
+	gboolean (*is_dialog_open)(void);
+	/* Rich-data dialog (e.g. update notes); data is optional supplementary
+	 * text shown below the main message (may be NULL). */
+	void     (*data_dialog)(SirilMessageType type, const char *title,
+	                        const char *text, const char *data);
+
+	/* D – Image display ---------------------------------------------------- */
+	/* Synchronous redraw (call only from the GTK main thread). */
+	void     (*redraw_image)(SirilRedrawType remap);
+	/* Queue a redraw from any thread; returns immediately. */
+	void     (*redraw_image_async)(SirilRedrawType remap);
+	/* Queue a redraw from any thread and block until it completes. */
+	void     (*redraw_image_sync)(SirilRedrawType remap);
+	/* Clear any active selection rectangle from the image display. */
+	void     (*delete_selection)(void);
+	/* Queue a redraw of the mask overlay only (from any thread). */
+	void     (*queue_redraw_mask)(void);
+	/* Refresh all preview windows (registration / filter previews). */
+	void     (*redraw_previews)(void);
+	/* Remap all display viewports (recalculate display LUT/buffers). */
+	void     (*remap_all_vports)(void);
+
+	/* E – Sequence / image state notifications ----------------------------- */
+	/* Called after a sequence is fully opened and ready for use. */
+	void     (*on_sequence_opened)(void);
+	/* Called when the current sequence is closed/unloaded.
+	 * loading_next: TRUE when immediately loading another sequence (skip
+	 * deselecting the combo box). */
+	void     (*on_sequence_closed)(gboolean loading_next);
+	/* Called after a single image is loaded into gfit and displayed. */
+	void     (*on_image_loaded)(void);
+	/* Called when the current single image is closed/unloaded. */
+	void     (*on_image_closed)(void);
+	/* Called after stacking completes successfully; gfit holds the result. */
+	void     (*on_stack_complete)(void);
+	/* Update the sequence list display; seqname is the basename to select,
+	 * or NULL to refresh without changing selection. */
+	void     (*update_sequences_list)(const char *seqname);
+	/* Open/display gfit as a single image in the main window. */
+	void     (*open_single_image_from_gfit)(void);
+	/* Populate the sequence-selector combo with realname as the only entry. */
+	void     (*populate_seq_combo)(const char *realname);
+
+	/* F – Panel / tab switching -------------------------------------------- */
+	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */
+	void     (*show_panel)(const char *panel_name, gboolean visible);
+	/* Enable or disable script-related UI widgets (run/stop buttons, etc.). */
+	void     (*script_widgets_enable)(gboolean enable);
+	/* FFMS2/AVI: enable or disable the sequence browser widget. */
+	void     (*set_seq_browser_active)(gboolean active);
+
+	/* G – Misc GUI state --------------------------------------------------- */
+	/* Refresh the main-window status bar (disk space, memory, zoom, …). */
+	void     (*update_status_bar)(void);
+	/* Sync menu/toolbar enable-state to current application state. */
+	void     (*update_menu_state)(void);
+	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
+	 * When suppressing, also disables the display-mode menu button. */
+	void     (*set_suppress_redraws)(gboolean suppress);
+	/* Repopulate the ROI display from current gfit data (call while holding
+	 * the gfit read lock). */
+	void     (*populate_roi)(void);
+
+	/* D additions – Histogram / image modification state ------------------ */
+	/* Mark the histogram as stale (call while holding at least a read lock). */
+	void     (*invalidate_histogram)(void);
+	/* Recompute histogram if stale (call while holding at least a read lock). */
+	void     (*update_histogram)(void);
+	/* Queue an idle mask redraw (may also trigger a full image redraw). */
+	void     (*redraw_mask_idle)(void);
+
+	/* F additions – Application lifecycle -------------------------------- */
+	/* Quit the application's main event loop. */
+	void     (*quit_application)(void);
+	/* Update the CWD display label in the main window. */
+	void     (*set_gui_cwd)(void);
+
+	/* G additions – Channel / precision / command state ----------------- */
+	/* Called when the channel count of gfit may have changed. */
+	void     (*on_channel_count_changed)(void);
+	/* Called when the data type (float/ushort) of gfit has changed. */
+	void     (*on_precision_changed)(void);
+	/* Refresh the script menu on the GTK main thread (serialised). */
+	void     (*refresh_script_menu)(void);
+	/* Refresh the keywords-tree dialog from current gfit keywords. */
+	void     (*refresh_keywords_dialog)(void);
+	/* Show/hide the WCS distortion overlay on the image canvas. */
+	void     (*set_wcs_overlay)(gboolean show);
+	/* Launch the photometric/SPCC catalogue survey dialog. */
+	void     (*launch_clipboard_survey)(void);
+	/* Clear the main log text buffer. */
+	void     (*clear_log_buffer)(void);
+	/* Update the CPU-thread-count spin button. */
+	void     (*update_spin_cpu)(void);
+	/* Sync the selection-rectangle UI state from com.selection. */
+	void     (*new_selection_zone)(void);
+	/* Return the currently active display viewport index. */
+	int      (*get_active_vport)(void);
+	/* Return TRUE if the star-following toggle is active. */
+	gboolean (*get_star_follow_state)(void);
+	/* Show the command help popup for the current console command. */
+	void     (*show_command_help)(void);
+	/* Update the memory-usage label (used_bytes = current RSS). */
+	void     (*update_mem_usage)(guint64 used_bytes);
+	/* Update a disk-space label (space_bytes = free bytes, label_id = widget name). */
+	void     (*update_disk_space)(gint64 space_bytes, const char *label_id);
+	/* Sync the mask-enable toggle button to state (blocks its signal handler). */
+	void     (*update_mask_enable)(gboolean state);
+	/* Set the display lo/hi cutoff values and refresh slider widgets. */
+	void     (*set_display_range)(int lo, int hi);
+	/* Trigger a Gaia archive connectivity check. */
+	void     (*check_gaia_status)(void);
+	/* Initiate an on-demand Gaia catalogue check. */
+	void     (*trigger_gaia_check)(void);
+
+	/* H – Geometry / ROI / Mask state ------------------------------------- */
+	/* Called before a geometry-altering operation; clears ROI if active. */
+	void     (*on_geometry_changed)(void);
+	/* Called when a mask is removed or its visibility state changes. */
+	void     (*on_mask_state_changed)(void);
+	/* Called after a crop completes; clears stars, selection, display offset. */
+	void     (*on_crop_complete)(void);
+	/* Returns TRUE if an ROI selection is currently active. */
+	gboolean (*roi_is_active)(void);
+	/* Returns TRUE if the current operation has set up an ROI preview patch
+	 * (gui.roi.operation_supports_roi).  Always FALSE in headless mode. */
+	gboolean (*roi_operation_supports)(void);
+	/* Return a pointer to the ROI fits buffer (gui.roi.fit) cast to gpointer.
+	 * Returns NULL in headless/CLI mode.  Callers cast back to fits*. */
+	gpointer (*get_roi_fit)(void);
+	/* Copy the current ROI selection rectangle into *rect. */
+	void     (*get_roi_selection)(rectangle *rect);
+	/* Clear any active ROI selection. */
+	void     (*clear_roi)(void);
+	/* Set *rect as the new ROI selection and notify the GUI. */
+	void     (*restore_roi)(const rectangle *rect);
+	/* Reset (delete) the ICC proofing display transform under its lock. */
+	void     (*reset_display_transform)(void);
+
+	/* I – Statistics ------------------------------------------------------- */
+	/* Called to populate and open the statistics dialog for the current image. */
+	void     (*on_stats_ready)(void);
+
+	/* J – Photometry ------------------------------------------------------- */
+	/* Called after photometry data is updated; refreshes the plot panel. */
+	void     (*on_photometry_changed)(void);
+	/* Open a new siril-plot window for the given siril_plot_data pointer. */
+	void     (*show_siril_plot)(gpointer spl_data);
+
+	/* K – Star list -------------------------------------------------------- */
+	/* Update the star list display and optionally the PSF list panel. */
+	void     (*update_star_list)(psf_star **stars, gboolean update_psf_list,
+	                             gboolean wait);
+	/* Clear the star list display (equivalent to clear_stars_list(FALSE)). */
+	void     (*clear_star_list)(void);
+
+	/* L – Registration state ----------------------------------------------- */
+	/* Returns the active registration layer from the GUI combo box, or -1 if
+	 * no GUI is available or the selected layer has no registration data. */
+	int      (*get_reg_layer)(void);
+
+	/* M – Thread utilities ------------------------------------------------- */
+	/* Run func(data) on the GTK main thread and block until it completes.
+	 * The stub calls func(data) directly on the calling thread.
+	 * MUST NOT be called from the GTK main thread (deadlock). */
+	void     (*execute_idle_sync)(GSourceFunc func, gpointer data);
+	/* Open a dialog to select which child process to kill; returns the chosen
+	 * GPid, or 0 if unavailable (single child or headless). */
+	GPid     (*select_child_process)(GSList *children);
+
+	/* N – Preview / backup state ------------------------------------------ */
+	/* Returns TRUE if a preview effect is currently applied to gfit. */
+	gboolean (*is_preview_active)(void);
+	/* Cancel the active preview and restore gfit from the backup buffer. */
+	void     (*hide_preview)(void);
+	/* Copy gfit pixel data into the preview backup buffer. */
+	void     (*copy_gfit_to_backup)(void);
+	/* Copy the gfit ICC profile into the preview backup (after ICC ops). */
+	void     (*copy_gfit_icc_to_backup)(void);
+	/* Discard the preview backup buffer entirely. */
+	void     (*clear_backup)(void);
+
+	/* O – ICC information callbacks --------------------------------------- */
+	/* Check whether gfit's ICC profile matches the monitor profile and update
+	 * the color-management icon accordingly. */
+	void     (*check_icc_identical_to_monitor)(void);
+	/* Update the image source/profile information labels in the main window. */
+	void     (*set_source_information)(void);
+	/* Apply the monitor ICC profile to fit so that a stretched preview looks
+	 * correct on the current display.  Callers cast fits* to gpointer.
+	 * No-op in headless mode. */
+	void     (*apply_display_icc_compensation)(gpointer fit);
+
+	/* Q – Script console -------------------------------------------------- */
+	/* Append msg to the script-log status bar; line is the script line number. */
+	void     (*console_set_status)(const char *msg, int line);
+	/* Clear the script-log status bar. */
+	void     (*console_clear_status)(void);
+	/* Run all post-script GUI cleanup on the GTK main thread. */
+	void     (*end_script_gui)(void);
+
+	/* P – Livestacking GUI lifecycle --------------------------------------- */
+	/* Called when livestacking starts; switches display mode and hides toolbar. */
+	void     (*livestacking_setup_gui)(gboolean has_dark, gboolean has_flat,
+	                                   int reg_type);
+	/* Called when livestacking stops; restores toolbar visibility. */
+	void     (*livestacking_teardown_gui)(void);
+
+	/* S – Pixel-math status ------------------------------------------------ */
+	/* Called when a pixel-math operation completes; updates the status label.
+	 * ret is the pixel_math_data.ret value (0 = success, non-zero = error). */
+	void (*update_pixel_math_status)(int ret);
+
+	/* SC – Annotation display ----------------------------------------------- */
+	/* Ensure the annotation overlay is visible and up-to-date after a
+	 * catalogue search.  Activates the annotate toggle if needed. */
+	void (*activate_annotation_display)(void);
+
+	/* U – ICC status --------------------------------------------------------- */
+	/* Update the ICC color-management status icon and tooltip in the toolbar.
+	 * fit is cast to fits* in the implementation; use gpointer to keep the
+	 * header GTK/siril.h-free. */
+	void     (*update_icc_status_icon)(gpointer fit, gboolean active);
+	/* Return TRUE if the gamut check toggle in the ICC dialog is active. */
+	gboolean (*get_gamut_check_active)(void);
+
+	/* V – Registration panel status ----------------------------------------- */
+	/* Set the info label text in the 3-star registration panel. */
+	void (*update_registration_status)(const gchar *msg);
+
+	/* R – Python bridge UI ------------------------------------------------- */
+	/* Refresh the single-image display (wraps update_single_image_from_gfit).
+	 * Threading-aware: dispatches to main thread if called from worker. */
+	void     (*update_single_image_display)(void);
+	/* Reload and display sequence frame at index (wraps seq_load_image_in_thread). */
+	void     (*seq_redisplay_frame)(int index);
+	/* Set the polygon drawing ink colour (packed RGBA) and fill flag, then
+	 * initialise the draw-polygon state machine. */
+	void     (*set_poly_drawing)(guint32 color, gboolean fill);
+	/* Set the display rendering mode and refresh the display. */
+	void     (*set_rendering_mode)(int mode);
+	/* Set whether autostretch channels are linked/unlinked and refresh. */
+	void     (*set_channels_linked)(gboolean state);
+	/* Set the slider (display) mode and refresh the display.
+	 * mode is cast to sliders_mode in the implementation. */
+	void     (*set_sliders_mode)(int mode);
+	/* Set the lo/hi cutoff slider values and refresh the display. */
+	void     (*set_cutoff_values)(int lo, int hi);
+	/* Update the zoom label widget (wraps update_zoom_label_idle). */
+	void     (*update_zoom_label)(void);
+	/* Return the current effective zoom value (handles ZOOM_FIT). */
+	double   (*get_zoom_value)(void);
+	/* Activate a named GAction on the application or window map.
+	 * Returns an ActionResult int (ACTION_SUCCESS=0 etc.). */
+	int      (*activate_action)(const char *name, gboolean appmap);
+	/* Reset the image display pan offset to (0, 0). */
+	void     (*reset_display_offset)(void);
+
+	/* end_gfit_operation: re-enable the display-mode menu button that was
+	 * suppressed at the start of the operation.  No-op in headless mode. */
+	void     (*enable_display_mode_menu)(void);
+	/* Switch the main window to the given tab.  tab is cast from main_tabs.
+	 * No-op in headless mode. */
+	void     (*switch_to_tab)(int tab);
+
+	/* ── Display / plot notifications ─────────────────────────────────────── */
+	/* Clear all photometry data and the plot panel. */
+	void     (*clear_all_photometry_and_plot)(void);
+	/* Redraw the plot panel (no-op if not visible). */
+	void     (*draw_plot)(void);
+	/* Refresh the plot panel if it is currently visible. */
+	void     (*notify_new_photometry)(void);
+	/* Initialize plot colour themes from preferences. */
+	void     (*init_plot_colors)(void);
+	/* Save the siril_plot_data pointed to by spl_data as an image to clipboard. */
+	gboolean (*save_siril_plot_to_clipboard)(gpointer spl_data, int width, int height);
+	/* Build a save filename (wraps build_save_filename). Returns newly allocated string. */
+	gchar   *(*build_save_filename)(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
+
+	/* ── Cut / spectral profile operations ──────────────────────────────────── */
+	/* Apply cut to all images in the sequence. spl_data is cut_struct*. */
+	void     (*apply_cut_to_sequence)(gpointer cut_args);
+	/* Launch profile / tri-cut / CFA cut thread; returns newly allocated GThread or NULL stub. */
+	gpointer (*run_cut_profile)(gpointer args);
+	gpointer (*run_tri_cut)(gpointer args);
+	gpointer (*run_cfa_cut)(gpointer args);
+	/* Reset per-file cut GUI state (depth/spectro labels). No-op in headless. */
+	void     (*reset_cut_gui_filedependent)(gpointer user_data);
+
+	/* ── Preview backup ────────────────────────────────────────────────────── */
+	/* Copy the preview backup buffer back into gfit (returns 0 on success). */
+	int      (*copy_backup_to_gfit)(void);
+	/* Return the internal preview backup fits buffer cast to gpointer. */
+	gpointer (*get_preview_gfit_backup)(void);
+
+	/* ── Registration / sequence state ─────────────────────────────────────── */
+	/* Update the registration panel's status indicators. */
+	void     (*update_reg_interface)(gboolean dont_change_reg_radio);
+	/* Reset 3-star registration widget state. */
+	void     (*reset_3stars_gui)(void);
+
+	/* ── Stacking interface ─────────────────────────────────────────────────── */
+	/* Update the stacking panel to reflect current sequence state. */
+	void     (*update_stack_interface)(gboolean dont_change_stack_type);
+
+	/* ── Script / automation ────────────────────────────────────────────────── */
+	/* Launch background thread to rescan scripts and rebuild menu. */
+	void     (*refresh_scripts_in_thread)(void);
+	/* Enable or disable script-related widgets asynchronously (idle callback). */
+	void     (*script_widgets_async)(gboolean enable);
+	/* Return the log buffer as a newly-allocated string. NULL in headless. */
+	gchar   *(*get_log_as_string)(void);
+
+	/* ── CCD / optics ───────────────────────────────────────────────────────── */
+	/* Run the aberration inspector computation. */
+	void     (*compute_aberration_inspector)(void);
+
+	/* SG – Miscellaneous single-file accesses -------------------------------- */
+	/* Record which file type was last opened (gui.file_ext_filter).
+	 * Used to pre-select the correct file-type filter in the open dialog. */
+	void     (*set_last_opened_filetype)(int type);
+	/* Free the Cairo surface and pixel buffer used for the registration
+	 * reference-frame overlay (gui.refimage_surface / refimage_regbuffer). */
+	void     (*free_reference_image_display)(void);
+	/* Return the quick-photometry PSF result set by the GUI (gui.qphot).
+	 * Returns NULL in headless/CLI mode or when no measurement has been made. */
+	psf_star *(*get_qphot_result)(void);
+
+	/* SF – Python IPC display state ---------------------------------------- */
+	/* Return the channel index for the current viewport (0=R,1=G,2=B).
+	 * Equivalent to match_drawing_area_widget(current_drawarea, FALSE).
+	 * Returns 0 in headless/CLI mode. */
+	int      (*get_channel_for_vport)(void);
+	/* Return the current STF/rendering mode (cast from display_mode enum).
+	 * Returns 0 (LINEAR) in headless/CLI mode. */
+	int      (*get_rendering_mode)(void);
+	/* Return TRUE if autostretch channels are linked (i.e. !gui.unlink_channels). */
+	gboolean (*get_channels_linked)(void);
+	/* Copy the current image pan offset into *x and *y.
+	 * Sets both to 0.0 in headless/CLI mode. */
+	void     (*get_display_offset)(double *x, double *y);
+	/* Set the image pan offset to (x, y).  No-op in headless/CLI mode. */
+	void     (*set_display_offset)(double x, double y);
+	/* Set the zoom level without triggering a redraw; callers must request
+	 * a redraw separately.  No-op in headless/CLI mode. */
+	void     (*set_zoom_value)(double zoom);
+	/* Return the current user-drawn polygon list (gui.user_polygons).
+	 * Returns NULL in headless/CLI mode. */
+	GSList  *(*get_user_polygons)(void);
+	/* Append a UserPolygon* (cast to gpointer) to gui.user_polygons.
+	 * Callers must still call redraw_image(REDRAW_OVERLAY) afterwards.
+	 * No-op in headless/CLI mode (polygon is leaked; callers should guard). */
+	void     (*add_user_polygon_to_list)(gpointer polygon);
+
+	/* SD – Display range state --------------------------------------------- */
+	/* Get the current display lo/hi cutoff values (0–65535 range).
+	 * In headless/CLI mode the stub returns 0 and 65535 as defaults. */
+	void     (*get_display_lo_hi)(int *lo, int *hi);
+	/* Get the current sliders mode (MIPSLOHI=0, MINMAX=1, USER=2).
+	 * Returns int to keep gui_iface.h independent of sliders_mode typedef. */
+	int      (*get_sliders_mode)(void);
+	/* Initialise display lo/hi/sliders state after loading an image.
+	 * sliders is cast to sliders_mode in the implementation.
+	 * Pure state write — no widget update is triggered; callers handle that. */
+	void     (*update_display_range_after_load)(int sliders, int lo, int hi);
+
+	/* Phase 3 – Display / slider state (Group B new slots) ---------------- */
+	/* Sync the sliders-mode radio buttons to the given mode (direct/sync). */
+	void     (*sliders_mode_set_state)(int mode);
+	/* Update the slider max values from gfit (called after image load). */
+	void     (*set_cutoff_sliders_max_values)(void);
+	/* Update the slider lo/hi values from gui.lo/gui.hi. */
+	void     (*set_cutoff_sliders_values)(void);
+	/* Update the display-mode combo box to match gui.rendering_mode. */
+	void     (*update_display_mode_state)(void);
+	/* Compute histogram data for the given fits image (cast to gpointer). */
+	void     (*compute_histo_for_fit)(gpointer fit);
+	/* Refresh the histogram panel if it is currently visible. */
+	void     (*refresh_histogram_if_visible)(void);
+	/* Fill the sequence image list for the given layer; as_idle schedules
+	 * the update asynchronously if TRUE. seq is cast from sequence*. */
+	void     (*fill_sequence_list)(gpointer seq, int layer, gboolean as_idle);
+	/* Update the sequence list selection to the current image. */
+	void     (*sequence_list_change_current)(void);
+	/* Enable or disable the "view reference image" checkbox. */
+	void     (*enable_view_reference_checkbox)(gboolean status);
+	/* Close the right-hand image tab (call as idle; arg unused). */
+	void     (*close_tab)(void);
+	/* (Re-)initialise the right-hand image tab (call as idle; arg unused). */
+	void     (*init_right_tab)(void);
+	/* Set the display mode combo to the image's own colour space. */
+	void     (*initialize_display_mode)(void);
+	/* Update the window title / filename label to show the current image. */
+	void     (*display_filename)(void);
+	/* Update the FWHM value displayed in the status bar. */
+	void     (*update_display_fwhm)(void);
+	/* Update the preprocessing interface for the current image type. */
+	void     (*update_prepro_interface)(gboolean allow_debayer);
+	/* Update the selection-info label from com.selection. */
+	void     (*adjust_sellabel)(void);
+	/* Update the registration-info widgets for the current frame. */
+	void     (*adjust_reginfo)(void);
+	/* Update the reference-frame tick for frame n in the sequence list. */
+	void     (*adjust_refimage)(int n);
+	/* Populate the registration-layer combo and return the active layer. */
+	int      (*set_layers_for_registration)(void);
+	/* Toggle the bit-depth (precision) switch widget to match gfit. */
+	void     (*set_precision_switch)(void);
+	/* Update the camera-info labels (read from gfit keywords). */
+	void     (*set_GUI_CAMERA)(void);
+	/* Refresh the main menu item enable/disable state. */
+	void     (*update_menu_item)(void);
+	/* Refresh the sequence list for the given layer. */
+	void     (*update_seqlist)(int layer);
+	/* Run the sequence-overlay update thread synchronously.
+	 * Equivalent to creating and joining the update_seq_gui_idle_thread_func
+	 * GThread.  No-op in headless/CLI mode. */
+	void     (*update_sequence_overlay_async)(void);
+	/* Ensure the sequence-list dialog is closed before modifying seq data. */
+	void     (*ensure_seqlist_dialog_closed)(void);
+	/* Copy the active ROI pixels back into gfit. */
+	void     (*copy_roi_into_gfit)(void);
+	/* Acquire the ROI mutex (prevents ROI callbacks during processing). */
+	void     (*lock_roi_mutex)(void);
+	/* Release the ROI mutex. */
+	void     (*unlock_roi_mutex)(void);
+	/* Show or hide the mask tab depending on whether gfit has a mask. */
+	void     (*show_or_hide_mask_tab)(void);
+	/* Schedule show_or_hide_mask_tab as an idle callback. */
+	void     (*show_or_hide_mask_tab_async)(void);
+	/* Return the number of open dialog windows (used by the Python bridge). */
+	int      (*number_of_dialogs)(void);
+	/* Clear all registration-preview windows. */
+	void     (*clear_previews)(void);
+	/* Toggle the StarNet remixer window visibility.
+	 * invocation: CALL_FROM_STARNET (1) or other; fit_left/fit_right are
+	 * cast from fits*. Returns 0 on success. */
+	int      (*toggle_remixer_window_visibility)(int invocation,
+	                                              gpointer fit_left,
+	                                              gpointer fit_right);
+	/* Show the HEIF multi-image selector dialog.
+	 * heif is cast from struct heif_context*; returns TRUE if user selected
+	 * an image, FALSE if cancelled. Stub returns FALSE. */
+	gboolean (*heif_dialog)(gpointer heif, uint32_t *selected_image);
+} SirilGuiInterface;
+
+/* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */
+extern SirilGuiInterface gui_iface;
+
+/*
+ * Called once from main.c (GUI build only) after the GtkBuilder UI is
+ * loaded.  Replaces stub implementations with GTK-backed ones.
+ * Defined in gui/gui_iface_impl.c (compiled only in GUI builds).
+ */
+void siril_register_gui_iface(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SRC_CORE_GUI_IFACE_H_ */

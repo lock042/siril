@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name split_cfa_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="split_cfa_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkGrid" id="grid3">
+                <property name="column-spacing">6</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkEntry" id="entrySplitCFA">
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="max-length">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">CFA_</property>
+                    <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the split cfa process.</property>
+                    <property name="width-chars">10</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label10">
+                    <property name="label" translatable="yes">Output prefix:</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="checkSplitCFASeq">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Apply to sequence</property>
+                    <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Method: </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combo_split_cfa_method">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Split CFA Channels</item>
+                          <item translatable="yes">Extract Ha</item>
+                          <item translatable="yes">Extract Ha/OIII</item>
+                          <item translatable="yes">Extract Green</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Select the method you want to apply.</property>
+                    <signal name="notify::selected" handler="on_combo_split_cfa_method_changed"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="column-span">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="labelhaoiiiscaling">
+                    <property name="label" translatable="yes">Ha/OIII Resampling</property>
+                    <property name="sensitive">0</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="combo_haoiii_scaling">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">No resampling</item>
+                          <item translatable="yes">Upsample Ha</item>
+                          <item translatable="yes">Downsample OIII</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="sensitive">0</property>
+                    <property name="tooltip-text" translatable="yes">How to handle the output of Extract Ha/OIII. No resampling produces full resolution OIII image and a half resolution Ha image; upsample Ha upsamples the Ha image by a factor of 2 to match the OIII image; downsample OIII downsamples the OIII image by a factor of 2 to match the Ha image.</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="split_cfa_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Close current window</property>
+                <signal name="clicked" handler="on_split_cfa_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="split_cfa_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Apply Split CFA</property>
+                <signal name="clicked" handler="on_split_cfa_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Split CFA</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+  </object>
+</interface>

@@ -26,13 +26,13 @@
 #include "gui/message_dialog.h"
 #include "gui/curves.h"
 #include "algos/background_extraction.h"
-#include "filters/asinh.h"
+#include "gui/asinh.h"
 #include "filters/epf.h"
-#include "filters/clahe.h"
-#include "filters/median.h"
-#include "filters/saturation.h"
+#include "gui/clahe.h"
+#include "gui/median.h"
+#include "gui/saturation.h"
 #include "filters/unpurple.h"
-#include "filters/wavelets.h"
+#include "gui/wavelets.h"
 
 #include "gui/newdeconv.h"
 #include "filters/nlbayes/call_nlbayes.h"
@@ -127,14 +127,14 @@ static GtkWidget *get_widget_by_id(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.get_window)
 		return entry.get_window();
-	return lookup_widget(entry.identifier);
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
 static GtkWidget *get_widget_by_index(int index) {
 	SirilDialogEntry entry = entries[index];
 	if (entry.get_window)
 		return entry.get_window();
-	return lookup_widget(entry.identifier);
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
 static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
@@ -183,11 +183,11 @@ void siril_open_dialog(gchar *id) {
 		gtk_window_set_position(win, GTK_WIN_POS_CENTER);
 	}
 	gtk_window_set_type_hint(win, GDK_WINDOW_TYPE_HINT_DIALOG);
-	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
+	gtk_window_set_transient_for(win, GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
-		siril_debug_print("### Opening imgproc dialog: %s\n", entry.identifier);
+		siril_log_debug("### Opening imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = TRUE;
 	}
 }
@@ -197,7 +197,7 @@ void siril_close_dialog(gchar *id) {
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
-		siril_debug_print("### Closing imgproc dialog: %s\n", entry.identifier);
+		siril_log_debug("### Closing imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = FALSE;
 	}
 }
@@ -231,7 +231,7 @@ gboolean is_an_image_processing_dialog_opened() {
 }
 
 void mark_imgproc_dialog_closed() {
-	siril_debug_print("### Closing imgproc dialog via custom hide_on_delete callback\n");
+	siril_log_debug("### Closing imgproc dialog via custom hide_on_delete callback\n");
 	dialog_is_opened = FALSE;
 	processing_dialog_is_opened = FALSE;
 }

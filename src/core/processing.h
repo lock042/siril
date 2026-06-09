@@ -178,7 +178,7 @@ struct generic_img_args {
 	/* Command requires gfit update: this should only be set in command.c
 	 * (when called from the GUI gfit updates should be done in an idle) */
 	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
-	gboolean command_updates_gfit; // This command needs to updates gfit
+	gboolean command_updates_gfit; // This command needs to update gfit
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()
@@ -190,6 +190,12 @@ struct generic_img_args {
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
 	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
 	gboolean mask_aware; // Whether the operation is mask-aware or not
+	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
+	/* DEPRECATED — the worker now calls populate_roi() automatically whenever
+	 * args->fit == gfit (and not script/python/headless), so callers no longer
+	 * need to set this.  Retained on the struct purely so existing call sites
+	 * continue to compile; the value is ignored. */
+	gboolean populate_roi_on_complete;
 };
 
 struct generic_mask_args {
@@ -247,6 +253,7 @@ void wait_for_script_thread();
 
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data);
+void execute_idle_and_wait_for_it(gboolean (*idle)(gpointer), gpointer arg);
 
 struct generic_seq_args *create_default_seqargs(sequence *seq);
 
@@ -280,6 +287,8 @@ void child_mutex_unlock();
 
 /* Single image processing worker and hooks */
 gboolean end_generic_image(gpointer p);
+gboolean end_generic_image_update_gfit(gpointer p);
+gboolean end_generic_image_reset_cursor(gpointer p);
 gpointer generic_image_worker(gpointer p);
 
 /* Mask worker */

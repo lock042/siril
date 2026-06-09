@@ -32,10 +32,7 @@
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
 #include "io/single_image.h"
-#include "gui/progress_and_log.h"
-#include "gui/histogram.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -808,7 +805,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -946,7 +943,7 @@ static gpointer extract_channels_float(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
+	siril_log_info(_("%s channel extraction: processing...\n"),
 			args->str_type);
 	gettimeofday(&t_start, NULL);
 	gchar *histstring = NULL;
@@ -1113,7 +1110,7 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	for (chan = 0; chan < 3; chan++) {
 		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->median;
@@ -1142,8 +1139,8 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	}
 
 	invalidate_stats_from_fit(fit);
-	invalidate_gfit_histogram();
 }
+
 
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high) {
@@ -1204,7 +1201,7 @@ void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 	for (chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		bg[chan] = stat->median / stat->normValue;
@@ -1366,14 +1363,7 @@ gchar *ccm_log_hook(gpointer p, log_hook_detail detail) {
 
 /* CCM processing function with logging */
 static int ccm_process(struct ccm_data *args, fits *fit) {
-
-	int retval = ccm_calc(fit, args->matrix, args->power);
-
-	if (retval == 0) {
-		populate_roi();
-	}
-
-	return retval;
+	return ccm_calc(fit, args->matrix, args->power);
 }
 
 /* The actual CCM processing hook for generic_image_worker */
@@ -1384,23 +1374,12 @@ int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return ccm_process(params, fit);
 }
 
-/* Idle function for final application */
-gboolean ccm_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Create and launch CCM processing */
 int ccm_process_with_worker(ccm matrix, float power) {
 	// Check if image is RGB
 	fits *target_fit = gfit;
 	if (!isrgb(target_fit)) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
 		return 1;
 	}
 
@@ -1431,7 +1410,7 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->fit = target_fit;
 	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
 	args->image_hook = ccm_single_image_hook;
-	args->idle_function = ccm_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;
@@ -1454,7 +1433,7 @@ int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
 	if (ret) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		siril_log_error(_("Color Conversion Matrices can only be applied to 3-channel images.\n"));
 	}
 	return ret;
 }

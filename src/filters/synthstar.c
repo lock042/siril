@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <math.h>
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
@@ -34,7 +35,6 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "filters/synthstar.h"
-#include "gui/progress_and_log.h"
 #include "opencv/opencv.h"
 
 int generate_synthstars(fits *fit);
@@ -321,7 +321,7 @@ gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	set_progress_bar_data(_("Star synthesis (full star mask creation): processing..."), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Star synthesis (full star mask creation): processing..."));
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;
@@ -329,12 +329,20 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	if (starcount(com.stars) < 1) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int comstar_count = starcount(com.stars);
+	if (comstar_count >= 1) {
+		stars = com.stars;
+		nb_stars = comstar_count;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (comstar_count < 1) {
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
-			siril_log_color_message(_("Memory allocation failed\n"), "red");
-			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			siril_log_error(_("Memory allocation failed\n"));
+			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			return -1;
 		}
 
@@ -359,23 +367,20 @@ int generate_synthstars(fits *fit) {
 		free(sf_data);
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed\n"), "red");
-			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			siril_log_error(_("Star detection failed\n"));
+			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			if (stars)
 				free_fitted_stars(stars);
 			return -1;
 		}
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		nb_stars = starcount(com.stars);
 	}
 
 	if (nb_stars < 1 || !stars) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		if (stars_needs_freeing)
 			free_fitted_stars(stars);
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 		return -1;
 	} else {
 		siril_log_message(_("Synthesizing %d stars...\n"), nb_stars);
@@ -461,13 +466,13 @@ int generate_synthstars(fits *fit) {
 			avg_moffat_beta += stars[n]->beta;
 		}
 		avg_moffat_beta /= moffat_count;
-		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
+		siril_log_debug("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
 		if (!processing_should_continue())
 			stopcalled = TRUE;
-		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
+		gui_iface.set_progress((double) n / (double) nb_stars, NULL);
 		if (!stopcalled) {
 			float lum = (float) stars[n]->A;
 			if (lum < 0.0f)
@@ -623,13 +628,11 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	return 0;
 }
 
@@ -638,9 +641,9 @@ int generate_synthstars(fits *fit) {
 int reprofile_saturated_stars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	char *msg = siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
+	char *msg = siril_log_info(_("Star synthesis (desaturating clipped star profiles): processing...\n"));
 	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, msg);
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
 	gboolean is_32bit = TRUE;
 	float norm = 1.0f, invnorm = 1.0f;
@@ -649,7 +652,7 @@ int reprofile_saturated_stars(fits *fit) {
 		norm = (float) get_normalized_value(fit);
 		invnorm = 1.0f / norm;
 	}
-	siril_debug_print("norm %f, invnorm %f\n", (float) norm, (float) invnorm);
+	siril_log_debug("norm %f, invnorm %f\n", (float) norm, (float) invnorm);
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
@@ -715,7 +718,7 @@ int reprofile_saturated_stars(fits *fit) {
 		int retval = GPOINTER_TO_INT(findstar_worker(&sf_data));
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed for channel %u\n"), "red", chan);
+			siril_log_error(_("Star detection failed for channel %u\n"), chan);
 			if (stars)
 				free_fitted_stars(stars);
 			continue; // Skip this channel but continue with others
@@ -728,7 +731,7 @@ int reprofile_saturated_stars(fits *fit) {
 			// Check if stop has been pressed
 			if (!processing_should_continue())
 				stopcalled = TRUE;
-			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
+			gui_iface.set_progress((double) (n * fit->naxes[2] + chan) / total, NULL);
 			if (stars[n]->has_saturated && !stopcalled) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
@@ -811,12 +814,10 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	return 0;
 }

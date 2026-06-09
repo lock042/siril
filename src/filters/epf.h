@@ -29,10 +29,6 @@ void free_epf_args(void *args);
 /* Image processing hook */
 int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
-/* Idle functions */
-gboolean epf_preview_idle(gpointer p);
-gboolean epf_apply_idle(gpointer p);
-
 void epf_change_between_roi_and_image();
 void apply_epf_cancel();
 

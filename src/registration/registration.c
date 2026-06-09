@@ -21,16 +21,19 @@
 
 
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
-#include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
 #include "algos/siril_wcs.h"
 
+/* end_register_idle: defined in gui/registration.c (GUI) or
+ * core/headless_stubs.c (headless/CLI). */
+gboolean end_register_idle(gpointer p);
+
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
-		return get_registration_layer_from_GUI(seq);
+		return gui_iface.get_reg_layer();
 	} else {
 		// find first available regdata
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
@@ -235,7 +238,7 @@ void get_the_registration_area(struct registration_args *regargs, const struct r
 			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", regargs->selection.x,
 					regargs->selection.y, regargs->selection.w,
 					regargs->selection.h);
-			redraw(REDRAW_OVERLAY);
+			gui_iface.redraw_image(REDRAW_OVERLAY);
 			break;
 	}
 }
@@ -270,6 +273,7 @@ gpointer register_thread_func(gpointer p) {
 		g_date_time_unref(args->reference_date);
 	if (args->wcsref)
 		wcsfree(args->wcsref);
+	g_free(args->external_ref_path);
 	if (!siril_add_idle(end_register_idle, args)) {
 		stop_processing_thread();
 		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
@@ -286,7 +290,7 @@ void selection_H_transform(rectangle *selection, Homography Href, Homography Him
 	cvTransfPoint(&xc, &yc, Href, Himg, 1.);
 	selection->x = round_to_int(xc - selection->w * 0.5);
 	selection->y = round_to_int(yc - selection->h * 0.5);
-	siril_debug_print("boxselect %d %d %d %d\n",
+	siril_log_debug("boxselect %d %d %d %d\n",
 			selection->x, selection->y, selection->w, selection->h);
 }
 
@@ -356,8 +360,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 			}
 		}
 	}
-	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	copy_fits_metadata(destfit, fit);
+	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES, -1);
 	clearfits(destfit);
 	return 0;
 }
@@ -381,14 +384,19 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	float scale = 1.0;
 	gint64 im_size = 0; // total size of all images after registration
 	if (regargs->func == &register_star_alignment) {// global registration
-		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		if (!regargs->use_external_ref) {
+			w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+			h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		} else {
+			w_out = regargs->external_ref_rx;
+			h_out = regargs->external_ref_ry;
+		}
 		scale = regargs->output_scale;
 		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
 	} else if (regargs->func == &register_apply_reg) { // applyreg
 		im_size = (gint64)(regargs->framingd.total_Mpix * 1.e6); // already includes scale and nb_frames
 	} else {
-		siril_debug_print("Unsupported registration function for size computation\n");
+		siril_log_debug("Unsupported registration function for size computation\n");
 		return -1;
 	}
 

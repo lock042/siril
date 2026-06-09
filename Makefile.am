@@ -44,12 +44,19 @@ EXTRA_DIST = config.rpath \
              siril_resource.h
 AUTOMAKE_OPTIONS = foreign
 
+# Build git-version.h before anything in the subdirs as this is needed
+# in the about and debug dialog (app/) and in the debug tool (tools/).
+# siril_resource.h is GUI-only (consumed by main.c, not main-cli.c) so we
+# only build it when --enable-gtk is in effect.
+if ENABLE_GTK
 generated_sources = \
 	git-version.h \
 	siril_resource.h
+else
+generated_sources = \
+	git-version.h
+endif
 
-# Build git-version.h before anything in the subdirs as this is needed
-# in the about and debug dialog (app/) and in the debug tool (tools/).
 BUILT_SOURCES = $(generated_sources)
 
 git-version.h: update-git-version-header
@@ -77,14 +84,24 @@ git-version.h: update-git-version-header
 	  echo "  git HEAD changed: $@ regenerated"; \
 	fi
 
-siril_resource.h: src/siril_resource.xml
+# The gtk4 backend uses a parallel resource XML pointing at
+# gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
+if USE_GTK4
+siril_resource_xml = $(srcdir)/src/siril_resource_gtk4.xml
+else
+siril_resource_xml = $(srcdir)/src/siril_resource.xml
+endif
+
+siril_resource.h: $(siril_resource_xml)
 	$(AM_V_GEN)
 	glib-compile-resources \
 	--sourcedir=$(top_builddir) \
-	--sourcedir=src \
+	--sourcedir=$(top_srcdir) \
+	--sourcedir=$(top_builddir)/src \
+	--sourcedir=$(top_srcdir)/src \
 	--target=src/$@ \
 	--generate-header \
 	--c-name siril_resource \
-	$(srcdir)/src/siril_resource.xml
+	$(siril_resource_xml)
 
 .PHONY: update-git-version-header siril_resource.h

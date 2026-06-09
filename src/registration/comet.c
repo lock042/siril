@@ -26,7 +26,6 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/siril_wcs.h"
-#include "gui/progress_and_log.h"
 #include "registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
@@ -135,7 +134,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	// we fetch the reference date
 	fits ref = { 0 };
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
-		siril_log_message(_("Could not load reference image\n"));
+		siril_log_error(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(cadata->current_regdata);
 		return 1;
@@ -187,7 +186,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	get_comet_shift(regargs->reference_date, fit->keywords.date_obs, regargs->velocity, &reg);
 	if (cadata->current_regdata) {
 		if (guess_transform_from_H(cadata->current_regdata[in_index].H) == NULL_TRANSFORMATION) {
-			siril_log_color_message(_("Image %d has no registration data, removing\n"), "red", in_index + 1);
+			siril_log_error(_("Image %d has no registration data, removing\n"), in_index + 1);
 			regargs->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}

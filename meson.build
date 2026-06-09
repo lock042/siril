@@ -46,6 +46,21 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
+# -Dgtk is a 3-way combo: 'false' / 'gtk3' / 'gtk4'.
+#   - 'false' → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
+#   - 'gtk3'  → builds the GTK3 GUI from src/gui.
+#   - 'gtk4'  → builds the parallel GTK4 GUI from src/gui-gtk4 (current default).
+gtk_option       = get_option('gtk')
+enable_gtk       = (gtk_option != 'false')
+use_gtk4         = (gtk_option == 'gtk4')
+gui_subdir       = use_gtk4 ? 'gui-gtk4' : 'gui'
+if enable_gtk
+  if use_gtk4
+    add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
+  else
+    add_project_arguments('-DUSE_GTK3=1', language: ['c', 'cpp'])
+  endif
+endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
 enable_sqlite    = get_option('sqlite')
@@ -246,7 +261,35 @@ if platform_windows
 else
   gio_platform_dep = dependency('gio-unix-2.0', required : true, version: '>= 2.56.0')
 endif
-gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
+# GTK is required for GUI builds and entirely omitted in headless builds
+# (-Dgtk=false).  The GUI/core boundary is enforced by siril_lib being compiled
+# against core_dep (GTK-free); any gui/ header leakage into core sources would
+# fail to compile.
+#
+# 4.10 introduced GtkAlertDialog, GtkFileDialog, GtkColorDialog and
+# gtk_widget_add_css_class.  4.12 added gtk_column_view_scroll_to /
+# GTK_LIST_SCROLL_NONE which gui-gtk4/keywords_tree.c relies on, so
+# 4.12 is the effective floor for the GTK4 backend.
+if not enable_gtk
+  gtk_dep = no_dep
+elif use_gtk4
+  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
+else
+  gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
+endif
+# libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
+# src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
+# and host OS — only built on Linux / BSD with GTK4; off elsewhere.
+enable_x11_dnd_fallback = (enable_gtk and use_gtk4
+  and get_option('legacy-x11-support')
+  and host_machine.system() not in ['darwin', 'windows'])
+x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
+# Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
+# are in the core library, so they are always required.
+cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
+pango_dep = dependency('pango', required : true)
+pangocairo_dep = dependency('pangocairo', required : true)
+gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', required : true, version: '>= 2.36.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 # lcms2 dependency for color management
@@ -325,7 +368,13 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = dependency('gtksourceview-4')
+if not enable_gtk
+  gtksourceview_dep = no_dep
+elif use_gtk4
+  gtksourceview_dep = dependency('gtksourceview-5', required : true)
+else
+  gtksourceview_dep = dependency('gtksourceview-4', required : true)
+endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
@@ -354,7 +403,8 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : true)
+  # 4.5 (Nov 2015) needed for `#pragma omp simd reduction(min:...) reduction(max:...)`
+  openmp_dep = dependency('openmp', version : '>=4.5', required : true)
   endif
 else
   message('OpenMP disabled')
@@ -492,6 +542,8 @@ conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
+conf_data.set('HAVE_GTK', enable_gtk ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_X11_DND_FALLBACK', enable_x11_dnd_fallback ? 1 : false, description : 'GTK4 X11 drag-and-drop fallback compiled in (libX11 linked).')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -688,15 +740,27 @@ git_data.set('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ################################################################################
 # Externals dependencies
+#
+# core_dep — GTK-free subset used to compile siril_lib (the core static library).
+#            Any src_files source that includes <gtk/gtk.h> or <gdk/gdk.h>
+#            (directly or transitively) will fail to compile against core_dep,
+#            making the GUI boundary machine-checkable at build time.
+#
+# externals_dep — full dependency set including GTK.  Used by GUI source files
+#                 (src_files_gui), main.c, tests, and siril-cli (which links
+#                 GTK-free libraries but whose own source files are benign).
 
-externals_dep = declare_dependency(
+core_dep = declare_dependency(
   dependencies: [
     dbghelp,
     m_dep,
     glib_dep,
     gio_dep,
     gio_platform_dep,
-    gtk_dep,
+    cairo_dep,         # always required (io/siril_plot.c)
+    pango_dep,         # always required (io/siril_plot.c)
+    pangocairo_dep,    # always required (io/siril_plot.c)
+    gdk_pixbuf_dep,    # always required (io/image_format_fits.c thumbnails)
     lcms_dep,
     libcurl_dep,
     sqlite_dep,
@@ -722,8 +786,16 @@ externals_dep = declare_dependency(
     openmp_dep,
     kplot_dep,
     ffmpeg,
-    gtksourceview_dep,
     yyjson_dep
+  ]
+)
+
+externals_dep = declare_dependency(
+  dependencies: [
+    core_dep,
+    gtk_dep,           # no_dep when -Dgtk=false
+    gtksourceview_dep, # no_dep when -Dgtk=false
+    x11_dep,           # no_dep on GTK3 / non-X11 / headless builds
   ]
 )
 
@@ -783,6 +855,7 @@ summary(
 
 summary(
   {
+    'gtk (GUI)' : gtk_option,
     'openmp'    : get_option('openmp'),
     'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'

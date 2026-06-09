@@ -1,4 +1,11 @@
 # Build properties
+option('gtk',
+ type : 'combo',
+ choices : ['false', 'gtk3', 'gtk4'],
+ value : 'gtk4',
+ description: 'GTK GUI build: gtk4 (default) or gtk3 builds the siril GUI executable against that toolkit; false produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps).  The gtk4 backend lives in src/gui-gtk4 and is a parallel implementation; src/gui is the gtk3 build.'
+)
+
 option('relocatable-bundle',
  type: 'combo',
  value: 'platform-default',
@@ -112,4 +119,10 @@ option('simd_logs',
  type : 'boolean',
  value : false,
  description : 'Enable loop vectorization analysis during build (clang only)'
+)
+
+option('legacy-x11-support',
+ type : 'boolean',
+ value : true,
+ description : 'GTK4 only: build the X11 drag-and-drop fallback that works around an upstream GTK X11 bug whereby gdk_drop_read_value_async never completes. Pulls in libX11. Linux/BSD only — ignored on macOS/Windows.'
 )

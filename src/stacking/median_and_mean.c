@@ -24,6 +24,7 @@
 #include <gsl/gsl_cdf.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -31,7 +32,6 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
@@ -79,7 +79,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		g_assert(args->seq->regparam);
 		g_assert(args->seq->regparam[args->reglayer]);
 	}
-	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Opening images for stacking"));
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
 		if (args->weighting_type == NBSTACK_WEIGHT) {
@@ -102,7 +102,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 				const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
 				if (!g_file_test(drizztmp, G_FILE_TEST_EXISTS)) {
 					gchar *basename = g_path_get_basename(drizztmp);
-					siril_log_color_message(_("Drizzle file %s not found in ./drizztmp folder, aborting\n"), "red", basename);
+					siril_log_error(_("Drizzle file %s not found in ./drizztmp folder, aborting\n"), basename);
 					g_free(basename);
 					drizzle = FALSE;
 				}
@@ -110,23 +110,23 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (!processing_should_continue())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
-				set_progress_bar_data(NULL, PROGRESS_PULSATE);
+				gui_iface.set_progress(PROGRESS_PULSATE, NULL);
 
 			fitsfile *fptr;
 			if (args->seq->type == SEQ_REGULAR) {
 				if (seq_open_image(args->seq, image_index)) {
-					siril_log_message(_("Opening image %d failed\n"), image_index);
+					siril_log_error(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
 
 				fptr = args->seq->fptr[image_index];
 				if (check_fits_params(fptr, bitpix, naxis, naxes, args->maximize_framing)) {
-					siril_log_message(_("Opening image %d failed\n"), image_index);
+					siril_log_error(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
 			} else {
 				if (fitseq_set_current_frame(args->seq->fitseq_file, image_index)) {
-					siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", image_index);
+					siril_log_error(_("There was an error opening frame %d for stacking\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
 				fptr = args->seq->fitseq_file->fptr;
@@ -150,7 +150,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (args->weighting_type == NBSTACK_WEIGHT) {
 				int nb_layers = args->seq->nb_layers;
 				double weight = (double)stack_count;
-				siril_debug_print("weight for image %d: %d\n", i, stack_count);
+				siril_log_debug("weight for image %d: %d\n", i, stack_count);
 				args->weights[i] = weight;
 				if (nb_layers > 1) {
 					args->weights[nb_frames + i] = weight;
@@ -185,8 +185,8 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			naxes[1] = (int)ymax - (int)ymin + 1;
 			args->offset[0] =  (int)xmin;
 			args->offset[1] = -(int)ymin;
-			siril_debug_print("new size: %ld %ld\n", naxes[0], naxes[1]);
-			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
+			siril_log_debug("new size: %ld %ld\n", naxes[0], naxes[1]);
+			siril_log_debug("new origin: %d %d\n", args->offset[0], args->offset[1]);
 		} else if (layer_has_registration(args->seq, args->reglayer)) {
 			double dx, dy;
 			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
@@ -200,13 +200,13 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			cvGetEye(&Hs);
 			double dx, dy;
 			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
-			// siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
-			// siril_debug_print("crpix: %.1f %.1f\n", fit->keywords.wcslib->crpix[0], fit->keywords.wcslib->crpix[1]);
+			// siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
+			// siril_log_debug("crpix: %.1f %.1f\n", fit->keywords.wcslib->crpix[0], fit->keywords.wcslib->crpix[1]);
 			Hs.h02 = dx - args->offset[0];
 			Hs.h12 = args->offset[1] - dy;
 			// int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
 			int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
-			// siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+			// siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
 			cvApplyFlips(&Hs, orig_ry, naxes[1]);
 			reframe_wcs(fit->keywords.wcslib, &Hs);
 		}
@@ -239,15 +239,15 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 	if (args->seq->is_drizzle) { 
 		if (drizzle) {
-			siril_log_color_message(_("Drizzle stacking will be used.\n"), "blue");
+			siril_log_status(_("Drizzle stacking will be used.\n"));
 			args->drizzle = TRUE;
 		} else {
-			siril_log_color_message(_("Drizzle stacking cannot be performed because drizzle weights are missing.\n"), "red");
+			siril_log_error(_("Drizzle stacking cannot be performed because drizzle weights are missing.\n"));
 			return ST_GENERIC_ERROR;
 		}
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
-	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
+	siril_log_debug("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
 	return ST_OK;
 }
 
@@ -441,7 +441,7 @@ static int stack_read_block_data(struct stacking_args *args,
 					clear = TRUE; readdata = FALSE;
 				}
 				if (area.h == INT_MIN) { // mainly to avoid static checker warning
-					siril_debug_print("Error: image #%d has a wrong area height\n", args->image_indices[frame] + 1);
+					siril_log_debug("Error: image #%d has a wrong area height\n", args->image_indices[frame] + 1);
 					area.h += 1;
 				}
 			}
@@ -470,7 +470,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
 			if (retval) {
-					siril_log_color_message(_("Error reading one of the image areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+					siril_log_error(_("Error reading one of the image areas (%d: %d %d %d %d)\n"), args->image_indices[frame] + 1,
 					area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
@@ -499,7 +499,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			mask_scaled = siril_malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
 				free(mask_scaled);
-				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				siril_log_error(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), args->image_indices[frame] + 1,
 				maskscaled_area.x, maskscaled_area.y, maskscaled_area.w, maskscaled_area.h);
 				return ST_SEQUENCE_ERROR;
 			}
@@ -526,12 +526,12 @@ static int stack_read_block_data(struct stacking_args *args,
 			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 			int layer = args->seq->nb_layers == 3 ? (int)my_block->channel : 0;
 			if (read_drizz_fits_area(drizzfile, layer, &area, ry, dbuffer)) {
-				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				siril_log_error(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), args->image_indices[frame] + 1,
 				area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
 			if (!flip_buffer(FLOAT_IMG, dbuffer, &area)) {
-				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				siril_log_error(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), args->image_indices[frame] + 1,
 					area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
@@ -972,10 +972,20 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				 * (o_stack) is used to keep the weight order, stack being sorted, we can
 				 * check for min and max values to weight the kept pixels */
 				WORD pmin = 65535, pmax = 0;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					WORD pixel = ((WORD*)data->stack)[frame];
-					if (pmin > pixel) pmin = pixel;
-					if (pmax < pixel) pmax = pixel;
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					WORD *kstack = (WORD*)data->stack;
+#pragma omp simd reduction(min:pmin) reduction(max:pmax)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						WORD pixel = kstack[frame];
+						if (pmin > pixel) pmin = pixel;
+						if (pmax < pixel) pmax = pixel;
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						WORD pixel = ((WORD*)data->stack)[frame];
+						if (pmin > pixel) pmin = pixel;
+						if (pmax < pixel) pmax = pixel;
+					}
 				}
 
 				double sum = 0.0;
@@ -1010,8 +1020,16 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((WORD *)data->stack)[frame];
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					WORD *kstack = (WORD*)data->stack;
+#pragma omp simd reduction(+:sum)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += kstack[frame];
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += ((WORD *)data->stack)[frame];
+					}
 				}
 				mean = sum / (double)kept_pixels;
 			}
@@ -1024,6 +1042,10 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 			if (weighting || masking || args->drizzle) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = FLT_MAX, pmax = -FLT_MAX; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				/* Not vectorised: clang refuses to reorder float min/max without
+				 * -ffast-math (IEEE 754 NaN/signed-zero ordering), and the omp
+				 * simd reduction(min:)/reduction(max:) clauses don't relax that
+				 * for floats — only for integer types (see WORD twin above). */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
 					if (pmin > ((float*)data->stack)[frame]) pmin = ((float*)data->stack)[frame];
 					if (pmax < ((float*)data->stack)[frame]) pmax = ((float*)data->stack)[frame];
@@ -1059,8 +1081,16 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				} else mean = sum / norm;
 			} else {
 				double sum = 0.0;
-				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((float*)data->stack)[frame];
+				if (kept_pixels >= STACK_SIMD_N_THRESHOLD) {
+					float *kstack = (float*)data->stack;
+#pragma omp simd reduction(+:sum)
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += (double)kstack[frame];
+					}
+				} else {
+					for (int frame = 0; frame < kept_pixels; ++frame) {
+						sum += ((float*)data->stack)[frame];
+					}
 				}
 				mean = sum / (double)kept_pixels;
 			}
@@ -1111,7 +1141,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	double invdenom, invfwhmax2;
 
 	if (!layer_has_registration(args->seq, args->reglayer)) {
-		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", "wFWHM");
+		siril_log_error(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "wFWHM");
 		return ST_GENERIC_ERROR;
 	}
 
@@ -1144,7 +1174,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
-			siril_debug_print("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
+			siril_log_debug("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
 		}
 	}
 	return ST_OK;
@@ -1158,7 +1188,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	double invdenom;
 
 	if (!layer_has_registration(args->seq, args->reglayer)) {
-		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", _("number of stars"));
+		siril_log_error(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), _("number of stars"));
 		return ST_GENERIC_ERROR;
 	}
 
@@ -1192,7 +1222,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
-			siril_debug_print("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].number_of_stars, pweights[layer][i]);
+			siril_log_debug("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].number_of_stars, pweights[layer][i]);
 		}
 	}
 	return ST_OK;
@@ -1246,10 +1276,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
 
 	if (nb_frames < 2) {
-		siril_log_message(_("Select at least two frames for stacking. Aborting.\n"));
+		siril_log_error(_("Select at least two frames for stacking. Aborting.\n"));
 		return ST_GENERIC_ERROR;
 	} else if (nb_frames < 3 && is_mean && args->type_of_rejection == GESDT) {
-		siril_log_message(_("The Generalized Extreme Studentized Deviate Test needs at least three frames for stacking. Aborting.\n"));
+		siril_log_error(_("The Generalized Extreme Studentized Deviate Test needs at least three frames for stacking. Aborting.\n"));
 		return ST_GENERIC_ERROR;
 	}
 	g_assert(nb_frames <= args->seq->number);
@@ -1259,7 +1289,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	else layerparam = args->seq->regparam[args->reglayer];
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* first loop: open all fits files and check they are of same size */
 	GList *list_date = NULL;
@@ -1269,12 +1299,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	if (naxes[0] == 0) {
 		// no image has been loaded
-		siril_log_color_message(_("Rejection stack error: uninitialized sequence\n"), "red");
+		siril_log_error(_("Rejection stack error: uninitialized sequence\n"));
 		retval = ST_SEQUENCE_ERROR;
 		goto free_and_close;
 	}
 	if (!args->maximize_framing && (naxes[0] != args->seq->rx || naxes[1] != args->seq->ry)) {
-		siril_log_color_message(_("Rejection stack error: sequence has wrong image size (%dx%d for sequence, %ldx%ld for images)\n"), "red", args->seq->rx, args->seq->ry, naxes[0], naxes[1]);
+		siril_log_error(_("Rejection stack error: sequence has wrong image size (%dx%d for sequence, %ldx%ld for images)\n"), args->seq->rx, args->seq->ry, naxes[0], naxes[1]);
 		retval = ST_SEQUENCE_ERROR;
 		goto free_and_close;
 	}
@@ -1332,7 +1362,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 #ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI) {
-		siril_log_color_message(_("Stacking a film will work only on one core and will be slower than if you convert it to SER\n"), "salmon");
+		siril_log_warning(_("Stacking a film will work only on one core and will be slower than if you convert it to SER\n"));
 		nb_threads = 1;
 	}
 #endif // HAVE_FFMS2
@@ -1513,8 +1543,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	siril_log_message(_("Starting stacking...\n"));
 	if (is_mean)
-		set_progress_bar_data(_("Rejection stacking in progress..."), PROGRESS_RESET);
-	else	set_progress_bar_data(_("Median stacking in progress..."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Rejection stacking in progress..."));
+	else	gui_iface.set_progress(PROGRESS_RESET, _("Median stacking in progress..."));
 	double total = (double)(naxes[2] * naxes[1] + 2); // for progress bar
 
 #ifdef _OPENMP
@@ -1576,7 +1606,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				break;
 			}
 			if (!(cur_nb % 16))	// every 16 iterations
-				set_progress_bar_data(NULL, (double)cur_nb/total);
+				gui_iface.set_progress((double)cur_nb/total, NULL);
 
 			for (x = 0; x < naxes[0]; ++x) {
 				/* copy all images pixel values in the same row array `stack'
@@ -1731,7 +1761,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (retval)
 		goto free_and_close;
 
-	set_progress_bar_data(_("Finalizing stacking..."), (double)cur_nb/total);
+	gui_iface.set_progress((double)cur_nb/total, _("Finalizing stacking..."));
 	if (is_mean) {
 		double nb_tot = (double) naxes[0] * (double) naxes[1] * (double) nb_frames;
 		for (long channel = 0; channel < naxes[2]; channel++) {
@@ -1777,17 +1807,17 @@ free_and_close:
 		if (fit.data) free(fit.data);
 		if (fit.fdata) free(fit.fdata);
 		if (is_mean)
-			set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
-		else	set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Rejection stacking failed. Check the log."));
+		else	gui_iface.set_progress(PROGRESS_RESET, _("Median stacking failed. Check the log."));
 		if (retval == ST_CANCEL)
 			siril_log_message(_("Stacking operation was cancelled.\n"));
-		else siril_log_message(_("Stacking failed.\n"));
+		else siril_log_error(_("Stacking failed.\n"));
 	} else {
 		if (is_mean) {
-			set_progress_bar_data(_("Rejection stacking complete."), PROGRESS_DONE);
+			gui_iface.set_progress(PROGRESS_DONE, _("Rejection stacking complete."));
 			siril_log_message(_("Rejection stacking complete. %d images have been stacked.\n"), nb_frames);
 		} else {
-			set_progress_bar_data(_("Median stacking complete."), PROGRESS_DONE);
+			gui_iface.set_progress(PROGRESS_DONE, _("Median stacking complete."));
 			siril_log_message(_("Median stacking complete. %d images have been stacked.\n"), nb_frames);
 		}
 	}

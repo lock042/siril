@@ -47,6 +47,27 @@
  * not be modified except using set_mouse_event_mask() at GUI startup.
  */
 static GdkModifierType eventmask;
+static GtkApplicationWindow *imgint_app_win = NULL;
+static GtkToggleToolButton *imgint_zoom_fit_btn = NULL;
+static GtkLabel *imgint_label_rgb = NULL;
+static GtkLabel *imgint_labels_wcs[5] = { NULL };
+static GtkLabel *imgint_labels_density[5] = { NULL };
+static GtkLabel *imgint_labels_zoom[5] = { NULL };
+
+static void image_interactions_init_statics(void) {
+	if (imgint_app_win) return;
+	imgint_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	imgint_zoom_fit_btn = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "zoom_to_fit_check_button"));
+	imgint_label_rgb = GTK_LABEL(gtk_builder_get_object(gui.builder, "label-rgb"));
+	const gchar *wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb", "labelwcs_mask" };
+	const gchar *density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb", "labeldensity_mask" };
+	const gchar *zoom_names[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb", "labelzoom_mask" };
+	for (int i = 0; i < 5; i++) {
+		imgint_labels_wcs[i] = GTK_LABEL(gtk_builder_get_object(gui.builder, wcs_names[i]));
+		imgint_labels_density[i] = GTK_LABEL(gtk_builder_get_object(gui.builder, density_names[i]));
+		imgint_labels_zoom[i] = GTK_LABEL(gtk_builder_get_object(gui.builder, zoom_names[i]));
+	}
+}
 
 void set_mouse_event_mask() {
 	eventmask = GDK_SHIFT_MASK | get_primary();
@@ -133,8 +154,8 @@ static gboolean scroll_action_match_to_event(GdkEventScroll *event, scroll_actio
 	else eventScrollDirection = MOUSE_SMOOTH_SCROLL;
 
 #ifdef DEBUG_SCROLL
-	siril_debug_print("Event direction: %u (raw direction: %u), delta x: %f, delta y: %f, modifiers: %u\n", eventScrollDirection, event->direction, delta.x, delta.y, event->state);
-	siril_debug_print("Action drection: %u, modifiers: %u\n", action->direction, action->state);
+	siril_log_debug("Event direction: %u (raw direction: %u), delta x: %f, delta y: %f, modifiers: %u\n", eventScrollDirection, event->direction, delta.x, delta.y, event->state);
+	siril_log_debug("Action drection: %u, modifiers: %u\n", action->direction, action->state);
 #endif
 
 	if ((action->state == filtered_event_state) && (action->direction == eventScrollDirection)) {
@@ -182,7 +203,7 @@ void unregister_selection_update_callback(const selection_update_callback f) {
 // send the events
 gboolean new_selection_zone(gpointer user_data) {
 	int i;
-	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
+	siril_log_debug("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
 	for (i = 0; i < _nb_selection_callbacks; ++i) {
 		if (_registered_selection_callbacks[i])
@@ -201,13 +222,14 @@ void delete_selected_area() {
 }
 
 void reset_display_offset() {
-	siril_debug_print("resetting display offset\n");
+	siril_log_debug("resetting display offset\n");
 	gui.display_offset.x = 0;
 	gui.display_offset.y = 0;
 }
 
 void reset_menu_toggle_button() {
-	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	image_interactions_init_statics();
+	GtkApplicationWindow *app_win = imgint_app_win;
 	GAction *action_tilt = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-tilt");
 	GAction *action_disto = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-disto");
 
@@ -226,12 +248,14 @@ void reset_menu_toggle_button() {
 void reset_zoom_default() {
 	gui.zoom_value = ZOOM_DEFAULT;
 	if (gui.zoom_value == ZOOM_FIT && !com.script) {
-		gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("zoom_to_fit_check_button")), TRUE);
+		image_interactions_init_statics();
+		gtk_toggle_tool_button_set_active(imgint_zoom_fit_btn, TRUE);
 	}
 }
 
 void update_zoom_fit_button() {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("zoom_to_fit_check_button"));
+	image_interactions_init_statics();
+	GtkToggleToolButton *button = imgint_zoom_fit_btn;
 	if (gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, FALSE);
 	}
@@ -429,7 +453,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
-	//siril_debug_print("clicked at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
+	//siril_log_debug("clicked at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 	mouse_data data = {.widget = widget, .event = event, .zoom = zoom, .evpos = evpos, .zoomed = zoomed, .inside = inside, .mouse_status = &mouse_status, .cutting = &cutting };
 
@@ -481,7 +505,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
-	//siril_debug_print("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
+	//siril_log_debug("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 	if (inside) {
 		histogram_update_cursor_value(zoomed.x, zoomed.y);
@@ -491,19 +515,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	}
 
 
-	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb", "labeldensity_mask" };
-	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb", "labelwcs_mask" };
-	static GtkLabel *labels_wcs[G_N_ELEMENTS(label_wcs_names)] = { 0 };
-	static GtkLabel *labels_density[G_N_ELEMENTS(label_density_names)] = { 0 };
-	if (!labels_wcs[0]) {
-		for (int i = 0; i < G_N_ELEMENTS(label_wcs_names); i++)
-			labels_wcs[i] = GTK_LABEL(lookup_widget(label_wcs_names[i]));
-		for (int i = 0; i < G_N_ELEMENTS(label_density_names); i++)
-			labels_density[i] = GTK_LABEL(lookup_widget(label_density_names[i]));
-	}
-
+	image_interactions_init_statics();
 	gboolean blank_density_cvport = TRUE, blank_wcs_cvport = TRUE;
-	gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), "");
+	gtk_label_set_text(imgint_label_rgb, "");
 
 	if (inside) {
 		if (gui.measure_start.x != -1) {
@@ -524,7 +538,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 						gfit->fpdata[GLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0,
 						gfit->fpdata[BLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0);
 			}
-			gtk_label_set_markup(GTK_LABEL(lookup_widget("label-rgb")), buffer);
+			gtk_label_set_markup(GTK_LABEL(imgint_label_rgb), buffer);
 		}
 		static gchar buffer[256] = { 0 };
 		static gchar format[256] = { 0 };
@@ -597,7 +611,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		}
 
 		if (buffer[0] != '\0') {
-			gtk_label_set_text(labels_density[gui.cvport], buffer);
+			gtk_label_set_text(imgint_labels_density[gui.cvport], buffer);
 			blank_density_cvport = FALSE;
 		}
 
@@ -618,7 +632,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					}
 					g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
 
-					gtk_label_set_text(labels_wcs[gui.cvport], wcs_buffer);
+					gtk_label_set_text(imgint_labels_wcs[gui.cvport], wcs_buffer);
 					blank_wcs_cvport = FALSE;
 
 					g_free(ra);
@@ -629,10 +643,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		}
 	}
 
-	if (blank_wcs_cvport && gtk_label_get_text(labels_wcs[gui.cvport])[0] != '\0')
-		gtk_label_set_text(labels_wcs[gui.cvport], " ");
-	if (blank_density_cvport && gtk_label_get_text(labels_density[gui.cvport])[0] != '\0')
-		gtk_label_set_text(labels_density[gui.cvport], " ");
+	if (blank_wcs_cvport && gtk_label_get_text(imgint_labels_wcs[gui.cvport])[0] != '\0')
+		gtk_label_set_text(imgint_labels_wcs[gui.cvport], " ");
+	if (blank_density_cvport && gtk_label_get_text(imgint_labels_density[gui.cvport])[0] != '\0')
+		gtk_label_set_text(imgint_labels_density[gui.cvport], " ");
 
 	if (gui.drawing_polygon) {
 		point *ev = malloc(sizeof(point));
@@ -777,19 +791,13 @@ void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	}
 }
 
-static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb", "labelzoom_mask" };
-
 static gboolean set_label_zoom_text_idle(gpointer p) {
 	const gchar *txt = (const gchar *) p;
-	static GtkLabel *labels[sizeof label_zoom] = { NULL };
-	if (!labels[0]) {
-		for (int i = 0; i < G_N_ELEMENTS(label_zoom); i++)
-			labels[i] = GTK_LABEL(lookup_widget(label_zoom[i]));
-	}
+	image_interactions_init_statics();
 	if (gfit->naxes[2] == 3)
-		for (int i = 0; i < G_N_ELEMENTS(label_zoom); i++)
-			gtk_label_set_text(labels[i], txt);
-	else gtk_label_set_text(labels[0], txt);
+		for (int i = 0; i < G_N_ELEMENTS(imgint_labels_zoom); i++)
+			gtk_label_set_text(imgint_labels_zoom[i], txt);
+	else gtk_label_set_text(imgint_labels_zoom[0], txt);
 	return FALSE;
 }
 
@@ -824,7 +832,23 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 	factor = gui.zoom_value * scale;
 
-	if (factor >= ZOOM_MIN && factor <= ZOOM_MAX) {
+	/* For very large images the fit-to-window zoom can fall below ZOOM_MIN.
+	 * When zooming out, lower the floor to the actual fit zoom so the full
+	 * image always remains reachable via the scroll wheel.
+	 * Also clamp factor to min_zoom instead of rejecting: smooth-scroll steps
+	 * are variable-sized, so the user can end up between two discrete levels
+	 * with no way to land exactly on min_zoom via multiplication alone. */
+	double min_zoom = ZOOM_MIN;
+	if (scale < 1.0 && gfit->rx > 0 && gfit->ry > 0) {
+		int ww = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
+		int wh = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
+		if (ww > 1 && wh > 1)
+			min_zoom = min(ZOOM_MIN, min((double)ww / gfit->rx, (double)wh / gfit->ry));
+		if (factor < min_zoom)
+			factor = min_zoom;
+	}
+
+	if (factor >= min_zoom && factor <= ZOOM_MAX) {
 		zoomed = TRUE;
 		gui.zoom_value = factor;
 		update_zoom_label();

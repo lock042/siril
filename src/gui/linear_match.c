@@ -33,21 +33,30 @@
 
 #include "filters/linear_match.h"
 
+static GtkFileChooser *lm_ref_chooser = NULL;
+static GtkSpinButton *lm_high_spin = NULL;
+static GtkSpinButton *lm_low_spin = NULL;
+
+static void linear_match_init_statics(void) {
+	if (lm_ref_chooser) return;
+	lm_ref_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
+	lm_high_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_high"));
+	lm_low_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_low"));
+}
+
 static gchar *get_reference_filename() {
-	GtkFileChooser *linearmatch_ref = GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch"));
-	return siril_file_chooser_get_filename(linearmatch_ref);
+	linear_match_init_statics();
+	return siril_file_chooser_get_filename(lm_ref_chooser);
 }
 
 static gdouble get_high_rejection() {
-	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spin_linearmatch_high"));
-
-	return gtk_spin_button_get_value(button);
+	linear_match_init_statics();
+	return gtk_spin_button_get_value(lm_high_spin);
 }
 
 static gdouble get_low_rejection() {
-	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spin_linearmatch_low"));
-
-	return gtk_spin_button_get_value(button);
+	linear_match_init_statics();
+	return gtk_spin_button_get_value(lm_low_spin);
 }
 
 /*** callbacks **/
@@ -61,13 +70,6 @@ gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
 	return TRUE;
 }
 
-static gboolean linearmatch_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
 
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
@@ -100,7 +102,7 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->image_hook = linear_match_image_hook;
 	args->log_hook = linear_match_log_hook;
-	args->idle_function = linearmatch_idle;
+	args->idle_function = end_generic_image_reset_cursor;
 	args->description = _("Linear Match");
 	args->verbose = TRUE;
 	args->user = data;

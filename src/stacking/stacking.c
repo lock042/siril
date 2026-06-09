@@ -25,19 +25,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
-#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
@@ -119,7 +113,135 @@ gpointer stack_function_handler(gpointer p) {
 
 	main_stack(args);
 
-	// 4. save result and clean-up
+	/* 4. Save result, write gfit, and notify display pipeline.
+	 * All gfit writes and the file save happen here in the worker thread,
+	 * under a writer lock, so the idle (end_stacking) is left with GTK-only
+	 * tasks.  Use offsetof(fits, rwlock) in the memcpy to avoid overwriting
+	 * the lock itself. */
+	if (args->retval == ST_OK) {
+		g_rw_lock_writer_lock(&gfit->rwlock);
+		clearfits(gfit);
+		memcpy(gfit, &args->result, offsetof(fits, rwlock));
+		/* Set com.seq.current before icc_auto_assign so that any
+		 * notify_gfit_data_modified triggered from within it sees the
+		 * correct state and does not mistake the stacking result for
+		 * a sequence frame (avoids buffer overrun in
+		 * test_and_allocate_reference_image). */
+		if (args->upscale_at_stacking)
+			com.seq.current = SCALED_IMAGE;
+		else com.seq.current = RESULT_IMAGE;
+		if (!com.script)
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
+		/* Warning: the previous com.uniq is not freed, but calling
+		 * close_single_image() will close everything before reopening it,
+		 * which is quite slow */
+		com.uniq = calloc(1, sizeof(single));
+		com.uniq->comment = strdup(_("Stacking result image"));
+		com.uniq->nb_layers = gfit->naxes[2];
+		com.uniq->fit = gfit;
+		/* Giving summary if average rejection stacking */
+		_show_summary(args);
+
+		// updating the header string to parse the final name
+		// and parse the name
+		int status = PATHPARSE_ERR_OK;
+		gchar *expression = g_strdup(args->output_filename);
+		gchar *parsedname = update_header_and_parse(gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
+
+		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+			args->output_parsed_filename = g_strdup("unknown");
+		} else {
+			args->output_parsed_filename = g_strdup(parsedname);
+		}
+		g_free(parsedname);
+		g_free(expression);
+
+		/* save stacking result */
+		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
+			int failed = 0;
+			if (g_file_test(args->output_parsed_filename, G_FILE_TEST_EXISTS)) {
+				failed = !args->output_overwrite;
+				if (!failed) {
+					if (g_unlink(args->output_parsed_filename) == -1)
+						failed = 1;
+					if (!failed && savefits(args->output_parsed_filename, gfit))
+						failed = 1;
+					if (!failed) {
+						com.uniq->filename = strdup(args->output_parsed_filename);
+						com.uniq->fileexist = TRUE;
+					}
+				}
+			}
+			else {
+				// output folder (if any) was already created by update_header_and_parse
+				if (!savefits(args->output_parsed_filename, gfit)) {
+					com.uniq->filename = strdup(args->output_parsed_filename);
+					com.uniq->fileexist = TRUE;
+				} else {
+					failed = 1;
+				}
+			}
+			gfit->keywords.filename[0] = '\0'; // clear the reference to the original filename
+			if (failed) {
+				com.uniq->filename = strdup(_("Unsaved stacking result"));
+				com.uniq->fileexist = FALSE;
+			} else {
+				if (args->create_rejmaps) {
+					siril_log_message(_("Saving rejection maps\n"));
+					if (args->merge_lowhigh_rejmaps) {
+						char new_ext[30];
+						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+					} else {
+						char new_ext[30];
+						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+
+						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
+						savefits(high_filename, args->rejmap_high);
+						g_free(high_filename);
+					}
+				}
+			}
+		}
+		g_rw_lock_writer_unlock(&gfit->rwlock);
+		/* notify_gfit_data_modified must run with the writer lock released:
+		 * it reaches copy_roi_into_gfit() which itself acquires the writer
+		 * lock, triggering pthread EDEADLK on glibc and silent self-deadlock
+		 * elsewhere.  Defer to here, immediately after unlock, so the rest
+		 * of the cleanup pipeline (bgnoise, end_stacking idle) sees the
+		 * histogram/stats invalidations as expected. */
+		notify_gfit_data_modified();
+		/* Launch noise estimation after the writer lock is released so the
+		 * bgnoise thread can acquire the reader lock immediately and run
+		 * concurrently with the GTK idle work in end_stacking. */
+		bgnoise_async(gfit, TRUE);
+	} else {
+		clearfits(&args->result);
+	}
+	/* Zero out result to prevent double-free: pointers are now owned by gfit */
+	memset(&args->result, 0, sizeof(fits));
+	if (args->create_rejmaps) {
+		clearfits(args->rejmap_low);
+		free(args->rejmap_low);
+		if (!args->merge_lowhigh_rejmaps) {
+			clearfits(args->rejmap_high);
+			free(args->rejmap_high);
+		}
+	}
+
+	// 5. hand off to the idle for GTK-only updates
 	siril_add_idle(end_stacking, args);
 	return GINT_TO_POINTER(args->retval);
 }
@@ -396,130 +518,17 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	siril_log_debug("Ending stacking idle function, retval=%d\n", args->retval);
 	stop_processing_thread();
 
+	/* gfit was written, the result was saved, and notify_gfit_data_modified()
+	 * was called in stack_function_handler.  This idle only handles GTK-side
+	 * updates that must run on the main thread. */
 	if (args->retval == ST_OK) {
-		/* copy result to gfit if success */
-		clearfits(gfit);
-		memcpy(gfit, &args->result, sizeof(fits));
-		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
-		clear_stars_list(TRUE);
-		/* check in com.seq, because args->seq may have been replaced */
-		if (args->upscale_at_stacking)
-			com.seq.current = SCALED_IMAGE;
-		else com.seq.current = RESULT_IMAGE;
-		/* Warning: the previous com.uniq is not freed, but calling
-		 * close_single_image() will close everything before reopening it,
-		 * which is quite slow */
-		com.uniq = calloc(1, sizeof(single));
-		com.uniq->comment = strdup(_("Stacking result image"));
-		com.uniq->nb_layers = gfit->naxes[2];
-		com.uniq->fit = gfit;
-		/* Giving summary if average rejection stacking */
-		_show_summary(args);
-		/* Giving noise estimation (new thread) */
-		bgnoise_async(gfit, TRUE);
-
-		// updating the header string to parse the final name
-		// and parse the name
-		int status = PATHPARSE_ERR_OK;
-		gchar *expression = g_strdup(args->output_filename);
-		gchar *parsedname = update_header_and_parse(gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
-
-		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
-			args->output_parsed_filename = g_strdup("unknown");
-		} else {
-			args->output_parsed_filename = g_strdup(parsedname);
-		}
-		g_free(parsedname);
-		g_free(expression);
-
-		/* save stacking result */
-		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
-			int failed = 0;
-			if (g_file_test(args->output_parsed_filename, G_FILE_TEST_EXISTS)) {
-				failed = !args->output_overwrite;
-				if (!failed) {
-					if (g_unlink(args->output_parsed_filename) == -1)
-						failed = 1;
-					if (!failed && savefits(args->output_parsed_filename, gfit))
-						failed = 1;
-					if (!failed) {
-						com.uniq->filename = strdup(args->output_parsed_filename);
-						com.uniq->fileexist = TRUE;
-					}
-				}
-			}
-			else {
-				// output folder (if any) was already created by update_header_and_parse
-				if (!savefits(args->output_parsed_filename, gfit)) {
-					com.uniq->filename = strdup(args->output_parsed_filename);
-					com.uniq->fileexist = TRUE;
-				} else {
-					failed = 1;
-				}
-			}
-			gfit->keywords.filename[0] = '\0'; // clear the reference to the original filename
-			if (failed) {
-				com.uniq->filename = strdup(_("Unsaved stacking result"));
-				com.uniq->fileexist = FALSE;
-			} else {
-				if (args->create_rejmaps) {
-					siril_log_message(_("Saving rejection maps\n"));
-					if (args->merge_lowhigh_rejmaps) {
-						char new_ext[30];
-						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
-						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
-						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
-						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
-						savefits(low_filename, args->rejmap_low);
-						g_free(low_filename);
-					} else {
-						char new_ext[30];
-						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
-						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
-						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
-						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
-						savefits(low_filename, args->rejmap_low);
-						g_free(low_filename);
-
-						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
-						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
-						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
-						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
-						savefits(high_filename, args->rejmap_high);
-						g_free(high_filename);
-					}
-				}
-			}
-
-			display_filename();
-			gui_function(set_precision_switch, NULL); // set precision on screen
-		}
-
-		initialize_display_mode();
-
-		sliders_mode_set_state(gui.sliders);
-		set_cutoff_sliders_max_values();
-		set_sliders_value_to_gfit();
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();	// computes min and max
-
-		set_display_mode();
-
-		/* update menus */
-		gui_function(update_MenuItem, NULL);
-
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		sequence_list_change_current();
-		update_stack_interface(TRUE);
+		gui_iface.on_stack_complete();
 		bgnoise_await();
 	} else {
-		clearfits(&args->result);
-		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
+		siril_log_error(_("Stacking failed, please check the log to fix your issue.\n"));
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
@@ -528,16 +537,7 @@ static gboolean end_stacking(gpointer p) {
 	/* remove tmp files if exist (Upscale) */
 	remove_tmp_upscaled_files(args);
 
-	memset(&args->result, 0, sizeof(fits));
-	if (args->create_rejmaps) {
-		clearfits(args->rejmap_low);
-		free(args->rejmap_low);
-		if (!args->merge_lowhigh_rejmaps) {
-			clearfits(args->rejmap_high);
-			free(args->rejmap_high);
-		}
-	}
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
 	 * displays the time
@@ -698,6 +698,6 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 	output_size[1] = (int)ymax - (int)ymin + 1;
 	offset[0] = (int)xmin;
 	offset[1] = -(int)ymax; // the stack is done with origin at bottom left but the shifts are computed from top right
-	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
-	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+	siril_log_debug("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_log_debug("new origin: %d %d\n", offset[0], offset[1]);
 }

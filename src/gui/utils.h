@@ -19,17 +19,11 @@
  */
 #ifndef SRC_GUI_UTILS_H_
 #define SRC_GUI_UTILS_H_
+#include <gtk/gtk.h>
 #include "core/siril.h"
+#include "gui/gui_state.h"
 
-typedef enum {
-	FILE_CONVERSION,
-	IMAGE_SEQ,
-	PRE_PROC,
-	REGISTRATION,
-	PLOT,
-	STACKING,
-	OUTPUT_LOGS
-} main_tabs;
+/* main_tabs enum moved to core/siril.h */
 
 void gui_mutex_lock();
 void gui_mutex_unlock();
@@ -53,9 +47,18 @@ int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
 void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name);
-OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 gchar* get_control_window_id();
 GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba);
+
+gchar  *siril_file_chooser_get_filename(GtkFileChooser *chooser);
+GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
+
+#ifdef HAVE_LIBHEIF
+struct heif_context; /* forward declaration — avoids pulling in <libheif/heif.h> */
+/* HEIF image-selector dialog: lets the user pick one image from a
+ * multi-image HEIF file.  Returns TRUE if a selection was confirmed. */
+gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image);
+#endif
 
 #endif /* SRC_GUI_UTILS_H_ */

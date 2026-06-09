@@ -41,6 +41,24 @@ static GtkListStore *liststore_convert = NULL;
 static GtkTreeView *tree_view = NULL;
 static GtkTreeModel *model = NULL;
 static gboolean warning_is_displayed = FALSE;
+static GtkToggleButton *conv_multiple_seq = NULL;
+static GtkToggleButton *conv_demosaicing_btn = NULL;
+static GtkToggleButton *conv_symlink = NULL;
+static GtkEntry *conv_start_entry = NULL;
+static GtkWidget *conv_go_button = NULL;
+static GtkLabel *conv_status_label = NULL;
+static GtkEntry *conv_root_entry = NULL;
+
+static void conversion_init_statics(void) {
+	if (conv_multiple_seq) return;
+	conv_multiple_seq = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "multiple_seq"));
+	conv_demosaicing_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "demosaicingButton"));
+	conv_symlink = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "convert_symlink"));
+	conv_start_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "startIndiceEntry"));
+	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
+	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
+	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
+}
 
 static void check_for_conversion_form_completeness();
 static void on_input_files_change();
@@ -141,7 +159,7 @@ static void initialize_convert() {
 				there_is_a_film = TRUE;
 		}
 		else if (type == TYPEUNDEF) {
-			char *title = siril_log_message(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
+			char *title = siril_log_error(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
 			gchar *msg = g_strdup_printf(_("File extension '%s' is not supported.\n"
 				"Verify that you typed the extension correctly.\n"
 				"If so, you may need to install third-party software to enable "
@@ -175,15 +193,13 @@ static void initialize_convert() {
 		output_type = SEQ_FITSEQ;
 	}
 
-	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multiple_seq"));
-	gboolean multiple = gtk_toggle_button_get_active(toggle);
-	toggle = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	gboolean debayer = gtk_toggle_button_get_active(toggle);
-	toggle = GTK_TOGGLE_BUTTON(lookup_widget("convert_symlink"));
-	gboolean symbolic_link = gtk_toggle_button_get_active(toggle);
+	conversion_init_statics();
+	gboolean multiple = gtk_toggle_button_get_active(conv_multiple_seq);
+	gboolean debayer = gtk_toggle_button_get_active(conv_demosaicing_btn);
+	gboolean symbolic_link = gtk_toggle_button_get_active(conv_symlink);
 
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
-		siril_log_message(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
+		siril_log_warning(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
 		symbolic_link = FALSE;
 	}
 	if (multiple && there_is_an_image) {
@@ -199,7 +215,7 @@ static void initialize_convert() {
 		return;
 	}
 
-	siril_log_color_message(_("Conversion: processing %d files...\n"), "green", count);
+	siril_log_info(_("Conversion: processing %d files...\n"), count);
 
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -219,7 +235,8 @@ static void initialize_convert() {
 		return;
 	}
 	if (output_type == SEQ_REGULAR) {
-		GtkEntry *startEntry = GTK_ENTRY(lookup_widget("startIndiceEntry"));
+		conversion_init_statics();
+		GtkEntry *startEntry = conv_start_entry;
 		format_index_convert(startEntry);
 		const gchar *index = gtk_entry_get_text(startEntry);
 		args->start = (g_ascii_strtoll(index, NULL, 10) <= 0
@@ -244,7 +261,7 @@ static void initialize_convert() {
 	return;
 }
 
-void on_convroot_entry_activate(GtkEntry *entry, gpointer user_data) {
+void on_conv_root_entry_activate(GtkEntry *entry, gpointer user_data) {
 	initialize_convert();
 }
 
@@ -445,13 +462,11 @@ gboolean on_treeview_convert_key_release_event(GtkWidget *widget, GdkEventKey *e
 
 static void check_for_conversion_form_completeness() {
 	GtkTreeIter iter;
-	static GtkWidget *go_button = NULL;
-	if (!go_button)
-		go_button = lookup_widget("convert_button");
+	conversion_init_statics();
 
 	init_widgets();
 	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-	gtk_widget_set_sensitive(go_button, destroot && destroot[0] != '\0' && valid);
+	gtk_widget_set_sensitive(conv_go_button, destroot && destroot[0] != '\0' && valid);
 }
 
 static void on_input_files_change() {
@@ -493,13 +508,11 @@ void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 }
 
 void update_statusbar_convert() {
-	static GtkLabel *status_label = NULL;
-	if (!status_label)
-		status_label = GTK_LABEL(lookup_widget("statuslabel_convert"));
+	conversion_init_statics();
 
 	int nb_files = count_converted_files();
 	if (nb_files == 0)
-		gtk_label_set_text(status_label, " ");
+		gtk_label_set_text(conv_status_label, " ");
 	else {
 		int selected = count_selected_files();
 		gchar *str1, *total;
@@ -514,7 +527,7 @@ void update_statusbar_convert() {
 			total = g_strdup_printf("%s, %s", str1, str2);
 			g_free(str2);
 		}
-		gtk_label_set_text(status_label, total);
+		gtk_label_set_text(conv_status_label, total);
 		g_free(str1);
 		g_free(total);
 	}
@@ -526,11 +539,8 @@ void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection,
 }
 
 void process_destroot(sequence_type output_type) {
-	static GtkEntry *convroot_entry = NULL;
-	if (!convroot_entry)
-		convroot_entry = GTK_ENTRY(lookup_widget("convroot_entry"));
-
-	const gchar *name = gtk_entry_get_text(convroot_entry);
+	conversion_init_statics();
+	const gchar *name = gtk_entry_get_text(conv_root_entry);
 	if (*name == '\0') {
 		free(destroot);
 		destroot = NULL;
@@ -570,11 +580,11 @@ void process_destroot(sequence_type output_type) {
 	}
 
 	if (seq_exists && !warning_is_displayed) {
-		set_icon_entry(convroot_entry, "dialog-warning");
+		set_icon_entry(conv_root_entry, "dialog-warning");
 		warning_is_displayed = TRUE;
 	}
 	else if (!seq_exists && warning_is_displayed) {
-		set_icon_entry(convroot_entry, NULL);
+		set_icon_entry(conv_root_entry, NULL);
 		warning_is_displayed = FALSE;
 	}
 }
@@ -603,20 +613,14 @@ void on_demosaicing_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_prepro_output_type_combo1_changed(GtkComboBox *combo, gpointer user_data) {
-	static GtkWidget *multiple_seq = NULL, *convert_symlink = NULL, *start = NULL;
-	if (!multiple_seq) {
-		multiple_seq = lookup_widget("multiple_seq");
-		convert_symlink = lookup_widget("convert_symlink");
-		start = lookup_widget("startIndiceEntry");
-	}
-
+	conversion_init_statics();
 	sequence_type output = gtk_combo_box_get_active(combo);
 	gboolean seqfile_output = output == SEQ_SER || output == SEQ_FITSEQ;
-	gtk_widget_set_visible(multiple_seq, seqfile_output);
-	gtk_widget_set_visible(start, !seqfile_output);
+	gtk_widget_set_visible(GTK_WIDGET(conv_multiple_seq), seqfile_output);
+	gtk_widget_set_visible(GTK_WIDGET(conv_start_entry), !seqfile_output);
 	if (!seqfile_output)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(multiple_seq), FALSE);
-	gtk_widget_set_visible(convert_symlink, !seqfile_output);
+		gtk_toggle_button_set_active(conv_multiple_seq, FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(conv_symlink), !seqfile_output);
 	process_destroot(output);
 	check_for_conversion_form_completeness();
 }

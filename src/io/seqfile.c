@@ -37,7 +37,6 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #ifdef HAVE_FFMS2
@@ -58,8 +57,11 @@
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
  * version 6
  * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
+ * version 7
+ * - added E card:
+ * 	=> E filename ext_ref_rx ext_ref_ry
  */
-#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 7	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -280,10 +282,10 @@ sequence * readseqfile(const char *name){
 					 * channel, both would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
-						siril_debug_print("- using CFA registration info\n");
+						siril_log_debug("- using CFA registration info\n");
 						to_backup = 0;
 					} else {
-						siril_debug_print("- backing up CFA registration info\n");
+						siril_log_debug("- backing up CFA registration info\n");
 						to_backup = 1;
 					}
 					current_layer = 0;
@@ -293,7 +295,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
-						siril_debug_print("- stats: backing up demosaiced registration info\n");
+						siril_log_debug("- stats: backing up demosaiced registration info\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -541,10 +543,10 @@ sequence * readseqfile(const char *name){
 					 * would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
-						siril_debug_print("- stats: using CFA stats\n");
+						siril_log_debug("- stats: using CFA stats\n");
 						to_backup = 0;
 					} else {
-						siril_debug_print("- stats: backing up CFA stats\n");
+						siril_log_debug("- stats: backing up CFA stats\n");
 						to_backup = 1;
 					}
 					current_layer = 0;
@@ -554,7 +556,7 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
-						siril_debug_print("- stats: backing up demosaiced stats\n");
+						siril_log_debug("- stats: backing up demosaiced stats\n");
 					}
 					current_layer = line[1] - '0';
 				}
@@ -597,6 +599,21 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'E': { // External reference: "E path rx ry"
+				char buf0[256];
+				unsigned int ref_rx, ref_ry, active;
+				nb_tokens = sscanf(line + 2, "%s %u %u %u\n",
+							buf0, &active, &ref_rx, &ref_ry);
+				if (nb_tokens != 4) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
+					goto error;
+				}
+				seq->ext_ref_path = g_strchomp(g_strdup(buf0));
+				seq->ext_ref_rx = ref_rx;
+				seq->ext_ref_ry = ref_ry;
+				seq->ext_ref = (gboolean)active;
+				break;
+			}
 			case 'O':
 				current_layer = line[1] - '0';
 				if (!seq->ostats) {
@@ -651,7 +668,7 @@ sequence * readseqfile(const char *name){
 	if (ser_is_cfa(seq->ser_file) && com.pref.debayer.open_debayer &&
 			seq->regparam_bkp && seq->regparam_bkp[0] &&
 			seq->regparam && seq->nb_layers == 3 && !seq->regparam[1]) {
-		siril_log_color_message(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), "salmon", seqfilename);
+		siril_log_warning(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), seqfilename);
 		seq->regparam[1] = calloc(seq->number, sizeof(regdata));
 		for (image = 0; image < seq->number; image++) {
 			memcpy(&seq->regparam[1][image], &seq->regparam_bkp[0][image], sizeof(regdata));
@@ -666,7 +683,7 @@ error:
 	if (seq->seqname)
 		free(seq->seqname);
 	free(seq);
-	siril_log_message(_("Could not load sequence %s\n"), name);
+	siril_log_error(_("Could not load sequence %s\n"), name);
 
 	free(seqfilename);
 	return NULL;
@@ -727,6 +744,8 @@ int writeseqfile(sequence *seq){
 		}
 	}
 
+	if (seq->ext_ref_path)
+		fprintf(seqfile, "E %s %d %u %u\n", seq->ext_ref_path, seq->ext_ref ? 1 : 0, seq->ext_ref_rx, seq->ext_ref_ry);
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
 			if (layer_has_distortion(seq, layer)) {

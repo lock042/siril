@@ -22,8 +22,7 @@
 #include "core/command_line_processor.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 /*****************************************************************************
 *    I N T E R N A L   T Y P E S   A N D   S T A T E
@@ -286,38 +285,54 @@ void processing_system_shutdown(void) {
     if (!worker_running)
         return;
 
-    /* Push a QUIT sentinel to stop the worker cleanly.
-     *
-     * We deliberately do NOT set worker_running = FALSE and broadcast before
-     * pushing the sentinel, because the !worker_running early-exit in the
-     * worker loop fires before the queue is checked — causing the QUIT job to
-     * be left in the queue unprocessed and its internal mutex/cond to leak.
-     *
-     * By pushing QUIT first the worker either:
-     *   (a) is already waiting in g_cond_wait -> wakes on the signal, pops
-     *       QUIT, calls processing_job_free, and breaks; or
-     *   (b) is executing a job -> finishes, loops back, sees QUIT in the
-     *       queue, processes it, and breaks.
-     *
-     * worker_running is set to FALSE only after g_thread_join so that the
-     * !worker_running guard above continues to work for the lifetime of the
-     * thread.
-     */
-    ProcessingJob *quit = g_new0(ProcessingJob, 1);
-    quit->type = PROCESSING_JOB_QUIT;
-    quit->fire_and_forget = TRUE;   /* no mutex/cond needed for QUIT */
+    /* Cancel any running job so it can exit its frame loop quickly. */
+    processing_request_cancel();
 
-    g_mutex_lock(&queue_mutex);
-    g_queue_push_tail(&job_queue, quit);
-    g_cond_signal(&queue_cond);
-    g_mutex_unlock(&queue_mutex);
+    if (com.headless) {
+        /*
+         * CLI / headless mode: execute_idle_and_wait_for_it is a no-op, so
+         * the worker can never be blocked waiting for an idle callback that
+         * needs the GTK main loop.  A clean join is safe here.
+         *
+         * Push a QUIT sentinel so the worker exits its loop cleanly rather
+         * than reading worker_running=FALSE before the queue is drained.
+         */
+        ProcessingJob *quit = g_new0(ProcessingJob, 1);
+        quit->type = PROCESSING_JOB_QUIT;
+        quit->fire_and_forget = TRUE;
 
-    g_thread_join(worker_thread);
-    worker_thread  = NULL;
-    worker_running = FALSE;
+        g_mutex_lock(&queue_mutex);
+        g_queue_push_tail(&job_queue, quit);
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
 
-    g_mutex_clear(&queue_mutex);
-    g_cond_clear(&queue_cond);
+        g_thread_join(worker_thread);
+        worker_thread  = NULL;
+        worker_running = FALSE;
+
+        g_mutex_clear(&queue_mutex);
+        g_cond_clear(&queue_cond);
+    } else {
+        /*
+         * GUI mode: gtk_main_quit() was already called before reaching here,
+         * so the GTK main loop is no longer running.  If the worker is blocked
+         * inside execute_idle_and_wait_for_it (waiting for an idle that will
+         * never be dispatched), g_thread_join() would deadlock.
+         *
+         * Application close is unconditional — just wake the worker in case
+         * it is idle-waiting on queue_cond, then abandon the thread.  The
+         * process is about to exit; the OS reclaims all resources.
+         */
+        g_mutex_lock(&queue_mutex);
+        worker_running = FALSE;
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
+
+        /* Do NOT join and do NOT clear queue_mutex/queue_cond: the worker
+         * thread may still be running and using them.  The OS handles
+         * cleanup on process exit. */
+        worker_thread = NULL;
+    }
 
     /* Allow re-initialization if init is called again after shutdown. */
     g_atomic_int_set(&system_initialized, 0);
@@ -367,10 +382,9 @@ gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
         gboolean reserved = python_reserved;
         g_mutex_unlock(&queue_mutex);
         if (reserved) {
-            siril_log_color_message(
+            siril_log_warning(
                 _("Processing thread is reserved by Python; "
-                  "cannot submit from GTK main thread.\n"),
-                "salmon");
+                  "cannot submit from GTK main thread.\n"));
             return FALSE;
         }
     } else {
@@ -459,20 +473,17 @@ int claim_thread_for_python(void) {
     * internal implementation detail).  We gate purely on job_active_flag and
     * the queue being empty.
     */
-    if (is_an_image_processing_dialog_opened()) {
-        siril_log_color_message(
+    if (gui_iface.is_dialog_open()) {
+        siril_log_warning(
             _("A Siril image processing dialog is open. "
-              "It must be closed before Python can claim the processing thread.\n"),
-            "salmon");
+              "It must be closed before Python can claim the processing thread.\n"));
         return 2;
     }
 
     g_mutex_lock(&queue_mutex);
 
     if (python_reserved) {
-        siril_log_color_message(
-            _("Processing thread is already reserved by Python.\n"),
-            "salmon");
+        siril_log_warning(_("Processing thread is already reserved by Python.\n"));
         g_mutex_unlock(&queue_mutex);
         return 1;
     }
@@ -489,7 +500,7 @@ int claim_thread_for_python(void) {
 
     python_reserved = TRUE;
     g_mutex_unlock(&queue_mutex);
-    set_cursor_waiting(TRUE);
+    gui_iface.set_busy(TRUE);
     return 0;
 }
 
@@ -499,7 +510,7 @@ void python_releases_thread(void) {
     g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
                                         processing_submit_job              */
     g_mutex_unlock(&queue_mutex);
-    set_cursor_waiting(FALSE);
+    gui_iface.set_busy(FALSE);
 }
 
 gboolean processing_is_reserved_for_python(void) {
@@ -536,9 +547,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
         * already running.
         */
         if (processing_is_job_active()) {
-            siril_log_color_message(
-                _("The processing thread is busy, stop it first.\n"),
-                "salmon");
+            siril_log_warning(_("The processing thread is busy, stop it first.\n"));
             return FALSE;
         }
 
@@ -553,13 +562,11 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
     }
 
     if (!com.headless)
-        set_cursor_waiting(TRUE);
+        gui_iface.set_busy(TRUE);
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
-        siril_log_color_message(
-            _("Warning: failed to add processing thread to child list\n"),
-            "salmon");
+        siril_log_warning(_("Warning: failed to add processing thread to child list\n"));
 
     /*
     * Submit the job.  processing_submit_job handles the Python-reservation
@@ -574,7 +581,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
         if (!processing_in_worker_thread())
             g_atomic_int_set(&job_active_flag, 0);
         if (!com.headless)
-            set_cursor_waiting(FALSE);
+            gui_iface.set_busy(FALSE);
         remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
         return FALSE;
     }
@@ -596,19 +603,17 @@ gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
     */
 
     if (!com.headless)
-        set_cursor_waiting(TRUE);
+        gui_iface.set_busy(TRUE);
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
-        siril_log_color_message(
-            _("Warning: failed to add processing thread to child list\n"),
-            "salmon");
+        siril_log_warning(_("Warning: failed to add processing thread to child list\n"));
 
     /* job_active_flag is already 1 from reserve_thread(); no need to set it
      * again.  The worker sets it once more before executing, which is harmless. */
     if (!processing_submit_job(func, data)) {
         if (!com.headless)
-            set_cursor_waiting(FALSE);
+            gui_iface.set_busy(FALSE);
         remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
         return FALSE;
     }
@@ -688,25 +693,25 @@ strip_and_return:
 }
 
 void stop_processing_thread(void) {
-	/*
-	* In the old design this function joined com.thread, which was the source
-	* of the intermittent deadlock (the worker would call it while blocked in
-	* execute_idle_and_wait_for_it, causing a self-join via the GTK idle).
-	*
-	* In the new design the persistent worker thread is never stopped between
-	* jobs.  This function's only responsibilities are:
-	*   1. Signal cancellation so the running job aborts its frame loop.
-	*   2. Remove the processing-thread entry from the child list.
-	*   3. Reset the wait cursor.
-	*
-	* All three operations are non-blocking and safe to call from any thread,
-	* including the worker itself (end_generic is called from within jobs in
-	* the !run_idle / script-mode fallback path).
-	*/
-	processing_request_cancel();
-	remove_child_from_children((GPid) -2);
-	if (!com.headless)
-		set_cursor_waiting(FALSE);
+    /*
+    * In the old design this function joined com.thread, which was the source
+    * of the intermittent deadlock (the worker would call it while blocked in
+    * execute_idle_and_wait_for_it, causing a self-join via the GTK idle).
+    *
+    * In the new design the persistent worker thread is never stopped between
+    * jobs.  This function's only responsibilities are:
+    *   1. Signal cancellation so the running job aborts its frame loop.
+    *   2. Remove the processing-thread entry from the child list.
+    *   3. Reset the wait cursor.
+    *
+    * All three operations are non-blocking and safe to call from any thread,
+    * including the worker itself (end_generic is called from within jobs in
+    * the !run_idle / script-mode fallback path).
+    */
+    processing_request_cancel();
+    remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
+    if (!com.headless)
+        gui_iface.set_busy(FALSE);
 }
 
 void processing_set_post_job_callback(GSourceFunc cb) {

@@ -22,14 +22,12 @@
 
 #define UNDO		-1
 #define REDO		 1
-#define HISTORY_SIZE 30		// size of the operations history
 
 gboolean is_undo_available();
 gboolean is_redo_available();
 int undo_display_data(int dir);
 int undo_save_state(fits *fit, const char *message, ...);
 int	undo_flush();
-void set_undo_redo_tooltip();
 gboolean undo_in_thread(gpointer user_data);
 gboolean redo_in_thread(gpointer user_data);
 

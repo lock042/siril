@@ -20,6 +20,7 @@
 /* functions and variables defined only for linking */
 
 #include "../core/siril.h"
+#include "gui/gui_state.h"
 #include "../core/pipe.h"
 
 /* the global variables of the whole project (replacing main.c) */
@@ -202,9 +203,45 @@ char* siril_log_message(const char* format, ...) {
 	return "";
 }
 
-char* siril_log_color_message(const char* format, const char* color, ...) {
+char* siril_log_error(const char* format, ...) {
 	va_list args;
-	va_start(args, color);
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_warning(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_info(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_bold(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_status(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
 	printf("\t");
 	vprintf(format, args);
 	va_end(args);

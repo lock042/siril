@@ -134,6 +134,18 @@ deps-debian:
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
   needs: ["deps-debian"]
 
+siril-lint-gtk-includes:
+  stage: siril
+  image: debian:testing
+  dependencies: []
+  needs: []
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - scripts/lint-gtk-includes.sh src
+  cache: {}
+  artifacts: {}
+
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
@@ -153,6 +165,35 @@ siril-deb-meson:
         coverage_format: cobertura
         path: ${BUILD_DIR}/coverage.xml
 
+
+siril-deb-meson-gtk4:
+  extends: .siril-debian/testing-base
+  script:
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=gtk4 -Db_coverage=true -Dcriterion=true
+    - ninja -C ${BUILD_DIR} install
+    - meson test -C ${BUILD_DIR} -v --no-suite perfs
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/meson-logs/testlog.junit.xml
+    reports:
+      junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
+
+
+siril-headless-build:
+  extends: .siril-debian/testing-base
+  script:
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=false -Db_coverage=true -Dcriterion=true
+    - ninja -C ${BUILD_DIR} install
+    - meson test -C ${BUILD_DIR} -v --no-suite perfs
+  artifacts:
+    expire_in: 1 week
+    when: always
+    name: "headless-build-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    paths:
+      - ${BUILD_DIR}/meson-logs/testlog.junit.xml
+      - ${BUILD_DIR}/coverage.xml
+    reports:
+      junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
 
 ################################################################################
 # Packaging
@@ -187,7 +228,7 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: b36e7eba5dd191caf7e7017c3fd5eaf3c5ee5640
+    SM_REPO_REF: 95c4429a9b2ba6ab13c981d895ce8845f3fb5c75
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -206,7 +247,7 @@ macos:
       PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
         sm/build_toolset.sh
-        rm $VER_DIR/var/cache/pkg/.skip
+        rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
         sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
@@ -230,7 +271,7 @@ win64-native:
   stage: packaging
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   cache:
     key: "cache-windows-small1-${MSYSTEM}"
     paths:
@@ -242,7 +283,10 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 59
+    # SDW_VERSION must point at a build that ships GTK4 + GtkSourceView5
+    # (not GTK3 + GtkSourceView4) — see build/windows/native-gitlab-ci/
+    # siril-deps.sh for the package list the deps image must contain.
+    SDW_VERSION: 66
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
@@ -250,6 +294,7 @@ win64-native:
     SPW_NAME: siril-python$SPW_VERSION
     SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
     PY_OUT: "/c/siril-python" #used in siril-package.sh
+    BRANCH: $CI_COMMIT_REF_SLUG
   tags:
     - saas-windows-medium-amd64
   needs: []
@@ -276,7 +321,7 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-49'
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-50'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
@@ -357,7 +402,7 @@ win64-native-installer:
     *run_ondemand_schedule_tag
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   variables:
     CHERE_INVOKING: "yes"
   tags:

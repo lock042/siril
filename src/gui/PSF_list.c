@@ -41,6 +41,19 @@
 #include "algos/star_finder.h"
 
 static GtkListStore *liststore_stars = NULL;
+static GtkStatusbar *psf_statusbar = NULL;
+static GtkTreeView *psf_treeview = NULL;
+static GtkWindow *psf_stars_list_window = NULL;
+static GtkToggleButton *psf_toggle_star_centered = NULL;
+
+static void psf_list_init_statics(void) {
+	if (psf_statusbar) return;
+	psf_statusbar = GTK_STATUSBAR(gtk_builder_get_object(gui.builder, "statusbar_PSF"));
+	psf_treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	psf_stars_list_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "stars_list_window"));
+	psf_toggle_star_centered = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_star_centered"));
+	liststore_stars = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore_stars"));
+}
 
 enum {
 	COLUMN_CHANNEL,		// int
@@ -359,25 +372,30 @@ static void display_PSF(psf_star **result) {
 
 static gint get_index_of_selected_star(gdouble x, gdouble y) {
 	int i = 0;
+	gint result = -1;
 
+	g_rw_lock_reader_lock(&com.stars_lock);
 	while (com.stars && com.stars[i]) {
 		if ((com.stars[i]->xpos == x) && (com.stars[i]->ypos == y)) {
-			return i;
+			result = i;
+			break;
 		}
 		i++;
 	}
-	return -1;
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	return result;
 }
 
 static void display_status() {
 	gchar *text;
 	int i = 0;
-	GtkStatusbar *statusbar;
 
-	statusbar = GTK_STATUSBAR(lookup_widget("statusbar_PSF"));
+	psf_list_init_statics();
 
+	g_rw_lock_reader_lock(&com.stars_lock);
 	while (com.stars && com.stars[i])
 		i++;
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	if (gui.selected_star == -1) {
 		if (i > 0) {
 			text = ngettext("%d star", "%d stars", i);
@@ -388,12 +406,13 @@ static void display_status() {
 	} else {
 		text = g_strdup_printf(_("Star %d of %d"), gui.selected_star + 1, i);
 	}
-	gtk_statusbar_push(statusbar, COUNT_STATE, text);
+	gtk_statusbar_push(psf_statusbar, COUNT_STATE, text);
 	g_free(text);
 }
 
 void set_iter_of_clicked_psf(double x, double y) {
-	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
+	psf_list_init_statics();
+	GtkTreeView *treeview = psf_treeview;
 	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
 	GtkTreeIter iter;
 	gboolean valid;
@@ -401,11 +420,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
 	double bin_X = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+	g_rw_lock_reader_lock(&com.stars_lock);
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
+		g_rw_lock_reader_unlock(&com.stars_lock);
 		return; // If com.stars is empty there is no point carrying on
 	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	if (is_as) {
 		invpixscalex = 1.0 / (radian_conversion * (double) gfit->keywords.pixel_size_x / gfit->keywords.focal_length) * bin_X;
 	}
@@ -427,14 +449,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gtk_tree_path_free(path);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
-			gtk_window_present(GTK_WINDOW(lookup_widget("stars_list_window")));
+			gtk_window_present(psf_stars_list_window);
 			display_status();
 			redraw(REDRAW_OVERLAY);
 			return;
 		}
 		valid = gtk_tree_model_iter_next(model, &iter);
 	}
-	siril_debug_print("Point clicked does not correspond to a known star\n");
+	siril_log_debug("Point clicked does not correspond to a known star\n");
 	return;
 }
 
@@ -602,7 +624,7 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 		valid = gtk_tree_model_iter_next(model, &iter);
 	}
 	if (!ret)
-		siril_log_color_message(_("Error: error writing the CSV.\n"), "red");
+		siril_log_error(_("Error: error writing the CSV.\n"));
 	g_object_unref(data_stream);
 	g_object_unref(output_stream);
 	g_object_unref(file);
@@ -613,7 +635,8 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 static void save_stars_dialog() {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
-	GtkWindow *parent = GTK_WINDOW(lookup_widget("stars_list_window"));
+	psf_list_init_statics();
+	GtkWindow *parent = psf_stars_list_window;
 	gint res;
 
 	widgetdialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
@@ -716,50 +739,21 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 void refresh_star_list(){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
 	fill_stars_list(gfit, com.stars);
+	g_rw_lock_reader_unlock(&com.stars_lock);
 }
 
-/* this can be called from any thread as long as refresh_GUI is false, it's
- * synchronized with the main thread with a mutex */
-void clear_stars_list(gboolean refresh_GUI) {
-	g_mutex_lock(&com.mutex); // Lock at the beginning to protect the check and modification
-	psf_star **stars = com.stars;
+/* this can be called from any thread; com.stars_lock (writer) serialises it */
+/* clear_stars_list and clear_stars_list_as_idle moved to algos/PSF.c */
 
-	if (stars) {
-		com.stars = NULL; // Set com.stars to NULL while holding the lock
-		g_mutex_unlock(&com.mutex);
-
-		if (refresh_GUI && !com.headless) {
-			get_stars_list_store();
-			gtk_list_store_clear(liststore_stars);
-		}
-
-		if (stars[0]) {
-			/* freeing found stars. It must not be done when the only star in
-			* com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
-			* set_fwhm_star_as_star_list(), because it will be reused */
-			if (stars[1] || !com.star_is_seqdata) {
-				int i = 0;
-				while (i < MAX_STARS && stars[i])
-					free_psf(stars[i++]);
-			}
-			free(stars);
-		}
-	} else {
-		g_mutex_unlock(&com.mutex); // Unlock if com.stars is NULL
-	}
-
-	com.star_is_seqdata = FALSE;
+void clear_psf_list_display(void) {
+	psf_list_init_statics();
 	gui.selected_star = -1;
-	if (refresh_GUI && !com.headless)
-		display_status();
+	gtk_list_store_clear(liststore_stars);
+	display_status();
 }
 
-gboolean clear_stars_list_as_idle(gpointer user_data) {
-	gboolean refresh = (gboolean) GPOINTER_TO_INT(user_data);
-	clear_stars_list(refresh);
-	return FALSE;
-}
 
 struct star_update_s {
 	psf_star **stars;
@@ -769,9 +763,16 @@ struct star_update_s {
 static gboolean update_stars_idle(gpointer p) {
 	struct star_update_s *args = (struct star_update_s *)p;
 	clear_stars_list(TRUE);
+	g_rw_lock_writer_lock(&com.stars_lock);
 	com.stars = args->stars;
-	if (args->update_GUI && !com.headless)
+	g_rw_lock_writer_unlock(&com.stars_lock);
+	if (args->update_GUI && !com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		g_rw_lock_reader_lock(&com.stars_lock);
 		fill_stars_list(gfit, com.stars);
+		g_rw_lock_reader_unlock(&com.stars_lock);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	redraw(REDRAW_OVERLAY);
 	free(args);
 	return FALSE;
@@ -794,9 +795,11 @@ void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean w
 }
 
 static int get_comstar_count() {
+	g_rw_lock_reader_lock(&com.stars_lock);
 	int i = 0;
 	while (com.stars[i])
 		i++;
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	return i;
 }
 
@@ -837,9 +840,10 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 	GValue value_x = G_VALUE_INIT;
 	GValue value_y = G_VALUE_INIT;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
-	GtkWidget *widget = lookup_widget(area[gui.cvport]);
+	psf_list_init_statics();
+	GtkWidget *widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, area[gui.cvport]));
 
-	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	GtkTreeView *treeView = psf_treeview;
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
@@ -861,7 +865,7 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 		// Set this to draw blue crosshairs
 		gui.selected_star = get_index_of_selected_star(x0, y0);
 		// Centre selected star
-		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("toggle_star_centered"));
+		GtkToggleButton *toggle = psf_toggle_star_centered;
 		if (gtk_toggle_button_get_active(toggle)) {
 			double z = get_zoom_val();
 			gui.display_offset.x = (gtk_widget_get_allocated_width(widget) / 2 - x0 * z);
@@ -888,7 +892,10 @@ void on_stars_list_window_hide(GtkWidget *object, gpointer user_data) {
 }
 
 void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
-	display_PSF(com.stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
+	psf_star **stars_snap = com.stars;
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	display_PSF(stars_snap);
 }
 
 void on_add_button_clicked(GtkButton *button, gpointer user_data) {
@@ -896,9 +903,9 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	if (layer == -1)
 		layer = 1;
 	int index;
-	add_star(gfit, layer, &index);
+	psf_star *new_star = add_star(gfit, layer, &index);
 	if (index > -1)
-		add_star_to_list(com.stars[index], index);
+		add_star_to_list(new_star, index);
 	display_status();
 	refresh_star_list();
 }
@@ -912,7 +919,10 @@ void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {
-	if (com.stars) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	gboolean have_stars_export = (com.stars != NULL);
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	if (have_stars_export) {
 		save_stars_dialog();
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Nothing to export"),

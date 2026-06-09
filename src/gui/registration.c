@@ -19,10 +19,13 @@
  */
 
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
+#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "algos/star_finder.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -39,6 +42,8 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "registration/registration.h"
+#include "registration/3stars.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
@@ -109,10 +114,10 @@ static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 // Statics declarations
 static GtkAdjustment *register_minpairs = NULL;
-static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
-static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
+static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL, *reg_referencefilechooser_box = NULL;
+static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL, *reg_reference_button = NULL;
 static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL, *comboreg_undistort = NULL;
-static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL, *cometseqname_entry = NULL;
+static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL, *cometseqname_entry = NULL, *reg_reference_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
 static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL, *grid_reg_wcs = NULL;
@@ -122,7 +127,7 @@ static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
-static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
+static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL, *reg_reference_checkbutton = NULL;
 GtkWindow *control_window = NULL;
 
 // additional statics
@@ -133,6 +138,38 @@ static GtkWidget *ksig[3] = { NULL };
 static GtkLabel *filter_label[3] = { NULL };
 
 static GList *switcher_buttons = NULL;
+
+// 3-star specific statics
+static GtkWidget *three_buttons[3] = { 0 };
+static GtkImage *image_3stars[3] = { NULL };
+
+/* Forward declaration of static initializer used by 3-star helpers */
+static void registration_init_statics(void);
+
+/****************************************************************/
+/* 3-star GUI helpers                                           */
+/****************************************************************/
+
+static void reg_set_registration_ready(gboolean ready) {
+	registration_init_statics();
+	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
+}
+
+static void reg_update_label(const gchar *str) {
+	registration_init_statics();
+	gtk_label_set_text(labelregisterinfo, str);
+}
+
+static void reg_update_icons(int idx, gboolean OK) {
+	registration_init_statics();
+	gtk_image_set_from_icon_name(image_3stars[idx],
+			OK ? "gtk-yes" : "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
+}
+
+static void reg_reset_icons(void) {
+	for (int i = 0; i < 3; i++)
+		reg_update_icons(i, FALSE);
+}
 
 /****************************************************************/
 /* Initialization                                               */
@@ -145,6 +182,7 @@ static void registration_init_statics() {
 		// GtkBox
 		seq_filters_box_reg = GTK_BOX(gtk_builder_get_object(gui.builder, "seq_filters_box_reg"));
 		reg_wcsfilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_wcsfilechooser_box"));
+		reg_referencefilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_referencefilechooser_box"));
 		// GtkButton
 		filter_add4 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add4"));
 		filter_add5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add5"));
@@ -153,6 +191,7 @@ static void registration_init_statics() {
 		proj_estimate = GTK_BUTTON(gtk_builder_get_object(gui.builder, "proj_estimate"));
 		goregister_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "goregister_button"));
 		reg_wcsfile_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "reg_wcsfile_button"));
+		reg_reference_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "reg_reference_button"));
 		// GtkComboBoxText
 		comboboxregmethod = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 		comboboxreglayer = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
@@ -178,6 +217,7 @@ static void registration_init_statics() {
 		regseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "regseqname_entry"));
 		flatname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatname_entry"));
 		reg_wcsfile_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_wcsfile_entry"));
+		reg_reference_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_reference_entry"));
 		// GtkExpander
 		autoreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "autoreg_expander"));
 		manualreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "manualreg_expander"));
@@ -225,7 +265,8 @@ static void registration_init_statics() {
 		checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
 		toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
 		toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
-		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		reg_reference_checkbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "reg_reference_checkbutton"));
+		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 
 		// additional statics
 		spin[0] = GTK_WIDGET(stackspin4);
@@ -246,6 +287,14 @@ static void registration_init_statics() {
 
 		// switcher buttons list
 		switcher_buttons = gtk_container_get_children(GTK_CONTAINER(interp_drizzle_stack_switcher));
+
+		// 3-star widgets
+		three_buttons[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar1"));
+		three_buttons[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar2"));
+		three_buttons[2] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar3"));
+		image_3stars[0] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image1"));
+		image_3stars[1] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image2"));
+		image_3stars[2] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image3"));
 	}
 }
 
@@ -391,7 +440,7 @@ void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		SirilWidget *widgetdialog;
 		GtkFileChooser *dialog = NULL;
-		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
@@ -410,6 +459,36 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		siril_widget_destroy(widgetdialog);
 		update_reg_interface(TRUE);
+}
+
+void on_reg_reference_checkbutton_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	registration_init_statics();
+	gboolean active = gtk_toggle_button_get_active(togglebutton);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), active);
+	update_reg_interface(TRUE);
+}
+
+void on_reg_reference_button_clicked(GtkButton *button, gpointer user_data) {
+	registration_init_statics();
+	SirilWidget *widgetdialog;
+	GtkFileChooser *dialog = NULL;
+	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+	widgetdialog = siril_file_chooser_open(parent, GTK_FILE_CHOOSER_ACTION_OPEN);
+	dialog = GTK_FILE_CHOOSER(widgetdialog);
+	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts)"),
+			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
+	gint res = siril_dialog_run(widgetdialog);
+	if (res == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_file_chooser_get_filename(dialog);
+		gtk_entry_set_text(reg_reference_entry, file);
+		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
+		g_free(file);
+	}
+	siril_widget_destroy(widgetdialog);
+	update_reg_interface(TRUE);
 }
 
 gboolean on_switcher_stack_clicked(GtkWidget *widget,
@@ -450,7 +529,7 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 		psf_error error = PSF_NO_ERR;
 		result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h) && error != PSF_NO_ERR) { // we check result is inside the selection box
-			siril_log_color_message(_("Comet PSF center is out of the box, will use selection center instead\n"), "salmon");
+			siril_log_warning(_("Comet PSF center is out of the box, will use selection center instead\n"));
 			free_psf(result);
 			result = NULL;
 		}
@@ -711,7 +790,7 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 static void update_filters_registration(int update_adjustment) {
 	if (!sequence_is_loaded())
 		return;
-	siril_debug_print("updating registration filters GUI\n");
+	siril_log_debug("updating registration filters GUI\n");
 	seq_image_filter criterion;
 	double param;
 	get_reg_sequence_filtering_from_gui(&criterion, &param, update_adjustment);
@@ -769,6 +848,40 @@ static gboolean check_disto(disto_source index) {
 		g_free(tooltip);
 	}
 	return status;
+}
+
+static gboolean check_ext_ref(disto_source disto_index) {
+	if (!gtk_toggle_button_get_active(reg_reference_checkbutton))
+		return TRUE;
+	const gchar *path = gtk_entry_get_text(reg_reference_entry);
+	if (!path || *path == '\0') {
+		gtk_label_set_text(labelregisterinfo, _("External reference: enter a file path"));
+		return FALSE;
+	}
+	if (disto_index == DISTO_UNDEF)
+		return TRUE;
+	fits fit = { 0 };
+	if (read_fits_metadata_from_path_first_HDU(path, &fit)) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: cannot read file"));
+		clearfits(&fit);
+		return FALSE;
+	}
+	if (has_wcs(&fit)) {
+		clearfits(&fit);
+		// if the file is plate solved, no need to check further,
+		// This covers the case DISTO_IMAGE, as well as any other possibility
+		// as this overides any other choice, see init_disto_data_ext
+		return TRUE; 
+	}
+	if (disto_index == DISTO_IMAGE) {
+		gtk_label_set_text(labelregisterinfo, _("External reference: must be plate solved when using distortion correction on the sequence"));
+		clearfits(&fit);
+		return FALSE;
+	}
+	// The other cases (MASTER and FILE) are handled by the check_disto function
+	// Main sources for failure are missing file or missing masters which will occur also for main sequence
+	clearfits(&fit);
+	return TRUE;
 }
 // Helpers
 struct registration_method *get_selected_registration_method(int *index) {
@@ -829,7 +942,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	regmethod_index regindex = REG_UNDEF;
 	method = get_selected_registration_method(&regindex);
 	if (!method) {
-		siril_log_color_message(_("Failed to determine registration method...\n"), "red");
+		siril_log_error(_("Failed to determine registration method...\n"));
 		return;
 	}
 
@@ -876,8 +989,23 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		if (!com.seq.is_variable) {
 			disto_source_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
 			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_source_index == DISTO_FILE);
+		} else {
+			gtk_toggle_button_set_active(checkStarSelect, FALSE);
 		}
+		gtk_widget_set_sensitive(GTK_WIDGET(checkStarSelect), !com.seq.is_variable);
 	}
+	/* external reference image: available for global and 2-pass star alignment */
+	if (!dont_change_reg_radio && com.seq.ext_ref && com.seq.ext_ref_path) {
+		gtk_toggle_button_set_active(reg_reference_checkbutton, TRUE);
+		gtk_entry_set_text(reg_reference_entry, com.seq.ext_ref_path);
+		gtk_editable_set_position(GTK_EDITABLE(reg_reference_entry), -1);
+	} else if (!dont_change_reg_radio && !com.seq.ext_ref) {
+		gtk_toggle_button_set_active(reg_reference_checkbutton, FALSE);
+		gtk_entry_set_text(reg_reference_entry, "");
+	}
+	gboolean use_external_ref = is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_reference_checkbutton), is_star_align);
+	gtk_widget_set_sensitive(GTK_WIDGET(reg_referencefilechooser_box), use_external_ref);
 
 	/* show the appropriate outputregframe widgets */
 	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
@@ -885,6 +1013,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_widget_set_visible(GTK_WIDGET(proj_estimate), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_registration), !isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(grid_reg_framing), isapplyreg);
+	if (isapplyreg && com.seq.ext_ref) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(comboreg_framing), FRAMING_CURRENT);
+		gtk_widget_set_sensitive(GTK_WIDGET(comboreg_framing), FALSE);
+	} else {
+		gtk_widget_set_sensitive(GTK_WIDGET(comboreg_framing), TRUE);
+	}
 	if (must_have_drizzle) {
 		gtk_stack_set_visible_child(interp_drizzle_stack, GTK_WIDGET(grid_drizzle_controls));
 		has_drizzle = TRUE;
@@ -939,7 +1073,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_applyreg(regindex) &&
 			check_comet(regindex) &&
 			check_3stars(regindex) &&
-			check_disto(disto_source_index);
+			check_disto(disto_source_index) &&
+			check_ext_ref(disto_source_index);
 
 	if (!ready) { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
@@ -976,7 +1111,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	if (driz->use_flats) {
 		fits reffit = { 0 };
 		if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
-			siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+			siril_log_error(_("NOT USING FLAT: Could not load reference image\n"));
 			free(driz);
 			clearfits(&reffit);
 			return 1;
@@ -991,7 +1126,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 			return 1;
 		} else {
 			if (expression[0] == '\0') {
-				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+				siril_log_error(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
 				g_free(expression);
 				return 1;
@@ -1011,7 +1146,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 				} else error = _("NOT USING FLAT: cannot open the file");
 				g_free(expression);
 				if (error) {
-					siril_log_color_message("%s\n", "red", error);
+					siril_log_error("%s\n", error);
 					set_progress_bar_data(error, PROGRESS_DONE);
 					if (driz->flat) {
 						clearfits(driz->flat);
@@ -1068,6 +1203,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	regargs->seq = &com.seq;
 	regargs->reference_image = sequence_find_refimage(&com.seq);
 	regargs->no_output = !has_output_images && regindex != REG_COMET; // comet produces a new sequence with symlinks to previous images
+	if (is_star_align && gtk_toggle_button_get_active(reg_reference_checkbutton)) {
+		const gchar *path = gtk_entry_get_text(reg_reference_entry);
+		regargs->external_ref_path = g_strdup(path);
+		regargs->use_external_ref = TRUE;
+	}
 	if (regindex == REG_3STARS) {
 		regargs->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
 		regargs->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
@@ -1078,10 +1218,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
 		regargs->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
 		regargs->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
-		if (regargs->matchSelection && regargs->seq->is_variable) {
-			siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
-			return 1;
-		}
 		if (!regargs->matchSelection) {
 			delete_selected_area(); // otherwise it is enforced
 		}
@@ -1134,23 +1270,24 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 
 #ifndef HAVE_CV44
 	if (regargs->type == SHIFT_TRANSFORMATION && is_star_align) {
-		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+		siril_log_error(_("Shift-only registration is only possible with OpenCV 4.4\n"));
 		free(regargs->prefix);
+		g_free(regargs->external_ref_path);
 		return 1;
 	}
 #endif
 
 	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (regargs->output_scale != 1.f || com.seq.is_variable) {
-			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"));
 			return 1;
 		}
 		if (regargs->type > SHIFT_TRANSFORMATION) {
-			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"));
 			return 1;
 		}
 		if (regargs->undistort) {
-			siril_log_color_message(_("When interpolation is set to None, distortions must be set to None as well. Aborting\n"), "red");
+			siril_log_error(_("When interpolation is set to None, distortions must be set to None as well. Aborting\n"));
 			return 1;
 		}
 	}
@@ -1159,6 +1296,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
 	return 0;
+}
+
+gboolean registration_get_follow_star(void) {
+	registration_init_statics();
+	return followStarCheckButton ? gtk_toggle_button_get_active(followStarCheckButton) : FALSE;
 }
 
 int get_registration_layer_from_GUI(const sequence *seq) {
@@ -1182,7 +1324,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	fits fit_ref = { 0 };
 	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
 	if (ret) {
-		siril_log_message(_("Error: unable to read reference frame metadata\n"));
+		siril_log_error(_("Error: unable to read reference frame metadata\n"));
 		free(regargs);
 		unreserve_thread();
 		return;
@@ -1197,8 +1339,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!g_strcmp0(caller, "proj_estimate"))
 		regargs->no_output = TRUE;
 
-	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
-			"green", method->name);
+	msg = siril_log_info(_("Registration: processing using method: %s\n"), method->name);
 	msg[strlen(msg) - 1] = '\0';
 
 	if (regargs->clamp)
@@ -1253,4 +1394,110 @@ gboolean end_register_idle(gpointer p) {
 	free(args->new_seq_name);
 	free(args);
 	return FALSE;
+}
+
+/****************************************************************/
+/* 3-star registration GUI functions (moved from 3stars.c)      */
+/****************************************************************/
+
+void registration_update_label(const gchar *msg) {
+	reg_update_label(msg);
+}
+
+void reset_3stars(void) {
+	registration_init_statics();
+	if (!GTK_IS_WIDGET(three_buttons[0])) return;
+	reg_reset_icons();
+	for (int i = 1; i < 3; i++) {
+		unset_suggested(three_buttons[i]);
+		gtk_widget_set_sensitive(three_buttons[i], FALSE);
+	}
+	set_suggested(three_buttons[0]);
+	gtk_widget_set_sensitive(three_buttons[0], TRUE);
+	reg_set_registration_ready(FALSE);
+	clear_stars_list(TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), FALSE);
+	awaiting_star = 0;
+	selected_stars = 0;
+}
+
+gboolean _3stars_check_selection(void) {
+	if (com.seq.current < 0)
+		return FALSE;
+	registration_init_statics();
+	gboolean dofollow = gtk_toggle_button_get_active(followStarCheckButton);
+	gboolean doall = !gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
+	if (dofollow) {
+		if (doall && com.seq.current != 0) {
+			gtk_label_set_text(labelregisterinfo, _("Make sure you load the first image"));
+			return FALSE;
+		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
+			gtk_label_set_text(labelregisterinfo, _("Make sure you load the first selected image"));
+			return FALSE;
+		}
+	}
+	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
+		reg_update_label(_("Make sure you load an image which is included"));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+int _3stars_get_number_selected_stars(void) {
+	return selected_stars;
+}
+
+void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
+	registration_init_statics();
+	if (!com.selection.w || !com.selection.h) {
+		reg_update_label(_("Draw a selection around the star"));
+		return;
+	}
+	if (!_3stars_check_selection()) return;
+	GtkWidget *widget = GTK_WIDGET(button);
+	if (three_buttons[0] == widget) {
+		reg_reset_icons();
+		clear_stars_list(TRUE);
+		selected_stars = 0;
+		awaiting_star = 1;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), FALSE);
+	} else if (three_buttons[1] == widget) {
+		awaiting_star = 2;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), TRUE);
+	} else if (three_buttons[2] == widget) {
+		awaiting_star = 3;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), TRUE);
+	} else {
+		fprintf(stderr, "unknown button clicked\n");
+		return;
+	}
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (!com.stars)
+		com.stars = calloc(4, sizeof(psf_star *));
+	g_rw_lock_writer_unlock(&com.stars_lock);
+	int layer = gui_iface.get_reg_layer();
+	if (layer < 0) {
+		fprintf(stderr, "invalid registration layer\n");
+		return;
+	}
+	int index;
+	add_star(gfit, layer, &index);
+	if (index == -1) {
+		reg_update_label(_("No star found, make another selection"));
+	} else {
+		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
+		selected_stars++;
+		unset_suggested(three_buttons[awaiting_star - 1]);
+		gtk_widget_set_sensitive(three_buttons[awaiting_star - 1], FALSE);
+		if (awaiting_star < 3) {
+			set_suggested(three_buttons[awaiting_star]);
+			gtk_widget_set_sensitive(three_buttons[awaiting_star], TRUE);
+		}
+		reg_update_icons(awaiting_star - 1, TRUE);
+		delete_selected_area();
+	}
 }

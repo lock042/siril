@@ -425,15 +425,59 @@ This should be enabled for non-stretched images.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkCheckButton" id="bkg_dither_button">
-                    <property name="label" translatable="yes">Add dither</property>
+                  <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Hit this option when color banding is produced after background extraction.
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_dither_button">
+                        <property name="label" translatable="yes">Add dither</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Hit this option when color banding is produced after background extraction.
 Dither is an intentionally applied form of noise used to randomize quantization error, preventing large-scale patterns such as color banding in images.</property>
-                    <property name="halign">start</property>
-                    <property name="draw-indicator">True</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_randomize_button">
+                        <property name="label" translatable="yes">Randomize samples</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">When enabled, sample points are placed randomly in the darkst parts of each image quadrant, plus a fixed set of points around the border. This is an alternative to the regular grid placement. In random mode the samples value controls the total number of interior random samples (grid mode: samples per line).</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_bkg_randomize_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_grad_descent_button">
+                        <property name="label" translatable="yes">Optimize sample positions</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">When enabled, each sample point is moved to a local brightness minimum using gradient descent. This shifts samples away from stars and other bright objects. Can be combined with either grid or random placement.</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -489,7 +533,7 @@ When processing a sequence the samples shown are only for guidance to see the ef
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">7</property>
+                    <property name="position">9</property>
                   </packing>
                 </child>
                 <child>
@@ -502,7 +546,7 @@ Left click adds samples while right click removes them.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">8</property>
+                    <property name="position">10</property>
                   </packing>
                 </child>
               </object>

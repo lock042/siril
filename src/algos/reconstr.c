@@ -107,9 +107,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include <gtk/gtk.h>
 
-#include "gui/utils.h"
 #include "core/siril_log.h"
 #include "core/siril.h"
 #include "core/proto.h"
@@ -155,11 +153,11 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data)
 	Nl = Wavelet.Nbr_Ligne;
 	Nc = Wavelet.Nbr_Col;
 	if (Nl < 1 || Nc < 1 || Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM) {
-		siril_log_color_message(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"), "red");
+		siril_log_error(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"));
 		return 1;
 	}
 	if (Wavelet.Nbr_Plan < 1 || Wavelet.Nbr_Plan > 6) {
-		siril_log_color_message(_("Error: number of plans reported by wavelets file is out of bounds.\n"), "red");
+		siril_log_error(_("Error: number of plans reported by wavelets file is out of bounds.\n"));
 		return 1;
 	}
 	Imag = f_vector_alloc(Nl * Nc);
@@ -186,11 +184,11 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float
 
 	// Sanity check before using values read from file
 	if (Wavelet.Nbr_Plan < 1 || Wavelet.Nbr_Plan > 6) {
-		siril_log_color_message(_("Error: number of plans reported by wavelets file is out of bounds.\n"), "red");
+		siril_log_error(_("Error: number of plans reported by wavelets file is out of bounds.\n"));
 		return 1;
 	}
 	if (Wavelet.Nbr_Ligne < 1 || Wavelet.Nbr_Ligne > MAX_IMAGE_DIM || Wavelet.Nbr_Col < 1 || Wavelet.Nbr_Col > MAX_IMAGE_DIM) {
-		siril_log_color_message(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"), "red");
+		siril_log_error(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"));
 		return 1;
 	}
 

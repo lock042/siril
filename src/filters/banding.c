@@ -31,18 +31,10 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/arithm.h"
-#include "core/undo.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
-#include "gui/dialogs.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "opencv/opencv.h"
@@ -107,21 +99,6 @@ int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 			params->protect_highlights, params->applyRotation, MULTI_THREADED);
 }
 
-/* Idle function for single image processing */
-static gboolean banding_single_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-
-	stop_processing_thread();
-	return FALSE;
-}
-
 gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
 	struct banding_data *params = (struct banding_data*) p;
 	gchar *message = NULL;
@@ -163,8 +140,7 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -175,7 +151,7 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -270,7 +246,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			clearfits(fiximage);
 			return 1;
 		}
@@ -353,7 +329,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
 		double background = stat->median;
@@ -426,129 +402,4 @@ static int BandingEngine(fits *fit, double sigma, double amount, gboolean protec
 	return -1;
 }
 
-/***************** GUI for Canon Banding Reduction ********************/
-
-void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("canon_fixbanding_dialog");
-}
-
-gboolean banding_hide_on_delete(GtkWidget *widget) {
-	siril_close_dialog("canon_fixbanding_dialog");
-	return TRUE;
-}
-
-void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
-	if (!check_ok_if_cfa())
-		return;
-	static GtkRange *range_amount = NULL;
-	static GtkRange *range_invsigma = NULL;
-	static GtkToggleButton *toggle_protect_highlights_banding = NULL,
-		*vertical = NULL, *seq = NULL;
-	static GtkEntry *bandingSeqEntry = NULL;
-	double amount, invsigma;
-	gboolean protect_highlights;
-
-	if (processing_is_job_active()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	if (range_amount == NULL) {
-		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
-		range_invsigma = GTK_RANGE(lookup_widget("scale_fixbanding_invsigma"));
-		toggle_protect_highlights_banding = GTK_TOGGLE_BUTTON(
-				lookup_widget("checkbutton_fixbanding"));
-		vertical = GTK_TOGGLE_BUTTON(lookup_widget("checkBandingVertical"));
-		seq = GTK_TOGGLE_BUTTON(lookup_widget("checkBandingSeq"));
-		bandingSeqEntry = GTK_ENTRY(lookup_widget("entryBandingSeq"));
-	}
-	amount = gtk_range_get_value(range_amount);
-	invsigma = gtk_range_get_value(range_invsigma);
-	protect_highlights = gtk_toggle_button_get_active(
-			toggle_protect_highlights_banding);
-	gboolean applyRotation = gtk_toggle_button_get_active(vertical);
-
-	set_cursor_waiting(TRUE);
-
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		// Sequence processing
-		struct banding_data *seq_args = new_banding_data();
-		if (!seq_args) {
-			PRINT_ALLOC_ERR;
-			set_cursor_waiting(FALSE);
-			return;
-		}
-
-		const char *entry_text = gtk_entry_get_text(bandingSeqEntry);
-		seq_args->seqEntry = strdup((entry_text && entry_text[0] != '\0') ? entry_text : "unband_");
-		seq_args->protect_highlights = protect_highlights;
-		seq_args->amount = amount;
-		seq_args->sigma = invsigma;
-		seq_args->applyRotation = applyRotation;
-		seq_args->seq = &com.seq;
-		seq_args->fit = NULL;
-
-		gtk_toggle_button_set_active(seq, FALSE);
-		apply_banding_to_sequence(seq_args);
-	} else {
-		// Single image processing - use generic_image_worker
-		struct banding_data *params = new_banding_data();
-		if (!params) {
-			PRINT_ALLOC_ERR;
-			set_cursor_waiting(FALSE);
-			return;
-		}
-
-		params->protect_highlights = protect_highlights;
-		params->amount = amount;
-		params->sigma = invsigma;
-		params->applyRotation = applyRotation;
-		params->seqEntry = NULL;
-		params->seq = NULL;
-		params->fit = NULL;
-
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		if (!args) {
-			PRINT_ALLOC_ERR;
-			free_banding_data(params);
-			free(params);
-			set_cursor_waiting(FALSE);
-			return;
-		}
-
-		args->fit = gfit;
-		args->mem_ratio = 2.0f; // Banding needs ~2x memory (rotation + fix image)
-		args->image_hook = banding_single_image_hook;
-		args->idle_function = banding_single_idle;
-		args->description = _("Canon Banding Reduction");
-		args->verbose = TRUE;
-		args->user = params;
-		args->log_hook = banding_log_hook;
-		args->max_threads = com.max_thread;
-		args->for_preview = FALSE;
-		args->for_roi = FALSE;
-
-		if (!start_in_new_thread(generic_image_worker, args)) {
-			free_banding_data(params);
-			free(params);
-			free(args);
-			set_cursor_waiting(FALSE);
-		}
-	}
-}
-
-void on_checkbutton_fixbanding_toggled(GtkToggleButton *togglebutton,
-		gpointer user_data) {
-	static GtkWidget *scalebandingHighlightBox = NULL;
-	static GtkWidget *spinbandingHighlightBox = NULL;
-	gboolean is_active;
-
-	if (scalebandingHighlightBox == NULL) {
-		scalebandingHighlightBox = lookup_widget("scale_fixbanding_invsigma");
-		spinbandingHighlightBox = lookup_widget("spin_fixbanding_invsigma");
-	}
-
-	is_active = gtk_toggle_button_get_active(togglebutton);
-	gtk_widget_set_sensitive(scalebandingHighlightBox, is_active);
-	gtk_widget_set_sensitive(spinbandingHighlightBox, is_active);
-}
+/* GUI callbacks moved to src/gui/banding.c */

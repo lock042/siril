@@ -26,6 +26,23 @@
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 
+static GtkScrolledWindow *mouse_scrolled_window = NULL;
+static GtkScrolledWindow *scroll_scrolled_window = NULL;
+static GtkSpinButton *mouse_speed_spin = NULL;
+static GtkWidget *mouse_test_drawingarea = NULL;
+static GtkWidget *mouse_test_frame_widget = NULL;
+static GtkLabel *mouse_test_label = NULL;
+
+static void mouse_action_prefs_init_statics(void) {
+	if (mouse_scrolled_window) return;
+	mouse_scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "mouse_treeview_scrolled_window"));
+	scroll_scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scroll_treeview_scrolled_window"));
+	mouse_speed_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mouse_speed_limit"));
+	mouse_test_drawingarea = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mouse_test_drawingarea"));
+	mouse_test_frame_widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mouse_test_frame"));
+	mouse_test_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "mouse_test_area_label"));
+}
+
 /* Elements that require updating when adding new functions */
 
 const mouse_function_metadata* mouse_metadata_array[] = {
@@ -166,7 +183,8 @@ static gboolean fill_mouse_actions_list_idle(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		gtk_widget_destroy(existing_tree_view);
@@ -271,18 +289,18 @@ static gboolean validate_mouse_actions(GSList *list) {
 						outer_action->state == inner_action->state &&
 						outer_action->button == inner_action->button) {
 				duplicate_found = TRUE;
-				siril_log_color_message(_("Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"), "red", outer_action->type, outer_action->state, outer_action->button);
+				siril_log_error(_("Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"), outer_action->type, outer_action->state, outer_action->button);
 			}
 			// Check for actions assigned to double clicks where there is already an action
 			// with lasting impact assigned to the same single click
 			if (outer_action->type == GDK_BUTTON_PRESS && !outer_action->data->doubleclick_compatible && inner_action->type == GDK_DOUBLE_BUTTON_PRESS && outer_action->button == inner_action->button && outer_action->state == inner_action->state) {
 				doubleclick_conflict = TRUE;
-				siril_log_color_message(_("Double click action %s on button %u conflicts with single click action %s on the same button.\n"), "red", inner_action->data->name, outer_action->button, outer_action->data->name);
+				siril_log_error(_("Double click action %s on button %u conflicts with single click action %s on the same button.\n"), inner_action->data->name, outer_action->button, outer_action->data->name);
 			}
 		}
 	}
 	if (!main_action_included) {
-		siril_log_color_message(_("Main mouse action is not configured. This is essential for using Siril and must be assigned to a mouse action.\n"), "red");
+		siril_log_error(_("Main mouse action is not configured. This is essential for using Siril and must be assigned to a mouse action.\n"));
 	}
 
 	gboolean retval = main_action_included && !duplicate_found && !doubleclick_conflict;
@@ -330,7 +348,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 			g_free(name);
 			g_free(action_type);
 			g_free(modifier);
-			siril_log_color_message(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"), "salmon");
+			siril_log_warning(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"));
 			valid = gtk_tree_model_iter_next(model, &iter);
 			continue;
 		}
@@ -340,7 +358,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 
 		// Create a new mouse action and add it to the list
 		mouse_action *action = create_mouse_action(button, type, state, metadata);
-		siril_debug_print("New action created: %s, ref %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->type);
+		siril_log_debug("New action created: %s, ref %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->type);
 
 		new_mouse_actions = g_slist_append(new_mouse_actions, action);
 
@@ -356,7 +374,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 		}
 		gui.mouse_actions = new_mouse_actions;
 		fill_mouse_actions_list(FALSE);
-		siril_log_color_message(_("Mouse configuration updated successfully.\n"), "green");
+		siril_log_info(_("Mouse configuration updated successfully.\n"));
 	}
 }
 
@@ -375,7 +393,8 @@ void add_row_to_tree_view(GtkListStore *store) {
 }
 
 void on_mouse_actions_add_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -395,7 +414,8 @@ static void delete_selected_row(GtkTreeView *tree_view, GtkListStore *store) {
 }
 
 void on_mouse_actions_remove_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -442,7 +462,8 @@ static gboolean fill_scroll_actions_list_idle(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		gtk_widget_destroy(existing_tree_view);
@@ -536,7 +557,7 @@ static gboolean validate_scroll_actions(GSList *list) {
 			if (outer_action->state == inner_action->state &&
 						outer_action->direction == inner_action->direction) {
 				duplicate_found = TRUE;
-				siril_log_color_message(_("Duplicate scroll_actions found with state: %d, direction: %d\n"), "red", outer_action->state, outer_action->direction);
+				siril_log_error(_("Duplicate scroll_actions found with state: %d, direction: %d\n"), outer_action->state, outer_action->direction);
 			}
 		}
 	}
@@ -570,7 +591,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 			g_free(name);
 			g_free(direction);
 			g_free(modifier);
-			siril_log_color_message(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"), "salmon");
+			siril_log_warning(_("Warning: ignoring unconfigured action (\"" NEW_ENTRY_TEXT "\")\n"));
 			valid = gtk_tree_model_iter_next(model, &iter);
 			continue;
 		}
@@ -593,7 +614,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 
 		// Create a new mouse action and add it to the list
 		scroll_action *action = create_scroll_action(state, metadata, dir);
-		siril_debug_print("New action created: %s, reference %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->direction);
+		siril_log_debug("New action created: %s, reference %u, modifier %u, action %u\n", action->data->name, action->data->reference, action->state, action->direction);
 
 		new_scroll_actions = g_slist_append(new_scroll_actions, action);
 
@@ -609,7 +630,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 		}
 		gui.scroll_actions = new_scroll_actions;
 		fill_scroll_actions_list(FALSE);
-		siril_log_color_message(_("Mouse scroll configuration updated successfully.\n"), "green");
+		siril_log_info(_("Mouse scroll configuration updated successfully.\n"));
 	}
 }
 
@@ -626,7 +647,8 @@ void add_row_to_scroll_tree_view(GtkListStore *store) {
 }
 
 void on_scroll_actions_add_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -637,7 +659,8 @@ void on_scroll_actions_add_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_scroll_actions_remove_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -668,13 +691,14 @@ void on_mouse_actions_reset_clicked(GtkButton *button, gpointer user_data) {
 
 void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
-	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
+	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(mouse_speed_spin);
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		update_mouse_actions_from_treeview(GTK_TREE_VIEW(existing_tree_view));
 	}
-	scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	scrolled_window = scroll_scrolled_window;
 	existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		update_scroll_actions_from_treeview(GTK_TREE_VIEW(existing_tree_view));
@@ -689,11 +713,11 @@ void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_mouse_actions_dialog_show(GtkDialog *dialog, gpointer user_data) {
-	GtkWidget *widget = lookup_widget("mouse_test_drawingarea");
-	gtk_widget_add_events(widget, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_BUTTON_PRESS_MASK);
+	mouse_action_prefs_init_statics();
+	gtk_widget_add_events(mouse_test_drawingarea, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_BUTTON_PRESS_MASK);
 
 	// Use CSS to draw a frame around the mouse test area
-	widget = lookup_widget("mouse_test_frame");
+	GtkWidget *widget = mouse_test_frame_widget;
 	GtkCssProvider *provider = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(provider, "frame { border: 2px solid #aaa; border-radius: 4px; padding: 2px; }", -1, NULL);
 	GtkStyleContext *context = gtk_widget_get_style_context(widget);
@@ -728,7 +752,8 @@ static gboolean reset_label_text(GtkLabel *label) {
 }
 
 gboolean on_mouse_test_drawingarea_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkLabel *label = GTK_LABEL(lookup_widget("mouse_test_area_label"));
+	mouse_action_prefs_init_statics();
+	GtkLabel *label = mouse_test_label;
 	gchar *text = NULL;
 	gboolean refresh_callback = FALSE;
 	if (event->type == GDK_SCROLL) {
@@ -813,7 +838,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			// Assign the third part to the result string, trimming leading/trailing whitespace
 			mouse_function_ref reference = (mouse_function_ref) g_ascii_strtoull(tokens[3], NULL, 10);
 			if (reference == MOUSE_REF_NULL || reference >= MOUSE_REF_MAX || map_ref_to_metadata(reference) == &null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -821,7 +846,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			}
 			action->data = map_ref_to_metadata(reference);
 			if (action->data == &null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -829,7 +854,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			}
 		} else {
 			// Handle error: input format is incorrect
-			siril_log_color_message(_("Warning: when parsing mouse action config, config string has incorrect format: \"%s\". Skipping..."), "salmon", input);
+			siril_log_warning(_("Warning: when parsing mouse action config, config string has incorrect format: \"%s\". Skipping..."), input);
 			free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);
@@ -884,7 +909,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			// Assign the third part to the result string, trimming leading/trailing whitespace
 			scroll_function_ref reference = (scroll_function_ref) g_ascii_strtoull(tokens[2], NULL, 10);
 			if (reference == SCROLL_REF_NULL || reference >= SCROLL_REF_MAX || map_scroll_ref_to_metadata(reference) == &scroll_null_action) {
-				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
+				siril_log_warning(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -892,7 +917,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			}
 			action->data = map_scroll_ref_to_metadata(reference);
 			if (action->data == &scroll_null_action) {
-				siril_log_color_message(_("Warning: when parsing scroll action config, string parsed to an unknown function: \"%s\". Skipping...\n"), "salmon", input);
+				siril_log_warning(_("Warning: when parsing scroll action config, string parsed to an unknown function: \"%s\". Skipping...\n"), input);
 				free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
@@ -900,7 +925,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			}
 		} else {
 			// Handle error: input format is incorrect
-			siril_log_color_message(_("Warning: when parsing mouse action config, string has incorrect format: \"%s\". Skipping...\n"), "salmon", input);
+			siril_log_warning(_("Warning: when parsing mouse action config, string has incorrect format: \"%s\". Skipping...\n"), input);
 			free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);

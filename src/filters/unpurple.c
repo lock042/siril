@@ -26,10 +26,10 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "gui/callbacks.h"
 #include "algos/colors.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
+#include "core/gui_iface.h"
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *
@@ -70,8 +70,16 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	gboolean stars_needs_freeing = FALSE;
 	psf_star **stars = NULL;
 	int channel = 1;
+	int nb_stars = 0;
 
-	int nb_stars = starcount(com.stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
+	nb_stars = starcount(com.stars);
+	if (nb_stars >= 1) {
+		stars = com.stars;
+		stars_needs_freeing = FALSE;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
@@ -87,13 +95,10 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 						NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		stars_needs_freeing = FALSE;
 	}
 
 	if (starcount(stars) < 1) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		return -1;
 	}
 
@@ -213,12 +218,11 @@ static int unpurple_filter(struct unpurpleargs *args) {
 		}
 	}
 
-	if (fit == gfit && args->applying && !com.script) {
-		populate_roi();
-	}
+	/* No populate_roi() here: generic_image_worker performs it universally
+	 * when args->fit == gfit. */
 
 	if (fit == gfit && args->applying) {
-		siril_log_color_message(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"), "green",
+		siril_log_info(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"),
 								args->mod_b, args->thresh, args->withstarmask);
 	}
 
@@ -234,26 +238,3 @@ int unpurple_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	return unpurple_filter(params);
 }
 
-/* Idle function for preview updates */
-gboolean unpurple_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-/* Idle function for final application */
-gboolean unpurple_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-	return FALSE;
-}

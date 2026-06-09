@@ -12,22 +12,15 @@
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
 #include "core/masks.h"
-#include "core/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/proto.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
+#include "core/gui_iface.h"
+/* gui_calls.h removed: all former direct calls now route through gui_iface */
 #include "gui/user_polygons.h"
-#include "gui/siril-window.h"
-#include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -51,7 +44,7 @@ typedef enum {
 	{ \
 		size_t len = FLEN_VALUE; \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_FLEN_STRING at %s\n", #str); \
+			siril_log_debug("Error: Exceeded max length for COPY_FLEN_STRING at %s\n", #str); \
 			return 1; \
 		} \
 		memset(ptr, 0, len); \
@@ -64,7 +57,7 @@ typedef enum {
 	{ \
 		size_t len = strlen(str) + 1; \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_STRING at %s\n", #str); \
+			siril_log_debug("Error: Exceeded max length for COPY_STRING at %s\n", #str); \
 			return 1; \
 		} \
 		memcpy((char*)ptr, str, len);     /* Copy including null terminator */ \
@@ -75,7 +68,7 @@ typedef enum {
 	{ \
 		size_t len = sizeof(type); \
 		if ((ptr + len) - start_ptr > maxlen) { \
-			siril_debug_print("Error: Exceeded max length for COPY_BE64 at %s\n", #val); \
+			siril_log_debug("Error: Exceeded max length for COPY_BE64 at %s\n", #val); \
 			return 1; \
 		} \
 		union { type v; uint64_t i; } conv; \
@@ -408,6 +401,8 @@ static const char* log_color_to_str(LogColor color) {
 			return "green";
 		case LOG_BLUE:
 			return "blue";
+		case LOG_BOLD:
+			return "bold";
 		default:
 			return NULL;
 	}
@@ -662,7 +657,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 */
 void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (length < sizeof(CommandHeader)) {
-		siril_log_color_message(_("Received incomplete command header\n"), "red");
+		siril_log_error(_("Received incomplete command header\n"));
 		return;
 	}
 
@@ -671,7 +666,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	int32_t payload_length = GINT32_FROM_BE(header->length);  // Convert from network byte order
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
-		siril_log_color_message(_("Received incomplete command payload: length = %u, expected %u\n"), "red", length, payload_length);
+		siril_log_error(_("Received incomplete command payload: length = %u, expected %u\n"), length, payload_length);
 		return;
 	}
 	// Get payload
@@ -688,9 +683,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[12]; // 3 x 4 bytes for width, height, and channels
 
 				// Convert the integers to BE format for consistency across the UNIX socket
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				uint32_t width_BE = GUINT32_TO_BE(gfit->rx);
 				uint32_t height_BE = GUINT32_TO_BE(gfit->ry);
 				uint32_t channels_BE = GUINT32_TO_BE(gfit->naxes[2]);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &width_BE, sizeof(uint32_t));      // First 4 bytes: width
@@ -711,7 +708,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 
 			if (result) {
-				if (com.selection.w == 0 && com.selection.h == 0) {
+				g_mutex_lock(&com.mutex);
+				rectangle sel = com.selection;
+				g_mutex_unlock(&com.mutex);
+				if (sel.w == 0 && sel.h == 0) {
 					// No selection: return STATUS_NONE and sirilpy will return None
 					success = send_response(conn, STATUS_NONE, NULL, 0);
 					break;
@@ -720,10 +720,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t x_BE = GUINT32_TO_BE(com.selection.x);
-				uint32_t y_BE = GUINT32_TO_BE(com.selection.y);
-				uint32_t w_BE = GUINT32_TO_BE(com.selection.w);
-				uint32_t h_BE = GUINT32_TO_BE(com.selection.h);
+				uint32_t x_BE = GUINT32_TO_BE(sel.x);
+				uint32_t y_BE = GUINT32_TO_BE(sel.y);
+				uint32_t w_BE = GUINT32_TO_BE(sel.w);
+				uint32_t h_BE = GUINT32_TO_BE(sel.h);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &x_BE, sizeof(uint32_t));
@@ -749,7 +749,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t vport_BE = GUINT32_TO_BE(gui.cvport);
+				uint32_t vport_BE = GUINT32_TO_BE(gui_iface.get_active_vport());
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &vport_BE, sizeof(uint32_t));
@@ -773,16 +773,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.y),
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
-					if (selection.x < 0 || selection.x + selection.w > gfit->rx ||
-								selection.y < 0 || selection.y + selection.h > gfit->ry) {
+					g_rw_lock_reader_lock(&gfit->rwlock);
+					guint32 image_rx = gfit->rx;
+					guint32 image_ry = gfit->ry;
+					g_rw_lock_reader_unlock(&gfit->rwlock);
+					if (selection.x < 0 || selection.x + selection.w > image_rx ||
+								selection.y < 0 || selection.y + selection.h > image_ry) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
 					if (!com.headless)
-						execute_idle_and_wait_for_it(new_selection_zone, NULL);
+						gui_iface.new_selection_zone();
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
@@ -797,13 +801,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 2) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				rectangle region = {0, 0, gfit->rx, gfit->ry};
 				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				// Send shared memory info to Python
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
-				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
+				siril_log_debug(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
 			}
 			break;
 		}
@@ -853,7 +859,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				layer = channel_val;
  			} else {
 				// Default behavior: use current viewport in GUI mode, or channel 0 in headless
- 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+ 				layer = gui_iface.get_channel_for_vport();
  			}
 			// Check for an invalid selection
 			if (selection.x < 0 || selection.w < 5 || selection.w > 300 ||
@@ -864,6 +870,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if we need to adjust the selection to fit the image
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (centred) {
 				// When centred, we need to preserve the centre position while clipping
 				int center_x = selection.x + selection.w / 2;
@@ -903,11 +910,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			if (selection.w < 5 || selection.h < 5) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Selection too close to edge of image");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			if (layer < 0 || layer >= gfit->naxes[2]) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -923,6 +932,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 																		 // phot_is_valid == False
 				free_psf(psf);
 				error_occurred = TRUE;
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Failed to find a star");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -937,6 +947,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			const size_t psf_star_size = 37 * sizeof(double);
 			unsigned char* star = g_try_malloc0(psf_star_size);
@@ -960,6 +971,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			int layer = 0;
 			rectangle selection = { 0 };
 
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (payload_length == 16 || payload_length == 20) {
 				// Shape provided (with or without channel)
 				rectangle region_BE = *(rectangle*) payload;
@@ -969,6 +981,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.h)};
 				if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 					selection.y < 0 || selection.y  + selection.h > gfit->ry - 1) {
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Invalid region: selection breaches image dimensions");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -987,11 +1000,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				layer = GUINT32_FROM_BE(*(int*) payload);
 			} else {
 				// No channel specified, use default
-				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+				layer = gui_iface.get_channel_for_vport();
 			}
 
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("No image loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -999,6 +1013,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Check if channel is valid
 			if (layer >= gfit->naxes[2]) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -1008,6 +1023,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 				selection.w * selection.h < 3 ||
 				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Invalid selection");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -1015,6 +1031,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Compute stats
 			imstats *stats = statistics(NULL, -1, gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
@@ -1039,11 +1056,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
-				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
+				siril_log_debug(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
 			}
 			break;
 		}
@@ -1117,59 +1136,46 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_INFO_MESSAGEBOX:
 		case CMD_INFO_MESSAGEBOX_MODAL: {
 			// Set the title and type
-			GtkMessageType type;
+			SirilMessageType type;
 			const gchar *title;
-			gboolean modal = TRUE;
 			switch (header->command) {
 				case CMD_ERROR_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_ERROR_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_ERROR;
+					type = SIRIL_MSG_ERROR;
 					title = _("Error");
 					break;
 				case CMD_WARNING_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_WARNING_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_WARNING;
+					type = SIRIL_MSG_WARNING;
 					title = _("Warning");
 					break;
 				case CMD_INFO_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_INFO_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_INFO;
+					type = SIRIL_MSG_INFO;
 					title = _("Information");
 					break;
 				default:
-					type = GTK_MESSAGE_OTHER;
+					type = SIRIL_MSG_INFO;
 					title = _("Unknown dialog type");
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
 
-			// If we are headess we can't use a siril_message_dialog, so we just print the message to the log
+			// If we are headless we can't use a siril_message_dialog, so we just print the message to the log
 			if (com.headless) {
-				if (type == GTK_MESSAGE_INFO)
+				if (type == SIRIL_MSG_INFO)
 					siril_log_message(log_msg);
-				else if (type == GTK_MESSAGE_WARNING)
-					siril_log_color_message(log_msg, "salmon");
-				else if (type == GTK_MESSAGE_ERROR)
-					siril_log_color_message(log_msg, "red");
+				else if (type == SIRIL_MSG_WARNING)
+					siril_log_warning(log_msg);
+				else if (type == SIRIL_MSG_ERROR)
+					siril_log_error(log_msg);
 				g_free(log_msg);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 				break;
 			}
 
-			if (!modal) {
-				queue_message_dialog(type, title, log_msg);
-			} else {
-				struct message_data *data = malloc(sizeof(struct message_data));
-				data->type = type;
-				data->title = strdup(title);
-				data->text = strdup(log_msg);
-				siril_debug_print("Executing modal dialog\n");
-				if (!com.headless)
-					execute_idle_and_wait_for_it(siril_message_dialog_idle, data);
-			}
+			siril_log_debug("Executing message dialog\n");
+			gui_iface.message_dialog(type, title, log_msg);
 			g_free(log_msg);
 
 			// Send success response
@@ -1186,7 +1192,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Ensure null-terminated string for undo message
 				char* log_msg = g_strndup(payload, payload_length);
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				undo_save_state(gfit, log_msg);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				g_free(log_msg);
 
 				// Send success response
@@ -1270,11 +1278,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_PIXELDATA: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
+				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_pixeldata_request(conn, gfit, payload, payload_length);
+				g_rw_lock_writer_unlock(&gfit->rwlock);
+				// Writer lock must be released before dispatching the idle:
+				// update_single_image_from_gfit acquires the reader lock, which
+				// would deadlock if we still held the writer lock here.
+				if (success && !com.headless) {
+					siril_log_debug("set_*_pixeldata: updating gfit\n");
+					gui_iface.update_single_image_display();
+				}
 			}
 			break;
 		}
@@ -1286,7 +1303,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			if (com.seq.type != SEQ_REGULAR) {
-				siril_debug_print("Invalid sequence type\n");
+				siril_log_debug("Invalid sequence type\n");
 				const char* error_msg = _("Invalid sequence type");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1296,7 +1313,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t expected_len_with_prefix = expected_len + 256;
 
 			if (payload_length != expected_len && payload_length != expected_len_with_prefix) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
+				siril_log_debug("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
 								payload_length, expected_len, expected_len_with_prefix);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1304,7 +1321,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
-			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
+			siril_log_debug("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
 			if (index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Failed to load sequence frame: index out of range");
@@ -1338,7 +1355,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Write the sequence frame with the provided prefix (or empty string if none)
 			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
 					prefix, index);
-			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
+			siril_log_debug("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
 			free(dest);
@@ -1354,17 +1371,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			clearfits(fit);
 			free(fit);
 			if (writer_retval) {
-				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
+				siril_log_error(_("Error writing sequence frame %i from Python\n"), index);
 			}
 			if (!com.headless && com.seq.current == index) {
-				execute_idle_and_wait_for_it(seq_load_image_in_thread, &index);
+				gui_iface.seq_redisplay_frame(index);
 			}
 			break;
 		}
 
 		case CMD_PLOT: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for PLOT: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for PLOT: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -1377,7 +1394,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_BGSAMPLES: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_BGSAMPLES: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_BGSAMPLES: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -1397,14 +1414,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 			sample_mutex_unlock();
-			queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
 		case CMD_GET_IMAGE_STATS: {
 			if (payload_length != sizeof(uint32_t)) {
-				siril_debug_print("Invalid payload length for GET_IMAGE_STATS: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for GET_IMAGE_STATS: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1422,7 +1439,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (channel >= gfit->naxes[2]) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -1433,6 +1452,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// If there are no stats available we return NONE, the script can use
 			// cmd("stat") to generate them if required
 			if (!fit->stats || !fit->stats[channel]) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_message = _("No stats");
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
 				break;
@@ -1445,7 +1465,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *ptr = response_buffer;
 
 			imstats *stats = fit->stats[channel];
-			if (imstats_to_py(stats, ptr, total_size)) {
+			int stats_copy_err = imstats_to_py(stats, ptr, total_size);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			if (stats_copy_err) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -1457,7 +1479,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_UPDATE_PROGRESS: {
 			if (payload_length < sizeof(float)) {
-				siril_debug_print("Invalid payload length for UPDATE_PROGRESS: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for UPDATE_PROGRESS: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1485,7 +1507,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			char* progress_msg = g_strndup(message, message_length);
 
 			// Update the progress
-			set_progress_bar_data(progress_msg, progress);
+			gui_iface.set_progress(progress, progress_msg);
 
 			// Clean up
 			g_free(progress_msg);
@@ -1509,7 +1531,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
-			if (keywords_to_py(gfit, ptr, total_size)) {
+			g_rw_lock_reader_lock(&gfit->rwlock);
+			int kw_err = keywords_to_py(gfit, ptr, total_size);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			if (kw_err) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -1925,6 +1950,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
 
 			// Parse channel from payload if provided
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (payload_length == 4) {
 				guint32 channel_BE = *((guint32*) payload);
 				guint32 channel_val = GUINT32_FROM_BE(channel_BE);
@@ -1933,6 +1959,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					layer = channel_val;
 					// Validate channel
 					if (layer < 0 || layer >= gfit->naxes[2]) {
+						g_rw_lock_reader_unlock(&gfit->rwlock);
 						const char* error_msg = _("Invalid channel");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						break;
@@ -1945,16 +1972,26 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// No payload means use default
 				layer = (gfit->naxes[2] == 1) ? 0 : 1;
 			} else {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
 			// Check if we need to find stars or use existing ones
-			if (starcount(com.stars) < 1) {
+			g_rw_lock_reader_lock(&com.stars_lock);
+			int py_comstar_count = starcount(com.stars);
+			if (py_comstar_count >= 1) {
+				stars = com.stars;
+				nb_stars = py_comstar_count;
+			}
+			g_rw_lock_reader_unlock(&com.stars_lock);
+
+			if (py_comstar_count < 1) {
 				// Set up starfinder_data structure
 				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 				if (!sf_data) {
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Memory allocation failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -1978,6 +2015,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Call the worker function
 				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
 				free(sf_data);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				if (retval != 0 || !stars) {
 					const char* error_msg = _("Star detection failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1987,8 +2025,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				stars_needs_freeing = TRUE;
 			} else {
-				stars = com.stars;
-				nb_stars = starcount(com.stars);
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 			}
 
 			// Validate we have stars
@@ -2112,7 +2149,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (fits_to_py(gfit, ptr, total_size)) {
+			g_rw_lock_reader_lock(&gfit->rwlock);
+			int fits_err = fits_to_py(gfit, ptr, total_size);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			if (fits_err) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -2128,7 +2168,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (gfit->icc_profile == NULL) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no ICC profile");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -2136,6 +2178,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare data
 			guint32 profile_size;
 			unsigned char* profile_data = get_icc_profile_data(gfit->icc_profile, &profile_size);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2152,7 +2195,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Prepare data
 			guint32 profile_size;
-			unsigned char* profile_data = get_icc_profile_data(gui.icc.monitor, &profile_size);
+			unsigned char* profile_data = get_icc_profile_data(com.gui_icc.monitor, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2167,9 +2210,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			fits *fit = gfit;
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (fit->header == NULL) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no FITS header");
-				siril_debug_print("No FITS header\n");
+				siril_log_debug("No FITS header\n");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
@@ -2179,6 +2224,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			break;
@@ -2191,7 +2237,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			fits *fit = gfit;
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (fit->history == NULL) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no history entries");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -2205,13 +2253,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					total_length += strlen(str) + 1;  // +1 to account for the null terminator
 				}
 			}
-			if (com.history) {
-				for (int i = 0; i < com.hist_display; i++) {
-					if (com.history[i].history[0] != '\0') {
-						gchar *str = (gchar *) com.history[i].history;
-						total_length += strlen(str) + 1;
-					}
-				}
+			for (GList *l = com.undo_stack; l; l = l->next) {
+				historic *h = (historic *)l->data;
+				if (h->history[0] != '\0')
+					total_length += strlen(h->history) + 1;
 			}
 			gchar *buffer = malloc(total_length * sizeof(char));
 			gchar *ptr = buffer;
@@ -2223,16 +2268,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					ptr += len;
 				}
 			}
-			if (com.history) {
-				for (int i = 0; i < com.hist_display; i++) {
-					if (com.history[i].history[0] != '\0') {
-						gchar *str = (gchar *) com.history[i].history;
-						size_t len = strlen(str) + 1;
-						memcpy(ptr, str, len * sizeof(char));
-						ptr += len;
-					}
+			for (GList *l = com.undo_stack; l; l = l->next) {
+				historic *h = (historic *)l->data;
+				if (h->history[0] != '\0') {
+					size_t len = strlen(h->history) + 1;
+					memcpy(ptr, h->history, len * sizeof(char));
+					ptr += len;
 				}
 			}
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			shared_memory_info_t *info = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
@@ -2247,7 +2291,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			fits *fit = gfit;
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (fit->unknown_keys == NULL || fit->unknown_keys[0] == '\0') {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no unknown keys");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -2256,6 +2302,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 length = strlen(fit->unknown_keys) + 1;
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			break;
@@ -2308,8 +2355,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_PIX2WCS: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				if (!has_wcs(gfit)) {
 					// Handle no WCS error
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2326,6 +2375,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					fx = x;
 					fy = gfit->ry - y;
 					pix2wcs2(gfit->keywords.wcslib, fx, fy, &ra, &dec);
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
 					TO_BE64_INTO(dec_BE, dec, double);
@@ -2337,6 +2387,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					g_free(payload);
 					break;
 				}
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 			} else {
 				// Handle error retrieving dimensions
 				const char* error_msg = _("Failed to set selection - no image loaded");
@@ -2348,8 +2399,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_WCS2PIX: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				if (!has_wcs(gfit)) {
 					// Handle no WCS error
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2365,6 +2418,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					wcs2pix(gfit, ra, dec, &fx, &fy);
 					x = fx;
 					y = gfit->ry - fy;
+					g_rw_lock_reader_unlock(&gfit->rwlock);
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
@@ -2375,6 +2429,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					g_free(payload);
 					break;
 				}
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 			} else {
 				// Handle error retrieving dimensions
 				const char* error_msg = _("Failed to set selection - no image loaded");
@@ -2460,7 +2515,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			ensure_seqlist_dialog_closed();
+			gui_iface.ensure_seqlist_dialog_closed();
 			// Payload format: count (I) + indices (I * count) + incl (I)
 			if (payload_length < 12) {
 				const char* error_msg = _("Incorrect payload length: too small");
@@ -2501,9 +2556,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Update GUI
 			if (!com.headless) {
-				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
-				g_thread_join(thread);
-				queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+				gui_iface.update_sequence_overlay_async();
+				gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 			}
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
@@ -2550,20 +2604,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_HEADER: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
+				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
+				g_rw_lock_writer_unlock(&gfit->rwlock);
 			}
 			break;
 		}
 
 		case CMD_ADD_USER_POLYGON: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2579,16 +2635,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				gboolean deleted = delete_user_polygon(id);
-				queue_redraw(REDRAW_OVERLAY);
+				gui_iface.redraw_image_async(REDRAW_OVERLAY);
 				if (!deleted) {
-					siril_debug_print("Failed to delete user polygon with id %d\n", id);
+					siril_log_debug("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
-				siril_debug_print("Invalid payload length for DELETE_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for DELETE_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
@@ -2605,7 +2661,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				UserPolygon *polygon = find_polygon_by_id(id);
 				if (!polygon) {
-					siril_debug_print("Failed to find a user polygon with id %d\n", id);
+					siril_log_debug("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2613,7 +2669,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
 				if (!serialized) {
-					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
+					siril_log_debug("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -2623,7 +2679,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_free(serialized);
 				free(info);
 			} else {
-				siril_debug_print("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
@@ -2632,14 +2688,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			if (g_slist_length(gui.user_polygons) == 0) {
-				siril_debug_print("No user polygons defined\n");
+			GSList *polygons = gui_iface.get_user_polygons();
+			if (g_slist_length(polygons) == 0) {
+				siril_log_debug("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			} else {
-				uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+				uint8_t *serialized = serialize_polygon_list(polygons, &polygon_list_size);
 				if (!serialized) {
-					siril_debug_print("Failed to serialize the user polygon list\n");
+					siril_log_debug("Failed to serialize the user polygon list\n");
 					const char* error_msg = _("Failed to serialize user polygon list");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				} else {
@@ -2671,7 +2728,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			uint8_t retval = siril_confirm_dialog_async((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			uint8_t retval = gui_iface.confirm_dialog(title, message, confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
 			break;
 		}
@@ -2731,15 +2788,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_DRAW_POLYGON: {
 //			mouse_status_enum mouse_status = get_mouse_status();
 /*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
-				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
+				siril_log_debug("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}*/
 			if (payload_length == 5) {
 				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
-				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
-				gui.poly_ink = uint32_to_gdk_rgba(color);
-				init_draw_poly();
+				gboolean fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
+				gui_iface.set_poly_drawing(color, fill);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
@@ -2835,7 +2891,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					super_layer = -layer - 1;
 				imstats* stat = statistics(NULL, -1, fit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 				if (!stat) {
-					siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+					siril_log_error(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
 					continue;
 				}
 				fit->stats[layer] = stat;
@@ -2950,10 +3006,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			gboolean debayer_pref = com.pref.debayer.open_debayer;
 			com.pref.debayer.open_debayer = FALSE; // disable debayering
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			com.pref.debayer.open_debayer = debayer_pref;
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 			if (retval) {
 				free(fit);
 				g_free(filepath);
@@ -3066,13 +3126,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_ICCPROFILE: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
+				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
+				g_rw_lock_writer_unlock(&gfit->rwlock);
 			}
 			break;
 		}
@@ -3082,9 +3144,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[8]; // 2 x 2 bytes for lo, hi + 4 for sliders_mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint16_t lo_BE = GUINT16_TO_BE(gui.lo);
-			uint16_t hi_BE = GUINT16_TO_BE(gui.hi);
-			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.sliders);
+			int ilo = 0, ihi = 0xFFFF;
+			gui_iface.get_display_lo_hi(&ilo, &ihi);
+			uint16_t lo_BE = GUINT16_TO_BE((guint16)ilo);
+			uint16_t hi_BE = GUINT16_TO_BE((guint16)ihi);
+			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_sliders_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &lo_BE, sizeof(uint16_t));
@@ -3101,7 +3165,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.rendering_mode);
+			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_rendering_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &mode_BE, sizeof(uint32_t));
@@ -3116,7 +3180,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			gboolean linked = !gui.unlink_channels;
+			gboolean linked = gui_iface.get_channels_linked();
 			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
 
 			// Copy the packed data into the response buffer
@@ -3143,19 +3207,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Failed to set STF - invalid mode value");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					} else {
 						// Set STF
-						gui.rendering_mode = stf;
-						execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.set_rendering_mode((int)stf);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3173,17 +3236,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == 1) {
 					uint8_t statebyte = payload[0];
 					gboolean state = (statebyte);
-					gui.unlink_channels = !state;
-
-					// Schedule the UI update on the GTK thread
-					execute_idle_and_wait_for_it(chain_channels_idle_callback, GINT_TO_POINTER(state));
-					queue_redraw_and_wait_for_it(REMAP_ALL);
+					gui_iface.set_channels_linked(state);
+					gui_iface.redraw_image_sync(REDRAW_ALL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				const char* error_msg = _("Failed to set slider state - no image loaded");
@@ -3196,9 +3256,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare the response data
 			uint8_t response_data[3 * sizeof(double)];
 
-			double x_off = gui.display_offset.x;
-			double y_off = gui.display_offset.y;
-			double zoom = get_zoom_val();
+			double x_off = 0.0, y_off = 0.0;
+			gui_iface.get_display_offset(&x_off, &y_off);
+			double zoom = gui_iface.get_zoom_value();
 			TO_BE64_INTO(x_off, x_off, double);
 			TO_BE64_INTO(y_off, y_off, double);
 			TO_BE64_INTO(zoom, zoom, double);
@@ -3229,18 +3289,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Failed to set slider state - invalid mode value");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					} else {
 						// Set slider mode only
-						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.set_sliders_mode((int)sliders);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3265,19 +3325,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
-							siril_debug_print("Error in send_response\n");
+							siril_log_debug("Error in send_response\n");
 					}  else {
-						gui.lo = lo;
-						gui.hi = hi;
-						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.set_cutoff_values(lo, hi);
+						gui_iface.redraw_image_sync(REDRAW_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
 					const char* error_msg = _("Failed to set slider values - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3299,15 +3357,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double xoff, yoff;
 					TO_BE64_INTO(xoff, values[0], double);
 					TO_BE64_INTO(yoff, values[1], double);
-					gui.display_offset.x = xoff;
-					gui.display_offset.y = yoff;
-					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					gui_iface.set_display_offset(xoff, yoff);
+					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3329,17 +3386,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					TO_BE64_INTO(zoom, values[0], double);
 					if (zoom <= 0.0)
 						zoom = ZOOM_FIT;
-					gui.zoom_value = zoom;
+					gui_iface.set_zoom_value(zoom);
 					if (zoom == ZOOM_FIT)
-						reset_display_offset();
-					execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
-					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+						gui_iface.reset_display_offset();
+					gui_iface.update_zoom_label();
+					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
 				// Handle error - no image loaded
@@ -3373,7 +3430,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Failed to set image filename - empty filename provided");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				if (!success)
-					siril_debug_print("Error in send_response\n");
+					siril_log_debug("Error in send_response\n");
 			}
 			break;
 		}
@@ -3385,7 +3442,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			// Prepare data
-			gchar *log = get_log_as_string();
+			gchar *log = gui_iface.get_log_as_string();
 			guint32 length = strlen(log) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, log, length);
 			// Send data
@@ -3398,7 +3455,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SAVE_IMAGE_FILE: {
 			if (payload_length != sizeof(save_image_info_t)) {
-				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
@@ -3413,7 +3470,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (gfit->mask == NULL || gfit->mask->data == NULL) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no mask");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -3425,6 +3484,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			info->width = (guint32) gfit->rx;
 			info->height = (guint32) gfit->ry;
 			info->data_type = (guint32) gfit->mask->bitpix; // "misuse" the data_type field for bitpix, this is a bit different to its use for image data
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			break;
@@ -3432,35 +3492,41 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_SET_IMAGE_MASK: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
+				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
-				show_or_hide_mask_tab();
+				g_rw_lock_writer_unlock(&gfit->rwlock);
+				gui_iface.show_or_hide_mask_tab();
 				if (!com.script) {
-					execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+					gui_iface.redraw_mask_idle();
 				}
 			}
 			break;
 		}
 
 		case CMD_SET_IMAGE_MASK_STATE: {
+			g_rw_lock_writer_lock(&gfit->rwlock);
 			if (single_image_is_loaded() && gfit->mask && gfit->mask->data) {
 				if (payload_length == 1) {
 					uint8_t statebyte = payload[0];
 					gboolean state = (statebyte);
 					set_mask_active(gfit, state);
+					g_rw_lock_writer_unlock(&gfit->rwlock);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
+					g_rw_lock_writer_unlock(&gfit->rwlock);
 					const char* error_msg = _("Failed to set mask state - invalid payload length");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					if (!success)
-						siril_debug_print("Error in send_response\n");
+						siril_log_debug("Error in send_response\n");
 				}
 			} else {
+				g_rw_lock_writer_unlock(&gfit->rwlock);
 				const char* error_msg = _("Failed to set mask state - no image loaded or image has no mask");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
@@ -3471,7 +3537,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare the response data
 			uint8_t response_data[4]; // 4 for STF mode
 
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			if (!gfit->mask || !gfit->mask->data) {
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				const char* error_msg = _("Image has no mask");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -3480,6 +3548,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Convert the integers to BE format for consistency across the UNIX socket
 			gboolean linked = gfit->mask_active;
 			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &linked_BE, sizeof(uint32_t));
@@ -3491,7 +3560,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_MASK_UPDATE_POLYGON: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				siril_log_debug("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -3516,7 +3585,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				index = (DialogID) GUINT32_FROM_BE(*(int*) payload);
-				if (index < 0 || index >= number_of_dialogs()) {
+				if (index < 0 || index >= gui_iface.number_of_dialogs()) {
 					const char* error_msg = _("Incorrect command arguments");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -3683,7 +3752,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							g_warning("Unhandled DialogID: %d", index);
 							break;
 					}
-					ActionResult result = queue_activate_action_if_enabled(action_name, appmap);
+					ActionResult result = (ActionResult)gui_iface.activate_action(action_name, appmap);
 					const char* error_msg;
 					switch (result) {
 						case ACTION_SUCCESS:
@@ -3713,13 +3782,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		default:
-			siril_debug_print("Unknown command: %d\n", header->command);
+			siril_log_debug("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
 			success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			break;
 	}
 
 	if (!success) {
-		siril_debug_print("Failed to send response\n");
+		siril_log_debug("Failed to send response\n");
 	}
 }

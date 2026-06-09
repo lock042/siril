@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
@@ -32,8 +33,8 @@ static const char *drawing_area[] = { "drawingarear", "drawingareag", "drawingar
 
 void siril_drag_single_image_set_dest() {
 	for (int i = 0; i < G_N_ELEMENTS(drawing_area); i++) {
-		gtk_drag_dest_set(lookup_widget(drawing_area[i]), GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP | GTK_DEST_DEFAULT_HIGHLIGHT, NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-		gtk_drag_dest_add_uri_targets(lookup_widget(drawing_area[i]));
+		gtk_drag_dest_set(GTK_WIDGET(gtk_builder_get_object(gui.builder, drawing_area[i])), GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP | GTK_DEST_DEFAULT_HIGHLIGHT, NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
+		gtk_drag_dest_add_uri_targets(GTK_WIDGET(gtk_builder_get_object(gui.builder, drawing_area[i])));
 	}
 }
 
@@ -86,8 +87,8 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 									g_free(com.pref.wd);
 								com.pref.wd = g_strdup(com.wd);
 								if (!com.script) {
-									populate_seqcombo(filename);
-									gui_function(set_GUI_CWD, NULL);
+									gui_iface.populate_seq_combo(filename);
+									gui_iface.set_gui_cwd();
 								}
 							}
 							g_free(sequence_dir);

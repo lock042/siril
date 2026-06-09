@@ -76,11 +76,11 @@ void wavelength_to_XYZ(float wavelength, float *X, float *Y, float *Z) {
                 0.681f * expf(-0.5f*Zt2*Zt2);
 }
 
-void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
+void wavelength_to_display_RGB(double wavelength, double *r, double *g, double *b, double *a) {
 	float XYZ[3] = { 0.f };
 	float RGB[3] = { 0.f };
 	wavelength_to_XYZ((float) wavelength, &XYZ[0], &XYZ[1], &XYZ[2]);
-	if (gui.icc.monitor) {
+	if (com.gui_icc.monitor) {
 		cmsHPROFILE profile_xyz = cmsCreateXYZProfile();
 		// This transform is unbounded: Gdk crops the negative values returned
 		// for the displayed colors, but retaining the unbounded values allows
@@ -88,7 +88,7 @@ void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
 		cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
 														profile_xyz,
 														TYPE_XYZ_FLT_PLANAR,
-														gui.icc.monitor,
+														com.gui_icc.monitor,
 														TYPE_RGB_FLT_PLANAR,
 														INTENT_RELATIVE_COLORIMETRIC,
 														0);
@@ -96,10 +96,10 @@ void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(profile_xyz);
 	} else {
-		siril_debug_print("Error: no monitor profile exists. This is a bug!\n");
+		siril_log_debug("Error: no monitor profile exists. This is a bug!\n");
 	}
-	rgb->red = (double) RGB[0];
-	rgb->green = (double) RGB[1];
-	rgb->blue = (double) RGB[2];
-	rgb->alpha = 1.0;
+	*r = (double) RGB[0];
+	*g = (double) RGB[1];
+	*b = (double) RGB[2];
+	*a = 1.0;
 }

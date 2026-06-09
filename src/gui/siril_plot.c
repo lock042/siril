@@ -40,8 +40,8 @@
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	if (!spl_data)
 		return FALSE;
-	// siril_debug_print("Plot: %d\n", g_list_length(spl_data->plot));
-	// siril_debug_print("Plots: %d\n", g_list_length(spl_data->plots));
+	// siril_log_debug("Plot: %d\n", g_list_length(spl_data->plot));
+	// siril_log_debug("Plots: %d\n", g_list_length(spl_data->plots));
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
 }
 
@@ -169,7 +169,7 @@ gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int 
 		siril_log_message(_("Snapshot was saved into the clipboard.\n"));
 		g_object_unref(pixbuf);
 	} else {
-		siril_log_message(_("Could not copy the snapshot into the clipboard.\n"));
+		siril_log_warning(_("Could not copy the snapshot into the clipboard.\n"));
 	}
 	return TRUE;
 
@@ -183,7 +183,7 @@ static GdkModifierType get_primary() {
 
 // callbacks
 static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	siril_debug_print("Freeing siril_plot data and closing\n");
+	siril_log_debug("Freeing siril_plot data and closing\n");
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(widget), "spl_data");
 	free_siril_plot_data(spl_data);
 	gtk_widget_destroy(widget);
@@ -202,7 +202,7 @@ static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user
 	double width =  gtk_widget_get_allocated_width(widget);
 	double height = gtk_widget_get_allocated_height(widget);
 	if (!siril_plot_draw(cr, spl_data, width, height, FALSE))
-		siril_debug_print("Problem while creating siril_plot\n");
+		siril_log_debug("Problem while creating siril_plot\n");
 	if (spl_data->pdd.action == SELACTION_SELECTING) {
 		// drawing the selection box
 		if (fabs(spl_data->pdd.selection.w) > 1. || fabs(spl_data->pdd.selection.h) > 1.) {
@@ -471,11 +471,11 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// sanity checks
 	if (!spl_data) {
-		siril_debug_print("Passed an empty spl_data structure\n");
+		siril_log_debug("Passed an empty spl_data structure\n");
 		return FALSE;
 	}
 	if (!spl_data_has_any_plot(spl_data)) {
-		siril_debug_print("Trying to display plot that contains no data, freeing and aborting\n");
+		siril_log_debug("Trying to display plot that contains no data, freeing and aborting\n");
 		free_siril_plot_data(spl_data);
 		spl_data = NULL;
 		return FALSE;

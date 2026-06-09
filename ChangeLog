@@ -2,6 +2,7 @@ siril-1.5.0
 --/--/--
 
 **Improvements**
+* Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
 * Added splashscreen at startup (!975)
 * Added caching of online GAIA database (!985)
@@ -11,17 +12,57 @@ siril-1.5.0
 * Added draggable histogram overlay with cursor tracking (!986)
 * Improved vectorization of numerous functions, algorithm optimizations and removed dead code (!1008)
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
+* Improved locking of data structs that may be accessed by multiple threads (!1014)
+* Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Parallelize min/max stacking algorithms (#194)
+* Update astrometry solution when resampling or binning instead of deleting it
+* Separation of GUI and processing code (!1025)
+* Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
+* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
+* Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
+* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
+* Adding TIFF support in Pixelmath (#1726)
+* Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
+* Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
+* Added Search Entry in the Script menu to filter scripts by name (!1042)
+
+**Fixes**
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed command help popover being too tall on low-resolution screens
+
+siril-1.4.4
+--/--/--
+
+**Fixes**
+* Fixed seq file corruption (#1204, #1934)
 
 siril-1.4.3
---/--/--
+05/07/26
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
-* Add SirilInterface.open_dialog()
+* Fixed the 'Keep all samples' in background extraction
+* Added None as a keyword value for BAYERPAT
+* Fixed file extension handling in Save As dialog (#1748)
+* Fixed crash when loading some Hubble images (#1932)
+* Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
+
+**Improvements**
+* Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
+* Added -async option to pyscript command (!1015)
+
+siril-1.4.2-HF1
+04/08/26
+
+**Fixes**
+* Fixed wide chars handling in paths for Windows (#1936)
+
+**Improvements**
+* Removes deprecated build environment msys2/mingw64 from Windows build scripts
 
 siril-1.4.2
 02/18/26
