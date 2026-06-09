@@ -45,7 +45,6 @@
 #include "io/aavso_extended.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
-#include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 #include "algos/comparison_stars.h"
 
@@ -426,10 +425,22 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
-	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
-	Homography Href = seq->regparam[layer][ref_image].H;
-	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
+	Homography Href = { 0 };
+	gboolean Href_is_invalid = FALSE;
+	if (!seq->ext_ref) {
+		cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
+		cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
+		Href = seq->regparam[layer][ref_image].H;
+		Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
+	} else {
+		// For ext_ref sequences, H matrices are absolute (in the external reference frame).
+		// Using Href as-is in cvTransfPoint would cancel the ext_ref contribution and show
+		// drift relative to the internal reference image instead of the external one.
+		// We also need to use the external reference size
+		cx = (double)seq->ext_ref_rx * 0.5;
+		cy = (double)seq->ext_ref_ry * 0.5;
+		cvGetEye(&Href);
+	}
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
@@ -572,7 +583,7 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 		g_date_time_unref(tsi);
 	} else {
 		julian = (double) image_index + 1; // should not happen
-		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
+		siril_log_debug("no DATE-OBS information for frame %d\n", image_index);
 	}
 	plot->frame[point_index] = (double) image_index + 1;
 
@@ -606,7 +617,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
-				//siril_debug_print("julian0 set to %d\n", julian0);
+				//siril_log_debug("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));

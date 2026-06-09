@@ -119,7 +119,7 @@ static void background_startup() {
 static void copy_gfit_to_bkg_backup() {
 	if (!background_computed) return;
 	if (copyfits(gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_debug_print("Image copy error in previews\n");
+		siril_log_debug("Image copy error in previews\n");
 		return;
 	}
 }
@@ -130,7 +130,7 @@ static int copy_bkg_backup_to_gfit() {
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
 	else if (copyfits(&background_backup, gfit, CP_COPYA, -1)) {
-		siril_debug_print("Image copy error in previews\n");
+		siril_log_debug("Image copy error in previews\n");
 		retval = 1;
 	}
 	return retval;
@@ -287,6 +287,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->idle_function = background_idle;
 	args->description = _("Background extraction");
 	args->verbose = TRUE;
+	args->for_preview = TRUE;
 	args->user = bkg_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);

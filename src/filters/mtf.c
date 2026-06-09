@@ -187,7 +187,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 
 	// Log the parameters for each channel
 	if (from->naxes[2] == 3) {
-		siril_debug_print("Applying inverse MTF with values:\n"
+		siril_log_debug("Applying inverse MTF with values:\n"
 				"  Red:   %f, %f, %f\n"
 				"  Green: %f, %f, %f\n"
 				"  Blue:  %f, %f, %f\n",
@@ -195,7 +195,7 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 				params[1].shadows, params[1].midtones, params[1].highlights,
 				params[2].shadows, params[2].midtones, params[2].highlights);
 	} else {
-		siril_debug_print("Applying inverse MTF with values %f, %f, %f\n",
+		siril_log_debug("Applying inverse MTF with values %f, %f, %f\n",
 				params[0].shadows, params[0].midtones, params[0].highlights);
 	}
 
@@ -315,7 +315,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->highlights = 1.0f;
 
-		siril_debug_print("autostretch: (%f, %f, %f)\n",
+		siril_log_debug("autostretch: (%f, %f, %f)\n",
 				result->shadows, result->midtones, result->highlights);
 	} else {
 		for (i = 0; i < nb_channels; ++i) {
@@ -429,7 +429,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
 			results[i].highlights = 1.0;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 	} else {
@@ -446,7 +446,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
-			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+			siril_log_debug("autostretch for channel %d: (%f, %f, %f)\n", i,
 					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
 

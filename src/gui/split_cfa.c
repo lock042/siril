@@ -117,14 +117,14 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 					apply_extractGreen_to_sequence(args);
 					break;
 				default:
-					siril_debug_print("unhandled case!\n");
+					siril_log_debug("unhandled case!\n");
 					free(args->seqEntry);
 					free(args);
 			}
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(split_haoiii_scaling_combo);
-		siril_debug_print("Scaling %d\n", scaling);
+		siril_log_debug("Scaling %d\n", scaling);
 
 		/* Compute base filename before starting the thread */
 		gchar *filename = NULL;
@@ -151,7 +151,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 1: /* extractHa */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -161,7 +161,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 2: /* extractHaOIII */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -172,7 +172,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			case 3: /* extractGreen */
 				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
 				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
-					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
+					siril_log_error(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"));
 					free_cfa_extract_args(cfa_args);
 					g_free(filename);
 					return;
@@ -180,7 +180,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				cfa_args->channel[0] = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 				break;
 			default:
-				siril_debug_print("unhandled case!\n");
+				siril_log_debug("unhandled case!\n");
 				free_cfa_extract_args(cfa_args);
 				g_free(filename);
 				return;

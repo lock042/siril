@@ -187,7 +187,7 @@ void siril_open_dialog(gchar *id) {
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
-		siril_debug_print("### Opening imgproc dialog: %s\n", entry.identifier);
+		siril_log_debug("### Opening imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = TRUE;
 	}
 }
@@ -197,7 +197,7 @@ void siril_close_dialog(gchar *id) {
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
-		siril_debug_print("### Closing imgproc dialog: %s\n", entry.identifier);
+		siril_log_debug("### Closing imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = FALSE;
 	}
 }
@@ -231,7 +231,7 @@ gboolean is_an_image_processing_dialog_opened() {
 }
 
 void mark_imgproc_dialog_closed() {
-	siril_debug_print("### Closing imgproc dialog via custom hide_on_delete callback\n");
+	siril_log_debug("### Closing imgproc dialog via custom hide_on_delete callback\n");
 	dialog_is_opened = FALSE;
 	processing_dialog_is_opened = FALSE;
 }

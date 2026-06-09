@@ -94,7 +94,6 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->mask_aware = TRUE;
 	if (!for_preview) {
 		args->log_hook = satu_log_hook;
-		args->populate_roi_on_complete = TRUE;
 	}
 
 	if (for_preview)
@@ -239,7 +238,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		cancel_and_wait_for_preview();
 		copy_backup_to_gfit();
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	} else {
 		copy_gfit_to_backup();
 		update_image *param = malloc(sizeof(update_image));

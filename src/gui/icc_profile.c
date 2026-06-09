@@ -113,14 +113,14 @@ void set_source_information() {
 	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
 	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
 	if (!gfit->color_managed) {
-		siril_debug_print("Target image is not color managed\n");
+		siril_log_debug("Target image is not color managed\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
 		gtk_label_set_text(copyright_label, "");
 		return;
 	}
 	if (!gfit->icc_profile) {
-		siril_debug_print("Target profile is NULL\n");
+		siril_log_debug("Target profile is NULL\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
 		gtk_label_set_text(copyright_label, "");
@@ -508,10 +508,10 @@ gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event
 	if (event->type == GDK_BUTTON_PRESS  &&  event->button == 3) {
 		// Right mouse button press
         if (com.gui_icc.iso12646) {
-			siril_debug_print("Disabling approximate ISO12646 viewing conditions\n");
+			siril_log_debug("Disabling approximate ISO12646 viewing conditions\n");
 			disable_iso12646_conditions(TRUE, TRUE, TRUE);
 		} else {
-			siril_debug_print("Enabling approximate ISO12646 viewing conditions\n");
+			siril_log_debug("Enabling approximate ISO12646 viewing conditions\n");
 			enable_iso12646_conditions();
 		}
         return TRUE;
@@ -536,7 +536,7 @@ void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!gfit->icc_profile) {
-		siril_log_color_message(_("Error: no ICC profile associated with the current image. Cannot export.\n"), "red");
+		siril_log_error(_("Error: no ICC profile associated with the current image. Cannot export.\n"));
 		return;
 	}
 	char *filename = NULL;
@@ -549,9 +549,9 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	filename = strdup(temp);
 	g_free(temp);
 	if (cmsSaveProfileToFile(gfit->icc_profile, filename))
-		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", filename);
+		siril_log_info(_("Exported ICC profile to %s\n"), filename);
 	else
-		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", filename);
+		siril_log_error(_("Failed to export ICC profile to %s\n"), filename);
 	free(filename);
 }
 
@@ -576,7 +576,7 @@ void on_icc_gamut_visualisation_clicked() {
 		GError *error = NULL;
 		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/org/siril/ui/pixmaps/CIE1931.svg", &error);
 		if (error) {
-			siril_debug_print("Error: %s\n", error->message);
+			siril_log_debug("Error: %s\n", error->message);
 			g_error_free(error);
 		}
 		gtk_image_set_from_pixbuf(GTK_IMAGE(lookup_widget("colorspace_comparison")), pixbuf);
@@ -659,7 +659,7 @@ gboolean on_iso12646_panel_hide_completed(GtkWidget *widget, gpointer data) {
 	gui.display_offset.y = (window_height / 2) - (gfit->ry / 2 * z);
 	adjust_vport_size_to_image();
 	// TODO: convince myself this is safe if a thread is updating gfit->..
-	queue_redraw(remap ? REMAP_ALL : REDRAW_IMAGE); // Has to do the remap in case the sliders have been changed
+	queue_redraw(remap ? REDRAW_ALL : REDRAW_IMAGE); // Has to do the remap in case the sliders have been changed
 	gtk_widget_queue_draw(lookup_widget("vbox_r"));
 	gtk_widget_queue_draw(lookup_widget("vbox_g"));
 	gtk_widget_queue_draw(lookup_widget("vbox_b"));
@@ -793,7 +793,7 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 	}
 	if (mode_changed) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
 }
@@ -812,7 +812,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 		if (com.gui_icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
 		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			siril_log_error(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"));
 			exit(1);
 		}
 	}
@@ -822,7 +822,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	if (!profiles_identical(old_monitor, com.gui_icc.monitor)) {
 		refresh_icc_transforms();
 		notify_gfit_data_modified();
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	}
 	cmsCloseProfile(old_monitor);
 }
@@ -846,7 +846,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -863,7 +863,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			com.pref.icc.icc_path_monitor = g_strdup(gtk_file_chooser_get_filename(filechooser));
 		}
 		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for custom monitor profile.\n"), "red");
+			siril_log_error(_("Error: no filename specified for custom monitor profile.\n"));
 			no_file = TRUE;
 		} else {
 			com.gui_icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
@@ -875,13 +875,13 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			return;
 		} else {
 			if (!no_file) {
-				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_monitor);
+				siril_log_error(_("Monitor profile could not be loaded from %s\n"), com.pref.icc.icc_path_monitor);
 			}
 			com.gui_icc.monitor = srgb_monitor_perceptual();
 			if (com.gui_icc.monitor) {
 				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 			} else {
-				siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+				siril_log_error(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"));
 				exit(1);
 			}
 		}
@@ -890,7 +890,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 		if (com.gui_icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			siril_log_error(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"));
 			exit(1);
 		}
 	}
@@ -912,7 +912,7 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			com.pref.icc.icc_path_soft_proof = g_strdup(gtk_file_chooser_get_filename(filechooser));
 		}
 		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for output device proofing profile.\n"), "red");
+			siril_log_error(_("Error: no filename specified for output device proofing profile.\n"));
 			no_file = TRUE;
 		} else {
 			com.gui_icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
@@ -922,13 +922,13 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			icc_unlock_soft_proof_profile();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 			return;
 		} else {
 			if (!no_file) {
-				siril_log_color_message(_("Output device proofing profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_soft_proof);
+				siril_log_error(_("Output device proofing profile could not be loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
 			}
-			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
+			siril_log_warning(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"));
 		}
 	} else {
 		siril_log_message(_("Output device proofing profile deactivated. Soft proofing will proof to the monitor profile.\n"));
@@ -936,5 +936,5 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	icc_unlock_soft_proof_profile();
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 }

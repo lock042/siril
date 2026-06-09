@@ -21,7 +21,6 @@
 #include "siril_plot.h"
 
 #include <cairo.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #ifdef CAIRO_HAS_SVG_SURFACE
 #include <cairo/cairo-svg.h>
 #endif
@@ -37,44 +36,43 @@
 #define GUIDE 20 // used to determine number of tics and spacing
 
 
-// Replacement for gdk_cairo_set_source_pixbuf that only needs gdk-pixbuf, not GDK.
-// Converts pixel data from GdkPixbuf format (RGBA, non-premultiplied) to Cairo
-// ARGB32 format (premultiplied), creates a cairo surface, and sets it as source.
-static void siril_cairo_set_source_pixbuf(cairo_t *cr, GdkPixbuf *pixbuf,
-                                          double x, double y) {
-	int width = gdk_pixbuf_get_width(pixbuf);
-	int height = gdk_pixbuf_get_height(pixbuf);
-	int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
-	int gdk_stride = gdk_pixbuf_get_rowstride(pixbuf);
-	guchar *gdk_pixels = gdk_pixbuf_get_pixels(pixbuf);
+/* cairo_image_surface_create_from_png_stream read closure: pulls bytes out
+ * of a GBytes (i.e. the GResource-backed PNG blob) into Cairo's buffer. */
+typedef struct {
+	const guchar *data;
+	gsize         size;
+	gsize         pos;
+} png_resource_reader;
 
-	cairo_format_t fmt = (n_channels == 4) ? CAIRO_FORMAT_ARGB32 : CAIRO_FORMAT_RGB24;
-	int cairo_stride = cairo_format_stride_for_width(fmt, width);
-	guchar *buf = g_malloc(height * cairo_stride);
+static cairo_status_t png_resource_read(void *closure, unsigned char *out,
+                                        unsigned int length) {
+	png_resource_reader *r = closure;
+	if (r->pos + length > r->size) return CAIRO_STATUS_READ_ERROR;
+	memcpy(out, r->data + r->pos, length);
+	r->pos += length;
+	return CAIRO_STATUS_SUCCESS;
+}
 
-	for (int row = 0; row < height; row++) {
-		guchar *src = gdk_pixels + row * gdk_stride;
-		guint32 *dst = (guint32 *)(buf + row * cairo_stride);
-		if (n_channels == 4) {
-			for (int col = 0; col < width; col++, src += 4, dst++) {
-				guchar a = src[3];
-				guchar r = (guchar)((src[0] * a + 127) / 255);
-				guchar g = (guchar)((src[1] * a + 127) / 255);
-				guchar b = (guchar)((src[2] * a + 127) / 255);
-				*dst = ((guint32)a << 24) | ((guint32)r << 16) | ((guint32)g << 8) | b;
-			}
-		} else {
-			for (int col = 0; col < width; col++, src += 3, dst++)
-				*dst = 0xFF000000u | ((guint32)src[0] << 16) | ((guint32)src[1] << 8) | src[2];
-		}
+/* Load a PNG GResource into a fresh cairo_image_surface_t.  Caller owns
+ * the surface (cairo_surface_destroy).  Returns NULL on error. */
+static cairo_surface_t *cairo_surface_from_png_resource(const char *resource_path) {
+	GError *err = NULL;
+	GBytes *bytes = g_resources_lookup_data(resource_path,
+	                                        G_RESOURCE_LOOKUP_FLAGS_NONE, &err);
+	if (!bytes) {
+		if (err) g_error_free(err);
+		return NULL;
 	}
-
-	cairo_surface_t *surface = cairo_image_surface_create_for_data(
-			buf, fmt, width, height, cairo_stride);
-	cairo_set_source_surface(cr, surface, x, y);
-	cairo_surface_set_user_data(surface, (const cairo_user_data_key_t *)&buf,
-			buf, (cairo_destroy_func_t)g_free);
-	cairo_surface_destroy(surface);
+	png_resource_reader r = { 0 };
+	r.data = g_bytes_get_data(bytes, &r.size);
+	cairo_surface_t *s = cairo_image_surface_create_from_png_stream(
+		png_resource_read, &r);
+	g_bytes_unref(bytes);
+	if (!s || cairo_surface_status(s) != CAIRO_STATUS_SUCCESS) {
+		if (s) cairo_surface_destroy(s);
+		return NULL;
+	}
+	return s;
 }
 
 // static functions
@@ -107,7 +105,7 @@ static void free_bkg(splbkg *bkg) {
 		return;
 	g_free(bkg->bkgfilepath);
 	if (bkg->img)
-		g_object_unref(bkg->img);
+		cairo_surface_destroy(bkg->img);
 	free(bkg);
 }
 
@@ -318,7 +316,7 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 // sets the first series color to red
 void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]) {
 	if (n > spl_data->cfgplot.clrsz) {
-		siril_debug_print("can't add color out of palette size (%lu)\n", spl_data->cfgplot.clrsz);
+		siril_log_debug("can't add color out of palette size (%lu)\n", spl_data->cfgplot.clrsz);
 		return;
 	}
 	memcpy(spl_data->cfgplot.clrs[n - 1].rgba, color, 3 * sizeof(double));
@@ -333,7 +331,7 @@ void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3])
 void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplottype pl_type) {
 	GList *current_entry = g_list_nth(spl_data->plot, n - 1);
 	if (!current_entry) {
-		siril_debug_print("can't add plot type out of plot list size\n");
+		siril_log_debug("can't add plot type out of plot list size\n");
 		return;
 	}
 	splxydata *plot = (splxydata *)current_entry->data;
@@ -341,25 +339,24 @@ void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplotty
 }
 
 // set an image to be used as background
-// loads the image as a GdkPixBuf and gets its dimensions
+// loads the image as a cairo_image_surface_t and gets its dimensions
 // `bkgfilename` is the name of the bkg file which should be added in
 // `pixmaps/plot_background` folder and added to siril_resource.xml
 gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfilename) {
 	if (spl_data->bkg) {
 		free_bkg(spl_data->bkg);
 	}
-	GError *error = NULL;
 	spl_data->bkg = calloc(1, sizeof(splbkg));
 	spl_data->bkg->bkgfilepath = g_build_filename("/org/siril/ui/pixmaps/plot_background", bkgfilename, NULL);
-	spl_data->bkg->img = gdk_pixbuf_new_from_resource(spl_data->bkg->bkgfilepath, &error);
-	if (error) {
-		siril_debug_print("can't load background image %s (Error: %s)", spl_data->bkg->bkgfilepath, error->message);
+	spl_data->bkg->img = cairo_surface_from_png_resource(spl_data->bkg->bkgfilepath);
+	if (!spl_data->bkg->img) {
+		siril_log_debug("can't load background image %s\n", spl_data->bkg->bkgfilepath);
 		free_bkg(spl_data->bkg);
-		g_error_free(error);
+		spl_data->bkg = NULL;
 		return FALSE;
 	}
-	spl_data->bkg->height = gdk_pixbuf_get_height(spl_data->bkg->img);
-	spl_data->bkg->width = gdk_pixbuf_get_width(spl_data->bkg->img);
+	spl_data->bkg->width  = cairo_image_surface_get_width (spl_data->bkg->img);
+	spl_data->bkg->height = cairo_image_surface_get_height(spl_data->bkg->img);
 	return TRUE;
 }
 
@@ -372,7 +369,7 @@ gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfi
 void siril_plot_set_nth_plots_types(siril_plot_data *spl_data, int n, enum kplottype pl_type[3]) {
 	GList *current_entry = g_list_nth(spl_data->plots, n - 1);
 	if (!current_entry) {
-		siril_debug_print("can't add plots types out of plots list size\n");
+		siril_log_debug("can't add plots types out of plots list size\n");
 		return;
 	}
 	splxyerrdata *plots = (splxyerrdata *)current_entry->data;
@@ -411,7 +408,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 	//computing number of decimals
 	double logtics = log10(tics);
 	*sig = abs((int)floor(min(0., logtics)));
-	// siril_debug_print("autotic:\t%g\t%g=>%d\t%g\t%g\n", vmin, vmax, *nbtics, *tmin, *tmax);
+	// siril_log_debug("autotic:\t%g\t%g=>%d\t%g\t%g\n", vmin, vmax, *nbtics, *tmin, *tmax);
 	return TRUE;
 }
 
@@ -422,7 +419,7 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, si
 		// allocate data
 		splxydata *plot = alloc_xyplot_data(nb);
 		if (!plot) {
-			siril_debug_print("Could not allocate plot data\n");
+			siril_log_debug("Could not allocate plot data\n");
 			return FALSE;
 		}
 		// fill and update spl_data bounds
@@ -443,7 +440,7 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, si
 	// xyerror plot case
 	splxyerrdata *plots = alloc_xyerrplot_data(nb);
 	if (!plots) {
-		siril_debug_print("Could not allocate plots data\n");
+		siril_log_debug("Could not allocate plots data\n");
 		return FALSE;
 	}
 	// if no errm is passed, we assume it is the same as errp
@@ -662,14 +659,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
 	if (spl_data->bkg) {
 		// TODO later zoomable bkg
-		// int offsx, offsy;
-		// GdkPixbuf *subbkg = extract_sub_bkg(spl_data, xmin, xmax, ymin, ymax, &offsx, &offsy);
-		GdkPixbuf *bkg = gdk_pixbuf_scale_simple(spl_data->bkg->img, (int)ctx.dims.x, (int)ctx.dims.y, GDK_INTERP_BILINEAR);
-		siril_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
+		cairo_save(cr);
+		cairo_translate(cr, ctx.offs.x, ctx.offs.y + top);
+		double sx = ctx.dims.x / spl_data->bkg->width;
+		double sy = ctx.dims.y / spl_data->bkg->height;
+		cairo_scale(cr, sx, sy);
+		cairo_set_source_surface(cr, spl_data->bkg->img, 0, 0);
 		cairo_paint(cr);
-		cairo_fill(cr);
-		g_object_unref(bkg);
-		// g_object_unref(subbkg);
+		cairo_restore(cr);
 	}
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
@@ -734,17 +731,17 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height) {
 	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 	if (cairo_surface_status(surface)) {
-		siril_debug_print("Could not create cairo surface\n");
+		siril_log_debug("Could not create cairo surface\n");
 		return NULL;
 	}
 	cairo_t *cr = cairo_create(surface);
 	if (cairo_status(cr)) {
 		cairo_surface_destroy(surface);
-		siril_debug_print("Could not create cairo context\n");
+		siril_log_debug("Could not create cairo context\n");
 		return NULL;
 	}
 	if (!siril_plot_draw(cr, spl_data, (double)width, (double)height, FALSE)) {
-		siril_debug_print("Could not draw to cairo context\n");
+		siril_log_debug("Could not draw to cairo context\n");
 		cairo_surface_destroy(surface);
 		surface = NULL;
 	}
@@ -758,7 +755,7 @@ gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int w
 	if (!png_surface)
 		return FALSE;
 
-	siril_debug_print("Successfully created png plot\n");
+	siril_log_debug("Successfully created png plot\n");
 	if (!cairo_surface_write_to_png(png_surface, pngfilename))
 		siril_log_message(_("%s has been saved.\n"), pngfilename);
 	else
@@ -775,7 +772,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 	//create the surface
 	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
 	if (cairo_surface_status(svg_surface)) {
-		siril_debug_print("Could not create svg surface\n");
+		siril_log_debug("Could not create svg surface\n");
 		success = FALSE;
 	}
 	//create the context
@@ -783,7 +780,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 		cairo_svg_surface_set_document_unit(svg_surface, CAIRO_SVG_UNIT_PX);
 		svg_cr = cairo_create(svg_surface);
 		if (cairo_status(svg_cr)) {
-			siril_debug_print("Could not create svg context\n");
+			siril_log_debug("Could not create svg context\n");
 			success = FALSE;
 		}
 	}
@@ -792,7 +789,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 		siril_log_message(_("%s has been saved.\n"), svgfilename);
 	else {
 		success = FALSE;
-		siril_debug_print("Could not draw to svg context\n");
+		siril_log_debug("Could not draw to svg context\n");
 	}
 
 	if (svg_cr)
@@ -826,7 +823,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		if (nbpoints == 0)
 			nbpoints = plot->nb;
 		else if (plot->nb != nbpoints) {
-			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			siril_log_debug("Cannot export to *.dat series of different length, skipping\n");
 			continue;
 		}
 		gchar *label = (plot->label) ? g_strdup(plot->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
@@ -842,7 +839,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		if (nbpoints == 0)
 			nbpoints = plots->nb;
 		else if (plots->nb != nbpoints) {
-			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			siril_log_debug("Cannot export to *.dat series of different length, skipping\n");
 			continue;
 		}
 		gchar *label = (plots->label) ? g_strdup(plots->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
@@ -909,7 +906,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 	fileout = g_fopen(newfilename, "w");
 	if (fileout == NULL) {
-		siril_log_message(_("Could not create %s, aborting\n"));
+		siril_log_error(_("Could not create %s, aborting\n"));
 		retval = FALSE;
 		goto clean_and_exit;
 	}

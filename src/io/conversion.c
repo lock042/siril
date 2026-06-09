@@ -400,7 +400,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 			break;
 		case TYPEUNDEF:
 		default:	// when the ifdefs are not compiled, default happens!
-			siril_log_message(_("Error opening %s: file type not supported.\n"), source);
+			siril_log_error(_("Error opening %s: file type not supported.\n"), source);
 			retval = 1;
 	}
 
@@ -648,7 +648,7 @@ gpointer convert_thread_worker(gpointer p) {
 	args->destroot = strdup(newdestroot);
 	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
-		siril_debug_print("Error in g_unlink()\n");
+		siril_log_debug("Error in g_unlink()\n");
 	if (args->output_type == SEQ_REGULAR) {
 		// to make sure destroot has an extension (will be removed when creating the filenames)
 		free(args->destroot);
@@ -674,7 +674,7 @@ gpointer convert_thread_worker(gpointer p) {
 		struct reader_data *reader = calloc(1, sizeof(struct reader_data));
 		seqread_status rstatus = get_next_read_details(&convert, reader);
 		if (rstatus == GOT_READ_ERROR) {
-			siril_debug_print("got reader error\n");
+			siril_log_debug("got reader error\n");
 			free(reader);
 			break;
 		}
@@ -686,7 +686,7 @@ gpointer convert_thread_worker(gpointer p) {
 				rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE,
 				rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE || rstatus == GOT_OK_LAST_FILE);
 		if (wstatus == GOT_WRITE_ERROR) {
-			siril_debug_print("got writer error\n");
+			siril_log_debug("got writer error\n");
 			free(reader);
 			free(writer);
 			writer = NULL;
@@ -699,7 +699,7 @@ gpointer convert_thread_worker(gpointer p) {
 		report_file_conversion(args, rwarg);
 
 		if (!g_thread_pool_push(args->pool, rwarg, NULL)) {
-			siril_log_message(_("Failed to queue image conversion task, aborting"));
+			siril_log_error(_("Failed to queue image conversion task, aborting"));
 			free(reader);
 			free(writer);
 			writer = NULL;
@@ -709,21 +709,21 @@ gpointer convert_thread_worker(gpointer p) {
 		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
 			break;
 		if (rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_FILE) {
-			siril_debug_print("last image of the sequence reached, opening next sequence\n");
+			siril_log_debug("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
 		// reader is freed elsewhere
 	} while (processing_should_continue());
-	siril_debug_print("conversion scheduling loop finished, waiting for first read task to signal\n");
+	siril_log_debug("conversion scheduling loop finished, waiting for first read task to signal\n");
 	g_mutex_lock(&args->pool_mutex);
 	while (convert.first <= 0) {
 		g_cond_wait(&args->pool_cond, &args->pool_mutex);
 	}
 	g_mutex_unlock(&args->pool_mutex);
-	siril_debug_print("waiting for conversion tasks to finish\n");
+	siril_log_debug("waiting for conversion tasks to finish\n");
 	// this cannot be called before the g_thread_pool_set_max_threads() call, hence the pool_cond
 	g_thread_pool_free(args->pool, FALSE, TRUE);
-	siril_debug_print("conversion tasks finished\n");
+	siril_log_debug("conversion tasks finished\n");
 	g_mutex_clear(&args->pool_mutex);
 	g_cond_clear(&args->pool_cond);
 
@@ -735,8 +735,8 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
 		else {
 			if (convert.nb_input_images == convert.converted_images)
-				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-			else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			else siril_log_error(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			write_conversion_report(args);
 		}
 	} else {
@@ -745,11 +745,11 @@ gpointer convert_thread_worker(gpointer p) {
 		else {
 			gboolean success = TRUE;
 			if (!args->multiple_output && args->nb_converted_files == 1)
-				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			else if (args->multiple_output && convert.nb_input_images == args->nb_converted_files)
-				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				siril_log_info(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
 			else {
-				siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				siril_log_error(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
 				success = FALSE;
 			}
 			if (success)
@@ -798,16 +798,16 @@ static void finish_read_seq(struct reader_data *reader) {
 	gboolean last = g_atomic_int_dec_and_test(&reader->seq_count->count);
 	if (last && g_atomic_int_get(&reader->seq_count->close_sequence_after_read)) {
 		if (reader->ser) {
-			siril_debug_print("Closing input SER sequence %s\n", reader->ser->filename);
+			siril_log_debug("Closing input SER sequence %s\n", reader->ser->filename);
 			ser_close_file(reader->ser);
 		}
 		else if (reader->fitseq) {
-			siril_debug_print("Closing input FITS sequence file %s\n", reader->fitseq->filename);
+			siril_log_debug("Closing input FITS sequence file %s\n", reader->fitseq->filename);
 			fitseq_close_file(reader->fitseq);
 		}
 #ifdef HAVE_FFMS2
 		else if (reader->film) {
-			siril_debug_print("Closing input film %s\n", reader->film->filename);
+			siril_log_debug("Closing input film %s\n", reader->film->filename);
 			film_close_file(reader->film);
 		}
 #endif
@@ -820,7 +820,7 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 	gboolean last = g_atomic_int_dec_and_test(&writer->seq_count->count);
 	if (last && g_atomic_int_get(&writer->seq_count->close_sequence_after_write)) {
 		if (writer->ser) {
-			siril_debug_print("closing write SER sequence%s\n", success ? "" : " and deleting the file");
+			siril_log_debug("closing write SER sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
 				if(!ser_write_and_close(writer->ser))
 					g_atomic_int_inc(writer->converted_files);
@@ -828,7 +828,7 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 			else ser_close_and_delete_file(writer->ser);
 		}
 		else if (writer->fitseq) {
-			siril_debug_print("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
+			siril_log_debug("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
 				if (!fitseq_close_file(writer->fitseq))
 					g_atomic_int_inc(writer->converted_files);
@@ -907,7 +907,7 @@ static seqread_status get_next_read_details(convert_status *conv, struct reader_
 					retval = GOT_OK_LAST_FILE;
 				else retval = GOT_OK_FILE;
 			}
-			else siril_log_message(_("Skipping input file %s (failed to be opened)\n"), filename);
+			else siril_log_warning(_("Skipping input file %s (failed to be opened)\n"), filename);
 		} while (next_status == OPEN_ERROR && conv->next_file < conv->args->total);
 	}
 	return retval;
@@ -919,7 +919,7 @@ static void open_next_input_seq(convert_status *conv) {
 		const char *filename = conv->args->list[conv->next_file];
 		status = open_next_input_sequence(filename, conv, FALSE);
 		if (status == OPEN_ERROR || status == OPEN_ERROR_AND_STOP) {
-			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), "salmon", filename);
+			siril_log_warning(_("File %s was not recognised as readable by Siril, skipping\n"), filename);
 			g_atomic_int_inc(&conv->failed_images);
 			g_atomic_int_set(&conv->fatal_error, 1);
 			if (status == OPEN_ERROR_AND_STOP) break;
@@ -939,7 +939,7 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 
 	if (!retval) {
 		if (!allow_32bits && tmpfit->type == DATA_FLOAT) {
-			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", source);
+			siril_log_warning(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), source);
 			retval = 1;
 		}
 		else retval = debayer_if_needed(imagetype, tmpfit, force_debayer);
@@ -962,7 +962,7 @@ static int get_thread_id(struct reader_data *reader) {
 		if (reader->threads[i] == self)
 			return i;
 	}
-	siril_debug_print("ERROR: could not find thread for fitseq reading\n");
+	siril_log_debug("ERROR: could not find thread for fitseq reading\n");
 	return -1;
 }
 
@@ -1018,7 +1018,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 
 static int make_link(struct readwrite_data *rwdata) {
 	int retval = 1;
-	siril_debug_print("making link: %s -> %s\n", rwdata->reader->filename, rwdata->writer->filename);
+	siril_log_debug("making link: %s -> %s\n", rwdata->reader->filename, rwdata->writer->filename);
 	if (rwdata->writer->filename) {
 		if (!symlink_uniq_file(rwdata->reader->filename, rwdata->writer->filename, TRUE))
 			retval = 0;
@@ -1031,7 +1031,7 @@ static int make_link(struct readwrite_data *rwdata) {
 static void signal_memory_limit(convert_status *conv) {
 	if (g_atomic_int_add(&conv->first, 1))
 		return;
-	siril_debug_print("unblocking the main thread after conversion error\n");
+	siril_log_debug("unblocking the main thread after conversion error\n");
 	g_mutex_lock(&conv->args->pool_mutex);
 	g_cond_signal(&conv->args->pool_cond);
 	g_mutex_unlock(&conv->args->pool_mutex);
@@ -1058,7 +1058,7 @@ unlock_end:
 }
 
 static void handle_error(struct readwrite_data *rwdata) {
-	siril_debug_print("conversion aborted or failed, cancelling this thread\n");
+	siril_log_debug("conversion aborted or failed, cancelling this thread\n");
 	seqwriter_release_memory();
 	if (rwdata->reader) {
 		finish_read_seq(rwdata->reader);
@@ -1101,7 +1101,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
-		siril_debug_print("read error, ignoring image\n");
+		siril_log_debug("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
 		if (rwdata->writer->have_seqwriter)
@@ -1150,7 +1150,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 				ser_init_struct(conv->output_ser);
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
-					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
+					siril_log_error(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					g_free(dest);
 					return GOT_WRITE_ERROR;
 				}
@@ -1171,7 +1171,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
-					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
+					siril_log_error(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
 				conv->next_image_in_output = 0;
@@ -1220,7 +1220,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 				conv->output_ser = calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
-					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
+					siril_log_error(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
 					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
@@ -1234,7 +1234,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
 				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
-					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
+					siril_log_error(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
 					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
@@ -1262,14 +1262,14 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			return OPEN_SEQ;
 		}
 		if (convert->current_film) {
-			siril_debug_print("error: opening a film while the previous was still here\n");
+			siril_log_debug("error: opening a film while the previous was still here\n");
 			g_free(name);
 			return OPEN_ERROR;
 		}
 		convert->current_film = calloc(1, sizeof(struct film_struct));
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (film_open_file(src_filename, convert->current_film) != FILM_SUCCESS) {
-			siril_log_message(_("Error while opening film %s, aborting.\n"), src_filename);
+			siril_log_error(_("Error while opening film %s, aborting.\n"), src_filename);
 			free(convert->current_film);
 			convert->current_film = NULL;
 			g_free(name);
@@ -1286,7 +1286,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			return OPEN_SEQ;
 		}
 		if (convert->current_ser) {
-			siril_debug_print("error: opening a SER while the previous was still here\n");
+			siril_log_debug("error: opening a SER while the previous was still here\n");
 			g_free(name);
 			return OPEN_ERROR;
 		}
@@ -1294,7 +1294,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		ser_init_struct(convert->current_ser);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (ser_open_file(src_filename, convert->current_ser)) {
-			siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
+			siril_log_error(_("Error while opening ser file %s, aborting.\n"), src_filename);
 			free(convert->current_ser);
 			convert->current_ser = NULL;
 			g_free(name);
@@ -1307,7 +1307,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
 		if (test_only) return OPEN_SEQ;
 		if (convert->current_fitseq) {
-			siril_debug_print("error: opening a FITSEQ while the previous was still here\n");
+			siril_log_debug("error: opening a FITSEQ while the previous was still here\n");
 			g_free(name);
 			return OPEN_ERROR;
 		}
@@ -1315,7 +1315,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (fitseq_open(name, convert->current_fitseq, READONLY)) {
-			siril_log_message(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
+			siril_log_error(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
 			g_free(name);
@@ -1324,7 +1324,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		g_free(name);
 
 		if (!convert->allow_32bits && get_data_type(convert->current_fitseq->bitpix) == DATA_FLOAT) {
-			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", src_filename);
+			siril_log_warning(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), src_filename);
 			fitseq_close_file(convert->current_fitseq);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
@@ -1353,7 +1353,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 			output = g_strdup_printf("%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		default:
-			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
+			siril_log_error(_("output sequence type unknown, aborting\n"));
 	}
 	free(destroot_noext);
 	return output;
@@ -1365,24 +1365,24 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	seqwrite_status retval = WRITE_FAILED;
 	if (writer->ser) {
 		if (ser_write_frame_from_fit(writer->ser, fit, writer->index)) {
-			siril_log_color_message(_("Error while converting to SER (no space left?)\n"), "red");
+			siril_log_error(_("Error while converting to SER (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
 		finish_write_seq(writer, retval == WRITE_OK);
 	}
 	else if (writer->fitseq) {
 		if (fitseq_write_image(writer->fitseq, fit, writer->index)) {
-			siril_log_color_message(_("Error while converting to FITSEQ (no space left?)\n"), "red");
+			siril_log_error(_("Error while converting to FITSEQ (no space left?)\n"));
 		}
 		else retval = WRITE_OK;
 		finish_write_seq(writer, retval == WRITE_OK);
 	}
 	else if (writer->filename) {
 		if (savefits(writer->filename, fit)) {
-			siril_log_color_message(_("Error while converting to FITS\n"), "red");
+			siril_log_error(_("Error while converting to FITS\n"));
 			/* We test if there's any space left. If not, we remove the image */
 			if (!is_space_disk_available(com.wd)) {
-				siril_log_color_message(_("No space left!\n"), "red");
+				siril_log_error(_("No space left!\n"));
 				g_unlink(writer->filename);
 			}
 		}
@@ -1395,7 +1395,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		g_free(writer->filename);
 	}
 	else {
-		siril_log_color_message(_("Error while converting, unknown output\n"), "red");
+		siril_log_error(_("Error while converting, unknown output\n"));
 	}
 
 
@@ -1433,7 +1433,7 @@ static void compute_nb_images_fit_mem(fits *fit, gboolean debayer, int *nb_threa
 	unsigned int memory_per_thread_MB = memory_per_processed_image / BYTES_IN_A_MB;
 	if (memory_per_thread_MB == 0)
 		memory_per_thread_MB= 1;
-	siril_debug_print("Memory required per image: %u MB. Max memory: %d MB\n", memory_per_thread_MB, max_memory_MB);
+	siril_log_debug("Memory required per image: %u MB. Max memory: %d MB\n", memory_per_thread_MB, max_memory_MB);
 	*nb_threads = max_memory_MB / memory_per_thread_MB;
 	if (*nb_threads >= com.max_thread)
 		*nb_threads = com.max_thread;
@@ -1444,36 +1444,36 @@ static void compute_nb_images_fit_mem(fits *fit, gboolean debayer, int *nb_threa
 
 static void print_reader(struct reader_data *reader) {
 	if (reader->ser)
-		siril_debug_print("I> reader: %s image %d%s%s\n", reader->ser->filename,
+		siril_log_debug("I> reader: %s image %d%s%s\n", reader->ser->filename,
 				reader->index,
 				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 	else if (reader->fitseq)
-		siril_debug_print("I> reader: %s image %d%s%s\n", reader->fitseq->filename,
+		siril_log_debug("I> reader: %s image %d%s%s\n", reader->fitseq->filename,
 				reader->index,
 				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 #ifdef HAVE_FFMS2
 	else if (reader->film)
-		siril_debug_print("I> reader: %s image %d%s%s\n", reader->film->filename,
+		siril_log_debug("I> reader: %s image %d%s%s\n", reader->film->filename,
 				reader->index,
 				reader->seq_count->close_sequence_after_read ? " (close after read)" : "",
 				reader->debayer ? " (debayer)" : "");
 #endif
-	else siril_debug_print("I> reader: %s%s\n", reader->filename,
+	else siril_log_debug("I> reader: %s%s\n", reader->filename,
 				reader->debayer ? " (debayer)" : "");
 }
 
 static void print_writer(struct writer_data *writer) {
 	if (writer->ser)
-		siril_debug_print("O> writer: %s image %d%s\n", writer->ser->filename,
+		siril_log_debug("O> writer: %s image %d%s\n", writer->ser->filename,
 				writer->index,
 				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
 	else if (writer->fitseq)
-		siril_debug_print("O> writer: %s image %d%s\n", writer->fitseq->filename,
+		siril_log_debug("O> writer: %s image %d%s\n", writer->fitseq->filename,
 				writer->index,
 				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
-	else siril_debug_print("O> writer: %s\n", writer->filename);
+	else siril_log_debug("O> writer: %s\n", writer->filename);
 }
 
 static void init_report(struct _convert_data *args) {

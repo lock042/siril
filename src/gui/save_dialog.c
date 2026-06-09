@@ -229,21 +229,19 @@ static void set_description_in_TIFF() {
 			}
 		}
 		/* New history */
-		if (com.history) {
-			for (int i = 0; i < com.hist_display; i++) {
-				if (com.history[i].history[0] != '\0') {
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-				}
+		for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+			historic *h = (historic *)l->data;
+			if (h->history[0] != '\0') {
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, h->history, strlen(h->history));
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
 			}
 		}
 	}
 }
 
 static void prepare_savepopup() {
-	save_dialog_init_statics();
 	GtkWidget *savepopup = sd_savepopup;
 	GtkWidget *savetxt = sd_filenameframe;
 	GtkWidget *button_savepopup = sd_button_savepopup;
@@ -293,6 +291,13 @@ static void prepare_savepopup() {
 }
 
 static void init_dialog() {
+	/* The savepopup statics back both the parameters dialog and the
+	 * GtkEntry that save_dialog() writes the chosen path into. Populate
+	 * them up-front so callers that read sd_* before prepare_savepopup()
+	 * (e.g. save_dialog() at the gtk_entry_set_text() call site, and
+	 * on_header_save_as_button_clicked() that latches sd_savepopup) see
+	 * non-NULL widgets. */
+	save_dialog_init_statics();
 	if (saveDialog == NULL) {
 		GtkWindow *parent = siril_get_active_window();
 		saveDialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
@@ -586,7 +591,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
     /* Save JPEG */
     if (savejpg(tmp_template, gfit, args->quality, FALSE)) {
-        siril_debug_print("Failed to save JPEG to temporary file");
+        siril_log_debug("Failed to save JPEG to temporary file");
         goto cleanup;
     }
 
@@ -600,7 +605,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 
 cleanup:
     if (g_unlink(tmp_template) != 0) {
-        siril_debug_print("g_unlink() failed for temp file\n");
+        siril_log_debug("g_unlink() failed for temp file\n");
     }
 
     g_free(tmp_template);
@@ -854,9 +859,8 @@ void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		GtkWidget *savepopup = sd_savepopup;
-
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
+			GtkWidget *savepopup = sd_savepopup;
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
@@ -915,7 +919,7 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	GError *error = NULL;
 
 	if (!gdk_pixbuf_save_to_stream_finish(result, &error)) {
-		siril_log_message(_("Cannot take snapshot: %s\n"), error->message);
+		siril_log_warning(_("Cannot take snapshot: %s\n"), error->message);
 		g_clear_error(&error);
 	} else {
 		gchar *filename = (gchar *)user_data;

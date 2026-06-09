@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "core/siril.h"
-#include "gui/gui_state.h"
 #include "core/siril_date.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -40,7 +39,6 @@
 #define CHECK cr_expect
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 #endif
 

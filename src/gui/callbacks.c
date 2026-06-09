@@ -73,6 +73,7 @@ void update_export_crop_label();
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+#include "undo_gui.h"
 #include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
@@ -190,7 +191,7 @@ void on_press_seq_field() {
 }
 
 static void update_icons_to_theme(gboolean is_dark) {
-	siril_debug_print("Loading %s theme...\n", is_dark ? "dark" : "light");
+	siril_log_debug("Loading %s theme...\n", is_dark ? "dark" : "light");
 	if (is_dark) {
 		update_theme_button("annotate_button", "astrometry_dark.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid_dark.svg");
@@ -526,7 +527,7 @@ void set_cutoff_sliders_max_values() {
 	 */
 
 	max_val = (gfit->type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit->orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
-	siril_debug_print(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
+	siril_log_debug(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
 	gtk_adjustment_set_lower(adj1, 0.0);
 	gtk_adjustment_set_lower(adj2, 0.0);
 	gtk_adjustment_set_upper(adj1, max_val);
@@ -558,7 +559,7 @@ void set_cutoff_sliders_values() {
 	WORD lo = gui.lo;
 	g_mutex_unlock(&com.mutex);
 
-	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
+	siril_log_debug(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
 	gtk_adjustment_set_value(adjmin, (gdouble)lo);
 	gtk_adjustment_set_value(adjmax, (gdouble)hi);
 	g_snprintf(buffer, 6, "%u", hi);
@@ -584,7 +585,7 @@ static gboolean try_remap_for_mode_change_idle(gpointer p) {
 	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
 		remap_all();
 		g_rw_lock_reader_unlock(&gfit->rwlock);
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 	}
 	return FALSE;
 }
@@ -598,7 +599,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	}
 
 	gui.rendering_mode = get_display_mode_from_menu();
-	siril_debug_print("Display mode %d\n", gui.rendering_mode);
+	siril_log_debug("Display mode %d\n", gui.rendering_mode);
 	gboolean override_label = FALSE;
 
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type != DATA_FLOAT)
@@ -630,7 +631,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 			siril_add_idle(try_remap_for_mode_change_idle, NULL);
 		} else {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -641,7 +642,7 @@ void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	gfit->mask_active = state;
 	if (com.pref.gui.mask_tints_vports) {
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL); // draw or remove the red tint from the image
+		redraw(REDRAW_ALL); // draw or remove the red tint from the image
 	}
 }
 
@@ -650,7 +651,7 @@ void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.gui.mask_tints_vports = state;
 	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 }
 
 void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
@@ -785,14 +786,14 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
 
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
-	siril_debug_print("bitdepth: %d\n", bitdepth);
+	siril_log_debug("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != 1 << bitdepth) {
 		siril_log_message(_("Setting HD AutoStretch display mode bit depth to %d...\n"), bitdepth);
 		com.pref.hd_bitdepth = bitdepth;
@@ -800,7 +801,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -855,10 +856,10 @@ gboolean set_display_mode_idle(gpointer user_data) {
 }
 
 void set_unlink_channels(gboolean unlinked) {
-	siril_debug_print("channels unlinked: %d\n", unlinked);
+	siril_log_debug("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -972,14 +973,16 @@ gboolean update_MenuItem(gpointer user_data) {
 
 	/* update undo/redo button tooltips */
 	if (is_undo_available()) {
-		gchar *str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
+		historic *h = (historic *) com.undo_stack->data;
+		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
 		g_free(str);
 	} else {
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
 	if (is_redo_available()) {
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), com.history[com.hist_display].history);
+		historic *h = (historic *) com.redo_stack->data;
+		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
 		g_free(str);
 	} else {
@@ -1190,7 +1193,7 @@ static const char *untranslated_vport_number_to_name(int vport) {
 const gchar *layer_name_for_gfit(int layer) {
 	if (gfit->naxes[2] == 1) {
 		if (layer != 0) {
-			siril_debug_print("unloaded layer name requested %d\n", layer);
+			siril_log_debug("unloaded layer name requested %d\n", layer);
 			return "unset";
 		}
 		return _("Luminance");
@@ -1203,7 +1206,7 @@ const gchar *layer_name_for_gfit(int layer) {
 		case 2:
 			return _("Blue");
 		default:
-			siril_debug_print("unloaded layer name requested %d\n", layer);
+			siril_log_debug("unloaded layer name requested %d\n", layer);
 			return "unset";
 	}
 }
@@ -1367,7 +1370,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				notify_gfit_data_modified();
-				redraw(REMAP_ALL);
+				redraw(REDRAW_ALL);
 			}
 		} else if (gfit->type == DATA_USHORT) {
 			if (is_preview_active()) {
@@ -1378,7 +1381,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 		}
 	}
 	gui_function(set_precision_switch, NULL);
@@ -1986,6 +1989,13 @@ gboolean first_start_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
+/* GTK3 build currently has no toolkit-specific GApplication-level
+ * actions; the function is still defined so main.c can call it
+ * unconditionally regardless of which GUI tree is compiled in. */
+void register_toolkit_app_actions(GApplication *app) {
+	(void)app;
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -2032,6 +2042,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* map all actions for main window */
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
+
+	/* long-press popover for undo/redo history navigation */
+	setup_undo_redo_long_press();
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
@@ -2184,7 +2197,7 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
@@ -2196,7 +2209,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
@@ -2205,7 +2218,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 /* gamut check was toggled. */
@@ -2218,7 +2231,7 @@ void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 		unlock_display_transform();
 	}
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 }
 
@@ -2391,7 +2404,7 @@ void gtk_main_quit() {
 	 * the main thread deadlocks: worker holds the write lock waiting for an
 	 * idle, main thread waits for the write lock. */
 	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
-	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem..."), "blue");
+	siril_log_status(_("### Application Quit ###\n\nShutting down the processing subsystem..."));
 	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
 		if (g_main_context_pending(g_main_context_default()))
 			g_main_context_iteration(g_main_context_default(), FALSE);
@@ -2457,7 +2470,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2472,7 +2485,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			notify_gfit_data_modified();
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 			gui_function(redraw_previews, NULL);
 		}
 	}
@@ -2509,7 +2522,7 @@ void setup_stretch_sliders() {
 	if (changed) {
 		set_cutoff_sliders_values();
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2529,7 +2542,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }
@@ -2579,7 +2592,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
 }

@@ -409,7 +409,7 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 	float *result;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		siril_log_error(_("Images must have same dimensions.\n"));
 		return 1;
 	}
 
@@ -687,8 +687,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		GtkToggleButton *toggle_log = GTK_TOGGLE_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
 		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
-			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-			copy_fits_metadata(_fit_left, &fit_left);
+			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 			clearfits(_fit_left);
 			free(_fit_left);
 			close_histograms(TRUE, TRUE);
@@ -699,8 +698,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			left_loaded = TRUE; // Mark LHS image as loaded
 			left_changed = TRUE; // Force update on initial draw
 			permit_calculation = TRUE;
-			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-			copy_fits_metadata(_fit_right, &fit_right);
+			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
@@ -1108,7 +1106,10 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(gfit);
-		copyfits(&fit_left, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		/* Single image loaded as the working image: keep its full metadata
+		 * (WCS, header, dates). The two-image path instead derives the
+		 * result's metadata via merge_fits_headers_to_result. */
+		copyfits(&fit_left, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT | CP_METADATA_HEAP), 0);
 		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		left_loaded = TRUE;
@@ -1201,7 +1202,9 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(gfit);
-		copyfits(&fit_right, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		/* Single image loaded as the working image: keep its full metadata
+		 * (see the symmetric fit_left branch). */
+		copyfits(&fit_right, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT | CP_METADATA_HEAP), 0);
 		initialise_image();
 		right_loaded = TRUE;
 		clearfits(&fit_left_calc);
@@ -1246,7 +1249,7 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	for (chan = 0; chan < fit_left.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_left, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->mean;
@@ -1294,7 +1297,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	for (chan = 0; chan < fit_right.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_right, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return;
 		}
 		ref += stats[chan]->mean;

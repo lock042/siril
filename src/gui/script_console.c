@@ -200,18 +200,24 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 
 #define COMPLETION_COLUMN 0
 
-static gboolean on_match_selected(GtkEntryCompletion *widget, GtkTreeModel *model,
+static gboolean on_match_selected(GtkEntryCompletion *completion, GtkTreeModel *model,
 		GtkTreeIter *iter, gpointer user_data) {
 	const gchar *cmd;
-	GtkEditable *e = (GtkEditable *) gtk_entry_completion_get_entry(widget);
+	GtkEntry *entry = GTK_ENTRY(gtk_entry_completion_get_entry(completion));
 	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &cmd, -1);
-	gtk_editable_delete_text(e, 0, -1);
-	gtk_editable_insert_text(e, cmd, -1, &(int){0});
+	/* Block the completion's own "changed" handler while we update the text to
+	 * prevent it from queuing a popup-show idle (which would reopen the popup
+	 * immediately after GtkEntryCompletion hides it post-selection). */
+	g_signal_handlers_block_matched(entry, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, completion);
+	gtk_entry_set_text(entry, cmd);
+	gtk_editable_set_position(GTK_EDITABLE(entry), -1);
+	g_signal_handlers_unblock_matched(entry, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, completion);
 	return TRUE;
 }
 
 static gboolean completion_match_func(GtkEntryCompletion *completion,
 		const gchar *key, GtkTreeIter *iter, gpointer user_data) {
+	if (*key == '\0') return FALSE;
 	gchar *item = NULL;
 	GtkTreeModel *model = gtk_entry_completion_get_model(completion);
 	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &item, -1);

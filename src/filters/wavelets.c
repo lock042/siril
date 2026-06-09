@@ -188,8 +188,12 @@ gpointer extract_plans(gpointer p) {
 
 	for (i = 0; i < args->Nbr_Plan; i++) {
 		gchar *filename, *msg;
-		if (copyfits(args->fit, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-			siril_log_message(_("Could not copy image, aborting\n"));
+		/* Extracted layers are written to disk for later recombination
+		 * (e.g. via PixelMath); keep full metadata so a recombined result
+		 * can retain the source's WCS/header. Geometry is unchanged, so the
+		 * solution stays valid. */
+		if (copyfits(args->fit, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_METADATA_HEAP, -1)) {
+			siril_log_error(_("Could not copy image, aborting\n"));
 			siril_add_idle(end_wavelets_filter, args);
 			return GINT_TO_POINTER(1);
 		}

@@ -85,7 +85,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 			NULL, &error);
 
 	if (error != NULL) {
-		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
+		siril_log_error(_("Spawning starnet failed: %s\n"), error->message);
 		return retval;
 	}
 
@@ -96,7 +96,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// Add the Starnet child to the list of child processes
 	if (!add_child(child_pid, EXT_STARNET, "Starnet")) {
-		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red");
+		siril_log_error(_("Error adding Starnet to child process list\n"));
 		return 1;
 	}
 
@@ -154,7 +154,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	if (!g_close(child_stdout, &error))
-		siril_debug_print("%s\n", error->message);
+		siril_log_debug("%s\n", error->message);
 	return retval;
 }
 
@@ -213,7 +213,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 			NULL, &error);
 
 	if (error != NULL) {
-		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
+		siril_log_error(_("Spawning starnet failed during version check: %s\n"), error->message);
 		g_free(versionarg);
 		g_free(v1dir);
 		return NIL;
@@ -254,13 +254,13 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_object_unref(stream);
 	g_free(versionarg);
 	if (!g_close(child_stdout, &error))
-		siril_debug_print("%s\n", error->message);
+		siril_log_debug("%s\n", error->message);
 
 	retval2 = g_chdir(currentdir);
 	if (retval2) {
 		retval2 = g_chdir(com.wd);
 		if (retval2) {
-			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+			siril_log_error(_("Error: unable to change to Siril working directory...\n"));
 		}
 	}
 	g_free(currentdir);
@@ -288,7 +288,7 @@ void free_starnet_args(void *ptr) {
 	// Do not free multi_args, it is only a reference
 	g_free(args->stride);
 	free(args);
-	siril_debug_print("starnet_args freed\n");
+	siril_log_debug("starnet_args freed\n");
 }
 
 gboolean end_starnet(gpointer p) {
@@ -359,13 +359,13 @@ gpointer do_starnet(gpointer p) {
 	if (min(current_fit->rx, current_fit->ry) < minsize) {
 		args->too_small = TRUE;
 		if (verbose) {
-			siril_log_color_message(_("Warning: some versions of StarNet fail to process images with dimensions smaller than 512x512. This image may fail. Attempting to continue...\n"), "salmon");
+			siril_log_warning(_("Warning: some versions of StarNet fail to process images with dimensions smaller than 512x512. This image may fail. Attempting to continue...\n"));
 		}
 	}
 
 	// If v1, check we have the right executable for the number of channels in current_fit
 	if (version == NIL) {
-		siril_log_color_message(_("No suitable StarNet executable found.\n"), "red");
+		siril_log_error(_("No suitable StarNet executable found.\n"));
 		goto CLEANUP;
 	} else if (version == V1RGB) {
 		if (current_fit->naxes[2] == 3) {
@@ -377,7 +377,7 @@ gpointer do_starnet(gpointer p) {
 			g_free(temp2);
 			g_free(winext);
 			if (starnet_executablecheck(starnetcommand) != V1MONO) {
-				siril_log_color_message(_("No suitable StarNet executable found for a mono image.\n"), "red");
+				siril_log_error(_("No suitable StarNet executable found for a mono image.\n"));
 				retval = 1;
 				goto CLEANUP3;
 			}
@@ -392,7 +392,7 @@ gpointer do_starnet(gpointer p) {
 			g_free(temp2);
 			g_free(winext);
 			if (starnet_executablecheck(starnetcommand) != V1RGB) {
-				siril_log_color_message(_("No suitable StarNet executable found for a RGB image.\n"), "red");
+				siril_log_error(_("No suitable StarNet executable found for a RGB image.\n"));
 				retval = 1;
 				goto CLEANUP3;
 			}
@@ -401,7 +401,7 @@ gpointer do_starnet(gpointer p) {
 		starnetcommand = g_strdup(com.pref.starnet_exe);
 	}
 
-	siril_debug_print("Using %s\n", starnetcommand);
+	siril_log_debug("Using %s\n", starnetcommand);
 
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
@@ -424,7 +424,7 @@ gpointer do_starnet(gpointer p) {
 	temptif = g_strdup_printf("%s.tif", imagenoext);
 	if (strlen(temptif) > pathmax) {
 		retval = 1;
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 		goto CLEANUP3;
 	}
 	starlesstif = g_build_filename(com.wd, starlessnoext, NULL);
@@ -450,7 +450,7 @@ gpointer do_starnet(gpointer p) {
 
 	if (strlen(starlesstif) > pathmax) {
 		retval = 1;
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 		goto CLEANUP3;
 	}
 	temp = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
@@ -459,13 +459,13 @@ gpointer do_starnet(gpointer p) {
 	g_free(temp);
 	if (strlen(starlessfit) > pathmax) {
 		retval = 1;
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 		goto CLEANUP3;
 	}
 	starmaskfit = g_build_filename(com.wd, starmasknoext, NULL);
 	if (strlen(starmaskfit) > pathmax) {
 		retval = 1;
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 		goto CLEANUP3;
 	}
 	temp = remove_ext_from_filename(starmaskfit);
@@ -499,7 +499,7 @@ gpointer do_starnet(gpointer p) {
 	// Check starnet directory is not NULL - can happen first time the new preference file is loaded
 	if (!com.pref.starnet_exe) {
 		retval = 1;
-		siril_log_color_message(_("Incorrect permissions on the StarNet executable: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_exe);
+		siril_log_error(_("Incorrect permissions on the StarNet executable: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), com.pref.starnet_exe);
 		goto CLEANUP3;
 	}
 
@@ -507,7 +507,7 @@ gpointer do_starnet(gpointer p) {
 	gchar* dir = g_path_get_dirname(com.pref.starnet_exe);
 	retval = g_access(dir, R_OK);
 	if (retval) {
-		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", dir);
+		siril_log_error(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), dir);
 		g_free(dir);
 		goto CLEANUP3;
 		// Dijkstra might be spinning in his grave but one of the few legitimate uses
@@ -518,7 +518,7 @@ gpointer do_starnet(gpointer p) {
 	// Change to starnet directory
 	retval = g_chdir(dir);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
+		siril_log_error(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"));
 		g_free(dir);
 		goto CLEANUP3;
 	}
@@ -528,7 +528,7 @@ gpointer do_starnet(gpointer p) {
 	// copyfits(from, to, oper, layer)
 	retval = copyfits(current_fit, &workingfit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
-		siril_log_color_message(_("Error: image copy failed...\n"), "red");
+		siril_log_error(_("Error: image copy failed...\n"));
 		goto CLEANUP3;
 	}
 
@@ -554,7 +554,7 @@ gpointer do_starnet(gpointer p) {
 	if (args->starmask) {
 		retval = copyfits(&workingfit, &fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 		if (retval) {
-			siril_log_color_message(_("Error: image copy failed...\n"), "red");
+			siril_log_error(_("Error: image copy failed...\n"));
 			goto CLEANUP2;
 		}
 		// If the force_16bit preference is set and we have a 32bit image loaded, replace the buffer
@@ -576,7 +576,7 @@ gpointer do_starnet(gpointer p) {
 	}
 	retval = find_unlinked_midtones_balance_default(&workingfit, params);
 	if (retval && args->linear) {
-		siril_log_color_message(_("Error: unable to find the MTF stretch factors...\n"), "red");
+		siril_log_error(_("Error: unable to find the MTF stretch factors...\n"));
 		goto CLEANUP;
 	}
 	if (args->linear) {
@@ -585,9 +585,9 @@ gpointer do_starnet(gpointer p) {
 		apply_unlinked_mtf_to_fits(&workingfit, &workingfit, params);
 		siril_log_message(_("StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"));
 		if  (workingfit.naxes[2] == 1)
-			siril_debug_print("Applying MTF with values %f, %f, %f\n", params[0].shadows, params[0].midtones, params[0].highlights);
+			siril_log_debug("Applying MTF with values %f, %f, %f\n", params[0].shadows, params[0].midtones, params[0].highlights);
 		else
-			siril_debug_print("Applying MTF with values:\n"
+			siril_log_debug("Applying MTF with values:\n"
 					"  Red:   %f, %f, %f\n"
 					"  Green: %f, %f, %f\n"
 					"  Blue:  %f, %f, %f\n",
@@ -602,7 +602,7 @@ gpointer do_starnet(gpointer p) {
 			siril_log_message(_("StarNet: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
-			siril_log_color_message(_("Error: image resize failed...\n"), "red");
+			siril_log_error(_("Error: image resize failed...\n"));
 			goto CLEANUP;
 		}
 	}
@@ -610,7 +610,7 @@ gpointer do_starnet(gpointer p) {
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
 	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, FALSE, TRUE, FALSE);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to save working StarNet input file...\n"), "red");
+		siril_log_error(_("Error: unable to save working StarNet input file...\n"));
 		goto CLEANUP;
 	}
 
@@ -642,7 +642,7 @@ gpointer do_starnet(gpointer p) {
 		}
 		if (com.pref.starnet_weights && com.pref.starnet_weights[0] != '\0') {
 			if (g_access(com.pref.starnet_weights, R_OK)) {
-				siril_log_color_message(_("Error: cannot read the neural net weights file.\n"), "red");
+				siril_log_error(_("Error: cannot read the neural net weights file.\n"));
 				goto CLEANUP;
 			}
 			torcharg_weights = g_strdup_printf("-w %s", com.pref.starnet_weights);
@@ -655,7 +655,7 @@ gpointer do_starnet(gpointer p) {
 	// *** Call starnet++ *** //
 	retval = exec_prog_starnet(my_argv, version);
 	if (retval) {
-		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
+		siril_log_error(_("Error: StarNet did not execute correctly...\n"));
 		goto CLEANUP;
 	}
 
@@ -663,7 +663,7 @@ gpointer do_starnet(gpointer p) {
 	clearfits(&workingfit); // Clear it first to free the data
 	retval = readtif(starlesstif, &workingfit, FALSE, FALSE);
 	if (retval < 1 || retval > 3) {
-		siril_log_color_message(_("Error: unable to read StarNet output file...\n"), "red");
+		siril_log_error(_("Error: unable to read StarNet output file...\n"));
 		goto CLEANUP;
 	}
 
@@ -677,7 +677,7 @@ gpointer do_starnet(gpointer p) {
 	retval |= (g_remove(starmasktif) && (version & TORCH));
 	retval |= g_remove(temptif);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
+		siril_log_error(_("Error: unable to remove temporary working file...\n"));
 		siril_log_message(_("Attempting to continue. You will need to clean up the working files manually.\n"));
 	}
 
@@ -713,7 +713,7 @@ gpointer do_starnet(gpointer p) {
 			siril_log_message(_("StarNet: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
-			siril_log_color_message(_("Error: image resize failed...\n"), "red");
+			siril_log_error(_("Error: image resize failed...\n"));
 			goto CLEANUP;
 		}
 	}
@@ -730,7 +730,7 @@ gpointer do_starnet(gpointer p) {
 	// directory any more
 	retval = g_chdir(currentdir);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+		siril_log_error(_("Error: unable to change to Siril working directory...\n"));
 		goto CLEANUP1;
 	}
 
@@ -739,7 +739,7 @@ gpointer do_starnet(gpointer p) {
 	if ((!args->multi_args) && processing_should_continue()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
-			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
+			siril_log_error(_("Error: unable to save starless image as FITS...\n"));
 			goto CLEANUP;
 		}
 	}
@@ -750,7 +750,7 @@ gpointer do_starnet(gpointer p) {
 		// De-screen starless from original
 		retval = descreen(&fit, &workingfit, !force_16bit, com.max_thread);
 		if (retval) {
-			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
+			siril_log_error(_("Error: image subtraction failed...\n"));
 			goto CLEANUP;
 		}
 		update_filter_information(&fit, "StarMask", TRUE);
@@ -769,37 +769,35 @@ gpointer do_starnet(gpointer p) {
 			if ((!args->multi_args)) {
 				retval = savefits(starmaskfit, &fit);
 				if (retval) {
-					siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
+					siril_log_error(_("Error: unable to save starmask image as FITS...\n"));
 					goto CLEANUP;
 				}
 			} else {
 				if (args->starmask_fit)
 					clearfits(args->starmask_fit);
-				retval = copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
+				retval = copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 				if (retval) {
-					siril_log_color_message(_("Error: image copy failed...\n"), "red");
+					siril_log_error(_("Error: image copy failed...\n"));
 					goto CLEANUP;
 				}
-				copy_fits_metadata(&fit, args->starmask_fit);
 			}
 		}
 	}
 
 	// All done, now copy the working image back into gfit
 	clearfits(current_fit);
-	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
+	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), 0);
 	if (retval) {
-		siril_log_color_message(_("Error: image copy failed...\n"), "red");
+		siril_log_error(_("Error: image copy failed...\n"));
 		goto CLEANUP;
 	}
-	copy_fits_metadata(&workingfit, current_fit);
 	if (workingfit.header) {
 		current_fit->header = malloc(strlen(workingfit.header)+1);
 		memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
 	}
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
-		siril_log_color_message(_("StarNet: job completed.\n"), "green");
+		siril_log_info(_("StarNet: job completed.\n"));
 
 	if ((!args->multi_args)) {
 		free(com.uniq->filename);
@@ -808,20 +806,18 @@ gpointer do_starnet(gpointer p) {
 			blendargs = calloc(1, sizeof(struct remixargs));
 			blendargs->fit1 = calloc(1, sizeof(fits));
 			blendargs->fit2 = calloc(1, sizeof(fits));
-			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), -1);
 			if (retval) {
-				siril_log_color_message(_("Error: image copy failed...\n"), "red");
+				siril_log_error(_("Error: image copy failed...\n"));
 				goto CLEANUP;
 			}
-			copy_fits_metadata(&workingfit, blendargs->fit1);
 			update_fits_header(blendargs->fit1);
 
-			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT | CP_WCS | CP_UNKNOWNKEYS | CP_DATES), -1);
 			if (retval) {
-				siril_log_color_message(_("Error: image copy failed...\n"), "red");
+				siril_log_error(_("Error: image copy failed...\n"));
 				goto CLEANUP;
 			}
-			copy_fits_metadata(&fit, blendargs->fit2);
 			update_fits_header(blendargs->fit2);
 		}
 	}
@@ -830,7 +826,7 @@ gpointer do_starnet(gpointer p) {
 	if (currentdir) {
 		retval2 = g_chdir(currentdir);
 		if (retval2) {
-			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+			siril_log_error(_("Error: unable to change to Siril working directory...\n"));
 			retval = retval2;
 		}
 	}
@@ -908,7 +904,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	if (seqdata->starmask)
 		seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->force_ser = args->force_ser_output;
-	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
+	siril_log_info(_("Starnet: Processing image %d\n"), o + 1);
 	// Call the starnet process
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
@@ -935,7 +931,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 #ifdef _OPENMP
 		omp_unset_lock(&args->lock);
 #endif
-		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
+		siril_log_debug("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return retval;
 }
@@ -983,7 +979,12 @@ int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 			params->upscale ? _("yes") : _("no"),
 			params->customstride ? params->stride : _("default"));
 		undo_save_state((fits*)gui_iface.get_preview_gfit_backup(), undo_msg);
-		gfit->history = g_slist_append(gfit->history, g_strdup(undo_msg));
+		/* Append to fit->history rather than gfit->history: the worker passes
+		 * the hook a private buffer (eventually swapped into gfit) under the
+		 * generic_image_worker contract.  Writing through `fit` keeps the hook
+		 * compatible with that contract; today fit == gfit so behaviour is
+		 * unchanged. */
+		fit->history = g_slist_append(fit->history, g_strdup(undo_msg));
 		g_free(undo_msg);
 	}
 

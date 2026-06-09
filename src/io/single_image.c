@@ -49,7 +49,7 @@ void close_single_image() {
 	/* We need to clear display and soft proofing transforms and a few other
 	 * color management data */
 
-	siril_debug_print("MODE: closing single image\n");
+	siril_log_debug("MODE: closing single image\n");
 	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
@@ -61,7 +61,7 @@ void close_single_image() {
 /* free_image_data_gui moved to gui/gui_iface_impl.c */
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
-	siril_debug_print("free_image_data() called, clearing loaded image\n");
+	siril_log_debug("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
 	cmsCloseProfile(gfit->icc_profile);
@@ -86,7 +86,7 @@ void free_image_data() {
 	if (!com.headless)
 		gui_iface.on_image_closed();
 	clearfits(gfit);
-	siril_debug_print("free_image_data() complete\n");
+	siril_log_debug("free_image_data() complete\n");
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -115,7 +115,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", filename);
+		siril_log_error(_("Error opening image %s: file not found or not supported.\n"), filename);
 		free(realname);
 		return 1;
 	}
@@ -125,7 +125,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			retval = read_single_sequence(realname, imagetype);
 			single_sequence = TRUE;
 		} else {
-			siril_log_color_message(_("Cannot open a sequence from here\n"), "red");
+			siril_log_error(_("Cannot open a sequence from here\n"));
 			free(realname);
 			return 1;
 		}
@@ -140,7 +140,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		*is_sequence = single_sequence;
 	}
 	if (retval && retval != OPEN_IMAGE_CANCEL)
-		siril_log_color_message(_("Opening %s failed.\n"), "red", realname);
+		siril_log_error(_("Opening %s failed.\n"), realname);
 	if (realname_out)
 		*realname_out = realname;
 	else
@@ -189,7 +189,7 @@ int open_single_image(const char* filename) {
 	 * when it finishes and cause a segfault.
 	 */
 	if ((retval = processing_is_job_active())) {
-		siril_log_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
+		siril_log_error(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
 	}
 
 	/* first, close everything */
@@ -209,7 +209,7 @@ int open_single_image(const char* filename) {
 	}
 
 	if (!is_single_sequence) {
-		siril_debug_print("Loading image OK, now displaying\n");
+		siril_log_debug("Loading image OK, now displaying\n");
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
@@ -226,7 +226,7 @@ int open_single_image(const char* filename) {
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
 gboolean open_single_image_from_gfit(gpointer user_data) {
-	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
+	siril_log_debug("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -255,7 +255,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -279,7 +279,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -346,7 +346,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
-	siril_debug_print("end of gfit operation - idle function\n");
+	siril_log_debug("end of gfit operation - idle function\n");
 	stop_processing_thread();
 
 	// Check the mask tab visibility is correct
@@ -368,9 +368,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	gui_iface.enable_display_mode_menu();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	else
-		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
+		gui_iface.redraw_image_async(REDRAW_ALL);	// queues a redraw if !com.script
 
 	gui_iface.redraw_previews();
 
@@ -399,6 +399,11 @@ void gfit_modified_update_gui() {
  * as dirty and recompute them on demand.  execute_script() calls this function
  * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
+	/* During application shutdown the loaded image is being torn down and the
+	 * display is going away, so recomputing the histogram and remapping the
+	 * (about-to-be-freed) pixels is pure waste — and laggy on a large image. */
+	if (com.quitting)
+		return;
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
@@ -437,12 +442,14 @@ void notify_gfit_data_modified() {
 			gui_iface.copy_roi_into_gfit();
 		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
-		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
-		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
-		 * protect the write with com.mutex to prevent a data race. */
+		/* Update hi/lo display range BEFORE remapping so the first rendered frame
+		 * of a new image uses the correct stretch (not stale values from the
+		 * previously displayed image).  In USER slider mode this is a no-op, so
+		 * manually-set slider values are preserved. */
 		g_mutex_lock(&com.mutex);
 		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
 		g_mutex_unlock(&com.mutex);
+		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 	}
 }
 

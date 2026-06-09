@@ -426,7 +426,7 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 			active_channels--;
 	}
 	if (active_channels == 0) {
-		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		siril_log_error(_("Error: no channels selected. Doing nothing.\n"));
 		return;
 	}
 	struct ght_compute_params compute_params = { 0 };
@@ -587,7 +587,7 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 			active_channels--;
 	}
 	if (active_channels == 0) {
-		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		siril_log_error(_("Error: no channels selected. Doing nothing.\n"));
 		return;
 	}
 	struct ght_compute_params compute_params;
@@ -723,7 +723,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 			active_channels--;
 	}
 	if (active_channels == 0) {
-		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		siril_log_error(_("Error: no channels selected. Doing nothing.\n"));
 		return;
 	}
 	struct ght_compute_params compute_params = { 0 };
@@ -851,7 +851,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 			active_channels--;
 	}
 	if (active_channels == 0) {
-		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		siril_log_error(_("Error: no channels selected. Doing nothing.\n"));
 		return;
 	}
 	struct ght_compute_params compute_params;

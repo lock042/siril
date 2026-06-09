@@ -1,0 +1,385 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name composition_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjustment_lum_r">
+    <property name="lower">-360</property>
+    <property name="page-increment">0.01</property>
+    <property name="step-increment">0.001</property>
+    <property name="upper">360</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_lum_x">
+    <property name="lower">-1000</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">1000</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_lum_y">
+    <property name="lower">-1000</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">1000</property>
+  </object>
+  <object class="GtkWindow" id="composition_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkLabel" id="label_title">
+                <property name="label" translatable="yes">Multi-layer image composition</property>
+                <property name="margin-bottom">4</property>
+                <property name="margin-top">4</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="grid_layers">
+                <property name="column-spacing">8</property>
+                <property name="margin-top">3</property>
+                <property name="row-spacing">6</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_lum_r">
+                    <property name="adjustment">adjustment_lum_r</property>
+                    <property name="digits">3</property>
+                    <property name="focusable">1</property>
+                    <property name="sensitive">0</property>
+                    <property name="text">0</property>
+                    <layout>
+                      <property name="column">6</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_lum_y">
+                    <property name="adjustment">adjustment_lum_y</property>
+                    <property name="digits">1</property>
+                    <property name="focusable">1</property>
+                    <property name="sensitive">0</property>
+                    <property name="text">0</property>
+                    <layout>
+                      <property name="column">5</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_lum_x">
+                    <property name="adjustment">adjustment_lum_x</property>
+                    <property name="digits">1</property>
+                    <property name="focusable">1</property>
+                    <property name="sensitive">0</property>
+                    <property name="text">0</property>
+                    <layout>
+                      <property name="column">4</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_lum">
+                    <property name="label" translatable="yes">not loaded</property>
+                    <layout>
+                      <property name="column">3</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="composition_use_lum">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Use Luminance</property>
+                    <signal name="toggled" handler="on_composition_use_lum_toggled"/>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="column-span">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_alignments">
+                    <property name="label" translatable="yes">x alignment</property>
+                    <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the x-axis shift.
+    In other alignment modes, shows the x-axis shift applied to the layer.</property>
+                    <layout>
+                      <property name="column">4</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">y alignment</property>
+                    <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the y-axis shift.
+    In other alignment modes, shows the y-axis shift applied to the layer.</property>
+                    <layout>
+                      <property name="column">5</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">rotation</property>
+                    <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the rotation around the center of the image.
+    In other alignment modes, shows the rotation applied to the layer around the origin.
+    Rotation is shown in degrees anticlockwise.</property>
+                    <layout>
+                      <property name="column">6</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="centerbutton_lum">
+                    <property name="focusable">1</property>
+                    <property name="receives-default">1</property>
+                    <property name="sensitive">0</property>
+                    <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
+                    <signal name="toggled" handler="on_centerbutton_toggled"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="icon-name">mark-location-symbolic</property>
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">7</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="filechooser_lum">
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">(None)</property>
+                    <property name="receives-default">1</property>
+                    <signal name="clicked" handler="on_chooser_button_clicked"/>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cumulate_rgb_button">
+                <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Sum exposure time</property>
+                <property name="tooltip-text" translatable="yes">Sum of the exposure times of the different images used for the composition. This will change the value of some keywords such as STACKCNT (number of frames stacked) and LIVETIME (total exposure).</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="box41">
+                <property name="margin-top">2</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkButton" id="compositing_linear_match">
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Linear match</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
+    This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
+                    <signal name="clicked" handler="on_compositing_linear_match_clicked"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="composition_layers_autoadjust">
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Adjust layers brightness</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Automatically adjust the brightness of the colours picked for layers so that they don't overflow when compositing (based on max value for each image). Colour hues are unchanged.</property>
+                    <signal name="clicked" handler="on_compositing_autoadjust_clicked"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="composition_combo_coloringtype">
+                    <!-- Fill the remaining row width as in GTK3 (the combo was pack-type=end + expand). -->
+                    <property name="hexpand">1</property>
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">HSL composition</item>
+                          <item translatable="yes">HSV composition</item>
+                          <item translatable="yes">CIE L*a*b* composition</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Type of luminance-based colour composition. They represent the way of adding colour information to luminance data.</property>
+                    <signal name="notify::selected" handler="on_composition_combo_coloringtype_changed"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparator" id="separator11">
+                <property name="margin-bottom">5</property>
+                <property name="margin-top">5</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkGrid" id="grid19">
+                <property name="column-spacing">8</property>
+                <property name="row-spacing">6</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkLabel" id="label_ref">
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Use this alignment method:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="column-span">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_align">
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">and this framing method:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="column-span">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_msg">
+                    <property name="halign">start</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="column-span">4</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="compositing_align_method_combo">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Image pattern alignment (planetary/deep-sky)</item>
+                          <item translatable="yes">One star registration (deep-sky)</item>
+                        </items>
+                      </object>
+                    </property>
+                    <signal name="notify::selected" handler="on_compositing_align_method_combo_changed"/>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="compositing_align_framing_combo">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">First channel</item>
+                          <item translatable="yes">Min</item>
+                          <item translatable="yes">COG</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">2</property>
+                    <property name="tooltip-text" translatable="yes">Select framing method for deep-sky alignment:
+    First channel - frame to the first channel (always L in luminance mode);
+    Min - frame to the minimum overlap of all aligned images;
+    COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_align">
+                    <property name="focusable">1</property>
+                    <property name="label" translatable="yes">Align</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Automatic alignment using the selected registration method.</property>
+                    <signal name="clicked" handler="on_button_align_clicked"/>
+                    <layout>
+                      <property name="column">4</property>
+                      <property name="row">0</property>
+                      <property name="row-span">2</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="vexpand">1</property>
+            <child>
+              <object class="GtkButton" id="compositing_reload_all">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reload all</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Reload all input images into their respective compositing layers. This is necessary if you aren't happy with the alignment results and wish to re-do the alignment, for example with a different framing method.</property>
+                <signal name="clicked" handler="on_compositing_reload_all_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_save_all">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Save all</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-markup" translatable="yes">Save all the layer images with the prefix &lt;i&gt;comp_&lt;/i&gt;. After alignment the aligned and framed images will be saved, so if you prefer to combine them using PixelMath you can still use this tool as a simple means of aligning them.</property>
+                <signal name="clicked" handler="on_compositing_save_all_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_reset">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Clear</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_compositing_reset_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_cancel">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_compositing_cancel_clicked"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="title" translatable="yes">Image compositing</property>
+    <signal name="close-request" handler="on_compositing_cancel_clicked"/>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+  </object>
+</interface>

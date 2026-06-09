@@ -355,11 +355,11 @@ int test_available_space(gint64 req_size) {
 	gint64 free_space = find_space(com.wd);
 	int res = -1;
 	if (free_space < 0) {
-		siril_log_message(_("Error while computing available free disk space.\n"));
+		siril_log_error(_("Error while computing available free disk space.\n"));
 		return res;
 	}
 	if (req_size <= 0) {
-		siril_log_message(_("Error in requested space disk.\n"));
+		siril_log_error(_("Error in requested space disk.\n"));
 		return res;
 	}
 
@@ -393,7 +393,7 @@ int test_available_space(gint64 req_size) {
 		g_free(missing);
 		return res;
 	}
-	siril_debug_print("Tested free space ok: %" G_GINT64_FORMAT " for %" G_GINT64_FORMAT " MB free\n",
+	siril_log_debug("Tested free space ok: %" G_GINT64_FORMAT " for %" G_GINT64_FORMAT " MB free\n",
 			(gint64)(req_size / BYTES_IN_A_MB), (gint64)(free_space / BYTES_IN_A_MB));
 	return 0;
 }
@@ -456,19 +456,19 @@ static gchar *find_cgroups_path(const char *module) {
 		gchar **tokens = g_strsplit(buf, ":", -1);
 		guint n = g_strv_length(tokens);
 		if (n < 3) {
-			siril_debug_print("malformed line in /proc/self/cgroup: %s\n", buf);
+			siril_log_debug("malformed line in /proc/self/cgroup: %s\n", buf);
 			continue;
 		}
 		if (atoi(tokens[0]) == 0 && tokens[1][0] == '\0') {
 			// cgroups v2, only one entry
-			siril_debug_print("cgroups v2 path: %s\n", tokens[2]);
+			siril_log_debug("cgroups v2 path: %s\n", tokens[2]);
 			cgpath = g_strdup(tokens[2]);
 		} else {
 			gchar **controllers = g_strsplit(tokens[1], ",", -1);
 			guint ncont = g_strv_length(controllers);
 			for (int i = 0; i < ncont; i++) {
 				if (!strcmp(controllers[i], module)) {
-					siril_debug_print("cgroups v1 path: %s\n", tokens[2]);
+					siril_log_debug("cgroups v1 path: %s\n", tokens[2]);
 					if (!strcmp("/", tokens[2]))
 						cgpath = g_strdup("");
 					else cgpath = g_strdup(tokens[2]);
@@ -525,7 +525,7 @@ static int get_available_mem_cgroups(guint64 *amount) {
 		for (source_file = 0; source_file < nb_paths; source_file++) {
 			gchar *path = g_strdup_printf(limits_paths[source_file], cgroup_path);
 			if (!read_from_file(path, &limit) && limit > (guint64)0 && limit < 0x7fffffffffff0000) {
-				siril_debug_print("Found memory cgroups limit in %s\n", path);
+				siril_log_debug("Found memory cgroups limit in %s\n", path);
 				gchar *mem = g_format_size_full(limit, G_FORMAT_SIZE_IEC_UNITS);
 				siril_log_message(_("Using cgroups limit on memory: %s\n"), mem);
 				g_free(mem);
@@ -537,14 +537,14 @@ static int get_available_mem_cgroups(guint64 *amount) {
 		initialized = 1;
 		g_free(cgroup_path);
 		if (source_file == nb_paths) {
-			siril_debug_print("no memory cgroup controller detected\n");
+			siril_log_debug("no memory cgroup controller detected\n");
 			// not using cgroups
 			return 1;
 		}
 	}
 	else {
 		if (read_from_file(limits_filepath, &limit) || limit == (guint64)0) {
-			siril_log_message(_("Error reading from %s, disabling cgroups memory limits\n"),
+			siril_log_error(_("Error reading from %s, disabling cgroups memory limits\n"),
 					limits_filepath);
 			g_free(limits_filepath);
 			limits_filepath = NULL;
@@ -554,7 +554,7 @@ static int get_available_mem_cgroups(guint64 *amount) {
 	// then, get the current amount
 	guint64 current = get_used_RAM_memory();
 
-	siril_debug_print("current memory: %d, cgroup limit: %d MB\n",
+	siril_log_debug("current memory: %d, cgroup limit: %d MB\n",
 			(int)(current / BYTES_IN_A_MB), (int)(limit / BYTES_IN_A_MB));
 	if (limit < current)
 		*amount = (guint64)1;	// 0 mean error in the caller
@@ -576,23 +576,23 @@ int get_available_cpu_cgroups() {
 	gchar *cgroup_path = find_cgroups_path("cpu");
 	gchar *v1periodpath = g_strdup_printf("/sys/fs/cgroup/cpu%s/cpu.cfs_period_us", cgroup_path);
 	gchar *v1quotapath = g_strdup_printf("/sys/fs/cgroup/cpu%s/cpu.cfs_quota_us", cgroup_path);
-	//siril_debug_print("trying cpu controller path: %s\n", v1periodpath);
+	//siril_log_debug("trying cpu controller path: %s\n", v1periodpath);
 	if (!read_from_file(v1periodpath, &period) &&
 			!read_from_file(v1quotapath, &quota)) {
-		siril_debug_print("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in cgroup %s\n", quota, period, cgroup_path);
+		siril_log_debug("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in cgroup %s\n", quota, period, cgroup_path);
 	} else {
 		/* retry with cgroups v1, but without the group name in the path */
 		if (!read_from_file("/sys/fs/cgroup/cpu/cpu.cfs_period_us", &period) &&
 				!read_from_file("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", &quota)) {
-			siril_debug_print("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in main controller\n", quota, period);
+			siril_log_debug("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in main controller\n", quota, period);
 		} else {
 			/* try with cgroups v2 */
 			gchar *v2path = g_strdup_printf("/sys/fs/cgroup%s/cpu.max", cgroup_path);
 			if (!read_2_from_file(v2path, &quota, &period)) {
-				siril_debug_print("found cgroups v2 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in %s\n", quota, period, v2path);
+				siril_log_debug("found cgroups v2 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in %s\n", quota, period, v2path);
 			}
 			else {
-				siril_debug_print("no cgroups cpu bandwidth limitations found\n");
+				siril_log_debug("no cgroups cpu bandwidth limitations found\n");
 				period = 0;	// to be sure in case of partial read above
 			}
 			g_free(v2path);
@@ -681,7 +681,7 @@ guint64 get_available_memory() {
 		initialized_meminfo = TRUE;
 	}
 	if (fd < 0) {
-		siril_debug_print("/proc/meminfo is unavailable\n");
+		siril_log_debug("/proc/meminfo is unavailable\n");
 		return (guint64) 0;
 	}
 
@@ -746,7 +746,7 @@ guint64 get_available_memory() {
 	if (KERN_SUCCESS != host_page_size(mach_port, &page_size) ||
 			KERN_SUCCESS != host_statistics64(mach_port, HOST_VM_INFO64,
 				(host_info64_t)&vm_stats, &count)) {
-		siril_log_message("Failed to call host_statistics64(), available memory could not be computed\n");
+		siril_log_error("Failed to call host_statistics64(), available memory could not be computed\n");
 		return 0;
 	}
 	/* 1) compute what's marked as available */
@@ -754,14 +754,14 @@ guint64 get_available_memory() {
 		(guint64)vm_stats.purgeable_count +
 		(guint64)vm_stats.external_page_count;
 	guint64 mem1 = unused_pages * page_size;
-	siril_debug_print("method 1: %.2f GB available\n", mem1 / 1073741824.0);
+	siril_log_debug("method 1: %.2f GB available\n", mem1 / 1073741824.0);
 
 	/* 2) compute what's left from what's marked as non-available */
 	guint64 physical_memory;
 	int mib[2] = { CTL_HW, HW_MEMSIZE };
 	size_t length = sizeof(guint64);
 	if (sysctl(mib, 2, &physical_memory, &length, NULL, 0) < 0) {
-		siril_debug_print("Failed to call sysctl(HW_MEMSIZE)\n");
+		siril_log_debug("Failed to call sysctl(HW_MEMSIZE)\n");
 		return mem1;
 	}
 
@@ -775,7 +775,7 @@ guint64 get_available_memory() {
 		(guint64)vm_stats.compressor_page_count;
 
 	guint64 mem2 = physical_memory - used_pages * page_size;
-	siril_debug_print("method 2: %.2f GB available\n", mem2 / 1073741824.0);
+	siril_log_debug("method 2: %.2f GB available\n", mem2 / 1073741824.0);
 
 	// there's often a slight difference between the two, we might as well take the smallest
 	if (mem1 < mem2)
@@ -926,10 +926,10 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 #endif // _WIN32
 
 	maxfile = min(open_max, MAX_NO_FILE);
-	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
+	siril_log_debug("Maximum of files that will be opened=%d\n", maxfile);
 	*nb_allowed_file = maxfile;
 	if (nb_frames > maxfile)
-		siril_log_color_message("Max number of opened files (%d) is larger than required number of images (%d)\n", "red", maxfile, nb_frames);
+		siril_log_error("Max number of opened files (%d) is larger than required number of images (%d)\n", maxfile, nb_frames);
 
 	return nb_frames < maxfile;
 }
@@ -1038,7 +1038,7 @@ char* siril_real_path(const char *source) {
 void log_used_mem(gchar *when) {
 	guint64 used = get_used_RAM_memory();
 	gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
-	siril_debug_print("Used memory %s: %s\n", when, mem);
+	siril_log_debug("Used memory %s: %s\n", when, mem);
 	g_free(mem);
 }
 
@@ -1093,7 +1093,7 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 	const gchar *path_value;
 	if (!path) { // we need to remove mingw64 tokens from PATH
 		const gchar *tmp_path_value = g_getenv("PATH");
-		// siril_debug_print("Unfiltered: %s\n", tmp_path_value);
+		// siril_log_debug("Unfiltered: %s\n", tmp_path_value);
 		gchar **tokens = g_strsplit(tmp_path_value, ";", -1);
 		GPtrArray *filtered_tokens = g_ptr_array_new_with_free_func(g_free);
 		for (guint i = 0; tokens[i] != NULL; i++) {
@@ -1103,7 +1103,7 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 		}
 		g_ptr_array_add(filtered_tokens, NULL);
 		path_value = g_strjoinv(";", (gchar **)filtered_tokens->pdata);
-		// siril_debug_print("Filtered: %s\n", path_value);
+		// siril_log_debug("Filtered: %s\n", path_value);
 		// Free memory
 		g_strfreev(tokens);
 		g_ptr_array_free(filtered_tokens, TRUE);
@@ -1130,6 +1130,151 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 }
 
 #endif
+
+/* siril_system_is_dark_mode()  - returns TRUE when the OS is in Dark Mode.
+ * siril_watch_system_appearance_changes(cb) - registers cb to be called on
+ *   the GTK main thread whenever the OS appearance changes.
+ * Three independent backends follow the same #ifdef chain used elsewhere in
+ * this file: macOS (ObjC), Windows (registry + polling), Linux/Unix (GSettings
+ * for org.gnome.desktop.interface, which KDE 6 and most GNOME desktops expose
+ * via the xdg-desktop-portal; returns FALSE/no-op on other desktops). */
+
+#ifdef OS_OSX
+
+gboolean siril_system_is_dark_mode(void) {
+	NSAppearanceName name = [[NSApp effectiveAppearance]
+		bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua,
+		                                    NSAppearanceNameDarkAqua]];
+	return [name isEqualToString:NSAppearanceNameDarkAqua];
+}
+
+static void (*s_appearance_cb)(gboolean dark) = NULL;
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_appearance_cb = callback;
+	[[NSDistributedNotificationCenter defaultCenter]
+		addObserverForName:@"AppleInterfaceThemeChangedNotification"
+		object:nil
+		queue:[NSOperationQueue mainQueue]
+		usingBlock:^(NSNotification *note) {
+			if (s_appearance_cb)
+				s_appearance_cb(siril_system_is_dark_mode());
+		}];
+}
+
+#elif defined(_WIN32)
+
+gboolean siril_system_is_dark_mode(void) {
+	HKEY hKey;
+	DWORD value = 1; /* default: light */
+	DWORD size = sizeof(value);
+	if (RegOpenKeyExA(HKEY_CURRENT_USER,
+			"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+		RegQueryValueExA(hKey, "AppsUseLightTheme", NULL, NULL,
+		                 (LPBYTE) &value, &size);
+		RegCloseKey(hKey);
+	}
+	return value == 0; /* 0 = dark apps */
+}
+
+static void (*s_win_cb)(gboolean dark) = NULL;
+static gboolean s_win_last_dark = FALSE;
+
+static gboolean win_poll_appearance(gpointer data) {
+	(void) data;
+	gboolean dark = siril_system_is_dark_mode();
+	if (dark != s_win_last_dark) {
+		s_win_last_dark = dark;
+		if (s_win_cb)
+			s_win_cb(dark);
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_win_cb = callback;
+	s_win_last_dark = siril_system_is_dark_mode();
+	g_timeout_add_seconds(5, win_poll_appearance, NULL);
+}
+
+#else /* Linux / Unix */
+
+static void (*s_linux_cb)(gboolean dark) = NULL;
+
+static void on_gsettings_color_scheme_changed(GSettings *settings,
+		const gchar *key, gpointer data) {
+	(void) key; (void) data;
+	gchar *scheme = g_settings_get_string(settings, "color-scheme");
+	gboolean dark = g_strcmp0(scheme, "prefer-dark") == 0;
+	g_free(scheme);
+	if (s_linux_cb)
+		s_linux_cb(dark);
+}
+
+gboolean siril_system_is_dark_mode(void) {
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	GSettingsSchema *schema = g_settings_schema_source_lookup(
+		src, "org.gnome.desktop.interface", TRUE);
+	if (!schema) return FALSE;
+	g_settings_schema_unref(schema);
+	GSettings *settings = g_settings_new("org.gnome.desktop.interface");
+	gchar *scheme = g_settings_get_string(settings, "color-scheme");
+	gboolean dark = g_strcmp0(scheme, "prefer-dark") == 0;
+	g_free(scheme);
+	g_object_unref(settings);
+	return dark;
+}
+
+void siril_watch_system_appearance_changes(void (*callback)(gboolean dark)) {
+	s_linux_cb = callback;
+	GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+	GSettingsSchema *schema = g_settings_schema_source_lookup(
+		src, "org.gnome.desktop.interface", TRUE);
+	if (!schema) return; /* desktop doesn't expose this schema — no-op */
+	g_settings_schema_unref(schema);
+	static GSettings *s_iface_settings = NULL;
+	if (!s_iface_settings)
+		s_iface_settings = g_settings_new("org.gnome.desktop.interface");
+	g_signal_connect(s_iface_settings, "changed::color-scheme",
+	                 G_CALLBACK(on_gsettings_color_scheme_changed), NULL);
+}
+
+#endif /* OS_OSX / _WIN32 / Linux */
+
+#ifdef OS_OSX
+/* GTK4's GdkMacosView does not override performKeyEquivalent:, unlike GTK3's
+ * GdkQuartzView which forwarded Cmd+key events directly to GDK.  As a result,
+ * Command+key shortcuts never reach GTK4's shortcut controller.
+ *
+ * Fix: local NSEvent monitor that catches Cmd+key in GDK windows and forwards
+ * them via keyDown: so GDK processes them.  Accel strings are registered with
+ * <Meta> on macOS (see set_accel_map) so GDK_META_MASK (Command) matches.
+ *
+ * Native macOS panels (NSOpenPanel, NSAlert …) are left untouched: their
+ * content views do not carry the "Gdk" class-name prefix. */
+void siril_macos_fix_keyboard_shortcuts(void) {
+	[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+	                                      handler:^NSEvent *(NSEvent *event) {
+		if (!([event modifierFlags] & NSEventModifierFlagCommand))
+			return event;
+
+		NSWindow *win = [NSApp keyWindow];
+		if (!win)
+			return event;
+
+		/* Only intercept GTK/GDK windows. */
+		NSString *cls = NSStringFromClass([win.contentView class]);
+		if (![cls hasPrefix:@"Gdk"])
+			return event;
+
+		/* Forward as-is: accels are registered with <Meta> on macOS so
+		 * GDK_META_MASK (Command) already matches without any modifier swap. */
+		[win.contentView keyDown:event];
+		return nil;
+	}];
+}
+#endif /* OS_OSX */
 
 gchar *get_siril_version_string() {
 #ifdef _WIN32

@@ -532,13 +532,13 @@ void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
 		if (!aperture_warning_given) {
 			aperture_warning_given = TRUE;
 			if (ap < 10.f) {
-				siril_log_color_message(_("Warning: telescope aperture obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: telescope aperture obtained from FITS header data may be incorrect.\n"));
 			}
 			if (fl < 10.f) {
-				siril_log_color_message(_("Warning: telescope focal length obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: telescope focal length obtained from FITS header data may be incorrect.\n"));
 			}
 			if (px <=1.f) {
-				siril_log_color_message(_("Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"), "salmon");
+				siril_log_warning(_("Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"));
 			}
 		}
 	}
@@ -578,15 +578,15 @@ void calculate_parameters() {
 				profiletype = stars_snap[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
-				siril_log_color_message(_("Error: all stars' FWHM must have the same units.\n"), "red");
+				siril_log_error(_("Error: all stars' FWHM must have the same units.\n"));
 				return;
 			}
 			else if (layer != stars_snap[i]->layer ) {
-				siril_log_color_message(_("Error: stars' properties must all be computed on the same layer"), "red");
+				siril_log_error(_("Error: stars' properties must all be computed on the same layer"));
 				return;
 			}
 			else if (profiletype != stars_snap[i]->profile) {
-				siril_log_color_message(_("Error: stars must all be modeled with the same profile type"), "red");
+				siril_log_error(_("Error: stars must all be modeled with the same profile type"));
 				return;
 			}
 			if (!stars_snap[i]->has_saturated) {
@@ -717,7 +717,7 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	filename = g_strdup_printf("%s.fit", temp6);
 #endif
 	if (strlen(filename) > pathmax) {
-		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		siril_log_error(_("Error: file path too long!\n"));
 	} else {
 		estk_data *tmp_args = bdeconv_fill_estk_from_gui();
 		save_kernel(filename, tmp_args);
@@ -741,7 +741,7 @@ gboolean set_kernel_size_in_gui(gpointer user_data) {
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar* filename = siril_file_chooser_get_filename(filechooser);
 	if (filename == NULL) {
-		siril_log_color_message(_("No PSF file selected.\n"), "red");
+		siril_log_error(_("No PSF file selected.\n"));
 		gtk_file_chooser_unselect_all(filechooser);
 	} else {
 		reset_conv_kernel();
@@ -776,7 +776,7 @@ gboolean deconvolve_img_idle(gpointer arg) {
 	if (bdeconv_psfprevious) {
 		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
-	siril_debug_print("Deconvolve idle stopping processing thread\n");
+	siril_log_debug("Deconvolve idle stopping processing thread\n");
 
 	// Clean up the generic_img_args wrapper
 	free_generic_img_args(ga);
@@ -791,7 +791,7 @@ gboolean estimate_img_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	set_cursor_waiting(FALSE);
 
-	siril_debug_print("Estimate idle stopping processing thread\n");
+	siril_log_debug("Estimate idle stopping processing thread\n");
 	stop_processing_thread();
 	DrawPSF(NULL);
 
@@ -916,7 +916,6 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = FALSE;
 		worker_args->for_roi = FALSE;
-		worker_args->populate_roi_on_complete = TRUE;
 
 		start_in_new_thread(generic_image_worker, worker_args);
 	}

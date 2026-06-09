@@ -341,7 +341,7 @@ int generate_synthstars(fits *fit) {
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
-			siril_log_color_message(_("Memory allocation failed\n"), "red");
+			siril_log_error(_("Memory allocation failed\n"));
 			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			return -1;
 		}
@@ -367,7 +367,7 @@ int generate_synthstars(fits *fit) {
 		free(sf_data);
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed\n"), "red");
+			siril_log_error(_("Star detection failed\n"));
 			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			if (stars)
 				free_fitted_stars(stars);
@@ -377,7 +377,7 @@ int generate_synthstars(fits *fit) {
 	}
 
 	if (nb_stars < 1 || !stars) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		siril_log_error(_("No stars detected in the image.\n"));
 		if (stars_needs_freeing)
 			free_fitted_stars(stars);
 		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
@@ -466,7 +466,7 @@ int generate_synthstars(fits *fit) {
 			avg_moffat_beta += stars[n]->beta;
 		}
 		avg_moffat_beta /= moffat_count;
-		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
+		siril_log_debug("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
@@ -628,10 +628,8 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
@@ -643,7 +641,7 @@ int generate_synthstars(fits *fit) {
 int reprofile_saturated_stars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	char *msg = siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
+	char *msg = siril_log_info(_("Star synthesis (desaturating clipped star profiles): processing...\n"));
 	msg[strlen(msg) - 1] = '\0';
 	gui_iface.set_progress(PROGRESS_RESET, msg);
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
@@ -654,7 +652,7 @@ int reprofile_saturated_stars(fits *fit) {
 		norm = (float) get_normalized_value(fit);
 		invnorm = 1.0f / norm;
 	}
-	siril_debug_print("norm %f, invnorm %f\n", (float) norm, (float) invnorm);
+	siril_log_debug("norm %f, invnorm %f\n", (float) norm, (float) invnorm);
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
@@ -720,7 +718,7 @@ int reprofile_saturated_stars(fits *fit) {
 		int retval = GPOINTER_TO_INT(findstar_worker(&sf_data));
 
 		if (retval != 0 || !stars) {
-			siril_log_color_message(_("Star detection failed for channel %u\n"), "red", chan);
+			siril_log_error(_("Star detection failed for channel %u\n"), chan);
 			if (stars)
 				free_fitted_stars(stars);
 			continue; // Skip this channel but continue with others
@@ -816,10 +814,8 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);

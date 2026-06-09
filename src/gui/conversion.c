@@ -57,7 +57,7 @@ static void conversion_init_statics(void) {
 	conv_start_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "startIndiceEntry"));
 	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
 	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
-	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "conv_root_entry"));
+	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
 }
 
 static void check_for_conversion_form_completeness();
@@ -159,7 +159,7 @@ static void initialize_convert() {
 				there_is_a_film = TRUE;
 		}
 		else if (type == TYPEUNDEF) {
-			char *title = siril_log_message(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
+			char *title = siril_log_error(_("Filetype is not supported, cannot convert: %s\n"), src_ext);
 			gchar *msg = g_strdup_printf(_("File extension '%s' is not supported.\n"
 				"Verify that you typed the extension correctly.\n"
 				"If so, you may need to install third-party software to enable "
@@ -199,7 +199,7 @@ static void initialize_convert() {
 	gboolean symbolic_link = gtk_toggle_button_get_active(conv_symlink);
 
 	if (output_type == SEQ_REGULAR && debayer && symbolic_link) {
-		siril_log_message(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
+		siril_log_warning(_("Symbolic links cannot be used when demosaicing the images, new images will be created\n"));
 		symbolic_link = FALSE;
 	}
 	if (multiple && there_is_an_image) {
@@ -215,7 +215,7 @@ static void initialize_convert() {
 		return;
 	}
 
-	siril_log_color_message(_("Conversion: processing %d files...\n"), "green", count);
+	siril_log_info(_("Conversion: processing %d files...\n"), count);
 
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);

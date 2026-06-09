@@ -130,7 +130,7 @@ GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
  * @return the GtkWidget of popover
  */
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf) {
-	GtkWidget *popover, *box, *image, *label;
+	GtkWidget *popover, *scrolled, *box, *image, *label;
 
 	popover = gtk_popover_new(widget);
 	label = gtk_label_new(NULL);
@@ -153,14 +153,27 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 
 	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 10);
 	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);
-	gtk_container_add(GTK_CONTAINER(popover), box);
+
+	scrolled = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+			GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scrolled), TRUE);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scrolled), 600);
+	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled), GTK_SHADOW_ETCHED_IN);
+	gtk_widget_set_margin_start(scrolled, 6);
+	gtk_widget_set_margin_end(scrolled, 6);
+	gtk_widget_set_margin_top(scrolled, 6);
+	gtk_widget_set_margin_bottom(scrolled, 6);
+	gtk_container_add(GTK_CONTAINER(scrolled), box);
+	gtk_container_add(GTK_CONTAINER(popover), scrolled);
 
 	/* make all sensitive in case where parent is not */
 	gtk_widget_set_sensitive(label, TRUE);
 	gtk_widget_set_sensitive(box, TRUE);
 	gtk_widget_set_sensitive(popover, TRUE);
 
-	gtk_widget_show_all(box);
+	gtk_widget_show_all(scrolled);
 
 	return popover;
 }
@@ -272,7 +285,7 @@ static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
 	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
 	data->idle(data->user);
-	siril_debug_print("idle %p signaling end\n", data->idle);
+	siril_log_debug("idle %p signaling end\n", data->idle);
 	g_mutex_lock(&data->mutex);
 	data->idle_finished = TRUE;
 	g_cond_signal(&data->cond);
@@ -282,7 +295,7 @@ static gboolean wrapping_idle(gpointer arg) {
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	if (com.headless) {
-		siril_debug_print("execute_idle_and_wait_for_it called headless, this should not happen!\n");
+		siril_log_debug("execute_idle_and_wait_for_it called headless, this should not happen!\n");
 		return;
 	}
 
@@ -298,9 +311,9 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	g_mutex_init(&data->mutex);
 	g_cond_init(&data->cond);
 
-	siril_debug_print("queueing idle %p\n", idle);
+	siril_log_debug("queueing idle %p\n", idle);
 	gdk_threads_add_idle(wrapping_idle, data);
-	siril_debug_print("waiting for idle %p\n", idle);
+	siril_log_debug("waiting for idle %p\n", idle);
 
 	/* Wait for the idle to run.  Simple g_cond_wait() deadlocks when the
 	 * calling thread is the main thread but is not currently inside a main
@@ -330,7 +343,7 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	g_mutex_clear(&data->mutex);
 	g_cond_clear(&data->cond);
 	g_free(data);
-	siril_debug_print("idle %p wait is over\n", idle);
+	siril_log_debug("idle %p wait is over\n", idle);
 }
 
 int select_vport(int vport) {

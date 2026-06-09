@@ -322,8 +322,8 @@ void apply_to_seq() {
 				seq0->bitpix != seq3->bitpix) ||
 				(seq0->number != seq1->number || seq0->number != seq2->number ||
 				seq0->number != seq3->number)) {
-		siril_log_color_message(_("Error: sequences don't match (dimensions, bitdepth, "
-		"number of images must all be the same)\n"), "red");
+		siril_log_error(_("Error: sequences don't match (dimensions, bitdepth, "
+		"number of images must all be the same)\n"));
 	goto cleanup;
 	}
 
@@ -397,7 +397,7 @@ static gboolean merge_cfa_img_idle(gpointer p) {
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		set_cutoff_sliders_values();
 		set_display_mode();
-		redraw(REMAP_ALL);
+		redraw(REDRAW_ALL);
 		sequence_list_change_current();
 		reset_controls();
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -416,7 +416,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 	retval += readfits(data->f_cfa2, &c2, NULL, FALSE);
 	retval += readfits(data->f_cfa3, &c3, NULL, FALSE);
 	if (retval) {
-		siril_log_color_message(_("Error loading files!\n"), "red");
+		siril_log_error(_("Error loading files!\n"));
 		clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
 		data->success = FALSE;
 		siril_add_idle(merge_cfa_img_idle, data);
@@ -425,7 +425,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 	fits *out = merge_cfa(&c0, &c1, &c2, &c3, data->pattern);
 	clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
 	if (!out) {
-		siril_log_color_message(_("Merge CFA failed.\n"), "red");
+		siril_log_error(_("Merge CFA failed.\n"));
 		data->success = FALSE;
 		siril_add_idle(merge_cfa_img_idle, data);
 		return GINT_TO_POINTER(1);
@@ -471,7 +471,7 @@ void apply_to_img() {
 	gboolean c_compat = (cfa0.naxes[2] == cfa1.naxes[2] && cfa1.naxes[2] == cfa2.naxes[2] && cfa2.naxes[2] == cfa3.naxes[2] && cfa3.naxes[2] == 1);
 	gboolean t_compat = (cfa0.type == cfa1.type && cfa1.type == cfa2.type && cfa2.type == cfa3.type);
 	if (!(x_compat && y_compat && c_compat && t_compat)) {
-		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		siril_log_error(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"));
 		if (!x_compat)
 			siril_log_message(_("X dimensions incompatible\n"));
 		if (!y_compat)

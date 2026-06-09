@@ -42,6 +42,8 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/conversion.h"
+#include "algos/demosaicing.h"
 #include "pixelMath/pixel_math_runner.h"
 
 /* ── Operator / function tables (GUI-side; used by tooltips and list views) */
@@ -516,21 +518,31 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < max_images) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
-		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) {
+		image_type imagetype;
+		char *realname = NULL;
+		if (stat_file(path, &imagetype, &realname)) {
+			siril_log_error(_("File not found or not supported: %s\n"), path);
 			retval = 1;
 			goto free_expressions;
 		}
+		int load_retval = any_to_fits(imagetype, realname, &var_fit[nb_rows], FALSE, TRUE);
+		free(realname);
+		if (load_retval) {
+			retval = 1;
+			goto free_expressions;
+		}
+		debayer_if_needed(imagetype, &var_fit[nb_rows], FALSE);
 
 		if (nb_rows > 0) {
 			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
 				if (!icc_warning_given) {
-					siril_log_color_message(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"), "salmon");
+					siril_log_warning(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"));
 					icc_warning_given = TRUE;
 				}
 				if (var_fit[0].icc_profile)
-					siril_log_color_message(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), "salmon", nb_rows + 1);
+					siril_log_warning(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), nb_rows + 1);
 				else
-					siril_log_color_message(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"), "salmon");
+					siril_log_warning(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"));
 				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
 			}
 		}
@@ -712,7 +724,11 @@ static void select_image(int nb) {
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
-	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS, gui.file_ext_filter == TYPEFITS);
+#ifdef HAVE_LIBTIFF
+	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("Image Files (FITS, TIFF)"), FITS_EXTENSIONS ";*.tif;*.TIF;*.tiff;*.TIFF", TRUE);
+#else
+	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS, TRUE);
+#endif
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
@@ -726,10 +742,28 @@ static void select_image(int nb) {
 		for (l = filenames; l; l = l->next) {
 			char *filename = (char *)l->data;
 			if (filename) {
-				gchar filter[FLEN_VALUE] = { 0 };
+				gchar filter_kw[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
-				if (read_fits_metadata_from_path(filename, &f)) {
-					siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+				gboolean have_meta = FALSE;
+				image_type imagetype;
+				char *realname = NULL;
+				if (!stat_file(filename, &imagetype, &realname)) {
+					if (imagetype == TYPEFITS) {
+						if (!read_fits_metadata_from_path(filename, &f)) {
+							have_meta = TRUE;
+							if (f.keywords.filter[0] != '\0')
+								memcpy(filter_kw, f.keywords.filter, FLEN_VALUE);
+						}
+					} else {
+						if (!any_to_fits(imagetype, realname, &f, FALSE, TRUE)) {
+							debayer_if_needed(imagetype, &f, FALSE);
+							have_meta = TRUE;
+						}
+					}
+					free(realname);
+				}
+				if (!have_meta) {
+					siril_log_error(_("Could not open file: %s\n"), filename);
 				} else if (check_files_dimensions(&width, &height, &channel)) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] || height != f.naxes[1])) {
@@ -740,17 +774,14 @@ static void select_image(int nb) {
 						g_free(name);
 						g_free(str);
 					} else {
-						if (f.keywords.filter[0] != '\0')
-							memcpy(filter, f.keywords.filter, FLEN_VALUE);
-
 						int idx = search_for_free_index();
 						if (idx >= pm_get_max_images()) {
-							siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
+							siril_log_error(_("Error: maximum variable index exceeded - too many variables!\n"));
 							g_free(filename);
 							clearfits(&f);
 							break;
 						}
-						add_image_to_variable_list(filename, pm_get_variable_name(idx), filter, f.naxes[2], f.naxes[0], f.naxes[1]);
+						add_image_to_variable_list(filename, pm_get_variable_name(idx), filter_kw, f.naxes[2], f.naxes[0], f.naxes[1]);
 						pos++;
 						if (pos == pm_get_max_images()) {
 							g_free(filename);
@@ -816,7 +847,7 @@ static void apply_pixel_math() {
 	remove_spaces_from_str(expression3);
 
 	if (pixel_math_evaluate(expression1, expression2, expression3))
-		siril_log_color_message(_("Error evaluating pixelmath expression.\n"), "red");
+		siril_log_error(_("Error evaluating pixelmath expression.\n"));
 }
 
 /* ── Preset list management ─────────────────────────────────────────────── */

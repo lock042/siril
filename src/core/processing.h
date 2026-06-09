@@ -178,7 +178,7 @@ struct generic_img_args {
 	/* Command requires gfit update: this should only be set in command.c
 	 * (when called from the GUI gfit updates should be done in an idle) */
 	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
-	gboolean command_updates_gfit; // This command needs to updates gfit
+	gboolean command_updates_gfit; // This command needs to update gfit
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()
@@ -191,9 +191,10 @@ struct generic_img_args {
 	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
 	gboolean mask_aware; // Whether the operation is mask-aware or not
 	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
-	/* When TRUE, populate_roi() is called in the worker thread (while the fit's
-	 * rwlock is held) instead of in the idle function, keeping gfit reads on the
-	 * processing thread. */
+	/* DEPRECATED — the worker now calls populate_roi() automatically whenever
+	 * args->fit == gfit (and not script/python/headless), so callers no longer
+	 * need to set this.  Retained on the struct purely so existing call sites
+	 * continue to compile; the value is ignored. */
 	gboolean populate_roi_on_complete;
 };
 

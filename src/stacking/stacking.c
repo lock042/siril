@@ -122,12 +122,16 @@ gpointer stack_function_handler(gpointer p) {
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		clearfits(gfit);
 		memcpy(gfit, &args->result, offsetof(fits, rwlock));
-		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
-		/* check in com.seq, because args->seq may have been replaced */
+		/* Set com.seq.current before icc_auto_assign so that any
+		 * notify_gfit_data_modified triggered from within it sees the
+		 * correct state and does not mistake the stacking result for
+		 * a sequence frame (avoids buffer overrun in
+		 * test_and_allocate_reference_image). */
 		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
+		if (!com.script)
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
@@ -211,11 +215,15 @@ gpointer stack_function_handler(gpointer p) {
 				}
 			}
 		}
-		/* notify_gfit_data_modified is documented to be called from the worker
-		 * thread; it is internally gated by !com.headless. */
-		notify_gfit_data_modified();
 		g_rw_lock_writer_unlock(&gfit->rwlock);
-		/* Launch noise estimation after releasing the writer lock so the
+		/* notify_gfit_data_modified must run with the writer lock released:
+		 * it reaches copy_roi_into_gfit() which itself acquires the writer
+		 * lock, triggering pthread EDEADLK on glibc and silent self-deadlock
+		 * elsewhere.  Defer to here, immediately after unlock, so the rest
+		 * of the cleanup pipeline (bgnoise, end_stacking idle) sees the
+		 * histogram/stats invalidations as expected. */
+		notify_gfit_data_modified();
+		/* Launch noise estimation after the writer lock is released so the
 		 * bgnoise thread can acquire the reader lock immediately and run
 		 * concurrently with the GTK idle work in end_stacking. */
 		bgnoise_async(gfit, TRUE);
@@ -510,7 +518,7 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	siril_log_debug("Ending stacking idle function, retval=%d\n", args->retval);
 	stop_processing_thread();
 
 	/* gfit was written, the result was saved, and notify_gfit_data_modified()
@@ -520,7 +528,7 @@ static gboolean end_stacking(gpointer p) {
 		gui_iface.on_stack_complete();
 		bgnoise_await();
 	} else {
-		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
+		siril_log_error(_("Stacking failed, please check the log to fix your issue.\n"));
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
@@ -690,6 +698,6 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 	output_size[1] = (int)ymax - (int)ymin + 1;
 	offset[0] = (int)xmin;
 	offset[1] = -(int)ymax; // the stack is done with origin at bottom left but the shifts are computed from top right
-	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
-	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+	siril_log_debug("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_log_debug("new origin: %d %d\n", offset[0], offset[1]);
 }

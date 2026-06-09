@@ -434,8 +434,8 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret > 0) {
-		char *title = siril_log_color_message(_("Plate Solving failed. "
-					"The image could not be aligned with the reference stars.\n"), "red");
+		char *title = siril_log_error(_("Plate Solving failed. "
+					"The image could not be aligned with the reference stars.\n"));
 		gchar *msg = NULL;
 		if (args->ret == SOLVE_NO_MATCH)
 			msg = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
@@ -449,7 +449,7 @@ gboolean end_plate_solver(gpointer p) {
 	} else {
 		if (args->ret) {
 			gchar *msg = platesolve_msg(args);
-			siril_log_color_message(msg, "salmon");
+			siril_log_warning(msg);
 			g_free(msg);
 		}
 		/* update UI */
@@ -461,7 +461,7 @@ gboolean end_plate_solver(gpointer p) {
 		close_astrometry_dialog();
 		/* ****** */
 		if (args->image_flipped) {
-			redraw(REMAP_ALL);
+			redraw(REDRAW_ALL);
 		} else {
 			redraw(REDRAW_OVERLAY);
 		}
@@ -571,7 +571,7 @@ static void add_object_in_tree_view(const gchar *object) {
 				g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 				add_object_to_list();
 				g_signal_handlers_unblock_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-				siril_log_color_message(_("No object found\n"), "red");
+				siril_log_error(_("No object found\n"));
 				return;
 			}
 			g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -696,7 +696,7 @@ void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		update_image_parameters_GUI();
 	}
-	siril_debug_print("metadata loaded\n");
+	siril_log_debug("metadata loaded\n");
 }
 
 void on_GtkButtonIPS_clicked(GtkButton *button, gpointer user_data) {

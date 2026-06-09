@@ -54,7 +54,7 @@
 #endif
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
-#define siril_debug_print(fmt, ...) \
+#define siril_log_debug(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
@@ -197,13 +197,24 @@ typedef enum {
 #define MAXMASKVPORT	1	// 1 vport supported for mask display
 #define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
-/* defines for copyfits actions */
-#define CP_INIT		0x01	// initialize data array with 0s
-#define CP_ALLOC	0x02	// reallocs data array
-#define CP_COPYA	0x04	// copy data array content
-#define CP_FORMAT	0x08	// copy metadata
-#define CP_COPYMASK	0x10	// copy the mask
-#define CP_EXPAND	0x20	// expands a one-channel to a three channels
+/* defines for copyfits actions — a bitmask (passed as unsigned int).
+ * Individual bits select one element to copy; the groupings below the
+ * line are just OR-combinations, not new bits. */
+#define CP_INIT		0x0001	// initialize data array with 0s
+#define CP_ALLOC	0x0002	// reallocs data array
+#define CP_COPYA	0x0004	// copy data array content (also stats and ICC profile)
+#define CP_FORMAT	0x0008	// copy the scalar metadata keywords (clones them, then nulls the heap-owned pointers — copy those with the CP_* below)
+#define CP_COPYMASK	0x0010	// copy the mask
+#define CP_EXPAND	0x0020	// expands a one-channel to a three channels
+/* heap-owned metadata elements, each deep-copied independently */
+#define CP_WCS		0x0040	// deep-copy the WCS solution (wcslib)
+#define CP_HEADER	0x0080	// copy the raw FITS header text
+#define CP_HISTORY	0x0100	// copy the HISTORY list
+#define CP_UNKNOWNKEYS	0x0200	// copy the unparsed ("unknown") keywords
+#define CP_DATES	0x0400	// copy DATE and DATE-OBS
+/* convenience groupings */
+#define CP_METADATA_HEAP	(CP_WCS | CP_HEADER | CP_HISTORY | CP_UNKNOWNKEYS | CP_DATES)	// every heap-owned metadata element
+#define CP_DEEPCOPY		(CP_COPYA | CP_FORMAT | CP_COPYMASK | CP_METADATA_HEAP)	// deep-copy every element into an already-sized destination; OR with CP_ALLOC to also (re)allocate its data buffer (e.g. a fresh or stack-allocated fits)
 
 #define PREVIEW_NB 2
 
@@ -456,6 +467,10 @@ struct sequ {
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
+	gboolean ext_ref;	// H matrices are absolute (relative to an external reference image)
+	gchar *ext_ref_path;	// path to the external reference image used for registration
+	unsigned int ext_ref_rx;	// external reference image width (or ref if set)
+	unsigned int ext_ref_ry;	// external reference image height (or ref if set)
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -766,8 +781,8 @@ typedef struct _child_info {
 } child_info;
 
 struct historic_struct {
-	char *filename;
-	char *mask_filename;
+	int fd;             /* open fd for the swap file; -1 if none */
+	int mask_fd;        /* open fd for the mask swap file; -1 if none */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
@@ -826,6 +841,7 @@ struct common_icc {
 struct cominf {
 	GResource *resource; // resources
 	gboolean headless;		// pure console, no GUI
+	gboolean quitting;		// application is shutting down; suppress display refreshes during teardown
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -888,10 +904,8 @@ struct cominf {
 	double magOffset;		// offset to reduce the real magnitude, single image
 
 	/* history of operations, for the FITS header and the undo feature */
-	historic *history;		// the history of all operations on the current image
-	int hist_size;			// allocated size
-	int hist_current;		// current index
-	int hist_display;		// displayed index
+	GList *undo_stack;		// undo history: head = most recent saved state
+	GList *redo_stack;		// redo history: head = most recent undone state
 
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
@@ -909,7 +923,8 @@ struct cominf {
 	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
-	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
+	gchar *spcc_remote_catalogue;	// Current preferred mirror for the remote xp_sampled catalogue
+	gchar *spcc_remote_catalogue_xpcts;	// Current preferred mirror for the remote xp_continuous catalogue (NULL until configured)
 
 	/* Repository / script state (not display state; lives here, not in guiinfo) */
 	GSList   *repo_scripts;          // list of scripts from the remote repository

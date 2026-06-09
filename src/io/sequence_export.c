@@ -61,7 +61,7 @@ static uint8_t *fits_to_uint8(fits *fit) {
 			}
 		}
 	} else {
-		siril_debug_print("converting from ushort\n");
+		siril_log_debug("converting from ushort\n");
 		for (i = 0, j = 0; i < n; i += channel, j++) {
 			data[i + step] = (BYTE)(fit->pdata[RLAYER][j] >> 8);
 			if (channel > 1) {
@@ -190,7 +190,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 			if (avi_file_create(dest, out_width, out_height, avi_format,
 					AVI_WRITER_CODEC_DIB, args->film_fps)) {
-				siril_log_color_message(_("AVI file `%s' could not be created\n"), "red", dest);
+				siril_log_error(_("AVI file `%s' could not be created\n"), dest);
 				retval = -1;
 				goto free_and_reset_progress_bar;
 			}
@@ -273,7 +273,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 	if (reglayer != -1 && args->seq->regparam[reglayer]) {
 		if (!test_regdata_is_valid_and_shift(args->seq, reglayer)) {
-			siril_log_color_message(_("Export has detected registration data with more than simple shifts, this is not supported\n"), "red");
+			siril_log_error(_("Export has detected registration data with more than simple shifts, this is not supported\n"));
 			goto free_and_reset_progress_bar;
 		}
 		translation_from_H(args->seq->regparam[reglayer][refindex].H, &dxref, &dyref);
@@ -348,7 +348,7 @@ static gpointer export_sequence(gpointer ptr) {
 		fits fit = { 0 };
 		if (seq_read_frame(args->seq, i, &fit, FALSE, -1)) {
 			seqwriter_release_memory();
-			siril_log_message(_("Export: could not read frame, aborting\n"));
+			siril_log_error(_("Export: could not read frame, aborting\n"));
 			retval = -3;
 			goto free_and_reset_progress_bar;
 		}
@@ -363,7 +363,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 			else {
 				if (memcmp(naxes, fit.naxes, sizeof naxes)) {
-					siril_log_color_message(_("An image of the sequence doesn't have the same dimensions\n"), "red");
+					siril_log_error(_("An image of the sequence doesn't have the same dimensions\n"));
 					retval = -3;
 					clearfits(&fit);
 					seqwriter_release_memory();
@@ -610,7 +610,7 @@ free_and_reset_progress_bar:
 
 	if (retval) {
 		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export failed. Check the log."));
-		siril_log_message(_("Sequence export failed\n"));
+		siril_log_error(_("Sequence export failed\n"));
 	}
 	else {
 		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export succeeded."));

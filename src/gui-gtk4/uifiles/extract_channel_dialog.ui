@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name extract_channel_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="extract_channel_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox14">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkBox" id="box38">
+                <property name="orientation">vertical</property>
+                <property name="spacing">2</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkGrid" id="grid37">
+                    <property name="column-spacing">5</property>
+                    <property name="row-spacing">10</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkEntry" id="Ch1_extract_channel_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="invisible-char">●</property>
+                        <property name="tooltip-text" translatable="yes">File name for the first FITS file to save.</property>
+                        <signal name="changed" handler="update_button_sensitivity" swapped="False" object="extract_channel_button_ok"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="Ch2_extract_channel_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="invisible-char">●</property>
+                        <property name="tooltip-text" translatable="yes">File name for the second FITS file to save.</property>
+                        <signal name="changed" handler="update_button_sensitivity" swapped="False" object="extract_channel_button_ok"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="Ch3_extract_channel_entry">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="invisible-char">●</property>
+                        <property name="tooltip-text" translatable="yes">File name for the third FITS file to save.</property>
+                        <signal name="changed" handler="update_button_sensitivity" swapped="False" object="extract_channel_button_ok"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_extract_c1">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Red: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_extract_c2">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Green: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_extract_c3">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Blue: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkDropDown" id="combo_extract_colors">
+                        <property name="hexpand">1</property>
+                        <property name="model">
+                          <object class="GtkStringList">
+                            <items>
+                              <item translatable="yes">RGB</item>
+                              <item translatable="yes">HSL</item>
+                              <item translatable="yes">HSV</item>
+                              <item translatable="yes">CIE L*a*b*</item>
+                            </items>
+                          </object>
+                        </property>
+                        <property name="selected">0</property>
+                        <property name="tooltip-text" translatable="yes">Select the color space corresponding to the three extracted images</property>
+                        <property name="valign">start</property>
+                        <signal name="notify::selected" handler="on_combo_extract_colors_changed"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label167">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Color Space:</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area15">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="separate_button_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_extract_channel_button_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="extract_channel_button_ok">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <property name="sensitive">0</property>
+                <signal name="clicked" handler="on_extract_channel_button_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Channel Extraction</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+  </object>
+</interface>
