@@ -1841,6 +1841,28 @@ static const char *type_short_label(image_type t, const char *path) {
 	return _("Unknown");
 }
 
+/* Middle-truncate a (UTF-8) basename with an internal ellipsis so a long
+ * filename stays on a single line under the preview instead of wrapping
+ * across several: "verylongprefix…_suffix.fits".  Both the leading text and
+ * the trailing text (including the extension) are kept.  The budget is sized
+ * from the preview pane width (≈ thumbnail_size px) so it roughly matches how
+ * many average glyphs actually fit.  Caller frees the result. */
+static gchar *ellipsize_basename_middle(const gchar *base) {
+	glong max_chars = CLAMP(com.pref.gui.thumbnail_size / 8, 20, 60);
+	glong len = g_utf8_strlen(base, -1);
+	if (len <= max_chars)
+		return g_strdup(base);
+	glong keep = max_chars - 1;          /* reserve one glyph for the ellipsis */
+	glong head = (keep + 1) / 2;         /* favour the head when keep is odd */
+	glong tail = keep - head;
+	const gchar *head_end   = g_utf8_offset_to_pointer(base, head);
+	const gchar *tail_start = g_utf8_offset_to_pointer(base, len - tail);
+	gchar *head_str = g_strndup(base, head_end - base);
+	gchar *out = g_strconcat(head_str, "\xE2\x80\xA6" /* U+2026 … */, tail_start, NULL);
+	g_free(head_str);
+	return out;
+}
+
 void siril_file_browser_default_preview(const gchar *path,
                                         GtkPicture  *picture,
                                         GtkLabel    *metadata_label,
@@ -1857,7 +1879,9 @@ void siril_file_browser_default_preview(const gchar *path,
 		picture_set_icon(picture, "folder");
 		if (metadata_label) {
 			gchar *base = g_path_get_basename(path);
-			gchar *esc  = g_markup_escape_text(base ? base : "", -1);
+			gchar *shrt = ellipsize_basename_middle(base ? base : "");
+			gchar *esc  = g_markup_escape_text(shrt, -1);
+			g_free(shrt);
 			/* Name above type: bold filename on top, plain "Folder" beneath. */
 			gchar *m = g_strdup_printf("<b>%s</b>\n%s", esc, _("Folder"));
 			gtk_label_set_markup(metadata_label, m);
@@ -1985,9 +2009,11 @@ void siril_file_browser_default_preview(const gchar *path,
 		 * file they've selected before reading format / dimensions. */
 		gchar *base = g_path_get_basename(path);
 		if (base && *base) {
-			gchar *e = g_markup_escape_text(base, -1);
+			gchar *shrt = ellipsize_basename_middle(base);
+			gchar *e = g_markup_escape_text(shrt, -1);
 			g_string_append_printf(meta, "<b>%s</b>", e);
 			g_free(e);
+			g_free(shrt);
 		}
 		g_free(base);
 		gchar *type_esc = g_markup_escape_text(type_label, -1);
@@ -2548,6 +2574,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 
 	fb->metadata_label = GTK_LABEL(gtk_label_new(""));
 	gtk_label_set_wrap(fb->metadata_label, TRUE);
+	gtk_label_set_wrap_mode(fb->metadata_label, PANGO_WRAP_WORD_CHAR);
 	gtk_label_set_xalign(fb->metadata_label, 0.5);
 	gtk_label_set_justify(fb->metadata_label, GTK_JUSTIFY_CENTER);
 	gtk_widget_set_halign(GTK_WIDGET(fb->metadata_label), GTK_ALIGN_CENTER);
@@ -2557,21 +2584,6 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_label_set_use_markup(fb->metadata_label, TRUE);
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->metadata_label));
 
-	/* Inner row: list | preview.  resize-start-child=FALSE /
-	 * resize-end-child=TRUE means when the dialog window is widened, ALL
-	 * the extra space goes to the preview side (the list keeps its width).
-	 *
-	 * Crucially, shrink-end-child=FALSE forces GtkPaned to honour the
-	 * preview's min size_request (the thumbnail size): without it the
-	 * default shrink=TRUE lets the paned squeeze the preview below its
-	 * request, clipping the picture against the window edge until the user
-	 * drags the window wider.  shrink-start-child=FALSE likewise keeps the
-	 * file list at its 320 px floor.  With both shrink flags off the paned
-	 * propagates a correct min width outward, so the window simply can't be
-	 * made narrow enough to truncate the preview — and when it is narrow,
-	 * the divider gives way (list down to 320) so the preview always shows
-	 * in full.  No position lock: the soft divider is harmless now that the
-	 * geometry is constrained by the children's min sizes. */
 	GtkWidget *list_preview_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	fb->list_preview_paned = list_preview_paned;
 	gtk_paned_set_start_child(GTK_PANED(list_preview_paned), list_scrolled);
