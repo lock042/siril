@@ -13,6 +13,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/initfile.h"
 #include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/utils.h"
@@ -211,26 +212,11 @@ static void rebuild_breadcrumb(SirilFileBrowser *fb);
 static void return_to_breadcrumb_view(SirilFileBrowser *fb);
 static void update_breadcrumb_arrow_sensitivity(SirilFileBrowser *fb);
 
-/* The inner paned (list | preview) is kept for the visual separator it
- * provides, but the divider position is locked to LIST_PREVIEW_POSITION.
- * The notify::position handler snaps any user-drag attempt straight back
- * to that value, so the preview pane's width is dictated entirely by the
- * dialog's outer edges (via the outer paned + window size) rather than
- * by an internal drag. */
+/* Initial position of the list | preview divider.  The divider is a soft
+ * one now (the user may drag it); the preview's min size_request and the
+ * paned's shrink-*-child=FALSE flags keep the preview from ever being
+ * clipped — see the inner-paned setup in build_browser_widgets. */
 #define LIST_PREVIEW_POSITION 480
-
-static void on_inner_paned_position_locked(GObject *obj, GParamSpec *p,
-                                            gpointer ud) {
-	(void)p; (void)ud;
-	GtkPaned *paned = GTK_PANED(obj);
-	if (gtk_paned_get_position(paned) != LIST_PREVIEW_POSITION) {
-		g_signal_handlers_block_by_func(paned,
-			on_inner_paned_position_locked, NULL);
-		gtk_paned_set_position(paned, LIST_PREVIEW_POSITION);
-		g_signal_handlers_unblock_by_func(paned,
-			on_inner_paned_position_locked, NULL);
-	}
-}
 
 static void build_recent_store(SirilFileBrowser *fb) {
 	if (!fb->recent_store)
@@ -1863,7 +1849,10 @@ void siril_file_browser_default_preview(const gchar *path,
 				(GDestroyNotify)free, data);
 			if (tex) {
 				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
+				/* SCALE_DOWN, not CONTAIN: show the thumbnail at its native
+				 * rendered size (thumbnail_size) rather than upscaling it
+				 * blurry to fill the pane. */
+				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
 				g_object_unref(tex);
 				got_texture = TRUE;
 			} else {
@@ -1890,7 +1879,10 @@ void siril_file_browser_default_preview(const gchar *path,
 		g_object_unref(gf);
 		if (tex) {
 			gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-			gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
+			/* SCALE_DOWN: full-resolution raster files larger than the pane
+			 * are scaled down to fit (sharp), smaller ones shown 1:1 —
+			 * never upscaled. */
+			gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
 			dims_str = g_strdup_printf("%d x %d %s",
 				gdk_texture_get_width(tex), gdk_texture_get_height(tex),
 				_("pixels"));
@@ -2072,7 +2064,16 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 		fb->window = GTK_WINDOW(gtk_window_new());
 		/* Hide on close, never destroy — see comment on g_singleton above. */
 		gtk_window_set_hide_on_close(fb->window, TRUE);
-		gtk_window_set_default_size(fb->window, 1000, 620);
+		/* Restore the size the user last left the dialog at (persisted in
+		 * the init file so it survives across sessions and is portable —
+		 * unlike the GTK3 GtkFileChooser which leaned on the desktop's own
+		 * geometry store).  0 means "never saved", so fall back to the
+		 * built-in default. */
+		int init_w = (com.pref.gui.remember_windows && com.pref.gui.open_dialog_w > 0)
+			? com.pref.gui.open_dialog_w : 1000;
+		int init_h = (com.pref.gui.remember_windows && com.pref.gui.open_dialog_h > 0)
+			? com.pref.gui.open_dialog_h : 620;
+		gtk_window_set_default_size(fb->window, init_w, init_h);
 		build_browser_widgets(fb);
 		g_singleton = fb;
 	} else {
@@ -2427,22 +2428,28 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		gtk_box_append(GTK_BOX(preview_box), heading);
 	}
 	fb->preview = GTK_PICTURE(gtk_picture_new());
-	gtk_widget_set_size_request(GTK_WIDGET(fb->preview), 280, 280);
+	/* The preview area is at least as large as the thumbnail Siril renders
+	 * so the picture is shown at its native, rendered resolution.
+	 * thumbnail_size is one of the three preview sizes the user can pick in
+	 * Preferences (128 / 256 / 512); use it as the floor (never below the
+	 * historical 280 px so a small thumbnail still gets a comfortable
+	 * pane). */
+	int preview_min = MAX(280, com.pref.gui.thumbnail_size);
+	gtk_widget_set_size_request(GTK_WIDGET(fb->preview), preview_min, preview_min);
+	/* The picture FILLS the preview pane (so its allocation can never
+	 * exceed the window edge → it is never clipped) and uses SCALE_DOWN so
+	 * the thumbnail is drawn at its native size, centred inside the
+	 * allocation.  SCALE_DOWN only ever scales *down* (for full-resolution
+	 * raster files larger than the pane), never up — so a 128 px thumbnail
+	 * stays a crisp 128 px instead of being blown up blurry to fill the
+	 * pane the way CONTAIN did. */
 	gtk_picture_set_can_shrink(fb->preview, TRUE);
-	gtk_picture_set_content_fit(fb->preview, GTK_CONTENT_FIT_CONTAIN);
-	/* Wrap the picture in a horizontal box with `halign: CENTER` —
-	 * GtkPicture ignores `halign` set on itself when it's the direct
-	 * child of a vertical GtkBox (the picture sticks to the start of
-	 * its allocation), so we centre via the wrapper instead.  The
-	 * wrapper takes the picture's natural width (280 px) and is itself
-	 * centred in the wider preview pane.  No `size_request` on the
-	 * wrapper — the 280 px floor comes from the picture's own
-	 * size_request, which the paned can honour cleanly. */
-	GtkWidget *picture_wrap = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_widget_add_css_class(picture_wrap, "siril-zero-pad");
-	gtk_widget_set_halign(picture_wrap, GTK_ALIGN_CENTER);
-	gtk_box_append(GTK_BOX(picture_wrap), GTK_WIDGET(fb->preview));
-	gtk_box_append(GTK_BOX(preview_box), picture_wrap);
+	gtk_picture_set_content_fit(fb->preview, GTK_CONTENT_FIT_SCALE_DOWN);
+	gtk_widget_set_hexpand(GTK_WIDGET(fb->preview), TRUE);
+	gtk_widget_set_vexpand(GTK_WIDGET(fb->preview), TRUE);
+	gtk_widget_set_halign(GTK_WIDGET(fb->preview), GTK_ALIGN_FILL);
+	gtk_widget_set_valign(GTK_WIDGET(fb->preview), GTK_ALIGN_FILL);
+	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->preview));
 
 	fb->metadata_label = GTK_LABEL(gtk_label_new(""));
 	gtk_label_set_wrap(fb->metadata_label, TRUE);
@@ -2455,14 +2462,21 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_label_set_use_markup(fb->metadata_label, TRUE);
 	gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(fb->metadata_label));
 
-	/* Inner row: list | preview.  We keep a GtkPaned for the visual
-	 * separator it provides, but we LOCK its divider so the user can't
-	 * drag it — the position handler below snaps any attempted drag back
-	 * to the fixed value.  resize-start-child=FALSE / resize-end-child=
-	 * TRUE means when the dialog window is resized wider, ALL the extra
-	 * space goes to the preview side (start side stays at the locked
-	 * position).  Net effect: the preview pane's width is controlled
-	 * only by the dialog's outer edges, never by an internal drag. */
+	/* Inner row: list | preview.  resize-start-child=FALSE /
+	 * resize-end-child=TRUE means when the dialog window is widened, ALL
+	 * the extra space goes to the preview side (the list keeps its width).
+	 *
+	 * Crucially, shrink-end-child=FALSE forces GtkPaned to honour the
+	 * preview's min size_request (the thumbnail size): without it the
+	 * default shrink=TRUE lets the paned squeeze the preview below its
+	 * request, clipping the picture against the window edge until the user
+	 * drags the window wider.  shrink-start-child=FALSE likewise keeps the
+	 * file list at its 320 px floor.  With both shrink flags off the paned
+	 * propagates a correct min width outward, so the window simply can't be
+	 * made narrow enough to truncate the preview — and when it is narrow,
+	 * the divider gives way (list down to 320) so the preview always shows
+	 * in full.  No position lock: the soft divider is harmless now that the
+	 * geometry is constrained by the children's min sizes. */
 	GtkWidget *list_preview_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(list_preview_paned), list_scrolled);
 	gtk_paned_set_end_child(GTK_PANED(list_preview_paned), preview_box);
@@ -2470,8 +2484,8 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	                       LIST_PREVIEW_POSITION);
 	gtk_paned_set_resize_start_child(GTK_PANED(list_preview_paned), FALSE);
 	gtk_paned_set_resize_end_child(GTK_PANED(list_preview_paned), TRUE);
-	g_signal_connect(list_preview_paned, "notify::position",
-	                 G_CALLBACK(on_inner_paned_position_locked), NULL);
+	gtk_paned_set_shrink_start_child(GTK_PANED(list_preview_paned), FALSE);
+	gtk_paned_set_shrink_end_child(GTK_PANED(list_preview_paned), FALSE);
 
 	/* Outer paned: sidebar | (list | preview).  shrink_start_child=FALSE
 	 * keeps the sidebar from being shrunk below its 180 px size_request. */
@@ -2720,6 +2734,20 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 	g_main_loop_run(fb->loop);
 	g_main_loop_unref(fb->loop);
 	fb->loop = NULL;
+	/* Persist the current size before hiding (the allocation is still
+	 * valid here; once hidden, gtk_widget_get_width/height read 0).  Only
+	 * write the init file when the size actually changed to avoid needless
+	 * disk churn on every open. */
+	if (com.pref.gui.remember_windows) {
+		int w = gtk_widget_get_width(GTK_WIDGET(fb->window));
+		int h = gtk_widget_get_height(GTK_WIDGET(fb->window));
+		if (w > 0 && h > 0 &&
+		    (w != com.pref.gui.open_dialog_w || h != com.pref.gui.open_dialog_h)) {
+			com.pref.gui.open_dialog_w = w;
+			com.pref.gui.open_dialog_h = h;
+			writeinitfile();
+		}
+	}
 	gtk_widget_set_visible(GTK_WIDGET(fb->window), FALSE);
 	/* Re-enable the parent we disabled in _new (Plan C: substitute for
 	 * the modal flag).  Done after hiding so the visual transition is

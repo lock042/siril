@@ -124,6 +124,8 @@ preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.open_dialog_w = 0,
+		.open_dialog_h = 0,
 		.pan_position = -1,
 		.is_extended = TRUE,
 		.is_maximized = FALSE,
@@ -495,6 +497,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
 	{ "gui", "main_win_pos_w", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.w },
 	{ "gui", "main_win_pos_h", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.h },
+	{ "gui", "open_dialog_w", STYPE_INT, N_("remembered open-file dialog width"), &com.pref.gui.open_dialog_w },
+	{ "gui", "open_dialog_h", STYPE_INT, N_("remembered open-file dialog height"), &com.pref.gui.open_dialog_h },
 	{ "gui", "pan_position", STYPE_INT, N_("position of the two sides separator"), &com.pref.gui.pan_position },
 	{ "gui", "extended", STYPE_BOOL, N_("main window is extended"), &com.pref.gui.is_extended },
 	{ "gui", "maximized", STYPE_BOOL, N_("main window is maximized"), &com.pref.gui.is_maximized },

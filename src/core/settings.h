@@ -234,6 +234,8 @@ struct gui_config {
 	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
+	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)
+	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;
