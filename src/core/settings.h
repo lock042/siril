@@ -236,6 +236,8 @@ struct gui_config {
 	rectangle main_w_pos;
 	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)
 	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
+	gint open_dialog_sidebar_pos;	// remembered sidebar|content divider position (0 = use default)
+	gint open_dialog_paned_pos;	// remembered list|preview divider position (0 = use default)
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;

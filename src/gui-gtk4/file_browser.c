@@ -59,6 +59,8 @@ struct _SirilFileBrowser {
 	GtkWidget              *edit_path_btn;     /* toggle between breadcrumb / entry */
 	guint                   pending_breadcrumb_idle; /* g_idle_add id, 0 = none */
 	GtkColumnView          *columnview;
+	GtkWidget              *outer_paned;        /* sidebar | content divider */
+	GtkWidget              *list_preview_paned; /* list | preview divider */
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
@@ -84,6 +86,7 @@ struct _SirilFileBrowser {
 	GtkCustomFilter        *file_filter;     /* +1 ref */
 	GtkSelectionModel      *selection;       /* +1 ref; GtkSingleSelection or GtkMultiSelection */
 	gboolean                select_multiple;
+	gboolean                directory_only;  /* folder picker: files greyed + unselectable */
 	gboolean                in_recent_mode;
 
 	/* Sibling demosaic toggle (Convert tab) — kept in sync with our local
@@ -817,6 +820,22 @@ static void tighten_cell_widget(GtkWidget *w) {
 }
 
 /* Name column: icon + label. */
+/* In directory-only mode, files (non-folders) are shown but greyed out
+ * (insensitive cell) and made non-selectable / non-activatable so only
+ * folders can be picked.  Called from every column's bind callback so the
+ * whole row reflects the state consistently; ud is the SirilFileBrowser
+ * (passed as the bind handlers' user_data). */
+static void apply_dir_only_row(gpointer ud, GtkListItem *item,
+                               GFileInfo *info, GtkWidget *child) {
+	SirilFileBrowser *fb = ud;
+	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
+	gboolean blocked = fb && fb->directory_only && !is_dir;
+	if (child)
+		gtk_widget_set_sensitive(child, !blocked);
+	gtk_list_item_set_selectable(item, !blocked);
+	gtk_list_item_set_activatable(item, !blocked);
+}
+
 static void name_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
 	(void)f; (void)ud;
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -832,11 +851,12 @@ static void name_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpoint
 }
 
 static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
-	(void)f; (void)ud;
+	(void)f;
 	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
 	GtkWidget *box = gtk_list_item_get_child(item);
 	GtkWidget *icon = gtk_widget_get_first_child(box);
 	GtkWidget *label = gtk_widget_get_next_sibling(icon);
+	apply_dir_only_row(ud, item, info, box);
 
 	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
 		gtk_image_set_from_icon_name(GTK_IMAGE(icon), "folder-symbolic");
@@ -866,9 +886,10 @@ static void modified_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gp
 }
 
 static void modified_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
-	(void)f; (void)ud;
+	(void)f;
 	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
 	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	apply_dir_only_row(ud, item, info, GTK_WIDGET(label));
 	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
 		/* Folders: empty mtime column to keep the eye on the name. */
 		gtk_label_set_text(label, "");
@@ -897,9 +918,10 @@ static void size_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpoint
 }
 
 static void size_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
-	(void)f; (void)ud;
+	(void)f;
 	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
 	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	apply_dir_only_row(ud, item, info, GTK_WIDGET(label));
 	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
 		/* Don't recurse to total folder contents — too expensive in a
 		 * file picker.  An em-dash makes the empty column self-evidently
@@ -925,9 +947,10 @@ static void type_setup_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpoint
 }
 
 static void type_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointer ud) {
-	(void)f; (void)ud;
+	(void)f;
 	GFileInfo *info = G_FILE_INFO(gtk_list_item_get_item(item));
 	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	apply_dir_only_row(ud, item, info, GTK_WIDGET(label));
 	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
 		gtk_label_set_text(label, _("Folder"));
 		return;
@@ -1061,8 +1084,22 @@ static void update_preview_for_selection(SirilFileBrowser *fb) {
 static void on_selection_changed(GtkSelectionModel *m, guint pos, guint n, gpointer ud) {
 	(void)m; (void)pos; (void)n;
 	SirilFileBrowser *fb = ud;
+	/* Directory-only mode: a file should never end up selected.  The bind
+	 * callbacks already mark file rows non-selectable, but guard here too
+	 * (re-selecting NULL is harmless and re-enters with nothing selected). */
+	if (fb->directory_only && !fb->select_multiple && fb->selection) {
+		GFileInfo *info = first_selected_info(fb);
+		if (info && g_file_info_get_file_type(info) != G_FILE_TYPE_DIRECTORY) {
+			gtk_single_selection_set_selected(
+				GTK_SINGLE_SELECTION(fb->selection), GTK_INVALID_LIST_POSITION);
+			return;
+		}
+	}
 	update_preview_for_selection(fb);
-	gtk_widget_set_sensitive(fb->open_button, any_selected(fb));
+	/* In folder mode the Open button targets the current (or highlighted)
+	 * directory, so keep it usable even with nothing highlighted. */
+	gtk_widget_set_sensitive(fb->open_button,
+	                         fb->directory_only || any_selected(fb));
 }
 
 static void on_row_activated(GtkColumnView *cv, guint position, gpointer ud) {
@@ -1136,6 +1173,21 @@ static void on_cancel_clicked(GtkButton *b, gpointer ud) {
 static void on_open_clicked(GtkButton *b, gpointer ud) {
 	(void)b;
 	SirilFileBrowser *fb = ud;
+	/* Folder picker: commit the highlighted directory, or fall back to the
+	 * folder we're currently browsing when nothing is highlighted. */
+	if (fb->directory_only) {
+		gchar *p = NULL;
+		if (any_selected(fb) && current_is_directory(fb))
+			p = current_selected_path(fb);
+		else if (fb->current_folder)
+			p = g_file_get_path(fb->current_folder);
+		if (!p) return;
+		g_free(fb->result_path);
+		fb->result_path = p;
+		fb->response = GTK_RESPONSE_ACCEPT;
+		if (fb->loop) g_main_loop_quit(fb->loop);
+		return;
+	}
 	if (current_is_directory(fb)) {
 		on_row_activated(fb->columnview, 0, fb);
 		return;
@@ -1694,10 +1746,11 @@ static void picture_set_icon(GtkPicture *picture, const char *icon_name) {
 		NULL, 256, 1, GTK_TEXT_DIR_NONE, 0);
 	if (!icon) { gtk_picture_set_paintable(picture, NULL); return; }
 	gtk_picture_set_paintable(picture, GDK_PAINTABLE(icon));
-	/* CONTAIN scales the icon up to fill the preview area while keeping
-	 * its aspect ratio — the user wants the folder / generic glyph to
-	 * read as the dominant element of the pane, not a tiny chip. */
-	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_CONTAIN);
+	/* SCALE_DOWN, like the thumbnail path: show the icon at (up to) its
+	 * looked-up native size (256 px) centred in the pane, rather than
+	 * blowing it up to fill the whole preview area — keeps the icon within
+	 * the same size constraints as image thumbnails. */
+	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
 	g_object_unref(icon);
 }
 
@@ -2314,7 +2367,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
 		g_signal_connect(fname, "setup", G_CALLBACK(name_setup_cb), NULL);
-		g_signal_connect(fname, "bind",  G_CALLBACK(name_bind_cb),  NULL);
+		g_signal_connect(fname, "bind",  G_CALLBACK(name_bind_cb),  fb);
 		GtkColumnViewColumn *cn = gtk_column_view_column_new(
 			_("Name"), GTK_LIST_ITEM_FACTORY(fname));
 		gtk_column_view_column_set_resizable(cn, TRUE);
@@ -2328,7 +2381,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		GtkSignalListItemFactory *fsize = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
 		g_signal_connect(fsize, "setup", G_CALLBACK(size_setup_cb), NULL);
-		g_signal_connect(fsize, "bind",  G_CALLBACK(size_bind_cb),  NULL);
+		g_signal_connect(fsize, "bind",  G_CALLBACK(size_bind_cb),  fb);
 		GtkColumnViewColumn *cs = gtk_column_view_column_new(
 			_("Size"), GTK_LIST_ITEM_FACTORY(fsize));
 		gtk_column_view_column_set_resizable(cs, TRUE);
@@ -2341,7 +2394,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		GtkSignalListItemFactory *ftype = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
 		g_signal_connect(ftype, "setup", G_CALLBACK(type_setup_cb), NULL);
-		g_signal_connect(ftype, "bind",  G_CALLBACK(type_bind_cb),  NULL);
+		g_signal_connect(ftype, "bind",  G_CALLBACK(type_bind_cb),  fb);
 		GtkColumnViewColumn *ct = gtk_column_view_column_new(
 			_("Type"), GTK_LIST_ITEM_FACTORY(ftype));
 		gtk_column_view_column_set_resizable(ct, TRUE);
@@ -2354,7 +2407,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		GtkSignalListItemFactory *fmod = GTK_SIGNAL_LIST_ITEM_FACTORY(
 			gtk_signal_list_item_factory_new());
 		g_signal_connect(fmod, "setup", G_CALLBACK(modified_setup_cb), NULL);
-		g_signal_connect(fmod, "bind",  G_CALLBACK(modified_bind_cb),  NULL);
+		g_signal_connect(fmod, "bind",  G_CALLBACK(modified_bind_cb),  fb);
 		GtkColumnViewColumn *cm = gtk_column_view_column_new(
 			_("Modified"), GTK_LIST_ITEM_FACTORY(fmod));
 		gtk_column_view_column_set_resizable(cm, TRUE);
@@ -2478,10 +2531,15 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	 * in full.  No position lock: the soft divider is harmless now that the
 	 * geometry is constrained by the children's min sizes. */
 	GtkWidget *list_preview_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+	fb->list_preview_paned = list_preview_paned;
 	gtk_paned_set_start_child(GTK_PANED(list_preview_paned), list_scrolled);
 	gtk_paned_set_end_child(GTK_PANED(list_preview_paned), preview_box);
+	/* Restore the user's last list|preview divider position (persisted in
+	 * the init file), falling back to the built-in default. */
 	gtk_paned_set_position(GTK_PANED(list_preview_paned),
-	                       LIST_PREVIEW_POSITION);
+	                       com.pref.gui.open_dialog_paned_pos > 0
+	                       ? com.pref.gui.open_dialog_paned_pos
+	                       : LIST_PREVIEW_POSITION);
 	gtk_paned_set_resize_start_child(GTK_PANED(list_preview_paned), FALSE);
 	gtk_paned_set_resize_end_child(GTK_PANED(list_preview_paned), TRUE);
 	gtk_paned_set_shrink_start_child(GTK_PANED(list_preview_paned), FALSE);
@@ -2490,9 +2548,13 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	/* Outer paned: sidebar | (list | preview).  shrink_start_child=FALSE
 	 * keeps the sidebar from being shrunk below its 180 px size_request. */
 	GtkWidget *outer_paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+	fb->outer_paned = outer_paned;
 	gtk_paned_set_start_child(GTK_PANED(outer_paned), build_sidebar(fb));
 	gtk_paned_set_end_child(GTK_PANED(outer_paned), list_preview_paned);
-	gtk_paned_set_position(GTK_PANED(outer_paned), 180);
+	gtk_paned_set_position(GTK_PANED(outer_paned),
+	                       com.pref.gui.open_dialog_sidebar_pos > 0
+	                       ? com.pref.gui.open_dialog_sidebar_pos
+	                       : 180);
 	gtk_paned_set_resize_start_child(GTK_PANED(outer_paned), FALSE);
 	gtk_paned_set_shrink_start_child(GTK_PANED(outer_paned), FALSE);
 	gtk_widget_set_vexpand(outer_paned, TRUE);
@@ -2568,6 +2630,10 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	fb->show_debayer_toggle = FALSE;
 	if (fb->debayer_check)
 		gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
+
+	/* Folder-picker mode is per-open; clear it so the next caller starts as
+	 * a normal file picker unless it opts back in. */
+	fb->directory_only = FALSE;
 
 	/* Revert multi-select back to single — set_select_multiple() rebuilds
 	 * the selection model and rewires the columnview for us. */
@@ -2711,6 +2777,19 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 	                 G_CALLBACK(on_selection_changed), fb);
 }
 
+void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_only) {
+	if (!fb) return;
+	fb->directory_only = dir_only;
+	/* Re-run the filter so any already-bound rows rebind and pick up the
+	 * greyed / non-selectable state (no-op for a not-yet-shown dialog). */
+	if (fb->file_filter)
+		gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+	/* Open targets the current folder in this mode, so it's usable from the
+	 * start; in normal mode it stays gated on an actual selection. */
+	if (fb->open_button)
+		gtk_widget_set_sensitive(fb->open_button, dir_only || any_selected(fb));
+}
+
 gint siril_file_browser_run(SirilFileBrowser *fb) {
 	if (!fb) return GTK_RESPONSE_NONE;
 	if (!fb->current_folder) {
@@ -2729,24 +2808,57 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 	g_clear_pointer(&fb->result_path, g_free);
 	g_slist_free_full(fb->result_paths, g_free);
 	fb->result_paths = NULL;
+
+	/* Force every row to re-bind so the per-item directory-only state
+	 * (files greyed + non-selectable) reflects THIS run.  The browser is a
+	 * process-wide singleton that recycles its row widgets, so reshowing
+	 * the same folder would otherwise reuse rows still carrying the
+	 * previous run's state — leaving files greyed after a folder pick, or
+	 * un-greyed when switching back into folder mode.  Detaching and
+	 * re-attaching the model drops all realized rows and rebuilds them
+	 * (setup + bind) against the current fb->directory_only.  Park focus
+	 * first: disposing focused rows mid-walk trips a stale-widget assert
+	 * (same precaution as apply_current_folder). */
+	if (fb->columnview && fb->selection) {
+		if (fb->window)
+			gtk_window_set_focus(fb->window, NULL);
+		gtk_column_view_set_model(fb->columnview, NULL);
+		gtk_column_view_set_model(fb->columnview, fb->selection);
+	}
+
 	fb->loop = g_main_loop_new(NULL, FALSE);
 	gtk_window_present(fb->window);
 	g_main_loop_run(fb->loop);
 	g_main_loop_unref(fb->loop);
 	fb->loop = NULL;
-	/* Persist the current size before hiding (the allocation is still
-	 * valid here; once hidden, gtk_widget_get_width/height read 0).  Only
-	 * write the init file when the size actually changed to avoid needless
-	 * disk churn on every open. */
+	/* Persist the current size and divider positions before hiding (the
+	 * allocation is still valid here; once hidden, gtk_widget_get_width/
+	 * height read 0).  Only write the init file when something actually
+	 * changed to avoid needless disk churn on every open. */
 	if (com.pref.gui.remember_windows) {
 		int w = gtk_widget_get_width(GTK_WIDGET(fb->window));
 		int h = gtk_widget_get_height(GTK_WIDGET(fb->window));
+		int sidebar = fb->outer_paned
+			? gtk_paned_get_position(GTK_PANED(fb->outer_paned)) : 0;
+		int divider = fb->list_preview_paned
+			? gtk_paned_get_position(GTK_PANED(fb->list_preview_paned)) : 0;
+		gboolean changed = FALSE;
 		if (w > 0 && h > 0 &&
 		    (w != com.pref.gui.open_dialog_w || h != com.pref.gui.open_dialog_h)) {
 			com.pref.gui.open_dialog_w = w;
 			com.pref.gui.open_dialog_h = h;
-			writeinitfile();
+			changed = TRUE;
 		}
+		if (sidebar > 0 && sidebar != com.pref.gui.open_dialog_sidebar_pos) {
+			com.pref.gui.open_dialog_sidebar_pos = sidebar;
+			changed = TRUE;
+		}
+		if (divider > 0 && divider != com.pref.gui.open_dialog_paned_pos) {
+			com.pref.gui.open_dialog_paned_pos = divider;
+			changed = TRUE;
+		}
+		if (changed)
+			writeinitfile();
 	}
 	gtk_widget_set_visible(GTK_WIDGET(fb->window), FALSE);
 	/* Re-enable the parent we disabled in _new (Plan C: substitute for
