@@ -288,7 +288,7 @@ static void histo_recompute(gboolean for_preview) {
 		args->user = data;
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
-		args->custom_undo = TRUE;
+		args->skip_generic_undo = TRUE;
 		args->mask_aware = TRUE;
 		args->for_roi = gui.roi.active;
 
