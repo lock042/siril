@@ -246,20 +246,25 @@ static void build_recent_store(SirilFileBrowser *fb) {
 			g_free(path);
 			continue;
 		}
-		gchar *basename = g_path_get_basename(path);
-		GFileInfo *fi = g_file_info_new();
-		g_file_info_set_name(fi, basename);
-		g_file_info_set_display_name(fi, basename);
-		g_file_info_set_file_type(fi, G_FILE_TYPE_REGULAR);
-		/* Without this attribute, g_file_info_get_is_hidden() in
-		 * fileinfo_filter_func trips a GLib-GIO critical (GTK 4.14+). */
-		g_file_info_set_attribute_boolean(fi,
-			G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN, FALSE);
+		/* Query the real file so the GFileInfo carries the full standard::*
+		 * attribute set (size, icon, type, display-name, mtime, is-hidden).
+		 * Hand-building a partial GFileInfo means every column bind callback
+		 * that reads an unset attribute raises a GLib-GIO CRITICAL (icon,
+		 * size, …) — querying once gets them all and matches exactly what
+		 * GtkDirectoryList produces for the normal listing. */
+		GFile *gf = g_file_new_for_path(path);
+		GFileInfo *fi = g_file_query_info(gf,
+			"standard::*,time::modified",
+			G_FILE_QUERY_INFO_NONE, NULL, NULL);
+		g_object_unref(gf);
+		if (!fi) {  /* vanished or unreadable between the test and the query */
+			g_free(path);
+			continue;
+		}
 		g_object_set_data_full(G_OBJECT(fi), "siril-full-path",
 		                       g_strdup(path), g_free);
 		g_list_store_append(fb->recent_store, fi);
 		g_object_unref(fi);
-		g_free(basename);
 		g_free(path);
 		count++;
 	}
@@ -864,8 +869,12 @@ static void name_bind_cb(GtkSignalListItemFactory *f, GtkListItem *item, gpointe
 		/* Use the file's mime-type-derived GIcon if available so different
 		 * file kinds get distinguishable icons (image-jpeg, text-plain,
 		 * application-pdf, etc.).  Falls back to the generic glyph if GIO
-		 * couldn't resolve one. */
-		GIcon *gicon = g_file_info_get_icon(info);
+		 * couldn't resolve one.  Guard with has_attribute: GFileInfos we
+		 * build by hand (the Recent store) never set standard::icon, and
+		 * g_file_info_get_icon() raises a GLib-GIO CRITICAL when the
+		 * attribute was never set rather than just returning NULL. */
+		GIcon *gicon = g_file_info_has_attribute(info, G_FILE_ATTRIBUTE_STANDARD_ICON)
+			? g_file_info_get_icon(info) : NULL;
 		if (gicon)
 			gtk_image_set_from_gicon(GTK_IMAGE(icon), gicon);
 		else
@@ -1923,24 +1932,42 @@ void siril_file_browser_default_preview(const gchar *path,
 		}
 		g_free(descr);
 	} else if (!type_known_non_raster(itype)) {
-		/* Try GdkTexture for raster formats (PNG/JPEG/TIFF/WebP/...).
-		 * For other types (AVI/SER/RAW/...) we don't even attempt this
-		 * — see type_known_non_raster's comment for why. */
+		int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
+		/* Original dimensions for the metadata line, read from the header
+		 * without decoding the pixels. */
+		int orig_w = 0, orig_h = 0;
+		gdk_pixbuf_get_file_info(path, &orig_w, &orig_h);
 		GError *err = NULL;
-		GFile *gf = g_file_new_for_path(path);
-		GdkTexture *tex = gdk_texture_new_from_file(gf, &err);
-		g_object_unref(gf);
-		if (tex) {
-			gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-			/* SCALE_DOWN: full-resolution raster files larger than the pane
-			 * are scaled down to fit (sharp), smaller ones shown 1:1 —
-			 * never upscaled. */
-			gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
-			dims_str = g_strdup_printf("%d x %d %s",
-				gdk_texture_get_width(tex), gdk_texture_get_height(tex),
-				_("pixels"));
-			g_object_unref(tex);
-			got_texture = TRUE;
+		GdkPixbuf *pix = gdk_pixbuf_new_from_file_at_scale(path, max_size,
+			max_size, TRUE, &err);
+		if (pix) {
+			/* Wrap the pixbuf's pixels in a GdkMemoryTexture (the
+			 * non-deprecated path; gdk_texture_new_for_pixbuf is deprecated).
+			 * The GBytes keeps the pixbuf alive for as long as the texture
+			 * references its pixel data — ownership of our pixbuf ref is
+			 * handed to the bytes' free func, so we don't unref pix here. */
+			int pw = gdk_pixbuf_get_width(pix);
+			int ph = gdk_pixbuf_get_height(pix);
+			int stride = gdk_pixbuf_get_rowstride(pix);
+			GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(pix)
+				? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
+			GBytes *bytes = g_bytes_new_with_free_func(
+				gdk_pixbuf_get_pixels(pix), (gsize)stride * ph,
+				(GDestroyNotify)g_object_unref, pix);
+			GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
+			g_bytes_unref(bytes);  /* texture holds its own ref */
+			if (tex) {
+				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+				if (orig_w > 0 && orig_h > 0)
+					dims_str = g_strdup_printf("%d x %d %s",
+						orig_w, orig_h, _("pixels"));
+				else
+					dims_str = g_strdup_printf("%d x %d %s",
+						pw, ph, _("pixels"));
+				g_object_unref(tex);
+				got_texture = TRUE;
+			}
 		} else {
 			g_clear_error(&err);
 		}
@@ -2088,6 +2115,17 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
 			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
 		return TRUE;
 	}
+	/* Escape dismisses the dialog */
+	if (keyval == GDK_KEY_Escape) {
+		if (fb->path_stack &&
+		    g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0)
+			return FALSE;
+		if (fb->search_bar && gtk_search_bar_get_search_mode(fb->search_bar))
+			return FALSE;
+		fb->response = GTK_RESPONSE_CANCEL;
+		if (fb->loop) g_main_loop_quit(fb->loop);
+		return TRUE;
+	}
 	return FALSE;
 }
 
@@ -2159,19 +2197,20 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		                 G_CALLBACK(browser_window_key_pressed), fb);
 		gtk_widget_add_controller(GTK_WIDGET(fb->window), kc);
 	}
-	/* Hard minimum on the dialog: sidebar (180) + file list (320) +
-	 * preview (300) + paned handles ≈ 820 px wide.  Round up to 880 to
-	 * leave breathing room for the toolbar's cancel/back/path/open
-	 * cluster; 520 tall keeps the preview area, sidebar and column rows
-	 * all usable.  Setting the request on the window itself prevents
-	 * the user from dragging the resize handle to a size that would
-	 * truncate the preview picture. */
 	gtk_widget_set_size_request(GTK_WIDGET(fb->window), 880, 520);
 
-	/* Toolbar (top row).  Layout: Cancel | Back · Forward · Up · Path | Open.
-	 * Per the brief, Cancel anchors top-left and Open top-right so the
-	 * commit actions live at the corners of the window and don't compete
-	 * with the navigation cluster in the middle. */
+	/* Title-only header bar: shows the dialog title centred and the window
+	 * controls (close / minimise, native traffic lights on macOS).  The
+	 * action buttons themselves (Cancel / Open) live in the toolbar row
+	 * just below, on the same line as the path breadcrumb. */
+	GtkWidget *header = gtk_header_bar_new();
+	gtk_header_bar_set_show_title_buttons(GTK_HEADER_BAR(header), TRUE);
+	gtk_window_set_titlebar(fb->window, header);
+
+	/* Toolbar (single row): Cancel | breadcrumb path | edit | search | Open.
+	 * Cancel anchors the left and Open the right, with the navigation
+	 * cluster between them — every control the user acts on lives on one
+	 * line, directly under the title bar. */
 	GtkWidget *toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_set_margin_start(toolbar, 6);
 	gtk_widget_set_margin_end(toolbar, 6);
@@ -2481,21 +2520,21 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 		gtk_box_append(GTK_BOX(preview_box), heading);
 	}
 	fb->preview = GTK_PICTURE(gtk_picture_new());
-	/* The preview area is at least as large as the thumbnail Siril renders
-	 * so the picture is shown at its native, rendered resolution.
-	 * thumbnail_size is one of the three preview sizes the user can pick in
-	 * Preferences (128 / 256 / 512); use it as the floor (never below the
-	 * historical 280 px so a small thumbnail still gets a comfortable
-	 * pane). */
-	int preview_min = MAX(280, com.pref.gui.thumbnail_size);
+	/* The preview area is exactly the thumbnail size the user picked in
+	 * Preferences (128 / 256 / 512).  Using it as the size_request makes it
+	 * both the floor — so the list|preview divider can be dragged in until
+	 * the pane is just thumbnail_size wide, no wider — and the reference
+	 * size every preview is rendered against (see the load paths, which cap
+	 * thumbnails, FITS and raster alike, at thumbnail_size). */
+	int preview_min = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
 	gtk_widget_set_size_request(GTK_WIDGET(fb->preview), preview_min, preview_min);
 	/* The picture FILLS the preview pane (so its allocation can never
 	 * exceed the window edge → it is never clipped) and uses SCALE_DOWN so
 	 * the thumbnail is drawn at its native size, centred inside the
-	 * allocation.  SCALE_DOWN only ever scales *down* (for full-resolution
-	 * raster files larger than the pane), never up — so a 128 px thumbnail
-	 * stays a crisp 128 px instead of being blown up blurry to fill the
-	 * pane the way CONTAIN did. */
+	 * allocation.  SCALE_DOWN only ever scales *down*, never up — and since
+	 * every preview texture is itself capped at thumbnail_size, the image
+	 * never renders larger than thumbnail_size even when the pane is dragged
+	 * wider (it just gains centring margin). */
 	gtk_picture_set_can_shrink(fb->preview, TRUE);
 	gtk_picture_set_content_fit(fb->preview, GTK_CONTENT_FIT_SCALE_DOWN);
 	gtk_widget_set_hexpand(GTK_WIDGET(fb->preview), TRUE);
