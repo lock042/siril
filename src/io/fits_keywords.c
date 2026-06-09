@@ -420,6 +420,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
 			// Rolling-shutter GPS (QHY Pro): the keywords are declared to not be put in the
 			// unknown keys list but all are managed by the read and save handlers for QHY_EXP
+			// TODO: we could in fact reference fit->keywords.gps_data if it's already created
 			KEYWORD_GPS( "gps", "QHY_EXP", KTYPE_DOUBLE, "GPS/QHY exposure (s)", qhy_gps_handler_read, qhy_gps_handler_save),
 			KEYWORD_GPS( "gps", "QHY_LP", KTYPE_INT, "linePeriod (ns)", NULL, NULL),
 			KEYWORD_GPS( "gps", "QHY_OFF0", KTYPE_DOUBLE, "RollingShutterEndOffset row 0 (us)", NULL, NULL),

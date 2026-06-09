@@ -77,8 +77,7 @@ static const char *receiver_status(BYTE flag, gboolean shifted) {
 }
 
 static gboolean time_is_accurate(int shifted_flag) {
-	return shifted_flag == 3 || shifted_flag == 2; // data->flag is already shifted
-						       // DO NOT MERGE THAT! = 3 only
+	return shifted_flag == 3; // data->flag is already shifted
 }
 
 void print_qhy_data(struct _qhy_struct *qhy) {
@@ -319,18 +318,13 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 
 	GTimeSpan exposure = g_date_time_difference(qhy_header->end, qhy_header->start);
 	double real_exposure = exposure / 1000000.0;
-	if (real_exposure > 1801.0) {
+	if (real_exposure > 1801.0 || real_exposure <= 0.0) {
 		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
 		return 1;
 	}
 
-	if (real_exposure > 0.0) {
-		if (fabs((fit->keywords.exposure + real_exposure) / (2.0 * real_exposure) - 1.0) > 0.05) {
-			siril_log_message(_("Discrepancy in configured (%.3f) and actual exposure (%.4f), likely caused by a bad calibration, discarding data\n"), fit->keywords.exposure, real_exposure);
-			return 1;
-		}
-	} else {
-		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
+	if (fabs((fit->keywords.exposure + real_exposure) / (2.0 * real_exposure) - 1.0) > 0.05) {
+		siril_log_message(_("Discrepancy in configured (%.3f) and actual exposure (%.4f), likely caused by a bad calibration, discarding data\n"), fit->keywords.exposure, real_exposure);
 		return 1;
 	}
 	fit->keywords.exposure = real_exposure;

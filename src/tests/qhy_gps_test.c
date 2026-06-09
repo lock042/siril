@@ -54,8 +54,8 @@
 	close(fd_lock);
 
 static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
-    size_t written = fwrite(ptr, size, nmemb, stream);
-    return written;
+	size_t written = fwrite(ptr, size, nmemb, stream);
+	return written;
 }
 
 static gboolean directory_created = FALSE;
@@ -139,6 +139,7 @@ void test_rsgps_data_loading() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 	cr_assert(fit.keywords.gps_data);
+	cr_assert(!fit.keywords.date_and_exp_from_gps);
 	clearfits(&fit);
 
 	file_path = check_or_download_test_file("gps_global_shutter_not_locked.fit");
@@ -146,6 +147,8 @@ void test_rsgps_data_loading() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 	cr_assert(!fit.keywords.gps_data);
+	cr_assert(!fit.keywords.date_and_exp_from_gps);
+	clearfits(&fit);
 }
 
 void test_metadata_reading() {
@@ -154,6 +157,8 @@ void test_metadata_reading() {
 	cr_assert(file_path);
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
+	cr_assert(!fit.keywords.gps_data);
+	cr_assert(!fit.keywords.date_and_exp_from_gps);
 	GDateTime *original_dateobs = g_date_time_ref(fit.keywords.date_obs);
 	double original_exposure = fit.keywords.exposure;
 	long original_naxes1 = fit.naxes[1];
@@ -176,7 +181,13 @@ void test_metadata_reading() {
 	// image metadata has been modified using the GPS metadata
 	cr_assert(fit.ry == original_ry - 1);
 	cr_assert(fit.naxes[1] == original_naxes1 - 1);
+	cr_assert(!fit.keywords.gps_data);
+	// gps_extract_image_hook replaces data even if it's not locked
+	cr_assert(fit.keywords.date_and_exp_from_gps);
 	clearfits(&fit);
+	// TODO: some headers problems remain after using the gps command:
+	// - IMAGETYP and TELESCOP get some extra spaces
+	// - GPS_EUTC and GPS_EFLG are removed because managed by the rolling shutter function
 }
 
 void test_rsgps_timestamp_computation() {
@@ -290,9 +301,10 @@ void test_non_gps_images() {
 	cr_assert(file_path);
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	cr_assert(!fit.keywords.gps_data);
+	cr_assert(!fit.keywords.date_and_exp_from_gps);
 
-        struct _qhy_struct qhy_header = { 0 };
-        int retval = parse_gps_image(&fit, &qhy_header);
+	struct _qhy_struct qhy_header = { 0 };
+	int retval = parse_gps_image(&fit, &qhy_header);
 	cr_assert(retval);
 
 	retval = parse_gps_from_header(&fit, file_path, &qhy_header);
