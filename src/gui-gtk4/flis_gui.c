@@ -1507,7 +1507,7 @@ static void on_selection_changed(GtkSelectionModel *sel, guint pos, guint nitems
 		}
 		if (found && index != com.uniq->active_layer) {
 			uniq_set_active_layer(com.uniq, index);
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 			/* Refresh so the active-layer-row CSS class moves to the
 			 * newly active row.  Selection is preserved across the
 			 * rebuild by refresh_panel's snapshot/restore. */
@@ -1932,7 +1932,7 @@ static void on_mask_status_clicked(GtkButton *b, gpointer u) {
 	 * mode.  The display invalidation does the right thing. */
 	lay->lmask_active = !lay->lmask_active;
 	gui_iface.flis_display_invalidate(FLIS_INV_LAYER_PIXELS, lay->item_id);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	flis_gui_update_from_idle();
 }
 
@@ -2105,7 +2105,7 @@ static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u) {
 	 * image vports so the swap is immediately visible. */
 	gui_iface.redraw_mask_idle();
 	if (com.pref.gui.mask_tints_vports)
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 }
 
 /* Context menu action handlers ---------------------------------- */
@@ -3017,7 +3017,7 @@ static void canvas_dialog_after_op(struct canvas_dialog *cd) {
 	 * last GtkSnapshot until something invalidates it.  Explicit
 	 * redraw so the canvas op result is visible immediately rather
 	 * than on the next incidental redraw (mouse move, focus change). */
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	canvas_dialog_refresh_current(cd);
 	/* Resync the spin defaults to the new canvas dims so a follow-up
 	 * resize starts from the just-applied state.  Also reset the

@@ -805,13 +805,13 @@ static void apply_drag_motion(const drawingarea_ctx *c) {
 			 * positions (sparse layers per the spec). */
 			flis_layer_t *_lay = flis_layer_get_by_id(gui.flis_drag_layer_id);
 			if (_lay) {
-				const int _dx = (int)(evpos.x - gui.flis_drag_start_image.x);
-				const int _dy = (int)(evpos.y - gui.flis_drag_start_image.y);
+				const int _dx = (int)(c->evpos.x - gui.flis_drag_start_image.x);
+				const int _dy = (int)(c->evpos.y - gui.flis_drag_start_image.y);
 				_lay->position_x = gui.flis_drag_start_layer.x + _dx;
 				_lay->position_y = gui.flis_drag_start_layer.y + _dy;
 				gui_iface.flis_display_invalidate(FLIS_INV_STACK, _lay->item_id);
 				notify_gfit_data_modified();
-				redraw(REMAP_ALL);
+				redraw(REDRAW_ALL);
 			}
 	} else if (cutting) {	// button 1 down, dragging a line for the pixel profile cut
 		if (c->state & GDK_SHIFT_MASK)

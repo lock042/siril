@@ -1066,17 +1066,9 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 		else {
 			left_loaded = TRUE;
-			/* We are the second image to be loaded so we convert to the first
-			* image's color profile */
-			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
-				if (fit_right.icc_profile) {
-					siril_colorspace_transform(&fit_left, fit_right.icc_profile);
-					siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
-				} else {
-					fit_right.icc_profile = copyICCProfile(fit_left.icc_profile);
-					siril_log_message(_("Color profiles did not match: right-hand image has been assigned the left-hand image color profile.\n"));
-				}
-			}
+			/* Per-fits ICC state was removed; remixer's auto-match
+			 * between left/right profiles is no longer available.
+			 * Both inputs are treated as raw pixel data. */
 			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
 			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
@@ -1158,21 +1150,9 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 		else {
 			right_loaded = TRUE;
-			/* We are the second image to be loaded so we convert to the first
-			* image's color profile */
-			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
-				if (fit_left.icc_profile) {
-					siril_colorspace_transform(&fit_right, fit_left.icc_profile);
-					siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
-				} else {
-					fit_left.icc_profile = copyICCProfile(fit_right.icc_profile);
-					siril_log_message(_("Color profiles did not match: left-hand image has been assigned the right-hand image color profile.\n"));
-				}
-			}
-			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
-				siril_colorspace_transform(&fit_right, fit_left.icc_profile);
-				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
-			}
+			/* Per-fits ICC state was removed; remixer's auto-match
+			 * between left/right profiles is no longer available.
+			 * Both inputs are treated as raw pixel data. */
 			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
 			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);

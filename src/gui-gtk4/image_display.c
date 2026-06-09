@@ -1093,7 +1093,7 @@ static void ensure_proxy(struct image_view *view, int vport) {
 			                  && gui.unlink_channels) ? c : 0;
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		const gboolean do_icc = (gfit->color_managed
+		const gboolean do_icc = (current_image_color_managed()
 			&& com.gui_icc.proofing_transform && !identical
 			&& !com.gui_icc.same_primaries);
 		fill_proxy_rgb(view, idx, hd_mode, neg, do_icc, data, pw, ph, step);
@@ -1233,7 +1233,7 @@ static gboolean pick_render_luts(int vport, const BYTE *idx[3],
 			                  && gui.unlink_channels) ? c : 0;
 			idx[c] = hd_mode ? gui.hd_remap_index[slot] : gui.remap_index[slot];
 		}
-		*out_do_icc = (gfit->color_managed && com.gui_icc.proofing_transform
+		*out_do_icc = (current_image_color_managed() && com.gui_icc.proofing_transform
 			&& !identical && !com.gui_icc.same_primaries);
 	} else {
 		const int ti = (gui.rendering_mode == STF_DISPLAY

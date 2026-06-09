@@ -202,10 +202,9 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		clear_hsl();
 	}
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (current_icc_profile())
-			cmsCloseProfile(current_icc_profile());
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, current_icc_profile() != NULL);
+		current_image_set_icc_profile(original_icc
+			? copyICCProfile(original_icc) : NULL);
+		current_image_color_manage(original_icc != NULL);
 	}
 	clear_backup();
 	clear_hist_backup();
@@ -1263,10 +1262,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			// Prepare undo state with ICC profile handling
 			// Use the backup which contains the original unstretched image
 			fits *backup = get_preview_gfit_backup();
-			fits undo_fit = {0};
-			memcpy(&undo_fit, backup, sizeof(fits));
-			undo_fit.icc_profile = original_icc;
-			undo_fit.color_managed = original_icc != NULL;
 
 			gchar *log_string = NULL;
 
@@ -1310,7 +1305,17 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 
 			if (log_string) {
-				undo_save_state(&undo_fit, log_string);
+				undo_save_state(backup, log_string);
+				if (original_icc) {
+					cmsHPROFILE cur_copy = current_icc_profile()
+						? copyICCProfile(current_icc_profile()) : NULL;
+					gboolean    cur_managed = current_image_color_managed();
+					current_image_set_icc_profile(copyICCProfile(original_icc));
+					current_image_color_manage(TRUE);
+					undo_save_icc_state("ICC profile (pre-stretch)");
+					current_image_set_icc_profile(cur_copy);
+					current_image_color_manage(cur_managed);
+				}
 				siril_log_info("%s\n", log_string);
 				g_free(log_string);
 			}
@@ -1341,10 +1346,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		// Prepare undo state with ICC profile handling BEFORE applying stretch
 		fits *backup = get_preview_gfit_backup();
-		fits undo_fit = {0};
-		memcpy(&undo_fit, backup, sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
 
 		gchar *log_string = NULL;
 
@@ -1388,7 +1389,17 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 
 		if (log_string) {
-			undo_save_state(&undo_fit, log_string);
+			undo_save_state(backup, log_string);
+			if (original_icc) {
+				cmsHPROFILE cur_copy = current_icc_profile()
+					? copyICCProfile(current_icc_profile()) : NULL;
+				gboolean    cur_managed = current_image_color_managed();
+				current_image_set_icc_profile(copyICCProfile(original_icc));
+				current_image_color_manage(TRUE);
+				undo_save_icc_state("ICC profile (pre-stretch)");
+				current_image_set_icc_profile(cur_copy);
+				current_image_color_manage(cur_managed);
+			}
 			siril_log_info("%s\n", log_string);
 			g_free(log_string);
 		}

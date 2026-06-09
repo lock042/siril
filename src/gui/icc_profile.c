@@ -334,10 +334,8 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 
 	// Handle initial assignment of an ICC profile
 	if (!current_image_color_managed() || !current_icc_profile()) {
-		if (current_icc_profile()) {
-			cmsCloseProfile(current_icc_profile());
-			gfit->icc_profile = NULL;
-		}
+		if (current_icc_profile())
+			current_image_clear_icc_profile();
 		if (target_colorspace_channels > gfit->naxes[2]) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space has incorrect channels"), _("Mismatch in number of channels between the current image and the ICC profile. You cannot assign a RGB ICC profile to a mono image."));
 			return;
@@ -356,10 +354,8 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
-	if (current_icc_profile()) {
-		cmsCloseProfile(current_icc_profile());
-		gfit->icc_profile = NULL;
-	}
+	if (current_icc_profile())
+		current_image_clear_icc_profile();
 FINISH:;
 	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
 	icc_args->destroy_fn = free_icc_data;

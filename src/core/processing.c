@@ -2074,10 +2074,10 @@ static gboolean end_generic_layer(gpointer p) {
 			 * tiles.  Without this the image only refreshes on the
 			 * next mouseover (which incidentally invalidates the
 			 * widget). */
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 		} else {
 			notify_gfit_data_modified();
-			gui_iface.redraw_image(REMAP_ALL);
+			gui_iface.redraw_image(REDRAW_ALL);
 		}
 	}
 

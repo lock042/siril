@@ -142,23 +142,36 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		float stretch_value, black_value;
 		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
 
-		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
-
-		undo_save_state(&undo_fit,
+		/* Capture pixel-level undo from the preview backup; ICC profile
+		 * state goes in a separate lightweight icc-only undo entry. */
+		undo_save_state(get_preview_gfit_backup(),
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				stretch_value, black_value);
+		if (original_icc) {
+			/* Snapshot the pre-stretch ICC profile (original_icc) so
+			 * undo restores it.  We need to temporarily install
+			 * original_icc on com.uniq so undo_save_icc_state captures
+			 * it, then put the current profile back.  Copy the current
+			 * profile out FIRST — set_icc_profile would close the
+			 * existing pointer before storing the new one, leaving us
+			 * with a dangling reference. */
+			cmsHPROFILE cur_copy = current_icc_profile()
+				? copyICCProfile(current_icc_profile()) : NULL;
+			gboolean    cur_managed = current_image_color_managed();
+			current_image_set_icc_profile(copyICCProfile(original_icc));
+			current_image_color_manage(TRUE);
+			undo_save_icc_state("ICC profile (pre-asinh)");
+			current_image_set_icc_profile(cur_copy);  /* takes ownership */
+			current_image_color_manage(cur_managed);
+		}
 	}
 
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (current_icc_profile())
-			cmsCloseProfile(current_icc_profile());
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, current_icc_profile() != NULL);
+		current_image_set_icc_profile(original_icc
+			? copyICCProfile(original_icc) : NULL);
+		current_image_color_manage(original_icc != NULL);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
