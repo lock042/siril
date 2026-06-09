@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name Median_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_median_amount">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_median_iterations">
+    <property name="lower">1</property>
+    <property name="page-increment">1</property>
+    <property name="step-increment">1</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkWindow" id="Median_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox27">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkBox" id="box63">
+                <property name="orientation">vertical</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="spacing">10</property>
+                    <child>
+                      <object class="GtkLabel" id="label118">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Kernel Size:</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkDropDown" id="combo_ksize_median">
+                        <property name="halign">start</property>
+                        <property name="hexpand">1</property>
+                        <property name="model">
+                          <object class="GtkStringList">
+                            <items>
+                              <item>3x3</item>
+                              <item>5x5</item>
+                              <item>7x7</item>
+                              <item>9x9</item>
+                              <item>11x11</item>
+                              <item>13x13</item>
+                              <item>15x15</item>
+                            </items>
+                          </object>
+                        </property>
+                        <property name="selected">0</property>
+                        <property name="tooltip-text" translatable="yes">Kernel Size. This is the odd size of the neighborhood considered for each pixel.</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <child>
+                      <object class="GtkLabel" id="label140">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Iterations</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="median_button_iterations">
+                        <property name="adjustment">adj_median_iterations</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">0</property>
+                        <property name="numeric">1</property>
+                        <property name="tooltip-text" translatable="yes">Number of iterations of the algorithm.
+    This is useful when modulation parameter is different to 1 helping the whole process to converge to better result.</property>
+                        <property name="value">1</property>
+                        <property name="width-chars">3</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale">
+                    <property name="adjustment">adj_median_iterations</property>
+                    <property name="focusable">1</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <child>
+                      <object class="GtkLabel" id="label117">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Modulation</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton">
+                        <property name="adjustment">adj_median_amount</property>
+                        <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="value">1</property>
+                        <property name="width-chars">4</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale" id="scale_median">
+                    <property name="adjustment">adj_median_amount</property>
+                    <property name="digits">2</property>
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="tooltip-text" translatable="yes">Modulation parameter set in the [0, 1] range.
+    When this parameter is equal to 1, no modulation is applied.
+    If the parameters is null, so no filter is apply at all.</property>
+                    <property name="value-pos">bottom</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="median_use_L">
+                    <property name="active">1</property>
+                    <property name="focusable">1</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Use Luminance</property>
+                    <property name="visible">0</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area29">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="Median_cancel">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_Median_cancel_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="Median_roi_preview">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Note: ROI preview will show a black border. Do not panic, the border will be overwritten by future ROIs and when finally applying the median filter.</property>
+                <signal name="clicked" handler="on_Median_Apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="Median_Apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_Median_Apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Median Filter</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_Median_cancel_clicked"/>
+    <signal name="show" handler="on_Median_dialog_show"/>
+  </object>
+</interface>

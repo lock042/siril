@@ -26,8 +26,8 @@ ${PREFIX}-ccache
 # Siril required dependencies (either Siril or subprojects)
 pacman -S --noconfirm  --needed \
 ${PREFIX}-glib2 \
-${PREFIX}-gtk3 \
-${PREFIX}-gtksourceview4 \
+${PREFIX}-gtk4 \
+${PREFIX}-gtksourceview5 \
 ${PREFIX}-gsl \
 ${PREFIX}-lcms2 \
 ${PREFIX}-fftw \
