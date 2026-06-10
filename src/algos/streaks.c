@@ -12,7 +12,6 @@
 #include "algos/siril_wcs.h"
 #include "algos/streaks.h"
 #include "algos/sorting.h"
-#include "gui/PSF_list.h"
 #include "filters/deconvolution/deconvolution.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
