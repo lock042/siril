@@ -577,14 +577,18 @@ typedef struct {
 	GArray *line_state;             /* guint8 ChangeState, indexed by line */
 	GArray *del_state;              /* guint8 DelState, deletion before line i (size n+1) */
 	guint recompute_id;             /* debounce timeout source */
-	GtkSourceGutterRenderer *renderer;  /* not owned (held by the gutter) */
+	GtkSourceGutterRenderer *renderer;      /* main gutter (held by the gutter) */
+	GtkSourceGutterRenderer *map_renderer;  /* thin mirror in the minimap, or NULL */
 } ChangeTracker;
 
 /* Custom gutter renderer that paints the change bar by reading the
  * ChangeTracker attached to its buffer. */
 #define SIRIL_TYPE_CHANGE_GUTTER (siril_change_gutter_get_type())
 G_DECLARE_FINAL_TYPE(SirilChangeGutter, siril_change_gutter, SIRIL, CHANGE_GUTTER, GtkSourceGutterRenderer)
-struct _SirilChangeGutter { GtkSourceGutterRenderer parent_instance; };
+struct _SirilChangeGutter {
+	GtkSourceGutterRenderer parent_instance;
+	gboolean thin;   /* draw a narrower bar / no caret (used beside the minimap) */
+};
 G_DEFINE_TYPE(SirilChangeGutter, siril_change_gutter, GTK_SOURCE_TYPE_GUTTER_RENDERER)
 
 static void siril_change_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
@@ -612,11 +616,16 @@ static void siril_change_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
 	static const GdkRGBA green = { 0.18f, 0.70f, 0.32f, 1.0f };
 	static const GdkRGBA red   = { 0.86f, 0.20f, 0.18f, 1.0f };
 
+	gboolean thin = SIRIL_CHANGE_GUTTER(renderer)->thin;
+
 	guint8 st = (line < ct->line_state->len)
 		? g_array_index(ct->line_state, guint8, line) : CHG_NONE;
 	if (st == CHG_UNSAVED || st == CHG_SAVED) {
-		graphene_rect_t bar = GRAPHENE_RECT_INIT((float) width - 4.0f, (float) y,
-		                                         3.0f, (float) height);
+		/* Non-thin: 3px bar with a 1px right margin (x = width-4).  Thin
+		 * (minimap): a 2px bar keeping the same 1px right margin. */
+		float bw = thin ? 2.0f : 3.0f;
+		graphene_rect_t bar = GRAPHENE_RECT_INIT((float) width - bw - 1.0f,
+		                                         (float) y, bw, (float) height);
 		gtk_snapshot_append_color(snapshot,
 			st == CHG_UNSAVED ? &amber : &green, &bar);
 	}
@@ -625,18 +634,27 @@ static void siril_change_gutter_snapshot_line(GtkSourceGutterRenderer *renderer,
 		? g_array_index(ct->del_state, guint8, line) : DEL_NONE;
 	if (d != DEL_NONE) {
 		const GdkRGBA *c = (d == DEL_UNSAVED) ? &red : &green;
-		/* Deletion caret: a small triangle at the top edge of the line,
-		 * pointing down to indicate lines were removed above this one. */
-		graphene_rect_t area = GRAPHENE_RECT_INIT(0.0f, (float) y,
-		                                          (float) width, 7.0f);
-		cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &area);
-		cairo_set_source_rgba(cr, c->red, c->green, c->blue, c->alpha);
-		cairo_move_to(cr, width - 7.0, y);
-		cairo_line_to(cr, width, y);
-		cairo_line_to(cr, width - 3.5, y + 6.0);
-		cairo_close_path(cr);
-		cairo_fill(cr);
-		cairo_destroy(cr);
+		if (thin) {
+			/* On the minimap each line is ~1px tall, so the triangle caret
+			 * would dwarf its surroundings; mark the deletion gap with a
+			 * small dash straddling the line boundary instead. */
+			graphene_rect_t mark = GRAPHENE_RECT_INIT((float) width - 3.0f,
+			                                          (float) y - 1.0f, 2.0f, 2.0f);
+			gtk_snapshot_append_color(snapshot, c, &mark);
+		} else {
+			/* Deletion caret: a small triangle at the top edge of the line,
+			 * pointing down to indicate lines were removed above this one. */
+			graphene_rect_t area = GRAPHENE_RECT_INIT(0.0f, (float) y,
+			                                          (float) width, 7.0f);
+			cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &area);
+			cairo_set_source_rgba(cr, c->red, c->green, c->blue, c->alpha);
+			cairo_move_to(cr, width - 7.0, y);
+			cairo_line_to(cr, width, y);
+			cairo_line_to(cr, width - 3.5, y + 6.0);
+			cairo_close_path(cr);
+			cairo_fill(cr);
+			cairo_destroy(cr);
+		}
 	}
 }
 
@@ -781,6 +799,8 @@ static gboolean change_recompute_idle(gpointer data) {
 
 	if (ct->renderer)
 		gtk_widget_queue_draw(GTK_WIDGET(ct->renderer));
+	if (ct->map_renderer)
+		gtk_widget_queue_draw(GTK_WIDGET(ct->map_renderer));
 	return G_SOURCE_REMOVE;
 }
 
@@ -857,6 +877,28 @@ static void change_tracker_mark_saved(GtkSourceBuffer *buffer) {
 		g_object_get_data(G_OBJECT(buffer), "change-tracker"), FALSE);
 }
 
+/* Mirror the change bars beside the minimap.  The GtkSourceMap shares the
+ * editor's buffer (and therefore its ChangeTracker), so a second, thinner
+ * change-bar renderer in the map's own left gutter reads the same per-line
+ * state with no extra diffing.  Recorded on the tracker so a recompute redraws
+ * it too. */
+static void change_gutter_attach_to_map(GtkSourceMap *map) {
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(map));
+	if (!buffer)
+		return;
+	ChangeTracker *ct = g_object_get_data(G_OBJECT(buffer), "change-tracker");
+	if (!ct)
+		return;
+	GtkSourceGutterRenderer *r =
+		GTK_SOURCE_GUTTER_RENDERER(g_object_new(SIRIL_TYPE_CHANGE_GUTTER, NULL));
+	SIRIL_CHANGE_GUTTER(r)->thin = TRUE;
+	gtk_widget_set_size_request(GTK_WIDGET(r), 5, -1);
+	GtkSourceGutter *gutter =
+		gtk_source_view_get_gutter(GTK_SOURCE_VIEW(map), GTK_TEXT_WINDOW_LEFT);
+	gtk_source_gutter_insert(gutter, r, 0);
+	ct->map_renderer = r;
+}
+
 /* Build the minimap (GtkSourceMap), wrapped in a clipping scrolled window.
  * Reverted from the experimental drawing-area minimap.  Appended to
  * codeviewbox later (after setup_find_overlay re-parents the editor scroller)
@@ -875,6 +917,10 @@ static void add_minimap(void) {
 	gtk_source_map_set_view(map, code_view);
 	gtk_widget_set_valign(GTK_WIDGET(map), GTK_ALIGN_FILL);
 	gtk_widget_set_hexpand(GTK_WIDGET(map), FALSE);
+
+	/* Mirror the editor's changed-line bars next to the minimap (thinner).
+	 * Must come after set_view so the map already shares the editor buffer. */
+	change_gutter_attach_to_map(map);
 
 	/* Wrap in a scrolled window with propagate-natural-width = FALSE so the
 	 * map's font-driven natural width can't blow up the layout; the inner map
@@ -2291,6 +2337,24 @@ static EditorDoc *editor_new_tab(void) {
 	return d;
 }
 
+/* TRUE when the active tab is a pristine empty scratch: no file, no unsaved
+ * edits, and no text — e.g. the blank tab the editor starts with. */
+static gboolean editor_active_is_empty_scratch(void) {
+	if (!active_doc || current_file || buffer_modified || !sourcebuffer)
+		return FALSE;
+	GtkTextIter s, e;
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &s, &e);
+	return gtk_text_iter_equal(&s, &e);   /* empty buffer */
+}
+
+/* Prepare a tab to open a script into.  Normally spawns a fresh tab, but reuses
+ * the active one when it is a pristine empty scratch so opening a script into
+ * the editor's initial blank tab doesn't leave an empty tab behind. */
+static void editor_open_in_tab(void) {
+	if (!editor_active_is_empty_scratch())
+		editor_new_tab();
+}
+
 /* Switch to the most-recently-active other tab (MRU toggle).  Pressing it
  * again toggles back, because the switch updates prev_doc to the tab we left. */
 static void editor_toggle_recent_tab(void) {
@@ -2566,8 +2630,8 @@ void on_action_unfold_all(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void new_script(const gchar *contents, gint length, const char *ext) {
 	on_open_pythonpad(NULL, NULL);
-	/* Always edit in a fresh, independent tab. */
-	editor_new_tab();
+	/* Fresh tab, or reuse the editor's blank scratch tab if that's all there is. */
+	editor_open_in_tab();
 	current_file = NULL;
 	gtk_text_buffer_begin_irreversible_action(GTK_TEXT_BUFFER(sourcebuffer));
 	gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), contents, (gint) length);
@@ -2606,7 +2670,7 @@ static void on_file_open_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	GError *error = NULL;
 	GFile *file = gtk_file_dialog_open_finish(fd, res, &error);
 	if (file) {
-		editor_new_tab();          /* open the file in a fresh tab */
+		editor_open_in_tab();      /* fresh tab, or reuse a blank scratch tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		current_file = g_object_ref(file);
 		load_file(file);
@@ -2636,7 +2700,7 @@ static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gp
 		return;
 	}
 	GFile *file = g_file_new_for_path(path);
-	editor_new_tab();              /* open the recent file in a fresh tab */
+	editor_open_in_tab();         /* fresh tab, or reuse a blank scratch tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	current_file = g_object_ref(file);
 	load_file(file);
