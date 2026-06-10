@@ -95,13 +95,14 @@ RUN git clone --branch v0.2.12 --single-branch https://gitea.nouspiro.space/nou/
 RUN pip install meson==1.9.1 ninja!=1.11.1
 
 # Debian bookworm (oldstable) ships GTK 4.8.3 and glib 2.74, but
-# Siril's gtk4 backend uses GtkColumnView APIs introduced in GTK 4.12,
-# which itself requires glib >= 2.76.  Build glib, GTK4 and
-# GtkSourceView5 from pinned stable releases so the oldstable image —
-# used to build the AppImage — can produce a GTK4 binary.  Remove once
-# oldstable advances to trixie (Debian 13), which ships GTK 4.14+ and
-# glib 2.78+ as system packages.
-RUN git clone --branch 2.76.6 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/glib.git \
+# Siril's gtk4 backend uses GtkColumnView APIs introduced in GTK 4.12.
+# Build glib, GTK4 and GtkSourceView5 from pinned stable releases so the
+# oldstable image — used to build the AppImage — can produce a GTK4
+# binary.  glib is pinned to 2.82.x because GTK 4.14.5 falls back to its
+# bundled pango subproject, which requires glib >= 2.82.  Remove once
+# oldstable advances to trixie (Debian 13), which ships GTK 4.14+ and a
+# recent glib as system packages.
+RUN git clone --branch 2.82.5 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/glib.git \
     && cd glib \
     && meson setup _build \
         --prefix=/usr \
