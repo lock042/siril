@@ -14,11 +14,9 @@ RUN if [ ! -f /etc/apt/sources.list ]; then \
         glib-networking \
         intltool \
         libexiv2-dev \
-        libgtk-3-dev \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libgtksourceview-4-dev \
         librsvg2-dev \
         libgraphene-1.0-dev \
         libxkbcommon-dev \

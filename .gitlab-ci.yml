@@ -166,10 +166,10 @@ siril-deb-meson:
         path: ${BUILD_DIR}/coverage.xml
 
 
-siril-deb-meson-gtk4:
+siril-deb-meson-gtk:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=gtk4 -Db_coverage=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=true -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
   artifacts:

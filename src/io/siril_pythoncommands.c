@@ -20,7 +20,7 @@
 #include "core/undo.h"
 #include "core/gui_iface.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
-#include "gui/user_polygons.h"
+#include "gui-gtk4/user_polygons.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
