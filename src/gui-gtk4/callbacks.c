@@ -2386,6 +2386,25 @@ static void guard_headerbar_insensitive_double_click(void) {
 	gtk_widget_add_controller(headerbar, GTK_EVENT_CONTROLLER(click));
 }
 
+/* GTK4: GtkEventBox and button-press-event no longer exist, so the "click the
+ * sequence/image field to copy its name to the clipboard" behaviour lost its
+ * wiring during the port. Re-create it with a GtkGestureClick on press_field
+ * (the box that wraps label_name_of_seq). */
+static void on_seq_field_pressed(GtkGestureClick *gesture, int n_press,
+                                 double x, double y, gpointer user_data) {
+	(void)gesture; (void)n_press; (void)x; (void)y; (void)user_data;
+	on_press_seq_field();
+}
+
+static void wire_seq_field_click(void) {
+	GtkWidget *press_field = lookup_widget("press_field");
+	if (!press_field)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	g_signal_connect(click, "pressed", G_CALLBACK(on_seq_field_pressed), NULL);
+	gtk_widget_add_controller(press_field, GTK_EVENT_CONTROLLER(click));
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* Re-attach the notebook tabs that were split into separate .ui files
 	 * before anything inspects notebook_center_box. */
@@ -2464,6 +2483,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * CPU spin button at its limit) from toggling the window's maximized
 	 * state via the header bar's built-in GtkWindowHandle. */
 	guard_headerbar_insensitive_double_click();
+
+	/* Re-wire the click-to-copy-name on the sequence/image label field
+	 * (GTK3 button-press-event on a GtkEventBox, gone in GTK4). */
+	wire_seq_field_click();
 
 	/* Wire GtkGestureClick "released" on scalemin / scalemax so the
 	 * end-of-drag REDRAW_ALL redraw fires (Phase 18 stripped the

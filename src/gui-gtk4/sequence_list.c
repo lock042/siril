@@ -1258,11 +1258,18 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	if (seqname) free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
-		/* GTK4 has no public gtk_drop_down_get_popover().  GtkDropDown
-		 * registers a class-level "dropdown.popup" action (used by its
-		 * default key bindings); invoke it directly to open the menu. */
-		gtk_widget_grab_focus(GTK_WIDGET(seqcombo));
-		gtk_widget_activate_action(GTK_WIDGET(seqcombo), "dropdown.popup", NULL);
+		/* Several sequences found and none auto-selected: open the menu so the
+		 * user can pick one. GtkDropDown has no public popup() API (and no
+		 * "dropdown.popup" action in GTK >= 4.10), but its popover is driven by
+		 * an internal GtkToggleButton (its first child); toggling it active is
+		 * exactly what a user click does. */
+		for (GtkWidget *child = gtk_widget_get_first_child(GTK_WIDGET(seqcombo));
+				child; child = gtk_widget_get_next_sibling(child)) {
+			if (GTK_IS_TOGGLE_BUTTON(child)) {
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(child), TRUE);
+				break;
+			}
+		}
 	} else if (index_of_seq_to_load >= 0)
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), index_of_seq_to_load);
 	else
