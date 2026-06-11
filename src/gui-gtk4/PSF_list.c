@@ -44,10 +44,9 @@ static GtkLabel *psf_statusbar = NULL;
 static GtkScrolledWindow *psf_scrolled = NULL;
 static GtkWindow *psf_stars_list_window = NULL;
 static GtkCheckButton *psf_toggle_star_centered = NULL;
-
-/* Phase 11: GTK4 model + view replacing liststore_stars + Stars_stored. */
-static GListStore        *psf_store      = NULL;
-static GtkColumnView     *psf_columnview = NULL;
+static GListStore *psf_store      = NULL;
+static GtkSortListModel *psf_sortmodel  = NULL;
+static GtkColumnView *psf_columnview = NULL;
 static GtkMultiSelection *psf_selection  = NULL;
 
 static void psf_build_columnview(void);
@@ -203,10 +202,9 @@ static void psf_build_columnview(void) {
 	if (!psf_scrolled) return;
 
 	psf_store = g_list_store_new(SIRIL_TYPE_PSF_ROW);
-	psf_selection = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(psf_store)));
-	g_signal_connect(psf_selection, "selection-changed",
-			G_CALLBACK(on_psf_selection_changed_model), NULL);
-	psf_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(psf_selection))));
+	/* Build the column view first (no model yet) so we can hand its sorter to
+	 * the sort model; the selection model then wraps the sorted model. */
+	psf_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(NULL));
 	gtk_widget_add_css_class(GTK_WIDGET(psf_columnview), "siril-dense-rows");
 
 	GtkColumnViewColumn *c;
@@ -244,6 +242,14 @@ static void psf_build_columnview(void) {
 	ADD_NUM_COLUMN("RMSE",  PSF_COL_RMSE,  cmp_psf_rmse);
 
 	#undef ADD_NUM_COLUMN
+
+	GtkSorter *view_sorter = gtk_column_view_get_sorter(psf_columnview);
+	psf_sortmodel = gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(psf_store)),
+			view_sorter ? g_object_ref(view_sorter) : NULL);
+	psf_selection = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(psf_sortmodel)));
+	g_signal_connect(psf_selection, "selection-changed",
+			G_CALLBACK(on_psf_selection_changed_model), NULL);
+	gtk_column_view_set_model(psf_columnview, GTK_SELECTION_MODEL(psf_selection));
 
 	gtk_scrolled_window_set_child(psf_scrolled, GTK_WIDGET(psf_columnview));
 
@@ -390,9 +396,11 @@ void set_iter_of_clicked_psf(double x, double y) {
 	if (is_as) {
 		invpixscalex = 1.0 / (radian_conversion * (double) gfit->keywords.pixel_size_x / gfit->keywords.focal_length) * bin_X;
 	}
-	guint n = g_list_model_get_n_items(G_LIST_MODEL(psf_store));
+	/* iterate the sorted model so the selected/scrolled position matches the
+	 * order the user sees */
+	guint n = g_list_model_get_n_items(G_LIST_MODEL(psf_sortmodel));
 	for (guint i = 0; i < n; i++) {
-		SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_store), i));
+		SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_sortmodel), i));
 		if (!row) continue;
 		gdouble xpos = row->x0, ypos = row->y0;
 		gdouble fwhmx = row->fwhmx * invpixscalex;
@@ -451,23 +459,23 @@ static void remove_selected_star() {
 	if (nsel == 0) { gtk_bitset_unref(bs); return; }
 
 	guint *sel = calloc(nsel, sizeof(guint));
-
-	/* Read the row indices BEFORE removing anything (positions stable). */
+	SirilPSFRow **rows = calloc(nsel, sizeof(SirilPSFRow *));
 	for (guint64 i = 0; i < nsel; i++) {
 		guint pos = gtk_bitset_get_nth(bs, (guint)i);
-		SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_store), pos));
-		if (row) {
-			sel[i] = (guint)row->index;
-			g_object_unref(row);
-		}
-	}
-
-	/* Now remove from highest position downward so positions stay stable. */
-	for (guint64 i = nsel; i > 0; i--) {
-		guint pos = gtk_bitset_get_nth(bs, (guint)(i - 1));
-		g_list_store_remove(psf_store, pos);
+		SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_sortmodel), pos));
+		rows[i] = row;          /* keep the ref returned by get_item */
+		sel[i] = row ? (guint)row->index : 0;
 	}
 	gtk_bitset_unref(bs);
+
+	for (guint64 i = 0; i < nsel; i++) {
+		guint store_pos;
+		if (rows[i] && g_list_store_find(psf_store, rows[i], &store_pos))
+			g_list_store_remove(psf_store, store_pos);
+		if (rows[i])
+			g_object_unref(rows[i]);
+	}
+	free(rows);
 
 	qsort(sel, nsel, sizeof *sel, compare);
 
@@ -522,10 +530,11 @@ static void psf_export_csv(const char *filename) {
 			"Ch.,B,A,x0,y0,Ra,Dec,FWHMx,FWHMy,Mag,Beta,r,Angle,RMSE\n",
 			NULL, NULL);
 
-	if (psf_store) {
-		guint n = g_list_model_get_n_items(G_LIST_MODEL(psf_store));
+	if (psf_sortmodel) {
+		/* export in the order currently displayed (i.e. sorted) */
+		guint n = g_list_model_get_n_items(G_LIST_MODEL(psf_sortmodel));
 		for (guint i = 0; i < n; i++) {
-			SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_store), i));
+			SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_sortmodel), i));
 			if (!row) continue;
 			gchar *line = g_strdup_printf("%d,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g\n",
 					row->channel, row->B, row->A, row->x0, row->y0,
@@ -757,7 +766,7 @@ static void on_psf_selection_changed_model(GtkSelectionModel *sm, guint position
 	}
 	guint pos = gtk_bitset_get_nth(bs, 0);
 	gtk_bitset_unref(bs);
-	SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_store), pos));
+	SirilPSFRow *row = SIRIL_PSF_ROW(g_list_model_get_item(G_LIST_MODEL(psf_sortmodel), pos));
 	if (!row) return;
 	gdouble x0 = row->x0, y0 = row->y0;
 	g_object_unref(row);

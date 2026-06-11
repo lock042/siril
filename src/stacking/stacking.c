@@ -632,6 +632,7 @@ void init_stacking_args(struct stacking_args *args) {
 	args->use_32bit_output = FALSE;
 	args->feather_dist = 0;
 	args->overlap_norm = FALSE;
+	args->local_norm = FALSE;
 	args->reglayer = -1;
 	args->equalizeRGB = FALSE;
 	args->maximize_framing = FALSE;

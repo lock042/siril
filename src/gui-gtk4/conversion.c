@@ -66,8 +66,9 @@ static void siril_convert_row_class_init(SirilConvertRowClass *klass) {
 static void siril_convert_row_init(SirilConvertRow *self) { (void)self; }
 
 /* GTK4: model, view, selection - all built programmatically. */
-static GListStore       *liststore_convert = NULL;
-static GtkColumnView    *columnview_convert = NULL;
+static GListStore *liststore_convert = NULL;
+static GtkSortListModel *sortmodel_convert = NULL;
+static GtkColumnView *columnview_convert = NULL;
 
 /* Forward decls: defined further down; needed by ensure_convert_view(). */
 static gboolean on_convert_drop(GtkDropTarget *target, const GValue *value,
@@ -194,10 +195,7 @@ static void ensure_convert_view(void) {
 		scrolled_convert = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow8"));
 
 	liststore_convert = g_list_store_new(SIRIL_TYPE_CONVERT_ROW);
-	selection_convert = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(liststore_convert)));
-	g_signal_connect(selection_convert, "selection-changed", G_CALLBACK(on_selection_changed), NULL);
-
-	columnview_convert = GTK_COLUMN_VIEW(gtk_column_view_new(GTK_SELECTION_MODEL(g_object_ref(selection_convert))));
+	columnview_convert = GTK_COLUMN_VIEW(gtk_column_view_new(NULL));
 	/* Match the file-open dialog's tight row spacing (see siril.css). */
 	gtk_widget_add_css_class(GTK_WIDGET(columnview_convert), "siril-dense-rows");
 
@@ -222,6 +220,13 @@ static void ensure_convert_view(void) {
 			GTK_SORTER(gtk_custom_sorter_new(date_compare, NULL, NULL)));
 	gtk_column_view_append_column(columnview_convert, cd);
 	g_object_unref(cd);
+
+	GtkSorter *view_sorter = gtk_column_view_get_sorter(columnview_convert);
+	sortmodel_convert = gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(liststore_convert)),
+			view_sorter ? g_object_ref(view_sorter) : NULL);
+	selection_convert = gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(sortmodel_convert)));
+	g_signal_connect(selection_convert, "selection-changed", G_CALLBACK(on_selection_changed), NULL);
+	gtk_column_view_set_model(columnview_convert, GTK_SELECTION_MODEL(selection_convert));
 
 	gtk_scrolled_window_set_child(scrolled_convert, GTK_WIDGET(columnview_convert));
 
@@ -305,7 +310,9 @@ static void initialize_convert() {
 		if (!replace) return;
 	}
 
-	guint nrows = g_list_model_get_n_items(G_LIST_MODEL(liststore_convert));
+	/* iterate in displayed (sorted) order so the output sequence numbering
+	 * follows what the user sees */
+	guint nrows = g_list_model_get_n_items(G_LIST_MODEL(sortmodel_convert));
 	if (nrows == 0) return;	//The list is empty
 
 	gboolean no_sequence_to_convert = TRUE;
@@ -314,7 +321,7 @@ static void initialize_convert() {
 	gboolean there_is_a_film = FALSE;
 	int count = 0;
 	for (guint i = 0; i < nrows; i++) {
-		SirilConvertRow *row = SIRIL_CONVERT_ROW(g_list_model_get_item(G_LIST_MODEL(liststore_convert), i));
+		SirilConvertRow *row = SIRIL_CONVERT_ROW(g_list_model_get_item(G_LIST_MODEL(sortmodel_convert), i));
 		file_data = g_strdup(row->filename_full);
 		g_object_unref(row);
 
@@ -474,12 +481,20 @@ static void remove_selected_files_from_list() {
 	guint64 n = gtk_bitset_get_size(bs);
 	if (n == 0) { gtk_bitset_unref(bs); return; }
 
-	/* Remove from the highest position downward so indices stay valid. */
-	for (guint64 i = n; i > 0; i--) {
-		guint pos = gtk_bitset_get_nth(bs, (guint)(i - 1));
-		g_list_store_remove(liststore_convert, pos);
+	SirilConvertRow **rows = calloc(n, sizeof(SirilConvertRow *));
+	for (guint64 i = 0; i < n; i++) {
+		guint pos = gtk_bitset_get_nth(bs, (guint)i);
+		rows[i] = SIRIL_CONVERT_ROW(g_list_model_get_item(G_LIST_MODEL(sortmodel_convert), pos));
 	}
 	gtk_bitset_unref(bs);
+	for (guint64 i = 0; i < n; i++) {
+		guint store_pos;
+		if (rows[i] && g_list_store_find(liststore_convert, rows[i], &store_pos))
+			g_list_store_remove(liststore_convert, store_pos);
+		if (rows[i])
+			g_object_unref(rows[i]);
+	}
+	free(rows);
 	gtk_selection_model_unselect_all(GTK_SELECTION_MODEL(selection_convert));
 }
 

@@ -387,7 +387,13 @@ static gboolean close_sequence_idle(gpointer data) {
 	if (!data) {
 		GtkDropDown *seqcombo = GTK_DROP_DOWN(GTK_WIDGET(
 			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
-		gtk_drop_down_set_selected(seqcombo, -1);
+		/* A GtkDropDown cannot show an empty selection, so reflect "no sequence
+		 * loaded" by selecting the "(None)" entry (inserting it first if the
+		 * drop-down does not already carry it). */
+		g_signal_handlers_block_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		siril_drop_down_prepend_none(seqcombo);
+		gtk_drop_down_set_selected(seqcombo, 0);
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
 	}
 	return FALSE;
 }
@@ -399,11 +405,14 @@ static gboolean populate_seqcombo(gpointer user_data) {
 	GtkDropDown *combo = GTK_DROP_DOWN(GTK_WIDGET(
 		gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
 	siril_drop_down_clear_strings(combo);
+	/* keep "(None)" at position 0 for consistency with the sequence search; the
+	 * opened sequence sits at position 1 and is the selected one. */
+	siril_drop_down_append_text(combo, siril_seqlist_none_text());
 	gchar *rname = g_path_get_basename(realname);
 	siril_drop_down_append_text(combo, rname);
 	g_signal_handlers_block_by_func(GTK_DROP_DOWN(combo),
 		on_seqproc_entry_changed, NULL);
-	gtk_drop_down_set_selected(GTK_DROP_DOWN(combo), 0);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(combo), 1);
 	g_signal_handlers_unblock_by_func(GTK_DROP_DOWN(combo),
 		on_seqproc_entry_changed, NULL);
 	g_free(rname);

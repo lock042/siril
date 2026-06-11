@@ -113,7 +113,7 @@ static void start_stacking() {
 	static GtkEntry *output_file = NULL;
 	static GtkCheckButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
 					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, 
-					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
+					*upscale_at_stacking = NULL, *overlap_norm = NULL, *local_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
 	static GtkComboBox *mpp_drizzle_combo = NULL;
@@ -140,6 +140,7 @@ static void start_stacking() {
 		feather_dist = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_stack_feather_dist"));
 		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
 		overlap_norm = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
+		local_norm = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_local"));
 		force32b = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
@@ -169,6 +170,8 @@ static void start_stacking() {
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
+	stackparam.coeff.local = FALSE;	// reset to avoid reusing a stale field pointer
+	stackparam.coeff.lfield = NULL;
 	stackparam.method =	stacking_methods[gtk_drop_down_get_selected(method_combo)];
 	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
 	if (weighing_is_enabled) {
@@ -205,6 +208,23 @@ static void start_stacking() {
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
+	/* local normalization: a spatially varying scale+offset field computed
+	 * against the reference image; it uses its own fields rather than the
+	 * normalization type, so we just make sure normalization is active. */
+	stackparam.local_norm = siril_toggle_get_active(GTK_WIDGET(local_norm))
+			&& (stackparam.method == stack_median || stackparam.method == stack_mean_with_rejection);
+	if (stackparam.local_norm) {
+		if (stackparam.normalize == NO_NORM)
+			stackparam.normalize = ADDITIVE_SCALING;
+		if (stackparam.maximize_framing || stackparam.upscale_at_stacking || stackparam.overlap_norm) {
+			siril_log_error(_("Local normalization is not compatible with maximize framing, upscale or normalization on overlaps. Disabling local normalization\n"));
+			stackparam.local_norm = FALSE;
+		} else if (stackparam.reglayer < 0 || !test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
+			siril_log_error(_("Local normalization requires registration data with simple shifts. Disabling local normalization\n"));
+			stackparam.local_norm = FALSE;
+		}
+	}
+
 	/* STACK_MPP doesn't go through the homography-aware regdata path — it
 	 * reads its own per-AP per-frame shifts from the .mpp sidecar. The
 	 * "registration data with more than simple shifts" prompt would fire
@@ -340,14 +360,17 @@ void on_comboboxstack_methods_changed(GObject *obj, GParamSpec *pspec, gpointer 
 void on_combonormalize_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
 	(void)obj;
 	(void)pspec;
-	static GtkWidget *widgetnormalize = NULL, *force_norm = NULL, *fast_norm = NULL;
+	static GtkWidget *widgetnormalize = NULL, *force_norm = NULL, *fast_norm = NULL, *local_norm = NULL;
 	if (!widgetnormalize) {
 		widgetnormalize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combonormalize"));
 		force_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkforcenorm"));
 		fast_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkfastnorm"));
+		local_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_norm_local"));
 	}
-	gtk_widget_set_sensitive(force_norm, gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0);
-	gtk_widget_set_sensitive(fast_norm, gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0);
+	gboolean norm_active = gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0;
+	gtk_widget_set_sensitive(force_norm, norm_active);
+	gtk_widget_set_sensitive(fast_norm, norm_active);
+	gtk_widget_set_sensitive(local_norm, norm_active);
 }
 
 void on_comboweighing_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -779,7 +802,7 @@ static void update_filter_label() {
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
 			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
-			*upscale_at_stacking = NULL, *blend_frame = NULL, *overlap_norm = NULL;
+			*upscale_at_stacking = NULL, *blend_frame = NULL, *overlap_norm = NULL, *local_norm = NULL;
 	static GtkDropDown *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	static GtkExpander *stack_expander_method = NULL, *stack_expander_output = NULL;
@@ -799,6 +822,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		upscale_at_stacking = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_upscale_at_stacking"));
 		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
 		overlap_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
+		local_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_norm_local"));
 		stack_expander_method = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "stack_expander_method"));
 		stack_expander_output = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "stack_expander_output"));
 	}
@@ -851,6 +875,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(widgetnormalize, FALSE);
 		gtk_widget_set_sensitive(force_norm, FALSE);
 		gtk_widget_set_sensitive(fast_norm, FALSE);
+		gtk_widget_set_sensitive(local_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
 		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable
@@ -867,6 +892,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(force_norm,
 				gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0);
 		gtk_widget_set_sensitive(fast_norm,
+				gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0);
+		gtk_widget_set_sensitive(local_norm,
 				gtk_drop_down_get_selected(GTK_DROP_DOWN(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);

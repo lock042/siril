@@ -35,9 +35,17 @@ frame {
  * dropped fill/pack-end so the label and control now sit flush against each
  * other (e.g. "Stretch factor[0.0]" / "Black Point[0.00000]" in the Asinh
  * dialog).  Add a left margin to any control that immediately follows a label
- * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) and grids
- * so a control stacked *under* a label in a vertical box doesn't get an odd
- * left indent.  6px matches the column-spacing GTK3 used on these grids. */
+ * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) only.
+ *
+ * Grids are deliberately NOT included: a GtkGrid provides its inter-column
+ * gap through `column-spacing`, which is uniform across every row.  The
+ * `label + control` adjacency selector, by contrast, matches on *markup*
+ * sibling order, not on visual columns -- so a control whose preceding
+ * <child> in the .ui happens to be another control (rather than a label)
+ * gets no margin while its neighbours do.  On a column-homogeneous grid that
+ * left-shifts those cells by 6px and the column-1 controls no longer line up
+ * (e.g. "Outer radius" / "Y offset" in Preferences sat 6px left of their
+ * siblings).  Letting column-spacing alone own the gap keeps them aligned. */
 box.horizontal > label + button,
 box.horizontal > label + spinbutton,
 box.horizontal > label + entry,
@@ -48,18 +56,7 @@ box.horizontal > label + scale,
 box.horizontal > label + switch,
 box.horizontal > label + checkbutton,
 box.horizontal > label + togglebutton,
-box.horizontal > label + colorbutton,
-grid > label + button,
-grid > label + spinbutton,
-grid > label + entry,
-grid > label + dropdown,
-grid > label + combobox,
-grid > label + menubutton,
-grid > label + scale,
-grid > label + switch,
-grid > label + checkbutton,
-grid > label + togglebutton,
-grid > label + colorbutton {
+box.horizontal > label + colorbutton {
     margin-left: 6px;
 }
 
