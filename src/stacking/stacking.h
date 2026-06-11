@@ -52,23 +52,6 @@ typedef enum {
 	NBSTACK_WEIGHT
 } weightingType;
 
-/* Local normalization field (prototype).
- * Instead of a single scalar scale/offset per image and channel, local
- * normalization stores a low-resolution grid of scale s(x,y) and additive
- * offset z(x,y) values, computed against the reference image. The grid is
- * defined in the output (reference) image coordinates and bilinearly
- * interpolated at stacking time, so that the normalized value of a target
- * pixel reads:  result = s(x,y) * pixel + z(x,y).
- * Storing the field at grid resolution (one value per tile) keeps the memory
- * footprint negligible compared to a full-resolution field. */
-typedef struct {
-	int gridw, gridh;	// low-res grid dimensions
-	int tile;		// tile size in pixels (output coords)
-	int rx, ry;		// full output dimensions the grid maps onto
-	float *scale;		// gridw * gridh, multiplicative scale s
-	float *offset;		// gridw * gridh, additive offset z
-} lnorm_field;
-
 typedef struct {
 	double *offset;
 	double *mul;
@@ -76,9 +59,6 @@ typedef struct {
 	double *poffset[3];
 	double *pmul[3];
 	double *pscale[3];
-	gboolean local;		/* TRUE when local normalization fields are populated */
-	lnorm_field *lfield;	/* flat buffer of nb_layers * nb_frames fields */
-	lnorm_field *plfield[3];/* per-layer pointers into lfield, indexed by frame */
 } norm_coeff;
 
 /* Warning: editing this will require changing the long initializer in stacking.c */
@@ -104,7 +84,6 @@ struct stacking_args {
 	gboolean use_32bit_output;	/* output to 32 bit float */
 	int feather_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
 	gboolean overlap_norm;		/* compute normalization on overlaps instead of whole images */
-	gboolean local_norm;		/* compute local (spatially varying) normalization fields */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
@@ -152,7 +131,6 @@ struct stacking_configuration {
 	gboolean equalizeRGB;
 	gboolean lite_norm;
 	gboolean overlap_norm;
-	gboolean local_norm;
 	int feather_dist;  // number of pixels feathered for blend mask
 	normalization norm;
 	int number_of_loaded_sequences;
@@ -231,9 +209,6 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 /* normalization functions, normalization.c */
 
 int do_normalization(struct stacking_args *args);
-void free_norm_fields(norm_coeff *coeff, int nb_layers, int nb_frames);
-/* bilinearly sample the local normalization field at output coordinates (x, y) */
-void sample_lnorm_field(const lnorm_field *f, double x, double y, float *scale, float *offset);
 int *compute_thread_distribution(int nb_workers, int max);
 void free_ostats(overlap_stats_t **ostats, int nb_layers);
 overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames);

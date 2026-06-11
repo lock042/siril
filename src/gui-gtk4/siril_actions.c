@@ -507,15 +507,8 @@ static void update_chain_channels_ui(gboolean linked) {
 
 	g_free(tooltip_text);
 
-	/* Toggling channel-linking in autostretch mode changes the lookup
-	 * table per channel, so the displayed image needs to be remapped —
-	 * mirroring the path on_display_item_toggled() takes when the
-	 * preview-mode dropdown changes. */
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		notify_gfit_data_modified();
-		redraw(REDRAW_ALL);
-		gui_function(redraw_previews, NULL);
-	}
+	/* No remap here: set_unlink_channels() above already triggered
+	 * notify_gfit_data_modified() + redraw, as in the GTK3 GUI. */
 }
 
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
@@ -669,9 +662,8 @@ void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	GtkToggleButton *drawframe;
-	drawframe = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check")));
-	siril_toggle_set_active(GTK_WIDGET(drawframe), g_variant_get_boolean(state));
+	/* drawframe_check is bound to win.regframe via action-name, so GTK4
+	 * keeps its active state in sync with the action automatically */
 	g_simple_action_set_state(action, state);
 	gui_iface.redraw_image(REDRAW_OVERLAY);
 }

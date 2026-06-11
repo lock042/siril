@@ -1373,7 +1373,9 @@ gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
 	gui_iface.on_mask_state_changed();
-	gui_iface.queue_redraw_mask();
+	/* The mask worker modified the mask data and does not remap the display,
+	 * so the tinted image vports are stale: request the tint remap. */
+	gui_iface.queue_redraw_mask(TRUE);
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1383,7 +1385,10 @@ gboolean end_generic_image_update_gfit(gpointer p) {
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
-		gui_iface.queue_redraw_mask();
+		/* generic_image_worker already ran notify_gfit_data_modified() with
+		 * the final mask in place, so the tints are current: only the mask
+		 * vport buffer needs refreshing. */
+		gui_iface.queue_redraw_mask(FALSE);
 	free_generic_img_args(args);
 	return FALSE;
 }

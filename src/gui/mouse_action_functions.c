@@ -387,7 +387,7 @@ static gboolean mask_add_poly_release(mouse_data *data) {
 	set_poly_in_mask(poly, gfit, TRUE);
 	free_user_polygon(poly);
 	gui.drawing_polypoints = NULL;
-	queue_redraw_mask();
+	queue_redraw_mask(TRUE); // mask data changed: tints are stale
 	return TRUE;
 }
 
@@ -405,7 +405,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	// Free and NULL gui.drawing_polypoints
 	g_slist_free_full(gui.drawing_polypoints, free);
 	gui.drawing_polypoints = NULL;
-	queue_redraw_mask();
+	queue_redraw_mask(TRUE); // mask data changed: tints are stale
 	return TRUE;
 }
 

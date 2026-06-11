@@ -146,8 +146,8 @@ static void impl_delete_selection(void) {
 	delete_selected_area();
 }
 
-static void impl_queue_redraw_mask(void) {
-	queue_redraw_mask();
+static void impl_queue_redraw_mask(gboolean remap_tints) {
+	queue_redraw_mask(remap_tints);
 }
 
 /* ── Groups E, F: no-op placeholders (filled in by 6.1/6.2 impls below) ── */
@@ -745,8 +745,8 @@ static void impl_update_histogram(void) {
 	update_gfit_histogram_if_needed();
 }
 
-static void impl_redraw_mask_idle(void) {
-	redraw_mask_idle(NULL);
+static void impl_redraw_mask_idle(gboolean remap_tints) {
+	redraw_mask_idle(GINT_TO_POINTER(remap_tints));
 }
 
 /* ── Group G additions: Channel / precision display state ────────────────── */
@@ -841,15 +841,20 @@ static int impl_get_reg_layer(void) {
 /* ── SC: Annotation display ──────────────────────────────────────────────── */
 
 static void impl_activate_annotation_display(void) {
-	GtkToggleButton *button = GTK_TOGGLE_BUTTON(
-		gtk_builder_get_object(gui.builder, "annotate_button"));
+	/* the annotate button is bound to the win.annotate-object action;
+	 * unlike GTK3, setting the toggle active in GTK4 does not activate
+	 * the action, so drive the action state directly */
+	GActionMap *map = G_ACTION_MAP(gtk_builder_get_object(gui.builder, "control_window"));
+	GAction *annotate = g_action_map_lookup_action(map, "annotate-object");
 	refresh_annotation_visibility();
-	if (!siril_toggle_get_active(GTK_WIDGET(button))) {
-		siril_toggle_set_active(GTK_WIDGET(button), TRUE);
+	GVariant *state = g_action_get_state(annotate);
+	if (!g_variant_get_boolean(state)) {
+		g_action_change_state(annotate, g_variant_new_boolean(TRUE));
 	} else {
 		refresh_found_objects();
 		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
+	g_variant_unref(state);
 }
 
 

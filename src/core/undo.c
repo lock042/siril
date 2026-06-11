@@ -493,15 +493,14 @@ int undo_display_data(int dir) {
 			gui_iface.update_menu_state();
 			gui_iface.reset_display_transform();
 			refresh_annotations(TRUE);
-			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			gui_iface.redraw_mask_idle();
-			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				/* No reader lock here: notify_gfit_data_modified() may call
-				 * copy_roi_into_gfit() which acquires the writer lock —
-				 * mirrors the contract redraw_mask_idle relies on. */
-				notify_gfit_data_modified();
-				gui_iface.redraw_image(REDRAW_ALL);
-			}
+			/* No gfit lock held here: notify_gfit_data_modified() may call
+			 * copy_roi_into_gfit() which acquires the writer lock, and
+			 * redraw_mask_idle takes the reader lock itself. */
+			notify_gfit_data_modified();
+			gui_iface.redraw_image(REDRAW_ALL);
+			/* The remap above already applied any mask tint, so only the
+			 * mask vport buffer needs refreshing. */
+			gui_iface.redraw_mask_idle(FALSE);
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				gui_iface.copy_gfit_to_backup();
@@ -565,14 +564,14 @@ int undo_display_data(int dir) {
 			refresh_annotations(TRUE);
 			gui_iface.reset_display_transform();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
-			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			gui_iface.redraw_mask_idle();
-			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				/* No reader lock: notify_gfit_data_modified() may call
-				 * copy_roi_into_gfit() which acquires the writer lock. */
-				notify_gfit_data_modified();
-				gui_iface.redraw_image(REDRAW_ALL);
-			}
+			/* No gfit lock held here: notify_gfit_data_modified() may call
+			 * copy_roi_into_gfit() which acquires the writer lock, and
+			 * redraw_mask_idle takes the reader lock itself. */
+			notify_gfit_data_modified();
+			gui_iface.redraw_image(REDRAW_ALL);
+			/* The remap above already applied any mask tint, so only the
+			 * mask vport buffer needs refreshing. */
+			gui_iface.redraw_mask_idle(FALSE);
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				gui_iface.copy_gfit_to_backup();

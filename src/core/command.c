@@ -11513,12 +11513,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->norm = MULTIPLICATIVE;
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
-				else if (!strcmp(value, "local")) {
-					/* local normalization computes its own scale+offset
-					 * fields; it only needs a non-NO_NORM type to be activated */
-					arg->norm = ADDITIVE_SCALING;
-					arg->local_norm = TRUE;
-				}
 			}
 		} else if (g_str_has_prefix(current, "-feather=")) {
 			if (!rej_options_allowed) {
@@ -11627,8 +11621,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.reglayer = get_registration_layer(args.seq);
 	args.feather_dist = arg->feather_dist;
 	args.overlap_norm = arg->overlap_norm;
-	/* local normalization is only meaningful when normalization is active */
-	args.local_norm = arg->local_norm && (args.normalize != NO_NORM);
 	args.weighting_type = (arg->method == stack_mean_with_rejection) ? arg->weighting_type : NO_WEIGHT;
 
 	// manage registration data
@@ -11668,14 +11660,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	if (!args.maximize_framing && args.overlap_norm) {
 		siril_log_error(_("Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"));
 		args.overlap_norm = FALSE;
-	}
-	if (args.local_norm && (args.maximize_framing || args.upscale_at_stacking || args.overlap_norm)) {
-		siril_log_error(_("Local normalization (prototype) is not compatible with maximize framing, upscale or overlap normalization. Disabling local normalization\n"));
-		args.local_norm = FALSE;
-	}
-	if (args.local_norm && args.reglayer < 0) {
-		siril_log_error(_("Local normalization requires registration data. Disabling local normalization\n"));
-		args.local_norm = FALSE;
 	}
 	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT)) {
 		siril_log_error(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"));
