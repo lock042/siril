@@ -113,17 +113,28 @@ struct FitsBuf {
 
 }  /* close inner anonymous namespace */
 
+/* sensor_pattern → OpenCV cvtColor demosaic code, where the pattern
+ * describes the buffer rows the Mat actually wraps. OpenCV's 2-letter
+ * COLOR_BayerXX2RGB constants describe the 2×2 tile by its second-row
+ * first-two pixels (the 4-letter RGGB/BGGR/GBRG/GRBG aliases only exist
+ * on OpenCV ≥ 4.x and break the oldstable AppImage build). */
+static int bayer_pattern_to_cv_code(sensor_pattern pat) {
+	switch (pat) {
+		case BAYER_FILTER_RGGB: return cv::COLOR_BayerBG2RGB;
+		case BAYER_FILTER_BGGR: return cv::COLOR_BayerRG2RGB;
+		case BAYER_FILTER_GBRG: return cv::COLOR_BayerGR2RGB;
+		case BAYER_FILTER_GRBG: return cv::COLOR_BayerGB2RGB;
+		default: return -1;
+	}
+}
+
 /* AVI Bayer pattern → OpenCV cvtColor code, with Y-flip awareness so the
  * pattern the user specifies (top-down, as it appears in the AVI raster)
  * stays correct after film_read_frame's fits_flip_top_to_bottom. Returns
  * -1 when no debayer should happen (AUTO/NONE/non-Bayer).
  *
- * OpenCV's 2-letter COLOR_BayerXX2RGB constants describe the 2×2 tile
- * by its second-row first-two pixels (the 4-letter RGGB/BGGR/GBRG/GRBG
- * aliases only exist on OpenCV ≥ 4.x and break the oldstable AppImage
- * build). We feed in the Mat we got back from the pipeline (bottom-up
- * after the Y-flip), so we ask Siril's helper to adjust the user's
- * top-down pick. */
+ * We feed in the Mat we got back from the pipeline (bottom-up after the
+ * Y-flip), so we ask Siril's helper to adjust the user's top-down pick. */
 int avi_bayer_to_cv_code(int avi_pattern, int rows) {
 	if (avi_pattern == MPP_AVI_BAYER_AUTO || avi_pattern == MPP_AVI_BAYER_NONE)
 		return -1;
@@ -136,11 +147,22 @@ int avi_bayer_to_cv_code(int avi_pattern, int rows) {
 		default: return -1;
 	}
 	adjust_Bayer_pattern_orientation(&pat, (unsigned int) rows, TRUE);
-	switch (pat) {
-		case BAYER_FILTER_RGGB: return cv::COLOR_BayerBG2RGB;
-		case BAYER_FILTER_BGGR: return cv::COLOR_BayerRG2RGB;
-		case BAYER_FILTER_GBRG: return cv::COLOR_BayerGR2RGB;
-		case BAYER_FILTER_GRBG: return cv::COLOR_BayerGB2RGB;
+	return bayer_pattern_to_cv_code(pat);
+}
+
+/* CFA SER → OpenCV cvtColor code for a raw-mosaic read, -1 for non-Bayer.
+ * The header's color_id (already preference-adjusted at open time)
+ * describes the buffer in stored order — Siril's own SER debayer hands
+ * the same pattern to librtprocess without orientation adjustment, and
+ * ser_read_frame doesn't flip rows — so it maps directly. */
+static int ser_bayer_to_cv_code(const sequence *seq) {
+	if (!seq || seq->type != SEQ_SER || !seq->ser_file)
+		return -1;
+	switch (seq->ser_file->color_id) {
+		case SER_BAYER_RGGB: return bayer_pattern_to_cv_code(BAYER_FILTER_RGGB);
+		case SER_BAYER_BGGR: return bayer_pattern_to_cv_code(BAYER_FILTER_BGGR);
+		case SER_BAYER_GBRG: return bayer_pattern_to_cv_code(BAYER_FILTER_GBRG);
+		case SER_BAYER_GRBG: return bayer_pattern_to_cv_code(BAYER_FILTER_GRBG);
 		default: return -1;
 	}
 }
@@ -152,10 +174,16 @@ namespace {
  * panchromatic luminance via cv::cvtColor(RGB, GRAY); mono input passes
  * through.
  *
- * For SEQ_AVI sequences with `avi_pattern` set to a Bayer value, the
- * 1-layer mosaic is OpenCV-debayered before luminance extraction so
- * Stage A sees a properly demosaiced image rather than a CFA-modulated
- * brightness map.
+ * CFA input (a Bayer SER read raw — the analysis stages pin the SER
+ * reader to raw via SerAnalysisRawGuard — or a SEQ_AVI with
+ * `avi_pattern` set to a Bayer value) is OpenCV-debayered before
+ * luminance extraction so the rank/align passes see a properly
+ * demosaiced image rather than a CFA-modulated brightness map.
+ * cv::cvtColor's linear demosaic is plenty for a luminance-only
+ * consumer and costs a fraction of the transient memory and CPU of the
+ * RCD path in ser_read_frame (which peaks at ~9× the mosaic size in
+ * float scratch per in-flight frame — enough to break the memory
+ * pre-flight's in-flight model at high thread counts).
  *
  * When `bitdepth == 8` the result is downconverted to CV_8U. Siril
  * stores 8-bit data as WORD with values still in 0..255, so the
@@ -170,22 +198,23 @@ namespace {
  * so Stage C's stack accumulator retains the full dynamic range. */
 cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdepth) {
 	FitsBuf buf;
-	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
+	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0,
+	                       /*ser_force_debayer=*/false) != MPP_OK)
 		return cv::Mat();
 	const int n = fits_layer_count(&buf.f);
 	cv::Mat out;
 	if (n == 1) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
-		if (seq && seq->type == SEQ_AVI) {
-			const int code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-			if (code >= 0) {
-				cv::Mat rgb;
-				cv::cvtColor(view, rgb, code);
-				cv::cvtColor(rgb, out, cv::COLOR_RGB2GRAY);
-			} else {
-				out = view.clone();
-			}
+		int code = -1;
+		if (seq && seq->type == SEQ_AVI)
+			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
+		else if (seq && seq->type == SEQ_SER)
+			code = mpp::ser_bayer_to_cv_code(seq);
+		if (code >= 0) {
+			cv::Mat rgb;
+			cv::cvtColor(view, rgb, code);
+			cv::cvtColor(rgb, out, cv::COLOR_RGB2GRAY);
 		} else {
 			out = view.clone();
 		}
@@ -218,10 +247,13 @@ cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdept
  *
  * For SEQ_AVI with a Bayer pattern set, the mono mosaic is debayered to
  * 3-channel RGB before return so the classical stack sees proper colour
- * input. */
+ * input. Bayer SERs are RCD-debayered inside ser_read_frame
+ * (ser_force_debayer=true overrides the user's debayer-on-open pref) —
+ * stacking output keeps the high-quality demosaic. */
 cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 	FitsBuf buf;
-	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0) != MPP_OK)
+	if (mpp_seq_read_frame(seq, idx, &buf.f, false, 0,
+	                       /*ser_force_debayer=*/true) != MPP_OK)
 		return cv::Mat();
 	const int n = fits_layer_count(&buf.f);
 	if (n == 1) {
@@ -625,6 +657,96 @@ static mpp_status_t mpp_pick_memory_mode(int N, int rx, int ry, int channels,
 	return MPP_OK;
 }
 
+/* Worst-case transient cost of one analysis-read iteration
+ * (read_analysis_frame + blur/rank scratch), expressed in per-frame
+ * slots for mpp_pick_memory_mode's per_thread_in_flight argument
+ * (slot = rx·ry·bytes_per_sample bytes).
+ *
+ * Peaks, in bytes/pixel (WORD fits storage; cv Mats CV_16U until the
+ * final 8-bit narrow):
+ *   mono: fits 2 + cloned mono 2 + blur/Laplace scratch ~4        ≈ 8
+ *   CFA:  fits mosaic 2 + cvtColor RGB 6 + gray 2 + scratch ~4    ≈ 14
+ *   RGB:  ser_read_frame tmp-copy peak 12, then fits 6 + merged 6
+ *         + gray 2 + scratch ~4                                   ≈ 18
+ * Deliberately a little fat: overestimating costs a few Pass-1 threads
+ * when the budget is tight; underestimating means allocation failure
+ * mid-run — on Windows (no overcommit) that's how the old flat
+ * 2-slot model crashed Stage A on Bayer SERs. */
+static int mpp_analysis_in_flight_slots(const sequence *seq, const mpp_config_t *cfg) {
+	int peak_bpp = 8;   /* mono */
+	const bool ser_cfa = (seq->type == SEQ_SER && seq->ser_file
+	                      && seq->ser_file->color_id >= SER_BAYER_RGGB
+	                      && seq->ser_file->color_id <= SER_BAYER_BGGR);
+	const bool avi_cfa = (seq->type == SEQ_AVI
+	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	const bool rgb = (seq->type == SEQ_SER && seq->ser_file
+	                  && (seq->ser_file->color_id == SER_RGB
+	                      || seq->ser_file->color_id == SER_BGR))
+	              || (seq->type != SEQ_SER && seq->nb_layers > 1);
+	if (ser_cfa || avi_cfa)
+		peak_bpp = 14;
+	else if (rgb)
+		peak_bpp = 18;
+	const int bps = (cfg->bitdepth == 8) ? 1 : 2;
+	return (peak_bpp + bps - 1) / bps;
+}
+
+/* RAII helper: temporarily pins a CFA SER to raw-mosaic reads by setting
+ * debayer_type_ser = SER_MONO for the duration of an analysis stage,
+ * restoring on destruction. Analysis (rank / global align / per-AP
+ * quality) only consumes luminance, so read_analysis_frame demosaics the
+ * mosaic with cv::cvtColor — a fraction of the transient memory and CPU
+ * of ser_read_frame's RCD path, and identical regardless of the user's
+ * debayer-on-open preference. The full-frame stacking reads are
+ * unaffected: read_full_frame passes ser_force_debayer=true, which
+ * overrides debayer_type_ser inside ser_read_frame. */
+namespace {
+struct SerAnalysisRawGuard {
+	sequence *seq = nullptr;
+	ser_color saved_debayer_type = SER_MONO;
+	bool active = false;
+
+	~SerAnalysisRawGuard() {
+		if (active && seq && seq->ser_file)
+			seq->ser_file->debayer_type_ser = saved_debayer_type;
+	}
+};
+
+bool maybe_engage_ser_raw_for_analysis(SerAnalysisRawGuard &g, sequence *seq) {
+	if (!seq || seq->type != SEQ_SER || !seq->ser_file) return false;
+	const ser_color cid = seq->ser_file->color_id;
+	if (cid < SER_BAYER_RGGB || cid > SER_BAYER_BGGR) return false;
+	if (seq->ser_file->debayer_type_ser == SER_MONO) return false; /* already raw */
+	g.seq = seq;
+	g.saved_debayer_type = seq->ser_file->debayer_type_ser;
+	g.active = true;
+	seq->ser_file->debayer_type_ser = SER_MONO;
+	return true;
+}
+
+/* Run a provider body, converting OpenCV/std allocation failures into an
+ * empty-Mat miss — every streamed consumer already skips empty frames.
+ * Without this, a cv::Exception / std::bad_alloc thrown inside an OpenMP
+ * region calls std::terminate(): instant abort, no message, no backtrace.
+ * Windows hits this for real — there is no memory overcommit, so
+ * cv::Mat::create throws as soon as the commit charge is exhausted. */
+gint provider_oom_warned = 0;
+template <typename Fn>
+cv::Mat guarded_frame(Fn &&fn) {
+	try {
+		return fn();
+	} catch (const std::exception &e) {
+		if (g_atomic_int_compare_and_exchange(&provider_oom_warned, 0, 1))
+			siril_log_error(_("mpp: frame decode/processing failed (%s) — "
+			                  "affected frames will be skipped. If this is "
+			                  "an out-of-memory condition, reduce the memory "
+			                  "ratio in Preferences.\n"), e.what());
+		return cv::Mat();
+	}
+}
+}  // namespace
+
 /* -------------------- Stage A: mpp_analyze -------------------- */
 
 /* Driver state for the sub-range scaled progress callback. The C++
@@ -651,12 +773,19 @@ static void stage_progress_cb(double fraction, void *user) {
 #define MPP_PROG_AVERAGE_END      0.65   /* per-frame accumulator */
 #define MPP_PROG_QUALITIES_END    1.00   /* per-frame Laplace + per-AP stddev */
 
-extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
-                                    mpp_run_t **run_out) {
+static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
+                                     mpp_run_t **run_out) {
 	if (!seq || !cfg || !run_out)
 		return MPP_EINVAL;
 	if (seq->number <= 0)
 		return MPP_ENODATA;
+
+	/* Pin CFA SERs to raw-mosaic reads for the whole stage — all passes
+	 * and the persistent analysis cache they populate go through
+	 * read_analysis_frame's cv::cvtColor demosaic, regardless of the
+	 * user's debayer-on-open preference. */
+	SerAnalysisRawGuard raw_guard;
+	maybe_engage_ser_raw_for_analysis(raw_guard, seq);
 
 	const int N = seq->number;
 	/* Analysis is always mono (RGB inputs are luminance-converted in
@@ -675,8 +804,11 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * reentrant-FITS, including cached vectors), which still holds with
 	 * PARTIAL_CACHED on SER because both cache hits and disk reads are
 	 * thread-safe there.
-	 * per_thread_in_flight = 2: each Pass 1 iteration holds the raw mono
-	 * plus a transient blur (inside rank_score_normalized) at peak.
+	 * per_thread_in_flight comes from mpp_analysis_in_flight_slots: the
+	 * peak transient of one read+rank iteration, which for CFA/RGB input
+	 * is several times the bare mono frame (decode intermediates) — the
+	 * old flat "2 mono frames" model under-budgeted Bayer SERs badly
+	 * enough to fail allocations mid-run on Windows.
 	 * bytes_per_sample tracks read_analysis_frame's storage choice: 8-bit
 	 * sources are downconverted to CV_8U (1 B/sample), so the picker
 	 * sees half the cache pressure for AVI / 8-bit-SER datasets and can
@@ -695,7 +827,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 		    /*cached_copies=*/2,
 		    /*half_cached_copies=*/1,
 		    max_threads,
-		    /*per_thread_in_flight=*/2,
+		    mpp_analysis_in_flight_slots(seq, cfg),
 		    /*output_bytes=*/0,
 		    _("Analyze"), &mem_pick);
 		if (mem != MPP_OK) return mem;
@@ -737,6 +869,7 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	int num_layers = 1, bitpix = 16;
 	int cur_nb = 0;
 	int read_failed = 0;
+	int alloc_failed = 0;
 
 	/* Rolling min-heap of (quality, frame_idx) for cached slots.
 	 * `cached_count` < N triggers eviction: when a newly-ranked frame
@@ -780,28 +913,45 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 	for (int i = 0; i < N; ++i) {
-		if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
+		if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)
+		    || g_atomic_int_get(&alloc_failed)) continue;
 		if (!processing_should_continue()) {
 			g_atomic_int_set(&cancelled, 1);
 			continue;
 		}
-		const cv::Mat mono = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern,
-		                                              cfg->bitdepth);
-		if (mono.empty()) {
-			g_atomic_int_set(&read_failed, 1);
+		/* Contain allocation failures (cv::Exception / std::bad_alloc):
+		 * an exception escaping an OpenMP structured block is
+		 * std::terminate(). On Windows allocations genuinely fail under
+		 * memory pressure (no overcommit), so this is a survival path,
+		 * not paranoia. */
+		try {
+			const cv::Mat mono = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern,
+			                                              cfg->bitdepth);
+			if (mono.empty()) {
+				g_atomic_int_set(&read_failed, 1);
+				continue;
+			}
+			if (any_blur && i < blurred_count)
+				blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
+			const double q = mpp::rank_score_normalized(mono, *cfg);
+			q_rank[i]          = q;
+			frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
+			offer_to_cache(i, q, mono);
+		} catch (const std::exception &) {
+			g_atomic_int_set(&alloc_failed, 1);
 			continue;
 		}
-		if (any_blur && i < blurred_count)
-			blurred_frames[i] = mpp::blur_mono_for_align(mono, *cfg);
-		const double q = mpp::rank_score_normalized(mono, *cfg);
-		q_rank[i]          = q;
-		frame_brightness[i] = mpp::rank_average_brightness(mono, *cfg);
-		offer_to_cache(i, q, mono);
 		g_atomic_int_inc(&cur_nb);
 		gui_iface.set_progress(MPP_PROG_READ_END * (double) cur_nb / (double) N, NULL);
 	}
 	g_mutex_clear(&cache_mtx);
 	if (cancelled) return MPP_EINTR;
+	if (alloc_failed) {
+		siril_log_error(_("Analyze: out of memory while reading frames — "
+		                  "reduce the memory ratio in Preferences or use a "
+		                  "smaller crop.\n"));
+		return MPP_ENOMEM;
+	}
 	if (read_failed) return MPP_EIO;
 
 	num_layers = seq->nb_layers > 0 ? seq->nb_layers : 1;
@@ -812,22 +962,26 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * HALF_CACHED (every slot hits), PARTIAL_CACHED (first K hit), and
 	 * STREAMING (every slot misses since analysis_frames is empty). */
 	auto raw_provider = [&analysis_frames, seq, cfg](int i) -> cv::Mat {
-		if (i >= 0 && i < (int) analysis_frames.size()
-		 && !analysis_frames[i].empty())
-			return analysis_frames[i];
-		return mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern, cfg->bitdepth);
+		return guarded_frame([&]() -> cv::Mat {
+			if (i >= 0 && i < (int) analysis_frames.size()
+			 && !analysis_frames[i].empty())
+				return analysis_frames[i];
+			return mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern, cfg->bitdepth);
+		});
 	};
 	auto blurred_provider = [&analysis_frames, &blurred_frames, seq, cfg](int i) -> cv::Mat {
-		if (i >= 0 && i < (int) blurred_frames.size()
-		 && !blurred_frames[i].empty())
-			return blurred_frames[i];
-		cv::Mat m;
-		if (i >= 0 && i < (int) analysis_frames.size()
-		 && !analysis_frames[i].empty())
-			m = analysis_frames[i];
-		else
-			m = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern, cfg->bitdepth);
-		return m.empty() ? cv::Mat() : mpp::blur_mono_for_align(m, *cfg);
+		return guarded_frame([&]() -> cv::Mat {
+			if (i >= 0 && i < (int) blurred_frames.size()
+			 && !blurred_frames[i].empty())
+				return blurred_frames[i];
+			cv::Mat m;
+			if (i >= 0 && i < (int) analysis_frames.size()
+			 && !analysis_frames[i].empty())
+				m = analysis_frames[i];
+			else
+				m = mpp::read_analysis_frame(seq, i, cfg->avi_bayer_pattern, cfg->bitdepth);
+			return m.empty() ? cv::Mat() : mpp::blur_mono_for_align(m, *cfg);
+		});
 	};
 
 	gui_iface.set_progress(MPP_PROG_READ_END, _("Analyze: aligning frames globally"));
@@ -865,6 +1019,11 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	 * top-up was large). */
 	blurred_frames.clear();
 	blurred_frames.shrink_to_fit();
+	if (align.oom) {
+		siril_log_error(_("Analyze: out of memory during global alignment — "
+		                  "reduce the memory ratio in Preferences.\n"));
+		return MPP_ENOMEM;
+	}
 	if (align.best_frame_idx < 0) return MPP_EINTR;   /* cancellation sentinel */
 	gui_iface.set_progress(MPP_PROG_GLOBAL_END, _("Analyze: building reference frame"));
 	stage_progress_range gp_avg{MPP_PROG_GLOBAL_END,
@@ -966,16 +1125,39 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 	return MPP_OK;
 }
 
+/* Exception boundary: mpp_analyze is called from C, and most cv:: work
+ * not already contained inside the OpenMP loops above runs in serial
+ * sections whose exceptions would otherwise unwind into the C caller
+ * (undefined behaviour / terminate). Out-of-memory is the realistic
+ * thrower — map it to MPP_ENOMEM. */
+extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
+                                    mpp_run_t **run_out) {
+	try {
+		return mpp_analyze_impl(seq, cfg, run_out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Analyze: failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
 /* -------------------- Stage B: mpp_compute_shifts -------------------- */
 
-extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cfg,
-                                           mpp_run_t *run) {
+static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *cfg,
+                                            mpp_run_t *run) {
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
+
+	/* Stage B re-reads analysis frames on cache misses — pin CFA SERs to
+	 * raw-mosaic reads so those reads match the Stage A frames
+	 * (cv::cvtColor demosaic) byte for byte. */
+	SerAnalysisRawGuard raw_guard;
+	maybe_engage_ser_raw_for_analysis(raw_guard, seq);
 
 	/* Stage B streams: each frame is read + blurred inside the
 	 * correlation loop and discarded at iteration end. Sequential, so
-	 * max_threads=1 and per_thread_in_flight=1 — the picker just
-	 * verifies that a single frame fits. Disk traffic is identical to
+	 * max_threads=1 — the picker just verifies that a single in-flight
+	 * read (including decode intermediates, see
+	 * mpp_analysis_in_flight_slots) fits. Disk traffic is identical to
 	 * the previous cached two-pass design (1 read per included frame). */
 	mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
 	{
@@ -986,7 +1168,7 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
 		    /*max_threads=*/1,
-		    /*per_thread_in_flight=*/1,
+		    mpp_analysis_in_flight_slots(seq, cfg),
 		    /*output_bytes=*/0,
 		    _("Register"), &mem_pick);
 		if (mem != MPP_OK) return mem;
@@ -1011,16 +1193,18 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 		                  cache->populated_count, run->num_frames);
 	}
 	auto provider = [seq, cfg, cache, cache_N](int f) -> cv::Mat {
-		cv::Mat mono;
-		if (cache && f >= 0 && f < cache_N
-		 && !cache->raw_frames[f].empty()) {
-			mono = cache->raw_frames[f];
-		} else {
-			mono = mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
-			                                cfg->bitdepth);
-		}
-		if (mono.empty()) return cv::Mat();
-		return mpp::blur_mono_for_align(mono, *cfg);
+		return guarded_frame([&]() -> cv::Mat {
+			cv::Mat mono;
+			if (cache && f >= 0 && f < cache_N
+			 && !cache->raw_frames[f].empty()) {
+				mono = cache->raw_frames[f];
+			} else {
+				mono = mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
+				                                cfg->bitdepth);
+			}
+			if (mono.empty()) return cv::Mat();
+			return mpp::blur_mono_for_align(mono, *cfg);
+		});
 	};
 	mpp_shifts_t *shifts = mpp::stack_compute_shifts_streamed(
 	    provider, run->num_frames, mean_raw, *run->aps, apq, offsets,
@@ -1035,47 +1219,21 @@ extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cf
 	return MPP_OK;
 }
 
-/* -------------------- Stage C: mpp_stack_apply -------------------- */
-
-/* RAII helper: temporarily flips a CFA SER's debayer_type_ser from
- * SER_MONO to its actual color_id (and bumps nb_layers from 1 to 3) for
- * the duration of an analysis pass, restoring on destruction. The rank
- * measure (GaussianBlur 7×7 → Laplace σ) cannot operate sensibly on a
- * raw Bayer mosaic — the CFA's checker pattern dominates the
- * measurement, masking the actual seeing-driven sharpness signal — so
- * analysis always needs debayered input. The bayer-* drizzle stack
- * path re-reads raw bytes via its own wrapper regardless of this
- * setting, so flipping for analysis doesn't disturb the raw-mosaic
- * path that bayer-drizzle relies on at stack time. */
-namespace {
-struct SerAnalysisDebayerGuard {
-	sequence *seq = nullptr;
-	ser_color saved_debayer_type = SER_MONO;
-	int saved_nb_layers = -1;
-	bool active = false;
-
-	~SerAnalysisDebayerGuard() {
-		if (active && seq && seq->ser_file) {
-			seq->ser_file->debayer_type_ser = saved_debayer_type;
-			seq->nb_layers = saved_nb_layers;
-		}
+/* Exception boundary — see mpp_analyze. Stage B's correlation loop is
+ * serial, so any cv:: allocation failure unwinds to here instead of
+ * terminating inside an OpenMP region. */
+extern "C" mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cfg,
+                                           mpp_run_t *run) {
+	try {
+		return mpp_compute_shifts_impl(seq, cfg, run);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Register: failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
 	}
-};
-
-bool maybe_engage_ser_debayer_for_analysis(SerAnalysisDebayerGuard &g, sequence *seq) {
-	if (!seq || seq->type != SEQ_SER || !seq->ser_file) return false;
-	if (seq->nb_layers != 1) return false;
-	const ser_color cid = seq->ser_file->color_id;
-	if (cid < SER_BAYER_RGGB || cid > SER_BAYER_BGGR) return false;
-	g.seq = seq;
-	g.saved_debayer_type = seq->ser_file->debayer_type_ser;
-	g.saved_nb_layers = seq->nb_layers;
-	g.active = true;
-	seq->ser_file->debayer_type_ser = cid;
-	seq->nb_layers = 3;
-	return true;
 }
-}  // namespace
+
+/* -------------------- Stage C: mpp_stack_apply -------------------- */
 
 extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
 	if (!seq) return MPP_INPUT_MONO;
@@ -1093,8 +1251,8 @@ extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
 	return MPP_INPUT_MONO;
 }
 
-extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
-                                        mpp_run_t *run, fits *out) {
+static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
+                                         mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
 
@@ -1156,9 +1314,9 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	 * preserved on the pss-drizzle branch in case a future CFA-aware
 	 * revival is wanted.)
 	 *
-	 * CFA input is debayered first (SerAnalysisDebayerGuard below forces the
-	 * SER reader to debayer regardless of the user's debayer-on-open pref),
-	 * then stacked classically like any RGB sequence. */
+	 * CFA input is debayered first (read_full_frame forces ser_read_frame
+	 * to debayer regardless of the user's debayer-on-open pref), then
+	 * stacked classically like any RGB sequence. */
 	/* AVI Bayer routing: an AVI marked as a raw mosaic (cfg->avi_bayer_pattern
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
 	 * classifier can't see this (sequence-only signature) so it's
@@ -1176,16 +1334,10 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		siril_log_message(_("Stack (mpp): dobox drizzle backend disabled — "
 		                    "scaling uses OpenCV interpolation\n"));
 
-	/* Auto-debayer for any CFA SER opened raw — the classical stack needs
-	 * RGB input. The guard restores the prior debayer_type_ser on
-	 * destruction. */
-	SerAnalysisDebayerGuard ser_guard;
-	maybe_engage_ser_debayer_for_analysis(ser_guard, seq);
-
 	/* Pre-flight memory check for the classical path. */
 	{
 		/* CFA inputs (SER mosaic or AVI Bayer) decode to 3-channel RGB via
-		 * the debayer guard / cv::cvtColor; run->num_layers may still read 1
+		 * forced RCD debayer / cv::cvtColor; run->num_layers may still read 1
 		 * from the Stage-A capture, so force 3 for the estimate. */
 		const int channels = is_cfa
 		                   ? 3
@@ -1232,10 +1384,12 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 
 	gui_iface.set_progress(PROGRESS_RESET, _("Stack: accumulating frames"));
 	auto provider = [seq, cfg](int i) -> cv::Mat {
-		return mpp::read_full_frame(seq, i, cfg->avi_bayer_pattern);
+		return guarded_frame([&]() -> cv::Mat {
+			return mpp::read_full_frame(seq, i, cfg->avi_bayer_pattern);
+		});
 	};
 	/* read_full_frame returns 3-channel RGB for any CFA input (AVI Bayer
-	 * mosaics, and raw CFA SER once the debayer guard above engages), even
+	 * mosaics via cv::cvtColor, CFA SERs via forced RCD debayer), even
 	 * though run->num_layers (captured from seq->nb_layers at Stage A time)
 	 * may read 1. The accumulator type depends on num_layers, so force 3
 	 * for CFA. */
@@ -1275,6 +1429,11 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	    run->shifts, offsets, frame_brightness, sorted_idx,
 	    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
 	    stack_mem_budget);
+	if (loop.oom) {
+		siril_log_error(_("Stack (mpp): out of memory while accumulating "
+		                  "frames — reduce the memory ratio in Preferences.\n"));
+		return MPP_ENOMEM;
+	}
 	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *run->aps, *cfg);
@@ -1320,6 +1479,18 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	return MPP_OK;
 }
 
+/* Exception boundary — see mpp_analyze. */
+extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
+                                        mpp_run_t *run, fits *out) {
+	try {
+		return mpp_stack_apply_impl(seq, cfg, run, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Stack (mpp): failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
 /* -------------------- GUI cache for the current run --------------------
  *
  * The cached run is stored on com.mpp_run (declared as void* in siril.h to
@@ -1346,12 +1517,17 @@ extern "C" void mpp_clear_cached_run(void) {
 	if (prev) mpp_run_free(prev);
 }
 
-extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
+static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) {
 	if (!seq || !run || !run->aps || run->aps->count <= 0 || !run->cfg)
 		return MPP_EINVAL;
 	if (run->best_frame_indices) return MPP_OK;   /* nothing to do */
 	if (!run->frame_brightness || !run->global_shifts) return MPP_EINVAL;
 	if (run->num_frames != seq->number) return MPP_EINVAL;
+
+	/* Analysis-frame reads — pin CFA SERs to raw-mosaic reads so they
+	 * match Stage A's cv::cvtColor demosaic. */
+	SerAnalysisRawGuard raw_guard;
+	maybe_engage_ser_raw_for_analysis(raw_guard, seq);
 
 	const int N = run->num_frames;
 #ifdef _OPENMP
@@ -1380,7 +1556,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 		    /*cached_copies=*/1,
 		    /*half_cached_copies=*/1,
 		    max_threads,
-		    /*per_thread_in_flight=*/1,
+		    mpp_analysis_in_flight_slots(seq, run->cfg),
 		    /*output_bytes=*/0,
 		    _("Register (per-AP quality refresh)"), &mem_pick);
 		if (mem != MPP_OK) return mem;
@@ -1395,6 +1571,7 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 			fresh_cache_vec.resize(N);
 			int cur_nb = 0;
 			int read_failed = 0;
+			int alloc_failed = 0;
 			int cancelled = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(preread_threads) schedule(guided) \
@@ -1402,22 +1579,36 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
                                   || seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 			for (int i = 0; i < fresh_cache_count; ++i) {
-				if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)) continue;
+				if (g_atomic_int_get(&read_failed) || g_atomic_int_get(&cancelled)
+				    || g_atomic_int_get(&alloc_failed)) continue;
 				if (!processing_should_continue()) {
 					g_atomic_int_set(&cancelled, 1);
 					continue;
 				}
-				cv::Mat mono = mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
-				                                        run->cfg->bitdepth);
-				if (mono.empty()) {
-					g_atomic_int_set(&read_failed, 1);
+				/* Same OOM containment as Stage A Pass 1 — an exception
+				 * escaping the OpenMP region is std::terminate(). */
+				try {
+					cv::Mat mono = mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
+					                                        run->cfg->bitdepth);
+					if (mono.empty()) {
+						g_atomic_int_set(&read_failed, 1);
+						continue;
+					}
+					fresh_cache_vec[i] = mono;
+				} catch (const std::exception &) {
+					g_atomic_int_set(&alloc_failed, 1);
 					continue;
 				}
-				fresh_cache_vec[i] = mono;
 				g_atomic_int_inc(&cur_nb);
 				gui_iface.set_progress(0.5 * (double) cur_nb / (double) fresh_cache_count, NULL);
 			}
 			if (cancelled)  return MPP_EINTR;
+			if (alloc_failed) {
+				siril_log_error(_("Register: out of memory while re-reading "
+				                  "frames — reduce the memory ratio in "
+				                  "Preferences.\n"));
+				return MPP_ENOMEM;
+			}
 			if (read_failed) return MPP_EIO;
 		}
 		/* Promote the freshly populated cache onto the run so future
@@ -1444,11 +1635,13 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	const mpp_cache_t *cache = run->cache;
 	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
 	auto raw_provider = [cache, cache_N, seq, run](int i) -> cv::Mat {
-		if (cache && i >= 0 && i < cache_N
-		 && !cache->raw_frames[i].empty())
-			return cache->raw_frames[i];
-		return mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
-		                                run->cfg->bitdepth);
+		return guarded_frame([&]() -> cv::Mat {
+			if (cache && i >= 0 && i < cache_N
+			 && !cache->raw_frames[i].empty())
+				return cache->raw_frames[i];
+			return mpp::read_analysis_frame(seq, i, run->cfg->avi_bayer_pattern,
+			                                run->cfg->bitdepth);
+		});
 	};
 	const auto apq = mpp::ap_compute_frame_qualities_streamed(
 	    raw_provider, N, frame_brightness, *run->aps, offsets,
@@ -1474,6 +1667,18 @@ extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
 	siril_log_message(_("mpp: per-AP qualities refreshed for %d edited APs\n"),
 	                  run->aps->count);
 	return MPP_OK;
+}
+
+/* Exception boundary — see mpp_analyze. */
+extern "C" mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run) {
+	try {
+		return mpp_recompute_qualities_impl(seq, run);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Register: per-AP quality refresh failed (%s) — "
+		                  "likely out of memory; reduce the memory ratio in "
+		                  "Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
 }
 
 extern "C" mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg) {
@@ -1738,17 +1943,6 @@ extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
 extern "C" int register_mpp(struct registration_args *regargs) {
 	if (!regargs || !regargs->seq)
 		return MPP_EINVAL;
-
-	/* Auto-debayer for analysis when a CFA SER was opened raw (i.e.
-	 * Preferences → Debayering → "Debayer SER files at opening" is OFF).
-	 * The guard flips the SER state for the duration of this function
-	 * and restores on every return path. See SerAnalysisDebayerGuard
-	 * above for the rationale. */
-	SerAnalysisDebayerGuard ser_guard;
-	if (maybe_engage_ser_debayer_for_analysis(ser_guard, regargs->seq)) {
-		siril_log_warning(
-		    _("mpp: auto-debayering CFA SER for analysis.\n"));
-	}
 
 	mpp_config_t cfg;
 	if (regargs->mpp_cfg) {

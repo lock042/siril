@@ -584,28 +584,42 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
 	gint cur_nb = 0;
 	gint cancelled = 0;
+	gint oom = 0;
 #ifdef _OPENMP
 #pragma omp parallel num_threads(n_threads) if (n_threads > 1)
 #endif
 	{
-		/* Per-thread private accumulators (zero-init). */
+		/* Per-thread private accumulators (zero-init). Allocation and the
+		 * per-frame work below are try/catch-contained: an exception
+		 * escaping an OpenMP region is std::terminate(), and on Windows
+		 * (no overcommit) cv allocations genuinely fail under memory
+		 * pressure. A thread that trips the flag keeps encountering the
+		 * worksharing constructs (required by OpenMP) but skips the work;
+		 * the caller discards the partial result. */
+		bool local_ok = true;
 		std::vector<cv::Mat> lbuf(M);
-		for (int a = 0; a < M; ++a)
-			lbuf[a] = cv::Mat::zeros(out.state.stacking_buffers[a].size(),
-			                         out.state.stacking_buffers[a].type());
 		cv::Mat lbg;
-		if (holes)
-			lbg = cv::Mat::zeros(out.state.averaged_background.size(),
-			                     out.state.averaged_background.type());
+		try {
+			for (int a = 0; a < M; ++a)
+				lbuf[a] = cv::Mat::zeros(out.state.stacking_buffers[a].size(),
+				                         out.state.stacking_buffers[a].type());
+			if (holes)
+				lbg = cv::Mat::zeros(out.state.averaged_background.size(),
+				                     out.state.averaged_background.type());
+		} catch (const std::exception &) {
+			local_ok = false;
+			g_atomic_int_set(&oom, 1);
+		}
 		RemapBorder lb;
 
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic) nowait
 #endif
 		for (int wi = 0; wi < W; ++wi) {
-			if (g_atomic_int_get(&cancelled)) continue;
+			if (g_atomic_int_get(&cancelled) || g_atomic_int_get(&oom)) continue;
 			if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
 			const int f = work[wi];
+			try {
 
 			const cv::Mat frame_raw = provider(f);
 			if (frame_raw.empty()) {
@@ -662,25 +676,42 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			}
 			gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
 			                       / (double) n_included, NULL);
+
+			} catch (const std::exception &) {
+				g_atomic_int_set(&oom, 1);
+				continue;
+			}
 		}
 
 		/* Sum the private buffers into the shared accumulators (border is
-		 * order-independent max). */
+		 * order-independent max). Skipped once oom trips — the result is
+		 * discarded anyway, and a thread whose lbuf allocation failed
+		 * holds empty Mats that cv refuses to add. */
 #ifdef _OPENMP
 #pragma omp critical(mpp_stack_reduce)
 #endif
 		{
-			for (int a = 0; a < M; ++a)
-				out.state.stacking_buffers[a] += lbuf[a];
-			if (holes)
-				out.state.averaged_background += lbg;
-			out.border.y_low  = std::max(out.border.y_low,  lb.y_low);
-			out.border.y_high = std::max(out.border.y_high, lb.y_high);
-			out.border.x_low  = std::max(out.border.x_low,  lb.x_low);
-			out.border.x_high = std::max(out.border.x_high, lb.x_high);
+			if (local_ok && !g_atomic_int_get(&oom)) {
+				try {
+					for (int a = 0; a < M; ++a)
+						out.state.stacking_buffers[a] += lbuf[a];
+					if (holes)
+						out.state.averaged_background += lbg;
+					out.border.y_low  = std::max(out.border.y_low,  lb.y_low);
+					out.border.y_high = std::max(out.border.y_high, lb.y_high);
+					out.border.x_low  = std::max(out.border.x_low,  lb.x_low);
+					out.border.x_high = std::max(out.border.x_high, lb.x_high);
+				} catch (const std::exception &) {
+					g_atomic_int_set(&oom, 1);
+				}
+			}
 		}
 	}
 
+	if (g_atomic_int_get(&oom)) {
+		out.oom = true;
+		return out;
+	}
 	if (cancelled) {
 		out.state.dim_y = 0;   /* cancellation sentinel — outer caller checks */
 		return out;

@@ -98,6 +98,10 @@ struct AlignGlobalResult {
 	std::vector<cv::Vec2d> shifts;  /* (dy, dx) per frame, sub-pixel */
 	cv::Vec4i patch_yxyx;           /* (y_low, y_high, x_low, x_high) on best frame */
 	int best_frame_idx = -1;
+	/* An allocation failure was contained inside one of the parallel
+	 * sweeps (best_frame_idx is also -1). Distinguishes out-of-memory
+	 * from user cancellation so the caller can report MPP_ENOMEM. */
+	bool oom = false;
 };
 
 /* Returns the cv::Mat for frame index `i`. The pixel type / channel

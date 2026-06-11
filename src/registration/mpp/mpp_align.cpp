@@ -433,26 +433,39 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 		out.shifts.assign(N, cv::Vec2d(0.0, 0.0));
 
 		gint cancelled = 0;
+		gint oom = 0;
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) if (provider_is_thread_safe)
 #endif
 		for (int idx = 0; idx < N; ++idx) {
-			if (g_atomic_int_get(&cancelled)) continue;
+			if (g_atomic_int_get(&cancelled) || g_atomic_int_get(&oom)) continue;
 			if (!processing_should_continue()) {
 				g_atomic_int_set(&cancelled, 1);
 				continue;
 			}
-			if (idx != best) {
-				const cv::Mat frame = provider(idx);
-				/* Empty frame → leave the zero-init shift (excluded). */
-				if (!frame.empty()) {
-					const cv::Vec2d cog = center_of_gravity(frame);
-					out.shifts[idx] = cv::Vec2d(cog_ref[0] - cog[0],
-					                            cog_ref[1] - cog[1]);
+			/* Contain allocation failures — an exception escaping an
+			 * OpenMP structured block is std::terminate(). */
+			try {
+				if (idx != best) {
+					const cv::Mat frame = provider(idx);
+					/* Empty frame → leave the zero-init shift (excluded). */
+					if (!frame.empty()) {
+						const cv::Vec2d cog = center_of_gravity(frame);
+						out.shifts[idx] = cv::Vec2d(cog_ref[0] - cog[0],
+						                            cog_ref[1] - cog[1]);
+					}
 				}
+			} catch (const std::exception &) {
+				g_atomic_int_set(&oom, 1);
+				continue;
 			}
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
+		}
+		if (g_atomic_int_get(&oom)) {
+			out.best_frame_idx = -1;
+			out.oom = true;
+			return out;
 		}
 		if (g_atomic_int_get(&cancelled)) {
 			out.best_frame_idx = -1;
@@ -505,7 +518,14 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	 * is added at store-time so each stored shift = (sum of integer
 	 * peaks up to here) + (this frame's local refinement). */
 	gint cancelled = 0;
+	gint oom = 0;
+	/* Each sweep contains allocation failures locally (try/catch around
+	 * its whole loop): the sweeps run as OpenMP sections, and an
+	 * exception escaping a section is std::terminate(). An aborted sweep
+	 * leaves the remaining shifts at their zero init; the oom flag below
+	 * discards the whole result, so partial data never leaks out. */
 	auto run_backward_sweep = [&] {
+		try {
 		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
 			if (g_atomic_int_get(&cancelled)) break;
@@ -555,8 +575,12 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
+		} catch (const std::exception &) {
+			g_atomic_int_set(&oom, 1);
+		}
 	};
 	auto run_forward_sweep = [&] {
+		try {
 		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
 			if (g_atomic_int_get(&cancelled)) break;
@@ -598,6 +622,9 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
+		} catch (const std::exception &) {
+			g_atomic_int_set(&oom, 1);
+		}
 	};
 
 #ifdef _OPENMP
@@ -614,6 +641,11 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	run_forward_sweep();
 #endif
 
+	if (g_atomic_int_get(&oom)) {
+		out.best_frame_idx = -1;
+		out.oom = true;
+		return out;
+	}
 	if (g_atomic_int_get(&cancelled)) {
 		out.best_frame_idx = -1;   /* cancellation sentinel */
 		return out;

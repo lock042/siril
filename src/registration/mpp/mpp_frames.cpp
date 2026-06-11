@@ -27,12 +27,15 @@
  * pipeline. Phase 6.1.
  *
  * The headline reason this exists rather than calling seq_read_frame
- * directly is the debayer-on-open behaviour. mpp expects Bayer SERs to
- * come in as RGB; Siril's seq_read_frame routes that through the global
- * `com.pref.debayer.open_debayer` preference which we don't want to
- * mutate (it's user-visible and not thread-safe under our parallel reads
- * in later phases). We dispatch the same way seq_read_frame does but
- * pass our own debayer flag for SER reads.
+ * directly is the debayer-on-open behaviour. Siril's seq_read_frame
+ * routes SER debayering through the global `com.pref.debayer.open_debayer`
+ * preference which we don't want to mutate (it's user-visible and not
+ * thread-safe under our parallel reads). We dispatch the same way
+ * seq_read_frame does but pass our own debayer flag for SER reads:
+ * stacking reads force RCD debayer on; analysis reads leave the decision
+ * to ser_file->debayer_type_ser (which the mpp stages pin to raw via
+ * SerAnalysisRawGuard and demosaic with cv::cvtColor instead — far
+ * cheaper in transient memory and CPU for a luminance-only consumer).
  */
 
 #include <opencv2/core.hpp>
@@ -58,7 +61,8 @@ extern "C" {
 }
 
 extern "C" int mpp_seq_read_frame(sequence *seq, int idx, fits *dest,
-                                  bool force_float, int thread_id) {
+                                  bool force_float, int thread_id,
+                                  bool ser_force_debayer) {
 	if (!seq || !dest || idx < 0 || idx >= seq->number)
 		return MPP_EINVAL;
 
@@ -73,9 +77,12 @@ extern "C" int mpp_seq_read_frame(sequence *seq, int idx, fits *dest,
 		}
 		case SEQ_SER:
 			if (!seq->ser_file) return MPP_EINVAL;
-			/* Force debayer-on-open regardless of the user's global pref so
-			 * Bayer SERs always come back as RGB for our pipeline. */
-			if (ser_read_frame(seq->ser_file, idx, dest, ff, TRUE))
+			/* TRUE forces debayer-on-read regardless of the user's global
+			 * pref (ser_read_frame honours the flag); FALSE follows
+			 * ser_file->debayer_type_ser — see the header for the analysis
+			 * raw-read contract. */
+			if (ser_read_frame(seq->ser_file, idx, dest, ff,
+			                   ser_force_debayer ? TRUE : FALSE))
 				return MPP_EIO;
 			break;
 		case SEQ_FITSEQ:

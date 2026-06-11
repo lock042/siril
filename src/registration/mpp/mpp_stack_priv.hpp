@@ -255,6 +255,12 @@ struct StackLoopOutput {
 	StackState state;
 	RemapBorder border;
 	int shift_failure_counter = 0;
+	/* An allocation failure was contained inside the frame-parallel
+	 * accumulation (the partial result must be discarded). Lets the
+	 * caller report MPP_ENOMEM instead of crashing — on Windows there
+	 * is no overcommit, so cv allocations genuinely fail under memory
+	 * pressure. */
+	bool oom = false;
 };
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
