@@ -1202,7 +1202,17 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	// clear the previous list
 	sequence_list_init_statics();
 	seqcombo = seqlist_sequence_combobox;
+	/* Block "notify::selected" while we (re)populate the drop-down: a
+	 * GtkDropDown auto-selects position 0 as soon as its model becomes
+	 * non-empty, which would emit the signal and load a sequence before the
+	 * user gets to choose. Only the explicit set_selected calls below (or the
+	 * user's own pick) should load. */
+	g_signal_handlers_block_by_func(seqcombo, on_seqproc_entry_changed, NULL);
 	siril_drop_down_clear_strings(seqcombo);
+	/* "(None)" is always the first entry (position 0): GtkDropDown cannot show an
+	 * empty selection, so it stands in for "no sequence loaded". The actual
+	 * sequences are appended after it, at positions 1..N. */
+	siril_drop_down_append_text(seqcombo, siril_seqlist_none_text());
 
 	if (sequence_name_to_select) {
 		if (g_str_has_suffix(sequence_name_to_select, ".seq"))
@@ -1246,23 +1256,76 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	free(list);
 #endif
 
+	/* Locate the currently-loaded sequence (if any) in the freshly populated
+	 * list, so the drop-down reflects reality instead of snapping to item 0.
+	 * Unlike GtkComboBox, a GtkDropDown always keeps a selection (its internal
+	 * GtkSingleSelection has autoselect=TRUE, with no public API to disable it),
+	 * so it cannot show "nothing selected" on its own. */
+	int index_of_loaded = -1;
+	if (sequence_is_loaded() && com.seq.seqname) {
+		GListModel *m = gtk_drop_down_get_model(seqcombo);
+		guint nitems = m ? g_list_model_get_n_items(m) : 0;
+		for (guint k = 0; k < nitems; k++) {
+			GtkStringObject *so = g_list_model_get_item(m, k);
+			const char *s = gtk_string_object_get_string(so);
+			if (s && !strcmp(s, com.seq.seqname))
+				index_of_loaded = (int)k;
+			g_object_unref(so);
+			if (index_of_loaded >= 0)
+				break;
+		}
+	}
+
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
 		if (seqname) free(seqname);
 		return -1;
 	} else if (!seqname || found) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
-	} else return -1;
+	} else {
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		return -1;
+	}
 
 	if (seqname) free(seqname);
 
-	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
-		/* Several sequences found and none auto-selected: open the menu so the
-		 * user can pick one. GtkDropDown has no public popup() API (and no
-		 * "dropdown.popup" action in GTK >= 4.10), but its popover is driven by
-		 * an internal GtkToggleButton (its first child); toggling it active is
-		 * exactly what a user click does. */
+	/* The "changed" handler is still blocked and the drop-down still carries the
+	 * item it auto-selected during population. Changing the selection here will
+	 * therefore not load anything by itself: where a load is wanted we set the
+	 * selection (blocked) and then invoke the handler once, explicitly. Real
+	 * sequences sit at positions 1..N because "(None)" occupies position 0. */
+	if (index_of_seq_to_load >= 0) {
+		/* a specific sequence was requested (e.g. by registration): select and
+		 * load it. */
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), index_of_seq_to_load + 1);
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		on_seqproc_entry_changed(G_OBJECT(seqcombo), NULL, NULL);
+	} else if (number_of_loaded_sequences == 1) {
+		/* a single sequence in the folder: load it automatically. */
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), 1);
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		on_seqproc_entry_changed(G_OBJECT(seqcombo), NULL, NULL);
+	} else {
+		/* several sequences and none requested: open the list so the user picks
+		 * one, without pre-loading anything. */
+		if (index_of_loaded >= 0) {
+			/* one of them is already loaded: show it as the checked item.
+			 * Re-picking it is a harmless no-op (it stays loaded); picking
+			 * another loads it. */
+			gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), index_of_loaded);
+		} else {
+			/* nothing loaded: select "(None)" so nothing is pre-loaded. Picking
+			 * any real sequence (including the first one, at position 1) is a
+			 * genuine selection change and loads it. */
+			gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), 0);
+		}
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		/* open the menu so the user can pick. GtkDropDown has no public popup()
+		 * API (nor a "dropdown.popup" action in GTK >= 4.10), but its popover is
+		 * driven by an internal GtkToggleButton (its first child); toggling it
+		 * active is exactly what a user click does. */
 		for (GtkWidget *child = gtk_widget_get_first_child(GTK_WIDGET(seqcombo));
 				child; child = gtk_widget_get_next_sibling(child)) {
 			if (GTK_IS_TOGGLE_BUTTON(child)) {
@@ -1270,10 +1333,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 				break;
 			}
 		}
-	} else if (index_of_seq_to_load >= 0)
-		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), index_of_seq_to_load);
-	else
-		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), 0);
+	}
 	return 0;
 }
 

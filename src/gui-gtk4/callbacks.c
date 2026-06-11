@@ -3126,7 +3126,13 @@ void on_seqproc_entry_changed(GObject *obj, GParamSpec *pspec, gpointer user_dat
 	GtkDropDown *widget = GTK_DROP_DOWN(obj);
 	(void)pspec;
 	gchar *name = siril_drop_down_get_active_text(GTK_DROP_DOWN(widget));
-	if (name && name[0] != '\0') {
+	if (name && !strcmp(name, siril_seqlist_none_text())) {
+		/* user picked the "(None)" entry: close the currently loaded sequence
+		 * (no-op if none is loaded). close_sequence() will set the drop-down
+		 * back to "(None)" itself. */
+		if (sequence_is_loaded())
+			process_close(0);
+	} else if (name && name[0] != '\0') {
 		gchar *type;
 
 		set_cursor_waiting(TRUE);
