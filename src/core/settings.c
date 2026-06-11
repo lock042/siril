@@ -124,6 +124,10 @@ preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.open_dialog_w = 0,
+		.open_dialog_h = 0,
+		.open_dialog_sidebar_pos = 0,
+		.open_dialog_paned_pos = 0,
 		.pan_position = -1,
 		.is_extended = TRUE,
 		.is_maximized = FALSE,
@@ -181,7 +185,9 @@ preferences pref_init = {
 			.smarthomeend = TRUE,
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
-			.minimap = FALSE
+			.minimap = FALSE,
+			.dynamic_wrap = FALSE,
+			.code_folding = FALSE
 		},
 		.mask_tints_vports = TRUE
 	},
@@ -495,6 +501,10 @@ struct settings_access all_settings[] = {
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
 	{ "gui", "main_win_pos_w", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.w },
 	{ "gui", "main_win_pos_h", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.h },
+	{ "gui", "open_dialog_w", STYPE_INT, N_("remembered open-file dialog width"), &com.pref.gui.open_dialog_w },
+	{ "gui", "open_dialog_h", STYPE_INT, N_("remembered open-file dialog height"), &com.pref.gui.open_dialog_h },
+	{ "gui", "open_dialog_sidebar_pos", STYPE_INT, N_("remembered open-file dialog sidebar divider"), &com.pref.gui.open_dialog_sidebar_pos },
+	{ "gui", "open_dialog_paned_pos", STYPE_INT, N_("remembered open-file dialog list/preview divider"), &com.pref.gui.open_dialog_paned_pos },
 	{ "gui", "pan_position", STYPE_INT, N_("position of the two sides separator"), &com.pref.gui.pan_position },
 	{ "gui", "extended", STYPE_BOOL, N_("main window is extended"), &com.pref.gui.is_extended },
 	{ "gui", "maximized", STYPE_BOOL, N_("main window is maximized"), &com.pref.gui.is_maximized },
@@ -571,6 +581,8 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
 	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
 	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
+	{ "script_editor", "dynamic_wrap", STYPE_BOOL, N_("Dynamically wrap long lines in the script editor"), &com.pref.gui.editor_cfg.dynamic_wrap },
+	{ "script_editor", "code_folding", STYPE_BOOL, N_("Enable code folding in the script editor"), &com.pref.gui.editor_cfg.code_folding },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

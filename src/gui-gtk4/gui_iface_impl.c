@@ -350,7 +350,13 @@ static gboolean close_sequence_idle(gpointer data) {
 	if (!data) {
 		GtkDropDown *seqcombo = GTK_DROP_DOWN(GTK_WIDGET(
 			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
-		gtk_drop_down_set_selected(seqcombo, -1);
+		/* A GtkDropDown cannot show an empty selection, so reflect "no sequence
+		 * loaded" by selecting the "(None)" entry (inserting it first if the
+		 * drop-down does not already carry it). */
+		g_signal_handlers_block_by_func(seqcombo, on_seqproc_entry_changed, NULL);
+		siril_drop_down_prepend_none(seqcombo);
+		gtk_drop_down_set_selected(seqcombo, 0);
+		g_signal_handlers_unblock_by_func(seqcombo, on_seqproc_entry_changed, NULL);
 	}
 	return FALSE;
 }
@@ -361,12 +367,20 @@ static gboolean populate_seqcombo(gpointer user_data) {
 	control_window_switch_to_tab(IMAGE_SEQ);
 	GtkDropDown *combo = GTK_DROP_DOWN(GTK_WIDGET(
 		gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
-	siril_drop_down_clear_strings(combo);
-	gchar *rname = g_path_get_basename(realname);
-	siril_drop_down_append_text(combo, rname);
+	/* Block "notify::selected" across the whole rebuild: emptying the model and
+	 * appending "(None)" at position 0 makes GtkDropDown's autoselect snap the
+	 * selection to that entry and emit the signal. If the handler were live it
+	 * would read "(None)" and immediately close the sequence we just opened.
+	 * Only the explicit set_selected(1) below should stand. */
 	g_signal_handlers_block_by_func(GTK_DROP_DOWN(combo),
 		on_seqproc_entry_changed, NULL);
-	gtk_drop_down_set_selected(GTK_DROP_DOWN(combo), 0);
+	siril_drop_down_clear_strings(combo);
+	/* keep "(None)" at position 0 for consistency with the sequence search; the
+	 * opened sequence sits at position 1 and is the selected one. */
+	siril_drop_down_append_text(combo, siril_seqlist_none_text());
+	gchar *rname = g_path_get_basename(realname);
+	siril_drop_down_append_text(combo, rname);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(combo), 1);
 	g_signal_handlers_unblock_by_func(GTK_DROP_DOWN(combo),
 		on_seqproc_entry_changed, NULL);
 	g_free(rname);
