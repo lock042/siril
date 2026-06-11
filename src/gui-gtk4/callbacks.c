@@ -2141,6 +2141,26 @@ void force_paned_restore() {
 	}
 }
 
+/* TRUE while the show/hide slide animation drives the paned position, so
+ * the notify::position handler below doesn't record the animated frames
+ * (which sweep towards the full window width) as the user's preference. */
+static gboolean panel_animating = FALSE;
+
+/* Persist the divider position whenever the user drags the separator.
+ * Without this, pan_position was only ever updated when the panel was
+ * hidden via the toggle button, so manual resizes were lost on restart. */
+static void on_main_panel_position_changed(GObject *paned, GParamSpec *pspec,
+		gpointer user_data) {
+	if (panel_animating || com.script || !com.pref.gui.remember_windows)
+		return;
+	GtkWidget *end_child = gtk_paned_get_end_child(GTK_PANED(paned));
+	if (!end_child || !gtk_widget_get_visible(end_child))
+		return;
+	int pos = gtk_paned_get_position(GTK_PANED(paned));
+	if (pos > 0)
+		com.pref.gui.pan_position = pos;
+}
+
 /* Smooth panel show/hide animation using the display's frame clock.
  * Animating GtkPaned position gives a true slide with image expanding/shrinking. */
 typedef struct {
@@ -2167,6 +2187,7 @@ static gboolean panel_anim_tick(GtkWidget *widget, GdkFrameClock *clock, gpointe
 	if (t >= 1.0) {
 		if (anim->hiding)
 			gtk_widget_set_visible(gtk_paned_get_end_child(anim->paned), FALSE);
+		panel_animating = FALSE;
 		g_free(anim);
 		return G_SOURCE_REMOVE;
 	}
@@ -2181,6 +2202,7 @@ void panel_animate(gboolean show) {
 	PanelAnimData *anim = g_new0(PanelAnimData, 1);
 	anim->paned = paned;
 	anim->hiding = !show;
+	panel_animating = TRUE;
 	anim->start_time = gdk_frame_clock_get_frame_time(
 	                       gtk_widget_get_frame_clock(GTK_WIDGET(paned)));
 
@@ -2630,6 +2652,10 @@ void initialize_all_GUI(gchar *supported_files) {
 		"  min-width: 5px;"
 		"  background: alpha(currentColor, 0.28);"
 		"}");
+
+	/* Remember the divider position when the user drags the separator. */
+	g_signal_connect(lookup_widget("main_panel"), "notify::position",
+	                 G_CALLBACK(on_main_panel_position_changed), NULL);
 
 	gui_ready = TRUE;
 }
