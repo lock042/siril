@@ -57,10 +57,11 @@ static void siril_keyword_row_class_init(SirilKeywordRowClass *klass) {
 }
 static void siril_keyword_row_init(SirilKeywordRow *self) { (void)self; }
 
-static GListStore       *key_store         = NULL;
+static GListStore *key_store = NULL;
+static GtkSortListModel *key_sortmodel = NULL;
 static GtkSelectionModel *key_selection_model = NULL;
-static GtkColumnView    *key_columnview    = NULL;
-static GtkScrolledWindow *key_scrolled     = NULL;
+static GtkColumnView *key_columnview = NULL;
+static GtkScrolledWindow *key_scrolled = NULL;
 static GtkTextView *key_textview = NULL;
 static GtkNotebook *key_notebook = NULL;
 static GtkWidget *key_export_button = NULL;
@@ -252,12 +253,14 @@ static void rebuild_selection_model(void) {
 		g_signal_handlers_disconnect_by_func(key_selection_model, on_key_selection_model_changed, NULL);
 		g_clear_object(&key_selection_model);
 	}
+	/* wrap the sorted model so header sorting is preserved across rebuilds */
+	GListModel *base = G_LIST_MODEL(g_object_ref(key_sortmodel));
 	if (key_use_single_selection) {
-		key_selection_model = GTK_SELECTION_MODEL(gtk_single_selection_new(G_LIST_MODEL(g_object_ref(key_store))));
+		key_selection_model = GTK_SELECTION_MODEL(gtk_single_selection_new(base));
 		gtk_single_selection_set_can_unselect(GTK_SINGLE_SELECTION(key_selection_model), TRUE);
 		gtk_single_selection_set_autoselect(GTK_SINGLE_SELECTION(key_selection_model), FALSE);
 	} else {
-		key_selection_model = GTK_SELECTION_MODEL(gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(key_store))));
+		key_selection_model = GTK_SELECTION_MODEL(gtk_multi_selection_new(base));
 	}
 	g_signal_connect(key_selection_model, "selection-changed", G_CALLBACK(on_key_selection_model_changed), NULL);
 	gtk_column_view_set_model(key_columnview, key_selection_model);
@@ -286,13 +289,8 @@ static void ensure_keyword_view(void) {
 		key_store = g_list_store_new(SIRIL_TYPE_KEYWORD_ROW);
 
 	key_use_single_selection = sequence_is_loaded();
-	if (key_use_single_selection)
-		key_selection_model = GTK_SELECTION_MODEL(gtk_single_selection_new(G_LIST_MODEL(g_object_ref(key_store))));
-	else
-		key_selection_model = GTK_SELECTION_MODEL(gtk_multi_selection_new(G_LIST_MODEL(g_object_ref(key_store))));
-	g_signal_connect(key_selection_model, "selection-changed", G_CALLBACK(on_key_selection_model_changed), NULL);
 
-	key_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(key_selection_model));
+	key_columnview = GTK_COLUMN_VIEW(gtk_column_view_new(NULL));
 	gtk_column_view_set_show_column_separators(key_columnview, TRUE);
 	gtk_widget_add_css_class(GTK_WIDGET(key_columnview), "siril-dense-rows");
 
@@ -313,6 +311,11 @@ static void ensure_keyword_view(void) {
 	gtk_column_view_column_set_expand(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_comment, NULL, NULL)));
 	gtk_column_view_append_column(key_columnview, c); g_object_unref(c);
+
+	GtkSorter *view_sorter = gtk_column_view_get_sorter(key_columnview);
+	key_sortmodel = gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(key_store)),
+			view_sorter ? g_object_ref(view_sorter) : NULL);
+	rebuild_selection_model();
 
 	gtk_scrolled_window_set_child(key_scrolled, GTK_WIDGET(key_columnview));
 
@@ -425,7 +428,7 @@ static void remove_selected_keys() {
 	if (sequence_is_loaded()) {
 		guint pos = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(key_selection_model));
 		if (pos == GTK_INVALID_LIST_POSITION) return;
-		SirilKeywordRow *row = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_store), pos));
+		SirilKeywordRow *row = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_sortmodel), pos));
 		if (!row) return;
 		struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 		kargs->FITS_key = g_strdup(row->key);
@@ -434,7 +437,9 @@ static void remove_selected_keys() {
 		if (siril_confirm_dialog(_("Operation on the sequence"),
 				_("These keywords will be deleted from each image of "
 				  "the entire sequence. Are you sure?"), _("Proceed"))) {
-			g_list_store_remove(key_store, pos);
+			guint store_pos;
+			if (g_list_store_find(key_store, row, &store_pos))
+				g_list_store_remove(key_store, store_pos);
 			start_sequence_keywords(&com.seq, kargs);
 		} else {
 			g_free(kargs->FITS_key);
@@ -445,16 +450,23 @@ static void remove_selected_keys() {
 		GtkBitset *bs = gtk_selection_model_get_selection(key_selection_model);
 		guint64 n = gtk_bitset_get_size(bs);
 		if (n == 0) { gtk_bitset_unref(bs); return; }
-		for (guint64 i = n; i > 0; i--) {
-			guint pos = gtk_bitset_get_nth(bs, (guint)(i - 1));
-			SirilKeywordRow *row = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_store), pos));
-			if (row) {
-				updateFITSKeyword(gfit, row->key, NULL, NULL, NULL, TRUE, FALSE);
-				g_object_unref(row);
-				g_list_store_remove(key_store, pos);
-			}
+		/* Selection positions index the sorted model: collect the row objects
+		 * first, then remove each from the store by identity. */
+		SirilKeywordRow **rows = calloc(n, sizeof(SirilKeywordRow *));
+		for (guint64 i = 0; i < n; i++) {
+			guint pos = gtk_bitset_get_nth(bs, (guint)i);
+			rows[i] = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_sortmodel), pos));
 		}
 		gtk_bitset_unref(bs);
+		for (guint64 i = 0; i < n; i++) {
+			if (!rows[i]) continue;
+			updateFITSKeyword(gfit, rows[i]->key, NULL, NULL, NULL, TRUE, FALSE);
+			guint store_pos;
+			if (g_list_store_find(key_store, rows[i], &store_pos))
+				g_list_store_remove(key_store, store_pos);
+			g_object_unref(rows[i]);
+		}
+		free(rows);
 		gtk_selection_model_unselect_all(key_selection_model);
 	}
 }
@@ -506,7 +518,7 @@ static gchar *list_all_selected_keywords() {
 	guint64 n = gtk_bitset_get_size(bs);
 	for (guint64 i = 0; i < n; i++) {
 		guint pos = gtk_bitset_get_nth(bs, (guint)i);
-		SirilKeywordRow *row = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_store), pos));
+		SirilKeywordRow *row = SIRIL_KEYWORD_ROW(g_list_model_get_item(G_LIST_MODEL(key_sortmodel), pos));
 		if (row) {
 			int status = 0;
 			char card[FLEN_CARD];

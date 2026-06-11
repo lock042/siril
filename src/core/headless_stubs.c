@@ -205,7 +205,7 @@ gboolean init_right_tab(gpointer user_data) { (void)user_data; return FALSE; }
 void drawPlot(void) {}
 void clear_previews(void) {}
 gboolean redraw_previews(gpointer user_data) { (void)user_data; return FALSE; }
-void queue_redraw_mask(void) {}
+void queue_redraw_mask(gboolean remap_tints) { (void)remap_tints; }
 void show_or_hide_mask_tab(void) {}
 gboolean show_or_hide_mask_tab_idle(gpointer p) { (void)p; return FALSE; }
 

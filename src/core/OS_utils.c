@@ -183,6 +183,20 @@ static gint64 find_space(const gchar *name) {
 					NSLog(@"Error: no free space information available");
 				}
 			}
+			// NSURLVolumeAvailableCapacityForImportantUsageKey is only reliable on
+			// the internal boot volume; on external APFS/HFS volumes it frequently
+			// returns 0, which makes Siril wrongly report a full disk. Fall back to
+			// the basic available capacity in that case.
+			if (result <= 0) {
+				NSDictionary *basic = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
+				if (!basic) {
+					NSLog(@"Error getting fallback space info: %@", error);
+				} else {
+					NSNumber *basicFree = basic[NSURLVolumeAvailableCapacityKey];
+					if (basicFree)
+						result = (gint64)[basicFree longLongValue];
+				}
+			}
 		} else {
 			// For other filesystems (FAT32, etc.), use basic capacity
 			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];

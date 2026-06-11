@@ -303,11 +303,23 @@ static gchar *pick_image(int whichdial, GtkWindow *parent,
 	return picked;
 }
 
+/* Working-directory case — use SirilFileBrowser in directory-only mode so
+ * the picker matches the rest of Siril's open dialogs (files are listed but
+ * greyed out and unselectable; only folders can be chosen). */
+static gchar *pick_directory(GtkWindow *parent) {
+	SirilFileBrowser *fb = siril_file_browser_new(parent, _("Select Working Directory"));
+	siril_file_browser_set_directory_only(fb, TRUE);
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	gchar *picked = NULL;
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		picked = siril_file_browser_get_path(fb);
+	return picked;
+}
+
 /* Non-image cases — use GtkFileDialog via the SirilFileChooser wrapper. */
 static gchar *pick_non_image(int whichdial, GtkWindow *parent) {
-	GtkFileChooserAction action =
-		(whichdial == OD_CWD) ? GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
-		                      : GTK_FILE_CHOOSER_ACTION_OPEN;
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
 	SirilFileChooser *fc = siril_fc_open(parent, action);
 	siril_fc_set_current_folder_path(fc, com.wd);
 	if (whichdial == OD_DISTOLIB) {
@@ -378,6 +390,8 @@ static void opendial(int whichdial) {
 			                      whichdial == OD_CONVERT ? &multi : NULL);
 			break;
 		case OD_CWD:
+			filename = pick_directory(control_window);
+			break;
 		case OD_DISTOLIB:
 		case OD_BADPIXEL:
 			filename = pick_non_image(whichdial, control_window);

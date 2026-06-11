@@ -348,7 +348,9 @@ static void ensure_git_view(void) {
 	GtkFilterListModel *fm = gtk_filter_list_model_new(G_LIST_MODEL(g_object_ref(list_store)),
 			GTK_FILTER(g_object_ref(script_filter)));
 
-	/* SortListModel wraps the filtered model; per-column sorters set later. */
+	/* SortListModel wraps the filtered model; its sorter is wired to the
+	 * column view's sorter once the columns exist (see below), which is what
+	 * makes the column headers actually sort. */
 	GtkSortListModel *sm = gtk_sort_list_model_new(G_LIST_MODEL(fm), NULL);
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(sm));
 	gtk_single_selection_set_can_unselect(sel, TRUE);
@@ -395,6 +397,8 @@ static void ensure_git_view(void) {
 	gtk_column_view_column_set_resizable(c, TRUE);
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_startup, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
+
+	gtk_sort_list_model_set_sorter(sm, gtk_column_view_get_sorter(git_columnview));
 
 	gtk_scrolled_window_set_child(git_scrolled, GTK_WIDGET(git_columnview));
 

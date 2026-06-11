@@ -139,6 +139,13 @@ gchar *siril_drop_down_get_active_text(GtkDropDown *dd);
 void   siril_drop_down_clear_strings  (GtkDropDown *dd);
 /* Append a string to the dropdown's GtkStringList (creates one if needed). */
 void   siril_drop_down_append_text    (GtkDropDown *dd, const gchar *text);
+/* The translated label used in the sequence drop-down to mean "no sequence
+ * loaded". GtkDropDown always keeps a selection (it cannot show an empty one),
+ * so this entry stands in for "nothing". */
+const gchar *siril_seqlist_none_text(void);
+/* Ensure the sequence drop-down has the "(None)" entry as its first row; no-op
+ * if it is already there. */
+void   siril_drop_down_prepend_none   (GtkDropDown *dd);
 
 /* GTK4 split GtkCheckButton out from GtkToggleButton — they are
  * unrelated types now.  Many siril call sites carry a generic

@@ -2103,7 +2103,7 @@ static void on_mask_view_radio_toggled(GtkCheckButton *btn, gpointer u) {
 
 	/* Redraw both the mask tab and (if tint overlays are enabled) the
 	 * image vports so the swap is immediately visible. */
-	gui_iface.redraw_mask_idle();
+	gui_iface.redraw_mask_idle(TRUE); // mask view swapped: tints are stale
 	if (com.pref.gui.mask_tints_vports)
 		gui_iface.redraw_image(REDRAW_ALL);
 }

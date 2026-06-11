@@ -194,8 +194,6 @@ void on_SCNR_roi_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (!siril_toggle_get_active(GTK_WIDGET(button))) {
 		cancel_and_wait_for_preview();
 		siril_preview_hide();
-		copy_backup_to_gfit();
-		gfit_modified_update_gui();
 	} else {
 		copy_gfit_to_backup();
 		update_image *param = malloc(sizeof(update_image));

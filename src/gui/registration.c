@@ -35,7 +35,6 @@
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
 #include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
 #include "gui/registration.h"
 #include "gui/sequence_list.h"
 #include "gui/stacking.h"

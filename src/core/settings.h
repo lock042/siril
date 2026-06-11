@@ -208,6 +208,8 @@ struct editor_config {
 	gboolean showspaces;
 	gboolean shownewlines;
 	gboolean minimap;
+	gboolean dynamic_wrap;
+	gboolean code_folding;
 };
 
 typedef enum {
@@ -234,6 +236,10 @@ struct gui_config {
 	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
+	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)
+	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
+	gint open_dialog_sidebar_pos;	// remembered sidebar|content divider position (0 = use default)
+	gint open_dialog_paned_pos;	// remembered list|preview divider position (0 = use default)
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;

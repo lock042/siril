@@ -47,6 +47,13 @@ void siril_file_browser_add_filter_pattern (SirilFileBrowser *fb,
  * siril_file_browser_get_paths() to retrieve every selected path. */
 void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi);
 
+/* Folder-picker mode.  Files are still listed (for context) but shown
+ * greyed out and cannot be selected or activated — only directories are
+ * pickable.  _run() accepting returns the highlighted directory, or the
+ * folder currently being browsed when none is highlighted.  Must be called
+ * before _run(); reset on the next _new(). */
+void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_only);
+
 /* Show a "Debayer" check button in the action row.  When toggled, the
  * browser updates com.pref.debayer.open_debayer and mirrors the change
  * onto the shared `demosaicingButton` (Convert tab), and vice-versa —

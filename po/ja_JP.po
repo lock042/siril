@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-02 11:27+0200\n"
-"PO-Revision-Date: 2026-06-04 11:07+0000\n"
+"PO-Revision-Date: 2026-06-11 20:21+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
@@ -1298,7 +1298,7 @@ msgstr "RGB"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr ""
+msgstr "多項式"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
@@ -2048,7 +2048,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:7452 src/gui/uifiles/siril.ui:8740
 #: src/gui/image_interactions.h:201
 msgid "None"
-msgstr ""
+msgstr "なし"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2003
 msgid "Alpha (α)"
@@ -2790,9 +2790,8 @@ msgstr "座標"
 #: src/gui/uifiles/cut_coords_dialog.ui:135
 #: src/gui/uifiles/cut_coords_dialog.ui:194
 #: src/gui/uifiles/cut_coords_dialog.ui:207
-#, fuzzy
 msgid "-1"
-msgstr "1"
+msgstr "-1"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
 msgid "End"
@@ -5012,7 +5011,7 @@ msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:532
 msgid "Operator"
-msgstr ""
+msgstr "演算子"
 
 #: src/gui/uifiles/pixelmath.ui:547
 msgid "column"
@@ -5253,9 +5252,8 @@ msgid "Enable syntax highlighting"
 msgstr "シンタックスハイライトを有効にする"
 
 #: src/gui/uifiles/python_scratchpad.ui:395
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "明度: "
+msgstr "シンタックスハイライト"
 
 #: src/gui/uifiles/python_scratchpad.ui:404
 #: src/gui/uifiles/python_scratchpad.ui:405
@@ -5270,7 +5268,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
-msgstr "右マージン位置を設定する"
+msgstr "右マージン位置を設定"
 
 #: src/gui/uifiles/python_scratchpad.ui:423
 msgid ""
@@ -5284,11 +5282,11 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 msgid "Enable line numbers in the left margin"
-msgstr "左の余白に行番号を表示する"
+msgstr "左の余白に行番号を表示"
 
 #: src/gui/uifiles/python_scratchpad.ui:434
 msgid "Show line numbers"
-msgstr "行番号を表示する"
+msgstr "行番号を表示"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
 msgid "Show line markers in the left margin"
@@ -5301,12 +5299,11 @@ msgstr "解像度: "
 
 #: src/gui/uifiles/python_scratchpad.ui:453
 msgid "Highlight the current line in the editor"
-msgstr "ワーキングディレクトリを変更"
+msgstr "エディタで現在の行を強調表示する"
 
 #: src/gui/uifiles/python_scratchpad.ui:454
-#, fuzzy
 msgid "Highlight current line"
-msgstr "Sigma Clipping"
+msgstr "現在の行を強調表示"
 
 #: src/gui/uifiles/python_scratchpad.ui:463
 #: src/gui/uifiles/python_scratchpad.ui:464
@@ -5342,7 +5339,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:504
 msgid "Show spaces and tabs"
-msgstr ""
+msgstr "スペースとタブを表示"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
 msgid "Show newline characters in the editor view"
@@ -5350,7 +5347,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:513
 msgid "Show newlines"
-msgstr "改行を表示する"
+msgstr "改行を表示"
 
 #: src/gui/uifiles/python_scratchpad.ui:521
 msgid "Show minimap in the editor view"
@@ -5453,7 +5450,7 @@ msgstr "Lanczos-4"
 
 #: src/gui/uifiles/resample_dialog.ui:278
 msgid "%"
-msgstr ""
+msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:289
 #, fuzzy
@@ -6048,7 +6045,7 @@ msgstr "TIFF"
 
 #: src/gui/uifiles/savepopup.ui:554 src/gui/uifiles/savepopup.ui:869
 msgid "100"
-msgstr ""
+msgstr "100"
 
 #: src/gui/uifiles/savepopup.ui:569 src/gui/uifiles/savepopup.ui:884
 msgid "Quality: "
@@ -6512,7 +6509,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:828
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
-msgstr ""
+msgstr "FITSヘッダ内のファイルチェックサム（DATASUMおよびCHECKSUM）を確認する"
 
 #: src/gui/uifiles/settings_window.ui:832
 msgid ""
@@ -6520,15 +6517,17 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"ファイルのチェックサムが存在する場合は、それを検証します。この検証はファイル"
+"が読み込まれるたびに実行されるため、シーケンスを使用する場合、Sirilの"
+"パフォーマンスに大きな影響を与える可能性があります。"
 
 #: src/gui/uifiles/settings_window.ui:850
-#, fuzzy
 msgid "<b>FITS Header</b>"
-msgstr "<b>FITS 形式</b>"
+msgstr "<b>FITSヘッダ</b>"
 
 #: src/gui/uifiles/settings_window.ui:895
 msgid "Enabled"
-msgstr ""
+msgstr "有効"
 
 #: src/gui/uifiles/settings_window.ui:914
 msgid ""
@@ -11415,11 +11414,11 @@ msgstr "層の数: "
 #: src/gui/uifiles/split_cfa_dialog.ui:35 src/algos/extraction.c:1129
 #: src/core/command.c:9175
 msgid "Split CFA"
-msgstr "Split CFA"
+msgstr "CFAの分割"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:70
 msgid "Apply Split CFA"
-msgstr "Split CFA を適用"
+msgstr "CFAの分割を適用"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:101
 #, fuzzy
@@ -11441,11 +11440,11 @@ msgstr "CFAチャンネルの分割"
 #: src/gui/uifiles/split_cfa_dialog.ui:160 src/algos/extraction.c:356
 #: src/core/command.c:9258
 msgid "Extract Ha"
-msgstr ""
+msgstr "Haの抽出"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:161 src/core/command.c:9314
 msgid "Extract Ha/OIII"
-msgstr ""
+msgstr "Ha/OIIIの抽出"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:162 src/algos/extraction.c:198
 #: src/core/command.c:9213
@@ -13519,9 +13518,8 @@ msgid "Catalog error, no stars identified!\n"
 msgstr "ファイル: %s を開けない\n"
 
 #: src/algos/photometric_cc.c:1003 src/gui/photometric_cc.c:404
-#, fuzzy
 msgid "Spectrophotometric Color Calibration"
-msgstr "フォトメトリック 色補正."
+msgstr "分光測光色補正"
 
 #: src/algos/photometric_cc.c:1003 src/gui/photometric_cc.c:323
 msgid "Photometric Color Calibration"
@@ -21742,9 +21740,8 @@ msgstr "ウィンドーサイズと位置を記憶"
 
 #: src/core/settings.c:492 src/core/settings.c:493 src/core/settings.c:494
 #: src/core/settings.c:495
-#, fuzzy
 msgid "main window position"
-msgstr "ウィンドーサイズと位置を記憶"
+msgstr ""
 
 #: src/core/settings.c:496
 msgid "position of the two sides separator"
@@ -22047,7 +22044,7 @@ msgstr ""
 
 #: src/core/settings.c:569
 msgid "Show visible space and tab characters in the script editor"
-msgstr ""
+msgstr "Show visible space and tab characters in the script editor"
 
 #: src/core/settings.c:570
 msgid "Show visible newline characters in the script editor"
@@ -24416,7 +24413,7 @@ msgstr ""
 #: src/gui/conversion.c:218
 #, c-format
 msgid "Conversion: processing %d files...\n"
-msgstr ""
+msgstr "変換: %d 個のファイルを処理しています...\n"
 
 #: src/gui/conversion.c:437
 #, c-format
@@ -25871,7 +25868,7 @@ msgstr "SPCCリモートカタログの状態を確認しています..."
 #. Failed to fetch status
 #: src/gui/photometric_cc.c:113
 msgid "The Gaia remote SPCC catalogue is not responding."
-msgstr ""
+msgstr "ガイアリモートSPCCカタログが応答していません。"
 
 #: src/gui/photometric_cc.c:119
 #, c-format
@@ -25881,12 +25878,12 @@ msgstr "ガイアリモートSPCCカタログ利用可能、応答時間 %d ms"
 #: src/gui/photometric_cc.c:123
 #, c-format
 msgid "Gaia remote SPCC catalogue slow, response %d ms"
-msgstr ""
+msgstr "ガイアリモートSPCCカタログ低速、応答時間 %d ms"
 
 #: src/gui/photometric_cc.c:127
 #, c-format
 msgid "Gaia remote SPCC catalogue very slow, response %d ms"
-msgstr ""
+msgstr "ガイアリモートSPCCカタログ極めて低速、応答時間 %d ms"
 
 #: src/gui/photometric_cc.c:176
 #, c-format
@@ -25999,37 +25996,36 @@ msgid ""
 msgstr ""
 
 #: src/gui/pixelmath.c:58
-#, fuzzy
 msgid "Absolute value of x."
-msgstr "自動値"
+msgstr "xの絶対値。"
 
 #: src/gui/pixelmath.c:59
 msgid "Arc cosine of x."
-msgstr ""
+msgstr "xの逆余弦。"
 
 #: src/gui/pixelmath.c:60
 msgid "Hyperbolic arc cosine of x."
-msgstr ""
+msgstr "xの逆双曲線余弦。"
 
 #: src/gui/pixelmath.c:61
 msgid "Arc sine of x."
-msgstr ""
+msgstr "xの逆正弦。"
 
 #: src/gui/pixelmath.c:62
 msgid "Hyperbolic arc sine of x."
-msgstr ""
+msgstr "xの逆双曲線正弦。"
 
 #: src/gui/pixelmath.c:63
 msgid "Arc tangent of x."
-msgstr ""
+msgstr "xの逆正接。"
 
 #: src/gui/pixelmath.c:64
 msgid "Arc tangent of y/x."
-msgstr ""
+msgstr "y/xの逆正接。"
 
 #: src/gui/pixelmath.c:65
 msgid "Hyperbolic arc tangent of x."
-msgstr ""
+msgstr "xの逆双曲線正接。"
 
 #: src/gui/pixelmath.c:66
 msgid "Round x upwards to the nearest integer."
@@ -26037,15 +26033,15 @@ msgstr ""
 
 #: src/gui/pixelmath.c:67
 msgid "Cosine of x."
-msgstr ""
+msgstr "xの余弦。"
 
 #: src/gui/pixelmath.c:68
 msgid "Hyperbolic cosine of x."
-msgstr ""
+msgstr "xの双曲線余弦。"
 
 #: src/gui/pixelmath.c:69
 msgid "The constant e=2.718282..."
-msgstr ""
+msgstr "定数e=2.718282..."
 
 #: src/gui/pixelmath.c:70
 msgid "Exponential function."
@@ -26069,15 +26065,15 @@ msgstr ""
 
 #: src/gui/pixelmath.c:76
 msgid "Natural logarithm of x."
-msgstr ""
+msgstr "xの自然対数。"
 
 #: src/gui/pixelmath.c:77 src/gui/pixelmath.c:78
 msgid "Base-10 logarithm of x."
-msgstr ""
+msgstr "xの10を底とする対数。"
 
 #: src/gui/pixelmath.c:79
 msgid "Base-2 logarithm of x."
-msgstr ""
+msgstr "xの2を底とする対数。"
 
 #: src/gui/pixelmath.c:80
 msgid "Maximum function."
@@ -26103,7 +26099,7 @@ msgstr ""
 
 #: src/gui/pixelmath.c:85
 msgid "The constant π=3.141592..."
-msgstr ""
+msgstr "定数π＝3.141592…"
 
 #: src/gui/pixelmath.c:86
 msgid "Exponentiation function."
@@ -26120,24 +26116,23 @@ msgstr ""
 
 #: src/gui/pixelmath.c:91
 msgid "Sine of x."
-msgstr ""
+msgstr "xの正弦。"
 
 #: src/gui/pixelmath.c:92
 msgid "Hyperbolic sine of x."
-msgstr ""
+msgstr "xの双曲線正弦。"
 
 #: src/gui/pixelmath.c:93
-#, fuzzy
 msgid "Square root of x."
-msgstr "平方根"
+msgstr "xの平方根。"
 
 #: src/gui/pixelmath.c:94
 msgid "Tangent of x."
-msgstr ""
+msgstr "xの正接。"
 
 #: src/gui/pixelmath.c:95
 msgid "Hyperbolic tangent of x."
-msgstr ""
+msgstr "xの双曲線正接。"
 
 #: src/gui/pixelmath.c:96
 msgid "Truncated integer part of x."
@@ -26207,7 +26202,7 @@ msgstr ""
 
 #: src/gui/pixelmath.c:119
 msgid "Logical NOT operator."
-msgstr ""
+msgstr "論理NOT演算子。"
 
 #: src/gui/pixelmath.c:120
 msgid "Exponentiation operator."
@@ -26261,11 +26256,11 @@ msgstr ""
 
 #: src/gui/pixelmath.c:132
 msgid "Logical AND operator."
-msgstr ""
+msgstr "論理AND演算子。"
 
 #: src/gui/pixelmath.c:133
 msgid "Logical OR operator."
-msgstr ""
+msgstr "論理OR演算子。"
 
 #: src/gui/pixelmath.c:267
 #, c-format
@@ -27864,7 +27859,7 @@ msgstr ""
 
 #: src/gui/statistics_list.c:59
 msgid "mean"
-msgstr "平均"
+msgstr "mean"
 
 #: src/gui/statistics_list.c:60
 msgid "median"
@@ -29327,6 +29322,8 @@ msgstr "%d: ‘%s’ 行目にエラー.\n"
 msgid ""
 "Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"
 msgstr ""
+"シーケンス %s を作成できません。Siril で使用するには、少なくとも 2 フレームが"
+"必要です。\n"
 
 #: src/io/sequence.c:456
 msgid ""
