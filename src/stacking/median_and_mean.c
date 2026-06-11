@@ -1641,32 +1641,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					else
 						pixel = ((WORD*) data->pix[frame])[pix_idx];
 					double tmp;
-					if (args->coeff.local) {
-						/* local normalization: bilinearly sample the field at
-						 * the output coordinate (x, start_row + y) and apply
-						 * result = s * pixel + z (z = additive offset). */
-						long Y = my_block->start_row + y;
-						float s, z;
-						sample_lnorm_field(&args->coeff.plfield[layer][frame],
-								(double)x, (double)Y, &s, &z);
-						if (itype == DATA_FLOAT) {
-							((float*)data->stack)[frame] = (fpixel != 0.f) ?
-									(fpixel * s + z) : 0.f;
-						} else {
-							if (pixel > 0) {
-								float fp = (float)pixel * (1.f / USHRT_MAX);
-								((WORD*)data->stack)[frame] =
-										round_to_WORD((fp * s + z) * USHRT_MAX);
-							} else {
-								((WORD*)data->stack)[frame] = 0;
-							}
-						}
-						if (masking)
-							data->mstack[frame] = data->mask[frame][pix_idx];
-						if (args->drizzle)
-							data->dstack[frame] = data->drizz[frame][pix_idx];
-						continue;
-					}
 					switch (args->normalize) {
 						default:
 						case NO_NORM:
@@ -1826,8 +1800,6 @@ free_and_close:
 		free(args->coeff.offset);
 		free(args->coeff.scale);
 		free(args->coeff.mul);
-		if (args->coeff.local)
-			free_norm_fields(&args->coeff, args->seq->nb_layers, args->nb_images_to_stack);
 	}
 
 	if (args->weights) free(args->weights);

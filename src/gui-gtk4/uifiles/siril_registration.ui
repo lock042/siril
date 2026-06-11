@@ -70,8 +70,7 @@
             <property name="spacing">10</property>
             <child>
               <object class="GtkExpander" id="autoreg_expander">
-                <property name="sensitive">0</property>
-                <property name="expanded">0</property>
+                <property name="expanded">1</property>
                 <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
@@ -1510,7 +1509,6 @@ The master flat must be set in the Calibration tab.</property>
             </child>
             <child>
               <object class="GtkExpander" id="manualreg_expander">
-                <property name="sensitive">0</property>
                 <property name="focusable">1</property>
                 <property name="vexpand">1</property>
                 <child>
