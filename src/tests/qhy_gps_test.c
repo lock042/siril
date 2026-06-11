@@ -152,8 +152,7 @@ void test_rsgps_data_loading() {
 	cr_assert(!fit.keywords.gps_data);
 	cr_assert(!fit.keywords.date_and_exp_from_gps);
 	cr_assert(fit.keywords.gps_eutc[0] != '\0');
-	siril_log_debug("!!! eflag = %d\n", fit.keywords.gps_eflag);	// WTF?
-	cr_assert(fit.keywords.gps_eflag == 0); // old version of the file, it had a different name...
+	cr_assert(fit.keywords.gps_eflag == DEFAULT_INT_VALUE); // old version of the file, it had a different name...
 	clearfits(&fit);
 }
 
@@ -306,7 +305,7 @@ void test_non_gps_images() {
 	cr_assert(!fit.keywords.gps_data);
 	cr_assert(!fit.keywords.date_and_exp_from_gps);
 	cr_assert(fit.keywords.gps_eutc[0] == '\0');
-	cr_assert(fit.keywords.gps_eflag == 0);
+	cr_assert(fit.keywords.gps_eflag == DEFAULT_INT_VALUE);
 
 	struct _qhy_struct qhy_header = { 0 };
 	int retval = parse_gps_image(&fit, &qhy_header);
