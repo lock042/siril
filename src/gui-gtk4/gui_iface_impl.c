@@ -139,8 +139,8 @@ static void impl_delete_selection(void) {
 	delete_selected_area();
 }
 
-static void impl_queue_redraw_mask(void) {
-	queue_redraw_mask();
+static void impl_queue_redraw_mask(gboolean remap_tints) {
+	queue_redraw_mask(remap_tints);
 }
 
 /* ── Groups E, F: no-op placeholders (filled in by 6.1/6.2 impls below) ── */
@@ -708,8 +708,8 @@ static void impl_update_histogram(void) {
 	update_gfit_histogram_if_needed();
 }
 
-static void impl_redraw_mask_idle(void) {
-	redraw_mask_idle(NULL);
+static void impl_redraw_mask_idle(gboolean remap_tints) {
+	redraw_mask_idle(GINT_TO_POINTER(remap_tints));
 }
 
 /* ── Group G additions: Channel / precision display state ────────────────── */

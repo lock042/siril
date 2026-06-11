@@ -1592,7 +1592,7 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		}
 		set_poly_in_mask(polygon, gfit, adding);
 		free_user_polygon(polygon);
-		gui_iface.queue_redraw_mask();
+		gui_iface.queue_redraw_mask(TRUE); // mask data changed: tints are stale
 		result = send_response(conn, STATUS_OK, NULL, 0);
 	} else {
 		siril_log_debug("Failed to deserialize user polygon\n");

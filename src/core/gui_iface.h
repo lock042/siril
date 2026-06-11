@@ -160,8 +160,11 @@ typedef struct {
 	void     (*redraw_image_sync)(SirilRedrawType remap);
 	/* Clear any active selection rectangle from the image display. */
 	void     (*delete_selection)(void);
-	/* Queue a redraw of the mask overlay only (from any thread). */
-	void     (*queue_redraw_mask)(void);
+	/* Queue a redraw of the mask overlay (from any thread).  remap_tints:
+	 * TRUE when the mask data changed, so tinted image viewports must be
+	 * remapped; FALSE when the caller has just remapped the image buffers
+	 * (tints already current) and only the mask buffer needs refreshing. */
+	void     (*queue_redraw_mask)(gboolean remap_tints);
 	/* Refresh all preview windows (registration / filter previews). */
 	void     (*redraw_previews)(void);
 	/* Remap all display viewports (recalculate display LUT/buffers). */
@@ -213,8 +216,8 @@ typedef struct {
 	void     (*invalidate_histogram)(void);
 	/* Recompute histogram if stale (call while holding at least a read lock). */
 	void     (*update_histogram)(void);
-	/* Queue an idle mask redraw (may also trigger a full image redraw). */
-	void     (*redraw_mask_idle)(void);
+	/* Run the mask redraw now.  remap_tints as in queue_redraw_mask. */
+	void     (*redraw_mask_idle)(gboolean remap_tints);
 
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */

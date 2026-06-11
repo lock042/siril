@@ -672,7 +672,9 @@ static gboolean crop_idle(gpointer p) {
 		gfit_modified_update_gui();
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
-			queue_redraw_mask();
+			/* notify_gfit_data_modified() above already remapped with the
+			 * cropped mask in place: only refresh the mask vport buffer. */
+			queue_redraw_mask(FALSE);
 	}
 
 	free_generic_img_args(args);

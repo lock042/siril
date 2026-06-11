@@ -3503,7 +3503,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				gui_iface.show_or_hide_mask_tab();
 				if (!com.script) {
-					gui_iface.redraw_mask_idle();
+					gui_iface.redraw_mask_idle(TRUE); // mask data changed: tints are stale
 				}
 			}
 			break;
