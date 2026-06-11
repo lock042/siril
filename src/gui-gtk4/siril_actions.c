@@ -495,15 +495,8 @@ static void update_chain_channels_ui(gboolean linked) {
 
 	g_free(tooltip_text);
 
-	/* Toggling channel-linking in autostretch mode changes the lookup
-	 * table per channel, so the displayed image needs to be remapped —
-	 * mirroring the path on_display_item_toggled() takes when the
-	 * preview-mode dropdown changes. */
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		notify_gfit_data_modified();
-		redraw(REDRAW_ALL);
-		gui_function(redraw_previews, NULL);
-	}
+	/* No remap here: set_unlink_channels() above already triggered
+	 * notify_gfit_data_modified() + redraw, as in the GTK3 GUI. */
 }
 
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
