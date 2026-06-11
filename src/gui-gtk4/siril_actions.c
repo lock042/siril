@@ -657,9 +657,8 @@ void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	GtkToggleButton *drawframe;
-	drawframe = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check")));
-	siril_toggle_set_active(GTK_WIDGET(drawframe), g_variant_get_boolean(state));
+	/* drawframe_check is bound to win.regframe via action-name, so GTK4
+	 * keeps its active state in sync with the action automatically */
 	g_simple_action_set_state(action, state);
 	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
