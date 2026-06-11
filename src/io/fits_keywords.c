@@ -279,6 +279,20 @@ static void pixel_y_handler_save(fits *fit, KeywordInfo *info) {
 	info->is_saved = fit->pixelkey;
 }
 
+/* this is a special case: the GPS_* values should not be removed from the original header, but are read
+ * in keywords.gps_data in one case, when we have a rolling shutter camera, not otherwise. When we
+ * explicitly read and save them, we don't want to save them with the generic key saving */
+static void gps_keys_handler_save(fits *fit, KeywordInfo *info) {
+	info->is_saved = fit->keywords.gps_data == NULL;
+	if (!info->is_saved)
+		siril_log_debug("not using the default save for %s\n", info->key);
+}
+
+// save it only if it's a GPS image
+static void gps_date_handler_save(fits *fit, KeywordInfo *info) {
+	info->is_saved = fit->keywords.gps_eutc[0] != '\0';
+}
+
 /*****************************************************************************/
 /* ── GPS / QHY keyword handlers ─────────────────────────────────────────── */
 
@@ -420,19 +434,17 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
 			// Rolling-shutter GPS (QHY Pro): the keywords are declared to not be put in the
 			// unknown keys list but all are managed by the read and save handlers for QHY_EXP
-			// TODO: we could in fact reference fit->keywords.gps_data if it's already created
 			KEYWORD_GPS( "gps", "QHY_EXP", KTYPE_DOUBLE, "GPS/QHY exposure (s)", qhy_gps_handler_read, qhy_gps_handler_save),
 			KEYWORD_GPS( "gps", "QHY_LP", KTYPE_INT, "linePeriod (ns)", NULL, NULL),
 			KEYWORD_GPS( "gps", "QHY_OFF0", KTYPE_DOUBLE, "RollingShutterEndOffset row 0 (us)", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_EUTC", KTYPE_STR, "QHY end time of first row", NULL, NULL),
-			KEYWORD_GPS( "gps", "GPS_EFLG", KTYPE_INT, "QHY end_flag", NULL, NULL),
+			KEYWORD_PRIMARY("gps", "GPS_EUTC", KTYPE_STR, "QHY end time of exposure", &(fit->keywords.gps_eutc), NULL, gps_keys_handler_save),
+			KEYWORD_PRIMARY("gps", "GPS_EFLG", KTYPE_INT, "QHY end_flag", &(fit->keywords.gps_eflag), NULL, gps_keys_handler_save),
 			KEYWORD_GPS( "gps", "CROPOFFX", KTYPE_INT, "X offset from the sensor origin", NULL, NULL),
 			KEYWORD_GPS( "gps", "CROPOFFY", KTYPE_INT, "Y offset from the sensor origin", NULL, NULL),
 			KEYWORD_GPS( "gps", "READOUTM", KTYPE_STR, "Sensor readout mode", NULL, NULL),
 			// Global-shutter GPS: only one key is written to mark that the date and exposure
 			// come from GPS data
-			// TODO perhaps not save it when it's false or at least when it's not a GPS image?
-			KEYWORD_PRIMARY("gps", "GPS-DATE", KTYPE_BOOL, "DATE-OBS and EXPTIME come from GPS", &(fit->keywords.date_and_exp_from_gps), NULL, NULL),
+			KEYWORD_PRIMARY("gps", "GPS-DATE", KTYPE_BOOL, "DATE-OBS and EXPTIME come from QHY GPS", &(fit->keywords.date_and_exp_from_gps), NULL, gps_date_handler_save),
 
 			/* This group must be the last one !!
 			 * It is not used. We write keywords just so that Siril knows about them
@@ -1153,11 +1165,11 @@ int read_fits_keywords(fits *fit) {
 		switch (current_key->type) {
 		case KTYPE_INT:
 			double_value = g_ascii_strtod(value, &end);
-			if (double_value < G_MININT || double_value > G_MAXINT) {
-				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for INT: %s\n"), keyname, value);
-			}
-			int_value = (int) double_value;
 			if (value != end) {
+				if (double_value < G_MININT || double_value > G_MAXINT) {
+					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for INT: %s\n"), keyname, value);
+				}
+				int_value = (int) double_value;
 				*((int*) current_key->data) = int_value;
 				current_key->used = TRUE;
 			} else {
@@ -1166,11 +1178,11 @@ int read_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_UINT:
 			double_value = g_ascii_strtod(value, &end);
-			if (double_value < 0 || double_value > G_MAXUINT) {
-				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for UINT: %s\n"), keyname, value);
-			}
-			uint_value = (guint) double_value;
 			if (value != end) {
+				if (double_value < 0 || double_value > G_MAXUINT) {
+					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for UINT: %s\n"), keyname, value);
+				}
+				uint_value = (guint) double_value;
 				*((guint*) current_key->data) = uint_value;
 				current_key->used = TRUE;
 			} else {
@@ -1179,11 +1191,11 @@ int read_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_USHORT:
 			double_value = g_ascii_strtod(value, &end);
-			if (double_value < 0 || double_value > G_MAXUSHORT) {
-				siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"), keyname, value);
-			}
-			ushort_value = (gushort) double_value;
 			if (value != end) {
+				if (double_value < 0 || double_value > G_MAXUSHORT) {
+					siril_log_warning(_("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"), keyname, value);
+				}
+				ushort_value = (gushort) double_value;
 				*((gushort*) current_key->data) = ushort_value;
 				current_key->used = TRUE;
 			} else {

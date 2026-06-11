@@ -140,7 +140,10 @@ void test_rsgps_data_loading() {
 	g_free(file_path);
 	cr_assert(fit.keywords.gps_data);
 	cr_assert(!fit.keywords.date_and_exp_from_gps);
+	cr_assert(fit.keywords.gps_eutc[0] != '\0');
+	cr_assert(fit.keywords.gps_eflag > 0);
 	clearfits(&fit);
+	memset(&fit, 0, sizeof(fits));
 
 	file_path = check_or_download_test_file("gps_global_shutter_not_locked.fit");
 	cr_assert(file_path);
@@ -148,6 +151,9 @@ void test_rsgps_data_loading() {
 	g_free(file_path);
 	cr_assert(!fit.keywords.gps_data);
 	cr_assert(!fit.keywords.date_and_exp_from_gps);
+	cr_assert(fit.keywords.gps_eutc[0] != '\0');
+	siril_log_debug("!!! eflag = %d\n", fit.keywords.gps_eflag);	// WTF?
+	cr_assert(fit.keywords.gps_eflag == 0); // old version of the file, it had a different name...
 	clearfits(&fit);
 }
 
@@ -185,9 +191,6 @@ void test_metadata_reading() {
 	// gps_extract_image_hook replaces data even if it's not locked
 	cr_assert(fit.keywords.date_and_exp_from_gps);
 	clearfits(&fit);
-	// TODO: some headers problems remain after using the gps command:
-	// - IMAGETYP and TELESCOP get some extra spaces
-	// - GPS_EUTC and GPS_EFLG are removed because managed by the rolling shutter function
 }
 
 void test_rsgps_timestamp_computation() {
@@ -302,6 +305,8 @@ void test_non_gps_images() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	cr_assert(!fit.keywords.gps_data);
 	cr_assert(!fit.keywords.date_and_exp_from_gps);
+	cr_assert(fit.keywords.gps_eutc[0] == '\0');
+	cr_assert(fit.keywords.gps_eflag == 0);
 
 	struct _qhy_struct qhy_header = { 0 };
 	int retval = parse_gps_image(&fit, &qhy_header);
