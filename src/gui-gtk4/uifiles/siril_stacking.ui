@@ -47,8 +47,7 @@
             <property name="spacing">10</property>
             <child>
               <object class="GtkExpander" id="stack_expander_method">
-                <property name="sensitive">0</property>
-                <property name="expanded">0</property>
+                <property name="expanded">1</property>
                 <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
@@ -155,15 +154,6 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Faster normalisation</property>
                                 <property name="tooltip-text" translatable="yes">By default, Siril uses IKSS estimators of location and scale to compute normalisation. For long sequences, computing these estimators can be quite intensive. For such cases, you can opt in for faster estimators (based on median and median absolute deviation). While less resistant to outliers in each image, they can still give a satisfactory result when compared to no normalization at all.</property>
-                                <property name="valign">center</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="check_norm_local">
-                                <property name="focusable">1</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Local normalisation</property>
-                                <property name="tooltip-text" translatable="yes">Computes a spatially varying (local) normalisation that corrects local background gradients between images, instead of a single coefficient per image. Requires registration data with simple shifts. Not compatible with maximize framing, upscale or normalization on overlaps.</property>
                                 <property name="valign">center</property>
                               </object>
                             </child>
@@ -876,8 +866,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
             </child>
             <child>
               <object class="GtkExpander" id="stack_expander_output">
-                <property name="sensitive">0</property>
-                <property name="expanded">0</property>
+                <property name="expanded">1</property>
                 <property name="focusable">1</property>
                 <child>
                   <object class="GtkBox">
