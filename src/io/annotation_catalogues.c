@@ -400,7 +400,7 @@ GSList *find_objects_in_field(fits *fit) {
 			siril_log_debug("Could not read the dates of the first and last frames of the sequence\n");
 			is_seq_with_dates = FALSE;
 		}
-	} else if (fit->keywords.expstart != 0. && fit->keywords.expend != 0.) {
+	} else if (fit->keywords.expstart != DEFAULT_DOUBLE_VALUE && fit->keywords.expend != DEFAULT_DOUBLE_VALUE) {
 		tstart = fit->keywords.expstart;
 		tend = fit->keywords.expend;
 		is_seq_with_dates = TRUE;
