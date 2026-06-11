@@ -25,6 +25,7 @@ siril-1.5.0
 * Added Search Entry in the Script menu to filter scripts by name (!1042)
 * Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
 * Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
+* Added displaying velocity vectors for SSO annotations (!1045)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
