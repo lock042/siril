@@ -542,10 +542,6 @@ static void seq_build_columnview(void) {
 
 	#undef ADD_LBL_COLUMN
 
-	/* Now that the columns (and their sorters) exist, wire the sort chain:
-	 * seq_store → seq_sortmodel (driven by the view's sorter) → seq_selection.
-	 * gtk_sort_list_model_new() and gtk_column_view_get_sorter() both transfer
-	 * a ref we must own, hence the explicit g_object_ref on the sorter. */
 	GtkSorter *view_sorter = gtk_column_view_get_sorter(seq_columnview);
 	seq_sortmodel = gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(seq_store)),
 			view_sorter ? g_object_ref(view_sorter) : NULL);
