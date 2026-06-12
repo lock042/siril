@@ -56,19 +56,11 @@ stack_method stacking_methods[] = {
 	stack_mpp_handler
 };
 
-/* Mpp drizzle scale combo. User picks a scale factor; the dispatcher
- * (mpp_stack_apply) then performs all scaling via cv::resize. Items are
- * static — sequence-type-specific gating happens at run time. */
-typedef struct {
-	double scale;   /* 1.0 = off; 1.5 / 2.0 / 3.0 = drizzle */
-} mpp_drizzle_choice;
-
-#define MPP_DRIZZLE_CHOICES_MAX 8
-static mpp_drizzle_choice mpp_drizzle_choices[MPP_DRIZZLE_CHOICES_MAX];
-static int mpp_drizzle_choice_count = 0;
-
-static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo);
-void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data);
+/* Mpp drizzle scale dropdown. User picks a scale factor; the dispatcher
+ * (mpp_stack_apply) then performs all scaling via cv::resize. Entries map
+ * one-to-one to the GtkStringList items in siril_stacking.ui (1x / 1.5x /
+ * 2x / 3x); sequence-type-specific gating happens at run time. */
+static const double mpp_drizzle_scales[] = { 1.0, 1.5, 2.0, 3.0 };
 
 void initialize_stacking_methods() {
 	init_stacking_args(&stackparam);
@@ -116,7 +108,7 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
-	static GtkComboBox *mpp_drizzle_combo = NULL;
+	static GtkDropDown *mpp_drizzle_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
 	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
 	static GtkCheckButton *mpp_skip_failed = NULL;
@@ -143,9 +135,7 @@ static void start_stacking() {
 		overlap_norm = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
 		force32b = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
-		mpp_drizzle_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
-		/* Populate the scale combo (1x / 1.5x / 2x / 3x). */
-		mpp_drizzle_combo_repopulate(GTK_COMBO_BOX_TEXT(mpp_drizzle_combo));
+		mpp_drizzle_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
@@ -257,10 +247,10 @@ static void start_stacking() {
 	if (stackparam.method == stack_mpp_handler) {
 		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
 		mpp_config_defaults(cfg);
-		const int driz_idx = gtk_combo_box_get_active(mpp_drizzle_combo);
-		if (driz_idx >= 0 && driz_idx < mpp_drizzle_choice_count)
-			cfg->drizzle_scale = mpp_drizzle_choices[driz_idx].scale;
-		else
+		const guint driz_idx = gtk_drop_down_get_selected(mpp_drizzle_combo);
+		if (driz_idx < G_N_ELEMENTS(mpp_drizzle_scales))
+			cfg->drizzle_scale = mpp_drizzle_scales[driz_idx];
+		else	/* GTK_INVALID_LIST_POSITION */
 			cfg->drizzle_scale = 1.0;
 		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* dobox disabled; scaling via cv::resize */
 		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
@@ -274,53 +264,6 @@ static void start_stacking() {
 	if (!start_in_new_thread(stack_function_handler, params)) {
 		stacking_args_deep_free(params);
 	}
-}
-
-/* Append one drizzle-scale choice. */
-static void mpp_drizzle_combo_append(GtkComboBoxText *combo,
-                                     const char *label, double scale) {
-	if (mpp_drizzle_choice_count >= MPP_DRIZZLE_CHOICES_MAX) return;
-	gtk_combo_box_text_append_text(combo, label);
-	mpp_drizzle_choices[mpp_drizzle_choice_count].scale = scale;
-	mpp_drizzle_choice_count++;
-}
-
-/* Populate the output-scale combo. All scaling is done by cv::resize in the
- * classical stack, so this is just a plain scale-factor selector. */
-static void mpp_drizzle_combo_repopulate(GtkComboBoxText *combo) {
-	if (!combo) return;
-
-	const int prev_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-	double prev_scale = 1.0;
-	if (prev_idx >= 0 && prev_idx < mpp_drizzle_choice_count)
-		prev_scale = mpp_drizzle_choices[prev_idx].scale;
-
-	g_signal_handlers_block_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
-	gtk_combo_box_text_remove_all(combo);
-	mpp_drizzle_choice_count = 0;
-
-	mpp_drizzle_combo_append(combo, _("1x"),   1.0);
-	mpp_drizzle_combo_append(combo, _("1.5x"), 1.5);
-	mpp_drizzle_combo_append(combo, _("2x"),   2.0);
-	mpp_drizzle_combo_append(combo, _("3x"),   3.0);
-
-	int new_idx = 0;
-	for (int i = 0; i < mpp_drizzle_choice_count; ++i) {
-		if (fabs(mpp_drizzle_choices[i].scale - prev_scale) < 0.01) {
-			new_idx = i;
-			break;
-		}
-	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), new_idx);
-	g_signal_handlers_unblock_by_func(combo, on_combo_mpp_drizzle_changed, NULL);
-	on_combo_mpp_drizzle_changed(GTK_COMBO_BOX(combo), NULL);
-}
-
-/* The scale combo's "changed" signal. No dependent widgets to show/hide
- * (scaling moved to cv::resize), so this is a no-op kept as the .ui target. */
-void on_combo_mpp_drizzle_changed(GtkComboBox *combo, gpointer user_data) {
-	(void) combo;
-	(void) user_data;
 }
 
 void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
@@ -814,10 +757,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		expander_clear_stuck_insensitive(GTK_WIDGET(stack_expander_method));
 		expander_clear_stuck_insensitive(GTK_WIDGET(stack_expander_output));
 	}
-	/* Refresh the mpp drizzle-scale combo (1x / 1.5x / 2x / 3x), preserving
-	 * the previous selection by factor when still applicable. */
-	mpp_drizzle_combo_repopulate(
-	    GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle")));
 	if (!seqloaded) {
 		return;
 	}
