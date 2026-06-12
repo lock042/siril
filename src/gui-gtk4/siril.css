@@ -83,6 +83,13 @@ check:not(:checked):not(:indeterminate) {
    background-color: transparent;
 }
 
+/* Adwaita's .toolbar style class spaces consecutive items by 6px
+ * (border-spacing). The GTK3 GtkToolbar packed its icons much tighter, so
+ * tighten the gap back up on the main toolbar to recover the historical look. */
+#GtkToolMainBar {
+   border-spacing: 1px;
+}
+
 /* ISO 12646 viewing conditions: D50 gray surround on the four viewport
  * vboxes and a white background under the drawingarea so the image sits
  * on a paper-white target.  Toggled via icc_profile.c
