@@ -3080,7 +3080,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="tooltip-text" translatable="yes">High value</property>
                         <property name="truncate-multiline">1</property>
                         <property name="valign">center</property>
-                        <property name="width-chars">7</property>
+                        <property name="width-chars">5</property>
+                        <property name="xalign">1</property>
                         <signal name="changed" handler="on_max_entry_changed"/>
                       </object>
                     </child>
@@ -3115,7 +3116,8 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                         <property name="tooltip-text" translatable="yes">Low value</property>
                         <property name="truncate-multiline">1</property>
                         <property name="valign">center</property>
-                        <property name="width-chars">7</property>
+                        <property name="width-chars">5</property>
+                        <property name="xalign">1</property>
                         <signal name="changed" handler="on_min_entry_changed"/>
                       </object>
                     </child>
@@ -3184,6 +3186,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                             </child>
                             <child>
                               <object class="GtkImage" id="display_button_arrow">
+                                <property name="name">display_button_arrow</property>
                                 <property name="icon-name">pan-down-symbolic</property>
                                 <property name="valign">center</property>
                               </object>

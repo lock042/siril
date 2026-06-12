@@ -504,6 +504,11 @@ columnview.siril-dense-rows listview > row > cell {
    -gtk-icon-size: 32px;
 }
 
+
+#GtkToolMainBar #display_button_arrow {
+   -gtk-icon-size: 16px;
+}
+
 /* Script-status traffic light: image_log is a GtkLabel showing the
  * Unicode BLACK CIRCLE (U+25CF), tinted red while idle and green while
  * a script is running.  Painting the dot as text rather than as a
