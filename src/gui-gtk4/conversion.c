@@ -86,7 +86,7 @@ static GtkEntry *conv_start_entry = NULL;
 static GtkWidget *conv_go_button = NULL;
 static GtkLabel *conv_status_label = NULL;
 static GtkEntry *conv_root_entry = NULL;
-static GtkComboBox *conv_avi_bayer_combo = NULL;
+static GtkDropDown *conv_avi_bayer_combo = NULL;
 static GtkWidget *conv_avi_bayer_label = NULL;
 
 static void conversion_init_statics(void) {
@@ -98,12 +98,8 @@ static void conversion_init_statics(void) {
 	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
 	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
 	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
-	conv_avi_bayer_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_convert_avi_bayer"));
+	conv_avi_bayer_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_convert_avi_bayer"));
 	conv_avi_bayer_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_convert_avi_bayer"));
-	/* GTK4 GtkComboBoxText applies the .ui "active" before its <items> are
-	 * added, leaving it blank; set the default (Auto) in code. */
-	if (conv_avi_bayer_combo)
-		gtk_combo_box_set_active(conv_avi_bayer_combo, 0);
 }
 
 static void check_for_conversion_form_completeness();
@@ -427,7 +423,7 @@ static void initialize_convert() {
 	args->multiple_output = multiple;
 	{
 		const int ab = (there_is_a_film && conv_avi_bayer_combo)
-		             ? gtk_combo_box_get_active(conv_avi_bayer_combo)
+		             ? (int) gtk_drop_down_get_selected(conv_avi_bayer_combo)
 		             : MPP_AVI_BAYER_AUTO;
 		args->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
 		                       ? ab : MPP_AVI_BAYER_AUTO;

@@ -1033,17 +1033,21 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                               </object>
                                                                             </child>
                                                                             <child>
-                                                                              <object class="GtkComboBoxText" id="combo_mpp_avi_bayer">
+                                                                              <object class="GtkDropDown" id="combo_mpp_avi_bayer">
                                                                                 <property name="tooltip-text" translatable="1">AVI files carry no colour-filter (Bayer) marker, so Siril can&apos;t tell a mono video from a one-shot-colour one. Auto lets Siril guess. None forces mono. The four Bayer values mark the video as raw one-shot-colour with that filter pattern, so Siril debayers it to colour before stacking.</property>
-                                                                                <property name="active">0</property>
-                                                                                <items>
-                                                                                  <item translatable="yes">Auto</item>
-                                                                                  <item translatable="yes">None (mono)</item>
-                                                                                  <item translatable="yes">RGGB</item>
-                                                                                  <item translatable="yes">BGGR</item>
-                                                                                  <item translatable="yes">GBRG</item>
-                                                                                  <item translatable="yes">GRBG</item>
-                                                                                </items>
+                                                                                <property name="model">
+                                                                                  <object class="GtkStringList">
+                                                                                    <items>
+                                                                                      <item translatable="yes">Auto</item>
+                                                                                      <item translatable="yes">None (mono)</item>
+                                                                                      <item translatable="yes">RGGB</item>
+                                                                                      <item translatable="yes">BGGR</item>
+                                                                                      <item translatable="yes">GBRG</item>
+                                                                                      <item translatable="yes">GRBG</item>
+                                                                                    </items>
+                                                                                  </object>
+                                                                                </property>
+                                                                                <property name="selected">0</property>
                                                                                 <layout>
                                                                                   <property name="column">3</property>
                                                                                   <property name="row">5</property>
@@ -1135,13 +1139,17 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                               </object>
                                                                             </child>
                                                                             <child>
-                                                                              <object class="GtkComboBoxText" id="combo_mpp_align_mode">
+                                                                              <object class="GtkDropDown" id="combo_mpp_align_mode">
                                                                                 <property name="tooltip-text" translatable="1">Global frame alignment. Planet (default) aligns on the brightness centroid — robust for a full disc on a dark background. Surface correlates an auto-picked detail patch (Moon, Sun, planetary surface).</property>
-                                                                                <property name="active">1</property>
-                                                                                <items>
-                                                                                  <item translatable="yes">Surface (detail)</item>
-                                                                                  <item translatable="yes">Planet (disc)</item>
-                                                                                </items>
+                                                                                <property name="model">
+                                                                                  <object class="GtkStringList">
+                                                                                    <items>
+                                                                                      <item translatable="yes">Surface (detail)</item>
+                                                                                      <item translatable="yes">Planet (disc)</item>
+                                                                                    </items>
+                                                                                  </object>
+                                                                                </property>
+                                                                                <property name="selected">1</property>
                                                                                 <layout>
                                                                                   <property name="column">1</property>
                                                                                   <property name="row">5</property>

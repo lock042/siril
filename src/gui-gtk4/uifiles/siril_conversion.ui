@@ -216,18 +216,22 @@ Colour image target also applies to the debayer result for conversion.</property
                           </object>
                         </child>
                         <child>
-                          <object class="GtkComboBoxText" id="combo_convert_avi_bayer">
+                          <object class="GtkDropDown" id="combo_convert_avi_bayer">
                             <property name="visible">0</property>
                             <property name="tooltip-text" translatable="yes">AVI containers carry no Bayer marker. For a raw mosaic captured into AVI (e.g. an OSC planetary stream), pick the camera&apos;s Bayer pattern and the converted SER / FITS / FITSEQ frames will carry it (SER ColorID, FITS BAYERPAT). Auto / None leave the converted output mono. Ignored for AVI frames that autodetect as 3-channel colour and for non-AVI inputs.</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">Auto</item>
-                              <item translatable="yes">None (mono)</item>
-                              <item translatable="yes">RGGB</item>
-                              <item translatable="yes">BGGR</item>
-                              <item translatable="yes">GBRG</item>
-                              <item translatable="yes">GRBG</item>
-                            </items>
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Auto</item>
+                                  <item translatable="yes">None (mono)</item>
+                                  <item translatable="yes">RGGB</item>
+                                  <item translatable="yes">BGGR</item>
+                                  <item translatable="yes">GBRG</item>
+                                  <item translatable="yes">GRBG</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">0</property>
                           </object>
                         </child>
                         <layout>

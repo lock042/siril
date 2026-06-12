@@ -142,9 +142,9 @@ static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_fra
 /* GTK4: GtkCheckButton no longer derives from GtkToggleButton, so these are
  * GtkWidget* and read via siril_toggle_get_active. */
 static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
-static GtkComboBox *combo_mpp_avi_bayer = NULL;
+static GtkDropDown *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
-static GtkComboBox *combo_mpp_align_mode = NULL;
+static GtkDropDown *combo_mpp_align_mode = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 
@@ -290,17 +290,9 @@ static void registration_init_statics() {
 		check_mpp_normalize        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
 		check_mpp_seed             = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_seed"));
 		check_mpp_fast_changing    = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_fast_changing"));
-		combo_mpp_avi_bayer        = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
+		combo_mpp_avi_bayer        = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
-		combo_mpp_align_mode       = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
-		/* GtkComboBoxText applies the .ui "active" property before its <items>
-		 * are added under GTK4, so the selection lands on an empty model and
-		 * resets to blank. Set the defaults in code so they actually take:
-		 * align mode = Planet (disc), AVI Bayer = Auto. */
-		if (combo_mpp_align_mode)
-			gtk_combo_box_set_active(combo_mpp_align_mode, MPP_ALIGN_PLANET);
-		if (combo_mpp_avi_bayer)
-			gtk_combo_box_set_active(combo_mpp_avi_bayer, MPP_AVI_BAYER_AUTO);
+		combo_mpp_align_mode       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -1000,7 +992,7 @@ static void mpp_autoselect_align_mode() {
 	}
 	gboolean disc = mpp_frame_has_disc(&first);
 	clearfits(&first);
-	gtk_combo_box_set_active(combo_mpp_align_mode,
+	gtk_drop_down_set_selected(combo_mpp_align_mode,
 			disc ? MPP_ALIGN_PLANET : MPP_ALIGN_SURFACE);
 	siril_log_message(disc ?
 			_("Disc-like object detected in the first frame: defaulting global alignment to Planet (disc)\n") :
@@ -1391,13 +1383,13 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->frames_normalization                  = siril_toggle_get_active(check_mpp_normalize);
 		cfg->align_frames_seed_from_regdata        = siril_toggle_get_active(check_mpp_seed);
 		{
-			const int ab = combo_mpp_avi_bayer ? gtk_combo_box_get_active(combo_mpp_avi_bayer) : 0;
+			const int ab = combo_mpp_avi_bayer ? (int) gtk_drop_down_get_selected(combo_mpp_avi_bayer) : 0;
 			cfg->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
 			                       ? ab : MPP_AVI_BAYER_AUTO;
 		}
 		{
 			/* Combo item indices match the enum: 0 = Surface, 1 = Planet. */
-			const int am = combo_mpp_align_mode ? gtk_combo_box_get_active(combo_mpp_align_mode) : 0;
+			const int am = combo_mpp_align_mode ? (int) gtk_drop_down_get_selected(combo_mpp_align_mode) : 0;
 			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
 			                                                  : MPP_ALIGN_SURFACE;
 		}
