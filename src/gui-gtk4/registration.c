@@ -46,6 +46,7 @@
 #include "algos/statistics.h"
 #include "registration/registration.h"
 #include "registration/mpp.h"
+#include "registration/mpp/mpp_align.h"
 #include "registration/mpp/mpp_config.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
 #include "registration/3stars.h"
@@ -977,6 +978,35 @@ struct registration_method *get_selected_registration_method(int *index) {
 	return reg_methods[ind];
 }
 
+/* Pick the default global alignment mode when the multipoint method is
+ * selected: analyse the first frame of the sequence and default to
+ * Planet (disc) if it shows a disc-like object surrounded by sky,
+ * Surface otherwise. Runs once per loaded sequence so it never
+ * overrides a choice the user has made since. */
+static void mpp_autoselect_align_mode() {
+	static gchar *analysed_seqname = NULL;
+
+	if (!combo_mpp_align_mode || !sequence_is_loaded())
+		return;
+	if (!g_strcmp0(analysed_seqname, com.seq.seqname))
+		return;
+	g_free(analysed_seqname);
+	analysed_seqname = g_strdup(com.seq.seqname);
+
+	fits first = { 0 };
+	if (seq_read_frame(&com.seq, 0, &first, FALSE, -1)) {
+		siril_log_debug("could not read the first frame for disc detection\n");
+		return;
+	}
+	gboolean disc = mpp_frame_has_disc(&first);
+	clearfits(&first);
+	gtk_combo_box_set_active(combo_mpp_align_mode,
+			disc ? MPP_ALIGN_PLANET : MPP_ALIGN_SURFACE);
+	siril_log_message(disc ?
+			_("Disc-like object detected in the first frame: defaulting global alignment to Planet (disc)\n") :
+			_("No disc detected in the first frame: defaulting global alignment to Surface\n"));
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -1148,6 +1178,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	} else if (regindex == REG_MPP) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_MPP);
+		mpp_autoselect_align_mode();
 	}
 
 	/* AVI Bayer-pattern picker: only meaningful for SEQ_AVI sequences

@@ -212,6 +212,67 @@ Test(mpp_align, cog_is_subpixel_not_rounded) {
 	cr_assert_float_eq(cog[1], 10.5, 1e-9, "cog x: got %g (must be sub-pixel)", cog[1]);
 }
 
+/* ---- Disc detection (default-align-mode helper) ------------------------ */
+
+/* Wrap a CV_16U mono Mat as a fits header for the C-level API (no copy). */
+static fits fits_of(cv::Mat &m) {
+	fits f = {};
+	f.rx = (unsigned) m.cols;
+	f.ry = (unsigned) m.rows;
+	f.naxis = 2;
+	f.naxes[0] = m.cols;
+	f.naxes[1] = m.rows;
+	f.naxes[2] = 1;
+	f.type = DATA_USHORT;
+	f.data = (WORD *) m.data;
+	f.orig_bitpix = 16;
+	return f;
+}
+
+/* A round planet fully inside the frame is a disc. */
+Test(mpp_align, disc_detected_for_centred_planet) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 100), 50, cv::Scalar(50000), -1);
+	fits f = fits_of(m);
+	cr_assert(mpp_frame_has_disc(&f), "centred disc must be detected");
+}
+
+/* Saturn: an elongated, rotated ellipse still counts as a disc. */
+Test(mpp_align, disc_detected_for_saturn_like_ellipse) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::ellipse(m, cv::RotatedRect(cv::Point2f(120.f, 100.f),
+	                               cv::Size2f(130.f, 50.f), 25.f),
+	            cv::Scalar(45000), -1);
+	fits f = fits_of(m);
+	cr_assert(mpp_frame_has_disc(&f), "Saturn-like ellipse must be detected");
+}
+
+/* A surface close-up (bright structure out to the frame edges) is not. */
+Test(mpp_align, no_disc_for_surface_frame) {
+	cv::Mat m(200, 240, CV_16U);
+	for (int y = 0; y < m.rows; ++y)
+		for (int x = 0; x < m.cols; ++x)
+			m.at<uint16_t>(y, x) = (uint16_t) (20000 + 30000.0 * x / m.cols);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "edge-to-edge surface is not a disc");
+}
+
+/* A limb shot — the disc runs off the frame edge — must pick Surface too. */
+Test(mpp_align, no_disc_when_object_touches_edge) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 0), 60, cv::Scalar(50000), -1);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "edge-clipped disc is a surface case");
+}
+
+/* A lone star (few bright pixels) has no disc-like extent. */
+Test(mpp_align, no_disc_for_single_star) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 100), 1, cv::Scalar(60000), -1);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "a lone star is not a disc");
+}
+
 /* Planet mode recovers known per-frame shifts via centroid displacement.
  * A rigidly translated image has a centroid that shifts by exactly the same
  * amount, so the internal texture is irrelevant. */

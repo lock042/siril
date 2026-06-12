@@ -18,6 +18,12 @@ mpp_status_t mpp_align_global(sequence *seq, const mpp_config_t *cfg,
                               int patch_yxyx_out[4],
                               fits *avg_ref_out);
 
+/* TRUE if `fit` shows a disc-like object: a bright body (round, or
+ * elongated like Saturn) completely surrounded by dark sky, as opposed
+ * to a lunar/solar surface that reaches the frame edges. Used by the
+ * GUI to pick the default global alignment mode (Planet vs Surface). */
+gboolean mpp_frame_has_disc(const fits *fit);
+
 #ifdef __cplusplus
 }
 #endif

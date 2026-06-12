@@ -59,6 +59,7 @@
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_align.h"
 #include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_image_priv.hpp"
 
 namespace mpp {
 
@@ -826,4 +827,48 @@ extern "C" mpp_status_t mpp_align_global(sequence *seq,
 	(void) shifts_out; (void) patch_yxyx_out; (void) avg_ref_out;
 	/* Sequence integration lands with mpp_frames (Phase 1.3 / 2). */
 	return MPP_ENOTIMPL;
+}
+
+extern "C" gboolean mpp_frame_has_disc(const fits *fit) {
+	cv::Mat layer = mpp::wrap_fits_layer(fit, mpp::analysis_layer_for(fit));
+	if (layer.empty() || layer.rows < 16 || layer.cols < 16)
+		return FALSE;
+
+	/* Bin down to <= 256 px on the long side with area averaging. This
+	 * suppresses hot pixels and noise, and averages over CFA mosaics so
+	 * the test also works on raw Bayer frames. */
+	cv::Mat small_f;
+	layer.convertTo(small_f, CV_32F);
+	const int maxdim = std::max(small_f.rows, small_f.cols);
+	if (maxdim > 256) {
+		const double scale = 256.0 / maxdim;
+		cv::resize(small_f, small_f, cv::Size(), scale, scale, cv::INTER_AREA);
+	}
+	cv::GaussianBlur(small_f, small_f, cv::Size(3, 3), 0.0);
+
+	/* Mid-range threshold, same convention as center_of_gravity(). */
+	double min_val = 0.0, max_val = 0.0;
+	cv::minMaxLoc(small_f, &min_val, &max_val);
+	if (max_val <= min_val)
+		return FALSE;	/* flat frame, nothing to detect */
+	const cv::Mat mask = small_f > (min_val + max_val) / 2.0;
+
+	/* The object must have some extent: a handful of bright pixels is a
+	 * star (or noise), not a disc. */
+	const int npix = small_f.rows * small_f.cols;
+	const int bright = cv::countNonZero(mask);
+	if (bright < std::max(9, npix / 1000))
+		return FALSE;
+
+	/* A disc — round or elongated like Saturn — is a bright object
+	 * completely surrounded by sky, so (almost) no bright pixel may lie
+	 * in a thin band along the frame edges. A surface close-up always
+	 * reaches at least one edge. The 0.5 % tolerance forgives residual
+	 * noise in the band without letting a real limb through. */
+	const int band = std::max(2, std::min(small_f.rows, small_f.cols) / 50);
+	const cv::Rect inner_rect(band, band,
+	                          small_f.cols - 2 * band, small_f.rows - 2 * band);
+	const int border_bright = bright - cv::countNonZero(mask(inner_rect));
+	const int border_pix = npix - inner_rect.width * inner_rect.height;
+	return border_bright <= border_pix / 200;
 }
