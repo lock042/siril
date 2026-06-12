@@ -2657,6 +2657,15 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("main_panel"), "notify::position",
 	                 G_CALLBACK(on_main_panel_position_changed), NULL);
 
+	/* Set the initial state of the registration/stacking expanders for the
+	 * no-sequence-loaded case: collapsed and insensitive. The .ui no longer
+	 * hard-codes this (it caused a stuck-insensitive GtkExpander subtree in
+	 * GTK4); instead we drive it from the runtime update functions, which
+	 * also handle re-enabling and the stuck-flag clearing when a sequence is
+	 * later loaded. */
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+
 	gui_ready = TRUE;
 }
 
