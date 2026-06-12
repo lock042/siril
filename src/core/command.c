@@ -14641,6 +14641,13 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
 		cfg->alignment_points_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
 	}
+	if (accept_stack && !strcmp(arg, "-skip-failed-aps")) {
+		/* Drop (frame, AP) contributions whose Stage B shift measurement
+		 * failed instead of stacking them at the coarse phase-1 estimate.
+		 * Per-AP weight sums are reduced to match, so brightness is
+		 * unaffected. */
+		cfg->stack_skip_failed_aps = TRUE; return MPP_FLAG_OK;
+	}
 	if (accept_stack && g_str_has_prefix(arg, "-bg-fraction=")) {
 		cfg->stack_frames_background_fraction = atof(arg + 13); return MPP_FLAG_OK;
 	}

@@ -62,6 +62,12 @@ struct mpp_config {
 	double stack_frames_background_fraction;     /* 0.3 */
 	double stack_frames_background_blend_threshold; /* 0.2 */
 	int stack_frames_background_patch_size;      /* 100 */
+	bool stack_skip_failed_aps;                  /* false — drop (frame, AP)
+	    contributions whose Stage B shift measurement failed instead of
+	    stacking them at the coarse phase-1 estimate.  Per-AP weight sums
+	    are reduced accordingly so brightness is unaffected.  An AP whose
+	    measurements ALL failed keeps stacking everything (a misaligned
+	    patch beats a hole). */
 
 	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
 	 * routes to STScI dobox for mono / RGB input and Bayer dobox for raw

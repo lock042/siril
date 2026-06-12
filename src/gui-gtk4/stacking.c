@@ -119,6 +119,7 @@ static void start_stacking() {
 	static GtkComboBox *mpp_drizzle_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
 	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
+	static GtkCheckButton *mpp_skip_failed = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -149,6 +150,7 @@ static void start_stacking() {
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
 		mpp_bg_blend      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_blend"));
+		mpp_skip_failed   = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_skip_failed"));
 	}
 
 	if (processing_is_job_active()) {
@@ -265,6 +267,7 @@ static void start_stacking() {
 		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
+		cfg->stack_skip_failed_aps                   = siril_toggle_get_active(GTK_WIDGET(mpp_skip_failed));
 		params->mpp_cfg = cfg;
 	}
 

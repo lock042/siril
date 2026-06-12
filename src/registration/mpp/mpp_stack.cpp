@@ -59,6 +59,7 @@
 
 #include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
 #include "core/processing.h"                   /* processing_should_continue */
+#include "core/siril_log.h"
 
 #include <set>
 
@@ -262,7 +263,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       int stack_size,
                                       double drizzle_scale,
                                       int num_layers,
-                                      const mpp_config_t &cfg) {
+                                      const mpp_config_t &cfg,
+                                      const std::vector<int> *ap_effective_counts) {
 	StackState s;
 	s.drizzle_scale  = drizzle_scale;
 	s.stack_size     = stack_size;
@@ -317,10 +319,16 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		s.stacking_buffers.push_back(cv::Mat(wyx.rows, wyx.cols, buf_type,
 		                                     cv::Scalar(0, 0, 0)));
 
-		/* Accumulate stack_size × weights_yx into the global buffer. */
+		/* Accumulate (per-AP frame count) × weights_yx into the global
+		 * buffer.  The count is stack_size unless the caller drops failed
+		 * (frame, AP) contributions (stack_skip_failed_aps), in which case
+		 * it passes the per-AP effective counts so the normalisation
+		 * matches what actually gets accumulated. */
+		const float ap_count_f = ap_effective_counts
+		    ? (float) (*ap_effective_counts)[a] : stack_size_f;
 		cv::Mat dst = s.sum_single_frame_weights(
 		    cv::Range(py_lo, py_hi), cv::Range(px_lo, px_hi));
-		dst += stack_size_f * wyx;
+		dst += ap_count_f * wyx;
 	}
 
 	cv::Mat hole_mask;
@@ -504,11 +512,55 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	 * coordinate is original × S rounded to the nearest pixel, and each
 	 * frame is cv::resize'd to S× before its patches are accumulated. */
 	const double S = std::max(1.0, cfg.drizzle_scale);
-	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
-	                                       S, num_layers, cfg);
-	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
-
 	const int M = aps.count;
+
+	/* Optional drop of failed (frame, AP) contributions.  Decided up
+	 * front from shifts->success so (a) the per-AP weight sums in
+	 * stack_prepare_for_blending can be reduced to match (otherwise the
+	 * skipped patches would render dark), and (b) the frame-parallel
+	 * accumulation below needs no extra synchronisation.  An AP whose
+	 * used pairs ALL failed keeps stacking everything: a coarsely
+	 * aligned patch beats a hole in the output. */
+	const bool skip_failed = cfg.stack_skip_failed_aps && shifts != nullptr;
+	std::vector<uint8_t> ap_skip_enabled;
+	std::vector<int> ap_eff_counts;
+	if (skip_failed) {
+		std::vector<int> failed(M, 0);
+		std::vector<int> used(M, 0);
+		for (int f = 0; f < N; ++f) {
+			if (included && !included[f]) continue;
+			for (int a : apq.used_alignment_points[f]) {
+				++used[a];
+				if (!shifts->success[(size_t) f * M + a]) ++failed[a];
+			}
+		}
+		ap_skip_enabled.assign(M, 0);
+		ap_eff_counts.assign(M, apq.stack_size);
+		int dropped = 0, saturated_aps = 0;
+		for (int a = 0; a < M; ++a) {
+			if (failed[a] == 0) continue;
+			if (failed[a] >= used[a]) {   /* nothing measurable at this AP */
+				++saturated_aps;
+				continue;
+			}
+			ap_skip_enabled[a] = 1;
+			ap_eff_counts[a] = used[a] - failed[a];
+			dropped += failed[a];
+		}
+		if (dropped > 0)
+			siril_log_message(_("Stack: dropping %d frame/alignment-point "
+			                    "pairs with failed shift measurements\n"),
+			                  dropped);
+		if (saturated_aps > 0)
+			siril_log_message(_("Stack: %d alignment point(s) had no "
+			                    "successful shifts — stacking them "
+			                    "unfiltered\n"), saturated_aps);
+	}
+
+	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
+	                                       S, num_layers, cfg,
+	                                       skip_failed ? &ap_eff_counts : nullptr);
+	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
 	double median_brightness = 0.0;
 	if (cfg.frames_normalization) {
@@ -650,6 +702,9 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			const int dx_K = (int) std::lround(dx * S);
 
 			for (int a : apq.used_alignment_points[f]) {
+				if (skip_failed && ap_skip_enabled[a]
+				    && !shifts->success[(size_t) f * M + a])
+					continue;
 				const size_t soff = (size_t) (f * M + a) * 2;
 				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
 				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;

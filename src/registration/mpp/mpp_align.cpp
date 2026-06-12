@@ -330,6 +330,19 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	if (std::abs(shift_y1) == index_ext || std::abs(shift_x1) == index_ext)
 		return result;
 
+	/* From here on phase 1 has produced a usable coarse estimate: report
+	 * it even when phase 2 fails, with success=false.  Upstream PSS keeps
+	 * the phase-1 shift in exactly this way (miscellaneous.py
+	 * multilevel_correlation zeroes only the SECOND-phase component on a
+	 * phase-2 border hit) and its stacker then stacks the patch at the
+	 * phase-1 estimate.  Returning {0,0} here instead — as this port used
+	 * to — made every phase-2 failure stack its patch at global-only
+	 * alignment, several pixels off, which shows up as ghosted AP boxes
+	 * on difficult data.  Callers that must not consume a coarse-only
+	 * estimate (the global-align sweeps) already gate on `success`. */
+	result.dy = (double) shift_y1;
+	result.dx = (double) shift_x1;
+
 	/* Phase 2: ±4 around phase-1 result, full resolution. */
 	const int y_lo2 = y_low - shift_y1 - sw2;
 	const int y_hi2 = y_high - shift_y1 + sw2;

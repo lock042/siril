@@ -587,6 +587,18 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                                       </object>
                                                                     </child>
                                                                     <child>
+                                                                      <object class="GtkCheckButton" id="check_mpp_skip_failed">
+                                                                        <property name="label" translatable="1">Skip failed alignment-point shifts</property>
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Drop frame/alignment-point contributions whose local shift measurement failed instead of stacking them at the coarse estimate. Helps when ghosted, doubled patches appear in the stack. Alignment points with no successful measurement at all are stacked unfiltered.</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">5</property>
+                                                                          <property name="column-span">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
                                                                       <placeholder/>
                                                                     </child>
                                                                     <child>

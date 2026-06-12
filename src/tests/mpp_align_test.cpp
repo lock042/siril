@@ -402,3 +402,57 @@ Test(mpp_align, average_frame_basic) {
 	cr_assert_eq((int) r.indices_used.size(), n_target);
 }
 
+
+/* Upstream-parity: when phase 1 finds a coarse shift but phase 2 cannot run
+ * (its refinement window would leave the frame), the phase-1 estimate must be
+ * reported with success=false — NOT zeroed.  Upstream PSS keeps the phase-1
+ * component in exactly this situation and its stacker uses it; zeroing it
+ * made every phase-2 failure stack its patch at global-only alignment.
+ *
+ * Geometry: with search_width=14, sw1=5, the phase-1 window extends the box
+ * by index_ext=10 on each side, while phase 2 extends it by |shift1| + 4.
+ * Place the box 10 px from the bottom edge and inject a dy=-7 content shift:
+ * phase 1 fits exactly and locks ≈ +8 (even grid), phase 2 then needs
+ * y_high + 8 + 4 > y_high + 10 → out of bounds → phase-2 failure with a
+ * usable phase-1 estimate. */
+Test(mpp_align, multilevel_keeps_phase1_shift_on_phase2_failure) {
+	auto cfg = default_cfg();
+	const int search_width = 14;   /* AP-stage value: sw1 = 5, ext = 10 */
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+
+	/* Reference box in the textured centre. */
+	const int y_low = 60, y_high = 124, x_low = 80, x_high = 144;
+	cv::Mat ref_f32;
+	truth.convertTo(ref_f32, CV_32F);
+	const cv::Mat ref_window = ref_f32(cv::Range(y_low, y_high),
+	                                   cv::Range(x_low, x_high));
+	cv::Mat ref_first;
+	{
+		const int s = 2;
+		const int new_h = (ref_window.rows + s - 1) / s;
+		const int new_w = (ref_window.cols + s - 1) / s;
+		ref_first.create(new_h, new_w, CV_32F);
+		for (int y = 0; y < new_h; ++y)
+			for (int x = 0; x < new_w; ++x)
+				ref_first.at<float>(y, x) = ref_window.at<float>(y * s, x * s);
+	}
+
+	/* Shift content by dy=+8 (content moves down; recovery shift −8, exact
+	 * on phase 1's even grid) and crop the frame so only 10 px remain below
+	 * the box: the phase-1 window [y_low−10, y_high+10) fits exactly, but
+	 * phase 2 needs [.., y_high+8+4) — out of bounds → phase-2 failure with
+	 * a usable phase-1 estimate. */
+	const cv::Mat moved_full = shifted(truth, 8, 0);
+	const cv::Mat moved = moved_full(cv::Range(0, y_high + 10), cv::Range::all());
+
+	const auto r = mpp::multilevel_correlation(
+	    ref_window, ref_first, moved,
+	    y_low, y_high, x_low, x_high,
+	    cfg.frames_gauss_width, search_width,
+	    /*subpixel_solve=*/false, cv::Mat());
+
+	cr_assert_not(r.success, "phase 2 cannot fit in the cropped frame");
+	cr_assert(r.dy <= -7.0 && r.dy >= -9.0,
+	          "phase-1 estimate should be kept on failure (got dy=%g)", r.dy);
+	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)");
+}

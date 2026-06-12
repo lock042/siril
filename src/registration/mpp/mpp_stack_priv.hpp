@@ -137,7 +137,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       int stack_size,
                                       double drizzle_scale,
                                       int num_layers,
-                                      const mpp_config_t &cfg);
+                                      const mpp_config_t &cfg,
+                                      const std::vector<int> *ap_effective_counts = nullptr);
 
 /* Stage B: per-AP per-frame shift compute.
  *

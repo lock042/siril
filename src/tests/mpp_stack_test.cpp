@@ -396,3 +396,114 @@ Test(mpp_stack, apply_shifts_fractional_scale) {
 	mpp_shift_free(shifts);
 	mpp_ap_free(aps);
 }
+
+/* stack_skip_failed_aps: a (frame, AP) pair whose Stage B measurement failed
+ * is dropped from the stack (with its per-AP weight reduced to match), so a
+ * corrupted shift can no longer smear the patch.  An AP whose pairs ALL
+ * failed keeps stacking everything (fallback: misaligned beats hole). */
+Test(mpp_stack, skip_failed_aps_drops_corrupted_pairs) {
+	const auto cfg = default_cfg();
+	const cv::Mat truth = make_textured_frame();
+	const std::vector<std::pair<int, int>> jit = {
+	    {0, 0}, {-2, 1}, {3, -1}, {1, 2}, {-1, -2}, {2, 3}};
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (auto p : jit) {
+		const cv::Mat f = shifted(truth, p.first, p.second);
+		frames_raw.push_back(f);
+		frames_blurred.push_back(blurred(f, cfg));
+		q.push_back(0.5);
+	}
+	q[0] = 1.0;
+
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	auto cfg_no_fc = cfg;
+	cfg_no_fc.align_frames_fast_changing_object = false;
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 1);
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	std::vector<double> brightness;
+	for (const auto &f : frames_raw)
+		brightness.push_back(mpp::rank_average_brightness(f, cfg));
+	const auto apq = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg);
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+
+	std::vector<int> sorted(frames_raw.size());
+	std::iota(sorted.begin(), sorted.end(), 0);
+	std::sort(sorted.begin(), sorted.end(),
+	          [&q](int a, int b) { return q[a] > q[b]; });
+
+	const int M = aps->count;
+	/* The merged image is trimmed by the per-run RemapBorder, which a
+	 * corrupted shift can change — so compare on a fixed canvas window,
+	 * mapped into each run's image through its own border origin. */
+	auto run_merge = [&](const mpp_config_t &c) {
+		const auto out = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+		                                         offsets, brightness, sorted,
+		                                         avg.intersection, c, nullptr,
+		                                         /*max_threads=*/1);
+		const cv::Mat img = mpp::stack_merge_alignment_point_buffers(
+		    out.state, out.border, *aps, c);
+		const int m = 24;   /* canvas margin large enough to cover any border */
+		const int y0 = m - out.border.y_low, x0 = m - out.border.x_low;
+		const int h = out.state.dim_y_drizzled - 2 * m;
+		const int w = out.state.dim_x_drizzled - 2 * m;
+		return img(cv::Range(y0, y0 + h), cv::Range(x0, x0 + w)).clone();
+	};
+
+	/* Clean baseline (all measurements succeeded). */
+	const cv::Mat clean = run_merge(cfg);
+
+	/* Sabotage one pair: frame 3 at AP 0 gets a wildly wrong shift and a
+	 * failed flag — exactly what a Stage B failure looks like since
+	 * failures now retain a (possibly bad) coarse estimate. */
+	const int bad_f = 3, bad_a = 0;
+	shifts->shifts[(size_t)(bad_f * M + bad_a) * 2 + 0] = 9.0;
+	shifts->shifts[(size_t)(bad_f * M + bad_a) * 2 + 1] = -9.0;
+	shifts->success[(size_t)bad_f * M + bad_a] = 0;
+
+	cv::Mat diff;
+	double dmin = 0.0, err_noskip = 0.0, err_skip = 0.0;
+
+	const cv::Mat with_corruption = run_merge(cfg);
+	cv::absdiff(with_corruption, clean, diff);
+	cv::minMaxLoc(diff.reshape(1), &dmin, &err_noskip);
+
+	auto cfg_skip = cfg;
+	cfg_skip.stack_skip_failed_aps = true;
+	const cv::Mat skipped = run_merge(cfg_skip);
+	cv::absdiff(skipped, clean, diff);
+	cv::minMaxLoc(diff.reshape(1), &dmin, &err_skip);
+
+	/* The corrupted pair must visibly damage the no-skip stack, and the
+	 * skip option must essentially restore the clean result (dropping one
+	 * of six near-identical frames at one AP only moves the local average
+	 * by interpolation noise). */
+	cr_assert_gt(err_noskip, 100.0,
+	             "sabotaged pair should disturb the stack (err=%.0f)", err_noskip);
+	cr_assert_lt(err_skip, err_noskip / 4.0,
+	             "skip should beat no-skip (skip=%.0f, noskip=%.0f)",
+	             err_skip, err_noskip);
+
+	/* Saturated-AP fallback: when every pair of an AP failed, skipping is
+	 * disabled for that AP and the result matches the no-skip run. */
+	for (int f = 0; f < (int) frames_raw.size(); ++f)
+		shifts->success[(size_t)f * M + bad_a] = 0;
+	const cv::Mat sat_skip   = run_merge(cfg_skip);
+	const cv::Mat sat_noskip = run_merge(cfg);
+	cv::absdiff(sat_skip, sat_noskip, diff);
+	double sat_max = 0.0;
+	cv::minMaxLoc(diff.reshape(1), &dmin, &sat_max);
+	cr_assert_leq(sat_max, 0.0,
+	              "saturated AP must stack unfiltered (diff=%.0f)", sat_max);
+
+	mpp_shift_free(shifts);
+	mpp_ap_free(aps);
+}
