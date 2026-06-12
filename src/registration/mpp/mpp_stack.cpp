@@ -65,6 +65,115 @@
 
 namespace mpp {
 
+float stack_selection_weight(int rank, int stack_size, int taper) {
+	if (rank < 0) return 0.0f;
+	if (taper <= 0)
+		return rank < stack_size ? 1.0f : 0.0f;
+	const int plateau = stack_size - taper;
+	if (rank < plateau) return 1.0f;
+	if (rank >= stack_size + taper) return 0.0f;
+	/* Half-sample-centred raised cosine across the 2·taper ramp: the
+	 * cosine terms over the symmetric grid sum to zero, so Σw over all
+	 * ranks is exactly plateau + taper = stack_size. */
+	const double t = ((double) rank + 0.5 - (double) plateau)
+	               / (2.0 * (double) taper);
+	return (float) (0.5 * (1.0 + std::cos(M_PI * t)));
+}
+
+namespace {
+
+/* Soft-selection taper half-width for this run.
+ *
+ * The taper exists to make adjacent APs give a borderline frame nearly
+ * the same weight, so its natural width is the amount a frame's quality
+ * RANK jitters between adjacent APs around the cut at rank N. Where the
+ * quality-vs-rank curve is flat (many near-interchangeable frames) the
+ * jitter is large and a wide taper costs nothing in sharpness; where it
+ * is steep the jitter is small and the taper stays narrow, preserving
+ * selectivity. Measured as: for a bounded sample of adjacent AP pairs,
+ * the median |rank_b(f) − rank_a(f)| over frames ranked within ±K of N
+ * in AP a; T = 2 × median, clamped to [max(2, N/10), N/2] and to the
+ * hard limits T ≤ N − 1 (the plateau must be non-empty) and
+ * T ≤ num_frames − N (no taper without room above the cut — this also
+ * keeps the default 100% selection bit-identical to the hard path).
+ *
+ * Explicit frame-number mode (alignment_points_frame_number > 0) always
+ * returns 0: that option's contract is an exact N-frame stack. */
+int stack_compute_selection_taper(const std::vector<std::vector<double>> &qualities,
+                                  const mpp_aps_t &aps, int num_frames,
+                                  int stack_size, const mpp_config_t &cfg) {
+	if (cfg.alignment_points_frame_number > 0)
+		return 0;
+	const int N = stack_size;
+	const int room = num_frames - N;
+	const int hard_cap = std::min({N / 2, N - 1, room});
+	if (hard_cap <= 0 || aps.count < 2)
+		return 0;
+
+	/* Adjacent AP pairs (centre distance within 1.5 × grid step),
+	 * deterministically subsampled to a bounded count. */
+	const int step = mpp_cfg_step_size(&cfg);
+	const int thr = (step * 3) / 2;
+	std::vector<std::pair<int, int>> pairs;
+	for (int a = 0; a < aps.count; ++a) {
+		const auto &ra = aps.records[a];
+		for (int b = a + 1; b < aps.count; ++b) {
+			const auto &rb = aps.records[b];
+			if (std::abs(ra.y - rb.y) <= thr && std::abs(ra.x - rb.x) <= thr)
+				pairs.emplace_back(a, b);
+		}
+	}
+	const int MAX_PAIRS = 200;
+	const int stride = (int) pairs.size() > MAX_PAIRS
+	                 ? (int) (pairs.size() / MAX_PAIRS) + 1 : 1;
+
+	/* Per-AP rank-of-frame arrays, computed lazily for sampled APs only
+	 * (full argsort; the partial sort used for selection doesn't give
+	 * ranks past the cut). Ties broken by frame index for determinism. */
+	std::vector<std::vector<int>> rank_of(aps.count);
+	auto ranks = [&](int a) -> const std::vector<int> & {
+		if (rank_of[a].empty()) {
+			const auto &q = qualities[a];
+			std::vector<int> order(num_frames);
+			std::iota(order.begin(), order.end(), 0);
+			std::sort(order.begin(), order.end(),
+			          [&q](int x, int y) {
+				return q[x] > q[y] || (q[x] == q[y] && x < y);
+			});
+			rank_of[a].resize(num_frames);
+			for (int r = 0; r < num_frames; ++r)
+				rank_of[a][order[r]] = r;
+		}
+		return rank_of[a];
+	};
+
+	const int K = std::max(3, N / 10);
+	std::vector<int> jitter;
+	for (size_t pi = 0; pi < pairs.size(); pi += stride) {
+		const int a = pairs[pi].first, b = pairs[pi].second;
+		const auto &rka = ranks(a);
+		const auto &rkb = ranks(b);
+		for (int f = 0; f < num_frames; ++f) {
+			const int r = rka[f];
+			if (r < N - K || r >= N + K) continue;
+			jitter.push_back(std::abs(rkb[f] - r));
+		}
+	}
+
+	int T;
+	if (jitter.empty()) {
+		T = std::max(2, N / 10);   /* no measurable pairs — floor */
+	} else {
+		std::nth_element(jitter.begin(), jitter.begin() + jitter.size() / 2,
+		                 jitter.end());
+		const int median = jitter[jitter.size() / 2];
+		T = std::max(2 * median, std::max(2, N / 10));
+	}
+	return std::min(T, hard_cap);
+}
+
+}  // namespace
+
 std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_center,
                                         bool extend_low, bool extend_high) {
 	const int patch_size    = patch_high - patch_low;
@@ -125,7 +234,7 @@ cv::Mat stack_build_first_phase_weight_matrix(const mpp_config_t &cfg) {
 void stack_remap_rigid(const cv::Mat &frame, cv::Mat &buffer,
                        int shift_y, int shift_x,
                        int y_low, int y_high, int x_low, int x_high,
-                       RemapBorder &border) {
+                       RemapBorder &border, float weight) {
 	/* Rigid remap of the AP's patch into its stacking buffer. Tracks the
 	 * maximum clipped extent on each border so the final trim step can
 	 * remove the resulting artefact ring. */
@@ -164,13 +273,16 @@ void stack_remap_rigid(const cv::Mat &frame, cv::Mat &buffer,
 	                          cv::Range(x_low_src, x_high_src));
 	cv::Mat dst = buffer(cv::Range(y_low_dst, y_high_dst),
 	                     cv::Range(x_low_dst, x_high_dst));
-	dst += src;
+	if (weight == 1.0f)
+		dst += src;
+	else
+		cv::scaleAdd(src, weight, dst, dst);
 }
 
 void stack_remap_subpixel(const cv::Mat &frame, cv::Mat &buffer,
                           double shift_y, double shift_x,
                           int y_low, int y_high, int x_low, int x_high,
-                          RemapBorder &border) {
+                          RemapBorder &border, float weight) {
 	/* Fractional-shift companion to stack_remap_rigid: adds
 	 * frame[y_low+shift_y : y_high+shift_y, ...] into the buffer with the
 	 * fractional part of the shift resolved by Lanczos interpolation
@@ -183,7 +295,7 @@ void stack_remap_subpixel(const cv::Mat &frame, cv::Mat &buffer,
 	if ((fy < EPS || fy > 1.0 - EPS) && (fx < EPS || fx > 1.0 - EPS)) {
 		stack_remap_rigid(frame, buffer,
 		                  (int) std::lround(shift_y), (int) std::lround(shift_x),
-		                  y_low, y_high, x_low, x_high, border);
+		                  y_low, y_high, x_low, x_high, border, weight);
 		return;
 	}
 
@@ -237,7 +349,10 @@ void stack_remap_subpixel(const cv::Mat &frame, cv::Mat &buffer,
 	               cv::BORDER_REPLICATE);
 	cv::Mat dst = buffer(cv::Range(y_low_dst, y_high_dst),
 	                     cv::Range(x_low_dst, x_high_dst));
-	dst += patch;
+	if (weight == 1.0f)
+		dst += patch;
+	else
+		cv::scaleAdd(patch, weight, dst, dst);
 }
 
 APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
@@ -311,21 +426,34 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		}
 	}
 
-	/* Per-AP: pick top-N frame indices (descending quality, sliced to
-	 * [:stack_size]). */
+	/* Soft-selection taper (0 in explicit frame-number mode and whenever
+	 * there is no room above the cut — e.g. the default 100%). */
+	out.taper = stack_compute_selection_taper(out.qualities, aps, N,
+	                                          out.stack_size, cfg);
+	const int selected = std::min(N, out.stack_size + out.taper);
+
+	/* Per-AP: pick the top `selected` frame indices by descending quality
+	 * (index tie-break for determinism); entry k carries selection weight
+	 * stack_selection_weight(k, stack_size, taper). */
 	out.best_frame_indices.assign(M, {});
 	out.used_alignment_points.assign(N, {});
 	for (int a = 0; a < M; ++a) {
 		std::vector<int> indices(N);
 		std::iota(indices.begin(), indices.end(), 0);
 		const auto &q = out.qualities[a];
-		std::partial_sort(indices.begin(), indices.begin() + out.stack_size,
+		std::partial_sort(indices.begin(), indices.begin() + selected,
 		                  indices.end(),
-		                  [&q](int x, int y) { return q[x] > q[y]; });
+		                  [&q](int x, int y) {
+			return q[x] > q[y] || (q[x] == q[y] && x < y);
+		});
 		out.best_frame_indices[a].assign(indices.begin(),
-		                                 indices.begin() + out.stack_size);
-		for (int i = 0; i < out.stack_size; ++i)
-			out.used_alignment_points[indices[i]].push_back(a);
+		                                 indices.begin() + selected);
+		for (int i = 0; i < selected; ++i) {
+			const float w = stack_selection_weight(i, out.stack_size,
+			                                       out.taper);
+			if (w > 0.0f)
+				out.used_alignment_points[indices[i]].push_back({a, w});
+		}
 	}
 	return out;
 }
@@ -350,7 +478,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       double drizzle_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg,
-                                      const std::vector<int> *ap_effective_counts) {
+                                      const std::vector<float> *ap_effective_counts) {
 	StackState s;
 	s.drizzle_scale  = drizzle_scale;
 	s.stack_size     = stack_size;
@@ -409,13 +537,13 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		s.stacking_buffers.push_back(cv::Mat(wyx.rows, wyx.cols, buf_type,
 		                                     cv::Scalar(0, 0, 0)));
 
-		/* Accumulate (per-AP frame count) × weights_yx into the global
-		 * buffer.  The count is stack_size unless the caller drops failed
-		 * (frame, AP) contributions (stack_skip_failed_aps), in which case
-		 * it passes the per-AP effective counts so the normalisation
-		 * matches what actually gets accumulated. */
+		/* Accumulate (per-AP weight total) × weights_yx into the global
+		 * buffer.  The caller passes the per-AP accumulated-weight totals
+		 * (soft selection weights over included frames, less any dropped
+		 * failed pairs) so the normalisation matches exactly what gets
+		 * accumulated; stack_size is the fallback for direct callers. */
 		const float ap_count_f = ap_effective_counts
-		    ? (float) (*ap_effective_counts)[a] : stack_size_f;
+		    ? (*ap_effective_counts)[a] : stack_size_f;
 		s.ap_frame_counts.push_back(ap_count_f);
 		cv::Mat dst = s.sum_single_frame_weights(
 		    cv::Range(py_lo, py_hi), cv::Range(px_lo, px_hi));
@@ -535,7 +663,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		const double sub_x = dx_full - (double) dx;
 		const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
 		                                      * cached vector view in cached mode */
-		for (int a : apq.used_alignment_points[f]) {
+		for (const auto &u : apq.used_alignment_points[f]) {
+			const int a = u.ap;
 			const auto &ap = aps.records[a];
 			const MultilevelShiftResult r = multilevel_correlation(
 			    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
@@ -607,38 +736,50 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	const double S = std::max(1.0, cfg.drizzle_scale);
 	const int M = aps.count;
 
-	/* Optional drop of failed (frame, AP) contributions.  Decided up
-	 * front from shifts->success so (a) the per-AP weight sums in
-	 * stack_prepare_for_blending can be reduced to match (otherwise the
-	 * skipped patches would render dark), and (b) the frame-parallel
-	 * accumulation below needs no extra synchronisation.  An AP whose
-	 * used pairs ALL failed keeps stacking everything: a coarsely
-	 * aligned patch beats a hole in the output. */
+	/* Per-AP accumulated-weight totals (selection weights over included
+	 * frames). These feed stack_prepare_for_blending so the normalisation
+	 * matches exactly what the loop below accumulates — both for soft
+	 * selection (fractional weights) and for frames excluded after
+	 * Analyze (whose missing contributions would otherwise render the
+	 * patch dark).
+	 *
+	 * Optional drop of failed (frame, AP) contributions.  Decided up
+	 * front from shifts->success so (a) the weight totals can be reduced
+	 * to match, and (b) the frame-parallel accumulation below needs no
+	 * extra synchronisation.  An AP whose used pairs ALL failed keeps
+	 * stacking everything: a coarsely aligned patch beats a hole in the
+	 * output. */
 	const bool skip_failed = cfg.stack_skip_failed_aps && shifts != nullptr;
 	std::vector<uint8_t> ap_skip_enabled;
-	std::vector<int> ap_eff_counts;
+	std::vector<float> ap_eff_counts(M, 0.0f);
+	for (int f = 0; f < N; ++f) {
+		if (included && !included[f]) continue;
+		for (const auto &u : apq.used_alignment_points[f])
+			ap_eff_counts[u.ap] += u.weight;
+	}
 	if (skip_failed) {
-		std::vector<int> failed(M, 0);
-		std::vector<int> used(M, 0);
+		std::vector<float> failed_w(M, 0.0f);
+		std::vector<int> failed_n(M, 0);
 		for (int f = 0; f < N; ++f) {
 			if (included && !included[f]) continue;
-			for (int a : apq.used_alignment_points[f]) {
-				++used[a];
-				if (!shifts->success[(size_t) f * M + a]) ++failed[a];
+			for (const auto &u : apq.used_alignment_points[f]) {
+				if (!shifts->success[(size_t) f * M + u.ap]) {
+					failed_w[u.ap] += u.weight;
+					++failed_n[u.ap];
+				}
 			}
 		}
 		ap_skip_enabled.assign(M, 0);
-		ap_eff_counts.assign(M, apq.stack_size);
 		int dropped = 0, saturated_aps = 0;
 		for (int a = 0; a < M; ++a) {
-			if (failed[a] == 0) continue;
-			if (failed[a] >= used[a]) {   /* nothing measurable at this AP */
-				++saturated_aps;
+			if (failed_n[a] == 0) continue;
+			if (failed_w[a] >= ap_eff_counts[a] - 1e-6f) {
+				++saturated_aps;   /* nothing measurable at this AP */
 				continue;
 			}
 			ap_skip_enabled[a] = 1;
-			ap_eff_counts[a] = used[a] - failed[a];
-			dropped += failed[a];
+			ap_eff_counts[a] -= failed_w[a];
+			dropped += failed_n[a];
 		}
 		if (dropped > 0)
 			siril_log_message(_("Stack: dropping %d frame/alignment-point "
@@ -652,7 +793,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
 	                                       S, num_layers, cfg,
-	                                       skip_failed ? &ap_eff_counts : nullptr);
+	                                       &ap_eff_counts);
 	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
 
 	double median_brightness = 0.0;
@@ -797,7 +938,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			const int dy = (int) std::lround(offsets[f].dy);
 			const int dx = (int) std::lround(offsets[f].dx);
 
-			for (int a : apq.used_alignment_points[f]) {
+			for (const auto &u : apq.used_alignment_points[f]) {
+				const int a = u.ap;
 				if (skip_failed && ap_skip_enabled[a]
 				    && !shifts->success[(size_t) f * M + a])
 					continue;
@@ -808,7 +950,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				stack_remap_subpixel(frame_drizzled, lbuf[a],
 				                     (offsets[f].dy - shift_y) * S,
 				                     (offsets[f].dx - shift_x) * S,
-				                     p[0], p[1], p[2], p[3], lb);
+				                     p[0], p[1], p[2], p[3], lb, u.weight);
 			}
 
 			if (holes && top_for_bg.find(f) != top_for_bg.end()) {

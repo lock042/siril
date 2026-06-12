@@ -47,34 +47,62 @@ struct RemapBorder {
 void stack_remap_rigid(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
                        int shift_y, int shift_x,
                        int y_low, int y_high, int x_low, int x_high,
-                       RemapBorder &border);
+                       RemapBorder &border, float weight = 1.0f);
 
 /* Fractional-shift variant: same accumulate-into-buffer contract, with the
  * fractional part of (shift_y, shift_x) resolved by Lanczos interpolation
  * (cv::warpAffine, translation-only). Shifts within 1e-3 of an integer take
  * the exact stack_remap_rigid blit. Destination rows/columns whose sample
  * position would fall outside the frame are clipped and recorded in
- * `border`, like the integer path. */
+ * `border`, like the integer path. `weight` scales the contribution
+ * (soft frame selection); 1.0 is a plain add. */
 void stack_remap_subpixel(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
                           double shift_y, double shift_x,
                           int y_low, int y_high, int x_low, int x_high,
-                          RemapBorder &border);
+                          RemapBorder &border, float weight = 1.0f);
 
 /* Per-AP per-frame quality for the default Laplace (frame-rank) +
  * Laplace (AP-rank) path. The strided LoG of each frame is computed
  * once via rank_blurred_laplacian_u8 (shared with mpp_rank), then each
  * AP's patch is sliced from it and meanStdDev gives σ. With
  * frames_normalization on, σ is divided by frame avg_brightness. */
+/* A (frame → AP) selection entry: the AP index plus the frame's selection
+ * weight at that AP (1.0 on the plateau, raised-cosine in the taper zone —
+ * see stack_selection_weight). */
+struct APUse {
+	int ap;
+	float weight;
+};
+
 struct APQualities {
 	int stack_size = 0;
+	/* Soft-selection taper half-width in ranks. 0 = hard top-N (PSS
+	 * behaviour; always the case in explicit frame-number mode). When
+	 * > 0, each AP keeps stack_size + taper frames, with ranks
+	 * stack_size − taper … stack_size + taper − 1 weighted by a raised
+	 * cosine so adjacent APs that rank a borderline frame slightly
+	 * differently give it nearly the same weight instead of a 1-vs-0
+	 * cliff. The cosine is symmetric around rank stack_size, so the
+	 * effective frame count Σw stays exactly stack_size. */
+	int taper = 0;
 	/* [num_aps][num_frames] — raw σ (or σ/brightness when normalised).
 	 * Diagnostic; tests compare against the reference implementation. */
 	std::vector<std::vector<double>> qualities;
-	/* [num_aps][stack_size] — top-N frame indices by descending quality. */
+	/* [num_aps][stack_size + taper] — top frame indices by descending
+	 * quality. The selection weight of entry k is
+	 * stack_selection_weight(k, stack_size, taper). */
 	std::vector<std::vector<int>> best_frame_indices;
-	/* [num_frames][variable] — APs for which this frame is among the best. */
-	std::vector<std::vector<int>> used_alignment_points;
+	/* [num_frames][variable] — (AP, weight) pairs for which this frame
+	 * carries selection weight. */
+	std::vector<std::vector<APUse>> used_alignment_points;
 };
+
+/* Selection weight of the frame at 0-based quality rank `rank` within an
+ * AP, for a target stack size N and taper half-width T:
+ *   1.0 for rank < N − T, 0.0 for rank ≥ N + T, raised-cosine in between
+ *   (half-sample-centred so Σ over all ranks is exactly N).
+ * T = 0 reproduces the hard top-N cliff. */
+float stack_selection_weight(int rank, int stack_size, int taper);
 
 /* `frames` are the raw mono frames (NOT blurred; we'll Gaussian-blur and
  * compute the strided LoG ourselves). `frame_brightness[i]` is the
@@ -156,7 +184,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       double drizzle_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg,
-                                      const std::vector<int> *ap_effective_counts = nullptr);
+                                      const std::vector<float> *ap_effective_counts = nullptr);
 
 /* Stage B: per-AP per-frame shift compute.
  *

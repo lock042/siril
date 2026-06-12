@@ -239,6 +239,136 @@ Test(mpp_stack, remap_rigid_clips_and_records_border) {
 	cr_assert_float_eq(buffer.at<float>(9, 9), frame.at<float>(6, 6), 1e-6);
 }
 
+/* Selection weight: hard cliff at taper 0; plateau / raised-cosine ramp /
+ * zero zones at taper > 0; the half-sample-centred cosine sums to exactly
+ * stack_size. */
+Test(mpp_stack, selection_weight_profile) {
+	/* Hard top-N. */
+	cr_assert_float_eq(mpp::stack_selection_weight(0, 5, 0), 1.0f, 1e-9);
+	cr_assert_float_eq(mpp::stack_selection_weight(4, 5, 0), 1.0f, 1e-9);
+	cr_assert_float_eq(mpp::stack_selection_weight(5, 5, 0), 0.0f, 1e-9);
+
+	/* N = 10, T = 3: plateau ends at rank 7, zero from rank 13. */
+	const int N = 10, T = 3;
+	for (int r = 0; r < 7; ++r)
+		cr_assert_float_eq(mpp::stack_selection_weight(r, N, T), 1.0f, 1e-9,
+		                   "rank %d should be on the plateau", r);
+	cr_assert_float_eq(mpp::stack_selection_weight(13, N, T), 0.0f, 1e-9);
+	/* Monotone decrease through the ramp, symmetric about rank N. */
+	float prev = 1.0f;
+	double sum = 7.0;
+	for (int r = 7; r < 13; ++r) {
+		const float w = mpp::stack_selection_weight(r, N, T);
+		cr_assert_lt(w, prev);
+		cr_assert_gt(w, 0.0f);
+		prev = w;
+		sum += w;
+	}
+	cr_assert_float_eq((float) sum, (float) N, 1e-5,
+	                   "weights must sum to stack_size (%f)", sum);
+	/* Complementary pairs across the centre sum to 1. */
+	cr_assert_float_eq(mpp::stack_selection_weight(7, N, T)
+	                   + mpp::stack_selection_weight(12, N, T), 1.0f, 1e-6);
+}
+
+/* Soft selection wiring: at 50% of 6 frames the target is 3 and the taper
+ * clamps to 1 (≤ N/2), so each AP keeps 4 frames with weights
+ * [1, 1, hann, hann]. Identical input frames make the per-AP ranking a
+ * pure index tie-break, so the expected lists are deterministic. */
+Test(mpp_stack, soft_selection_taper_and_weights) {
+	auto cfg = default_cfg();
+	cfg.alignment_points_frame_percent = 50;
+	const cv::Mat truth = make_textured_frame();
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (int i = 0; i < 6; ++i) {
+		frames_raw.push_back(truth.clone());
+		frames_blurred.push_back(blurred(truth, cfg));
+		q.push_back(0.5);
+	}
+	q[0] = 1.0;
+
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	auto cfg_no_fc = cfg;
+	cfg_no_fc.align_frames_fast_changing_object = false;
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 1);
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	std::vector<double> brightness;
+	for (const auto &f : frames_raw)
+		brightness.push_back(mpp::rank_average_brightness(f, cfg));
+
+	const auto apq = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg);
+	cr_assert_eq(apq.stack_size, 3);
+	cr_assert_eq(apq.taper, 1);
+	for (int a = 0; a < aps->count; ++a)
+		cr_assert_eq((int) apq.best_frame_indices[a].size(), 4);
+
+	/* Identical frames ⇒ ranking falls back to the index tie-break, so
+	 * frame k sits at rank k in every AP. */
+	const float w2 = mpp::stack_selection_weight(2, 3, 1);
+	const float w3 = mpp::stack_selection_weight(3, 3, 1);
+	cr_assert_float_eq(w2 + w3, 1.0f, 1e-6);
+	for (int f = 0; f < 6; ++f) {
+		const auto &uses = apq.used_alignment_points[f];
+		if (f <= 3) {
+			cr_assert_eq((int) uses.size(), aps->count,
+			             "frame %d should be used by every AP", f);
+			const float expect = f < 2 ? 1.0f : (f == 2 ? w2 : w3);
+			for (const auto &u : uses)
+				cr_assert_float_eq(u.weight, expect, 1e-6,
+				                   "frame %d weight %f != %f",
+				                   f, u.weight, expect);
+		} else {
+			cr_assert_eq((int) uses.size(), 0,
+			             "frame %d is past the taper and must be unused", f);
+		}
+	}
+
+	/* Normalisation invariance: identical frames mean ANY selection
+	 * weighting must produce the same stacked image. Compare the 50%
+	 * soft-selection stack against the 100% full stack. */
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+	std::vector<int> sorted(frames_raw.size());
+	std::iota(sorted.begin(), sorted.end(), 0);
+
+	auto cfg_full = cfg;
+	cfg_full.alignment_points_frame_percent = 100;
+	const auto apq_full = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg_full);
+	cr_assert_eq(apq_full.taper, 0);
+
+	const auto soft = mpp::stack_apply_shifts(frames_raw, *aps, apq, shifts,
+	                                          offsets, brightness, sorted,
+	                                          avg.intersection, cfg, nullptr, 1);
+	const auto full = mpp::stack_apply_shifts(frames_raw, *aps, apq_full, shifts,
+	                                          offsets, brightness, sorted,
+	                                          avg.intersection, cfg_full, nullptr, 1);
+	const cv::Mat ms = mpp::stack_merge_alignment_point_buffers(
+	    soft.state, soft.border, *aps, cfg);
+	const cv::Mat mf = mpp::stack_merge_alignment_point_buffers(
+	    full.state, full.border, *aps, cfg_full);
+	cr_assert_eq(ms.rows, mf.rows);
+	cr_assert_eq(ms.cols, mf.cols);
+	cv::Mat diff;
+	cv::absdiff(ms, mf, diff);
+	double dmin = 0.0, dmax = 0.0;
+	cv::minMaxLoc(diff.reshape(1), &dmin, &dmax);
+	cr_assert_leq(dmax, 2.0,
+	              "weighted vs unweighted stack of identical frames diverges "
+	              "by %.0f LSB", dmax);
+
+	mpp_shift_free(shifts);
+	mpp_ap_free(aps);
+}
+
 /* remap_subpixel with an (effectively) integer shift must take the exact
  * integer blit — identical buffer and border to stack_remap_rigid. */
 Test(mpp_stack, remap_subpixel_integer_falls_back_to_rigid) {

@@ -324,19 +324,36 @@ int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
 }
 
 /* Reconstruct APQualities from a populated mpp_run_t. Stage B and Stage C
- * both consume this. */
+ * both consume this.
+ *
+ * The row stride of best_frame_indices is the baked selected_per_ap
+ * (stack_size + taper at Analyze time), NOT the current stack_size — a
+ * Stack-tab override may have shrunk stack_size after bake, and using it
+ * as the stride would scramble the per-AP rows. Selection weights are a
+ * pure function of rank, so a shrunk stack_size just re-derives them; the
+ * taper is re-clamped against the new target (it can't exceed the room
+ * the baked selection actually stored). */
 APQualities apq_from_run(const mpp_run_t *run) {
 	APQualities apq;
 	apq.stack_size = run->stack_size;
+	const int stride = run->selected_per_ap > 0 ? run->selected_per_ap
+	                                            : run->stack_size;
+	int taper = std::min({run->taper, run->stack_size / 2,
+	                      run->stack_size - 1,
+	                      stride - run->stack_size});
+	if (taper < 0) taper = 0;
+	apq.taper = taper;
+	const int use = std::min(stride, run->stack_size + taper);
 	apq.best_frame_indices.assign(run->aps->count, {});
 	apq.used_alignment_points.assign(run->num_frames, {});
 	for (int a = 0; a < run->aps->count; ++a) {
-		apq.best_frame_indices[a].reserve(run->stack_size);
-		for (int k = 0; k < run->stack_size; ++k) {
-			const int frame_idx = run->best_frame_indices[a * run->stack_size + k];
+		apq.best_frame_indices[a].reserve(use);
+		for (int k = 0; k < use; ++k) {
+			const int frame_idx = run->best_frame_indices[a * stride + k];
 			apq.best_frame_indices[a].push_back(frame_idx);
-			if (frame_idx >= 0 && frame_idx < run->num_frames)
-				apq.used_alignment_points[frame_idx].push_back(a);
+			const float w = stack_selection_weight(k, run->stack_size, taper);
+			if (frame_idx >= 0 && frame_idx < run->num_frames && w > 0.0f)
+				apq.used_alignment_points[frame_idx].push_back({a, w});
 		}
 	}
 	return apq;
@@ -1098,12 +1115,15 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	std::memcpy(run->mean_frame_data, avg.mean_frame.data, mean_bytes);
 
 	run->stack_size = apq.stack_size;
+	run->taper = apq.taper;
+	run->selected_per_ap = aps->count > 0
+	    ? (int) apq.best_frame_indices[0].size() : apq.stack_size;
 	run->best_frame_indices = (int *) std::malloc((size_t) aps->count
-	                                              * run->stack_size * sizeof(int));
+	                                              * run->selected_per_ap * sizeof(int));
 	if (!run->best_frame_indices) { mpp_run_free(run); return MPP_ENOMEM; }
 	for (int a = 0; a < aps->count; ++a)
-		for (int k = 0; k < run->stack_size; ++k)
-			run->best_frame_indices[a * run->stack_size + k] = apq.best_frame_indices[a][k];
+		for (int k = 0; k < run->selected_per_ap; ++k)
+			run->best_frame_indices[a * run->selected_per_ap + k] = apq.best_frame_indices[a][k];
 
 	/* Hand the analysis-frame cache off to the run so Stage B / recompute
 	 * can hit it. Zero-copy: cv::Mat headers move, pixel data refcounts
@@ -1262,10 +1282,11 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * automatically. Re-derive the target from cfg and clamp:
 	 *   target ≤ baked: shrink in-place — best_frame_indices is sorted
 	 *     descending by per-AP quality, so taking the first `target`
-	 *     entries per AP is correct (used_alignment_points naturally
-	 *     follows when apq_from_run reads the new stack_size).
+	 *     entries per AP is correct (apq_from_run keeps reading rows at
+	 *     the baked selected_per_ap stride and re-derives the selection
+	 *     weights from rank against the new stack_size).
 	 *   target > baked: warn and keep baked. Analyze discarded the per-AP
-	 *     quality matrix past the top run->stack_size, so we can't grow
+	 *     quality matrix past the top selected_per_ap, so we can't grow
 	 *     without re-running Stage A. */
 	if (run->num_frames > 0) {
 		const int target = mpp::stack_size_from_cfg(*cfg, run->num_frames);
@@ -1283,10 +1304,16 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		 * (silence when stack_size == num_frames means no per-AP filter
 		 * is active and the message would be noise). */
 		if (run->stack_size < run->num_frames) {
-			siril_log_message(
-			    _("Stack (mpp): per-AP top-K filter active — %d/%d "
-			      "frames per AP.\n"),
-			    run->stack_size, run->num_frames);
+			if (run->taper > 0)
+				siril_log_message(
+				    _("Stack (mpp): per-AP frame selection active — "
+				      "%d/%d frames per AP, soft taper ±%d.\n"),
+				    run->stack_size, run->num_frames, run->taper);
+			else
+				siril_log_message(
+				    _("Stack (mpp): per-AP top-K filter active — %d/%d "
+				      "frames per AP.\n"),
+				    run->stack_size, run->num_frames);
 		}
 	}
 
@@ -1650,12 +1677,14 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 	if (apq.stack_size <= 0) return MPP_EINTR;
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
-	const size_t total = (size_t) run->aps->count * (size_t) stack_size;
+	const int selected = run->aps->count > 0 && !apq.best_frame_indices.empty()
+	    ? (int) apq.best_frame_indices[0].size() : stack_size;
+	const size_t total = (size_t) run->aps->count * (size_t) selected;
 	int *bfi = (int *) std::malloc(total * sizeof(int));
 	if (!bfi) return MPP_ENOMEM;
 	for (int a = 0; a < run->aps->count; ++a) {
-		for (int k = 0; k < stack_size; ++k) {
-			bfi[a * stack_size + k] =
+		for (int k = 0; k < selected; ++k) {
+			bfi[a * selected + k] =
 			    (k < (int) apq.best_frame_indices[a].size())
 			        ? apq.best_frame_indices[a][k]
 			        : -1;
@@ -1664,6 +1693,8 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = bfi;
 	run->stack_size         = stack_size;
+	run->taper              = apq.taper;
+	run->selected_per_ap    = selected;
 	siril_log_message(_("mpp: per-AP qualities refreshed for %d edited APs\n"),
 	                  run->aps->count);
 	return MPP_OK;

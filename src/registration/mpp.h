@@ -91,9 +91,16 @@ typedef struct mpp_run {
 	/* Stage A — AP grid (mpp_aps_t owns its records). */
 	mpp_aps_t *aps;
 
-	/* Stage A — per-AP frame ranking. */
+	/* Stage A — per-AP frame ranking. `selected_per_ap` is the baked
+	 * row stride of best_frame_indices (stack_size + taper at Analyze
+	 * time); it never changes after bake, while stack_size may later be
+	 * shrunk by a Stack-tab override (entry weights are re-derived from
+	 * rank — see apq_from_run). `taper` is the soft-selection taper
+	 * half-width in ranks; 0 = hard top-N. */
 	int stack_size;
-	int *best_frame_indices;   /* aps->count × stack_size, flat row-major */
+	int taper;
+	int selected_per_ap;
+	int *best_frame_indices;   /* aps->count × selected_per_ap, flat row-major */
 
 	/* Stage B — per-AP per-frame shifts. Null until Stage B runs. */
 	mpp_shifts_t *shifts;
