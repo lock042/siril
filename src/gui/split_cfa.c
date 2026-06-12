@@ -193,7 +193,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->idle_function = end_generic_image_reset_cursor;
 		args->description = _("CFA Extraction");
 		args->verbose = TRUE;
-		args->custom_undo = TRUE;
+		args->skip_generic_undo = TRUE;
 		args->user = cfa_args;
 		set_cursor_waiting(TRUE);
 		if (!start_in_new_thread(generic_image_worker, args)) {
