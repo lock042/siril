@@ -1621,6 +1621,13 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 
+	/* A selection drawn on the previous (possibly RGB) frame must not
+	 * survive onto the ref frame: selection-update/FWHM feedback would run
+	 * against the new mono gfit with a stale colour gui.cvport and abort in
+	 * statistics' layer < naxes[2] assertion. Other gfit-replacing result
+	 * paths clear it too. */
+	delete_selected_area();
+
 	/* Replace com.uniq so display_filename surfaces "REFERENCE IMAGE"
 	 * rather than the original sequence frame name. */
 	if (com.uniq) {

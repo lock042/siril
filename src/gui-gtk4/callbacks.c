@@ -1404,7 +1404,13 @@ void update_display_fwhm() {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		g_sprintf(fwhm_buffer, " ");
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
+		/* gui.cvport can transiently point at a colour viewport while gfit is
+		 * already mono: close_tab()'s page-hiding fires switch-page handlers
+		 * (and so this function) mid-teardown when an RGB image is replaced
+		 * by a single-channel one. Fitting a PSF on that stale layer would
+		 * abort in statistics' layer < naxes[2] assertion. */
+		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5
+				&& select_vport(gui.cvport) < (int)gfit->naxes[2]) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
@@ -1755,6 +1761,14 @@ gboolean close_tab(gpointer user_data) {
 		? (int) gfit->naxes[2]
 		: com.seq.nb_layers;
 	if (displayed_layers == 1) {
+		/* Leave the colour pages BEFORE hiding them: hiding the current page
+		 * makes GtkNotebook pick an adjacent visible page itself, which can
+		 * transiently land on another colour viewport — its switch-page
+		 * handler would then run FWHM/selection feedback with gui.cvport
+		 * pointing at a layer the now-mono gfit doesn't have. */
+		const int cur = gtk_notebook_get_current_page(Color_Layers);
+		if (cur == GREEN_VPORT || cur == BLUE_VPORT || cur == RGB_VPORT)
+			activate_tab(RED_VPORT);
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_set_visible(page, FALSE);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
