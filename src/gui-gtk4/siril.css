@@ -60,6 +60,25 @@ box.horizontal > label + colorbutton {
     margin-left: 6px;
 }
 
+/* Make an unchecked checkbox obviously a checkbox.  Adwaita's empty `check`
+ * indicator has a very low-contrast border that, against our panel
+ * backgrounds, makes an unticked box read as blank space -- there's no
+ * visual cue that the row even has a toggle.  Give the empty box a definite
+ * border and a faint inset fill so it always reads as a checkbox.
+ *
+ * Scoped to the unchecked, non-indeterminate state ONLY: this provider loads
+ * at GTK_STYLE_PROVIDER_PRIORITY_APPLICATION, which overrides the theme
+ * regardless of selector specificity, so anything matched here would clobber
+ * the theme's accent fill + checkmark.  The :checked / :indeterminate states
+ * are deliberately left to Adwaita.  currentColor + alpha adapts the contrast
+ * automatically to both light and dark themes, and dims with the widget when
+ * it is insensitive.  Grouped check buttons use the `radio` node (round, and
+ * already distinguishable) and are intentionally not touched. */
+check:not(:checked):not(:indeterminate) {
+   border: 1px solid alpha(currentColor, 0.55);
+   background-color: alpha(currentColor, 0.08);
+}
+
 .toolbar {
    background-color: transparent;
 }

@@ -184,6 +184,13 @@ void cancel_pending_update() {
 }
 
 void siril_preview_hide() {
+	/* Nothing to hide when no preview is active: the backup is empty (or
+	 * stale from a failed copy), so restoring it would corrupt gfit or log
+	 * copy errors, and the remap below would be a full wasted pass over an
+	 * unchanged image (visible on every undo/redo, which calls this
+	 * unconditionally via gui_iface.hide_preview). */
+	if (!preview_is_active)
+		return;
 	copy_backup_to_gfit();
 	clear_backup();
 	notify_gfit_data_modified();  // remap Cairo buffers to the restored image

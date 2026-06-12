@@ -493,14 +493,21 @@ static void update_image_parameters_GUI() {
 gboolean end_process_catsearch(gpointer p) {
 	sky_object_query_args *args = (sky_object_query_args*)p;
 	if (!com.script && !args->retval) {
-		GtkToggleButton *button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
+		/* the annotate button is bound to the win.annotate-object action;
+		 * unlike GTK3, setting the toggle active in GTK4 does not activate
+		 * the action, so drive the action state directly */
+		GActionMap *map = G_ACTION_MAP(gtk_builder_get_object(gui.builder, "control_window"));
+		GAction *annotate = g_action_map_lookup_action(map, "annotate-object");
+		// purge_user_catalogue(CAT_AN_USER_TEMP);
 		refresh_annotation_visibility();
-		if (!siril_toggle_get_active(GTK_WIDGET(button))) {
-			siril_toggle_set_active(GTK_WIDGET(button), TRUE);
+		GVariant *state = g_action_get_state(annotate);
+		if (!g_variant_get_boolean(state)) {
+			g_action_change_state(annotate, g_variant_new_boolean(TRUE));
 		} else {
 			refresh_found_objects();
 			redraw(REDRAW_OVERLAY);
 		}
+		g_variant_unref(state);
 	}
 	set_cursor_waiting(FALSE);
 	return(FALSE);

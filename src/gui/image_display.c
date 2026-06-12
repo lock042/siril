@@ -2903,21 +2903,27 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 }
 
 gboolean redraw_mask_idle(gpointer p) {
+	gboolean remap_tints = GPOINTER_TO_INT(p);
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 	if (com.pref.gui.mask_tints_vports) {
-		/* Reader lock released before this call: notify_gfit_data_modified()
+		/* Only remap the image vports when the mask data changed under them
+		 * (remap_tints): callers that just remapped (e.g. the image worker's
+		 * notify_gfit_data_modified()) already have the tint applied, and a
+		 * second full remap here would be pure duplication.
+		 * Reader lock released before this call: notify_gfit_data_modified()
 		 * may call copy_roi_into_gfit() which acquires the writer lock. */
-		notify_gfit_data_modified();
-		redraw(REDRAW_ALL); // need to remap all to tint the image vports correctly
+		if (remap_tints)
+			notify_gfit_data_modified();
+		redraw(REDRAW_ALL); // need to redraw all so the tinted vports repaint
 	}
 	return FALSE;
 }
 
-void queue_redraw_mask() {
-	siril_add_idle(redraw_mask_idle, NULL);
+void queue_redraw_mask(gboolean remap_tints) {
+	siril_add_idle(redraw_mask_idle, GINT_TO_POINTER(remap_tints));
 }
 
 void queue_redraw(remap_type doremap) {
