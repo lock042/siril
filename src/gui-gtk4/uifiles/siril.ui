@@ -3156,6 +3156,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <child>
               <object class="GtkBox" id="GtkToolMainBar">
                 <property name="css-classes">toolbar</property>
+                <property name="name">GtkToolMainBar</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
                 <child>
