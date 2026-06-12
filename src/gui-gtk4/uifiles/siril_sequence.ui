@@ -38,6 +38,7 @@
         </child>
         <child>
           <object class="GtkCheckButton" id="seq_clean_mpp">
+            <property name="active">1</property>
             <property name="focusable">1</property>
             <property name="label" translatable="yes">Multipoint (.mpp)</property>
             <property name="tooltip-text" translatable="yes">Delete the multipoint registration sidecar (&lt;sequence&gt;.mpp) written by Multipoint Registration, and forget any cached run.</property>

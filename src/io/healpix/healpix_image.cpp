@@ -31,8 +31,8 @@ void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double 
 #include <pointing.h>
 #include <rangeset.h>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
+#ifndef G_PI
+#define G_PI 3.14159265358979323846
 #endif
 
 namespace {
@@ -42,13 +42,13 @@ constexpr int LEVEL_HIGH = 8;  // Nside = 256
 
 // Convert RA/Dec in degrees to a healpix pointing (theta=colatitude, phi=longitude in radians).
 pointing radec_to_pointing(double ra_deg, double dec_deg) {
-    const double deg2rad = M_PI / 180.0;
+    const double deg2rad = G_PI / 180.0;
     double theta = (90.0 - dec_deg) * deg2rad;
     double phi = ra_deg * deg2rad;
-    while (phi < 0.0) phi += 2.0 * M_PI;
-    while (phi >= 2.0 * M_PI) phi -= 2.0 * M_PI;
+    while (phi < 0.0) phi += 2.0 * G_PI;
+    while (phi >= 2.0 * G_PI) phi -= 2.0 * G_PI;
     if (theta < 0.0) theta = 0.0;
-    if (theta > M_PI) theta = M_PI;
+    if (theta > G_PI) theta = G_PI;
     return pointing(theta, phi);
 }
 

@@ -77,7 +77,7 @@ static int apply_rgradient_filter(struct rgradient_data *args) {
 	fits *fit = args->fit;
 	int retval = 0;
 	const point center = {args->xc, args->yc};
-	const double dAlpha = M_PI / 180.0 * args->da;
+	const double dAlpha = G_PI / 180.0 * args->da;
 	gboolean was_ushort;
 	fits imA = { 0 }, imB = { 0 };
 

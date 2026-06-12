@@ -1049,10 +1049,10 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 	/* Draw outer frame with rounded corners */
 	double corner_radius = 8.0;
 	cairo_new_sub_path(cr);
-	cairo_arc(cr, x + corner_radius, y + corner_radius, corner_radius, M_PI, 3 * M_PI / 2);
-	cairo_arc(cr, x + width - corner_radius, y + corner_radius, corner_radius, 3 * M_PI / 2, 2 * M_PI);
-	cairo_arc(cr, x + width - corner_radius, y + height - corner_radius, corner_radius, 0, M_PI / 2);
-	cairo_arc(cr, x + corner_radius, y + height - corner_radius, corner_radius, M_PI / 2, M_PI);
+	cairo_arc(cr, x + corner_radius, y + corner_radius, corner_radius, G_PI, 3 * G_PI / 2);
+	cairo_arc(cr, x + width - corner_radius, y + corner_radius, corner_radius, 3 * G_PI / 2, 2 * G_PI);
+	cairo_arc(cr, x + width - corner_radius, y + height - corner_radius, corner_radius, 0, G_PI / 2);
+	cairo_arc(cr, x + corner_radius, y + height - corner_radius, corner_radius, G_PI / 2, G_PI);
 	cairo_close_path(cr);
 
 	cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, histo_state.opacity);
@@ -1080,7 +1080,7 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 		for (int j = 0; j < 2; j++) {
 			double dot_x = x + width/2 - 6 + i * 6;
 			double dot_y = y + header_height/2 - 2 + j * 4;
-			cairo_arc(cr, dot_x, dot_y, 1.5, 0, 2 * M_PI);
+			cairo_arc(cr, dot_x, dot_y, 1.5, 0, 2 * G_PI);
 			cairo_fill(cr);
 		}
 	}

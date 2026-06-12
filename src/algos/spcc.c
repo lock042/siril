@@ -118,7 +118,7 @@ static double tau_R(double lambda, double H, double p) {
 // Function to calculate airmass X using the expression from Young (1994)
 
 double compute_airmass(double z) {
-	double z_rad = z * M_PI / 180.0; // Convert degrees to radians
+	double z_rad = z * G_PI / 180.0; // Convert degrees to radians
 	double cos_z = cos(z_rad);
 	double cos_z2 = cos_z * cos_z;
 	double cos_z3 = cos_z2 * cos_z;

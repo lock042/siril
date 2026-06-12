@@ -36,8 +36,8 @@
 #include <vector>
 #include <optional>
 #include <string_view>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846  /* pi */
+#ifndef G_PI
+#define G_PI 3.14159265358979323846  /* pi */
 #endif
 
 extern "C" {
@@ -751,11 +751,11 @@ static int local_gaia_xp_query(double ra, double dec, double radius, double limi
                                EntryType **stars, uint32_t *nb_stars) {
     radius /= 60.0; // arcmin -> deg, then radians below
     siril_log_debug("Search radius: %f deg\n", radius);
-    const double DEG_TO_RAD = M_PI / 180.0;
+    const double DEG_TO_RAD = G_PI / 180.0;
     double radius_rad = radius * DEG_TO_RAD;
     double ra_rad = ra * DEG_TO_RAD;
     double dec_rad = dec * DEG_TO_RAD;
-    double theta = M_PI / 2.0 - dec_rad;
+    double theta = G_PI / 2.0 - dec_rad;
     double phi = ra_rad;
     double radius_h = pow(sin(0.5 * radius_rad), 2);
 
@@ -902,11 +902,11 @@ extern "C" {
 
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_log_debug("Search radius: %f deg\n", radius);
-        const double DEG_TO_RAD = M_PI / 180.0;
+        const double DEG_TO_RAD = G_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         double ra_rad = ra * DEG_TO_RAD;
         double dec_rad = dec * DEG_TO_RAD;
-        double theta = M_PI / 2.0 - dec_rad;
+        double theta = G_PI / 2.0 - dec_rad;
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
         // Check the correct healpixel level and create our healpix_base
@@ -1037,11 +1037,11 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
 
     radius /= 60.0;
     siril_log_debug("Search radius: %f deg\n", radius);
-    const double DEG_TO_RAD = M_PI / 180.0;
+    const double DEG_TO_RAD = G_PI / 180.0;
     double radius_rad = radius * DEG_TO_RAD;
     double ra_rad = ra * DEG_TO_RAD;
     double dec_rad = dec * DEG_TO_RAD;
-    double theta = M_PI / 2.0 - dec_rad;
+    double theta = G_PI / 2.0 - dec_rad;
     double phi = ra_rad;
     double radius_h = pow(sin(0.5 * radius_rad), 2);
 

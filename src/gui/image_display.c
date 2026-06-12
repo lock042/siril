@@ -1584,7 +1584,7 @@ static void draw_selection(const draw_data_t* dd) {
 			// draw a circle at top left corner to visualize rots larger than 90
 			double size = 10. / dd->zoom;
 			cairo_set_dash(cr, NULL, 0, 0);
-			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * G_PI);
 			cairo_stroke_preserve(cr);
 			cairo_fill(cr);
 			cairo_set_dash(cr, dash_format, 2, 0);
@@ -1843,10 +1843,10 @@ static void draw_stars(const draw_data_t* dd) {
 			}
 			cairo_save(cr); // save the original transform
 			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
-			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
+			cairo_rotate(cr, G_PI * 0.5 + com.stars[i]->angle * G_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
-			cairo_arc(cr, 0., 0., size, 0., 2 * M_PI);
+			cairo_arc(cr, 0., 0., size, 0., 2 * G_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
 			/* to keep  for debugging boxes adjustements */
@@ -1874,7 +1874,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		/* fwhm * 2: first circle */
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * G_PI);
 		cairo_stroke(cr);
 
 		/* sky annulus */
@@ -1884,9 +1884,9 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 		}
 
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * G_PI);
 		cairo_stroke(cr);
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * G_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -1908,17 +1908,17 @@ static void draw_stars(const draw_data_t* dd) {
 						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * G_PI);
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -2161,7 +2161,7 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 				 * zero/sub-pixel-shift APs are still visible (and the
 				 * success/failure colour distinguishes converged-with-
 				 * zero-shift from failed-fallback-to-zero). */
-				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * M_PI);
+				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * G_PI);
 				cairo_fill(dd->cr);
 			}
 		}
@@ -2346,8 +2346,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	/* get ra and dec of center of the image */
 	center2wcs(fit, &ra0, &dec0);
 	if (ra0 == -1.) return;
-	dec0 *= (M_PI / 180.0);
-	ra0  *= (M_PI / 180.0);
+	dec0 *= (G_PI / 180.0);
+	ra0  *= (G_PI / 180.0);
 	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
@@ -2387,8 +2387,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (polesign) stepRA = 45.;
 
 	// round image centers
-	double centra = stepRA * round(ra0 * 180 / (M_PI * stepRA)); // rounded image centers
-	double centdec = step * round(dec0 * 180 / (M_PI * step));
+	double centra = stepRA * round(ra0 * 180 / (G_PI * stepRA)); // rounded image centers
+	double centdec = step * round(dec0 * 180 / (G_PI * step));
 
 	// plot DEC grid
 	cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
@@ -2502,10 +2502,10 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_save(cr); // save the orginal transform
 				cairo_translate(cr, pt->x, pt->y);
 				// add pi for angles larger than +/- pi/2
-				if (pt->angle > M_PI_2)
-					pt->angle -= M_PI;
-				if (pt->angle < -M_PI_2)
-					pt->angle += M_PI;
+				if (pt->angle > G_PI_2)
+					pt->angle -= G_PI;
+				if (pt->angle < -G_PI_2)
+					pt->angle += G_PI;
 				double dx = 0., dy = 0.;
 				switch (pt->border) { // shift to get back in the image
 				case 0: // bottom
@@ -2574,7 +2574,7 @@ static void draw_wcs_disto(const draw_data_t* dd) {
 				double startX, startY, endX, endY;
 				fits_to_display(currX, currY, &startX, &startY, fit->ry);
 				fits_to_display(disX, disY, &endX, &endY, fit->ry);
-				cairo_arc(cr, startX, startY, radius,  0., 2. * M_PI);
+				cairo_arc(cr, startX, startY, radius,  0., 2. * G_PI);
 				cairo_fill(cr);
 				cairo_move_to(cr, startX, startY);
 				cairo_line_to(cr, endX, endY);
@@ -2658,7 +2658,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
-			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_arc(cr, x, y, radius, 0., 2. * G_PI);
 			cairo_stroke(cr);
 			if (code) {
 				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
@@ -2712,7 +2712,7 @@ static void draw_rgb_centers(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 
 	double size = 10. / dd->zoom;
-	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 }
 
@@ -2839,7 +2839,7 @@ static void draw_regframe(const draw_data_t* dd) {
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
-	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke_preserve(cr);
 	cairo_fill(cr);
 	// reference frame
@@ -2851,7 +2851,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_stroke(cr);
 
 	// reference center
-	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 	// current center
 	cairo_set_source_rgb(cr, 0., 1., 0.);

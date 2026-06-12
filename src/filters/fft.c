@@ -137,7 +137,7 @@ static void centered_float(float *buf, unsigned int width, unsigned int height,
 static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		WORD *abuf, WORD *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
-		pbuf[i] = roundf_to_WORD(((phase[i] + (float)M_PI) * USHRT_MAX_SINGLE / (2.f * (float)M_PI)));
+		pbuf[i] = roundf_to_WORD(((phase[i] + (float)G_PI) * USHRT_MAX_SINGLE / (2.f * (float)G_PI)));
 		abuf[i] = roundf_to_WORD((modul[i] * USHRT_MAX_SINGLE / maxi));
 	}
 }
@@ -145,7 +145,7 @@ static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const f
 static void normalisation_spectra_float(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		float *abuf, float *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
-		pbuf[i] = (phase[i] + (float)M_PI) / (2.f * (float)M_PI);
+		pbuf[i] = (phase[i] + (float)G_PI) / (2.f * (float)G_PI);
 		abuf[i] = (modul[i] / maxi);
 	}
 }
@@ -302,8 +302,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 
 	for (i = 0; i < height * width; i++) {
 		modul[i] = (float) xbuf[i] * (xfit->keywords.dft.norm[layer]);
-		phase[i] = (float) ybuf[i] * (2.f * (float)M_PI / USHRT_MAX_SINGLE);
-		phase[i] -= (float)M_PI;
+		phase[i] = (float) ybuf[i] * (2.f * (float)G_PI / USHRT_MAX_SINGLE);
+		phase[i] -= (float)G_PI;
 	}
 
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);
@@ -361,8 +361,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 
 	for (i = 0; i < height * width; i++) {
 		modul[i] = xbuf[i] * (xfit->keywords.dft.norm[layer]);
-		phase[i] = ybuf[i] * (2.f * (float)M_PI);
-		phase[i] -= (float)M_PI;
+		phase[i] = ybuf[i] * (2.f * (float)G_PI);
+		phase[i] -= (float)G_PI;
 	}
 
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);

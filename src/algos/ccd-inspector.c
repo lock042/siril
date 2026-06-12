@@ -46,20 +46,20 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 
 	com.tilt = malloc(sizeof(sensor_tilt));
 
-	com.tilt->pt[0].x = c.x + (r1 * sin(7.0 * M_PI / 4.0));
-	com.tilt->pt[0].y = ry - (c.y + (r1 * cos(7.0 * M_PI / 4.0)));
+	com.tilt->pt[0].x = c.x + (r1 * sin(7.0 * G_PI / 4.0));
+	com.tilt->pt[0].y = ry - (c.y + (r1 * cos(7.0 * G_PI / 4.0)));
 	com.tilt->fwhm[0] = m1;
 
-	com.tilt->pt[1].x = c.x + (r2 * sin(M_PI / 4));
-	com.tilt->pt[1].y = ry - (c.y + (r2 * cos(M_PI / 4.0)));
+	com.tilt->pt[1].x = c.x + (r2 * sin(G_PI / 4));
+	com.tilt->pt[1].y = ry - (c.y + (r2 * cos(G_PI / 4.0)));
 	com.tilt->fwhm[1] = m2;
 
-	com.tilt->pt[2].x = c.x + (r3 * sin(5.0 * M_PI / 4));
-	com.tilt->pt[2].y = ry - (c.y + (r3 * cos(5.0 * M_PI / 4.0)));
+	com.tilt->pt[2].x = c.x + (r3 * sin(5.0 * G_PI / 4));
+	com.tilt->pt[2].y = ry - (c.y + (r3 * cos(5.0 * G_PI / 4.0)));
 	com.tilt->fwhm[2] = m3;
 
-	com.tilt->pt[3].x = c.x + (r4 * sin(3.0 * M_PI / 4));
-	com.tilt->pt[3].y = ry - (c.y + (r4 * cos(3.0 * M_PI / 4.0)));
+	com.tilt->pt[3].x = c.x + (r4 * sin(3.0 * G_PI / 4));
+	com.tilt->pt[3].y = ry - (c.y + (r4 * cos(3.0 * G_PI / 4.0)));
 	com.tilt->fwhm[3] = m4;
 
 	com.tilt->fwhm_centre = mcentre;

@@ -79,7 +79,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+#define RADCONV (((3600.0 * 180.0) / G_PI) / 1.0E3)
 
 // Used for sanity checking reported sizes from image files.
 // Not a guarantee that the file will fit in memory

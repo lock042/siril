@@ -123,7 +123,7 @@ Test(mpp_stack, default_config_phase5a) {
  */
 namespace {
 float hann_of(double t) {
-	const double s = std::sin(M_PI_2 * t);
+	const double s = std::sin(G_PI_2 * t);
 	return (float) (s * s);
 }
 }  // namespace

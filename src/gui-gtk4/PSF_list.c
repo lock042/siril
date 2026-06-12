@@ -382,7 +382,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 	psf_list_init_statics();
 	if (!psf_store || !psf_selection) return;
 	gboolean is_as;
-	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
+	const double radian_conversion = ((3600.0 * 180.0) / G_PI) / 1.0E3;
 	double invpixscalex = 1.0;
 	double bin_X = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
 	g_rw_lock_reader_lock(&com.stars_lock);

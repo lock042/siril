@@ -77,7 +77,7 @@ float stack_selection_weight(int rank, int stack_size, int taper) {
 	 * ranks is exactly plateau + taper = stack_size. */
 	const double t = ((double) rank + 0.5 - (double) plateau)
 	               / (2.0 * (double) taper);
-	return (float) (0.5 * (1.0 + std::cos(M_PI * t)));
+	return (float) (0.5 * (1.0 + std::cos(G_PI * t)));
 }
 
 namespace {
@@ -189,7 +189,7 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
 	 * sum_single_frame_weights normalises whatever window is used, so no
 	 * partition-of-unity property is required. */
 	auto hann = [](double t) {
-		const double s = std::sin(M_PI_2 * t);
+		const double s = std::sin(G_PI_2 * t);
 		return (float) (s * s);
 	};
 

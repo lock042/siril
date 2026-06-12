@@ -1403,7 +1403,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			if (has_fit(i)) {
 				double dx, dy, rotation;
 				translation_from_H(seq->regparam[0][j].H, &dx, &dy);
-				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
+				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / G_PI;
 				gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
 				gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
 				gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
@@ -2332,7 +2332,7 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		double dy = layers[in_index + offset]->spinbutton_y_value;
 		double dr = layers[in_index + offset]->spinbutton_r_value;
 		// Convert dr to radians
-		dr *= M_PI;
+		dr *= G_PI;
 		dr /= 180.0;
 		point *center = &layers[in_index + offset]->center;
 		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {

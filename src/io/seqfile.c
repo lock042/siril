@@ -285,7 +285,9 @@ sequence * readseqfile(const char *name){
 						siril_log_debug("- using CFA registration info\n");
 						to_backup = 0;
 					} else {
+#if 0
 						siril_log_debug("- backing up CFA registration info\n");
+#endif
 						to_backup = 1;
 					}
 					current_layer = 0;
