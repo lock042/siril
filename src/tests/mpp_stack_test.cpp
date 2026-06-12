@@ -226,6 +226,80 @@ Test(mpp_stack, remap_rigid_clips_and_records_border) {
 	cr_assert_float_eq(buffer.at<float>(9, 9), frame.at<float>(6, 6), 1e-6);
 }
 
+/* remap_subpixel with an (effectively) integer shift must take the exact
+ * integer blit — identical buffer and border to stack_remap_rigid. */
+Test(mpp_stack, remap_subpixel_integer_falls_back_to_rigid) {
+	cv::Mat frame(40, 40, CV_32F);
+	for (int y = 0; y < 40; ++y)
+		for (int x = 0; x < 40; ++x)
+			frame.at<float>(y, x) = (float) (y * 100 + x);
+	cv::Mat b_rigid(12, 12, CV_32F, cv::Scalar(0));
+	cv::Mat b_sub(12, 12, CV_32F, cv::Scalar(0));
+	mpp::RemapBorder br, bs;
+	mpp::stack_remap_rigid(frame, b_rigid, -3, 2, 0, 12, 5, 17, br);
+	mpp::stack_remap_subpixel(frame, b_sub, -3.0 + 1e-7, 2.0 - 1e-7,
+	                          0, 12, 5, 17, bs);
+	cv::Mat diff;
+	cv::absdiff(b_rigid, b_sub, diff);
+	double dmin = 0.0, dmax = 0.0;
+	cv::minMaxLoc(diff, &dmin, &dmax);
+	cr_assert_eq(dmax, 0.0, "integer-shift fast path must be exact (%g)", dmax);
+	cr_assert_eq(bs.y_low, br.y_low);
+	cr_assert_eq(bs.x_low, br.x_low);
+}
+
+/* A constant frame must stay constant under a fractional shift (the Lanczos
+ * kernel is normalised), and the accumulate contract must hold. */
+Test(mpp_stack, remap_subpixel_constant_preserved) {
+	cv::Mat frame(40, 40, CV_32F, cv::Scalar(5.0f));
+	cv::Mat buffer(10, 10, CV_32F, cv::Scalar(0));
+	mpp::RemapBorder b;
+	mpp::stack_remap_subpixel(frame, buffer, 0.5, 0.25, 10, 20, 10, 20, b);
+	mpp::stack_remap_subpixel(frame, buffer, 0.5, 0.25, 10, 20, 10, 20, b);
+	for (int y = 0; y < 10; ++y)
+		for (int x = 0; x < 10; ++x)
+			cr_assert_float_eq(buffer.at<float>(y, x), 10.0f, 1e-3,
+			                   "buffer[%d][%d] = %f", y, x,
+			                   buffer.at<float>(y, x));
+	cr_assert_eq(b.y_low, 0); cr_assert_eq(b.y_high, 0);
+	cr_assert_eq(b.x_low, 0); cr_assert_eq(b.x_high, 0);
+}
+
+/* A half-pixel shift of a linear ramp lands halfway between samples
+ * (Lanczos reproduces affine signals to well under 1% in the interior). */
+Test(mpp_stack, remap_subpixel_half_pixel_ramp) {
+	cv::Mat frame(40, 40, CV_32F);
+	for (int y = 0; y < 40; ++y)
+		for (int x = 0; x < 40; ++x)
+			frame.at<float>(y, x) = (float) (10 * x);
+	cv::Mat buffer(10, 10, CV_32F, cv::Scalar(0));
+	mpp::RemapBorder b;
+	mpp::stack_remap_subpixel(frame, buffer, 0.0, 0.5, 15, 25, 15, 25, b);
+	for (int y = 0; y < 10; ++y)
+		for (int x = 0; x < 10; ++x)
+			cr_assert_float_eq(buffer.at<float>(y, x),
+			                   (float) (10.0 * (x + 15) + 5.0), 0.5,
+			                   "buffer[%d][%d] = %f", y, x,
+			                   buffer.at<float>(y, x));
+}
+
+/* Fractional shift past the frame edge: clipped rows are recorded in the
+ * border counters so the final trim removes them. */
+Test(mpp_stack, remap_subpixel_clips_and_records_border) {
+	cv::Mat frame(20, 20, CV_32F, cv::Scalar(7.0f));
+	cv::Mat buffer(10, 10, CV_32F, cv::Scalar(0));
+	mpp::RemapBorder b;
+	/* Sample rows start at -2.5 → first 3 destination rows clipped. */
+	mpp::stack_remap_subpixel(frame, buffer, -2.5, 0.5, 0, 10, 5, 15, b);
+	cr_assert_eq(b.y_low, 3);
+	cr_assert_eq(b.y_high, 0);
+	for (int x = 0; x < 10; ++x) {
+		cr_assert_float_eq(buffer.at<float>(0, x), 0.0f, 1e-9);
+		cr_assert_float_eq(buffer.at<float>(2, x), 0.0f, 1e-9);
+		cr_assert_float_eq(buffer.at<float>(3, x), 7.0f, 1e-3);
+	}
+}
+
 /* The apply pass is frame-parallel: each thread accumulates its frames into
  * private per-AP buffers that are then summed. The float-sum reduction
  * reorders, so single-threaded and multi-threaded runs over the same frames

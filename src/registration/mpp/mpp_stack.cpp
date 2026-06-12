@@ -154,6 +154,79 @@ void stack_remap_rigid(const cv::Mat &frame, cv::Mat &buffer,
 	dst += src;
 }
 
+void stack_remap_subpixel(const cv::Mat &frame, cv::Mat &buffer,
+                          double shift_y, double shift_x,
+                          int y_low, int y_high, int x_low, int x_high,
+                          RemapBorder &border) {
+	/* Fractional-shift companion to stack_remap_rigid: adds
+	 * frame[y_low+shift_y : y_high+shift_y, ...] into the buffer with the
+	 * fractional part of the shift resolved by Lanczos interpolation
+	 * instead of being rounded away. A shift within EPS of an integer
+	 * takes the exact integer blit — no interpolation softening, and the
+	 * historic path stays bit-reproducible for integer data. */
+	const double EPS = 1e-3;
+	const double fy = shift_y - std::floor(shift_y);
+	const double fx = shift_x - std::floor(shift_x);
+	if ((fy < EPS || fy > 1.0 - EPS) && (fx < EPS || fx > 1.0 - EPS)) {
+		stack_remap_rigid(frame, buffer,
+		                  (int) std::lround(shift_y), (int) std::lround(shift_x),
+		                  y_low, y_high, x_low, x_high, border);
+		return;
+	}
+
+	/* Clip the destination so every sample position stays inside the
+	 * frame; track the clipped extent for the final border trim, mirroring
+	 * the integer path. */
+	const int patch_h = y_high - y_low;
+	const int patch_w = x_high - x_low;
+	int y_low_dst = 0;
+	const double y_first = (double) y_low + shift_y;
+	if (y_first < 0.0) {
+		y_low_dst = (int) std::ceil(-y_first);
+		border.y_low = std::max(border.y_low, y_low_dst);
+	}
+	int y_high_dst = patch_h;
+	const double y_last = y_first + (double) (patch_h - 1);
+	if (y_last > (double) (frame.rows - 1)) {
+		const int clip = (int) std::ceil(y_last - (double) (frame.rows - 1));
+		y_high_dst = patch_h - clip;
+		border.y_high = std::max(border.y_high, clip);
+	}
+	int x_low_dst = 0;
+	const double x_first = (double) x_low + shift_x;
+	if (x_first < 0.0) {
+		x_low_dst = (int) std::ceil(-x_first);
+		border.x_low = std::max(border.x_low, x_low_dst);
+	}
+	int x_high_dst = patch_w;
+	const double x_last = x_first + (double) (patch_w - 1);
+	if (x_last > (double) (frame.cols - 1)) {
+		const int clip = (int) std::ceil(x_last - (double) (frame.cols - 1));
+		x_high_dst = patch_w - clip;
+		border.x_high = std::max(border.x_high, clip);
+	}
+	if (y_high_dst <= y_low_dst || x_high_dst <= x_low_dst)
+		return;
+
+	/* Inverse-map translation: dst(x', y') samples frame at
+	 * (x' + x_low + x_low_dst + shift_x, y' + y_low + y_low_dst + shift_y).
+	 * Lanczos support pixels that fall just outside the frame (≤3 px,
+	 * only at frame edges) are replicated — the affected ring is inside
+	 * the border trim. warpAffine's cost scales with the dst patch, not
+	 * the frame, so passing the whole frame as src costs nothing. */
+	const cv::Mat M = (cv::Mat_<double>(2, 3)
+	    << 1.0, 0.0, (double) (x_low + x_low_dst) + shift_x,
+	       0.0, 1.0, (double) (y_low + y_low_dst) + shift_y);
+	cv::Mat patch;
+	cv::warpAffine(frame, patch, M,
+	               cv::Size(x_high_dst - x_low_dst, y_high_dst - y_low_dst),
+	               cv::INTER_LANCZOS4 | cv::WARP_INVERSE_MAP,
+	               cv::BORDER_REPLICATE);
+	cv::Mat dst = buffer(cv::Range(y_low_dst, y_high_dst),
+	                     cv::Range(x_low_dst, x_high_dst));
+	dst += patch;
+}
+
 APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 int N,
                                                 const std::vector<double> &frame_brightness,
@@ -379,11 +452,13 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             const mpp_config_t &cfg,
                                             const int *included) {
 	const int M = aps.count;
-	/* Sub-pixel correlation is worthwhile when any drizzle upscale is
-	 * being asked for — the dobox path uses the fractional shifts and
-	 * the bicubic no-op path does not, but turning it on for the latter
-	 * costs nothing relative to the integer fit. */
-	const bool use_subpixel = (cfg.drizzle_scale > 1.001);
+	/* Sub-pixel correlation is always on: the accumulation path places
+	 * each patch at its fractional shift (stack_remap_subpixel), so an
+	 * integer-only fit would quantise every AP to the pixel grid and
+	 * re-introduce the block-lattice phase noise the sub-pixel paste
+	 * exists to remove. The parabolic refinement is a 3×3 fit on the
+	 * already-computed correlation surface — negligible cost. */
+	const bool use_subpixel = true;
 
 	mpp_shifts_t *out = (mpp_shifts_t *) std::calloc(1, sizeof(*out));
 	if (!out) return nullptr;
@@ -430,10 +505,10 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
 		 *     alignment correction). That means r.dy + sub_y = 0. ✓
 		 * If we used r.dy − sub_y the sub-pixel global residual would
-		 * be DOUBLED in the drizzle path and you get the high-frequency
-		 * CFA-phase striping the user sees on real data. The classical
-		 * stack path rounds shifts to whole drizzled pixels and is
-		 * unaffected by this ≤0.5 px correction. */
+		 * be DOUBLED in the paste and you get high-frequency CFA-phase
+		 * striping on real data. The stack path places each patch at
+		 * offsets.dy − shift (sub-pixel, see stack_apply_shifts), so
+		 * this ≤0.5 px correction lands directly in the output. */
 		const double dy_full = offsets[f].dy;
 		const double dx_full = offsets[f].dx;
 		const int dy = (int) std::lround(dy_full);
@@ -694,12 +769,15 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				           0, 0, cv::INTER_LINEAR);
 			else
 				frame_drizzled = frame_f32;
-			/* Integer rigid placement in drizzled coords; round the global
-			 * offset (sub-pixel residual isn't carried by this path). */
+			/* Sub-pixel rigid placement in drizzled coords. The full
+			 * source position for a patch is (offsets − per-AP shift) ×
+			 * scale; stack_remap_subpixel resolves the fractional part by
+			 * interpolation, so neighbouring APs no longer disagree by the
+			 * up-to-±0.5 px rounding that imprints the AP lattice on the
+			 * stack. The background blit below stays integer — it is a
+			 * heavily blended fallback where sub-pixel accuracy is moot. */
 			const int dy = (int) std::lround(offsets[f].dy);
 			const int dx = (int) std::lround(offsets[f].dx);
-			const int dy_K = (int) std::lround(dy * S);
-			const int dx_K = (int) std::lround(dx * S);
 
 			for (int a : apq.used_alignment_points[f]) {
 				if (skip_failed && ap_skip_enabled[a]
@@ -708,12 +786,11 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				const size_t soff = (size_t) (f * M + a) * 2;
 				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
 				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
-				const int shift_y_K = (int) std::lround(shift_y * S);
-				const int shift_x_K = (int) std::lround(shift_x * S);
 				const auto &p = out.state.patch_drizzled[a];
-				stack_remap_rigid(frame_drizzled, lbuf[a],
-				                  dy_K - shift_y_K, dx_K - shift_x_K,
-				                  p[0], p[1], p[2], p[3], lb);
+				stack_remap_subpixel(frame_drizzled, lbuf[a],
+				                     (offsets[f].dy - shift_y) * S,
+				                     (offsets[f].dx - shift_x) * S,
+				                     p[0], p[1], p[2], p[3], lb);
 			}
 
 			if (holes && top_for_bg.find(f) != top_for_bg.end()) {

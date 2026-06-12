@@ -1305,9 +1305,9 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	if (cached && cached != run) mpp_run_drop_cache(cached);
 
 	/* Dispatch: all stacking goes through the classical engine
-	 * (stack_apply_shifts_streamed) — rigid-shift per-AP patch accumulation
-	 * + tent-weight mosaic, parallelised over frames, with cv::resize
-	 * interpolation for scale > 1 and a straight accumulate at scale = 1.
+	 * (stack_apply_shifts_streamed) — sub-pixel rigid-shift per-AP patch
+	 * accumulation + tent-weight mosaic, parallelised over frames, with
+	 * cv::resize interpolation for scale > 1.
 	 *
 	 * The STScI / Bayer dobox drizzle backends were removed: both produced
 	 * sampling / mosaic-phase artefacts on planetary data. (The code is

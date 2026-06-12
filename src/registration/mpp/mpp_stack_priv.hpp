@@ -46,6 +46,17 @@ void stack_remap_rigid(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
                        int y_low, int y_high, int x_low, int x_high,
                        RemapBorder &border);
 
+/* Fractional-shift variant: same accumulate-into-buffer contract, with the
+ * fractional part of (shift_y, shift_x) resolved by Lanczos interpolation
+ * (cv::warpAffine, translation-only). Shifts within 1e-3 of an integer take
+ * the exact stack_remap_rigid blit. Destination rows/columns whose sample
+ * position would fall outside the frame are clipped and recorded in
+ * `border`, like the integer path. */
+void stack_remap_subpixel(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
+                          double shift_y, double shift_x,
+                          int y_low, int y_high, int x_low, int x_high,
+                          RemapBorder &border);
+
 /* Per-AP per-frame quality for the default Laplace (frame-rank) +
  * Laplace (AP-rank) path. The strided LoG of each frame is computed
  * once via rank_blurred_laplacian_u8 (shared with mpp_rank), then each
