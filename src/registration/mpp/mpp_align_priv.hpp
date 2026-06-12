@@ -162,12 +162,18 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              const std::vector<cv::Vec2d> &seed = {});
 
 /* Build a per-frame gross-shift seed (see the seed param above) from the
- * sequence's existing shift registration data. Uses the first layer with
- * non-null regparam; per frame, extracts the translation via Siril's
- * canonical translation_from_H (dx = H.h02, dy = -H.h12) — the same to-align
- * content translation shift_fit_from_reg applies — and stores it as the
- * port's (dy, dx). Returns an empty vector when no layer carries regdata
- * (so the aligner falls back to its cumulative path). */
+ * sequence's existing shift registration data. Uses the first layer whose
+ * regparam carries at least one nonzero translation; per frame, extracts the
+ * translation via Siril's canonical translation_from_H (dx = H.h02,
+ * dy = -H.h12) — the same to-align content translation shift_fit_from_reg
+ * applies — and stores it as the port's (dy, dx). Returns an empty vector
+ * when no layer carries usable regdata (so the aligner falls back to its
+ * cumulative path). Layers whose translations are all zero are treated as
+ * quality-only regdata — mpp itself publishes such a layer via
+ * mpp_write_quality_to_regdata — and must NOT seed: an all-zero seed pins
+ * every search window at zero shift instead of restoring cumulative
+ * tracking, which breaks alignment for any frame drifting beyond
+ * align_frames_search_width. */
 std::vector<cv::Vec2d> seed_from_regdata(struct sequ *seq);
 
 /* Pick the `number_frames` indices that maximise the summed quality

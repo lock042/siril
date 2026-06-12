@@ -378,6 +378,59 @@ Test(mpp_align, seed_from_regdata_uses_port_convention) {
 	free(rd);
 }
 
+/* Quality-only regdata — what mpp_write_quality_to_regdata publishes after
+ * every Analyze/Register — has a zero H on every frame, i.e. no translation
+ * information. It must NOT produce a seed: an all-zero seed pins every
+ * frame's search window at zero shift (bypassing cumulative tracking), so a
+ * subsequent Analyze on a drifting sequence mis-aligns every frame whose
+ * drift exceeds align_frames_search_width and the stack shows doubled
+ * features. Regression test for the Analyze-then-Register doubling bug. */
+Test(mpp_align, seed_from_regdata_ignores_quality_only_layer) {
+	sequence seq{};
+	seq.number = 3;
+	seq.nb_layers = 1;
+	regdata *rd = (regdata *) calloc(3, sizeof(regdata));   /* H = all zeros */
+	for (int i = 0; i < 3; ++i)
+		rd[i].quality = 0.5 + 0.1 * i;
+	regdata *layers[1] = { rd };
+	seq.regparam = layers;
+
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+	cr_assert(seed.empty(),
+	          "quality-only (zero-H) regdata must not seed the aligner");
+
+	/* Identity homographies (translation 0,0 everywhere) are equally
+	 * information-free and must be skipped too. */
+	for (int i = 0; i < 3; ++i)
+		rd[i].H = H_from_translation(0.0, 0.0);
+	const std::vector<cv::Vec2d> seed_id = mpp::seed_from_regdata(&seq);
+	cr_assert(seed_id.empty(),
+	          "all-identity regdata must not seed the aligner");
+	free(rd);
+}
+
+/* A degenerate (all-zero) first layer must not shadow a later layer that
+ * holds real shift registration data. */
+Test(mpp_align, seed_from_regdata_skips_degenerate_layer) {
+	sequence seq{};
+	seq.number = 2;
+	seq.nb_layers = 2;
+	regdata *rd0 = (regdata *) calloc(2, sizeof(regdata));  /* quality-only */
+	regdata *rd1 = (regdata *) calloc(2, sizeof(regdata));
+	rd1[0].H = H_from_translation(0.0, 0.0);
+	rd1[1].H = H_from_translation(8.0, -12.0);
+	regdata *layers[2] = { rd0, rd1 };
+	seq.regparam = layers;
+
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+	cr_assert_eq(seed.size(), 2u,
+	             "layer 1 carries real shifts, seed expected");
+	cr_assert_float_eq(seed[1][0], -12.0, 1e-9, "seed dy: got %g", seed[1][0]);
+	cr_assert_float_eq(seed[1][1], 8.0, 1e-9, "seed dx: got %g", seed[1][1]);
+	free(rd0);
+	free(rd1);
+}
+
 /* End-to-end, the careful one: a physical jump beyond search_width, regdata
  * written for that jump exactly as Siril's registration would, then the
  * regdata-derived seed must drive the real aligner to recover it. A wrong

@@ -285,24 +285,38 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
  * content translation that shift_fit_from_reg applies, in the same buffer
  * orientation the mpp reader produces — so it maps to the port's (dy, dx)
  * with no extra flip. Kept free of logging so unit tests can call it
- * without a live Siril log/gui. */
+ * without a live Siril log/gui.
+ *
+ * A layer whose translations are all zero is skipped: it carries no
+ * alignment information, only quality scores — exactly what
+ * mpp_write_quality_to_regdata publishes after every Analyze/Register
+ * (zero H on every frame). Feeding that back in as a seed would be
+ * actively harmful, not neutral: a seed bypasses the cumulative
+ * frame-to-frame tracking chain and pins every frame's search window at
+ * its seed value, so an all-zero seed confines the whole search to
+ * ±align_frames_search_width around zero shift. Frames drifting further
+ * than that get wrong global shifts, and the stack shows doubled
+ * features. */
 std::vector<cv::Vec2d> seed_from_regdata(sequence *seq) {
 	if (!seq || !seq->regparam || seq->number <= 0 || seq->nb_layers <= 0)
 		return {};
-	int layer = -1;
 	for (int l = 0; l < seq->nb_layers; ++l) {
-		if (seq->regparam[l]) { layer = l; break; }
+		const regdata *rp = seq->regparam[l];
+		if (!rp)
+			continue;
+		std::vector<cv::Vec2d> seed((size_t) seq->number, cv::Vec2d(0.0, 0.0));
+		bool any_translation = false;
+		for (int i = 0; i < seq->number; ++i) {
+			double dx = 0.0, dy = 0.0;
+			translation_from_H(rp[i].H, &dx, &dy);
+			if (dx != 0.0 || dy != 0.0)
+				any_translation = true;
+			seed[(size_t) i] = cv::Vec2d(dy, dx);  /* port (dy, dx) to-align convention */
+		}
+		if (any_translation)
+			return seed;
 	}
-	if (layer < 0)
-		return {};
-	const regdata *rp = seq->regparam[layer];
-	std::vector<cv::Vec2d> seed((size_t) seq->number, cv::Vec2d(0.0, 0.0));
-	for (int i = 0; i < seq->number; ++i) {
-		double dx = 0.0, dy = 0.0;
-		translation_from_H(rp[i].H, &dx, &dy);
-		seed[(size_t) i] = cv::Vec2d(dy, dx);  /* port (dy, dx) to-align convention */
-	}
-	return seed;
+	return {};
 }
 
 namespace {   /* reopen anonymous namespace for the remaining helpers */
