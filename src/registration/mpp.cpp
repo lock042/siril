@@ -1306,7 +1306,7 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 
 	/* Dispatch: all stacking goes through the classical engine
 	 * (stack_apply_shifts_streamed) — sub-pixel rigid-shift per-AP patch
-	 * accumulation + tent-weight mosaic, parallelised over frames, with
+	 * accumulation + Hann-weight mosaic, parallelised over frames, with
 	 * cv::resize interpolation for scale > 1.
 	 *
 	 * The STScI / Bayer dobox drizzle backends were removed: both produced

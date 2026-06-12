@@ -109,43 +109,56 @@ Test(mpp_stack, default_config_phase5a) {
 	cr_assert_float_eq(cfg.drizzle_scale, 1.0, 1e-12);
 }
 
-/* PSS one_dim_weight reference values for a symmetric ramp:
+/* one_dim_weight: PSS's linear ramp t is mapped through the raised-cosine
+ * sin²(π/2·t) (a deliberate divergence — C1 blend window, see
+ * stack_one_dim_weight), so the expected values are hann(t) of the PSS
+ * reference ramp. For the symmetric case:
  *   patch=[100, 172], box_center=136, no extend
  *   center_offset = 36; high_len = patch_size - center_offset = 36
- *   weights[0] = 1/37 ≈ 0.027027
- *   weights[35] = 36/37 ≈ 0.972973
- *   weights[36] = 1.0   (the centre — first index of high ramp)
- *   weights[37] = 35/36 ≈ 0.972222
- *   weights[71] = 1/36  ≈ 0.027778
+ *   weights[0]  = hann(1/37)
+ *   weights[35] = hann(36/37)
+ *   weights[36] = hann(1) = 1.0   (the centre — first index of high ramp)
+ *   weights[37] = hann(35/36)
+ *   weights[71] = hann(1/36)
  */
+namespace {
+float hann_of(double t) {
+	const double s = std::sin(M_PI_2 * t);
+	return (float) (s * s);
+}
+}  // namespace
+
 Test(mpp_stack, one_dim_weight_symmetric_ramp) {
 	const auto w = mpp::stack_one_dim_weight(100, 172, 136, false, false);
 	cr_assert_eq(w.size(), 72u);
-	cr_assert_float_eq(w[0],  1.0f / 37.0f, 1e-6);
-	cr_assert_float_eq(w[35], 36.0f / 37.0f, 1e-6);
+	cr_assert_float_eq(w[0],  hann_of(1.0 / 37.0), 1e-6);
+	cr_assert_float_eq(w[35], hann_of(36.0 / 37.0), 1e-6);
 	cr_assert_float_eq(w[36], 1.0f, 1e-6);
-	cr_assert_float_eq(w[37], 35.0f / 36.0f, 1e-6);
-	cr_assert_float_eq(w[71], 1.0f / 36.0f, 1e-6);
+	cr_assert_float_eq(w[37], hann_of(35.0 / 36.0), 1e-6);
+	cr_assert_float_eq(w[71], hann_of(1.0 / 36.0), 1e-6);
+	/* Zero slope at the patch edge: the first step of the Hann taper is
+	 * much smaller than the first step of the linear ramp it replaced. */
+	cr_assert_lt(w[1] - w[0], 1.0f / 37.0f);
 }
 
 Test(mpp_stack, one_dim_weight_extend_low) {
 	const auto w = mpp::stack_one_dim_weight(0, 50, 30, true, false);
 	cr_assert_eq(w.size(), 50u);
-	/* Lower ramp replaced by 1.0 from idx 0 to centre_offset (=30, exclusive). */
+	/* Lower taper replaced by 1.0 from idx 0 to centre_offset (=30, exclusive). */
 	for (int i = 0; i < 30; ++i)
 		cr_assert_float_eq(w[i], 1.0f, 1e-9, "w[%d] should be 1.0", i);
-	/* High ramp at idx 30 is 1.0; at idx 49 is 1/20. */
+	/* High taper at idx 30 is 1.0; at idx 49 is hann(1/20). */
 	cr_assert_float_eq(w[30], 1.0f, 1e-9);
-	cr_assert_float_eq(w[49], 1.0f / 20.0f, 1e-6);
+	cr_assert_float_eq(w[49], hann_of(1.0 / 20.0), 1e-6);
 }
 
 Test(mpp_stack, one_dim_weight_extend_high) {
 	const auto w = mpp::stack_one_dim_weight(0, 50, 20, false, true);
 	cr_assert_eq(w.size(), 50u);
-	/* Low ramp: [1/21, 2/21, …, 20/21]. */
-	cr_assert_float_eq(w[0], 1.0f / 21.0f, 1e-6);
-	cr_assert_float_eq(w[19], 20.0f / 21.0f, 1e-6);
-	/* High ramp replaced by 1.0 from idx 20 to end. */
+	/* Low taper: hann of [1/21, 2/21, …, 20/21]. */
+	cr_assert_float_eq(w[0], hann_of(1.0 / 21.0), 1e-6);
+	cr_assert_float_eq(w[19], hann_of(20.0 / 21.0), 1e-6);
+	/* High taper replaced by 1.0 from idx 20 to end. */
 	for (int i = 20; i < 50; ++i)
 		cr_assert_float_eq(w[i], 1.0f, 1e-9, "w[%d] should be 1.0", i);
 }

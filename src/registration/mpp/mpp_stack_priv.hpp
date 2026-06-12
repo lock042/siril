@@ -19,10 +19,13 @@
 namespace mpp {
 
 /* Length = patch_high - patch_low.
- * The peak (1.0) lands at index (box_center - patch_low). Ramp from
- * 1/(c+1) at the lower edge up to 1.0 at the centre, then 1.0 → 1/N at the
- * upper edge, where N = patch_high - box_center. extend_low / extend_high
- * replace the corresponding ramp with all-ones (edge-of-frame patches). */
+ * The peak (1.0) lands at index (box_center - patch_low). Raised-cosine
+ * (Hann) taper: the linear ramp t (1/(c+1) … c/(c+1) below the centre,
+ * N/N … 1/N above it, N = patch_high - box_center) is mapped through
+ * sin²(π/2·t), giving zero slope at the centre and at the patch edges so
+ * the blend window is C1 (PSS uses the C0 triangular ramp directly).
+ * extend_low / extend_high replace the corresponding taper with all-ones
+ * (edge-of-frame patches). */
 std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_center,
                                         bool extend_low, bool extend_high);
 
@@ -105,9 +108,9 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 
 /*
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
- * (`min(weight_y[:, None], weight_x[None, :])`, ramping from the AP centre
- * to the patch boundaries, with the boundary ramp suppressed at frame
- * edges). Global: a sum_single_frame_weights buffer in drizzled coords,
+ * (`weight_y[:, None] * weight_x[None, :]`, Hann-tapering from the AP
+ * centre to the patch boundaries, with the boundary taper suppressed at
+ * frame edges). Global: a sum_single_frame_weights buffer in drizzled coords,
  * accumulating `stack_size × weights_yx` over every AP. The count of pixels
  * with summed weight < 1e-10 is the "background hole" count.
  *

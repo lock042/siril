@@ -71,23 +71,36 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
 	const int center_offset = box_center - patch_low;
 	std::vector<float> w(patch_size, 0.0f);
 
+	/* Raised-cosine (Hann) taper. PSS uses the linear ramp t directly;
+	 * mapping it through sin²(π/2·t) keeps the endpoints (t=1 → 1, t→0
+	 * → 0) but zeroes the derivative at both, so the 2D blend window has
+	 * no gradient kink at AP centres or patch boundaries — small per-AP
+	 * level differences no longer imprint the AP lattice as creases the
+	 * way the C0 triangular window did. The per-pixel division by
+	 * sum_single_frame_weights normalises whatever window is used, so no
+	 * partition-of-unity property is required. */
+	auto hann = [](double t) {
+		const double s = std::sin(M_PI_2 * t);
+		return (float) (s * s);
+	};
+
 	if (extend_low) {
 		for (int i = 0; i < center_offset; ++i) w[i] = 1.0f;
 	} else {
-		/* arange(1, c+1) / float32(c+1) → [1/(c+1), 2/(c+1), …, c/(c+1)]. */
-		const float denom = (float) (center_offset + 1);
+		/* ramp t = [1/(c+1), 2/(c+1), …, c/(c+1)]. */
+		const double denom = (double) (center_offset + 1);
 		for (int i = 0; i < center_offset; ++i)
-			w[i] = (float) (i + 1) / denom;
+			w[i] = hann((double) (i + 1) / denom);
 	}
 
 	const int high_len = patch_size - center_offset;  /* = patch_high - box_center */
 	if (extend_high) {
 		for (int i = 0; i < high_len; ++i) w[center_offset + i] = 1.0f;
 	} else {
-		/* arange(N, 0, -1) / float32(N) → [N/N, (N-1)/N, …, 1/N]. */
-		const float denom = (float) high_len;
+		/* ramp t = [N/N, (N-1)/N, …, 1/N]. */
+		const double denom = (double) high_len;
 		for (int i = 0; i < high_len; ++i)
-			w[center_offset + i] = (float) (high_len - i) / denom;
+			w[center_offset + i] = hann((double) (high_len - i) / denom);
 	}
 	return w;
 }
@@ -382,11 +395,14 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		const auto wy = stack_one_dim_weight(py_lo, py_hi, yc, extend_y_low,  extend_y_high);
 		const auto wx = stack_one_dim_weight(px_lo, px_hi, xc, extend_x_low,  extend_x_high);
 
+		/* Separable product, not PSS's min(wy, wx): the product of two
+		 * C1 Hann tapers is C1 everywhere, while min() recreates
+		 * diagonal derivative creases along |wy| = |wx|. */
 		cv::Mat wyx((int) wy.size(), (int) wx.size(), CV_32F);
 		for (int y = 0; y < (int) wy.size(); ++y) {
 			float *row = wyx.ptr<float>(y);
 			for (int x = 0; x < (int) wx.size(); ++x)
-				row[x] = std::min(wy[y], wx[x]);
+				row[x] = wy[y] * wx[x];
 		}
 		s.weights_yx.push_back(wyx);
 		s.stacking_buffers.push_back(cv::Mat(wyx.rows, wyx.cols, buf_type,
