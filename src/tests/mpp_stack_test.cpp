@@ -484,6 +484,59 @@ Test(mpp_stack, apply_shifts_fractional_scale) {
 	mpp_ap_free(aps);
 }
 
+/* Per-AP DC equalisation: two flat AP buffers at different levels must merge
+ * to a flat image at the common mean instead of a ramp between the levels.
+ * With two APs the pairwise least-squares solve is exact: the overlap mean
+ * difference is the full DC gap, the zero-mean constraint splits it evenly,
+ * and both corrected buffers land on the same constant. */
+Test(mpp_stack, merge_equalises_ap_dc_offsets) {
+	const auto cfg = default_cfg();
+
+	/* Hand-built two-AP geometry on a 72×126 canvas: both patches span the
+	 * full height; AP 0 covers x [0, 72), AP 1 covers x [54, 126) — an
+	 * 18-column overlap, like neighbouring grid APs. */
+	mpp_ap_record_t recs[2];
+	std::memset(recs, 0, sizeof(recs));
+	recs[0].y = 36;          recs[0].x = 36;
+	recs[0].box_y_low = 12;  recs[0].box_y_high = 60;
+	recs[0].box_x_low = 12;  recs[0].box_x_high = 60;
+	recs[0].patch_y_low = 0; recs[0].patch_y_high = 72;
+	recs[0].patch_x_low = 0; recs[0].patch_x_high = 72;
+	recs[1] = recs[0];
+	recs[1].x = 90;
+	recs[1].box_x_low = 66;  recs[1].box_x_high = 114;
+	recs[1].patch_x_low = 54; recs[1].patch_x_high = 126;
+
+	mpp_aps_t aps;
+	std::memset(&aps, 0, sizeof(aps));
+	aps.count = 2;
+	aps.records = recs;
+
+	const cv::Vec4i intersection(0, 72, 0, 126);
+	auto state = mpp::stack_prepare_for_blending(aps, intersection,
+	                                             /*stack_size=*/1,
+	                                             /*drizzle_scale=*/1.0,
+	                                             /*num_layers=*/1, cfg);
+	cr_assert_eq(state.number_stacking_holes, 0);
+	cr_assert_eq((int) state.ap_frame_counts.size(), 2);
+
+	state.stacking_buffers[0].setTo(cv::Scalar(10000.0f));
+	state.stacking_buffers[1].setTo(cv::Scalar(12000.0f));
+
+	mpp::RemapBorder border;
+	const cv::Mat img = mpp::stack_merge_alignment_point_buffers(
+	    state, border, aps, cfg);
+
+	double dmin = 0.0, dmax = 0.0;
+	cv::minMaxLoc(img, &dmin, &dmax);
+	/* Without equalisation this is a 10000 → 12000 blend ramp; with it,
+	 * both buffers shift to the common mean and the output is flat. */
+	cr_assert_leq(dmax - dmin, 1.0,
+	              "merged image not flat: min=%.0f max=%.0f", dmin, dmax);
+	cr_assert_geq(dmin, 10998.0);
+	cr_assert_leq(dmax, 11002.0);
+}
+
 /* stack_skip_failed_aps: a (frame, AP) pair whose Stage B measurement failed
  * is dropped from the stack (with its per-AP weight reduced to match), so a
  * corrupted shift can no longer smear the patch.  An AP whose pairs ALL

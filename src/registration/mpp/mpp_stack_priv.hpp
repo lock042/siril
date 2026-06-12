@@ -137,6 +137,10 @@ struct StackState {
 	std::vector<cv::Vec2i> ap_drizzled;     /* (y, x) */
 	std::vector<cv::Mat> weights_yx;        /* CV_32F, patch-sized */
 	std::vector<cv::Mat> stacking_buffers;  /* CV_32F, patch-sized, zero-init */
+	/* Frames accumulated per AP (stack_size, or the reduced effective
+	 * count under stack_skip_failed_aps). Normalises a stacking buffer to
+	 * a mean patch — used by the merge's per-AP DC equalisation. */
+	std::vector<float> ap_frame_counts;
 
 	cv::Mat sum_single_frame_weights;       /* CV_32F, dim_y_drizzled × dim_x_drizzled */
 	int number_stacking_holes = 0;

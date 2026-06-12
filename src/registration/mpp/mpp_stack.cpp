@@ -371,6 +371,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	s.ap_drizzled.reserve(M);
 	s.weights_yx.reserve(M);
 	s.stacking_buffers.reserve(M);
+	s.ap_frame_counts.reserve(M);
 	s.sum_single_frame_weights.create(s.dim_y_drizzled, s.dim_x_drizzled, CV_32F);
 	s.sum_single_frame_weights.setTo(cv::Scalar(1e-30f));
 
@@ -415,6 +416,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		 * matches what actually gets accumulated. */
 		const float ap_count_f = ap_effective_counts
 		    ? (float) (*ap_effective_counts)[a] : stack_size_f;
+		s.ap_frame_counts.push_back(ap_count_f);
 		cv::Mat dst = s.sum_single_frame_weights(
 		    cv::Range(py_lo, py_hi), cv::Range(px_lo, px_hi));
 		dst += ap_count_f * wyx;
@@ -933,6 +935,83 @@ cv::Mat broadcast_channels(const cv::Mat &single, int n) {
 	cv::merge(chans, out);
 	return out;
 }
+
+/* Per-AP DC equalisation offsets (Siril enhancement; PSS has no
+ * equivalent). Each AP buffer is a mean over its own top-N frame subset,
+ * so neighbouring APs settle at slightly different local levels
+ * (disjoint frame picks, transparency drift); the blend window then
+ * turns each level step into block-pitch shading. Over the overlap of
+ * two patches the scene content is identical, so the mean difference of
+ * the two normalised buffers there is pure stacking inconsistency:
+ *   d_ab = mean_overlap(B_a / c_a − B_b / c_b)   (per channel).
+ * Solve the least-squares offsets δ minimising
+ *   Σ_pairs n_ab (δ_a − δ_b + d_ab)²
+ * (n_ab = overlap area) by Gauss-Seidel — the normal equations are
+ *   δ_a = Σ_b n_ab (δ_b − d_ab) / Σ_b n_ab,
+ * a strictly diagonally dominant relaxation that converges in a few
+ * dozen sweeps for any AP graph. The system is invariant under a global
+ * constant, so pin the mean δ of connected APs to zero (preserves the
+ * overall brightness). APs with no overlapping neighbour keep δ = 0. */
+std::vector<cv::Scalar> stack_solve_ap_dc_offsets(const mpp::StackState &state) {
+	const int M = (int) state.stacking_buffers.size();
+	std::vector<cv::Scalar> delta(M, cv::Scalar::all(0.0));
+	if (M < 2 || (int) state.ap_frame_counts.size() != M)
+		return delta;
+
+	struct Edge { int b; double n; cv::Scalar d; };
+	std::vector<std::vector<Edge>> nbrs(M);
+	for (int a = 0; a < M; ++a) {
+		const auto &pa = state.patch_drizzled[a];
+		const double ca = state.ap_frame_counts[a];
+		if (ca <= 0.0) continue;
+		for (int b = a + 1; b < M; ++b) {
+			const double cb = state.ap_frame_counts[b];
+			if (cb <= 0.0) continue;
+			const auto &pb = state.patch_drizzled[b];
+			const int y0 = std::max(pa[0], pb[0]), y1 = std::min(pa[1], pb[1]);
+			const int x0 = std::max(pa[2], pb[2]), x1 = std::min(pa[3], pb[3]);
+			if (y1 <= y0 || x1 <= x0) continue;
+			const cv::Mat sa = state.stacking_buffers[a](
+			    cv::Range(y0 - pa[0], y1 - pa[0]),
+			    cv::Range(x0 - pa[2], x1 - pa[2]));
+			const cv::Mat sb = state.stacking_buffers[b](
+			    cv::Range(y0 - pb[0], y1 - pb[0]),
+			    cv::Range(x0 - pb[2], x1 - pb[2]));
+			const double n = (double) (y1 - y0) * (double) (x1 - x0);
+			const cv::Scalar d = cv::sum(sa) * (1.0 / (ca * n))
+			                   - cv::sum(sb) * (1.0 / (cb * n));
+			nbrs[a].push_back({b, n, d});
+			nbrs[b].push_back({a, n, -d});
+		}
+	}
+
+	for (int it = 0; it < 32; ++it) {
+		for (int a = 0; a < M; ++a) {
+			if (nbrs[a].empty()) continue;
+			cv::Scalar acc = cv::Scalar::all(0.0);
+			double nsum = 0.0;
+			for (const auto &e : nbrs[a]) {
+				acc += (delta[e.b] - e.d) * e.n;
+				nsum += e.n;
+			}
+			delta[a] = acc * (1.0 / nsum);
+		}
+	}
+
+	cv::Scalar mean = cv::Scalar::all(0.0);
+	int connected = 0;
+	for (int a = 0; a < M; ++a) {
+		if (nbrs[a].empty()) continue;
+		mean += delta[a];
+		++connected;
+	}
+	if (connected > 0) {
+		mean *= 1.0 / connected;
+		for (int a = 0; a < M; ++a)
+			if (!nbrs[a].empty()) delta[a] -= mean;
+	}
+	return delta;
+}
 }  // namespace
 
 cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
@@ -945,7 +1024,22 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 	/* Global drizzled image buffer. */
 	cv::Mat buf = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
 
-	/* For each AP: buf[patch] += stacking_buffer * weights_yx. */
+	/* DC equalisation offsets — see stack_solve_ap_dc_offsets. */
+	const std::vector<cv::Scalar> dc = stack_solve_ap_dc_offsets(state);
+	{
+		double max_dc = 0.0;
+		for (const auto &d : dc)
+			for (int c = 0; c < C; ++c)
+				max_dc = std::max(max_dc, std::abs(d[c]));
+		if (max_dc >= 0.005)
+			siril_log_debug("Stack (mpp): AP DC equalisation, max "
+			                "correction %.2f ADU (16-bit)\n", max_dc);
+	}
+
+	/* For each AP: buf[patch] += (stacking_buffer + c_a·δ_a) * weights_yx.
+	 * The δ term rides under the same window, so after the division by
+	 * sum_single_frame_weights it contributes exactly +δ_a wherever the
+	 * AP carries weight. */
 	for (int a = 0; a < aps.count; ++a) {
 		const auto &p = state.patch_drizzled[a];
 		cv::Mat dst = buf(cv::Range(p[0], p[1]), cv::Range(p[2], p[3]));
@@ -953,6 +1047,14 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		const cv::Mat w = broadcast_channels(state.weights_yx[a], C);
 		cv::multiply(state.stacking_buffers[a], w, weighted);
 		dst += weighted;
+		if (a < (int) state.ap_frame_counts.size()) {
+			const cv::Scalar term = dc[a] * (double) state.ap_frame_counts[a];
+			if (std::abs(term[0]) + std::abs(term[1]) + std::abs(term[2]) > 0.0) {
+				cv::Mat corr(w.rows, w.cols, buf_type, term);
+				cv::multiply(corr, w, corr);
+				dst += corr;
+			}
+		}
 	}
 
 	/* buf /= sum_single_frame_weights. sum_weights was initialised to
