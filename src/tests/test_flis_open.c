@@ -30,6 +30,7 @@
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "io/image_format_fits.h"
+#include "io/fits_sequence.h"
 
 cominfo com;
 fits *gfit;
@@ -207,4 +208,21 @@ Test(flis_open, promote_then_save_then_readfits_roundtrip) {
 	cr_assert_float_eq(reloaded->fit->fpdata[0][0], 0.2f, 1e-5);
 	cr_assert_float_eq(reloaded->fit->fpdata[1][0], 0.3f, 1e-5);
 	cr_assert_float_eq(reloaded->fit->fpdata[2][0], 0.4f, 1e-5);
+}
+
+/* A FLIS file must never be detected as a FITS sequence: its image HDUs
+ * legitimately differ in size (sparse layers, thumbnail), and treating it
+ * as a fitseq bypasses load_flis entirely (the user gets a stack of mono
+ * "frames" — or just the thumbnail — instead of the layered image).
+ * Guards the _find_hdus() FLIS bail-out ported from the flis branch. */
+Test(flis_open, flis_file_is_not_a_fitseq) {
+	/* Layers of different sizes — the heterogeneous case that used to
+	 * trip the fitseq detector. */
+	flis_test_add_layer(flis_test_make_rgb_fits(8, 8, 0.1f, 0.2f, 0.3f), "base");
+	flis_test_add_layer(flis_test_make_mono_fits(4, 6, 0.7f), "small");
+	cr_assert_eq(save_flis(tmppath), 0);
+
+	int frames = -1;
+	cr_assert_eq(fitseq_is_fitseq(tmppath, &frames), 0,
+	             "FLIS file detected as a FITS sequence (frames=%d)", frames);
 }

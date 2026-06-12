@@ -303,8 +303,32 @@ int populate_roi() {
 		return 1;
 	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
 		return 1;
+	/* When a FLIS sub-layer is active, gui.roi.selection is in canvas
+	 * (composite) coordinates but gfit is the sub-layer.  Compute
+	 * layer-local coordinates for data access; gui.roi.selection itself
+	 * stays in canvas coordinates for drawing. */
+	rectangle lsel = gui.roi.selection;
+	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit) {
+				lsel.x -= lay->position_x;
+				lsel.y -= lay->position_y;
+				break;
+			}
+		}
+	}
+	/* Bounds guard: the layer-local selection must lie within gfit —
+	 * a selection made over a part of the canvas the active layer does
+	 * not cover would otherwise read outside its pixel buffer. */
+	if (lsel.x < 0 || lsel.y < 0 ||
+	    (guint)(lsel.x + lsel.w) > gfit->rx ||
+	    (guint)(lsel.y + lsel.h) > gfit->ry) {
+		siril_log_debug("populate_roi: selection out of bounds for the active layer, skipping\n");
+		return 1;
+	}
 	int retval = 0;
-	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	size_t npixels_roi = lsel.w * lsel.h;
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	size_t nchans = gfit->naxes[2];
 	g_assert(nchans == 1 || nchans == 3);
@@ -313,8 +337,8 @@ int populate_roi() {
 	clearfits(&gui.roi.fit);
 	copyfits(gfit, &gui.roi.fit, CP_FORMAT, -1);
 
-	gui.roi.fit.rx = gui.roi.fit.naxes[0] = gui.roi.selection.w;
-	gui.roi.fit.ry = gui.roi.fit.naxes[1] = gui.roi.selection.h;
+	gui.roi.fit.rx = gui.roi.fit.naxes[0] = lsel.w;
+	gui.roi.fit.ry = gui.roi.fit.naxes[1] = lsel.h;
 	gui.roi.fit.naxes[2] = nchans;
 	gui.roi.fit.naxis = (nchans == 1 ? 2 : 3);
 
@@ -329,19 +353,19 @@ int populate_roi() {
 		gui.roi.fit.fpdata[2] = rgb ? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
 
 		for (uint32_t c = 0; c < nchans; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
+			for (uint32_t y = 0; y < lsel.h; y++) {
 				float *srcindex =
 					gfit->fdata +
 					(npixels_gfit * c) +
-					((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) +
-					gui.roi.selection.x;
+					((gfit->ry - y - (lsel.y + 1)) * gfit->rx) +
+					lsel.x;
 
 				float *destindex =
 					gui.roi.fit.fdata +
 					(npixels_roi * c) +
 					(gui.roi.fit.rx * y);
 
-				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(float));
+				memcpy(destindex, srcindex, lsel.w * sizeof(float));
 			}
 		}
 	} else {
@@ -354,19 +378,19 @@ int populate_roi() {
 		gui.roi.fit.pdata[2] = rgb ? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
 
 		for (uint32_t c = 0; c < nchans; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
+			for (uint32_t y = 0; y < lsel.h; y++) {
 				WORD *srcindex =
 					gfit->data +
 					(npixels_gfit * c) +
-					((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) +
-					gui.roi.selection.x;
+					((gfit->ry - y - (lsel.y + 1)) * gfit->rx) +
+					lsel.x;
 
 				WORD *destindex =
 					gui.roi.fit.data +
 					(npixels_roi * c) +
 					(y * gui.roi.fit.rx);
 
-				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
+				memcpy(destindex, srcindex, lsel.w * sizeof(WORD));
 			}
 		}
 	}
@@ -376,7 +400,7 @@ int populate_roi() {
 	gui.roi.fit.mask = NULL;
 
 	if (gfit->mask && gfit->mask->data) {
-		size_t n = gui.roi.selection.w * gui.roi.selection.h;
+		size_t n = lsel.w * lsel.h;
 		size_t src_w = gfit->rx;
 		size_t src_h = gfit->ry;
 
@@ -408,17 +432,17 @@ int populate_roi() {
 		}
 
 		/* Copy mask ROI with same flip logic as image */
-		for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
-			size_t src_y = src_h - y - (gui.roi.selection.y + 1);
-			size_t src_x = gui.roi.selection.x;
+		for (uint32_t y = 0; y < lsel.h; y++) {
+			size_t src_y = src_h - y - (lsel.y + 1);
+			size_t src_x = lsel.x;
 
 			void *src = (uint8_t*)gfit->mask->data +
 						(src_y * src_w + src_x) * elem_size;
 
 			void *dst = (uint8_t*)gui.roi.fit.mask->data +
-						(y * gui.roi.selection.w) * elem_size;
+						(y * lsel.w) * elem_size;
 
-			memcpy(dst, src, gui.roi.selection.w * elem_size);
+			memcpy(dst, src, lsel.w * elem_size);
 		}
 
 		gui.roi.fit.mask_active = gfit->mask_active;

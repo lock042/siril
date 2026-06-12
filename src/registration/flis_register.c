@@ -48,6 +48,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/processing_thread.h"
 #include "io/sequence.h"
 #include "io/image_format_flis.h"
 #include "registration/registration.h"
@@ -60,9 +61,18 @@ registration_function flis_register_resolve_method(flis_reg_method_id id,
                                                     transformation_type *out_tx) {
 	switch (id) {
 		case FLIS_REG_GLOBAL:
+			/* Two-pass global alignment, same as FLIS_REG_2PASS.  The
+			 * single-pass register_star_alignment is NOT usable here: it
+			 * resamples the layer pixels inline (apply_reg_image_hook runs
+			 * inside the method), so the register_apply_reg() pass that
+			 * flis_register_layers performs afterwards would warp the
+			 * already-warped pixels a second time and every layer would
+			 * end up misplaced.  register_multi_step_global only computes
+			 * the transforms; the single apply happens in
+			 * flis_register_layers. */
 			if (out_sel) *out_sel = REQUIRES_NO_SELECTION;
 			if (out_tx)  *out_tx  = HOMOGRAPHY_TRANSFORMATION;
-			return register_star_alignment;
+			return register_multi_step_global;
 		case FLIS_REG_2PASS:
 			if (out_sel) *out_sel = REQUIRES_NO_SELECTION;
 			if (out_tx)  *out_tx  = HOMOGRAPHY_TRANSFORMATION;
@@ -147,10 +157,31 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	if (!check_selection_requirement(sel_req))
 		return 1;
 
+	/* The registration method and register_apply_reg() below drive
+	 * generic_sequence_worker synchronously (already_in_a_thread), whose
+	 * frame loop polls processing_should_continue().  When we are NOT
+	 * already inside the processing worker (the command / script path),
+	 * we must claim the job slot via reserve_thread(): it clears any
+	 * stale cancel_flag left by a previous job's stop_processing_thread()
+	 * — without this the very first frame aborts and registration fails
+	 * with a bare "Sequence processing failed".  The GUI panel path runs
+	 * inside a queued generic_layer_worker job which already cleared the
+	 * flag and owns the slot, so reserving again would (rightly) fail. */
+	gboolean reserved = FALSE;
+	if (!processing_in_worker_thread()) {
+		if (!reserve_thread()) {
+			siril_log_error(_("flis_register_layers: another processing "
+			                  "task is running, try again later\n"));
+			return 1;
+		}
+		reserved = TRUE;
+	}
+
 	flis_layer_t *canvas_lay = (flis_layer_t *)com.uniq->layers->data;
 	flis_layer_t *ref = ref_lay ? ref_lay : (flis_layer_t *)targets->data;
 	if (!ref || !ref->fit) {
 		siril_log_error(_("flis_register_layers: reference layer has no pixel data\n"));
+		if (reserved) unreserve_thread();
 		return 1;
 	}
 
@@ -164,6 +195,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 	sequence *seq = create_internal_sequence(n_layers);
 	if (!seq) {
 		siril_log_error(_("flis_register_layers: could not build internal sequence\n"));
+		if (reserved) unreserve_thread();
 		return 1;
 	}
 	seq->bitpix = ref->fit->bitpix;
@@ -229,6 +261,7 @@ int flis_register_layers(flis_layer_t *ref_lay,
 		free(regargs.imgparam); regargs.imgparam = NULL;
 		free(regargs.regparam); regargs.regparam = NULL;
 		free_sequence(seq, TRUE);
+		if (reserved) unreserve_thread();
 		return 1;
 	}
 	free(regargs.imgparam); regargs.imgparam = NULL;
@@ -263,10 +296,28 @@ int flis_register_layers(flis_layer_t *ref_lay,
 			lay->position_x = (gint)round(dx);
 			lay->position_y = (gint)round(dy);
 		}
+
+		/* FRAMING_MAX resamples the canvas (base) layer into its own
+		 * bounding box, which can be larger than the document canvas
+		 * (rotation, or a reference whose frame extends past it).  On
+		 * the original flis branch the canvas implicitly followed the
+		 * base layer's dimensions, so registration never clipped it;
+		 * with the §7 canvas-independent model we reproduce that by
+		 * growing the canvas to the registered base layer's new size
+		 * (still pinned at the origin, no layer shifts). */
+		if (canvas_seq_idx >= 0 && canvas_lay->fit &&
+		    (canvas_lay->fit->rx != com.uniq->canvas_w ||
+		     canvas_lay->fit->ry != com.uniq->canvas_h)) {
+			siril_log_message(_("flis_register_layers: canvas resized to "
+			                    "%ux%u to match the registered base layer\n"),
+			                  canvas_lay->fit->rx, canvas_lay->fit->ry);
+			flis_canvas_resize(canvas_lay->fit->rx, canvas_lay->fit->ry, 0, 0);
+		}
 	}
 
 	free(regargs.imgparam); regargs.imgparam = NULL;
 	free(regargs.regparam); regargs.regparam = NULL;
 	free_sequence(seq, TRUE);
+	if (reserved) unreserve_thread();
 	return ret;
 }

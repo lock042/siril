@@ -746,6 +746,7 @@ static void impl_flis_swap_out_composite(void *saved) {
 }
 
 extern void flis_gui_update_from_idle(void);  /* flis_gui.h, stage 4 */
+extern gboolean flis_panel_group_is_selected(void);  /* flis_gui.h */
 extern void flis_gui_present_if_flis(void);
 
 static void impl_flis_gui_update(void) {
@@ -1326,6 +1327,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.flis_swap_out_composite     = impl_flis_swap_out_composite;
 	gui_iface.flis_composite_free         = impl_flis_composite_free;
 	gui_iface.flis_gui_update             = impl_flis_gui_update;
+	gui_iface.flis_group_is_selected      = flis_panel_group_is_selected;
 	gui_iface.flis_gui_present_if_flis    = impl_flis_gui_present_if_flis;
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;

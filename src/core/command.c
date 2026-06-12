@@ -7772,6 +7772,12 @@ int process_findstar(int nb) {
 	}
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
+	/* For FLIS images the active layer can be mono even though the GUI
+	 * displays the RGB composite (so the active vport may be GLAYER /
+	 * BLAYER / RGB).  Clamp to avoid out-of-bounds channel access on the
+	 * layer's pixel data. */
+	if (layer >= (int)gfit->naxes[2])
+		layer = RLAYER;
 	args->layer = layer;
 	args->im.fit = gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {

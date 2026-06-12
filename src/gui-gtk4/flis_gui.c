@@ -834,11 +834,11 @@ static void on_tint_color_chosen (GtkColorDialogButton *btn, GParamSpec *p, gpoi
 /* 18 GSK-equivalent FLIS blend modes — the dropdown's index order maps
  * to the FLIS_BLEND_* values via blend_mode_for_index(). */
 static const char *blend_names[] = {
-	"Normal",       "Multiply",   "Screen",      "Overlay",
-	"Soft Light",   "Hard Light", "Color Dodge", "Color Burn",
-	"Darken",       "Lighten",    "Difference",  "Exclusion",
-	"Hue",          "Saturation", "Color",       "Luminosity",
-	"Chroma (LRGB)", "Pass-through",
+	N_("Normal"),       N_("Multiply"),   N_("Screen"),      N_("Overlay"),
+	N_("Soft Light"),   N_("Hard Light"), N_("Color Dodge"), N_("Color Burn"),
+	N_("Darken"),       N_("Lighten"),    N_("Difference"),  N_("Exclusion"),
+	N_("Hue"),          N_("Saturation"), N_("Color"),       N_("Luminosity"),
+	N_("Chroma (LRGB)"), N_("Pass-through"),
 };
 static const flis_blend_mode_t blend_mode_for_index_table[] = {
 	FLIS_BLEND_NORMAL,      FLIS_BLEND_MULTIPLY,    FLIS_BLEND_SCREEN,      FLIS_BLEND_OVERLAY,
@@ -882,7 +882,7 @@ static void build_property(GtkWidget *box) {
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Blend")), 0, row, 1, 1);
 	GtkStringList *bl = gtk_string_list_new(NULL);
 	for (int i = 0; i < N_BLENDS; i++)
-		gtk_string_list_append(bl, blend_names[i]);
+		gtk_string_list_append(bl, _(blend_names[i]));
 	g_panel->blend_dropdown = gtk_drop_down_new(G_LIST_MODEL(bl), NULL);
 	gtk_widget_set_hexpand(g_panel->blend_dropdown, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), g_panel->blend_dropdown, 1, row, 2, 1);
@@ -1086,6 +1086,10 @@ static flis_group_t *current_selected_group(void) {
 	flis_group_t *grp = row_group(ri);
 	g_object_unref(obj);
 	return grp;
+}
+
+gboolean flis_panel_group_is_selected(void) {
+	return g_panel && g_panel->selected_kind == FLIS_ROW_KIND_GROUP;
 }
 
 static void refresh_panel(void) {
@@ -1420,6 +1424,16 @@ static void dispatch_op(struct op_payload *op, const char *desc,
 			                                    desc ? desc : "Layer op");
 			break;
 		}
+		case OP_GROUP_SET_VISIBLE:
+		case OP_GROUP_SET_NAME:
+		case OP_GROUP_SET_BLEND:
+		case OP_GROUP_SET_OPACITY:
+			/* No group-props undo record type exists yet (TODO above);
+			 * until then, at least tell the user instead of silently
+			 * doing nothing on Ctrl-Z. */
+			if (!com.script)
+				siril_log_message(_("Note: group property changes cannot be undone yet\n"));
+			break;
 		default:
 			break;
 	}

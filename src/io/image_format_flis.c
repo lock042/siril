@@ -989,7 +989,19 @@ static layermask_t *load_mask_from_hdu(fitsfile *fptr, int hdu_index,
     mask->w = (size_t)naxes[0];
     mask->h = (size_t)naxes[1];
     mask->bitpix = expect_float ? 32 : 8;
-    size_t nbytes = mask->w * mask->h * (mask->bitpix / 8);
+    /* Dimensions come straight from the file header — guard the byte-count
+     * computation so a corrupt header cannot wrap to a short allocation
+     * that fits_read_img then overruns. */
+    size_t elem_sz = mask->bitpix / 8;
+    if (mask->w == 0 || mask->h == 0 ||
+        mask->w > SIZE_MAX / elem_sz / mask->h) {
+        siril_log_error(_("FLIS: mask HDU has invalid dimensions %zux%zu\n"),
+                        mask->w, mask->h);
+        free(mask);
+        mask = NULL;
+        goto restore_mask;
+    }
+    size_t nbytes = mask->w * mask->h * elem_sz;
 
     mask->data = malloc(nbytes);
     if (!mask->data) {
@@ -1294,18 +1306,26 @@ int save_flis(const gchar *filename) {
             void  *write_data = pmask->data;
             if (pmask->bitpix != 32) {
                 float_data = malloc(npix * sizeof(float));
-                if (float_data) {
-                    if (pmask->bitpix == 8) {
-                        const uint8_t *src = (const uint8_t *)pmask->data;
-                        for (size_t i = 0; i < npix; i++)
-                            float_data[i] = src[i] * (1.0f / 255.0f);
-                    } else { /* 16 */
-                        const uint16_t *src = (const uint16_t *)pmask->data;
-                        for (size_t i = 0; i < npix; i++)
-                            float_data[i] = src[i] * (1.0f / 65535.0f);
-                    }
-                    write_data = float_data;
+                if (!float_data) {
+                    /* Without the conversion buffer we would write 8/16-bit
+                     * bytes labelled as float32 — a buffer over-read.  Skip
+                     * this mask instead. */
+                    PRINT_ALLOC_ERR;
+                    siril_log_warning(_("FLIS: out of memory converting processing mask for '%s', mask not saved\n"),
+                                      lay->layer_name ? lay->layer_name : "?");
+                    g_free(mname);
+                    continue;
                 }
+                if (pmask->bitpix == 8) {
+                    const uint8_t *src = (const uint8_t *)pmask->data;
+                    for (size_t i = 0; i < npix; i++)
+                        float_data[i] = src[i] * (1.0f / 255.0f);
+                } else { /* 16 */
+                    const uint16_t *src = (const uint16_t *)pmask->data;
+                    for (size_t i = 0; i < npix; i++)
+                        float_data[i] = src[i] * (1.0f / 65535.0f);
+                }
+                write_data = float_data;
             }
 
             layermask_t tmp_lm = {

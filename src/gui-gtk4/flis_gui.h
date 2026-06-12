@@ -50,4 +50,9 @@ void flis_gui_update_from_idle(void);
  * working with non-FLIS images. */
 void flis_gui_present_if_flis(void);
 
+/* TRUE when the layers-panel selection currently sits on a GROUP row.
+ * Reads the panel's cached selection state (plain ints), so it is safe
+ * to call from worker threads via gui_iface.flis_group_is_selected. */
+gboolean flis_panel_group_is_selected(void);
+
 #endif /* FLIS_GUI_H */

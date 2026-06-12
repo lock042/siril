@@ -46,6 +46,24 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	if (status || !nb_im)
 		return 1;
 
+	/* FLIS files are layered FITS, not FITS sequences: their image HDUs
+	 * legitimately have different sizes (sparse layers, thumbnail), so the
+	 * heterogeneity checks below would either reject them with misleading
+	 * log errors or — with allow_heterogeneous_fitseq enabled — open them
+	 * as a bogus multi-frame sequence instead of routing to load_flis.
+	 * Probe the FLIS marker on the primary HDU and bail out so
+	 * fitseq_is_fitseq() returns FALSE and readfits dispatches to the
+	 * FLIS loader.  (Ported from the flis branch, commit f424aa444.) */
+	{
+		int flis_status = 0, flis_flag = 0;
+		fits_movabs_hdu(fptr, 1, NULL, &flis_status);
+		fits_read_key(fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+		if (flis_status == 0 && flis_flag) {
+			*nb_im = 0;
+			return 1;
+		}
+	}
+
 	if (hdus) {
 		*hdus = malloc(nb_hdu * sizeof(int));
 		if (!*hdus) {

@@ -2073,3 +2073,62 @@ Each stage's checkoff list is the gate for the next stage to begin.
 Stage 7 lands on its own dedicated branch after stage 6 is shipped —
 not interleaved with the v1.0 work — because it requires the spec
 bump and touches roughly every file touched by stages 1–6.
+
+---
+
+## 10 · flis-branch port-audit (2026-06-12)
+
+Audit of bug-fix commits on the GTK3 `flis` branch (range `8a4a3038e..flis`)
+against this branch, after the re-implementation. Status: PORTED = fixed on
+flis-gtk4 in this session; PRESENT = equivalent logic already existed;
+N/A = superseded by the gtk4 architecture; OPEN = known follow-up.
+
+| flis commit | Fix | Status on flis-gtk4 |
+| --- | --- | --- |
+| f424aa444 | `_find_hdus()` FLIS guard — FLIS files are not fitseqs | **PORTED** (`io/fits_sequence.c`, + `test_flis_open` case) |
+| 9814bd561 | Layer registration framing/offsets | PRESENT, but the GLOBAL method mapping caused a double-apply — **fixed**: `FLIS_REG_GLOBAL` now resolves to `register_multi_step_global`; plus `reserve_thread()` wrap (stale cancel_flag killed CLI runs) and canvas-follows-base resize after registration. Alignment regression test added (`test_flis_register_layers`). |
+| 0dc3ea4c7 | METADATA column as spec'd 1PA varlen | PRESENT (`image_format_flis.c:864-877`) |
+| 8b719073d | findstar channel clamp for mono FLIS layer + RGB vport; `props_only` undo | **PORTED** (clamp in `core/command.c process_findstar`); `props_only` already present |
+| 620594d74 | lmask transformed by bin/resize/rotate; refuse generic ops when a group row is selected | **PORTED** (lmask hunks in `algos/geometry.c`; group guard via new `gui_iface.flis_group_is_selected` slot + checks in `generic_image_worker` / `generic_mask_worker`) |
+| 73fed5bc7 | 0°-rotation no-op guard; group-rotation member geometry | Guard **PORTED** (`verbose_rotate_fast`); group-rotation geometry N/A (gtk4 has no group-scope geometry ops — groups are now refused, see above) |
+| fdd713be0 | ROI canvas→layer-local conversion + bounds guard | **PORTED** (`gui-gtk4/callbacks.c populate_roi`, `gui-gtk4/image_display.c copy_roi_into_gfit`) |
+| 3ec666e2d | Crop canvas→layer-local + intersection skip | N/A by design: gtk4 keeps the selection in active-layer coordinates and the crop command rejects out-of-bounds areas. **OPEN**: verify GUI selection→crop on an offset sparse layer end-to-end. |
+| 0f32442ba / c2ac3fc2a | get_zoom_val FLIS guards / base-layer fit | PRESENT (canvas-based, `gui-gtk4/image_display.c get_zoom_val`) |
+| 56c565daa | leak in error path + metadata copy on duplicate | PRESENT (`flis_layer_duplicate` calls `copy_fits_metadata`) |
+| 5e6a7c8f6 / f8386d400 | group drag / layer drag UX fixes | N/A — re-implemented on gtk4 (`mouse_action_functions.c` drag state + atomic multi-layer undo) |
+| 0d77dd9b2 | processing-mask undo (full layer snapshot) | PRESENT (`geometry_changing` + `undo_save_flis_layer_full`) |
+
+Other fixes in this session (not from the flis branch):
+- `flis_clip_color()` division-by-zero guard (`io/flis_compose.c`).
+- OOM-path buffer over-read writing processing masks (`image_format_flis.c`).
+- Mask-HDU dimension overflow guard on load (`image_format_flis.c`) and
+  lmask texture size guard (`gui-gtk4/flis_gpu_compose.c`).
+- Blend-mode names marked for translation (`gui-gtk4/flis_gui.c`).
+- Group property ops: user-visible "cannot be undone yet" notice (full
+  group-props undo record remains **OPEN**).
+- Flatten-vs-FLIS save dialog deduplicated (`gui-gtk4/save_dialog.c`).
+- GPU compose restricted to the RGB vport for chromatic stacks
+  (channel vports were showing the colour composite).
+
+Crash fix (reported 2026-06-12, SIGSEGV in `ensure_tile` during widget
+snapshot): the GPU tile cache (`g_cache` in `gui-gtk4/flis_gpu_compose.c`)
+was mutated from worker threads — `generic_image_worker` ends with
+`notify_gfit_data_modified()` → `flis_invalidate_composite()` →
+`flis_gpu_compose_invalidate_all()` (and `generic_mask_worker` invalidates
+directly), freeing `slot->tiles` while the main thread was mid-render in
+`emit_layer_tiles`/`ensure_tile`. Fixed with a dedicated `g_cache_mutex`
+held across the whole render/prefetch and by every invalidation entry
+point. Reproduced and verified with `src/tests/diag_flis_gpu_stress.c`
+(threaded invalidator + eviction/mip/pan churn): segfaults without the
+mutex, clean with it. The stress harness is a temporary diag target like
+the other two.
+
+**OPEN / deferred:**
+- Monochrome rendering of flislrgb.fit in the GUI: not reproducible
+  headless — CPU composite, GSK node tree (cairo + GL renderers) all
+  chromatic; GTK 4.18 blend shaders reviewed OK. Diagnostic harnesses
+  left in `src/tests/diag_flislrgb.c` and `src/tests/diag_flis_gpu.c`
+  (temporary meson targets at the end of `src/tests/meson.build` —
+  remove both when the bug is closed).
+- Group-props undo record type.
+- GUI crop on offset sparse layers (see 3ec666e2d above).

@@ -2903,21 +2903,31 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			? GSK_SCALING_FILTER_TRILINEAR
 			: GSK_SCALING_FILTER_NEAREST;
 
-		/* FLIS GPU compose dispatch (stage 3.2): if every layer in the
-		 * stack is GPU-compatible (no CHROMA, no groups, no sparse
-		 * layers — see flis_gpu_compose_compatible), composite via
-		 * GSK push_blend per layer.  Each layer becomes a single
-		 * canvas-sized GdkTexture, cached across redraws.  Property-
-		 * only changes (opacity / blend mode / visibility toggle)
-		 * cost zero texture work; only the snapshot tree differs.
+		/* FLIS GPU compose dispatch (stage 3.2 + groups/sparse from
+		 * §3.3): if every layer in the stack is GPU-compatible (no
+		 * CHROMA blend, base layer canvas-sized at the origin, all
+		 * blend modes GSK-translatable — see
+		 * flis_gpu_compose_compatible), composite via GSK push_blend
+		 * per layer.  Each layer becomes a per-tile GdkTexture cache,
+		 * reused across redraws.  Property-only changes (opacity /
+		 * blend mode / visibility toggle) cost zero texture work;
+		 * only the snapshot tree differs.
 		 *
 		 * Falls back to the per-tile path below for plain FITS, for
 		 * FLIS with any unsupported layer, or when only one layer is
 		 * present (tile path is already efficient for single-image
 		 * display).  The §3.1 CPU composite continues to fill the
-		 * tile buffers as a safety net for the fallback case. */
+		 * tile buffers as a safety net for the fallback case.
+		 *
+		 * Only the RGB vport shows the full-colour composite; the
+		 * R/G/B channel vports must show a single channel of it, which
+		 * the GPU compose tree cannot produce — those keep the tile
+		 * path (whose buffers come from the CPU composite remap).  A
+		 * non-chromatic stack composes to R=G=B so the GPU tree is
+		 * valid on its single B&W vport too. */
 		gboolean used_gpu_compose = FALSE;
 		if (is_current_image_flis()
+		    && (vport == RGB_VPORT || !flis_composite_is_chromatic())
 		    && flis_layer_count() >= 2
 		    && flis_gpu_compose_compatible(com.uniq->layers)) {
 			guint canvas_w = flis_canvas_rx();
@@ -4598,6 +4608,26 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
+	/* Mirror populate_roi(): gui.roi.selection is in canvas coordinates;
+	 * for an offset FLIS sub-layer convert to layer-local before writing
+	 * back into gfit, and bail out if it falls outside the layer. */
+	rectangle lsel = gui.roi.selection;
+	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit) {
+				lsel.x -= lay->position_x;
+				lsel.y -= lay->position_y;
+				break;
+			}
+		}
+	}
+	if (lsel.x < 0 || lsel.y < 0 ||
+	    (guint)(lsel.x + lsel.w) > gfit->rx ||
+	    (guint)(lsel.y + lsel.h) > gfit->ry) {
+		siril_log_debug("copy_roi_into_gfit: selection out of bounds for the active layer, skipping\n");
+		return;
+	}
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	if (gui.roi.fit.type != gfit->type) {
@@ -4634,10 +4664,10 @@ void copy_roi_into_gfit() {
 #pragma omp parallel for schedule(static) collapse(2)
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+			for (uint32_t y = 0; y < lsel.h ; y++) {
 				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
-				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
+				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
+				memcpy(destindex, rowindex, lsel.w * sizeof(float));
 			}
 		}
 	} else {
@@ -4645,10 +4675,10 @@ void copy_roi_into_gfit() {
 #pragma omp parallel for schedule(static) collapse(2)
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+			for (uint32_t y = 0; y < lsel.h ; y++) {
 				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
-				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
+				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
+				memcpy(destindex, rowindex, lsel.w * sizeof(WORD));
 			}
 		}
 	}

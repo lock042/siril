@@ -249,6 +249,13 @@ typedef struct {
 	 * widgets to current state).  No-op when the panel hasn't been
 	 * created yet — the real implementation lands in stage 4. */
 	void     (*flis_gui_update)(void);
+
+	/* TRUE when the FLIS layers panel's selection is a layer GROUP row.
+	 * Generic image/mask workers refuse to run in that state: the
+	 * operation would silently apply to the active layer only, which is
+	 * misleading when the user intends it to affect the whole group.
+	 * Headless stub returns FALSE (no panel). */
+	gboolean (*flis_group_is_selected)(void);
 	/* Idempotent show: present the FLIS layers panel iff a FLIS is
 	 * currently loaded.  No-op for plain FITS / sequences / no image,
 	 * no-op when the panel is already visible.  Called from

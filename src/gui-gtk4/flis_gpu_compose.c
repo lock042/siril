@@ -153,6 +153,16 @@ static struct cache_slot g_cache[FLIS_CACHE_MAX];
 static guint64           g_epoch;       /* monotonic counter for tile last_used */
 static gsize             g_cache_bytes; /* total tile + lmask bytes resident */
 
+/* Guards g_cache[] / g_cache_bytes / g_epoch / g_prefetch.  The render and
+ * prefetch paths run on the main thread, but the invalidation entry points
+ * are reached from worker threads too (generic_image_worker ends with
+ * notify_gfit_data_modified() → flis_invalidate_composite() →
+ * flis_gpu_compose_invalidate_all(), and generic_mask_worker invalidates
+ * directly after lmask routing).  Without this lock a worker freeing
+ * s->tiles mid-snapshot crashes the main thread inside ensure_tile
+ * (observed SIGSEGV, 2026-06-12). */
+static GMutex            g_cache_mutex;
+
 /* Background-prefetch state.  After each render we record what we just
  * drew; an idle handler then materialises tiles in a one-ring around
  * the visible rect so smooth panning doesn't bake on the critical
@@ -315,6 +325,8 @@ static GdkTexture *build_lmask_texture(flis_layer_t *lay) {
 	if (!lay || !lay->lmask || !lay->lmask->data) return NULL;
 	const guint w = lay->lmask->w;
 	const guint h = lay->lmask->h;
+	if (w == 0 || h == 0 || (size_t)w > SIZE_MAX / 4 / h)
+		return NULL;
 	const size_t n = (size_t)w * h;
 	uint8_t *bgra = malloc(n * 4);
 	if (!bgra) return NULL;
@@ -792,18 +804,19 @@ static void schedule_prefetch_idle(guint canvas_w, guint canvas_h,
 
 static gboolean prefetch_idle_cb(gpointer user_data) {
 	(void)user_data;
+	g_mutex_lock(&g_cache_mutex);
 	g_prefetch_idle_id = 0;
-	if (!g_prefetch.valid) return G_SOURCE_REMOVE;
+	if (!g_prefetch.valid) goto out;
 	g_prefetch.valid = FALSE;
 
 	/* Don't prefetch when we're already near the byte budget — every
 	 * new tile would evict a currently-visible one. */
 	if (g_cache_bytes >= flis_cache_budget_bytes() * 3 / 4)
-		return G_SOURCE_REMOVE;
+		goto out;
 
 	/* Read live layer list — the snapshot taken at render time isn't
 	 * pointer-safe across the idle gap (a layer may have been freed). */
-	if (!com.uniq || !com.uniq->layers) return G_SOURCE_REMOVE;
+	if (!com.uniq || !com.uniq->layers) goto out;
 
 	/* Extend the visible rect by one tile-side worth of canvas-pixels
 	 * (FLIS_TILE_DIM at mip=1).  This produces a one-tile ring around
@@ -858,10 +871,12 @@ static gboolean prefetch_idle_cb(gpointer user_data) {
 				/* Bail if a single ring tile pushed us up to budget;
 				 * the next render will reschedule us. */
 				if (g_cache_bytes >= flis_cache_budget_bytes() * 3 / 4)
-					return G_SOURCE_REMOVE;
+					goto out;
 			}
 		}
 	}
+out:
+	g_mutex_unlock(&g_cache_mutex);
 	return G_SOURCE_REMOVE;
 }
 
@@ -895,6 +910,11 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 		else if (zoom < 0.25f)  desired_mip = 4;
 		else if (zoom < 0.5f)   desired_mip = 2;
 	}
+
+	/* The cache mutex spans both phases AND the emit loop: emit reads
+	 * slot->tiles lazily via ensure_tile, so a worker-thread invalidation
+	 * must not drop tile arrays anywhere within the render. */
+	g_mutex_lock(&g_cache_mutex);
 
 	/* ---- Phase 1: assemble render items in z-order. ---- */
 	GArray *items = g_array_new(FALSE, TRUE, sizeof(struct render_item));
@@ -957,6 +977,7 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 	if (items->len == 0) {
 		g_array_free(items, TRUE);
 		g_hash_table_destroy(consumed_groups);
+		g_mutex_unlock(&g_cache_mutex);
 		return;
 	}
 
@@ -1001,6 +1022,7 @@ void flis_gpu_compose_render(GtkSnapshot *snapshot,
 	 * everything", so there's nothing to prefetch). */
 	if (visible_canvas)
 		schedule_prefetch_idle(canvas_w, canvas_h, visible_canvas, desired_mip);
+	g_mutex_unlock(&g_cache_mutex);
 	return;
 
 bail:
@@ -1008,6 +1030,7 @@ bail:
 		render_item_free(&g_array_index(items, struct render_item, i));
 	g_array_free(items, TRUE);
 	g_hash_table_destroy(consumed_groups);
+	g_mutex_unlock(&g_cache_mutex);
 }
 
 /* =====================================================================
@@ -1015,11 +1038,14 @@ bail:
  * ===================================================================== */
 
 void flis_gpu_compose_invalidate_layer(gint item_id) {
+	g_mutex_lock(&g_cache_mutex);
 	struct cache_slot *s = find_slot(item_id);
 	if (s) slot_drop_textures(s);
+	g_mutex_unlock(&g_cache_mutex);
 }
 
 void flis_gpu_compose_invalidate_lmask(gint item_id) {
+	g_mutex_lock(&g_cache_mutex);
 	struct cache_slot *s = find_slot(item_id);
 	if (s && s->lmask_tex) {
 		g_object_unref(s->lmask_tex);
@@ -1028,14 +1054,18 @@ void flis_gpu_compose_invalidate_lmask(gint item_id) {
 		s->lmask_bytes = 0;
 		s->lmask_w = s->lmask_h = 0;
 	}
+	g_mutex_unlock(&g_cache_mutex);
 }
 
 void flis_gpu_compose_invalidate_all(void) {
+	g_mutex_lock(&g_cache_mutex);
 	for (int i = 0; i < FLIS_CACHE_MAX; i++)
 		slot_drop_textures(&g_cache[i]);
+	g_mutex_unlock(&g_cache_mutex);
 }
 
 void flis_gpu_compose_free_all(void) {
+	g_mutex_lock(&g_cache_mutex);
 	if (g_prefetch_idle_id != 0) {
 		g_source_remove(g_prefetch_idle_id);
 		g_prefetch_idle_id = 0;
@@ -1043,4 +1073,5 @@ void flis_gpu_compose_free_all(void) {
 	g_prefetch.valid = FALSE;
 	for (int i = 0; i < FLIS_CACHE_MAX; i++)
 		slot_clear(&g_cache[i]);
+	g_mutex_unlock(&g_cache_mutex);
 }

@@ -613,17 +613,29 @@ static void flis_clip_color(float *r, float *g, float *b) {
     float l = flis_lum(*r, *g, *b);
     float n = fminf(*r, fminf(*g, *b));
     float x = fmaxf(*r, fmaxf(*g, *b));
+    /* d can reach 0 when the out-of-range channel equals the luminance
+     * (e.g. r=g=b < 0 after a saturation transfer); dividing would put
+     * NaNs in the composite, so collapse to the luminance grey instead —
+     * the limit of the scaling as d -> 0. */
     if (n < 0.f) {
         float d = l - n;
-        *r = l + (*r - l) * l / d;
-        *g = l + (*g - l) * l / d;
-        *b = l + (*b - l) * l / d;
+        if (d > 1e-6f) {
+            *r = l + (*r - l) * l / d;
+            *g = l + (*g - l) * l / d;
+            *b = l + (*b - l) * l / d;
+        } else {
+            *r = *g = *b = l;
+        }
     }
     if (x > 1.f) {
         float d = x - l;
-        *r = l + (*r - l) * (1.f - l) / d;
-        *g = l + (*g - l) * (1.f - l) / d;
-        *b = l + (*b - l) * (1.f - l) / d;
+        if (d > 1e-6f) {
+            *r = l + (*r - l) * (1.f - l) / d;
+            *g = l + (*g - l) * (1.f - l) / d;
+            *b = l + (*b - l) * (1.f - l) / d;
+        } else {
+            *r = *g = *b = l;
+        }
     }
 }
 

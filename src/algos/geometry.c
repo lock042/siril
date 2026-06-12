@@ -705,6 +705,23 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		}
 	}
 
+	/* FLIS: keep the layer mask (lmask) in step with the pixel data —
+	 * a stale-size lmask corrupts compositing.  Wrapped as a mask_t so
+	 * the shared geometry helpers apply. */
+	flis_layer_t *_lay_bin = flis_layer_get_by_fit(fit);
+	if (_lay_bin && _lay_bin->lmask && _lay_bin->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_bin->lmask->bitpix, .data = _lay_bin->lmask->data };
+		if (bin_mask(&_tmp, old_rx, old_ry, factor, mean)) {
+			siril_log_error(_("Error binning layer mask\n"));
+			layermask_free(_lay_bin->lmask);
+			_lay_bin->lmask = NULL;
+		} else {
+			_lay_bin->lmask->data = _tmp.data;
+			_lay_bin->lmask->w = old_rx / factor;
+			_lay_bin->lmask->h = old_ry / factor;
+		}
+	}
+
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
@@ -776,6 +793,22 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 		}
 	}
 
+	if (retvalue == 0) {
+		flis_layer_t *_lay_res = flis_layer_get_by_fit(image);
+		if (_lay_res && _lay_res->lmask && _lay_res->lmask->data) {
+			mask_t _tmp = { .bitpix = _lay_res->lmask->bitpix, .data = _lay_res->lmask->data };
+			if (resize_mask(&_tmp, old_rx, old_ry, toX, toY, interpolation)) {
+				siril_log_error(_("Error resizing layer mask\n"));
+				layermask_free(_lay_res->lmask);
+				_lay_res->lmask = NULL;
+			} else {
+				_lay_res->lmask->data = _tmp.data;
+				_lay_res->lmask->w = toX;
+				_lay_res->lmask->h = toY;
+			}
+		}
+	}
+
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
 
@@ -817,6 +850,10 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
+	/* 0° (and any multiple of 360°) is a no-op.  cvRotateImage() does not
+	 * handle angle==0 correctly (falls into the 270° branch), so bail out
+	 * before calling it. */
+	if (angle % 360 == 0) return 0;
 	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
@@ -843,6 +880,20 @@ int verbose_rotate_fast(fits *image, int angle) {
 			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(image, tmp_mask_active);
+		}
+	}
+
+	flis_layer_t *_lay_rf = flis_layer_get_by_fit(image);
+	if (_lay_rf && _lay_rf->lmask && _lay_rf->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_rf->lmask->bitpix, .data = _lay_rf->lmask->data };
+		if (transform_mask(&_tmp, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
+			siril_log_error(_("Error rotating layer mask\n"));
+			layermask_free(_lay_rf->lmask);
+			_lay_rf->lmask = NULL;
+		} else {
+			_lay_rf->lmask->data = _tmp.data;
+			_lay_rf->lmask->w = target_rx;
+			_lay_rf->lmask->h = target_ry;
 		}
 	}
 
