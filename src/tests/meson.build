@@ -59,6 +59,15 @@ if criterion_dep.found()
 
      test('soper_test', soper_exec, suite: 'arithmetic')
 
+     wavelet_denoise_exec = executable('wavelet_denoise_test',
+                                       'wavelet_denoise_test.c',
+                                       dependencies : [siril_dep, criterion_dep],
+                                       link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                       c_args : siril_c_flag,
+                                       cpp_args : siril_cpp_flag)
+
+     test('wavelet_denoise_test', wavelet_denoise_exec, suite: 'science')
+
      photometry_exec = executable('photometry_test',
                                   'photometry_test.c',
                                   dependencies : [siril_dep, criterion_dep],

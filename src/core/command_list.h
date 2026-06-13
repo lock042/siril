@@ -296,7 +296,7 @@ static command commands[] = {
 	{"wavelet", 1, "wavelet nbr_layers type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"wiener", 0, "wiener [-loadpsf=] [-alpha=] [-mask]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
-	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wrecons", 2, "wrecons c1 c2 c3 ... [-denoise] [-bishrink|-threshold] [-soft|-hard] [-perband] [-k=value] [-f1=value ... -f6=value]", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	EXTRA_COMMANDS
 
 	{"",0,"",0, STR_NONE, FALSE, REQ_CMD_NONE}

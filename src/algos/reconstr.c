@@ -114,6 +114,7 @@
 #include "algos/Def_Math.h"
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/wavelet_denoise.h"
 
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 	float *im = Imag;
@@ -141,7 +142,7 @@ int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 
 /*****************************************************************************/
 
-int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data) {
+int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data) {
 	float *Imag;
 	wave_transf_des Wavelet;
 	int Nl, Nc;
@@ -165,6 +166,10 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data)
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
+	/* Optional per-scale denoising on the coefficient planes before synthesis;
+	 * the per-scale amplitude coef[] is still applied afterwards. */
+	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
+			Wavelet.Nbr_Plan, Nl, Nc, dp);
 	wavelet_reconstruct_data(&Wavelet, Imag, coef);
 
 	/* get and view result */
@@ -175,7 +180,7 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data)
 	return 0;
 }
 
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float *data) {
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data) {
 	wave_transf_des Wavelet;
 
 	/* read the wavelet file */
@@ -192,6 +197,8 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float
 		return 1;
 	}
 
+	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
+			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp);
 	wavelet_reconstruct_data(&Wavelet, data, coef);
 
 	wave_io_free(&Wavelet);

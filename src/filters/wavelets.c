@@ -88,9 +88,9 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		int ret;
 		if (fit->type == DATA_USHORT)
-			ret = wavelet_reconstruct_file(dir, args->coef, fit->pdata[i]);
+			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i]);
 		else if (fit->type == DATA_FLOAT)
-			ret = wavelet_reconstruct_file_float(dir, args->coef, fit->fpdata[i]);
+			ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i]);
 		else {
 			g_free(dir);
 			return 1;

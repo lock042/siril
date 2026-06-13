@@ -3281,17 +3281,69 @@ int process_cd(int nb) {
 
 int process_wrecons(int nb) {
 
-	float coef[7];
+	float coef[7] = { 0 };
 
 	int nb_chan = gfit->naxes[2];
 
 	g_assert(nb_chan == 1 || nb_chan == 3);
 
-	for (int i = 0; i < nb - 1; ++i) {
+	struct denoise_params denoise;
+	denoise_params_init(&denoise);
+
+	int ncoef = 0;
+	int i = 1;
+	/* positional per-layer coefficients (numbers, possibly negative) */
+	for (; i < nb && word[i]; i++) {
+		if (word[i][0] == '-' && word[i][1] != '\0'
+				&& !g_ascii_isdigit((guchar) word[i][1]) && word[i][1] != '.')
+			break; /* reached the optional denoising flags */
+		if (ncoef >= 7) {
+			siril_log_message(_("Too many coefficients (max 7).\n"));
+			return CMD_ARG_ERROR;
+		}
 		gchar *end;
-		coef[i] = g_ascii_strtod(word[i + 1], &end);
-		if (end == word[i + 1]) {
+		coef[ncoef] = g_ascii_strtod(word[i], &end);
+		if (end == word[i]) {
 			siril_log_message(_("Wrong parameters.\n"));
+			return CMD_ARG_ERROR;
+		}
+		ncoef++;
+	}
+	/* optional denoising flags */
+	for (; i < nb && word[i]; i++) {
+		char *arg = word[i], *end;
+		if (!strcmp(arg, "-denoise"))
+			denoise.enabled = TRUE;
+		else if (!strcmp(arg, "-bishrink"))
+			denoise.method = WD_BISHRINK;
+		else if (!strcmp(arg, "-threshold"))
+			denoise.method = WD_THRESHOLD;
+		else if (!strcmp(arg, "-soft"))
+			denoise.soft = TRUE;
+		else if (!strcmp(arg, "-hard"))
+			denoise.soft = FALSE;
+		else if (!strcmp(arg, "-perband"))
+			denoise.sigma_source = WD_SIGMA_PER_BAND;
+		else if (g_str_has_prefix(arg, "-k=")) {
+			denoise.k = g_ascii_strtod(arg + 3, &end);
+			if (end == arg + 3) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else if (arg[0] == '-' && arg[1] == 'f' && g_ascii_isdigit((guchar) arg[2])
+				&& arg[3] == '=') {
+			int idx = arg[2] - '1';
+			if (idx < 0 || idx > 5) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+			denoise.f[idx] = g_ascii_strtod(arg + 4, &end);
+			if (end == arg + 4) {
+				siril_log_message(_("Wrong parameters.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_message(_("Unknown parameter %s.\n"), arg);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -3299,8 +3351,9 @@ int process_wrecons(int nb) {
 	struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
 	wrecons_args->destroy_fn = free_wrecons_data;
 	wrecons_args->nb_chan = nb_chan;
-	for (int i = 0; i < nb - 1; i++)
-		wrecons_args->coef[i] = coef[i];
+	for (int j = 0; j < 7; j++)
+		wrecons_args->coef[j] = coef[j];
+	wrecons_args->denoise = denoise;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;

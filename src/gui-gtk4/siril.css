@@ -629,3 +629,39 @@ entry.search_empty {
  outline: none;
  border-image: none;
 }
+
+/* Wavelets dialog per-scale grid.  The default Adwaita scale/spinbutton
+ * min-heights bloat the six layer rows, and a GtkScale's tiny natural width
+ * lets the strength sliders collapse next to the spinbuttons.  Mirror the
+ * dense-row approach used for GtkColumnView (.siril-dense-rows) and the
+ * compact toolbar scales: pin low min-heights and trim padding so the rows
+ * stay tight, keeping the sliders usable (their floor width comes from the
+ * width-request set in the .ui). */
+.wavelet-grid scale {
+   min-height: 18px;
+   padding: 0;
+   margin: 0;
+}
+.wavelet-grid scale > trough {
+   min-height: 6px;
+   padding: 0;
+}
+.wavelet-grid scale > trough > slider {
+   min-width: 16px;
+   min-height: 16px;
+   margin: -5px 0;
+}
+.wavelet-grid spinbutton {
+   min-height: 0;
+}
+.wavelet-grid spinbutton entry,
+.wavelet-grid spinbutton button {
+   min-height: 22px;
+   padding-top: 0;
+   padding-bottom: 0;
+}
+.wavelet-grid button.flat {
+   min-height: 22px;
+   min-width: 22px;
+   padding: 2px;
+}

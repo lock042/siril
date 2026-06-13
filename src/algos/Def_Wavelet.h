@@ -142,7 +142,8 @@ int pave_2d_build (float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan, const
 int pave_2d_extract_plan (float *Pave, float *Imag, int Nl, int Nc, int Num_Plan);
 int pave_2d_bspline_smooth (const float *Imag, float *Smooth, int Nl, int Nc, int Num_Plan);
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *data);
+struct denoise_params; /* defined in algos/wavelet_denoise.h */
 int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
-int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, WORD *data);
-int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float *data);
+int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data);
+int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data);
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf);

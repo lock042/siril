@@ -3,6 +3,7 @@
 
 #include "core/siril.h"
 #include "core/processing.h"
+#include "algos/wavelet_denoise.h"
 
 /* wavelets filter data from GUI */
 struct wavelets_filter_data {
@@ -16,6 +17,7 @@ struct wrecons_data {
 	destructor destroy_fn;  /* Must be first member */
 	float coef[7];
 	int nb_chan;
+	struct denoise_params denoise; /* per-scale denoising (disabled by default) */
 };
 
 /* Data struct for wavelet decomposition (wavelet command and GUI compute path) */

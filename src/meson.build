@@ -60,6 +60,7 @@ src_files = [
   'algos/statistics.c',
   'algos/statistics_float.c',
   'algos/transform.c',
+  'algos/wavelet_denoise.c',
   'algos/search_objects.c',
   'algos/lcms_acceleration/fast_16_tethra.c',
   'algos/lcms_acceleration/fast_8_curves.c',
