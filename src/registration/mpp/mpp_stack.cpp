@@ -363,7 +363,8 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 int frame_rows, int frame_cols,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
-                                                void *progress_user) {
+                                                void *progress_user,
+                                                const std::vector<int> &included) {
 	APQualities out;
 	const int M = aps.count;
 	const int stride = cfg.align_frames_sampling_stride;
@@ -372,6 +373,16 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	 || (int) offsets.size() != N || stride <= 0)
 		return out;
 
+	/* Inclusion mask (empty = all). Excluded frames get a sentinel quality
+	 * below the lowest real σ (≥ 0), so std::partial_sort never lifts them
+	 * into any AP's best_frame_indices; the selection count is clamped to
+	 * the included-frame count so a sentinel can't fill a slot either. */
+	const bool have_mask = (int) included.size() == N;
+	auto is_included = [&](int i) { return !have_mask || included[i]; };
+	int n_included = 0;
+	for (int i = 0; i < N; ++i) if (is_included(i)) ++n_included;
+	if (n_included == 0) return out;
+
 	/* stack_size: explicit override, else %% of N (rounded up). */
 	if (cfg.alignment_points_frame_number > 0)
 		out.stack_size = cfg.alignment_points_frame_number;
@@ -379,7 +390,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		out.stack_size = std::max(
 		    (int) std::ceil((double) N * cfg.alignment_points_frame_percent / 100.0),
 		    1);
-	out.stack_size = std::min(out.stack_size, N);
+	out.stack_size = std::min(out.stack_size, n_included);
 
 	out.qualities.assign(M, std::vector<double>(N, 0.0));
 
@@ -387,6 +398,12 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		if (!processing_should_continue()) {
 			out.stack_size = 0;   /* cancellation sentinel */
 			return out;
+		}
+		if (!is_included(f)) {
+			/* Sentinel below the lowest real σ — never selected. No read. */
+			for (int a = 0; a < M; ++a) out.qualities[a][f] = -1.0;
+			if (progress) progress((double)(f + 1) / (double) N, progress_user);
+			continue;
 		}
 		const cv::Mat frame = provider(f);
 		if (frame.empty()) {
@@ -430,7 +447,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	 * there is no room above the cut — e.g. the default 100%). */
 	out.taper = stack_compute_selection_taper(out.qualities, aps, N,
 	                                          out.stack_size, cfg);
-	const int selected = std::min(N, out.stack_size + out.taper);
+	const int selected = std::min(n_included, out.stack_size + out.taper);
 
 	/* Per-AP: pick the top `selected` frame indices by descending quality
 	 * (index tie-break for determinism); entry k carries selection weight
@@ -465,11 +482,12 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        int frame_rows, int frame_cols,
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress,
-                                       void *progress_user) {
+                                       void *progress_user,
+                                       const std::vector<int> &included) {
 	return ap_compute_frame_qualities_streamed(
 	    [&frames](int i) { return frames[i]; },
 	    (int) frames.size(), frame_brightness, aps, offsets,
-	    frame_rows, frame_cols, cfg, progress, progress_user);
+	    frame_rows, frame_cols, cfg, progress, progress_user, included);
 }
 
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,

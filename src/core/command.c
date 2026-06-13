@@ -14599,7 +14599,7 @@ int process_offline(int nb) {
 
 /* ----- shared mpp CLI plumbing (used by `pss`, `register_mpp`, `stack_mpp`) -----
  *
- * `apply_mpp_flag` parses a single argv entry into `cfg`/`out_path`/`use_selected`.
+ * `apply_mpp_flag` parses a single argv entry into `cfg`/`out_path`.
  * Flags fall into three categories driven by the matrix in pss_port_plan.md §6:
  *   register-time  — affect Stage A/B (AP placement + per-AP shift compute)
  *   stack-time     — affect Stage C  (top-N pick, drizzle resize, blending, output)
@@ -14616,11 +14616,13 @@ typedef enum {
 } mpp_flag_status;
 
 static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
-                                      gchar **out_path, gboolean *use_selected,
+                                      gchar **out_path,
                                       gboolean accept_register,
                                       gboolean accept_stack) {
-	/* shared */
-	if (!strcmp(arg, "-selected")) { *use_selected = TRUE; return MPP_FLAG_OK; }
+	/* Frame inclusion is not a flag: the mpp pipeline always honours the
+	 * sequence's frame-selector state (excluded frames are kept out of the
+	 * reference build, AP placement, ranking and stack). There is therefore
+	 * no -selected flag — the former one was a no-op. */
 
 	/* stack-time */
 	if (accept_stack && g_str_has_prefix(arg, "-out=")) {
@@ -14701,8 +14703,8 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	}
 	if (accept_register && g_str_has_prefix(arg, "-align=")) {
 		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
-		 * "surface" = patch correlation (default); "planet" = brightness
-		 * centroid, for discs on a dark background. */
+		 * "planet" = brightness centroid (default), for discs on a dark
+		 * background; "surface" = patch correlation, for detailed surfaces. */
 		const char *v = arg + 7;
 		if      (!g_ascii_strcasecmp(v, "surface")) cfg->align_frames_mode = MPP_ALIGN_SURFACE;
 		else if (!g_ascii_strcasecmp(v, "planet"))  cfg->align_frames_mode = MPP_ALIGN_PLANET;
@@ -14803,12 +14805,12 @@ static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
 }
 
 int process_pss(int nb) {
-	/* `pss seqname [-out=file] [-scale=N (1..3)] [-scale-method=K] [-stack-percent=N]
+	/* `pss seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
 	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]
 	 *              [-min-brightness=N] [-min-contrast=N] [-min-structure=F]
 	 *              [-bg-fraction=F] [-bg-blend=F] [-no-dewarp] [-no-normalize]
-	 *              [-noseed] [-selected]`
+	 *              [-noseed] [-avi-bayer=K] [-skip-failed-aps]`
 	 *
 	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
 	 * sequence and writes the stacked output to a FITS file. See
@@ -14830,9 +14832,8 @@ int process_pss(int nb) {
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
 
 	gchar *out_path = NULL;
-	gboolean use_selected = FALSE;
 	for (int i = 2; i < nb; i++) {
-		mpp_flag_status rc = apply_mpp_flag(word[i], &cfg, &out_path, &use_selected,
+		mpp_flag_status rc = apply_mpp_flag(word[i], &cfg, &out_path,
 		                                    TRUE, TRUE);
 		if (rc == MPP_FLAG_OK) continue;
 		const char *err = (rc == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
@@ -14840,7 +14841,6 @@ int process_pss(int nb) {
 		g_free(out_path);
 		return CMD_ARG_ERROR;
 	}
-	(void) use_selected;  /* TODO Phase 6.x: thread frame-selection through */
 
 	const int reject_rc = reject_drizzle_mismatch(seq, &cfg, "pss");
 	if (reject_rc != CMD_OK) {
@@ -14940,16 +14940,14 @@ int process_register_mpp(int nb) {
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
 
 	gchar *out_path = NULL;  /* unused by register; kept for shared parser */
-	gboolean use_selected = FALSE;
 	for (int i = 2; i < nb; i++) {
-		mpp_flag_status fs = apply_mpp_flag(word[i], &cfg, &out_path, &use_selected,
+		mpp_flag_status fs = apply_mpp_flag(word[i], &cfg, &out_path,
 		                                    TRUE, FALSE);
 		if (fs == MPP_FLAG_OK) continue;
 		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
 		siril_log_error(_("register_mpp: %s '%s'\n"), err, word[i]);
 		return CMD_ARG_ERROR;
 	}
-	(void) use_selected;
 
 	siril_log_message(_("register_mpp: %d frames, %dx%d, bitdepth=%d\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth);
@@ -14998,11 +14996,12 @@ int process_register_mpp(int nb) {
 	return CMD_OK;
 }
 
-/* `stack_mpp seqname [-out=file] [-scale=N (1..3)] [-scale-method=K] [-stack-percent=N]
- *                   [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]`
+/* `stack_mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
+ *                   [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]
+ *                   [-skip-failed-aps]`
  *
  * Reads the `<seqname>.mpp` sidecar written by `register_mpp`, runs Stage C
- * (per-AP remap, weighted merge, drizzle resize, background blend, uint16
+ * (per-AP remap, weighted merge, cv::resize upscale, background blend, uint16
  * cast), and writes the stacked FITS. */
 int process_stack_mpp(int nb) {
 	if (nb < 2) {
@@ -15033,9 +15032,8 @@ int process_stack_mpp(int nb) {
 	 * settings here as those decisions are already baked into run->aps and
 	 * run->shifts. */
 	gchar *out_path = NULL;
-	gboolean use_selected = FALSE;
 	for (int i = 2; i < nb; i++) {
-		mpp_flag_status fs = apply_mpp_flag(word[i], run->cfg, &out_path, &use_selected,
+		mpp_flag_status fs = apply_mpp_flag(word[i], run->cfg, &out_path,
 		                                    FALSE, TRUE);
 		if (fs == MPP_FLAG_OK) continue;
 		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
@@ -15044,7 +15042,6 @@ int process_stack_mpp(int nb) {
 		g_free(out_path);
 		return CMD_ARG_ERROR;
 	}
-	(void) use_selected;
 
 	const int reject_rc = reject_drizzle_mismatch(seq, run->cfg, "stack_mpp");
 	if (reject_rc != CMD_OK) {

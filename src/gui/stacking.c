@@ -782,11 +782,13 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	static GtkExpander *stack_expander_method = NULL, *stack_expander_output = NULL;
+	static GtkWidget *seq_filters_frame = NULL;
 	gchar *labelbuffer;
 
 	if(!go_stack) {
 		go_stack = GTK_WIDGET(gtk_builder_get_object(gui.builder, "gostack_button"));
 		filter_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter1"));
+		seq_filters_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seq_filters_frame_stack"));
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
 		widgetnormalize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combonormalize"));
 		force_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkforcenorm"));
@@ -882,6 +884,13 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		if (!gtk_widget_get_sensitive(overlap_norm))
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overlap_norm), FALSE);
 	}
+
+	/* Multipoint stacking always honours the sequence's frame-selector
+	 * inclusion state directly (in mpp_stack_apply); the global Stack-tab
+	 * frame filter (and its frame-count label) is completely ignored here,
+	 * so hide the whole section for STACK_MPP rather than leaving a stale
+	 * "all" combo visible. */
+	gtk_widget_set_visible(seq_filters_frame, stack_method != STACK_MPP);
 
 	if (com.seq.reference_image == -1)
 		com.seq.reference_image = sequence_find_refimage(&com.seq);

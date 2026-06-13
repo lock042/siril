@@ -9821,7 +9821,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkFrame">
+                                                      <object class="GtkFrame" id="seq_filters_frame_stack">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="label-xalign">0</property>

@@ -711,19 +711,29 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
-                                                void *progress_user) {
+                                                void *progress_user,
+                                                const std::vector<int> &included) {
 	AlignAverageResult out;
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
 		return out;
 
+	const bool have_mask = (int) included.size() == N;
+	auto is_included = [&](int i) { return !have_mask || included[i]; };
+	int n_included = 0;
+	for (int i = 0; i < N; ++i) if (is_included(i)) ++n_included;
+	if (n_included == 0) return out;   /* nothing to build a reference from */
+
 	/* Intersection bounds are integer — they're used as cv::Range slice
 	 * indices everywhere downstream. Round sub-pixel shifts to nearest
 	 * integer for the min/max; the 0.5-pixel rounding doesn't affect
-	 * the outer bounds materially. */
+	 * the outer bounds materially. Excluded frames are skipped: a glitch
+	 * frame with a wild global shift would otherwise collapse the common
+	 * overlap area to nothing. */
 	int max_dy = INT_MIN, min_dy = INT_MAX, max_dx = INT_MIN, min_dx = INT_MAX;
-	for (const auto &s : shifts) {
-		const int sy = (int) std::lround(s[0]);
-		const int sx = (int) std::lround(s[1]);
+	for (int i = 0; i < N; ++i) {
+		if (!is_included(i)) continue;
+		const int sy = (int) std::lround(shifts[i][0]);
+		const int sx = (int) std::lround(shifts[i][1]);
 		max_dy = std::max(max_dy, sy);
 		min_dy = std::min(min_dy, sy);
 		max_dx = std::max(max_dx, sx);
@@ -735,8 +745,11 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	if (int_y_hi <= int_y_lo || int_x_hi <= int_x_lo)
 		return out;
 
-	const int n_target = std::max(
-	    (int) std::ceil(N * cfg.align_frames_average_frame_percent / 100.0), 1);
+	/* Clamp to the included count so the masked quality (excluded frames
+	 * pre-set to a sentinel by the caller) can never pull an excluded
+	 * frame into the averaged reference. */
+	const int n_target = std::min(n_included, std::max(
+	    (int) std::ceil(N * cfg.align_frames_average_frame_percent / 100.0), 1));
 
 	std::vector<int> indices;
 	if (cfg.align_frames_fast_changing_object) {

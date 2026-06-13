@@ -204,6 +204,11 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_r
  * available to read them from. Only the frames listed in the computed
  * `indices` are actually requested (top-N by quality), so on a 10% top-N
  * the streaming path reads ~N/10 frames. */
+/* `included` (empty = all): when sized to num_frames, excluded frames are
+ * skipped both from the intersection/overlap bounds (a glitch frame with a
+ * wild global shift must not collapse the common area) and from the
+ * averaged-reference top-N (the caller also passes `quality` pre-masked so
+ * excluded frames sort last). */
 AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 int num_frames,
                                                 int frame_rows, int frame_cols,
@@ -211,7 +216,8 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
-                                                void *progress_user = nullptr);
+                                                void *progress_user = nullptr,
+                                                const std::vector<int> &included = {});
 
 }  // namespace mpp
 

@@ -705,7 +705,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                       </object>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="seq_filters_frame_stack">
                         <child>
                           <object class="GtkBox" id="seq_filters_box_stack">
                             <property name="margin-top">5</property>

@@ -110,6 +110,9 @@ float stack_selection_weight(int rank, int stack_size, int taper);
  * mpp_rank::rank_average_brightness). `frame_rows`/`frame_cols` are the
  * common original-frame shape (used for the frame-bounds clamp before
  * stride division). */
+/* `included` (empty = all): when sized to num_frames, excluded frames are
+ * given a sentinel quality so they never enter any AP's best_frame_indices,
+ * and the per-AP selection count is clamped to the included-frame count. */
 APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        const std::vector<double> &frame_brightness,
                                        const mpp_aps_t &aps,
@@ -117,7 +120,8 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        int frame_rows, int frame_cols,
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress = nullptr,
-                                       void *progress_user = nullptr);
+                                       void *progress_user = nullptr,
+                                       const std::vector<int> &included = {});
 
 /* Streamed overload — the provider returns the raw mono frame for the
  * requested index. Each iteration reads one frame, computes its strided
@@ -132,7 +136,8 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 int frame_rows, int frame_cols,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
-                                                void *progress_user = nullptr);
+                                                void *progress_user = nullptr,
+                                                const std::vector<int> &included = {});
 
 /*
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx

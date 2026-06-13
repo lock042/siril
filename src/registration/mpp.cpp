@@ -823,6 +823,30 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	maybe_engage_ser_raw_for_analysis(raw_guard, seq);
 
 	const int N = seq->number;
+
+	/* Honour the sequence's frame-inclusion state from the very start.
+	 * Frames the user excluded in the frame selector are kept out of the
+	 * global reference pick, the averaged reference frame, AP placement and
+	 * per-AP ranking — not just the final stack — so a corrupt or
+	 * out-of-frame frame can't poison the shared analysis artifacts. Real
+	 * per-frame quality is still computed for every frame below (the Plot
+	 * tab shows it); only the selection decisions consult the mask. */
+	std::vector<int> included(N, 1);
+	if (seq->imgparam)
+		for (int i = 0; i < N; ++i)
+			included[i] = seq->imgparam[i].incl ? 1 : 0;
+	int n_included = 0;
+	for (int i = 0; i < N; ++i) n_included += included[i];
+	if (n_included == 0) {
+		siril_log_error(_("Analyze: every frame is excluded — include at "
+		                  "least one frame in the frame selector.\n"));
+		return MPP_ENODATA;
+	}
+	if (n_included < N)
+		siril_log_message(_("mpp: %d of %d frames excluded by the frame "
+		                    "selector; analysing the remaining %d\n"),
+		                  N - n_included, N, n_included);
+
 	/* Analysis is always mono (RGB inputs are luminance-converted in
 	 * read_analysis_frame). Memory tiers:
 	 *   CACHED         — raw + blurred (2 copies); 1 disk pass.
@@ -1046,8 +1070,16 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 			siril_log_message(_("mpp: seeding global alignment from existing "
 			                    "registration data\n"));
 	}
+	/* Masked quality for selection: excluded frames sit below the lowest
+	 * real score (≥ 0) so they can never be picked as the global reference
+	 * or averaged into the mean frame. The unmasked q_rank is kept for
+	 * display (run->quality / the Plot tab). */
+	std::vector<double> q_rank_sel = q_rank;
+	if (n_included < N)
+		for (int i = 0; i < N; ++i)
+			if (!included[i]) q_rank_sel[i] = -1.0;
 	const auto align = mpp::align_global_from_provider(
-	    blurred_provider, N, q_rank, *cfg, stage_progress_cb, &gp_global,
+	    blurred_provider, N, q_rank_sel, *cfg, stage_progress_cb, &gp_global,
 	    streaming_provider_safe, seed);
 	/* Drop the blurred cache now — Passes 3/4 don't use it, and the
 	 * freed bytes give them more headroom (matters most when the blur
@@ -1067,8 +1099,8 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	 * reads transparently; the streamed variant is sequential so thread
 	 * safety doesn't apply. */
 	const auto avg = mpp::align_average_frame_streamed(
-	    raw_provider, N, frame_rows, frame_cols, q_rank, align.shifts, *cfg,
-	    stage_progress_cb, &gp_avg);
+	    raw_provider, N, frame_rows, frame_cols, q_rank_sel, align.shifts, *cfg,
+	    stage_progress_cb, &gp_avg, included);
 	if (avg.mean_frame.empty()) return MPP_EINTR;
 	gui_iface.set_progress(PROGRESS_NONE, _("Analyze: placing alignment points"));
 	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, *cfg);
@@ -1108,7 +1140,7 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	for (int i = 0; i < N; ++i) {
 		run->quality[i]          = q_rank[i];
 		run->frame_brightness[i] = frame_brightness[i];
-		run->included[i]         = 1;
+		run->included[i]         = included[i];
 		run->global_shifts[2*i+0] = align.shifts[i][0];
 		run->global_shifts[2*i+1] = align.shifts[i][1];
 	}
@@ -1128,9 +1160,10 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 
 	/* Per-AP ranking deferred to Stage B (see above). best_frame_indices
 	 * stays null until mpp_recompute_qualities fills it; stack_size is a
-	 * provisional value from the same cfg formula Stage B/C use, so the
-	 * Analyze log and any pre-Register display show the right number. */
-	run->stack_size = mpp::stack_size_from_cfg(*cfg, N);
+	 * provisional value from the same cfg formula Stage B/C use (over the
+	 * included frames), so the Analyze log and any pre-Register display show
+	 * the right number. */
+	run->stack_size = mpp::stack_size_from_cfg(*cfg, n_included);
 	run->taper = 0;
 	run->selected_per_ap = 0;
 	run->best_frame_indices = nullptr;
@@ -1285,6 +1318,29 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
                                          mpp_run_t *run, fits *out) {
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
 		return MPP_EINVAL;
+
+	/* Refresh inclusion from the live frame selector: the user may have
+	 * excluded more frames after registration (the sidecar / cached run
+	 * carries the registration-time selection). AND the live incl state in
+	 * so those frames are dropped from the stack. The per-AP weight
+	 * normalisation rebuilds its denominator from whatever stays included,
+	 * so dropped frames don't darken their patches, and an AP that loses
+	 * all its frames falls back to the background composite. Dropped frames
+	 * are NOT replaced by the next-best (Stage B computed no shifts for
+	 * them) — a large post-registration selection change is best followed
+	 * by re-running Register. */
+	if (seq->imgparam && run->included && run->num_frames == seq->number) {
+		int dropped = 0;
+		for (int i = 0; i < run->num_frames; ++i) {
+			const int live = seq->imgparam[i].incl ? 1 : 0;
+			if (run->included[i] && !live) ++dropped;
+			run->included[i] = run->included[i] && live;
+		}
+		if (dropped > 0)
+			siril_log_message(_("Stack (mpp): %d frame(s) excluded in the "
+			                    "frame selector since registration — dropping "
+			                    "them from the stack\n"), dropped);
+	}
 
 	/* Honour Stack-tab per-AP top-K overrides. Stage A baked
 	 * run->stack_size from the Analyze-time cfg; the GUI Stack tab and
@@ -1686,10 +1742,13 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 			                                run->cfg->bitdepth);
 		});
 	};
+	/* Rank only included frames — excluded frames must not occupy any AP's
+	 * top-N slot (they'd be dropped at Stage C anyway, wasting the slot). */
+	const std::vector<int> included(run->included, run->included + N);
 	const auto apq = mpp::ap_compute_frame_qualities_streamed(
 	    raw_provider, N, frame_brightness, *run->aps, offsets,
 	    run->frame_rows, run->frame_cols, *run->cfg,
-	    stage_progress_cb, &rp);
+	    stage_progress_cb, &rp, included);
 	if (apq.stack_size <= 0) return MPP_EINTR;
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;
@@ -2072,22 +2131,30 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		return MPP_OK;
 	}
 
-	/* Honour the GUI's "Selected images only" combo (CLI -selected) for
-	 * Stages B and C. Stage A always processes every frame so the rank
-	 * data covers the whole sequence and the user can review it. */
-	if (regargs->filters.filter_included) {
-		int n_selected = 0;
-		for (int i = 0; i < run->num_frames && i < regargs->seq->number; ++i) {
-			run->included[i] = regargs->seq->imgparam[i].incl ? 1 : 0;
-			if (run->included[i]) ++n_selected;
+	/* Refresh inclusion from the live frame selector before ranking, so the
+	 * per-AP top-N is taken over the user's current selection. Stage A
+	 * already honours incl, so for a fresh Analyze this matches what it just
+	 * read; for a reused cached run it picks up selection edits made since.
+	 * If the selection changed under a run whose ranking is already baked,
+	 * invalidate best_frame_indices so the recompute below re-ranks over the
+	 * new set rather than early-returning. */
+	if (regargs->seq->imgparam && run->num_frames == regargs->seq->number) {
+		int n_selected = 0, changed = 0;
+		for (int i = 0; i < run->num_frames; ++i) {
+			const int live = regargs->seq->imgparam[i].incl ? 1 : 0;
+			if (live != run->included[i]) changed = 1;
+			run->included[i] = live;
+			if (live) ++n_selected;
 		}
-		siril_log_message(_("mpp: filtering to %d selected frames of %d total\n"),
-		                  n_selected, run->num_frames);
 		if (n_selected == 0) {
-			siril_log_error(_("mpp: no frames selected — aborting\n"));
+			siril_log_error(_("mpp: every frame is excluded — aborting\n"));
 			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
 			if (run_owned) mpp_run_free(run);
 			return MPP_ENODATA;
+		}
+		if (changed && run->best_frame_indices) {
+			std::free(run->best_frame_indices);
+			run->best_frame_indices = nullptr;
 		}
 	}
 
