@@ -176,7 +176,18 @@
                             <child>
                               <object class="GtkLabel" id="label121">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w0">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -210,7 +221,18 @@
                             <child>
                               <object class="GtkLabel" id="label125">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 2</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w1">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -244,7 +266,18 @@
                             <child>
                               <object class="GtkLabel" id="label126">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 3</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w2">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -278,7 +311,18 @@
                             <child>
                               <object class="GtkLabel" id="label127">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 4</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w3">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -312,7 +356,18 @@
                             <child>
                               <object class="GtkLabel" id="label128">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 5</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w4">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -346,7 +401,18 @@
                             <child>
                               <object class="GtkLabel" id="label129">
                                 <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Layer 6</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="preview_w5">
+                                <property name="active">1</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Preview</property>
+                                <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
+                                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
                               </object>
                             </child>
                             <child>
@@ -384,15 +450,6 @@
                     </attributes>
                   </object>
                 </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="wavelet_preview">
-                <property name="active">1</property>
-                <property name="focusable">1</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Preview</property>
-                <signal name="toggled" handler="on_wavelet_preview_toggled"/>
               </object>
             </child>
           </object>

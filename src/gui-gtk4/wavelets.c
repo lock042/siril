@@ -40,16 +40,32 @@
 #include "io/single_image.h"
 
 static float wavelet_value[6];
-static gboolean wavelet_show_preview;
+/* Guards the per-layer preview toggle handler against re-entrancy while we
+ * set the checkbutton states programmatically (e.g. from reset_scale_w). */
+static gboolean block_preview_toggle = FALSE;
 
 static GtkRange *wavelets_scale_w[6] = { NULL };
 static GtkSpinButton *wavelets_plans_spin = NULL;
-static GtkCheckButton *wavelets_preview_btn = NULL;
+static GtkCheckButton *wavelets_preview_btn[6] = { NULL };
 static GtkWidget *wavelets_frame = NULL, *wavelets_reset_btn = NULL;
 static GtkDropDown *wavelets_type_combo = NULL;
 static GtkSpinButton *wavelets_extract_spin = NULL;
 static GtkDropDown *wavelets_extract_interp = NULL;
 static GtkWidget *wavelets_box_w[6] = { NULL };
+
+/* A layer takes part in the live preview when its box is visible (i.e. within
+ * the current number of layers) and its per-layer preview toggle is active. */
+static gboolean layer_preview_active(int i) {
+	return gtk_widget_get_visible(wavelets_box_w[i])
+			&& siril_toggle_get_active(GTK_WIDGET(wavelets_preview_btn[i]));
+}
+
+static gboolean any_layer_preview_active(void) {
+	for (int i = 0; i < 6; i++)
+		if (layer_preview_active(i))
+			return TRUE;
+	return FALSE;
+}
 
 static void wavelets_dialog_init_statics(void) {
 	if (wavelets_plans_spin) return;
@@ -60,8 +76,11 @@ static void wavelets_dialog_init_statics(void) {
 		snprintf(name, sizeof(name), "box_w%d", i);
 		wavelets_box_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
 	}
+	for (int i = 0; i < 6; i++) {
+		snprintf(name, sizeof(name), "preview_w%d", i);
+		wavelets_preview_btn[i] = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, name));
+	}
 	wavelets_plans_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_plans_w"));
-	wavelets_preview_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "wavelet_preview"));
 	wavelets_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_wavelets"));
 	wavelets_reset_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_reset_w"));
 	wavelets_type_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combobox_type_w"));
@@ -71,14 +90,19 @@ static void wavelets_dialog_init_statics(void) {
 
 static void reset_scale_w() {
 	set_notify_block(TRUE);
+	block_preview_toggle = TRUE;
 	for (int i = 0; i < 6; i++)
 		gtk_range_set_value(wavelets_scale_w[i], 1.f);
 	gtk_spin_button_set_value(wavelets_plans_spin, 6);
-	siril_toggle_set_active(GTK_WIDGET(wavelets_preview_btn), TRUE);
+	for (int i = 0; i < 6; i++)
+		siril_toggle_set_active(GTK_WIDGET(wavelets_preview_btn[i]), TRUE);
+	block_preview_toggle = FALSE;
 	set_notify_block(FALSE);
 }
 
-static int update_wavelets() {
+/* Reconstruct gfit from the wavelet transform files using the given per-layer
+ * coefficients. */
+static int reconstruct_gfit(float *coef) {
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" }, *dir[3];
 	const char *tmpdir;
@@ -90,16 +114,25 @@ static int update_wavelets() {
 	for (int i = 0; i < gfit->naxes[2]; i++) {
 		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		if (gfit->type == DATA_USHORT) {
-			wavelet_reconstruct_file(dir[i], wavelet_value, gfit->pdata[i]);
+			wavelet_reconstruct_file(dir[i], coef, gfit->pdata[i]);
 		} else {
-			wavelet_reconstruct_file_float(dir[i], wavelet_value,
-					gfit->fpdata[i]);
+			wavelet_reconstruct_file_float(dir[i], coef, gfit->fpdata[i]);
 		}
 		g_free(dir[i]);
 	}
 	notify_gfit_data_modified();
 	redraw(REDRAW_ALL);
 	return 0;
+}
+
+/* Preview reconstruction: only the layers whose preview toggle is active use
+ * their adjusted strength; every other layer is held at the neutral value of
+ * 1.0 so the preview isolates the effect of the previewed layers. */
+static int update_wavelets() {
+	float coef[6];
+	for (int i = 0; i < 6; i++)
+		coef[i] = layer_preview_active(i) ? wavelet_value[i] : 1.f;
+	return reconstruct_gfit(coef);
 }
 
 static void wavelets_startup() {
@@ -132,7 +165,6 @@ static gboolean wavelet_compute_idle(gpointer p) {
 
 void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
 	wavelets_dialog_init_statics();
-	wavelet_show_preview = siril_toggle_get_active(GTK_WIDGET(wavelets_preview_btn));
 	wavelets_startup();
 }
 
@@ -157,35 +189,37 @@ void apply_wavelets_cancel(void) {
 }
 
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
-	gboolean is_active = gtk_widget_get_sensitive(wavelets_frame) == TRUE;
-	if (is_active && wavelet_show_preview == FALSE) {
-		/* Preview was not active: gfit still holds the original pixels.
-		 * Apply the reconstruction via generic_image_worker so that undo
-		 * state is saved automatically before the hook runs. */
-		set_cursor_waiting(TRUE);
-		struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
-		wrecons_args->destroy_fn = free_wrecons_data;
-		wrecons_args->nb_chan = gfit->naxes[2];
-		for (int i = 0; i < 6; i++)
-			wrecons_args->coef[i] = wavelet_value[i];
-
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		args->fit = gfit;
-		args->image_hook = wrecons_image_hook;
-		args->log_hook = wrecons_log_hook;
-		args->idle_function = wrecons_idle;
-		args->description = _("Wavelets Transformation");
-		args->verbose = TRUE;
-		args->user = wrecons_args;
-		if (!start_in_new_thread(generic_image_worker, args))
-			free_generic_img_args(args);
+	if (gtk_widget_get_sensitive(wavelets_frame) != TRUE) {
+		/* Wavelets were never computed: nothing to apply. */
+		siril_close_dialog("wavelets_dialog");
 		return;
 	}
-	/* Preview was active: gfit already holds the reconstructed pixels.
-	 * Commit the preview backup as the undo "before" state and close. */
-	undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
-	siril_log_info(_("Wavelets Transformation\n"));
-	siril_close_dialog("wavelets_dialog");
+	/* The live preview may have been showing an isolated reconstruction (only
+	 * some layers at their adjusted strength). Whatever was previewed, the
+	 * applied result must use every layer's real strength. If a preview is
+	 * active, gfit holds reconstructed pixels and the backup holds the
+	 * original: restore the original first so the worker snapshots the correct
+	 * undo "before" state before applying the full reconstruction. */
+	if (is_preview_active())
+		copy_backup_to_gfit();
+
+	set_cursor_waiting(TRUE);
+	struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
+	wrecons_args->destroy_fn = free_wrecons_data;
+	wrecons_args->nb_chan = gfit->naxes[2];
+	for (int i = 0; i < 6; i++)
+		wrecons_args->coef[i] = wavelet_value[i];
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = wrecons_image_hook;
+	args->log_hook = wrecons_log_hook;
+	args->idle_function = wrecons_idle;
+	args->description = _("Wavelets Transformation");
+	args->verbose = TRUE;
+	args->user = wrecons_args;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
@@ -194,7 +228,7 @@ gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
-	if (wavelet_show_preview) {
+	if (is_preview_active()) {
 		copy_backup_to_gfit();
 	}
 
@@ -282,7 +316,7 @@ void on_spin_w0_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[0] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
@@ -290,7 +324,7 @@ void on_spin_w1_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[1] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
@@ -298,7 +332,7 @@ void on_spin_w2_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[2] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
@@ -306,7 +340,7 @@ void on_spin_w3_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[3] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
@@ -314,7 +348,7 @@ void on_spin_w4_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[4] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
@@ -322,19 +356,28 @@ void on_spin_w5_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[5] = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
-	param->show_preview = wavelet_show_preview;
+	param->show_preview = any_layer_preview_active();
 	notify_update((gpointer) param);
 }
 
+/* Shared handler for every per-layer preview toggle. The preview shows the
+ * combined effect of all currently-previewed layers, so any toggle simply
+ * recomputes (or tears down) the single shared preview. */
 void on_wavelet_preview_toggled(GtkCheckButton *button, gpointer user_data) {
-	wavelet_show_preview = siril_toggle_get_active(GTK_WIDGET(button));
+	if (block_preview_toggle)
+		return;
 	cancel_pending_update();
-	if (!wavelet_show_preview) {
-	/* if user click very fast */
+	if (!any_layer_preview_active()) {
+		/* Last previewed layer was just switched off: restore the original. */
 		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
-		copy_gfit_to_backup();
+		/* When no preview was active yet, gfit still holds the original
+		 * pixels: snapshot them so the preview can be undone. Skip this when a
+		 * preview is already showing, otherwise the reconstructed pixels would
+		 * overwrite the original backup. */
+		if (!is_preview_active())
+			copy_gfit_to_backup();
 
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = update_wavelets;
