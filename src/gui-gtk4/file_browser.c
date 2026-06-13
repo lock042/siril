@@ -16,6 +16,7 @@
 #include "core/initfile.h"
 #include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 
@@ -2191,10 +2192,18 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
                                            gpointer ud) {
 	(void)kc; (void)keycode;
 	SirilFileBrowser *fb = ud;
-	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
+	/* Primary+H toggles hidden files (Cmd+H on macOS, Ctrl+H elsewhere). */
+	if ((state & get_primary()) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
 		fb->show_hidden_files = !fb->show_hidden_files;
 		if (fb->file_filter)
 			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+		return TRUE;
+	}
+	/* Primary+L toggles the path into text-entry mode, matching the GTK3
+	 * GtkFileChooser shortcut (and the edit-path toolbar button).  Uses the
+	 * platform primary modifier so it is Cmd+L on macOS, Ctrl+L elsewhere. */
+	if ((state & get_primary()) && (keyval == GDK_KEY_l || keyval == GDK_KEY_L)) {
+		on_edit_path_clicked(NULL, fb);
 		return TRUE;
 	}
 	/* Escape dismisses the dialog */
