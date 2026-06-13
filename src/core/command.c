@@ -14867,6 +14867,15 @@ int process_pss(int nb) {
 	 * mono — matches the existing register_mpp(args) default. */
 	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
 
+	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
+	rc = mpp_recompute_qualities(seq, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("pss: per-AP frame ranking failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
 	rc = mpp_compute_shifts(seq, &cfg, run);
 	if (rc != MPP_OK) {
 		siril_log_error(_("pss: Stage B failed (code %d)\n"), rc);
@@ -14956,6 +14965,14 @@ int process_register_mpp(int nb) {
 
 	/* Phase 9.2: surface quality through Siril regdata for the frame selector. */
 	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
+
+	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
+	rc = mpp_recompute_qualities(seq, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("register_mpp: per-AP frame ranking failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
 
 	rc = mpp_compute_shifts(seq, &cfg, run);
 	if (rc != MPP_OK) {

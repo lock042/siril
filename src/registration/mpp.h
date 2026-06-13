@@ -91,8 +91,12 @@ typedef struct mpp_run {
 	/* Stage A — AP grid (mpp_aps_t owns its records). */
 	mpp_aps_t *aps;
 
-	/* Stage A — per-AP frame ranking. `selected_per_ap` is the baked
-	 * row stride of best_frame_indices (stack_size + taper at Analyze
+	/* Per-AP frame ranking. Computed at Stage B entry by
+	 * mpp_recompute_qualities, NOT by Stage A — Analyze leaves
+	 * best_frame_indices null (selected_per_ap 0, taper 0) and sets only a
+	 * provisional stack_size from cfg, so the AP grid is editable without a
+	 * ranking pass that an edit would discard. `selected_per_ap` is the
+	 * baked row stride of best_frame_indices (stack_size + taper at ranking
 	 * time); it never changes after bake, while stack_size may later be
 	 * shrunk by a Stack-tab override (entry weights are re-derived from
 	 * rank — see apq_from_run). `taper` is the soft-selection taper
@@ -100,7 +104,7 @@ typedef struct mpp_run {
 	int stack_size;
 	int taper;
 	int selected_per_ap;
-	int *best_frame_indices;   /* aps->count × selected_per_ap, flat row-major */
+	int *best_frame_indices;   /* aps->count × selected_per_ap, flat row-major; null until ranking */
 
 	/* Stage B — per-AP per-frame shifts. Null until Stage B runs. */
 	mpp_shifts_t *shifts;
@@ -126,7 +130,9 @@ void mpp_run_free(mpp_run_t *run);
 void mpp_run_drop_cache(mpp_run_t *run);
 
 /* Stage A: read frames from `seq`, rank, globally align, build mean reference
- * frame, auto-place APs, compute per-AP frame qualities. Output `*run_out`
+ * frame, auto-place APs. Per-AP frame ranking is NOT done here — it is
+ * deferred to Stage B entry (mpp_recompute_qualities) so the AP grid can be
+ * reviewed/edited before paying that pass. Output `*run_out`
  * (caller frees via mpp_run_free). Honours seq->imgparam[i].incl if
  * `cfg->frames_normalization == true`? No — incl filtering is a separate
  * step; this Stage A processes every frame so the GUI's frame selector has
@@ -176,10 +182,10 @@ mpp_input_type mpp_classify_sequence_input(const sequence *seq);
  * so Siril's existing frame selector and quality plot surface them. */
 void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run);
 
-/* AP editor support. Mutate the cached run's AP grid in place; per-AP
- * frame qualities (run->best_frame_indices) are invalidated by every
- * edit so that register_mpp's Stage B can detect the staleness and
- * either recompute or abort with a clear message.
+/* AP editor support. Mutate the cached run's AP grid in place. Per-AP
+ * frame qualities (run->best_frame_indices) are already null coming out of
+ * Analyze (ranking is deferred to Stage B), and every edit re-clears them
+ * defensively; Stage B (mpp_recompute_qualities) ranks the final grid.
  *
  * mpp_ap_replace: re-runs auto-placement on the cached mean frame with
  *   the supplied cfg (typically read from the editor's spinners).
@@ -220,15 +226,16 @@ int          mpp_ap_hit_test(const mpp_run_t *run, int x, int y);
 mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src);
 void       mpp_aps_restore(mpp_run_t *run, mpp_aps_t *snapshot);
 
-/* Recompute per-AP frame qualities for the current run->aps, populating
- * run->best_frame_indices (which mpp_ap_* edit helpers had cleared). Re-
- * reads analysis frames from `seq`; uses cached run->frame_brightness and
- * run->global_shifts (no re-rank, no re-align). Idempotent: returns
- * MPP_OK immediately if best_frame_indices is already populated.
+/* Compute per-AP frame qualities for the current run->aps, populating
+ * run->best_frame_indices (left null by Analyze, and cleared by any AP
+ * edit). Re-reads analysis frames from `seq`; uses cached
+ * run->frame_brightness and run->global_shifts (no re-rank, no re-align).
+ * Idempotent: returns MPP_OK immediately if best_frame_indices is already
+ * populated (e.g. a sidecar-loaded run).
  *
- * Called from register_mpp at Stage B start when the editor has clobbered
- * best_frame_indices, so manually-edited APs flow through to Register
- * without the user having to re-Analyze. */
+ * Called at Stage B start on every Register path (CLI and GUI). This is
+ * where per-AP ranking actually happens — deferred out of Stage A so the
+ * final (possibly hand-edited) AP grid is ranked exactly once. */
 mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run);
 
 /* GUI-side cache of the current run. Stage A installs the run via

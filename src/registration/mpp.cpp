@@ -799,10 +799,14 @@ static void stage_progress_cb(double fraction, void *user) {
  * single-image op that finishes essentially instantly — it shares its
  * fraction with the average build (no separate slice, just a text
  * update). */
-#define MPP_PROG_READ_END         0.40   /* parallel frame read */
-#define MPP_PROG_GLOBAL_END       0.60   /* per-frame correlation */
-#define MPP_PROG_AVERAGE_END      0.65   /* per-frame accumulator */
-#define MPP_PROG_QUALITIES_END    1.00   /* per-frame Laplace + per-AP stddev */
+/* Stage A sub-phase boundaries on its own 0..1 progress bar. Per-AP
+ * ranking was deferred to Stage B (mpp_recompute_qualities runs its own
+ * 0..1 bar), so the three remaining passes — read, global-align, average —
+ * fill the whole bar; AP placement that follows is a fast single-image step
+ * left at 100%. */
+#define MPP_PROG_READ_END         0.60   /* parallel frame read */
+#define MPP_PROG_GLOBAL_END       0.90   /* per-frame correlation */
+#define MPP_PROG_AVERAGE_END      1.00   /* per-frame accumulator */
 
 static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
                                      mpp_run_t **run_out) {
@@ -1073,16 +1077,10 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 		mpp_ap_free(aps);
 		return MPP_ENODATA;
 	}
-	gui_iface.set_progress(MPP_PROG_AVERAGE_END, _("Analyze: per-AP frame qualities"));
-	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
-	stage_progress_range gp_qual{MPP_PROG_AVERAGE_END,
-	                             MPP_PROG_QUALITIES_END - MPP_PROG_AVERAGE_END};
-	/* Pass 4 — per-AP qualities. raw_provider handles cache hits vs disk
-	 * reads; full CACHED/HALF_CACHED see 100% hits, PARTIAL sees K/N. */
-	const auto apq = mpp::ap_compute_frame_qualities_streamed(
-	    raw_provider, N, frame_brightness, *aps, offsets,
-	    frame_rows, frame_cols, *cfg, stage_progress_cb, &gp_qual);
-	if (apq.stack_size <= 0) { mpp_ap_free(aps); return MPP_EINTR; }
+	/* Per-AP frame ranking (formerly "Pass 4") is deferred to Stage B entry
+	 * via mpp_recompute_qualities. Analyze stops here — as soon as the AP
+	 * grid exists — so the user can review/edit APs without first paying a
+	 * full-sequence ranking pass that any edit would invalidate anyway. */
 
 	mpp_run_t *run = mpp_run_alloc();
 	if (!run) { mpp_ap_free(aps); return MPP_ENOMEM; }
@@ -1128,16 +1126,14 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	if (!run->mean_frame_data) { mpp_run_free(run); return MPP_ENOMEM; }
 	std::memcpy(run->mean_frame_data, avg.mean_frame.data, mean_bytes);
 
-	run->stack_size = apq.stack_size;
-	run->taper = apq.taper;
-	run->selected_per_ap = aps->count > 0
-	    ? (int) apq.best_frame_indices[0].size() : apq.stack_size;
-	run->best_frame_indices = (int *) std::malloc((size_t) aps->count
-	                                              * run->selected_per_ap * sizeof(int));
-	if (!run->best_frame_indices) { mpp_run_free(run); return MPP_ENOMEM; }
-	for (int a = 0; a < aps->count; ++a)
-		for (int k = 0; k < run->selected_per_ap; ++k)
-			run->best_frame_indices[a * run->selected_per_ap + k] = apq.best_frame_indices[a][k];
+	/* Per-AP ranking deferred to Stage B (see above). best_frame_indices
+	 * stays null until mpp_recompute_qualities fills it; stack_size is a
+	 * provisional value from the same cfg formula Stage B/C use, so the
+	 * Analyze log and any pre-Register display show the right number. */
+	run->stack_size = mpp::stack_size_from_cfg(*cfg, N);
+	run->taper = 0;
+	run->selected_per_ap = 0;
+	run->best_frame_indices = nullptr;
 
 	/* Hand the analysis-frame cache off to the run so Stage B / recompute
 	 * can hit it. Zero-copy: cv::Mat headers move, pixel data refcounts
@@ -1586,6 +1582,11 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 	mpp_cache_t *fresh_cache_owner = nullptr;
 	std::vector<cv::Mat> fresh_cache_vec;
 	int fresh_cache_count = 0;
+	/* When a pre-read pass runs it owns the first half of this stage's bar
+	 * (0..0.5) and the quality compute owns the second (0.5..1.0). With the
+	 * frames already cached there is no read pass, so the quality compute
+	 * sweeps the whole bar. */
+	const bool did_read_pass = (run->cache == nullptr);
 	if (!run->cache) {
 		mpp_mem_pick mem_pick{MPP_MEM_CACHED, max_threads, N, 0};
 		/* cached_copies=1 and half_cached_copies=1 are identical here
@@ -1604,9 +1605,9 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 		fresh_cache_count = mem_pick.cached_count;
 		const int preread_threads = mem_pick.threads;
 
-		siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
-		                    "(re-reading %d frames)\n"), N);
-		gui_iface.set_progress(PROGRESS_RESET, _("Register: re-reading frames for edited APs"));
+		siril_log_message(_("mpp: computing per-AP frame qualities "
+		                    "(reading %d frames)\n"), N);
+		gui_iface.set_progress(PROGRESS_RESET, _("Register: reading frames for per-AP ranking"));
 
 		if (fresh_cache_count > 0) {
 			fresh_cache_vec.resize(N);
@@ -1662,17 +1663,18 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 			run->cache = fresh_cache_owner;
 		}
 	} else {
-		siril_log_message(_("mpp: recomputing per-AP frame qualities for edited AP grid "
+		siril_log_message(_("mpp: computing per-AP frame qualities "
 		                    "(%d/%d frames already cached)\n"),
 		                  run->cache->populated_count, N);
 		gui_iface.set_progress(PROGRESS_RESET, _("Register: re-using cached analysis frames"));
 	}
 
-	gui_iface.set_progress(0.5, _("Register: computing per-AP qualities for edited grid"));
+	const double qual_base = did_read_pass ? 0.5 : 0.0;
+	gui_iface.set_progress(qual_base, _("Register: computing per-AP qualities"));
 	const std::vector<double> frame_brightness(run->frame_brightness,
 	                                           run->frame_brightness + N);
 	const auto offsets = mpp::offsets_from_run(run);
-	stage_progress_range rp{0.5, 0.5};
+	stage_progress_range rp{qual_base, 1.0 - qual_base};
 	const mpp_cache_t *cache = run->cache;
 	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
 	auto raw_provider = [cache, cache_N, seq, run](int i) -> cv::Mat {
@@ -1709,7 +1711,7 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run) 
 	run->stack_size         = stack_size;
 	run->taper              = apq.taper;
 	run->selected_per_ap    = selected;
-	siril_log_message(_("mpp: per-AP qualities refreshed for %d edited APs\n"),
+	siril_log_message(_("mpp: per-AP qualities computed for %d APs\n"),
 	                  run->aps->count);
 	return MPP_OK;
 }
@@ -2027,25 +2029,13 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		                        ? _("mpp: re-Analyze — reusing cached Stage A run; "
 		                            "AP grid will be replaced.\n")
 		                        : _("mpp: reusing cached Stage A run from previous Analyze "
-		                            "(%d APs%s).\n"),
-		                        cached->aps->count,
-		                        cached->best_frame_indices ? "" : ", AP-edited");
+		                            "(%d APs).\n"),
+		                        cached->aps->count);
 		if (stage_a_only) {
 			/* Re-Analyze with cached run: drop the cache here so the fresh
 			 * mpp_analyze below builds a new run that supersedes it. */
 			run = nullptr;
 			run_owned = true;
-		} else if (!cached->best_frame_indices) {
-			/* APs were edited since Analyze — refresh per-AP qualities
-			 * for the edited grid before Stage B. Re-reads analysis frames
-			 * but skips rank/global-align/mean-frame build (cached). */
-			const int rc_q = mpp_recompute_qualities(regargs->seq, cached);
-			if (rc_q != MPP_OK) {
-				siril_log_error(_("mpp: failed to recompute per-AP qualities "
-				                          "for edited grid (code %d)\n"), rc_q);
-				gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
-				return rc_q;
-			}
 		}
 	}
 
@@ -2099,6 +2089,18 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 			if (run_owned) mpp_run_free(run);
 			return MPP_ENODATA;
 		}
+	}
+
+	/* Per-AP frame ranking — deferred from Stage A. Runs here for a fresh
+	 * Analyze (best_frame_indices null) and for a reused cached run (edited
+	 * or not); an idempotent no-op for a sidecar-loaded run that already
+	 * carries the ranking. */
+	const int rc_q = mpp_recompute_qualities(regargs->seq, run);
+	if (rc_q != MPP_OK) {
+		siril_log_error(_("mpp: per-AP frame ranking failed (code %d)\n"), rc_q);
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+		if (run_owned) mpp_run_free(run);
+		return rc_q;
 	}
 
 	siril_log_message(_("mpp: Stage B — per-AP per-frame shifts\n"));

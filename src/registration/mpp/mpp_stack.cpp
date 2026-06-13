@@ -680,12 +680,9 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 			if (!r.success) ++failures;
 		}
 		g_atomic_int_inc(&cur_nb);
-		/* Streaming mode pays full read+blur cost in this loop (no
-		 * separate read pass), so map progress across the full bar.
-		 * Cached mode's caller already moved through 0..0.5 during its
-		 * own read pass and the 0.5 base here means we restart the
-		 * second half — preserves the old visible behaviour. */
-		gui_iface.set_progress(0.5 + 0.5 * (double) cur_nb / (double) n_included, NULL);
+		/* Single streaming pass (read + blur + correlate happen together),
+		 * so map progress across Stage B's whole 0..1 bar. */
+		gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
 	}
 	out->failure_counter = failures;
 	return out;
@@ -866,8 +863,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		                cv::Range(src_x_lo, src_x_hi));
 	};
 
-	/* Per-frame progress maps into the second half of Stage C's bar — the
-	 * outer mpp_stack_apply used 0..0.5 for the frame read pass. */
+	/* Single streaming pass (read + drizzle + remap happen together), so
+	 * per-frame progress maps across Stage C's whole 0..1 bar. */
 	gint cur_nb = 0;
 	gint cancelled = 0;
 	gint oom = 0;
@@ -909,7 +906,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 
 			const cv::Mat frame_raw = provider(f);
 			if (frame_raw.empty()) {
-				gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
+				gui_iface.set_progress((double) g_atomic_int_add(&cur_nb, 1)
 				                       / (double) n_included, NULL);
 				continue;
 			}
@@ -966,7 +963,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 					             out.state.dim_y, out.state.dim_x);
 				}
 			}
-			gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
+			gui_iface.set_progress((double) g_atomic_int_add(&cur_nb, 1)
 			                       / (double) n_included, NULL);
 
 			} catch (const std::exception &) {
