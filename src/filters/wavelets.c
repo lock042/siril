@@ -19,6 +19,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -84,16 +85,48 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct wrecons_data *args = (struct wrecons_data *)gargs->user;
 	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave", "b_rawdata.wave" };
 	const char *tmpdir = g_get_tmp_dir();
+	/* ROI preview: the transform covers the full image, so reconstruct into a
+	 * full-size scratch buffer and copy the selection window into the smaller
+	 * fit the worker passes. */
+	const size_t full = (size_t) args->full_rx * (size_t) args->full_ry;
 	for (int i = 0; i < args->nb_chan; i++) {
 		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 		int ret;
-		if (fit->type == DATA_USHORT)
-			ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i]);
-		else if (fit->type == DATA_FLOAT)
-			ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i]);
-		else {
-			g_free(dir);
-			return 1;
+		if (!args->for_roi) {
+			if (fit->type == DATA_USHORT)
+				ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, fit->pdata[i]);
+			else if (fit->type == DATA_FLOAT)
+				ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, fit->fpdata[i]);
+			else {
+				g_free(dir);
+				return 1;
+			}
+		} else {
+			const int w = fit->rx, h = fit->ry;
+			if (fit->type == DATA_USHORT) {
+				WORD *tmp = malloc(full * sizeof(WORD));
+				if (!tmp) { g_free(dir); return 1; }
+				ret = wavelet_reconstruct_file(dir, args->coef, &args->denoise, tmp);
+				if (!ret)
+					for (int r = 0; r < h; r++)
+						memcpy(fit->pdata[i] + (size_t) r * w,
+								tmp + (size_t) (args->roi_y + r) * args->full_rx + args->roi_x,
+								(size_t) w * sizeof(WORD));
+				free(tmp);
+			} else if (fit->type == DATA_FLOAT) {
+				float *tmp = malloc(full * sizeof(float));
+				if (!tmp) { g_free(dir); return 1; }
+				ret = wavelet_reconstruct_file_float(dir, args->coef, &args->denoise, tmp);
+				if (!ret)
+					for (int r = 0; r < h; r++)
+						memcpy(fit->fpdata[i] + (size_t) r * w,
+								tmp + (size_t) (args->roi_y + r) * args->full_rx + args->roi_x,
+								(size_t) w * sizeof(float));
+				free(tmp);
+			} else {
+				g_free(dir);
+				return 1;
+			}
 		}
 		g_free(dir);
 		if (ret) return 1;

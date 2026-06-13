@@ -31,6 +31,7 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/wavelet_denoise.h"
 #include "filters/wavelets.h"
+#include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/message_dialog.h"
@@ -260,19 +261,31 @@ static int update_wavelets() {
 	sync_denoise_params();
 	wrecons_args->denoise = wavelet_denoise;
 
+	/* Preview only the region of interest when one is set: reconstruct into the
+	 * ROI fit and let the framework composite it back. */
+	gboolean roi = gui.roi.active;
+	if (roi) {
+		wrecons_args->for_roi = TRUE;
+		wrecons_args->roi_x = gui.roi.selection.x;
+		wrecons_args->roi_y = gui.roi.selection.y;
+		wrecons_args->full_rx = gfit->rx;
+		wrecons_args->full_ry = gfit->ry;
+	}
+
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_wrecons_data(wrecons_args);
 		return 1;
 	}
-	args->fit = gfit;
+	args->fit = roi ? &gui.roi.fit : gfit;
 	args->image_hook = wrecons_image_hook;
 	args->description = _("Wavelets preview");
 	args->verbose = FALSE;
 	args->user = wrecons_args;
 	args->max_threads = com.max_thread;
 	args->for_preview = TRUE;
+	args->for_roi = roi;
 	if (!start_in_new_thread(generic_image_worker, args))
 		free_generic_img_args(args);
 	return 0;
@@ -305,11 +318,24 @@ static void update_sigma_readout(void) {
 	g_string_free(str, TRUE);
 }
 
+/* Re-run the preview when the ROI is created, moved or cleared. */
+static void wavelet_roi_changed(void) {
+	gui.roi.operation_supports_roi = TRUE;
+	if (gtk_widget_get_sensitive(wavelets_frame) != TRUE)
+		return; /* nothing computed yet */
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = update_wavelets;
+	param->show_preview = any_layer_preview_active();
+	notify_update((gpointer) param);
+}
+
 static void wavelets_startup() {
 	for (int i = 0; i < 6; i++) {
 		wavelet_value[i] = 1.f;
 	}
 	copy_gfit_to_backup();
+	add_roi_callback(wavelet_roi_changed);
+	roi_supported(TRUE);
 }
 
 /* Idle function: called after generic_image_worker finishes the wrecons apply */
@@ -344,6 +370,8 @@ void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_sensitive(wavelets_frame, FALSE);
 	gtk_widget_set_sensitive(wavelets_reset_btn, FALSE);
 	gtk_widget_set_sensitive(denoise_frame, FALSE);
+	roi_supported(FALSE);
+	remove_roi_callback(wavelet_roi_changed);
 	clear_backup();
 }
 

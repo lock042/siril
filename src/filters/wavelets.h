@@ -18,6 +18,12 @@ struct wrecons_data {
 	float coef[7];
 	int nb_chan;
 	struct denoise_params denoise; /* per-scale denoising (disabled by default) */
+	/* ROI preview: when for_roi is set the full image is reconstructed and the
+	 * (roi_x, roi_y, full_rx*full_ry-relative) selection window is copied into
+	 * the smaller fit the hook receives. */
+	gboolean for_roi;
+	int roi_x, roi_y;
+	int full_rx, full_ry;
 };
 
 /* Data struct for wavelet decomposition (wavelet command and GUI compute path) */
