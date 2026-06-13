@@ -110,7 +110,7 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 				if (!ret)
 					for (int r = 0; r < h; r++)
 						memcpy(fit->pdata[i] + (size_t) r * w,
-								tmp + (size_t) (args->roi_y + r) * args->full_rx + args->roi_x,
+								tmp + (size_t) (args->full_ry - r - args->roi_y - 1) * args->full_rx + args->roi_x,
 								(size_t) w * sizeof(WORD));
 				free(tmp);
 			} else if (fit->type == DATA_FLOAT) {
@@ -120,7 +120,7 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 				if (!ret)
 					for (int r = 0; r < h; r++)
 						memcpy(fit->fpdata[i] + (size_t) r * w,
-								tmp + (size_t) (args->roi_y + r) * args->full_rx + args->roi_x,
+								tmp + (size_t) (args->full_ry - r - args->roi_y - 1) * args->full_rx + args->roi_x,
 								(size_t) w * sizeof(float));
 				free(tmp);
 			} else {

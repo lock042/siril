@@ -404,6 +404,11 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	 * start the apply worker (start_in_new_thread allows only one at a time). */
 	cancel_pending_update();
 	cancel_and_wait_for_preview();
+	/* Apply always commits the full image. Stop ROI compositing now so the
+	 * worker's notify_gfit_data_modified() does not paste the (restored,
+	 * original) ROI back over the freshly reconstructed result. */
+	roi_supported(FALSE);
+	remove_roi_callback(wavelet_roi_changed);
 	/* The live preview may have been showing an isolated reconstruction (only
 	 * some layers at their adjusted strength). Whatever was previewed, the
 	 * applied result must use every layer's real strength. If a preview is
