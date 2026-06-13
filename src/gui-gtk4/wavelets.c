@@ -79,6 +79,11 @@ static void wavelets_dialog_init_statics(void) {
 	for (int i = 0; i < 6; i++) {
 		snprintf(name, sizeof(name), "preview_w%d", i);
 		wavelets_preview_btn[i] = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, name));
+		/* Tag each per-layer reset button with its layer index so the shared
+		 * click handler knows which coefficient to reset. */
+		snprintf(name, sizeof(name), "reset_w%d", i);
+		g_object_set_data(gtk_builder_get_object(gui.builder, name),
+				"wavelet-layer", GINT_TO_POINTER(i));
 	}
 	wavelets_plans_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_plans_w"));
 	wavelets_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_wavelets"));
@@ -384,4 +389,13 @@ void on_wavelet_preview_toggled(GtkCheckButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
+}
+
+/* Per-layer reset button: restore this layer's coefficient to the neutral 1.0.
+ * The scale shares its adjustment with the layer's spinbutton, so setting it
+ * fires on_spin_wN_value_changed, which updates the stored strength and
+ * refreshes the preview (no-op if the value was already 1.0). */
+void on_reset_w_clicked(GtkButton *button, gpointer user_data) {
+	int layer = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "wavelet-layer"));
+	gtk_range_set_value(wavelets_scale_w[layer], 1.f);
 }

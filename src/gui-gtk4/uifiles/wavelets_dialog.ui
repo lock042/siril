@@ -200,6 +200,19 @@
                                 <signal name="value-changed" handler="on_spin_w0_value_changed"/>
                               </object>
                             </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w0">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
+                              </object>
+                            </child>
                           </object>
                         </child>
                         <child>
@@ -243,6 +256,19 @@
                                 <property name="text">1.00</property>
                                 <property name="value">1</property>
                                 <signal name="value-changed" handler="on_spin_w1_value_changed"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w1">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
                               </object>
                             </child>
                           </object>
@@ -290,6 +316,19 @@
                                 <signal name="value-changed" handler="on_spin_w2_value_changed"/>
                               </object>
                             </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w2">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
+                              </object>
+                            </child>
                           </object>
                         </child>
                         <child>
@@ -333,6 +372,19 @@
                                 <property name="text">1.00</property>
                                 <property name="value">1</property>
                                 <signal name="value-changed" handler="on_spin_w3_value_changed"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w3">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
                               </object>
                             </child>
                           </object>
@@ -380,6 +432,19 @@
                                 <signal name="value-changed" handler="on_spin_w4_value_changed"/>
                               </object>
                             </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w4">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
+                              </object>
+                            </child>
                           </object>
                         </child>
                         <child>
@@ -423,6 +488,19 @@
                                 <property name="text">1.00</property>
                                 <property name="value">1</property>
                                 <signal name="value-changed" handler="on_spin_w5_value_changed"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="reset_w5">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Reset</property>
+                                <signal name="clicked" handler="on_reset_w_clicked"/>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
                               </object>
                             </child>
                           </object>
