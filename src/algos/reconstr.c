@@ -172,6 +172,10 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, const struc
 			Wavelet.Nbr_Plan, Nl, Nc, dp);
 	wavelet_reconstruct_data(&Wavelet, Imag, coef);
 
+	/* invert the Anscombe VST applied at decomposition, back to linear ADU */
+	if (dp && dp->anscombe)
+		anscombe_inverse(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE);
+
 	/* get and view result */
 	reget_rawdata(Imag, Nl, Nc, data);
 
@@ -200,6 +204,11 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
 	wavelet_denoise_planes(Wavelet.Pave.Data, Wavelet.Type_Wave_Transform,
 			Wavelet.Nbr_Plan, Wavelet.Nbr_Ligne, Wavelet.Nbr_Col, dp);
 	wavelet_reconstruct_data(&Wavelet, data, coef);
+
+	/* invert the Anscombe VST applied at decomposition, back to linear [0,1] */
+	if (dp && dp->anscombe)
+		anscombe_inverse(data, (size_t) Wavelet.Nbr_Ligne * Wavelet.Nbr_Col,
+				ANSCOMBE_FLOAT_SCALE);
 
 	wave_io_free(&Wavelet);
 	return 0;

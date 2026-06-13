@@ -50,7 +50,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 		for (int i = 0; i < nb_chan; i++) {
 			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i]);
+					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i], args->anscombe);
 			g_free(dir);
 		}
 		free(Imag);
@@ -58,7 +58,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 		for (int i = 0; i < nb_chan; i++) {
 			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
 			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan);
+					args->Type_Transform, args->Nbr_Plan, args->anscombe);
 			g_free(dir);
 		}
 	} else {

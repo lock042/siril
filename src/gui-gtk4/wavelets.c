@@ -49,13 +49,19 @@ static gboolean block_preview_toggle = FALSE;
  * other. */
 static gboolean wavelet_sync_block = FALSE;
 
-/* Per-scale row widgets (one entry per wavelet layer). */
+/* Per-scale row widgets. Each layer occupies two grid rows: a strength row
+ * (scale + spin + preview + reset) and a denoise row (scale + spin + per-layer
+ * enable + reset). */
 static GtkWidget *wavelets_label_w[6] = { NULL };
 static GtkRange *wavelets_scale_w[6] = { NULL };
 static GtkSpinButton *wavelets_spin_w[6] = { NULL };
-static GtkSpinButton *wavelets_denoise_w[6] = { NULL };
 static GtkCheckButton *wavelets_preview_btn[6] = { NULL };
 static GtkWidget *wavelets_reset_w[6] = { NULL };
+static GtkWidget *wavelets_dlabel_w[6] = { NULL };
+static GtkWidget *wavelets_dscale_w[6] = { NULL };
+static GtkSpinButton *wavelets_denoise_w[6] = { NULL };
+static GtkCheckButton *wavelets_denoise_en_w[6] = { NULL };
+static GtkWidget *wavelets_dreset_w[6] = { NULL };
 
 static GtkSpinButton *wavelets_plans_spin = NULL;
 static GtkWidget *wavelets_frame = NULL, *wavelets_reset_btn = NULL;
@@ -63,15 +69,18 @@ static GtkDropDown *wavelets_type_combo = NULL;
 static GtkSpinButton *wavelets_extract_spin = NULL;
 static GtkDropDown *wavelets_extract_interp = NULL;
 
-/* Denoising controls (live in the permanent "Denoising" frame). */
+/* Global denoising parameters (live in the permanent "Denoising" frame). */
 static GtkWidget *denoise_frame = NULL, *denoise_options_box = NULL;
 static GtkCheckButton *denoise_enable_btn = NULL, *denoise_soft_btn = NULL;
-static GtkCheckButton *denoise_perband_btn = NULL;
+static GtkCheckButton *denoise_perband_btn = NULL, *denoise_anscombe_btn = NULL;
 static GtkDropDown *denoise_method_combo = NULL;
 static GtkSpinButton *denoise_k_spin = NULL;
 static GtkLabel *denoise_sigma_label = NULL;
 
 static struct denoise_params wavelet_denoise;
+/* Whether the current decomposition was built in the Anscombe VST domain
+ * (captured at Execute from the VST checkbox). Reconstruction must match. */
+static gboolean wavelet_vst_applied = FALSE;
 
 /* A layer takes part in the live preview when its row is visible (i.e. within
  * the current number of layers) and its per-layer preview toggle is active. */
@@ -87,28 +96,61 @@ static gboolean any_layer_preview_active(void) {
 	return FALSE;
 }
 
+/* A layer is denoised when its row is visible and its per-layer Enable is on. */
+static gboolean layer_denoise_active(int i) {
+	return gtk_widget_get_visible(GTK_WIDGET(wavelets_scale_w[i]))
+			&& siril_toggle_get_active(GTK_WIDGET(wavelets_denoise_en_w[i]));
+}
+
 static void set_scale_row_visible(int i, gboolean vis) {
 	gtk_widget_set_visible(wavelets_label_w[i], vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_scale_w[i]), vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_spin_w[i]), vis);
-	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_w[i]), vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_preview_btn[i]), vis);
 	gtk_widget_set_visible(wavelets_reset_w[i], vis);
+	gtk_widget_set_visible(wavelets_dlabel_w[i], vis);
+	gtk_widget_set_visible(wavelets_dscale_w[i], vis);
+	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_w[i]), vis);
+	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_en_w[i]), vis);
+	gtk_widget_set_visible(wavelets_dreset_w[i], vis);
 }
 
-/* The per-scale denoise factor spins are only meaningful when denoising is on. */
-static void set_denoise_sensitivity(gboolean enabled) {
-	if (denoise_options_box)
-		gtk_widget_set_sensitive(denoise_options_box, enabled);
+/* The denoise strength widgets of a layer are only adjustable when that layer's
+ * denoising is enabled. */
+static void set_layer_denoise_sensitive(int i, gboolean en) {
+	gtk_widget_set_sensitive(wavelets_dscale_w[i], en);
+	gtk_widget_set_sensitive(GTK_WIDGET(wavelets_denoise_w[i]), en);
+	gtk_widget_set_sensitive(wavelets_dreset_w[i], en);
+}
+
+static gboolean global_denoise_enabled(void) {
+	return siril_toggle_get_active(GTK_WIDGET(denoise_enable_btn));
+}
+
+/* Grey the global denoise options unless the master switch is on, and each
+ * layer's denoise strength unless both the master and that layer are on. */
+static void refresh_denoise_sensitivity(void) {
+	gboolean g = global_denoise_enabled();
+	gtk_widget_set_sensitive(denoise_options_box, g);
 	for (int i = 0; i < 6; i++)
-		if (wavelets_denoise_w[i])
-			gtk_widget_set_sensitive(GTK_WIDGET(wavelets_denoise_w[i]), enabled);
+		set_layer_denoise_sensitive(i,
+				g && siril_toggle_get_active(GTK_WIDGET(wavelets_denoise_en_w[i])));
 }
 
-/* Read the denoising widgets into wavelet_denoise. */
+/* Read the denoising widgets into wavelet_denoise. A layer is denoised only
+ * when the master switch AND its per-layer Enable are both on; a disabled layer
+ * contributes a factor of 0 (no shrinkage on that scale). */
 static void sync_denoise_params(void) {
 	denoise_params_init(&wavelet_denoise);
-	wavelet_denoise.enabled = siril_toggle_get_active(GTK_WIDGET(denoise_enable_btn));
+	gboolean any = FALSE;
+	for (int i = 0; i < 6; i++) {
+		gboolean en = layer_denoise_active(i);
+		wavelet_denoise.f[i] = en
+				? (float) gtk_spin_button_get_value(wavelets_denoise_w[i]) : 0.f;
+		if (en)
+			any = TRUE;
+	}
+	wavelet_denoise.enabled = global_denoise_enabled() && any;
 	wavelet_denoise.method =
 			(gtk_drop_down_get_selected(denoise_method_combo) == 0)
 			? WD_BISHRINK : WD_THRESHOLD;
@@ -117,8 +159,7 @@ static void sync_denoise_params(void) {
 	wavelet_denoise.sigma_source =
 			siril_toggle_get_active(GTK_WIDGET(denoise_perband_btn))
 			? WD_SIGMA_PER_BAND : WD_SIGMA_PROPAGATED;
-	for (int i = 0; i < 6; i++)
-		wavelet_denoise.f[i] = (float) gtk_spin_button_get_value(wavelets_denoise_w[i]);
+	wavelet_denoise.anscombe = wavelet_vst_applied;
 }
 
 static void wavelets_dialog_init_statics(void) {
@@ -130,19 +171,26 @@ static void wavelets_dialog_init_statics(void) {
 		snprintf(name, sizeof(name), "scale_w%d", i);
 		wavelets_scale_w[i] = GTK_RANGE(gtk_builder_get_object(gui.builder, name));
 		/* the shared slider handler recovers its layer index from this */
-		g_object_set_data(G_OBJECT(wavelets_scale_w[i]), "wavelet-layer",
-				GINT_TO_POINTER(i));
+		g_object_set_data(G_OBJECT(wavelets_scale_w[i]), "wavelet-layer", GINT_TO_POINTER(i));
 		snprintf(name, sizeof(name), "spin_w%d", i);
 		wavelets_spin_w[i] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, name));
-		snprintf(name, sizeof(name), "denoise_w%d", i);
-		wavelets_denoise_w[i] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, name));
 		snprintf(name, sizeof(name), "preview_w%d", i);
 		wavelets_preview_btn[i] = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, name));
 		snprintf(name, sizeof(name), "reset_w%d", i);
 		wavelets_reset_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
-		/* Tag each per-layer reset button with its layer index. */
-		g_object_set_data(G_OBJECT(wavelets_reset_w[i]), "wavelet-layer",
-				GINT_TO_POINTER(i));
+		g_object_set_data(G_OBJECT(wavelets_reset_w[i]), "wavelet-layer", GINT_TO_POINTER(i));
+		snprintf(name, sizeof(name), "dlabel_w%d", i);
+		wavelets_dlabel_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
+		snprintf(name, sizeof(name), "dscale_w%d", i);
+		wavelets_dscale_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
+		snprintf(name, sizeof(name), "denoise_w%d", i);
+		wavelets_denoise_w[i] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, name));
+		snprintf(name, sizeof(name), "denoise_en_w%d", i);
+		wavelets_denoise_en_w[i] = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, name));
+		g_object_set_data(G_OBJECT(wavelets_denoise_en_w[i]), "wavelet-layer", GINT_TO_POINTER(i));
+		snprintf(name, sizeof(name), "dreset_w%d", i);
+		wavelets_dreset_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
+		g_object_set_data(G_OBJECT(wavelets_dreset_w[i]), "wavelet-layer", GINT_TO_POINTER(i));
 	}
 	wavelets_plans_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_plans_w"));
 	wavelets_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_wavelets"));
@@ -152,8 +200,9 @@ static void wavelets_dialog_init_statics(void) {
 	wavelets_extract_interp = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_interpolation_extract_w"));
 
 	denoise_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_denoise"));
-	denoise_options_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "denoise_options_box"));
+	denoise_options_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "grid_denoise"));
 	denoise_enable_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_enable"));
+	denoise_anscombe_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_anscombe"));
 	denoise_soft_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_soft"));
 	denoise_perband_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_perband"));
 	denoise_method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "denoise_method"));
@@ -161,7 +210,7 @@ static void wavelets_dialog_init_statics(void) {
 	denoise_sigma_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "denoise_sigma_label"));
 
 	denoise_params_init(&wavelet_denoise);
-	set_denoise_sensitivity(FALSE);
+	refresh_denoise_sensitivity();
 }
 
 static void reset_scale_w() {
@@ -169,63 +218,64 @@ static void reset_scale_w() {
 	block_preview_toggle = TRUE;
 	wavelet_sync_block = TRUE;
 	for (int i = 0; i < 6; i++) {
-		/* neutral coefficient 1.0: spin shows 1, slider sits at log10(1)=0 */
+		/* neutral strength coefficient 1.0: spin shows 1, slider at log10(1)=0 */
 		wavelet_value[i] = 1.f;
 		gtk_spin_button_set_value(wavelets_spin_w[i], 1.0);
 		gtk_range_set_value(wavelets_scale_w[i], 0.0);
 		gtk_spin_button_set_value(wavelets_denoise_w[i], 1.0);
 		siril_toggle_set_active(GTK_WIDGET(wavelets_preview_btn[i]), TRUE);
+		/* per-layer denoise enabled by default; the master switch (off) still
+		 * gates whether any denoising happens */
+		siril_toggle_set_active(GTK_WIDGET(wavelets_denoise_en_w[i]), TRUE);
 	}
 	wavelet_sync_block = FALSE;
 	gtk_spin_button_set_value(wavelets_plans_spin, 6);
-	/* denoising back to defaults: disabled, BiShrink, k=3, soft, propagated */
+	/* global denoising back to defaults: off, BiShrink, k=3, soft, propagated */
 	siril_toggle_set_active(GTK_WIDGET(denoise_enable_btn), FALSE);
 	gtk_drop_down_set_selected(denoise_method_combo, 0);
 	gtk_spin_button_set_value(denoise_k_spin, 3.0);
 	siril_toggle_set_active(GTK_WIDGET(denoise_soft_btn), TRUE);
 	siril_toggle_set_active(GTK_WIDGET(denoise_perband_btn), FALSE);
+	refresh_denoise_sensitivity();
 	block_preview_toggle = FALSE;
 	set_notify_block(FALSE);
-	set_denoise_sensitivity(FALSE);
 }
 
-/* Reconstruct gfit from the wavelet transform files using the given per-layer
- * coefficients, applying the current denoising parameters first. */
-static int reconstruct_gfit(float *coef) {
-	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
-			"b_rawdata.wave" }, *dir[3];
-	const char *tmpdir;
-
-	sync_denoise_params();
-	const struct denoise_params *dp = wavelet_denoise.enabled ? &wavelet_denoise : NULL;
-
-	tmpdir = g_get_tmp_dir();
-
-	set_cursor_waiting(TRUE);
-
-	for (int i = 0; i < gfit->naxes[2]; i++) {
-		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-		if (gfit->type == DATA_USHORT) {
-			wavelet_reconstruct_file(dir[i], coef, dp, gfit->pdata[i]);
-		} else {
-			wavelet_reconstruct_file_float(dir[i], coef, dp, gfit->fpdata[i]);
-		}
-		g_free(dir[i]);
-	}
-	notify_gfit_data_modified();
-	redraw(REDRAW_ALL);
-	return 0;
-}
-
-/* Preview reconstruction: only the layers whose preview toggle is active use
- * their adjusted strength; every other layer is held at the neutral value of
- * 1.0 so the preview isolates the effect of the previewed layers. Denoising,
- * when enabled, is applied to all scales regardless. */
+/* Preview reconstruction. Runs on a background thread (via
+ * generic_image_worker) so the heavy reconstruction + denoising never blocks
+ * the GUI; the worker swaps the result into gfit and refreshes the display on
+ * its completion idle. Only the layers whose preview toggle is active use their
+ * adjusted strength; every other layer is held at the neutral 1.0 so the
+ * preview isolates the previewed layers. Denoising/VST ride in wrecons_data. */
 static int update_wavelets() {
-	float coef[6];
+	struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
+	if (!wrecons_args) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	wrecons_args->destroy_fn = free_wrecons_data;
+	wrecons_args->nb_chan = gfit->naxes[2];
 	for (int i = 0; i < 6; i++)
-		coef[i] = layer_preview_active(i) ? wavelet_value[i] : 1.f;
-	return reconstruct_gfit(coef);
+		wrecons_args->coef[i] = layer_preview_active(i) ? wavelet_value[i] : 1.f;
+	sync_denoise_params();
+	wrecons_args->denoise = wavelet_denoise;
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_wrecons_data(wrecons_args);
+		return 1;
+	}
+	args->fit = gfit;
+	args->image_hook = wrecons_image_hook;
+	args->description = _("Wavelets preview");
+	args->verbose = FALSE;
+	args->user = wrecons_args;
+	args->max_threads = com.max_thread;
+	args->for_preview = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
+	return 0;
 }
 
 /* Schedule a debounced preview refresh (used by the strength and denoise
@@ -305,8 +355,13 @@ void on_button_reset_w_clicked(GtkButton *button, gpointer user_data) {
 
 void apply_wavelets_cancel(void) {
 	if (gtk_widget_get_sensitive(wavelets_frame) == TRUE) {
-		reset_scale_w();
-		update_wavelets();
+		/* drop any pending/in-flight preview, then restore the original pixels */
+		cancel_pending_update();
+		cancel_and_wait_for_preview();
+		if (is_preview_active())
+			copy_backup_to_gfit();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	}
 	siril_close_dialog("wavelets_dialog");
 }
@@ -317,6 +372,10 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("wavelets_dialog");
 		return;
 	}
+	/* A background preview worker may still be running; finish it before we
+	 * start the apply worker (start_in_new_thread allows only one at a time). */
+	cancel_pending_update();
+	cancel_and_wait_for_preview();
 	/* The live preview may have been showing an isolated reconstruction (only
 	 * some layers at their adjusted strength). Whatever was previewed, the
 	 * applied result must use every layer's real strength. If a preview is
@@ -360,6 +419,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 
 	int Nbr_Plan = gtk_spin_button_get_value(wavelets_plans_spin);
 	int Type_Transform = gtk_drop_down_get_selected(wavelets_type_combo) + 1;
+	/* capture the VST choice for this decomposition so reconstruction matches */
+	wavelet_vst_applied = siril_toggle_get_active(GTK_WIDGET(denoise_anscombe_btn));
 
 	int mins = min(gfit->rx, gfit->ry);
 	int maxplan = log(mins) / log(2) - 2;
@@ -386,6 +447,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	}
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
+	args->anscombe = wavelet_vst_applied;
 
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
@@ -516,20 +578,45 @@ void on_wavelet_preview_toggled(GtkCheckButton *button, gpointer user_data) {
 	}
 }
 
-/* Per-layer reset button: restore this layer's strength and denoise factor to
- * the neutral value of 1. Setting the strength spin to 1 fires its handler,
- * which mirrors the slider and refreshes the preview; likewise the denoise
- * spin. */
+/* Strength reset button (top row): restore this layer's coefficient to 1.
+ * Setting the spin to 1 fires its handler, which mirrors the slider and
+ * refreshes the preview. */
 void on_reset_w_clicked(GtkButton *button, gpointer user_data) {
 	int layer = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "wavelet-layer"));
 	gtk_spin_button_set_value(wavelets_spin_w[layer], 1.0);
-	gtk_spin_button_set_value(wavelets_denoise_w[layer], 1.0);
 }
 
 /****************** Denoising controls *****************/
 
+/* Master denoise toggle: grey/ungrey the global options and every layer's
+ * denoise strength, then refresh the preview. */
 void on_denoise_enable_toggled(GtkCheckButton *button, gpointer user_data) {
-	set_denoise_sensitivity(siril_toggle_get_active(GTK_WIDGET(button)));
+	refresh_denoise_sensitivity();
+	if (block_preview_toggle)
+		return;
+	schedule_preview_update();
+}
+
+/* Per-layer denoise Enable toggle: grey/ungrey that layer's denoise strength
+ * widgets (only effective while the master switch is on) and refresh. */
+void on_denoise_layer_toggled(GtkCheckButton *button, gpointer user_data) {
+	int n = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "wavelet-layer"));
+	set_layer_denoise_sensitive(n,
+			global_denoise_enabled() && siril_toggle_get_active(GTK_WIDGET(button)));
+	if (block_preview_toggle)
+		return;
+	schedule_preview_update();
+}
+
+/* Denoise reset button (bottom row): restore this layer's denoise strength to
+ * 1. The denoise scale shares its adjustment with the spin, so setting the spin
+ * moves both and fires on_denoise_w_changed (which refreshes the preview). */
+void on_reset_denoise_w_clicked(GtkButton *button, gpointer user_data) {
+	int layer = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "wavelet-layer"));
+	gtk_spin_button_set_value(wavelets_denoise_w[layer], 1.0);
+}
+
+void on_denoise_w_changed(GtkSpinButton *button, gpointer user_data) {
 	if (block_preview_toggle)
 		return;
 	schedule_preview_update();
@@ -554,12 +641,6 @@ void on_denoise_soft_toggled(GtkCheckButton *button, gpointer user_data) {
 }
 
 void on_denoise_perband_toggled(GtkCheckButton *button, gpointer user_data) {
-	if (block_preview_toggle)
-		return;
-	schedule_preview_update();
-}
-
-void on_denoise_w_changed(GtkSpinButton *button, gpointer user_data) {
 	if (block_preview_toggle)
 		return;
 	schedule_preview_update();

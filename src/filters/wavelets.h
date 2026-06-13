@@ -24,6 +24,7 @@ struct wrecons_data {
 struct wavelet_transform_data {
 	int Nbr_Plan;
 	int Type_Transform;
+	gboolean anscombe; /* decompose in the Anscombe VST domain */
 };
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);

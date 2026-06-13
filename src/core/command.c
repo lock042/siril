@@ -3324,6 +3324,8 @@ int process_wrecons(int nb) {
 			denoise.soft = FALSE;
 		else if (!strcmp(arg, "-perband"))
 			denoise.sigma_source = WD_SIGMA_PER_BAND;
+		else if (!strcmp(arg, "-anscombe"))
+			denoise.anscombe = TRUE;
 		else if (g_str_has_prefix(arg, "-k=")) {
 			denoise.k = g_ascii_strtod(arg + 3, &end);
 			if (end == arg + 3) {
@@ -4200,6 +4202,15 @@ int process_wavelet(int nb) {
 	}
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
+	for (int i = 3; i < nb && word[i]; i++) {
+		if (!strcmp(word[i], "-anscombe"))
+			args->anscombe = TRUE;
+		else {
+			siril_log_message(_("Unknown parameter %s.\n"), word[i]);
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+	}
 
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
 		free(args);

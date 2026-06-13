@@ -110,9 +110,12 @@
 #include <math.h>
 #include <string.h>
 
+#include <stdlib.h>
+
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "algos/Def_Wavelet.h"
+#include "algos/wavelet_denoise.h"
 
 int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 	float *im = Imag;
@@ -144,12 +147,16 @@ float *f_vector_alloc(int Nbr_Elem)
 /*****************************************************************************/
 
 int wavelet_transform_file(float *Imag, int Nl, int Nc,
-		char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data) {
+		char *File_Name_Transform, int Type_Transform, int Nbr_Plan, WORD *data,
+		int anscombe) {
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
 	/* read the input image */
 	prepare_rawdata(Imag, Nl, Nc, data);
+	/* stabilise the noise before the linear decomposition if requested */
+	if (anscombe)
+		anscombe_forward(Imag, (size_t) Nl * Nc, ANSCOMBE_USHORT_SCALE);
 	snprintf(Wavelet.Name_Imag, MAX_SIZE_NAME_IMAG - 1, "%s",
 			File_Name_Transform);
 	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
@@ -167,24 +174,42 @@ int wavelet_transform_file(float *Imag, int Nl, int Nc,
 }
 
 int wavelet_transform_file_float(float *Imag, int Nl, int Nc,
-		char *File_Name_Transform, int Type_Transform, int Nbr_Plan) {
+		char *File_Name_Transform, int Type_Transform, int Nbr_Plan,
+		int anscombe) {
 	wave_transf_des Wavelet;
 	memset(&Wavelet, 0, sizeof(wave_transf_des));
 
-	/* read the input image */
+	/* The caller passes the live image buffer; stabilise on a private copy so
+	 * the original pixels are never modified. */
+	float *src = Imag;
+	float *tmp = NULL;
+	if (anscombe) {
+		tmp = malloc((size_t) Nl * Nc * sizeof(float));
+		if (!tmp) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		memcpy(tmp, Imag, (size_t) Nl * Nc * sizeof(float));
+		anscombe_forward(tmp, (size_t) Nl * Nc, ANSCOMBE_FLOAT_SCALE);
+		src = tmp;
+	}
+
 	snprintf(Wavelet.Name_Imag, MAX_SIZE_NAME_IMAG - 1, "%s",
 			File_Name_Transform);
 	Wavelet.Name_Imag[MAX_SIZE_NAME_IMAG - 1] = '\0';
 
-	if (wavelet_transform_data(Imag, Nl, Nc, &Wavelet, Type_Transform,
+	if (wavelet_transform_data(src, Nl, Nc, &Wavelet, Type_Transform,
 			Nbr_Plan)) {
+		free(tmp);
 		return 1;
 	}
 	if (wave_io_write(File_Name_Transform, &Wavelet)) {
+		free(tmp);
 		return 1;
 	}
 
 	wave_io_free(&Wavelet);
+	free(tmp);
 	return 0;
 }
 
