@@ -31,6 +31,11 @@ struct wavelet_transform_data {
 	int Nbr_Plan;
 	int Type_Transform;
 	gboolean anscombe; /* decompose in the Anscombe VST domain */
+	/* Optional completion idle run on the main thread once the decomposition
+	 * has finished (GUI re-enables its widgets here). When set, it takes
+	 * ownership of this struct and must free it; when NULL the generic idle is
+	 * used and the worker frees the struct itself. */
+	GSourceFunc idle;
 };
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);

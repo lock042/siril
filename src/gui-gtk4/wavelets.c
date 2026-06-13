@@ -350,6 +350,10 @@ static gboolean wrecons_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Completion idle for the decomposition: invoked by wavelet_transform_worker
+ * once the .wave files are written and gfit is unlocked (so the tool is only
+ * re-enabled when the transform is actually ready). Owns and frees the worker
+ * args handed to it. */
 static gboolean wavelet_compute_idle(gpointer p) {
 	stop_processing_thread();
 	gtk_widget_set_sensitive(wavelets_frame, TRUE);
@@ -358,7 +362,8 @@ static gboolean wavelet_compute_idle(gpointer p) {
 	reset_scale_w();
 	update_sigma_readout();
 	set_cursor_waiting(FALSE);
-	return FALSE;
+	free(p);
+	return G_SOURCE_REMOVE;
 }
 
 void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -446,6 +451,11 @@ gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
+	/* Drop any pending/in-flight preview first: otherwise start_in_new_thread
+	 * below could be refused as busy, or a stale preview could fire against the
+	 * transform we are about to recompute. */
+	cancel_pending_update();
+	cancel_and_wait_for_preview();
 	if (is_preview_active()) {
 		copy_backup_to_gfit();
 	}
@@ -481,6 +491,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
 	args->anscombe = wavelet_vst_applied;
+	/* the worker runs this on the main thread once the decomposition is done */
+	args->idle = wavelet_compute_idle;
 
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
@@ -488,10 +500,6 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(FALSE);
 		return;
 	}
-	/* In GUI mode start_in_new_thread is fire-and-forget; the idle below
-	 * re-enables the widgets once the worker completes.  In script mode it
-	 * blocks, but on_button_compute_w_clicked is never called from scripts. */
-	siril_add_idle(wavelet_compute_idle, NULL);
 }
 
 /****************** GUI for Wavelet Layers Extraction *****************/

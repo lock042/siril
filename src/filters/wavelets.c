@@ -36,6 +36,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" };
 	const char *tmpdir = g_get_tmp_dir();
+	int retval = 0;
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	int nb_chan = gfit->naxes[2];
 
@@ -43,18 +44,16 @@ gpointer wavelet_transform_worker(gpointer p) {
 		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
 		if (!Imag) {
 			PRINT_ALLOC_ERR;
-			free(args);
-			g_rw_lock_reader_unlock(&gfit->rwlock);
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
+			retval = 1;
+		} else {
+			for (int i = 0; i < nb_chan; i++) {
+				gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
+						args->Type_Transform, args->Nbr_Plan, gfit->pdata[i], args->anscombe);
+				g_free(dir);
+			}
+			free(Imag);
 		}
-		for (int i = 0; i < nb_chan; i++) {
-			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
-					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i], args->anscombe);
-			g_free(dir);
-		}
-		free(Imag);
 	} else if (gfit->type == DATA_FLOAT) {
 		for (int i = 0; i < nb_chan; i++) {
 			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
@@ -63,16 +62,23 @@ gpointer wavelet_transform_worker(gpointer p) {
 			g_free(dir);
 		}
 	} else {
-		free(args);
-		g_rw_lock_reader_unlock(&gfit->rwlock);
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+		retval = 1;
 	}
-	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
-	free(args);
+	if (!retval)
+		siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+
+	/* The .wave files are now written and gfit is unlocked. Hand off to the
+	 * caller's completion idle (the GUI re-enables its widgets there); it owns
+	 * args. Without one (command line, or on failure) free args and run the
+	 * generic idle. */
+	if (!retval && args->idle) {
+		siril_add_idle(args->idle, args);
+	} else {
+		free(args);
+		siril_add_idle(end_generic, NULL);
+	}
+	return GINT_TO_POINTER(retval);
 }
 
 /************* wrecons hook (shared with GUI OK path and process_wrecons) *************/
