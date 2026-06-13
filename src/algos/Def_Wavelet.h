@@ -146,4 +146,5 @@ struct denoise_params; /* defined in algos/wavelet_denoise.h */
 int wavelet_reconstruct_data (wave_transf_des *Wavelet, float *Imag, float *coef);
 int wavelet_reconstruct_file (char *File_Name_Transform, float *coef, const struct denoise_params *dp, WORD *data);
 int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const struct denoise_params *dp, float *data);
+int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef, const struct denoise_params *dp, int roi_x, int roi_y, int roi_w, int roi_h, int chan, fits *roifit);
 int reget_rawdata(float *Imag, int Nl, int Nc, WORD *buf);

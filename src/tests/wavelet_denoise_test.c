@@ -322,6 +322,65 @@ Test(wavelet_denoise, vst_decompose_reconstruct_identity) {
 	free(out);
 }
 
+Test(wavelet_denoise, roi_reconstruct_matches_full) {
+	const int N = 256;
+	const int nplan = 5;
+	const size_t n = (size_t) N * N;
+	float *clean = malloc(n * sizeof(float));
+	float *noisy = malloc(n * sizeof(float));
+	float *full = malloc(n * sizeof(float));
+	cr_assert(clean && noisy && full);
+
+	int sx[3] = { 120, 140, 130 }, sy[3] = { 120, 130, 145 };
+	make_scene(clean, noisy, N, 0.02, sx, sy);
+
+	const char *tmpdir = g_get_tmp_dir();
+	gchar *fname = g_build_filename(tmpdir, "siril_wd_roi.wave", NULL);
+	cr_assert_eq(wavelet_transform_file_float(noisy, N, N, fname,
+			TO_PAVE_BSPLINE, nplan, 0), 0);
+
+	float coef[7];
+	for (int i = 0; i < 7; i++)
+		coef[i] = 1.0f;
+
+	struct denoise_params dp;
+	denoise_params_init(&dp); /* disabled: pure reconstruction */
+
+	/* full reconstruction (FITS-ordered buffer) */
+	cr_assert_eq(wavelet_reconstruct_file_float(fname, coef, &dp, full), 0);
+
+	/* ROI reconstruction into a minimal float fits */
+	const int rx = 40, ry = 50, w = 64, h = 48;
+	fits roifit = { 0 };
+	roifit.type = DATA_FLOAT;
+	roifit.rx = roifit.naxes[0] = w;
+	roifit.ry = roifit.naxes[1] = h;
+	roifit.naxes[2] = 1;
+	roifit.naxis = 2;
+	roifit.fdata = malloc((size_t) w * h * sizeof(float));
+	cr_assert_not_null(roifit.fdata);
+	roifit.fpdata[0] = roifit.fdata;
+
+	cr_assert_eq(wavelet_reconstruct_file_roi(fname, coef, &dp, rx, ry, w, h, 0, &roifit), 0);
+
+	/* ROI row y maps to FITS row N-1-ry-y (top-down -> bottom-up) */
+	float maxdiff = 0.f;
+	for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++) {
+			float roiv = roifit.fdata[(size_t) y * w + x];
+			float fullv = full[(size_t) (N - 1 - ry - y) * N + (rx + x)];
+			maxdiff = fmaxf(maxdiff, fabsf(roiv - fullv));
+		}
+	cr_assert_lt(maxdiff, 1e-3f, "ROI reconstruction differs from full by %.2e", maxdiff);
+
+	g_remove(fname);
+	g_free(fname);
+	free(roifit.fdata);
+	free(clean);
+	free(noisy);
+	free(full);
+}
+
 Test(wavelet_denoise, estimate_noise_divides_by_factor) {
 	const size_t n = 1000000;
 	const double sigma_global = 5.0;

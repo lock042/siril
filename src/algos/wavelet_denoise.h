@@ -37,6 +37,11 @@
 /* Maximum number of planes supported by the factor cache. */
 #define WD_MAX_PLAN 16
 
+/* Margin (px) added around a ROI when reconstructing only the selection, so the
+ * bivariate-shrinkage local window has real neighbours. Must be >= the window
+ * radius used by wavelet_denoise_planes. */
+#define WD_BISHRINK_MARGIN 8
+
 /* Compute the per-scale noise propagation factors e_j for the given transform
  * (TO_PAVE_LINEAR or TO_PAVE_BSPLINE) and number of planes. The factors are the
  * L2 norms of the equivalent detail filters, obtained exactly by transforming a

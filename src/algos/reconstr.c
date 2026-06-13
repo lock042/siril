@@ -107,6 +107,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <glib/gstdio.h>
 
 #include "core/siril_log.h"
 #include "core/siril.h"
@@ -211,6 +214,100 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, const
 				ANSCOMBE_FLOAT_SCALE);
 
 	wave_io_free(&Wavelet);
+	return 0;
+}
+
+/* Reconstruct only a region of interest, bounding both I/O and compute to the
+ * selection. Only the ROI rows (plus a small margin so the bivariate-shrinkage
+ * local window and the cropped reconstruction have real neighbours) are read
+ * from the transform file; denoising and reconstruction then run on that small
+ * sub-transform. roi_x/roi_y are the selection's top-left in top-down display
+ * coordinates; the result is written into roifit's channel buffer in roifit's
+ * (top-down) layout, matching populate_roi(). */
+int wavelet_reconstruct_file_roi(char *File_Name_Transform, float *coef,
+		const struct denoise_params *dp, int roi_x, int roi_y, int roi_w,
+		int roi_h, int chan, fits *roifit) {
+	const int margin = WD_BISHRINK_MARGIN;
+	wave_transf_des hdr;
+	FILE *f = g_fopen(File_Name_Transform, "rb");
+	if (!f)
+		return 1;
+	if (fread(&hdr, sizeof(wave_transf_des), 1, f) != 1) {
+		fclose(f);
+		return 1;
+	}
+	const int Nl = hdr.Nbr_Ligne, Nc = hdr.Nbr_Col, Nbr_Plan = hdr.Nbr_Plan;
+	const int type = hdr.Type_Wave_Transform;
+	if (Nbr_Plan < 1 || Nbr_Plan > 6 || Nl < 1 || Nc < 1
+			|| Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM
+			|| (type != TO_PAVE_LINEAR && type != TO_PAVE_BSPLINE)) {
+		fclose(f);
+		return 1;
+	}
+
+	/* ROI bounding box in FITS (bottom-up) rows, padded by the margin */
+	int cy0 = (Nl - roi_y - roi_h) - margin;
+	int cy1 = (Nl - 1 - roi_y) + margin;
+	int cx0 = roi_x - margin;
+	int cx1 = roi_x + roi_w - 1 + margin;
+	if (cy0 < 0) cy0 = 0;
+	if (cy1 > Nl - 1) cy1 = Nl - 1;
+	if (cx0 < 0) cx0 = 0;
+	if (cx1 > Nc - 1) cx1 = Nc - 1;
+	const int ch = cy1 - cy0 + 1, cw = cx1 - cx0 + 1;
+	if (ch < 1 || cw < 1) {
+		fclose(f);
+		return 1;
+	}
+
+	const off_t data_off = (off_t) sizeof(wave_transf_des);
+	float *rows = malloc((size_t) ch * Nc * sizeof(float)); /* one plane's ROI rows */
+	float *sub = f_vector_alloc((size_t) cw * ch * Nbr_Plan);
+	float *out = f_vector_alloc((size_t) cw * ch);
+	if (!rows || !sub || !out) {
+		free(rows); if (sub) free(sub); if (out) free(out);
+		fclose(f);
+		return 1;
+	}
+
+	for (int p = 0; p < Nbr_Plan; p++) {
+		off_t off = data_off + ((off_t) p * Nl * Nc + (off_t) cy0 * Nc) * (off_t) sizeof(float);
+		if (fseeko(f, off, SEEK_SET) != 0
+				|| fread(rows, sizeof(float), (size_t) ch * Nc, f) != (size_t) ch * Nc) {
+			free(rows); free(sub); free(out);
+			fclose(f);
+			return 1;
+		}
+		float *dstplane = sub + (size_t) cw * ch * p;
+		for (int r = 0; r < ch; r++)
+			memcpy(dstplane + (size_t) r * cw, rows + (size_t) r * Nc + cx0,
+					(size_t) cw * sizeof(float));
+	}
+	fclose(f);
+	free(rows);
+
+	/* denoise + reconstruct only the cropped sub-transform */
+	wavelet_denoise_planes(sub, type, Nbr_Plan, ch, cw, dp);
+	pave_2d_build(sub, out, ch, cw, Nbr_Plan, coef);
+	free(sub);
+	if (dp && dp->anscombe)
+		anscombe_inverse(out, (size_t) cw * ch,
+				(roifit->type == DATA_USHORT) ? ANSCOMBE_USHORT_SCALE : ANSCOMBE_FLOAT_SCALE);
+
+	/* copy the inner ROI into roifit (top-down), flipping FITS rows */
+	for (int y = 0; y < roi_h; y++) {
+		const int sr = (Nl - 1 - roi_y - y) - cy0; /* sub-image row (FITS order) */
+		const float *srow = out + (size_t) sr * cw + (roi_x - cx0);
+		if (roifit->type == DATA_USHORT) {
+			WORD *drow = roifit->pdata[chan] + (size_t) y * roi_w;
+			for (int x = 0; x < roi_w; x++)
+				drow[x] = round_to_WORD(srow[x]);
+		} else {
+			memcpy(roifit->fpdata[chan] + (size_t) y * roi_w, srow,
+					(size_t) roi_w * sizeof(float));
+		}
+	}
+	free(out);
 	return 0;
 }
 
