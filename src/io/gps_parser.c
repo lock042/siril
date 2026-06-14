@@ -111,8 +111,8 @@ void print_qhy_data(struct _qhy_struct *qhy) {
 	}
 
 	if (qhy->count_of_PPS) {
-		siril_log_message("PPS count: %u (%s)\n", qhy->count_of_PPS,
-				qhy->count_of_PPS >= 10000500 ? "bad" : "ok");
+		char* str = qhy->count_of_PPS > 9999000 && qhy->count_of_PPS < 10000000 ? "ok" : "bad";
+		siril_log_message("PPS count: %u (%s)\n", qhy->count_of_PPS, str);
 	}
 }
 
@@ -225,6 +225,9 @@ int parse_gps_from_header(fits *fit, const char *filename, struct _qhy_struct *q
 		qhy_header->start_flag = flag;
 	if (!fits_read_key(fit->fptr, TINT, "GPS_EFLG", &flag, NULL, &status))
 		qhy_header->end_flag = flag;
+	if (!fits_read_key(fit->fptr, TINT, "GPS_NFLG", &flag, NULL, &status))
+		qhy_header->now_flag = flag;
+	fits_read_key(fit->fptr, TINT, "GPS_PPS", &qhy_header->count_of_PPS, NULL, &status);
 	qhy_header->flags_are_shifted = TRUE;
 	if (!fits_read_key(fit->fptr, TSTRING, "GPS_SUTC", &date, NULL, &status))
 		qhy_header->start = FITS_date_to_date_time(date);
@@ -268,7 +271,8 @@ int parse_gps_from_header(fits *fit, const char *filename, struct _qhy_struct *q
 		siril_log_message(_("Exposures don't match: %.3f from GPS, %f in header\n"), calculated_exposure, fit->keywords.exposure);
 		return 1;
 	}
-	if (!time_is_accurate(qhy_header->start_flag) || !time_is_accurate(qhy_header->end_flag)) {
+	if (!time_is_accurate(qhy_header->start_flag) || !time_is_accurate(qhy_header->end_flag) ||
+			!time_is_accurate(qhy_header->now_flag)) {
 		siril_log_message(("Time is reported inaccurate, not using GPS data\n"));
 		return 1;
 	}

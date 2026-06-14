@@ -154,6 +154,18 @@ void test_rsgps_data_loading() {
 	cr_assert(fit.keywords.gps_eutc[0] != '\0');
 	cr_assert(fit.keywords.gps_eflag == DEFAULT_INT_VALUE); // old version of the file, it had a different name...
 	clearfits(&fit);
+	memset(&fit, 0, sizeof(fits));
+
+	/* this file's header was modified to match the NINA headers for the test, but it was taken by sharpcap */
+	file_path = check_or_download_test_file("gps_global_shutter_locked.fit");
+	cr_assert(file_path);
+	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
+	g_free(file_path);
+	cr_assert(!fit.keywords.gps_data);
+	cr_assert(fit.keywords.date_and_exp_from_gps);
+	cr_assert(fit.keywords.gps_eutc[0] != '\0');
+	cr_assert(fit.keywords.gps_eflag == 3);
+	clearfits(&fit);
 }
 
 void test_metadata_reading() {
