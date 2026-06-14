@@ -14663,8 +14663,9 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	}
 	if (accept_stack && !strcmp(arg, "-32b")) {
 		/* Force the stacked output to 32-bit float. The merge always
-		 * accumulates in 16-bit; this only changes the saved depth (same
-		 * effect as the stacking tab's "Force 32b output" checkbutton). */
+		 * runs internally in 32-bit float; this only changes whether the
+		 * saved result is packed down to 16-bit integer or kept as float
+		 * (same effect as the stacking tab's "Force 32b output" checkbutton). */
 		cfg->output_32bit = TRUE; return MPP_FLAG_OK;
 	}
 

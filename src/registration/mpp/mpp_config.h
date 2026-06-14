@@ -77,11 +77,12 @@ struct mpp_config {
 	    measurements ALL failed keeps stacking everything (a misaligned
 	    patch beats a hole). */
 
-	/* Output bit depth. The merge accumulates in 16-bit and packs a
-	 * USHORT fits by default; set true to convert that result to 32-bit
-	 * float before it leaves Stage C. Stack-time only — driven by the
-	 * `-32b` CLI flag (pss / stack_mpp) and the "Force 32b output"
-	 * stacking-tab checkbutton. */
+	/* Output bit depth. The weighted merge always runs internally in
+	 * 32-bit float; by default the result is packed down to a USHORT
+	 * fits. Set true to keep the float result and emit a 32-bit float
+	 * fits instead. Stack-time only — driven by the `-32b` CLI flag
+	 * (pss / stack_mpp) and the "Force 32b output" stacking-tab
+	 * checkbutton. */
 	bool output_32bit;                           /* false */
 
 	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
