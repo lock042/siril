@@ -369,11 +369,11 @@ void initialize_registration_methods() {
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[REG_APPLY] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
+	reg_methods[REG_MPP] = new_reg_method(_("Multipoint Registration (planetary)"),
+			&register_mpp, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	// we register 2-pass but we won't add it to the combo/tooltip
 	reg_methods[REG_2PASS] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
 			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[REG_MPP] = new_reg_method(_("Multipoint Registration (planetary)"),
-			&register_mpp, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[NUMBER_OF_METHODS] = NULL;
 
 	tip = g_string_new ("");
@@ -387,10 +387,12 @@ void initialize_registration_methods() {
 	g_free(ctip);
 
 	/* fill comboboxregmethod */
-	siril_drop_down_clear_strings(comboboxregmethod);
+	block_all_signals(comboboxregmethod);
 	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		siril_drop_down_append_text(comboboxregmethod, reg_methods[j]->name);
 	}
+	unblock_all_signals(comboboxregmethod);
+
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(comboboxregmethod), com.pref.gui.reg_settings);
 
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(ComboBoxRegInter), com.pref.gui.reg_interpolation);

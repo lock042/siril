@@ -133,6 +133,8 @@ void on_combobinning_changed(GObject *obj, GParamSpec *pspec, gpointer user_data
 void ensure_seqlist_dialog_closed();
 gboolean in_gtk_thread(void);
 void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data);
+void block_all_signals(gpointer instance);
+void unblock_all_signals(gpointer instance);
 #ifdef __cplusplus
 }
 #endif
