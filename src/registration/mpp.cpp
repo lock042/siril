@@ -167,6 +167,42 @@ static int ser_bayer_to_cv_code(const sequence *seq) {
 	}
 }
 
+/* CFA FITS / FITSEQ → OpenCV cvtColor code for the raw mosaic that
+ * readfits / fitseq_read_frame return (those readers never debayer — that
+ * happens higher up in Siril's open path, which the mpp readers bypass).
+ * Delegates pattern detection to Siril's get_validated_cfa_pattern, which
+ * reads the BAYERPAT header (and honours the user's debayer preferences /
+ * forced pattern), then resolves orientation and Bayer offsets to one of
+ * the four canonical 2×2 patterns as it applies to the in-memory buffer —
+ * the same buffer wrap_fits_layer wraps and cvtColor reads, so it maps
+ * directly with no extra flip. Returns -1 for a mono frame (no BAYERPAT →
+ * BAYER_FILTER_NONE), for X-Trans / CMYG patterns cvtColor can't handle,
+ * and for already-debayered multi-channel frames (handled by the caller's
+ * n>1 path). force_debayer=FALSE so a genuine mono frame is left alone. */
+static int fits_bayer_to_cv_code(fits *f) {
+	if (!f || f->naxes[2] != 1) return -1;
+	const sensor_pattern pat = get_validated_cfa_pattern(f, FALSE, FALSE);
+	return bayer_pattern_to_cv_code(pat);
+}
+
+/* Probe whether a FITS / FITSEQ sequence is a raw single-layer CFA mosaic
+ * by reading frame 0 and running the same detection the per-frame readers
+ * use. nb_layers separates mono/CFA (1) from already-RGB (>1) cheaply, but
+ * tells mono from CFA only by reading a frame — one read at stack time,
+ * negligible against the whole stack, and it keeps the stack's input
+ * classification in lock-step with read_full_frame's per-frame debayer so
+ * the accumulator's channel count always matches the frames it receives. */
+static bool fits_seq_is_cfa(sequence *seq) {
+	if (!seq || (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ))
+		return false;
+	if (seq->nb_layers > 1) return false;   /* already multi-channel */
+	FitsBuf probe;
+	if (mpp_seq_read_frame(seq, 0, &probe.f, false, 0,
+	                       /*ser_force_debayer=*/false) != MPP_OK)
+		return false;
+	return fits_bayer_to_cv_code(&probe.f) >= 0;
+}
+
 namespace {
 
 /* Helper: read a frame and return a mono analysis Mat (cloned, owns its
@@ -211,6 +247,8 @@ cv::Mat read_analysis_frame(sequence *seq, int idx, int avi_pattern, int bitdept
 			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
 		else if (seq && seq->type == SEQ_SER)
 			code = mpp::ser_bayer_to_cv_code(seq);
+		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
+			code = mpp::fits_bayer_to_cv_code(&buf.f);
 		if (code >= 0) {
 			cv::Mat rgb;
 			cv::cvtColor(view, rgb, code);
@@ -259,13 +297,15 @@ cv::Mat read_full_frame(sequence *seq, int idx, int avi_pattern) {
 	if (n == 1) {
 		cv::Mat view = wrap_fits_layer(&buf.f, 0);
 		if (view.empty()) return cv::Mat();
-		if (seq && seq->type == SEQ_AVI) {
-			const int code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
-			if (code >= 0) {
-				cv::Mat rgb;
-				cv::cvtColor(view, rgb, code);
-				return rgb;
-			}
+		int code = -1;
+		if (seq && seq->type == SEQ_AVI)
+			code = mpp::avi_bayer_to_cv_code(avi_pattern, view.rows);
+		else if (seq && (seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ))
+			code = mpp::fits_bayer_to_cv_code(&buf.f);
+		if (code >= 0) {
+			cv::Mat rgb;
+			cv::cvtColor(view, rgb, code);
+			return rgb;
 		}
 		return view.clone();
 	}
@@ -725,11 +765,21 @@ static int mpp_analysis_in_flight_slots(const sequence *seq, const mpp_config_t 
 	const bool avi_cfa = (seq->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	/* Single-layer FITS / FITSEQ may be a raw CFA mosaic that
+	 * read_analysis_frame now cvtColor-debayers (fits_bayer_to_cv_code).
+	 * We can't tell mono from CFA without reading a frame here, so assume
+	 * CFA and budget for the RGB+gray transient — over-budgeting a mono
+	 * FITS only costs a few Pass-1 threads under memory pressure, whereas
+	 * under-budgeting a CFA one risks the Windows no-overcommit OOM the
+	 * 8-bpp mono estimate used to cause on Bayer SERs. */
+	const bool fits_maybe_cfa = (seq->type == SEQ_REGULAR
+	                             || seq->type == SEQ_FITSEQ)
+	                            && seq->nb_layers <= 1;
 	const bool rgb = (seq->type == SEQ_SER && seq->ser_file
 	                  && (seq->ser_file->color_id == SER_RGB
 	                      || seq->ser_file->color_id == SER_BGR))
 	              || (seq->type != SEQ_SER && seq->nb_layers > 1);
-	if (ser_cfa || avi_cfa)
+	if (ser_cfa || avi_cfa || fits_maybe_cfa)
 		peak_bpp = 14;
 	else if (rgb)
 		peak_bpp = 18;
@@ -1320,11 +1370,12 @@ extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
 		if (cid == SER_RGB || cid == SER_BGR)               return MPP_INPUT_RGB;
 		return MPP_INPUT_MONO;
 	}
-	/* FITS / other: nb_layers heuristic. A CFA-FITS sequence with
-	 * nb_layers=1 + bayer_pattern keyword would be misclassified as
-	 * MONO here — that's a corner case to address if it shows up in the
-	 * field; the SER path covers the common case. */
+	/* FITS / FITSEQ: nb_layers separates already-RGB frames from
+	 * single-layer ones, and a single-layer frame may still be a raw CFA
+	 * mosaic (BAYERPAT in the header) that the mpp readers now debayer —
+	 * fits_seq_is_cfa peeks frame 0 to tell mono from CFA. */
 	if (seq->nb_layers > 1) return MPP_INPUT_RGB;
+	if (mpp::fits_seq_is_cfa((sequence *) seq)) return MPP_INPUT_CFA;
 	return MPP_INPUT_MONO;
 }
 

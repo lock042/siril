@@ -1615,6 +1615,12 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	 * Bayer SER was 3-channel, the ref frame is mono), remap_all_vports,
 	 * update_histogram, redraw_image(REMAP_ALL). */
 	update_single_image_from_gfit(NULL);
+
+	/* update_single_image_from_gfit refreshes the image and sliders but not
+	 * the filename label, so without this the visible label keeps showing the
+	 * last sequence frame name even though com.uniq now says "REFERENCE
+	 * IMAGE". Refresh it explicitly. */
+	display_filename();
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in
@@ -1629,15 +1635,26 @@ gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
-			if (args->mpp_stage_a_only && mpp_get_cached_run()) {
-				/* Skip seq_load_image — it would overwrite the ref frame
-				 * we're about to paint. The user explicitly wants the
-				 * analysis ref frame on screen, not whatever the sequence's
-				 * reference_image happens to be. */
-				const mpp_run_t *run = mpp_get_cached_run();
-				paint_mpp_ref_frame_into_gfit(run->mean_frame_data,
-				                              run->mean_frame_rows,
-				                              run->mean_frame_cols);
+			/* For multipoint Analyze and Register, show the analysis-built
+			 * reference frame rather than a raw sequence frame, and leave it
+			 * on screen after Register. The mean (reference) frame is carried
+			 * on the cached run — built by Analyze, reused through Register,
+			 * and persisted in / reloaded from the .mpp sidecar — so it is
+			 * available whether the run came from a fresh Analyze, an
+			 * Analyze→Register in the same session, or a sidecar loaded on
+			 * sequence open. Painting it skips seq_load_image, which would
+			 * replace the smooth reference with whatever the sequence's
+			 * reference_image happens to be (a raw, possibly still-mosaiced
+			 * frame). Stepping through frames in the browser reloads normally;
+			 * the final stack later replaces it in turn. */
+			const mpp_run_t *mpp_run = (args->func == &register_mpp)
+			                           ? mpp_get_cached_run() : NULL;
+			if (mpp_run && mpp_run->mean_frame_data
+			            && mpp_run->mean_frame_rows > 0
+			            && mpp_run->mean_frame_cols > 0) {
+				paint_mpp_ref_frame_into_gfit(mpp_run->mean_frame_data,
+				                              mpp_run->mean_frame_rows,
+				                              mpp_run->mean_frame_cols);
 			} else {
 				seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			}
