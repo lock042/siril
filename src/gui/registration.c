@@ -1623,6 +1623,30 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	display_filename();
 }
 
+/* Show the multipoint reference frame when entering the Registration or
+ * Stacking tab, if one is available. The mean (reference) frame lives on the
+ * cached run — built by Analyze/Register or reloaded from the .mpp sidecar
+ * when the sequence was opened — so this surfaces it for a sequence opened
+ * with an existing sidecar (where a normal sequence frame is shown first).
+ * Guards: only when a sequence is loaded, the cached run matches it and
+ * carries a mean frame, and a sequence frame (not already the reference
+ * frame or another single image) is currently displayed — so switching
+ * between these tabs, or doing so while the reference is already shown,
+ * doesn't repaint. Navigating to a frame clears com.uniq (see
+ * seq_load_image), so re-entering the tab paints the reference again. */
+void mpp_show_reference_frame_for_tab(void) {
+	if (!sequence_is_loaded() || single_image_is_loaded())
+		return;
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->mean_frame_data
+	         || run->mean_frame_rows <= 0 || run->mean_frame_cols <= 0
+	         || run->num_frames != com.seq.number)
+		return;
+	paint_mpp_ref_frame_into_gfit(run->mean_frame_data,
+	                              run->mean_frame_rows,
+	                              run->mean_frame_cols);
+}
+
 // end of registration, GTK thread. Executed when started from the GUI and in
 // the graphical command line but not from a script (headless mode)
 gboolean end_register_idle(gpointer p) {

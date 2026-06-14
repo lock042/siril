@@ -46,4 +46,9 @@ void initialize_registration_methods();
  * sub-panel from the presence of a cached run. Defined in registration.c. */
 void mpp_update_edit_button_sensitivity(void);
 
+/* Paint the multipoint reference frame when entering the Registration or
+ * Stacking tab, if the cached run carries one and a sequence frame is
+ * currently shown. Called from the main control-tab switch handler. */
+void mpp_show_reference_frame_for_tab(void);
+
 #endif /* SRC_GUI_REGISTRATION_H_ */

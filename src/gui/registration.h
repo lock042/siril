@@ -47,4 +47,9 @@ void initialize_registration_methods();
  * close_sequence_idle, and by the editor on AP edits. */
 void mpp_update_edit_button_sensitivity(void);
 
+/* Paint the multipoint reference frame when entering the Registration or
+ * Stacking tab, if the cached run carries one and a sequence frame is
+ * currently shown. Called from the main control-tab switch handler. */
+void mpp_show_reference_frame_for_tab(void);
+
 #endif /* SRC_GUI_REGISTRATION_H_ */

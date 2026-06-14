@@ -673,6 +673,21 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gui_iface.invalidate_histogram();
 	undo_flush();
 	close_single_image();
+	/* close_single_image() above no-ops while a sequence is loaded (its
+	 * guard returns early), so it won't release a single-image overlay left
+	 * on top of the sequence — specifically the MPP "REFERENCE IMAGE" frame
+	 * painted by paint_mpp_ref_frame_into_gfit, which sets com.uniq while the
+	 * sequence stays loaded. Without clearing it single_image_is_loaded()
+	 * stays true and display_filename() keeps showing "REFERENCE IMAGE"
+	 * instead of the frame we're loading. com.uniq is normally NULL during
+	 * sequence navigation, so this only fires for that overlay case
+	 * (com.uniq->fit aliases gfit and is not owned, so it is not freed). */
+	if (com.uniq) {
+		free(com.uniq->filename);
+		free(com.uniq->comment);
+		free(com.uniq);
+		com.uniq = NULL;
+	}
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {

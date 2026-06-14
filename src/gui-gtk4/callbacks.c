@@ -3261,7 +3261,13 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
  * or clears immediately rather than on the next unrelated redraw. */
 void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
 		guint page_num, gpointer user_data) {
-	(void) notebook; (void) page; (void) page_num; (void) user_data;
+	(void) notebook; (void) page; (void) user_data;
+	/* Entering the Registration or Stacking tab surfaces the multipoint
+	 * reference frame when one is available (e.g. a sequence opened with an
+	 * existing .mpp sidecar, which shows a normal frame first). No-op when
+	 * there's no cached reference frame or it's already shown. */
+	if (page_num == REGISTRATION || page_num == STACKING)
+		mpp_show_reference_frame_for_tab();
 	redraw(REDRAW_OVERLAY);
 }
 
