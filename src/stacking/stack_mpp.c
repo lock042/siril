@@ -65,6 +65,12 @@ int stack_mpp_handler(struct stacking_args *args) {
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
 	}
 
+	/* The stacking tab's "Force 32b output" checkbutton (and the auto
+	 * 32-bit decision for the chosen method) lands in args->use_32bit_output,
+	 * which is separate from the MPP widget config. Honour it here so the
+	 * checkbutton has the same effect for MPP as the CLI's `-32b` flag. */
+	run->cfg->output_32bit = args->use_32bit_output;
+
 	/* Apply the generic Stack-tab filter (all / selected / criteria) on
 	 * top of run->included. The framework hands us image_indices listing
 	 * the frames that passed args->filtering_criterion; everything else

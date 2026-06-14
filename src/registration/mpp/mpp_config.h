@@ -77,6 +77,13 @@ struct mpp_config {
 	    measurements ALL failed keeps stacking everything (a misaligned
 	    patch beats a hole). */
 
+	/* Output bit depth. The merge accumulates in 16-bit and packs a
+	 * USHORT fits by default; set true to convert that result to 32-bit
+	 * float before it leaves Stage C. Stack-time only — driven by the
+	 * `-32b` CLI flag (pss / stack_mpp) and the "Force 32b output"
+	 * stacking-tab checkbutton. */
+	bool output_32bit;                           /* false */
+
 	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
 	 * routes to STScI dobox for mono / RGB input and Bayer dobox for raw
 	 * CFA input. Non-integer values (e.g. 1.5) are supported natively —

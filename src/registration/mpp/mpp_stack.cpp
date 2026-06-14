@@ -785,7 +785,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			}
 		}
 		ap_skip_enabled.assign(M, 0);
-		int dropped = 0, saturated_aps = 0;
+		int dropped = 0, saturated_aps = 0, skipped_aps = 0;
 		for (int a = 0; a < M; ++a) {
 			if (failed_n[a] == 0) continue;
 			if (failed_w[a] >= ap_eff_counts[a] - 1e-6f) {
@@ -793,13 +793,15 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				continue;
 			}
 			ap_skip_enabled[a] = 1;
+			++skipped_aps;
 			ap_eff_counts[a] -= failed_w[a];
 			dropped += failed_n[a];
 		}
 		if (dropped > 0)
-			siril_log_message(_("Stack: dropping %d frame/alignment-point "
-			                    "pairs with failed shift measurements\n"),
-			                  dropped);
+			siril_log_message(_("Stack: skipped failed shift measurements at "
+			                    "%d of %d alignment points (%d frame/alignment-"
+			                    "point pairs dropped)\n"),
+			                  skipped_aps, M, dropped);
 		if (saturated_aps > 0)
 			siril_log_message(_("Stack: %d alignment point(s) had no "
 			                    "successful shifts — stacking them "

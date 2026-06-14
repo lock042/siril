@@ -14661,6 +14661,12 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_stack && g_str_has_prefix(arg, "-bg-blend=")) {
 		cfg->stack_frames_background_blend_threshold = atof(arg + 10); return MPP_FLAG_OK;
 	}
+	if (accept_stack && !strcmp(arg, "-32b")) {
+		/* Force the stacked output to 32-bit float. The merge always
+		 * accumulates in 16-bit; this only changes the saved depth (same
+		 * effect as the stacking tab's "Force 32b output" checkbutton). */
+		cfg->output_32bit = TRUE; return MPP_FLAG_OK;
+	}
 
 	/* register-time */
 	if (accept_register && g_str_has_prefix(arg, "-half-box=")) {
@@ -14815,7 +14821,7 @@ int process_pss(int nb) {
 	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]
 	 *              [-min-brightness=N] [-min-contrast=N] [-min-structure=F]
 	 *              [-bg-fraction=F] [-bg-blend=F] [-no-dewarp] [-no-normalize]
-	 *              [-noseed] [-avi-bayer=K] [-skip-failed-aps]`
+	 *              [-noseed] [-avi-bayer=K] [-skip-failed-aps] [-32b]`
 	 *
 	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
 	 * sequence and writes the stacked output to a FITS file. See

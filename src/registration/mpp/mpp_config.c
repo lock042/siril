@@ -74,6 +74,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->stack_frames_background_blend_threshold = 0.2;
 	cfg->stack_frames_background_patch_size = 100;
 	cfg->stack_skip_failed_aps = false;
+	cfg->output_32bit = false;
 	cfg->drizzle_scale = 1.0;
 
 	/* Drizzle backend defaults: off. drizzle_mode is auto-set at stack

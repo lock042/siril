@@ -1583,6 +1583,17 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * swaps gfit. */
 	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
 	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
+
+	/* Optional 32-bit float output. The merge above runs in 16-bit; when
+	 * requested (`-32b` / "Force 32b output") convert the packed USHORT
+	 * buffer to normalised float in place. fit_replace_buffer frees the
+	 * old WORD buffer and rewires pdata/fpdata. */
+	if (cfg->output_32bit) {
+		float *fbuf = ushort_buffer_to_float(out->data, plane * C);
+		if (!fbuf) return MPP_ENOMEM;
+		fit_replace_buffer(out, fbuf, DATA_FLOAT);
+		siril_log_message(_("Stacking result will be stored as a 32-bit image\n"));
+	}
 	return MPP_OK;
 }
 
