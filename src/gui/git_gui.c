@@ -110,22 +110,35 @@ void on_find_script_entry_changed(GtkEntry *entry, gpointer user_data) {
 
 static gboolean tree_filter_visible_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer data) {
 	gchar *script_name = NULL;
-	gboolean visible = TRUE;
+	gchar *category = NULL;
+	gboolean visible = FALSE;
 
 	if (!filter_enabled || !current_search_text || strlen(current_search_text) == 0) {
 		return TRUE;
 	}
 
-	gtk_tree_model_get(model, iter, COLUMN_SCRIPTNAME, &script_name, -1);
+	gtk_tree_model_get(model, iter,
+		COLUMN_SCRIPTNAME, &script_name,
+		COLUMN_CATEGORY, &category,
+		-1);
+
+	gchar *key_lower = g_ascii_strdown(current_search_text, -1);
 
 	if (script_name) {
-		gchar *key_lower = g_ascii_strdown(current_search_text, -1);
 		gchar *name_lower = g_ascii_strdown(script_name, -1);
 		visible = (strstr(name_lower, key_lower) != NULL);
-		g_free(key_lower);
 		g_free(name_lower);
 		g_free(script_name);
 	}
+
+	if (!visible && category) {
+		gchar *category_lower = g_ascii_strdown(category, -1);
+		visible = (strstr(category_lower, key_lower) != NULL);
+		g_free(category_lower);
+	}
+	g_free(category);
+
+	g_free(key_lower);
 
 	return visible;
 }
@@ -179,26 +192,24 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				category = _("Core");
 				core = TRUE;
 			} else {
-				// Extract last subdirectory and convert to title case
-				gchar *path = (gchar *)iterator->data;
-				gchar *last_slash = strrchr(path, G_DIR_SEPARATOR);
+				// Extract last subdirectory and convert to title case.
+				// Paths come from the git index, which always uses '/' as
+				// separator on every platform, so we rely on GLib path
+				// helpers (which accept both '/' and '\\') rather than
+				// strrchr() on the platform-specific G_DIR_SEPARATOR.
+				gchar *dir = g_path_get_dirname((gchar *)iterator->data);
+				gchar *subdir = g_path_get_basename(dir);
+				g_free(dir);
 
-				if (last_slash && last_slash > path) {
-					gchar *prev_slash = g_strrstr_len(path, last_slash - path, G_DIR_SEPARATOR_S);
-					gchar *subdir_start = prev_slash ? prev_slash + 1 : path;
-
-					gchar *subdir = g_strndup(subdir_start, last_slash - subdir_start);
-
+				if (subdir && subdir[0] && g_strcmp0(subdir, ".") != 0) {
 					// Convert to title case
-					if (subdir && subdir[0]) {
-						subdir[0] = g_ascii_toupper(subdir[0]);
-						for (gsize i = 1; subdir[i]; i++) {
-							subdir[i] = g_ascii_tolower(subdir[i]);
-						}
+					subdir[0] = g_ascii_toupper(subdir[0]);
+					for (gsize i = 1; subdir[i]; i++) {
+						subdir[i] = g_ascii_tolower(subdir[i]);
 					}
-
 					category = subdir;
 				} else {
+					g_free(subdir);
 					category = _("Other");
 				}
 			}
