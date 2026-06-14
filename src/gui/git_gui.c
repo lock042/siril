@@ -179,26 +179,24 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				category = _("Core");
 				core = TRUE;
 			} else {
-				// Extract last subdirectory and convert to title case
-				gchar *path = (gchar *)iterator->data;
-				gchar *last_slash = strrchr(path, G_DIR_SEPARATOR);
+				// Extract last subdirectory and convert to title case.
+				// Paths come from the git index, which always uses '/' as
+				// separator on every platform, so we rely on GLib path
+				// helpers (which accept both '/' and '\\') rather than
+				// strrchr() on the platform-specific G_DIR_SEPARATOR.
+				gchar *dir = g_path_get_dirname((gchar *)iterator->data);
+				gchar *subdir = g_path_get_basename(dir);
+				g_free(dir);
 
-				if (last_slash && last_slash > path) {
-					gchar *prev_slash = g_strrstr_len(path, last_slash - path, G_DIR_SEPARATOR_S);
-					gchar *subdir_start = prev_slash ? prev_slash + 1 : path;
-
-					gchar *subdir = g_strndup(subdir_start, last_slash - subdir_start);
-
+				if (subdir && subdir[0] && g_strcmp0(subdir, ".") != 0) {
 					// Convert to title case
-					if (subdir && subdir[0]) {
-						subdir[0] = g_ascii_toupper(subdir[0]);
-						for (gsize i = 1; subdir[i]; i++) {
-							subdir[i] = g_ascii_tolower(subdir[i]);
-						}
+					subdir[0] = g_ascii_toupper(subdir[0]);
+					for (gsize i = 1; subdir[i]; i++) {
+						subdir[i] = g_ascii_tolower(subdir[i]);
 					}
-
 					category = subdir;
 				} else {
+					g_free(subdir);
 					category = _("Other");
 				}
 			}
