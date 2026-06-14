@@ -282,7 +282,9 @@ sequence * readseqfile(const char *name){
 					 * channel, both would have layer number 0 otherwise */
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
+#if 0
 						siril_log_debug("- using CFA registration info\n");
+#endif
 						to_backup = 0;
 					} else {
 #if 0
@@ -297,7 +299,9 @@ sequence * readseqfile(const char *name){
 					if (seq->type == SEQ_SER && ser_is_cfa(seq->ser_file) &&
 							!com.pref.debayer.open_debayer) {
 						to_backup = 1;
+#if 0
 						siril_log_debug("- stats: backing up demosaiced registration info\n");
+#endif
 					}
 					current_layer = line[1] - '0';
 				}
