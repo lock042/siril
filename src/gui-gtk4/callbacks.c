@@ -2112,6 +2112,15 @@ void update_sampling_in_information() {
 	else gtk_label_set_text(sampling_label, _("unknown"));
 }
 
+/* Repaint the overlay when the centre notebook tab changes so the MPP AP
+ * overlay (which is gated on the Registration tab in draw_mpp_aps) appears
+ * or clears immediately rather than on the next unrelated redraw. */
+void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
+		guint page_num, gpointer user_data) {
+	(void) notebook; (void) page; (void) page_num; (void) user_data;
+	redraw(REDRAW_OVERLAY);
+}
+
 /* update the Information window from gfit */
 void set_GUI_CAMERA() {
 	/* information will be taken from gfit or from the preferences and overwritten in
@@ -2396,6 +2405,8 @@ static void reassemble_center_notebook(void) {
 		g_warning("reassemble_center_notebook: notebook_center_box not found");
 		return;
 	}
+	// blocks the switch tab callback so that the overlay is not redrawn while the notebook is being assembled
+	g_signal_handlers_block_by_func(nb, G_CALLBACK(on_notebook_center_box_switch_page), NULL);
 	const struct { const char *content; const char *tab; } pages[] = {
 		{ "conversion_tab",   "label22"  },  /* 0 Conversion  */
 		{ "sequence_tab",     "label20"  },  /* 1 Sequence    */
@@ -2414,6 +2425,7 @@ static void reassemble_center_notebook(void) {
 		}
 		gtk_notebook_insert_page(nb, content, tab, i);
 	}
+	g_signal_handlers_unblock_by_func(nb, G_CALLBACK(on_notebook_center_box_switch_page), NULL);
 }
 
 /* GtkHeaderBar wraps its contents in a GtkWindowHandle that maximizes /
@@ -3251,15 +3263,6 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 	update_display_selection();	// update the dimensions of the selection when switching page
 	if (page_num < MASK_VPORT)
 		update_display_fwhm();
-}
-
-/* Repaint the overlay when the centre notebook tab changes so the MPP AP
- * overlay (which is gated on the Registration tab in draw_mpp_aps) appears
- * or clears immediately rather than on the next unrelated redraw. */
-void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
-		guint page_num, gpointer user_data) {
-	(void) notebook; (void) page; (void) page_num; (void) user_data;
-	redraw(REDRAW_OVERLAY);
 }
 
 struct checkSeq_filter_data {
