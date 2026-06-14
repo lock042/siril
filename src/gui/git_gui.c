@@ -110,22 +110,35 @@ void on_find_script_entry_changed(GtkEntry *entry, gpointer user_data) {
 
 static gboolean tree_filter_visible_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer data) {
 	gchar *script_name = NULL;
-	gboolean visible = TRUE;
+	gchar *category = NULL;
+	gboolean visible = FALSE;
 
 	if (!filter_enabled || !current_search_text || strlen(current_search_text) == 0) {
 		return TRUE;
 	}
 
-	gtk_tree_model_get(model, iter, COLUMN_SCRIPTNAME, &script_name, -1);
+	gtk_tree_model_get(model, iter,
+		COLUMN_SCRIPTNAME, &script_name,
+		COLUMN_CATEGORY, &category,
+		-1);
+
+	gchar *key_lower = g_ascii_strdown(current_search_text, -1);
 
 	if (script_name) {
-		gchar *key_lower = g_ascii_strdown(current_search_text, -1);
 		gchar *name_lower = g_ascii_strdown(script_name, -1);
 		visible = (strstr(name_lower, key_lower) != NULL);
-		g_free(key_lower);
 		g_free(name_lower);
 		g_free(script_name);
 	}
+
+	if (!visible && category) {
+		gchar *category_lower = g_ascii_strdown(category, -1);
+		visible = (strstr(category_lower, key_lower) != NULL);
+		g_free(category_lower);
+	}
+	g_free(category);
+
+	g_free(key_lower);
 
 	return visible;
 }
