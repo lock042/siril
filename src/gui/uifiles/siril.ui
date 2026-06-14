@@ -8231,9 +8231,6 @@ The master flat must be set in the Calibration tab.</property>
                                                         <property name="tooltip-text" translatable="yes">Start the registration process. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
                                                         <property name="use-underline">True</property>
                                                         <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
-                                                        <style>
-                                                          <class name="suggested-action"/>
-                                                        </style>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>

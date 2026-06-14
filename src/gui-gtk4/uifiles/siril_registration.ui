@@ -1941,9 +1941,6 @@ The master flat must be set in the Calibration tab.</property>
                         <property name="use-underline">1</property>
                         <property name="valign">center</property>
                         <signal name="clicked" handler="on_seqregister_button_clicked"/>
-                        <style>
-                          <class name="suggested-action"/>
-                        </style>
                       </object>
                     </child>
                     <child>
