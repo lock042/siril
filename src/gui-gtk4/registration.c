@@ -435,6 +435,7 @@ void on_comboboxregmethod_changed(GObject *obj, GParamSpec *pspec, gpointer user
 	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_toggle_reg_clamp_toggled(GtkCheckButton *button, gpointer user_data) {

@@ -94,6 +94,10 @@ static GtkCheckButton *imgdisp_autohd_item = NULL;
 static GtkWidget *imgdisp_drawing_rgb = NULL;
 static GtkWidget *imgdisp_drawing_r = NULL;
 
+// objects for APs overlay
+static GtkNotebook *center_notebook = NULL;
+GtkDropDown *comboboxregmethod = NULL;
+
 static void image_display_init_statics(void) {
 	if (imgdisp_app_win) return;
 	imgdisp_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
@@ -108,6 +112,8 @@ static void image_display_init_statics(void) {
 	cut_sdialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_spectroscopy_dialog"));
 	tri_cut_toggle = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "cut_tri_cut"));
 	tri_cut_spin_step = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "cut_tricut_step"));
+	center_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	comboboxregmethod = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 }
 
 static void invalidate_image_render_cache(int vport);
@@ -3610,21 +3616,17 @@ static void draw_stars(const draw_data_t* dd) {
  * Hovered AP (mpp_ap_editor_get_hover_idx) is drawn in orange with a
  * thicker line so the user knows which AP a click would affect. */
 static void draw_mpp_aps(const draw_data_t* dd) {
-	mpp_run_t *run = mpp_get_cached_run();
-	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
 	/* Only paint the AP overlay while the user is on the Registration
-	 * tab — the overlay is a registration-workflow tool, and once the
+	 * tab and MPP is selected — the overlay is a registration-workflow tool, and once the
 	 * user has switched to Plot / Stacking / etc. the boxes are visual
 	 * clutter that confuses what they're looking at. */
-	{
-		static GtkNotebook *center_notebook = NULL;
-		if (!center_notebook)
-			center_notebook = GTK_NOTEBOOK(gtk_builder_get_object(
-			    gui.builder, "notebook_center_box"));
-		if (center_notebook
-		    && gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
-			return;
-	}
+	if (gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
+		return;
+	if (gtk_drop_down_get_selected(comboboxregmethod) != REG_MPP)
+		return;
+
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
 	/* AP coordinates live in the run's mean-frame space. Show them
 	 * when gfit's dimensions match a known coordinate system in the
 	 * run — either the mean frame itself (the Analyse-painted ref
