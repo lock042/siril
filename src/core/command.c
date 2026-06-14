@@ -14643,10 +14643,10 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-stack-percent=")) {
-		cfg->alignment_points_frame_percent = atoi(arg + 15); return MPP_FLAG_OK;
+		cfg->stack_frame_percent = atoi(arg + 15); return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
-		cfg->alignment_points_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
+		cfg->stack_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
 	}
 	if (accept_stack && !strcmp(arg, "-skip-failed-aps")) {
 		/* Drop (frame, AP) contributions whose Stage B shift measurement
@@ -14680,6 +14680,11 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && g_str_has_prefix(arg, "-ref-percent=")) {
 		/* %% of frames averaged into the reference frame (both modes). */
 		cfg->align_frames_average_frame_percent = atoi(arg + 13); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-register-percent=")) {
+		/* Register-time per-AP frame cap: how many top-quality frames per AP
+		 * get a shift computed. Upper bound on what the stack can use. */
+		cfg->alignment_points_frame_percent = atoi(arg + 18); return MPP_FLAG_OK;
 	}
 	if (accept_register && g_str_has_prefix(arg, "-min-brightness=")) {
 		cfg->alignment_points_brightness_threshold = atoi(arg + 16); return MPP_FLAG_OK;

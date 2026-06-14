@@ -59,8 +59,8 @@ int stack_mpp_handler(struct stacking_args *args) {
 		run->cfg->drizzle_mode                            = gui->drizzle_mode;
 		run->cfg->drizzle_pixfrac                         = gui->drizzle_pixfrac;
 		run->cfg->drizzle_kernel                          = gui->drizzle_kernel;
-		run->cfg->alignment_points_frame_percent          = gui->alignment_points_frame_percent;
-		run->cfg->alignment_points_frame_number           = gui->alignment_points_frame_number;
+		run->cfg->stack_frame_percent                     = gui->stack_frame_percent;
+		run->cfg->stack_frame_number                      = gui->stack_frame_number;
 		run->cfg->stack_frames_background_fraction        = gui->stack_frames_background_fraction;
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
 	}
@@ -91,10 +91,10 @@ int stack_mpp_handler(struct stacking_args *args) {
 	}
 
 	const int mpp_filter_narrows =
-	    (run->cfg->alignment_points_frame_number > 0
-	     && run->cfg->alignment_points_frame_number < run->num_frames)
-	 || (run->cfg->alignment_points_frame_number <= 0
-	     && run->cfg->alignment_points_frame_percent < 100);
+	    (run->cfg->stack_frame_number > 0
+	     && run->cfg->stack_frame_number < run->num_frames)
+	 || (run->cfg->stack_frame_number <= 0
+	     && run->cfg->stack_frame_percent < 100);
 	if (generic_filter_active && mpp_filter_narrows) {
 		siril_log_warning(_("Stack (mpp): both filters active — Siril's "
 		                    "selection narrows the eligible set to %d/%d "

@@ -177,6 +177,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">5</property>
   </object>
+  <object class="GtkAdjustment" id="adj_mpp_register_percent">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
   <object class="GtkAdjustment" id="adj_shadows">
     <property name="upper">1</property>
     <property name="step-increment">0.01</property>
@@ -7116,7 +7123,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Stack percent:</property>
+                                                            <property name="label" translatable="yes">Register percent:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -7127,39 +7134,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkSpinButton" id="spin_mpp_reg_stack_percent">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Percentage of the best frames each alignment point stacks, applied during registration. Shares its value with the Stack tab's Stack percent — setting a smaller value here makes registration do less work and produces a smaller saved file. You can reduce it further at stack time, but not increase it.</property>
-                                                            <property name="adjustment">adj_mpp_stack_percent</property>
+                                                            <property name="tooltip-text" translatable="yes">Percentage of the best frames each alignment point ranks and computes shifts for during registration. This is an upper bound on the Stack tab's Stack percent: set it at least as high as the largest fraction you'll want to stack, because you can lower the percentage at stack time but not raise it without re-registering. Lower it only to save compute (and shrink the sidecar) when you already know you won't stack more than this fraction. Default 100% — register every frame.</property>
+                                                            <property name="adjustment">adj_mpp_register_percent</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">100</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Stack frames:</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">2</property>
-                                                            <property name="top-attach">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkSpinButton" id="spin_mpp_reg_stack_frames">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Exact number of best frames each alignment point stacks, applied during registration. A positive value overrides Stack percent; -1 disables (use the percentage). Shares its value with the Stack tab's Stack frames.</property>
-                                                            <property name="adjustment">adj_mpp_stack_frames</property>
-                                                            <property name="numeric">True</property>
-                                                            <property name="value">-1</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">3</property>
                                                             <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
@@ -7217,9 +7198,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="tooltip-text" translatable="yes">Run the first pass only: rank frames by quality, align them, build the reference frame, and place alignment points automatically. This fills in the per-frame quality (shown in the frame selector / plot tab) so you can review and filter before running the heavier per-alignment-point step with Go register.</property>
                                                             <property name="halign">start</property>
                                                             <signal name="clicked" handler="on_seqmpp_analyze_button_clicked" swapped="no"/>
-                                                            <style>
-                                                            <class name="suggested-action"/>
-                                                            </style>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -9510,7 +9488,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <!-- n-columns=3 n-rows=7 -->
+                                                          <!-- n-columns=4 n-rows=4 -->
                                                           <object class="GtkGrid" id="mpp_stack_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -9585,8 +9563,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="label" translatable="yes">Stack frames:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -9599,8 +9577,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="value">-1</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -9612,7 +9590,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -9627,7 +9605,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -9638,8 +9616,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="label" translatable="yes">Background blend:</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -9653,13 +9631,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="value">0.20</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
                                                             <object class="GtkCheckButton" id="check_mpp_skip_failed">
-                                                            <property name="label" translatable="yes">Skip failed alignment-point shifts</property>
+                                                            <property name="label" translatable="yes">Skip failed AP shifts</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
@@ -9668,8 +9646,8 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">5</property>
-                                                            <property name="width">2</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>

@@ -626,10 +626,22 @@ gboolean set_seq(gpointer user_data){
 		gchar *sidecar_path = g_strdup_printf("%s.mpp", com.seq.seqname);
 		if (g_file_test(sidecar_path, G_FILE_TEST_EXISTS)) {
 			mpp_run_t *run = NULL;
-			if (mpp_sidecar_read(sidecar_path, &run) == MPP_OK && run) {
+			mpp_status_t rc = mpp_sidecar_read(sidecar_path, &run);
+			if (rc == MPP_OK && run && run->num_frames == com.seq.number) {
 				siril_log_status(_("mpp: loaded sidecar %s — %d APs%s\n"), sidecar_path, run->aps->count,
 				                        run->shifts ? ", shifts available" : "");
 				mpp_set_cached_run(run);
+			} else if (rc == MPP_OK && run) {
+				/* Readable but for a different sequence state. */
+				siril_log_error(_("mpp: sidecar %s does not match this sequence "
+				                  "(%d frames vs %d) — ignoring it; re-run Analyze.\n"),
+				                sidecar_path, run->num_frames, com.seq.number);
+				mpp_run_free(run);
+			} else {
+				/* Unreadable — e.g. written by an older Siril version. */
+				siril_log_error(_("mpp: could not read sidecar %s (code %d) — it may "
+				                  "be from an older version; re-run Analyze.\n"),
+				                sidecar_path, rc);
 			}
 		}
 		g_free(sidecar_path);

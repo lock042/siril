@@ -321,12 +321,12 @@ std::vector<cv::Vec2d> seed_from_regdata(sequence *seq) {
 
 namespace {   /* reopen anonymous namespace for the remaining helpers */
 
-/* Per-AP target stack size from cfg (number override wins, else
- * round-up % of N), clamped to [1, N]. Mirrors the formula in
- * ap_compute_frame_qualities_streamed so Stage C entry can honour
- * Stack-tab overrides against the value Stage A baked at Analyze
- * time. */
-int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
+/* REGISTER-time per-AP frame count (the baked upper bound): round-up % of N
+ * from the register control, clamped to [1, N]. Mirrors the formula in
+ * ap_compute_frame_qualities_streamed so the Stage-A provisional matches
+ * what the per-AP ranking bakes. (number override wins, though the register
+ * GUI/CLI leaves frame_number at -1.) */
+int register_stack_size_from_cfg(const mpp_config_t &cfg, int N) {
 	if (N <= 0) return 0;
 	int s;
 	if (cfg.alignment_points_frame_number > 0)
@@ -334,6 +334,20 @@ int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
 	else
 		s = std::max(1, (int) std::ceil(
 		        (double) N * cfg.alignment_points_frame_percent / 100.0));
+	return std::min(s, N);
+}
+
+/* STACK-time per-AP target from the stack control (number override wins,
+ * else round-up % of N), clamped to [1, N]. Stage C clamps this against the
+ * register-baked ceiling (run->stack_size). */
+int stack_size_from_cfg(const mpp_config_t &cfg, int N) {
+	if (N <= 0) return 0;
+	int s;
+	if (cfg.stack_frame_number > 0)
+		s = cfg.stack_frame_number;
+	else
+		s = std::max(1, (int) std::ceil(
+		        (double) N * cfg.stack_frame_percent / 100.0));
 	return std::min(s, N);
 }
 
@@ -1163,7 +1177,7 @@ static mpp_status_t mpp_analyze_impl(sequence *seq, const mpp_config_t *cfg,
 	 * provisional value from the same cfg formula Stage B/C use (over the
 	 * included frames), so the Analyze log and any pre-Register display show
 	 * the right number. */
-	run->stack_size = mpp::stack_size_from_cfg(*cfg, n_included);
+	run->stack_size = mpp::register_stack_size_from_cfg(*cfg, n_included);
 	run->taper = 0;
 	run->selected_per_ap = 0;
 	run->best_frame_indices = nullptr;
@@ -1359,8 +1373,8 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		if (target > run->stack_size) {
 			siril_log_warning(
 			    _("Stack (mpp): requested %d top-quality frames per AP but "
-			      "Analyze baked %d — keeping %d. Re-run Analyze with a "
-			      "higher frame %%/count to raise the ceiling.\n"),
+			      "registration baked %d — keeping %d. Re-register with a "
+			      "higher Register percent to raise the ceiling.\n"),
 			    target, run->stack_size, run->stack_size);
 		} else if (target < run->stack_size) {
 			run->stack_size = target;

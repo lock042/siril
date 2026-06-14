@@ -135,10 +135,9 @@ static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = N
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_ref_percent = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
-/* Linked-adjustment companions for the Stack-tab spinners
- * (spin_mpp_stack_percent / spin_mpp_stack_frames). Sharing GtkAdjustment
- * keeps the values in sync across tabs without any signal plumbing. */
-static GtkSpinButton *spin_mpp_reg_stack_percent = NULL, *spin_mpp_reg_stack_frames = NULL;
+/* Register-time per-AP frame cap (the upper bound baked into the per-AP
+ * shift compute). Independent of the Stack-tab's stack percent/frames. */
+static GtkSpinButton *spin_mpp_reg_stack_percent = NULL;
 /* GTK4: GtkCheckButton no longer derives from GtkToggleButton, so these are
  * GtkWidget* and read via siril_toggle_get_active. */
 static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
@@ -170,6 +169,7 @@ static GtkImage *image_3stars[3] = { NULL };
 
 /* Forward declaration of static initializer used by 3-star helpers */
 static void registration_init_statics(void);
+static void mpp_update_action_button_highlight(void);
 
 /****************************************************************/
 /* 3-star GUI helpers                                           */
@@ -285,7 +285,6 @@ static void registration_init_statics() {
 		spin_mpp_min_contrast      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_contrast"));
 		spin_mpp_min_structure     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_structure"));
 		spin_mpp_reg_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_percent"));
-		spin_mpp_reg_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_frames"));
 		check_mpp_dewarp           = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
 		check_mpp_normalize        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
 		check_mpp_seed             = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_seed"));
@@ -1234,6 +1233,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_label_set_text(estimate_label, "");
 	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
 	gtk_widget_set_sensitive(GTK_WIDGET(proj_estimate), ready);
+	mpp_update_action_button_highlight();
 }
 
 // Functions to collect GUI data
@@ -1378,7 +1378,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		cfg->alignment_points_contrast_threshold   = gtk_spin_button_get_value_as_int(spin_mpp_min_contrast);
 		cfg->alignment_points_structure_threshold  = gtk_spin_button_get_value(spin_mpp_min_structure);
 		cfg->alignment_points_frame_percent        = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_percent);
-		cfg->alignment_points_frame_number         = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_frames);
+		/* Register is percent-only; leave alignment_points_frame_number at
+		 * its -1 default (set by mpp_config_defaults above). */
 		cfg->alignment_points_de_warp              = siril_toggle_get_active(check_mpp_dewarp);
 		cfg->frames_normalization                  = siril_toggle_get_active(check_mpp_normalize);
 		cfg->align_frames_seed_from_regdata        = siril_toggle_get_active(check_mpp_seed);
@@ -1580,6 +1581,35 @@ void mpp_update_edit_button_sensitivity(void) {
 	gtk_widget_set_sensitive(btn, mpp_get_cached_run() != NULL);
 }
 
+/* Move the "suggested-action" highlight between the registration tab's
+ * Analyze and Register buttons so only one is emphasised at a time. The
+ * cached run is the single source of truth: it is what the AP overlay draws
+ * from, and it is populated either by Analyze or by the sidecar auto-load on
+ * sequence open (seq_open_image). No cached run → no APs are drawn → Analyze
+ * is the natural next step; a cached run present → APs are shown → Register
+ * is. (A sidecar that fails to load leaves no cached run, so Analyze stays
+ * suggested — consistent with the empty overlay.) For non-MPP methods the
+ * generic Register button keeps the highlight. Called from
+ * update_reg_interface (method/sequence changes) and end_register_idle. */
+static void mpp_update_action_button_highlight(void) {
+	static GtkWidget *analyze_btn = NULL, *register_btn = NULL;
+	if (!analyze_btn) {
+		analyze_btn  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_mpp_analyze"));
+		register_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "goregister_button"));
+		if (!analyze_btn || !register_btn) { analyze_btn = NULL; return; }
+	}
+	const gboolean have_analysis = (mpp_get_cached_run() != NULL);
+	const gboolean analyze_suggested =
+	    (com.pref.gui.reg_settings == REG_MPP) && !have_analysis;
+	if (analyze_suggested) {
+		gtk_widget_add_css_class(analyze_btn, "suggested-action");
+		gtk_widget_remove_css_class(register_btn, "suggested-action");
+	} else {
+		gtk_widget_remove_css_class(analyze_btn, "suggested-action");
+		gtk_widget_add_css_class(register_btn, "suggested-action");
+	}
+}
+
 /* Paint the analysis-built mean reference frame into gfit so the user sees
  * the image that AP placement was performed against. Single-channel,
  * 16-bit; values clamped from the int32 source. Same fresh-fits + writer-
@@ -1679,6 +1709,7 @@ gboolean end_register_idle(gpointer p) {
 				seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			}
 			mpp_update_edit_button_sensitivity();
+			mpp_update_action_button_highlight();   /* Analyze done → move highlight to Register */
 			mpp_shift_viewer_update_button_sensitivity();
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}

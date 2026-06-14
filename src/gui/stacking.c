@@ -266,8 +266,8 @@ static void start_stacking() {
 		else
 			cfg->drizzle_scale = 1.0;
 		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* dobox disabled; scaling via cv::resize */
-		cfg->alignment_points_frame_percent          = gtk_spin_button_get_value_as_int(mpp_stack_percent);
-		cfg->alignment_points_frame_number           = gtk_spin_button_get_value_as_int(mpp_stack_frames);
+		cfg->stack_frame_percent                     = gtk_spin_button_get_value_as_int(mpp_stack_percent);
+		cfg->stack_frame_number                      = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
 		cfg->stack_skip_failed_aps                   = gtk_toggle_button_get_active(mpp_skip_failed);

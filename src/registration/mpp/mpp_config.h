@@ -52,9 +52,17 @@ struct mpp_config {
 	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
 	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic fit (drizzle path) */
 
-	/* Stacking (Phase 5a). */
-	int alignment_points_frame_percent;          /* 10  — %% of frames per AP (used when frame_number ≤ 0) */
-	int alignment_points_frame_number;           /* -1  — explicit override; positive value overrides percent */
+	/* Per-AP frame selection. Two independent controls:
+	 *  - REGISTER (alignment_points_frame_*): the upper bound baked at
+	 *    registration — how many top-quality frames per AP get a shift
+	 *    computed (selected_per_ap). It caps what the stack can use.
+	 *  - STACK (stack_frame_*): how many of those the final stack actually
+	 *    blends; may be ≤ the register bound, never more (raising it needs
+	 *    a re-register). */
+	int alignment_points_frame_percent;          /* 100 — register %% of frames per AP */
+	int alignment_points_frame_number;           /* -1  — register explicit override (>0 wins; register CLI/GUI leave it -1) */
+	int stack_frame_percent;                     /* 100 — stack %% of frames per AP (used when stack_frame_number ≤ 0) */
+	int stack_frame_number;                      /* -1  — stack explicit override; positive value overrides stack percent */
 	int alignment_points_rank_pixel_stride;      /* 2   — used only for xy/Sobel per-AP rank methods */
 	bool alignment_points_de_warp;               /* true */
 	double alignment_points_penalty_factor;       /* 0.00025 — weight matrix off-centre penalty */
