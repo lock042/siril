@@ -806,8 +806,10 @@ static void curves_fit_to_hsl() {
 		float* hf = (float*) curves_huebuf;
 		float* sf = (float*) curves_satbuf;
 		float* lf = (float*) curves_lumbuf;
+		// rgb_to_hslf has internal branches and an early return, so the loop
+		// body cannot be SIMD-vectorized; use plain thread parallelism.
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
@@ -816,8 +818,10 @@ static void curves_fit_to_hsl() {
 		WORD *hw = (WORD*) curves_huebuf;
 		WORD* sw = (WORD*) curves_satbuf;
 		WORD* lw = (WORD*) curves_lumbuf;
+		// rgbw_to_hslw wraps rgb_to_hslf (branches + early return), so the loop
+		// body cannot be SIMD-vectorized; use plain thread parallelism.
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &hw[i], &sw[i], &lw[i]);
