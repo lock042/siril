@@ -83,11 +83,14 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		long naxes[3] = { 0L };
 		int naxis;
 		int bitpix;
+		int orig_bitpix;
 		fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
 		if (status) {
 			report_fits_error(status);
 			break;
 		}
+		// Convert bitpix based on BZERO keyword (e.g., 16 -> 20 for TUSHORT)
+		manage_bitpix(fptr, &bitpix, &orig_bitpix);
 
 		if (naxis > 1) {
 			if (ref_naxis == -1) {
@@ -96,20 +99,27 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_log_debug("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				//printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
+				//g_printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
+
+				// For both naxes[2] and bitpix not matching ref, we can't keep the HDU in the sequence
+				// A sequence with those odd frames would be unusable in Siril
+				// And export to individual fits crashes if either nb layers or bitpix is different
+				// Instead of refusing altogether to read the fitseq,
+				// we just skip the offending HDU and continue with the next one
+				// Using g_printf so we can still debug on the rare occasion this may 
+				// happen with science images collected on the net
 				if (naxes[2] != ref_naxes[2]) {
-					char extension[FLEN_VALUE], comment[FLEN_COMMENT];
-					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
-					if (!g_str_has_prefix(extension, "ICCProfile"))
-						continue;
-					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
-					status = 1;
-					break;
+					printf("Skipping HDU %d with nb layers=%ld\n", i + 1, naxes[2]);
+					continue;
 				}
-				if (naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
-					if (com.pref.allow_heterogeneous_fitseq)
+				if (bitpix != ref_bitpix) {
+					printf("Skipping HDU %d with bitpix=%d\n", i + 1, bitpix);
+					continue;
+				}
+				if (naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1]) {
+					if (com.pref.allow_heterogeneous_fitseq) {
 						homogeneous = FALSE;
-					else {
+					} else {
 						siril_log_message(_("Several images were found in the FITS file but they have different parameters, which is not allowed.\n"));
 						status = 1;
 						break;
@@ -279,12 +289,15 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 		return -1;
 	}
 
-	int bitpix, naxis;
+	int bitpix, naxis, orig_bitpix;
 	long naxes[3];
 	if (fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status)) {
 		report_fits_error(status);
 		return -1;
 	}
+	// Convert bitpix based on BZERO keyword (e.g., 16 -> 20 for TUSHORT)
+	manage_bitpix(fptr, &bitpix, &orig_bitpix);
+
 	dest->naxis = naxis;
 	if (naxis == 2)
 		naxes[2] = 1;
