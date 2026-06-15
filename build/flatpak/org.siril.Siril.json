@@ -180,7 +180,7 @@
             ]
         },
         {
-            "name": "gtksourceview4",
+            "name": "gtksourceview5",
             "buildsystem": "meson",
             "config-opts": [
                 "-Dgir=false",
@@ -189,8 +189,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://download.gnome.org/sources/gtksourceview/4.8/gtksourceview-4.8.4.tar.xz",
-                    "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
+                    "url": "https://download.gnome.org/sources/gtksourceview/5.10/gtksourceview-5.10.0.tar.xz",
+                    "sha256": "b38a3010c34f59e13b05175e9d20ca02a3110443fec2b1e5747413801bc9c23f"
                 }
             ],
             "cleanup": [

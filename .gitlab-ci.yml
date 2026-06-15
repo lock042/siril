@@ -166,10 +166,10 @@ siril-deb-meson:
         path: ${BUILD_DIR}/coverage.xml
 
 
-siril-deb-meson-gtk4:
+siril-deb-meson-gtk:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=gtk4 -Db_coverage=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=true -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
   artifacts:
@@ -225,10 +225,9 @@ macos:
     CCACHE_MAXSIZE: "500Mi"
     ORKA_RUNNER: sequoia-7
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
-    REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 95c4429a9b2ba6ab13c981d895ce8845f3fb5c75
+    SM_REPO_REF: 8e4b287699a45c75de0a97a9844b1c081c254c00
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -243,21 +242,21 @@ macos:
     - |
       echo $CI_PROJECT_DIR > sm/ci_project_dir.txt
       SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
-      VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
-      PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
+      DIR_VERSION=$(sm/jhb/usr/bin/config get DIR_VERSION)
+      PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $DIR_VERSION)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
         sm/build_toolset.sh
-        rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
+        rm $DIR_VERSION/var/cache/pkg/.skip_remove_nonessential_files
         sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
         curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
-        rm -rf ${VER_DIR:?}
+        rm -rf ${DIR_VERSION:?}
       fi
-    - sm/jhb/usr/bin/archive install_dmg
+    - sm/jhb/usr/bin/archive mount_dmg
     - sm/build_siril.sh
   after_script:
-    - sm/jhb/usr/bin/archive uninstall_dmg
+    - sm/jhb/usr/bin/archive unmount_dmg
   needs: []
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"

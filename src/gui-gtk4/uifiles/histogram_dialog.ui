@@ -179,6 +179,7 @@
                     <child>
                       <object class="GtkBox" id="histoToolbar2">
                         <property name="css-classes">toolbar</property>
+                        <property name="name">histoToolbar2</property>
                         <property name="valign">start</property>
                         <child>
                           <object class="GtkToggleButton" id="histoToolRed">

@@ -138,51 +138,35 @@ case "$host_os" in
 esac
 
 dnl ================ OPTIONAL GTK GUI ================
-dnl --enable-gtk accepts a variant: gtk3 (default) or gtk4 builds the siril
-dnl GUI executable against that toolkit; --disable-gtk (or --enable-gtk=no)
-dnl produces a headless CLI-only build with only the siril-cli target.  The
-dnl gtk4 backend lives in src/gui-gtk4 and is a parallel implementation;
-dnl src/gui is the gtk3 default.  Mirrors meson's -Dgtk=false|gtk3|gtk4.
+dnl --enable-gtk (default) builds the GTK4 GUI executable from src/gui-gtk4;
+dnl --disable-gtk (or --enable-gtk=no) produces a headless CLI-only build
+dnl with only the siril-cli target.  Mirrors meson's -Dgtk=true|false.
 AC_ARG_ENABLE(gtk,
-              [AS_HELP_STRING([--enable-gtk@<:@=VARIANT@:>@],
-                              [GTK GUI variant: gtk3 (default), gtk4, or no for headless CLI-only build])],
+              [AS_HELP_STRING([--enable-gtk],
+                              [build the GTK4 GUI (default); use --disable-gtk for a headless CLI-only build])],
               [enable_gtk="$enableval"],
-              [enable_gtk="gtk3"])
+              [enable_gtk="yes"])
 
 case "x$enable_gtk" in
   xno|xfalse)
     enable_gtk="no"
-    gtk_variant="none"
     ;;
-  xyes|xgtk3)
+  xyes|xtrue|xgtk4)
     enable_gtk="yes"
-    gtk_variant="gtk3"
-    ;;
-  xgtk4)
-    enable_gtk="yes"
-    gtk_variant="gtk4"
     ;;
   *)
-    AC_MSG_ERROR([--enable-gtk: invalid value '$enable_gtk'; must be one of: no, gtk3, gtk4])
+    AC_MSG_ERROR([--enable-gtk: invalid value '$enable_gtk'; must be yes or no])
     ;;
 esac
 
 if test "x$enable_gtk" = "xyes"; then
-  if test "x$gtk_variant" = "xgtk4"; then
-    PKG_CHECK_MODULES(GTK, [gtk4 >= 4.12.0])
-    PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-5])
-    AC_DEFINE([HAVE_GTK],  [1], [Build with GTK GUI support])
-    AC_DEFINE([USE_GTK4],  [1], [Build the GTK4 GUI variant])
-  else
-    PKG_CHECK_MODULES(GTK, [gtk+-3.0 >= 3.22.0])
-    PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-4])
-    AC_DEFINE([HAVE_GTK],  [1], [Build with GTK GUI support])
-    AC_DEFINE([USE_GTK3],  [1], [Build the GTK3 GUI variant])
-  fi
+  PKG_CHECK_MODULES(GTK, [gtk4 >= 4.12.0])
+  PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-5])
+  AC_DEFINE([HAVE_GTK],  [1], [Build with GTK GUI support])
+  AC_DEFINE([USE_GTK4],  [1], [Build the GTK4 GUI])
 fi
 AM_CONDITIONAL([ENABLE_GTK], [test "x$enable_gtk" = "xyes"])
-AM_CONDITIONAL([USE_GTK4],   [test "x$gtk_variant" = "xgtk4"])
-AM_CONDITIONAL([USE_GTK3],   [test "x$gtk_variant" = "xgtk3"])
+AM_CONDITIONAL([USE_GTK4],   [test "x$enable_gtk" = "xyes"])
 
 dnl check lcms2
 PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
@@ -510,15 +494,11 @@ AC_SUBST(WINDRES)
 gdk_windowing="x11"
 if test "x$enable_gtk" = "xyes"; then
 	AC_MSG_CHECKING([for native gdk windows style])
-	if test "x$gtk_variant" = "xgtk4"; then
-		# gtk4 ships gdk inside the same pkg-config file; macOS uses the
-		# 'macos' target name (gdk4 / gtk-mac-integration was renamed
-		# from 'quartz' upstream).  Fall back to the host_os we already
-		# detected if pkg-config does not provide 'targets'.
-		gdk_targets=`$PKG_CONFIG --variable=targets gtk4 2>/dev/null`
-	else
-		gdk_targets=`$PKG_CONFIG --variable=targets gdk-3.0`
-	fi
+	# gtk4 ships gdk inside the same pkg-config file; macOS uses the
+	# 'macos' target name (gdk4 / gtk-mac-integration was renamed
+	# from 'quartz' upstream).  Fall back to the host_os we already
+	# detected if pkg-config does not provide 'targets'.
+	gdk_targets=`$PKG_CONFIG --variable=targets gtk4 2>/dev/null`
 	for target in $gdk_targets;
 	do
 		case "$target" in
@@ -545,14 +525,8 @@ AM_CONDITIONAL(GDK_WINDOWING_X11, test "$gdk_windowing" = "x11")
 if test "$platform" = "osx"; then
 	AC_DEFINE([OS_OSX],[1],[Defined if os is Mac OSX])
 
-	dnl gtk-mac-integration is GTK3-only upstream — there is no gtk4 build.
-	dnl For the gtk4 backend we just rely on the GTK4 GdkMacosDisplay
-	dnl integration; no extra pkg-config dependency is required.
-	if test "x$gtk_variant" = "xgtk3"; then
-		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8)
-		AC_SUBST(GTK_MAC_CFLAGS)
-		AC_SUBST(GTK_MAC_LIBS)
-	fi
+	dnl The GTK4 backend relies on the GTK4 GdkMacosDisplay integration;
+	dnl no gtk-mac-integration pkg-config dependency is required.
 fi
 
 if test `uname` != "Darwin"; then
@@ -576,7 +550,7 @@ case "$platform" in
     enable_x11_dnd_fallback="no"
     ;;
 esac
-if test "x$gtk_variant" != "xgtk4"; then
+if test "x$enable_gtk" != "xyes"; then
     enable_x11_dnd_fallback="no"
 fi
 
@@ -630,6 +604,6 @@ else
   siril_targets="siril-cli (headless)"
 fi
 AC_MSG_NOTICE([Build configuration:])
-AC_MSG_NOTICE([  GTK GUI support  : $enable_gtk ($gtk_variant)])
+AC_MSG_NOTICE([  GTK GUI support  : $enable_gtk])
 AC_MSG_NOTICE([  X11 DND fallback : $enable_x11_dnd_fallback])
 AC_MSG_NOTICE([  Targets          : $siril_targets])

@@ -116,6 +116,7 @@
                         <child>
                           <object class="GtkBox" id="curves_toolbar2">
                             <property name="css-classes">toolbar</property>
+                            <property name="name">curves_toolbar2</property>
                             <property name="valign">start</property>
                             <child>
                               <object class="GtkToggleButton" id="curves_red_toggle">

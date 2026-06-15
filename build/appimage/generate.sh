@@ -17,7 +17,7 @@ meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
     -Drelocatable-bundle=yes \
-    -Dgtk=gtk4
+    -Dgtk=true
 
 
 ninja -C ${BUILDDIR} -j$(nproc)

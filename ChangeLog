@@ -35,8 +35,12 @@ siril-1.4.4
 
 **Fixes**
 * Fixed seq file corruption (#1204, #1934)
-* Fixed seq file corruption (#1204)
-* Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes (#
+* Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes
+* Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows
+* Fixed regression when reading 16b fitseq (#1946)
+
+**Improvements**
+* The script repository search now also matches the category column
 
 siril-1.4.3
 05/07/26

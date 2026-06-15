@@ -46,20 +46,13 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
-# -Dgtk is a 3-way combo: 'false' / 'gtk3' / 'gtk4'.
-#   - 'false' → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
-#   - 'gtk3'  → builds the GTK3 GUI from src/gui.
-#   - 'gtk4'  → builds the parallel GTK4 GUI from src/gui-gtk4 (current default).
-gtk_option       = get_option('gtk')
-enable_gtk       = (gtk_option != 'false')
-use_gtk4         = (gtk_option == 'gtk4')
-gui_subdir       = use_gtk4 ? 'gui-gtk4' : 'gui'
+# -Dgtk is a boolean:
+#   - true  → builds the GTK4 GUI from src/gui-gtk4 (default).
+#   - false → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
+enable_gtk       = get_option('gtk')
+gui_subdir       = 'gui-gtk4'
 if enable_gtk
-  if use_gtk4
-    add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
-  else
-    add_project_arguments('-DUSE_GTK3=1', language: ['c', 'cpp'])
-  endif
+  add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
 endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
@@ -272,15 +265,13 @@ endif
 # 4.12 is the effective floor for the GTK4 backend.
 if not enable_gtk
   gtk_dep = no_dep
-elif use_gtk4
-  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
 else
-  gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
+  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
 endif
 # libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
 # src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
 # and host OS — only built on Linux / BSD with GTK4; off elsewhere.
-enable_x11_dnd_fallback = (enable_gtk and use_gtk4
+enable_x11_dnd_fallback = (enable_gtk
   and get_option('legacy-x11-support')
   and host_machine.system() not in ['darwin', 'windows'])
 x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
@@ -370,10 +361,8 @@ else
 endif
 if not enable_gtk
   gtksourceview_dep = no_dep
-elif use_gtk4
-  gtksourceview_dep = dependency('gtksourceview-5', required : true)
 else
-  gtksourceview_dep = dependency('gtksourceview-4', required : true)
+  gtksourceview_dep = dependency('gtksourceview-5', required : true)
 endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
@@ -795,7 +784,7 @@ externals_dep = declare_dependency(
     core_dep,
     gtk_dep,           # no_dep when -Dgtk=false
     gtksourceview_dep, # no_dep when -Dgtk=false
-    x11_dep,           # no_dep on GTK3 / non-X11 / headless builds
+    x11_dep,           # no_dep on non-X11 / headless builds
   ]
 )
 
@@ -855,7 +844,7 @@ summary(
 
 summary(
   {
-    'gtk (GUI)' : gtk_option,
+    'gtk (GUI)' : enable_gtk,
     'openmp'    : get_option('openmp'),
     'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'

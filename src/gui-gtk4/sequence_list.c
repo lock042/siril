@@ -42,6 +42,9 @@
 #include "sequence_list.h"
 
 static gboolean fill_sequence_list_idle(gpointer p);
+static void unselect_select_frame_from_list(gpointer unused);
+static gboolean on_seqlist_space_pressed(GtkEventControllerKey *controller,
+		guint keyval, guint keycode, GdkModifierType state, gpointer user_data);
 
 static const char *bg_colour[] = { "WhiteSmoke", "#1B1B1B" };
 static const char *ref_bg_colour[] = { "Beige", "#4A4A39" };
@@ -551,6 +554,22 @@ static void seq_build_columnview(void) {
 	gtk_column_view_set_model(seq_columnview, GTK_SELECTION_MODEL(seq_selection));
 
 	gtk_scrolled_window_set_child(seqlist_scrolled, GTK_WIDGET(seq_columnview));
+	
+	GtkEventController *keyctl = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(keyctl, GTK_PHASE_CAPTURE);
+	g_signal_connect(keyctl, "key-pressed", G_CALLBACK(on_seqlist_space_pressed), NULL);
+	gtk_widget_add_controller(GTK_WIDGET(seq_columnview), keyctl);
+}
+
+/* Space toggles inclusion of the currently selected rows (see above). */
+static gboolean on_seqlist_space_pressed(GtkEventControllerKey *controller,
+		guint keyval, guint keycode, GdkModifierType state, gpointer user_data) {
+	(void)controller; (void)keycode; (void)state; (void)user_data;
+	if (keyval == GDK_KEY_space || keyval == GDK_KEY_KP_Space) {
+		unselect_select_frame_from_list(NULL);
+		return TRUE; /* consume so the view doesn't toggle row selection */
+	}
+	return FALSE;
 }
 
 /* Forward stub for back-compat; the new code does not need it. */

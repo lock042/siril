@@ -416,6 +416,8 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		if (len > 0)
 			g_print("input command:%s\n", myline);
 
+		gui_iface.console_set_status(myline, 0);
+
 		parse_line(myline, len, &wordnb);
 		ret = execute_command(wordnb);
 
@@ -425,6 +427,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				gui_iface.show_command_help();
 			}
+			gui_iface.console_clear_status();
 			free(myline);
 			return ret;
 		}
@@ -435,6 +438,9 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			if (GPOINTER_TO_INT(job_retval))
 				ret = CMD_GENERIC_ERROR;
 		}
+
+		if (ret != CMD_NO_WAIT)
+			gui_iface.console_clear_status();
 		free(myline);
 	}
 

@@ -83,6 +83,13 @@ check:not(:checked):not(:indeterminate) {
    background-color: transparent;
 }
 
+/* Adwaita's .toolbar style class spaces consecutive items by 6px
+ * (border-spacing). The GTK3 GtkToolbar packed its icons much tighter, so
+ * tighten the gap back up on the main toolbar to recover the historical look. */
+#GtkToolMainBar {
+   border-spacing: 1px;
+}
+
 /* ISO 12646 viewing conditions: D50 gray surround on the four viewport
  * vboxes and a white background under the drawingarea so the image sits
  * on a paper-white target.  Toggled via icc_profile.c
@@ -481,16 +488,7 @@ columnview.siril-dense-rows listview > row > cell {
    margin-right: 0;
 }
 
-/* Restore icon sizes that the GTK3 build set explicitly on toolbars but that
- * the GTK4 conversion lost when GtkToolbar was replaced by GtkBox.toolbar.
- *   GtkToolMainBar (inside #toolbarbox)  GTK3: icon_size=5 (DND, 32 px)
- *   #convert_toolbar                     GTK3: icon_size=2 (small toolbar, 18 px)
- *   #toolbar_log + #image_log            GTK3: icon_size=2 (small toolbar, 18 px)
- * GTK4 has no icon-size property on its toolbar replacement, so every icon
- * falls back to the GtkImage default of 16 px. Force the historical sizes via
- * -gtk-icon-size on those nodes.*/
-#toolbarbox image,
-#GtkToolMainBar image {
+#toolbarbox image {
    -gtk-icon-size: 24px;
 }
 #convert_toolbar image,
@@ -498,18 +496,42 @@ columnview.siril-dense-rows listview > row > cell {
 #image_log {
    -gtk-icon-size: 24px;
 }
+#GtkToolMainBar, #GtkToolMainBar image,
+#histoToolbar2, #histoToolbar2 image,
+#curves_toolbar2, #curves_toolbar2 image,
+#toolbar1, #toolbar1 image,
+#livestacking_toolbar, #livestacking_toolbar image {
+   -gtk-icon-size: 32px;
+}
+
+
+#GtkToolMainBar #display_button_arrow {
+   -gtk-icon-size: 16px;
+}
+
+#GtkToolMainBar #autostretch_linked_icon {
+   -gtk-icon-size: 16px;
+}
+
+/* Keep the link/unlink toggle square: equal min size and uniform padding
+ * around the 16px icon. */
+#GtkToolMainBar #linked_autostretch_button {
+   min-width: 16px;
+   min-height: 16px;
+   padding: 4px;
+}
 
 /* Script-status traffic light: image_log is a GtkLabel showing the
- * Unicode BLACK CIRCLE (U+25CF), tinted red while idle and green while
- * a script is running.  Painting the dot as text rather than as a
- * symbolic icon sidesteps GTK4's symbolic-paintable code path, which
+ * Unicode BLACK CIRCLE (U+25CF), greyed out while idle and green while
+ * a command or script is running.  Painting the dot as text rather than
+ * as a symbolic icon sidesteps GTK4's symbolic-paintable code path, which
  * doesn't pick up the widget's CSS `color` on every theme — observed
  * concretely as a white circle on a dark theme even though Inspector
- * confirmed `color: #d62f2f` resolved correctly on the widget.  Label
- * text obeys `color` straightforwardly.  The .script-running class is
- * toggled from script_console.c::update_log_icon. */
+ * confirmed the colour resolved correctly on the widget.  Label text
+ * obeys `color` straightforwardly.  The .script-running class is toggled
+ * from script_console.c::update_log_icon. */
 label#image_log {
-   color: #d62f2f;
+   color: alpha(currentColor, 0.35);
    font-size: 18px;
 }
 label#image_log.script-running {
