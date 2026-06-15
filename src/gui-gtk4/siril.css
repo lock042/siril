@@ -35,9 +35,17 @@ frame {
  * dropped fill/pack-end so the label and control now sit flush against each
  * other (e.g. "Stretch factor[0.0]" / "Black Point[0.00000]" in the Asinh
  * dialog).  Add a left margin to any control that immediately follows a label
- * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) and grids
- * so a control stacked *under* a label in a vertical box doesn't get an odd
- * left indent.  6px matches the column-spacing GTK3 used on these grids. */
+ * as a direct sibling.  Scoped to horizontal boxes (box.horizontal) only.
+ *
+ * Grids are deliberately NOT included: a GtkGrid provides its inter-column
+ * gap through `column-spacing`, which is uniform across every row.  The
+ * `label + control` adjacency selector, by contrast, matches on *markup*
+ * sibling order, not on visual columns -- so a control whose preceding
+ * <child> in the .ui happens to be another control (rather than a label)
+ * gets no margin while its neighbours do.  On a column-homogeneous grid that
+ * left-shifts those cells by 6px and the column-1 controls no longer line up
+ * (e.g. "Outer radius" / "Y offset" in Preferences sat 6px left of their
+ * siblings).  Letting column-spacing alone own the gap keeps them aligned. */
 box.horizontal > label + button,
 box.horizontal > label + spinbutton,
 box.horizontal > label + entry,
@@ -48,23 +56,38 @@ box.horizontal > label + scale,
 box.horizontal > label + switch,
 box.horizontal > label + checkbutton,
 box.horizontal > label + togglebutton,
-box.horizontal > label + colorbutton,
-grid > label + button,
-grid > label + spinbutton,
-grid > label + entry,
-grid > label + dropdown,
-grid > label + combobox,
-grid > label + menubutton,
-grid > label + scale,
-grid > label + switch,
-grid > label + checkbutton,
-grid > label + togglebutton,
-grid > label + colorbutton {
+box.horizontal > label + colorbutton {
     margin-left: 6px;
+}
+
+/* Make an unchecked checkbox obviously a checkbox.  Adwaita's empty `check`
+ * indicator has a very low-contrast border that, against our panel
+ * backgrounds, makes an unticked box read as blank space -- there's no
+ * visual cue that the row even has a toggle.  Give the empty box a definite
+ * border and a faint inset fill so it always reads as a checkbox.
+ *
+ * Scoped to the unchecked, non-indeterminate state ONLY: this provider loads
+ * at GTK_STYLE_PROVIDER_PRIORITY_APPLICATION, which overrides the theme
+ * regardless of selector specificity, so anything matched here would clobber
+ * the theme's accent fill + checkmark.  The :checked / :indeterminate states
+ * are deliberately left to Adwaita.  currentColor + alpha adapts the contrast
+ * automatically to both light and dark themes, and dims with the widget when
+ * it is insensitive.  Grouped check buttons use the `radio` node (round, and
+ * already distinguishable) and are intentionally not touched. */
+check:not(:checked):not(:indeterminate) {
+   border: 1px solid alpha(currentColor, 0.55);
+   background-color: alpha(currentColor, 0.08);
 }
 
 .toolbar {
    background-color: transparent;
+}
+
+/* Adwaita's .toolbar style class spaces consecutive items by 6px
+ * (border-spacing). The GTK3 GtkToolbar packed its icons much tighter, so
+ * tighten the gap back up on the main toolbar to recover the historical look. */
+#GtkToolMainBar {
+   border-spacing: 1px;
 }
 
 /* ISO 12646 viewing conditions: D50 gray surround on the four viewport
@@ -465,16 +488,7 @@ columnview.siril-dense-rows listview > row > cell {
    margin-right: 0;
 }
 
-/* Restore icon sizes that the GTK3 build set explicitly on toolbars but that
- * the GTK4 conversion lost when GtkToolbar was replaced by GtkBox.toolbar.
- *   GtkToolMainBar (inside #toolbarbox)  GTK3: icon_size=5 (DND, 32 px)
- *   #convert_toolbar                     GTK3: icon_size=2 (small toolbar, 18 px)
- *   #toolbar_log + #image_log            GTK3: icon_size=2 (small toolbar, 18 px)
- * GTK4 has no icon-size property on its toolbar replacement, so every icon
- * falls back to the GtkImage default of 16 px. Force the historical sizes via
- * -gtk-icon-size on those nodes.*/
-#toolbarbox image,
-#GtkToolMainBar image {
+#toolbarbox image {
    -gtk-icon-size: 24px;
 }
 #convert_toolbar image,
@@ -482,18 +496,42 @@ columnview.siril-dense-rows listview > row > cell {
 #image_log {
    -gtk-icon-size: 24px;
 }
+#GtkToolMainBar, #GtkToolMainBar image,
+#histoToolbar2, #histoToolbar2 image,
+#curves_toolbar2, #curves_toolbar2 image,
+#toolbar1, #toolbar1 image,
+#livestacking_toolbar, #livestacking_toolbar image {
+   -gtk-icon-size: 32px;
+}
+
+
+#GtkToolMainBar #display_button_arrow {
+   -gtk-icon-size: 16px;
+}
+
+#GtkToolMainBar #autostretch_linked_icon {
+   -gtk-icon-size: 16px;
+}
+
+/* Keep the link/unlink toggle square: equal min size and uniform padding
+ * around the 16px icon. */
+#GtkToolMainBar #linked_autostretch_button {
+   min-width: 16px;
+   min-height: 16px;
+   padding: 4px;
+}
 
 /* Script-status traffic light: image_log is a GtkLabel showing the
- * Unicode BLACK CIRCLE (U+25CF), tinted red while idle and green while
- * a script is running.  Painting the dot as text rather than as a
- * symbolic icon sidesteps GTK4's symbolic-paintable code path, which
+ * Unicode BLACK CIRCLE (U+25CF), greyed out while idle and green while
+ * a command or script is running.  Painting the dot as text rather than
+ * as a symbolic icon sidesteps GTK4's symbolic-paintable code path, which
  * doesn't pick up the widget's CSS `color` on every theme — observed
  * concretely as a white circle on a dark theme even though Inspector
- * confirmed `color: #d62f2f` resolved correctly on the widget.  Label
- * text obeys `color` straightforwardly.  The .script-running class is
- * toggled from script_console.c::update_log_icon. */
+ * confirmed the colour resolved correctly on the widget.  Label text
+ * obeys `color` straightforwardly.  The .script-running class is toggled
+ * from script_console.c::update_log_icon. */
 label#image_log {
-   color: #d62f2f;
+   color: alpha(currentColor, 0.35);
    font-size: 18px;
 }
 label#image_log.script-running {

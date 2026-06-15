@@ -17,14 +17,14 @@ siril-1.5.0
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
-* Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
-* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Adding TIFF support in Pixelmath (#1726)
 * Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
 * Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
 * Added Search Entry in the Script menu to filter scripts by name (!1042)
+* Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
+* Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
@@ -35,6 +35,12 @@ siril-1.4.4
 
 **Fixes**
 * Fixed seq file corruption (#1204, #1934)
+* Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes
+* Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows
+* Fixed regression when reading 16b fitseq (#1946)
+
+**Improvements**
+* The script repository search now also matches the category column
 
 siril-1.4.3
 05/07/26

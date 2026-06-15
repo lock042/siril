@@ -47,7 +47,7 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
 #include "core/gui_iface.h"
-#include "gui/user_polygons.h"
+#include "gui-gtk4/user_polygons.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -1592,7 +1592,7 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		}
 		set_poly_in_mask(polygon, gfit, adding);
 		free_user_polygon(polygon);
-		gui_iface.queue_redraw_mask();
+		gui_iface.queue_redraw_mask(TRUE); // mask data changed: tints are stale
 		result = send_response(conn, STATUS_OK, NULL, 0);
 	} else {
 		siril_log_debug("Failed to deserialize user polygon\n");

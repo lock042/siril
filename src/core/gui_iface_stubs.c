@@ -78,7 +78,7 @@ static void stub_redraw_image(SirilRedrawType remap)       { (void)remap; }
 static void stub_redraw_image_async(SirilRedrawType remap) { (void)remap; }
 static void stub_redraw_image_sync(SirilRedrawType remap)  { (void)remap; }
 static void stub_delete_selection(void) {}
-static void stub_queue_redraw_mask(void) {}
+static void stub_queue_redraw_mask(gboolean remap_tints) { (void)remap_tints; }
 
 static void stub_on_sequence_opened(void) {}
 static void stub_on_image_loaded(void) {}
@@ -116,7 +116,7 @@ static GPid stub_select_child_process(GSList *children) { (void)children; return
 static void stub_invalidate_histogram(void) {}
 static void stub_update_histogram(void) {}
 static void stub_curves_reset_after_undo(void) {}
-static void stub_redraw_mask_idle(void) {}
+static void stub_redraw_mask_idle(gboolean remap_tints) { (void)remap_tints; }
 
 /* G additions */
 static void stub_on_channel_count_changed(void) {}
