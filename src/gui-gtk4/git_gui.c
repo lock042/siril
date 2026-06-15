@@ -117,11 +117,19 @@ static gboolean script_filter_match(gpointer item, gpointer user_data) {
 	if (!filter_enabled || !current_search_text || !*current_search_text)
 		return TRUE;
 	SirilScriptRow *row = SIRIL_SCRIPT_ROW(item);
-	if (!row->scriptname) return FALSE;
 	gchar *key  = g_ascii_strdown(current_search_text, -1);
-	gchar *name = g_ascii_strdown(row->scriptname, -1);
-	gboolean v  = (strstr(name, key) != NULL);
-	g_free(key); g_free(name);
+	gboolean v  = FALSE;
+	if (row->scriptname) {
+		gchar *name = g_ascii_strdown(row->scriptname, -1);
+		v = (strstr(name, key) != NULL);
+		g_free(name);
+	}
+	if (!v && row->category) {
+		gchar *category = g_ascii_strdown(row->category, -1);
+		v = (strstr(category, key) != NULL);
+		g_free(category);
+	}
+	g_free(key);
 	return v;
 }
 
@@ -348,7 +356,9 @@ static void ensure_git_view(void) {
 	GtkFilterListModel *fm = gtk_filter_list_model_new(G_LIST_MODEL(g_object_ref(list_store)),
 			GTK_FILTER(g_object_ref(script_filter)));
 
-	/* SortListModel wraps the filtered model; per-column sorters set later. */
+	/* SortListModel wraps the filtered model; its sorter is wired to the
+	 * column view's sorter once the columns exist (see below), which is what
+	 * makes the column headers actually sort. */
 	GtkSortListModel *sm = gtk_sort_list_model_new(G_LIST_MODEL(fm), NULL);
 	GtkSingleSelection *sel = gtk_single_selection_new(G_LIST_MODEL(sm));
 	gtk_single_selection_set_can_unselect(sel, TRUE);
@@ -396,6 +406,8 @@ static void ensure_git_view(void) {
 	gtk_column_view_column_set_sorter(c, GTK_SORTER(gtk_custom_sorter_new(cmp_startup, NULL, NULL)));
 	gtk_column_view_append_column(git_columnview, c); g_object_unref(c);
 
+	gtk_sort_list_model_set_sorter(sm, gtk_column_view_get_sorter(git_columnview));
+
 	gtk_scrolled_window_set_child(git_scrolled, GTK_WIDGET(git_columnview));
 
 	/* GTK4: secondary-click on a script row opens the revision dialog.
@@ -438,21 +450,22 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				category = _("Core");
 				core = TRUE;
 			} else {
-				gchar *path = (gchar *)iterator->data;
-				gchar *last_slash = strrchr(path, G_DIR_SEPARATOR);
-				if (last_slash && last_slash > path) {
-					gchar *prev_slash = g_strrstr_len(path, last_slash - path, G_DIR_SEPARATOR_S);
-					gchar *subdir_start = prev_slash ? prev_slash + 1 : path;
-					gchar *subdir = g_strndup(subdir_start, last_slash - subdir_start);
-					if (subdir && subdir[0]) {
-						subdir[0] = g_ascii_toupper(subdir[0]);
-						for (gsize i = 1; subdir[i]; i++) {
-							subdir[i] = g_ascii_tolower(subdir[i]);
-						}
+				// Paths come from the git index, which always uses '/' as
+				// separator on every platform, so we rely on GLib path
+				// helpers (which accept both '/' and '\\') rather than
+				// strrchr() on the platform-specific G_DIR_SEPARATOR.
+				gchar *dir = g_path_get_dirname((gchar *)iterator->data);
+				gchar *subdir = g_path_get_basename(dir);
+				g_free(dir);
+				if (subdir && subdir[0] && g_strcmp0(subdir, ".") != 0) {
+					subdir[0] = g_ascii_toupper(subdir[0]);
+					for (gsize i = 1; subdir[i]; i++) {
+						subdir[i] = g_ascii_tolower(subdir[i]);
 					}
 					cat_owned = subdir;
 					category = subdir;
 				} else {
+					g_free(subdir);
 					category = _("Other");
 				}
 			}

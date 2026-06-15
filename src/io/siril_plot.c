@@ -28,7 +28,7 @@
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/plot.h"
+#include "gui-gtk4/plot.h"
 
 
 // static variables

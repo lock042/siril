@@ -188,7 +188,13 @@ struct generic_img_args {
 	int max_threads; // number of threads to use for the operation
 	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
-	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
+	/* if TRUE, generic_image_worker does not create an undo state; provision
+	 * of an undo state (if any) is left to the caller. Two use cases:
+	 *  - operations that handle their own undo (e.g. stretches, which need to
+	 *    handle the "revert ICC if no stretch applied" issue);
+	 *  - measurement-only commands that don't modify the image (bgnoise, bg,
+	 *    stat, entropy, cdg), for which an undo state would be meaningless. */
+	gboolean skip_generic_undo;
 	gboolean mask_aware; // Whether the operation is mask-aware or not
 	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
 	/* DEPRECATED — the worker now calls populate_roi() automatically whenever

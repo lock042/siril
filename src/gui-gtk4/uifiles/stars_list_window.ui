@@ -401,6 +401,7 @@
                 <child>
                   <object class="GtkBox" id="toolbar1">
                     <property name="css-classes">toolbar</property>
+                    <property name="name">toolbar1</property>
                     <child>
                       <object class="GtkButton" id="process_starfinder_button">
                         <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
