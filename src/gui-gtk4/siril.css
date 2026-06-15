@@ -509,17 +509,29 @@ columnview.siril-dense-rows listview > row > cell {
    -gtk-icon-size: 16px;
 }
 
+#GtkToolMainBar #autostretch_linked_icon {
+   -gtk-icon-size: 16px;
+}
+
+/* Keep the link/unlink toggle square: equal min size and uniform padding
+ * around the 16px icon. */
+#GtkToolMainBar #linked_autostretch_button {
+   min-width: 16px;
+   min-height: 16px;
+   padding: 4px;
+}
+
 /* Script-status traffic light: image_log is a GtkLabel showing the
- * Unicode BLACK CIRCLE (U+25CF), tinted red while idle and green while
- * a script is running.  Painting the dot as text rather than as a
- * symbolic icon sidesteps GTK4's symbolic-paintable code path, which
+ * Unicode BLACK CIRCLE (U+25CF), greyed out while idle and green while
+ * a command or script is running.  Painting the dot as text rather than
+ * as a symbolic icon sidesteps GTK4's symbolic-paintable code path, which
  * doesn't pick up the widget's CSS `color` on every theme — observed
  * concretely as a white circle on a dark theme even though Inspector
- * confirmed `color: #d62f2f` resolved correctly on the widget.  Label
- * text obeys `color` straightforwardly.  The .script-running class is
- * toggled from script_console.c::update_log_icon. */
+ * confirmed the colour resolved correctly on the widget.  Label text
+ * obeys `color` straightforwardly.  The .script-running class is toggled
+ * from script_console.c::update_log_icon. */
 label#image_log {
-   color: #d62f2f;
+   color: alpha(currentColor, 0.35);
    font-size: 18px;
 }
 label#image_log.script-running {

@@ -3197,14 +3197,17 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                     </child>
                     <child>
                       <object class="GtkToggleButton" id="linked_autostretch_button">
+                        <property name="name">linked_autostretch_button</property>
                         <property name="action-name">win.chain-chan</property>
                         <property name="active">1</property>
                         <property name="focusable">1</property>
                         <property name="receives-default">1</property>
+                        <property name="visible">0</property>
                         <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
 Current state: linked.</property>
                         <child>
                           <object class="GtkImage" id="autostretch_linked_icon">
+                            <property name="name">autostretch_linked_icon</property>
                             <property name="resource">/org/siril/ui/pixmaps/chain-linked.svg</property>
                           </object>
                         </child>
