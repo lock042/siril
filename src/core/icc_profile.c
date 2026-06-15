@@ -1612,7 +1612,7 @@ int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		/* Lightweight ICC-only undo: snapshot com.uniq's profile only,
 		 * no swap files.  Works for both plain FITS and FLIS. */
 		undo_save_icc_state(_("ICC profile removed"));
-		gargs->custom_undo = TRUE;
+		gargs->skip_generic_undo = TRUE;
 	}
 	siril_colorspace_transform(fit, NULL);
 	return 0;
@@ -1633,7 +1633,7 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		undo_save_icc_state(_("Assigned ICC profile: %s"),
 			prof_desc ? prof_desc : "?");
 		g_free(prof_desc);
-		gargs->custom_undo = TRUE;
+		gargs->skip_generic_undo = TRUE;
 	}
 	/* Force the assign-only path: clear any current profile so
 	 * siril_colorspace_transform sees !color_managed.  Only the current
@@ -1686,7 +1686,7 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 			_("Converted to ICC profile: %s"),
 			prof_desc ? prof_desc : "?");
 		g_free(prof_desc);
-		gargs->custom_undo = TRUE;
+		gargs->skip_generic_undo = TRUE;
 
 		/* Transform every layer's pixels (and tinted-mono tint vectors)
 		 * Rec2020→sRGB-style, then re-tag the base / com.uniq with the

@@ -1565,7 +1565,7 @@ gpointer generic_image_worker(gpointer p) {
 	 * them) and consumed in the post-hook undo block. */
 	gboolean geom_flis = args->geometry_changing && args->fit == gfit
 	                     && is_current_image_flis()
-	                     && !args->custom_undo && !args->for_preview && !com.script;
+	                     && !args->skip_generic_undo && !args->for_preview && !com.script;
 	flis_layer_t      *geom_active     = NULL;
 	flis_layer_props_t geom_pre_props  = { 0 };
 	layermask_t       *geom_pre_lmask  = NULL;
