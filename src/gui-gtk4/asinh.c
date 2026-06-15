@@ -262,7 +262,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);
 

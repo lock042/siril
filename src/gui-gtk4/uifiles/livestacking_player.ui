@@ -26,6 +26,7 @@
             <child>
               <object class="GtkBox">
                 <property name="css-classes">toolbar</property>
+                <property name="name">livestacking_toolbar</property>
                 <child>
                   <object class="GtkButton" id="livestacking_playpause">
                     <property name="icon-name">media-playback-start-symbolic</property>

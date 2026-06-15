@@ -16,6 +16,8 @@
 #include "core/initfile.h"
 #include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 
 #include <string.h>
@@ -57,6 +59,9 @@ struct _SirilFileBrowser {
 	GtkWidget              *breadcrumb_left_btn;  /* scroll-left chevron */
 	GtkWidget              *breadcrumb_right_btn; /* scroll-right chevron */
 	GtkWidget              *edit_path_btn;     /* toggle between breadcrumb / entry */
+	GtkWidget              *new_folder_btn;    /* create a subfolder; shown in directory-only mode */
+	GtkPopover             *new_folder_popover;/* name-entry popover for new_folder_btn */
+	GtkEntry               *new_folder_entry;  /* folder name input inside the popover */
 	guint                   pending_breadcrumb_idle; /* g_idle_add id, 0 = none */
 	GtkColumnView          *columnview;
 	GtkWidget              *outer_paned;        /* sidebar | content divider */
@@ -807,6 +812,58 @@ static gboolean on_path_entry_key_pressed(GtkEventControllerKey *c,
 		return TRUE;
 	}
 	return FALSE;
+}
+
+static void on_new_folder_create(SirilFileBrowser *fb) {
+	if (!fb || !fb->current_folder) return;
+	const gchar *raw = gtk_editable_get_text(GTK_EDITABLE(fb->new_folder_entry));
+	gchar *name = raw ? g_strstrip(g_strdup(raw)) : NULL;
+	if (!name || !*name) {
+		g_free(name);
+		return;  /* nothing typed yet — keep the popover open */
+	}
+	/* Reject path separators: this creates a single child, not a tree. */
+	if (strchr(name, G_DIR_SEPARATOR) ||
+	    !g_strcmp0(name, ".") || !g_strcmp0(name, "..")) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid folder name"),
+			_("The folder name must not be empty or contain a path separator."));
+		g_free(name);
+		return;
+	}
+
+	GFile *child = g_file_get_child(fb->current_folder, name);
+	GError *err = NULL;
+	gboolean ok = g_file_make_directory(child, NULL, &err);
+	if (ok) {
+		gtk_editable_set_text(GTK_EDITABLE(fb->new_folder_entry), "");
+		if (fb->new_folder_popover)
+			gtk_popover_popdown(fb->new_folder_popover);
+		navigate_to(fb, child);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not create folder"),
+			err && err->message ? err->message : _("Unknown error"));
+	}
+	g_clear_error(&err);
+	g_object_unref(child);
+	g_free(name);
+}
+
+static void on_new_folder_entry_activate(GtkEntry *entry, gpointer ud) {
+	(void)entry;
+	on_new_folder_create(ud);
+}
+
+static void on_new_folder_confirm_clicked(GtkButton *b, gpointer ud) {
+	(void)b;
+	on_new_folder_create(ud);
+}
+
+/* Clear any stale text and focus the entry each time the popover opens. */
+static void on_new_folder_popover_show(GtkPopover *p, gpointer ud) {
+	(void)p;
+	SirilFileBrowser *fb = ud;
+	gtk_editable_set_text(GTK_EDITABLE(fb->new_folder_entry), "");
+	gtk_widget_grab_focus(GTK_WIDGET(fb->new_folder_entry));
 }
 
 /* ── column factories ─────────────────────────────────────────────── */
@@ -2135,11 +2192,37 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
                                            gpointer ud) {
 	(void)kc; (void)keycode;
 	SirilFileBrowser *fb = ud;
+	/* Ctrl+H toggles hidden files on every platform, matching the GTK3
+	 * GtkFileChooser (which used Ctrl even on macOS, not Cmd). */
 	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
 		fb->show_hidden_files = !fb->show_hidden_files;
 		if (fb->file_filter)
 			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
 		return TRUE;
+	}
+	/* Ctrl+L toggles the path into text-entry mode, matching the GTK3
+	 * GtkFileChooser shortcut (and the edit-path toolbar button).  GTK3 used
+	 * Ctrl on every platform, including macOS — not Cmd. */
+	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_l || keyval == GDK_KEY_L)) {
+		on_edit_path_clicked(NULL, fb);
+		return TRUE;
+	}
+	/* Ctrl+A selects every item in multi-select mode.  GtkColumnView has its
+	 * own select-all binding, but it only fires once the view has keyboard
+	 * focus; handling it here makes the shortcut work even before the user
+	 * has clicked into the list.  Skip it while the path is in text-entry
+	 * mode or search is active, so Ctrl+A keeps selecting text there. */
+	if (fb->select_multiple && (state & GDK_CONTROL_MASK) &&
+	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
+		gboolean in_entry = fb->path_stack &&
+			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
+		gboolean in_search = fb->search_bar &&
+			gtk_search_bar_get_search_mode(fb->search_bar);
+		if (!in_entry && !in_search) {
+			if (fb->selection)
+				gtk_selection_model_select_all(fb->selection);
+			return TRUE;
+		}
 	}
 	/* Escape dismisses the dialog */
 	if (keyval == GDK_KEY_Escape) {
@@ -2342,6 +2425,36 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	g_signal_connect(fb->edit_path_btn, "clicked",
 	                 G_CALLBACK(on_edit_path_clicked), fb);
 	gtk_box_append(GTK_BOX(toolbar), fb->edit_path_btn);
+
+	fb->new_folder_btn = gtk_button_new_from_icon_name("folder-new-symbolic");
+	gtk_widget_set_tooltip_text(fb->new_folder_btn, _("Create folder"));
+	gtk_widget_add_css_class(fb->new_folder_btn, "flat");
+	gtk_widget_set_margin_start(fb->new_folder_btn, 6);
+	gtk_widget_set_visible(fb->new_folder_btn, FALSE);
+	gtk_box_append(GTK_BOX(toolbar), fb->new_folder_btn);
+
+	fb->new_folder_popover = GTK_POPOVER(gtk_popover_new());
+	gtk_widget_set_parent(GTK_WIDGET(fb->new_folder_popover), fb->new_folder_btn);
+	{
+		GtkWidget *nf_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		fb->new_folder_entry = GTK_ENTRY(gtk_entry_new());
+		gtk_entry_set_placeholder_text(fb->new_folder_entry, _("Folder name"));
+		gtk_entry_set_activates_default(fb->new_folder_entry, FALSE);
+		gtk_widget_set_hexpand(GTK_WIDGET(fb->new_folder_entry), TRUE);
+		g_signal_connect(fb->new_folder_entry, "activate",
+		                 G_CALLBACK(on_new_folder_entry_activate), fb);
+		GtkWidget *nf_create = gtk_button_new_with_label(_("Create"));
+		gtk_widget_add_css_class(nf_create, "suggested-action");
+		g_signal_connect(nf_create, "clicked",
+		                 G_CALLBACK(on_new_folder_confirm_clicked), fb);
+		gtk_box_append(GTK_BOX(nf_box), GTK_WIDGET(fb->new_folder_entry));
+		gtk_box_append(GTK_BOX(nf_box), nf_create);
+		gtk_popover_set_child(fb->new_folder_popover, nf_box);
+	}
+	g_signal_connect(fb->new_folder_popover, "show",
+	                 G_CALLBACK(on_new_folder_popover_show), fb);
+	g_signal_connect_swapped(fb->new_folder_btn, "clicked",
+	                         G_CALLBACK(gtk_popover_popup), fb->new_folder_popover);
 
 	/* Search toggle — sits to the left of Open in the top toolbar.  Bound
 	 * bidirectionally to the search bar's `search-mode-enabled` so clicking
@@ -2688,6 +2801,8 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	/* Folder-picker mode is per-open; clear it so the next caller starts as
 	 * a normal file picker unless it opts back in. */
 	fb->directory_only = FALSE;
+	if (fb->new_folder_btn)
+		gtk_widget_set_visible(fb->new_folder_btn, FALSE);
 
 	/* Revert multi-select back to single — set_select_multiple() rebuilds
 	 * the selection model and rewires the columnview for us. */
@@ -2842,6 +2957,9 @@ void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_on
 	 * start; in normal mode it stays gated on an actual selection. */
 	if (fb->open_button)
 		gtk_widget_set_sensitive(fb->open_button, dir_only || any_selected(fb));
+	/* The create-folder button only makes sense when picking a directory. */
+	if (fb->new_folder_btn)
+		gtk_widget_set_visible(fb->new_folder_btn, dir_only);
 }
 
 gint siril_file_browser_run(SirilFileBrowser *fb) {

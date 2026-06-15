@@ -619,19 +619,16 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		const float *buf = fit->fdata + (width * height) * channel;
 
-		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
-				int c = 0;
-				newbuf[k] = 0;
+				long k = channel * npixels + (long)nrow * new_width + ncol;
+				float sum = 0.f;
 				for (int i = 0; i < bin_factor; i++) {
 					for (int j = 0; j < bin_factor; j++) {
-						newbuf[k] += buf[i + col + (j + row) * width];
-						c++;
+						sum += buf[col + i + (row + j) * width];
 					}
 				}
-				if (mean) newbuf[k] /= c;
-				k++;
+				newbuf[k] = mean ? sum / (bin_factor * bin_factor) : sum;
 			}
 		}
 	}
@@ -658,20 +655,17 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		const WORD *buf = fit->data + (width * height) * channel;
 
-		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
-				int c = 0;
-				int tmp = 0;
+				long k = channel * npixels + (long)nrow * new_width + ncol;
+				int sum = 0;
 				for (int i = 0; i < bin_factor; i++) {
 					for (int j = 0; j < bin_factor; j++) {
-						tmp += (buf[i + col + (j + row) * width]);
-						c++;
+						sum += buf[col + i + (row + j) * width];
 					}
 				}
-				if (mean) tmp /= c;
-				newbuf[k] = truncate_to_WORD(tmp);
-				k++;
+				if (mean) sum /= bin_factor * bin_factor;
+				newbuf[k] = truncate_to_WORD(sum);
 			}
 		}
 	}

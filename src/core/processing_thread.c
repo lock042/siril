@@ -693,8 +693,11 @@ void stop_processing_thread(void) {
     */
     processing_request_cancel();
     remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
-    if (!com.headless)
+    if (!com.headless) {
         gui_iface.set_busy(FALSE);
+        if (!com.script)
+            gui_iface.console_clear_status();
+    }
 }
 
 gboolean reserve_thread(void) {
