@@ -1,9 +1,8 @@
 # Build properties
 option('gtk',
- type : 'combo',
- choices : ['false', 'gtk3', 'gtk4'],
- value : 'gtk4',
- description: 'GTK GUI build: gtk4 (default) or gtk3 builds the siril GUI executable against that toolkit; false produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps).  The gtk4 backend lives in src/gui-gtk4 and is a parallel implementation; src/gui is the gtk3 build.'
+ type : 'boolean',
+ value : true,
+ description: 'Build the GTK4 GUI executable (default). When false, produces a headless CLI-only build (no GTK / GtkSourceView / X11 deps). The GUI lives in src/gui-gtk4.'
 )
 
 option('relocatable-bundle',
