@@ -385,8 +385,16 @@ void siril_fc_add_filter_pattern(SirilFileChooser *fc, const gchar *title,
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, title);
 	gchar **patterns = g_strsplit(pattern, ";", -1);
-	for (gint i = 0; patterns[i] != NULL; i++)
+	for (gint i = 0; patterns[i] != NULL; i++) {
 		gtk_file_filter_add_pattern(f, patterns[i]);
+		/* Also register the bare suffix of each "*.ext" pattern. Pattern-only
+		 * filters don't tell platform-native save panels (notably macOS
+		 * NSSavePanel) which extension is expected, so the panel treats a
+		 * pre-filled "foo.fit" as a base name and re-appends ".fit", yielding
+		 * "foo.fit.fit". Declaring the suffix lets the panel recognise it. */
+		if (g_str_has_prefix(patterns[i], "*.") && patterns[i][2] != '\0')
+			gtk_file_filter_add_suffix(f, patterns[i] + 2);
+	}
 	g_strfreev(patterns);
 	siril_fc_add_filter(fc, f, set_default);
 	g_object_unref(f);

@@ -2207,6 +2207,23 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
 		on_edit_path_clicked(NULL, fb);
 		return TRUE;
 	}
+	/* Ctrl+A selects every item in multi-select mode.  GtkColumnView has its
+	 * own select-all binding, but it only fires once the view has keyboard
+	 * focus; handling it here makes the shortcut work even before the user
+	 * has clicked into the list.  Skip it while the path is in text-entry
+	 * mode or search is active, so Ctrl+A keeps selecting text there. */
+	if (fb->select_multiple && (state & GDK_CONTROL_MASK) &&
+	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
+		gboolean in_entry = fb->path_stack &&
+			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
+		gboolean in_search = fb->search_bar &&
+			gtk_search_bar_get_search_mode(fb->search_bar);
+		if (!in_entry && !in_search) {
+			if (fb->selection)
+				gtk_selection_model_select_all(fb->selection);
+			return TRUE;
+		}
+	}
 	/* Escape dismisses the dialog */
 	if (keyval == GDK_KEY_Escape) {
 		if (fb->path_stack &&
