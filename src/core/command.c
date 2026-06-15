@@ -1856,6 +1856,7 @@ int process_entropy(int nb) {
 	args->description = _("Entropy");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = entropy_log_hook;
@@ -6914,6 +6915,7 @@ int process_bg(int nb) {
 	args->description = _("Background");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = bg_log_hook;
@@ -6970,6 +6972,7 @@ int process_bgnoise(int nb) {
 	args->description = _("Background noise");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = noise_args;
 	args->log_hook = bgnoise_log_hook;
@@ -7929,7 +7932,7 @@ int process_findhot(int nb){
 	args->description = _("Find Hot/Cold Pixels");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = data;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -8215,6 +8218,7 @@ int process_cdg(int nb) {
 	args->description = _("Center of gravity");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = cdg_log_hook;
@@ -9173,7 +9177,7 @@ int process_split_cfa(int nb) {
 	args->description = _("Split CFA");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9211,7 +9215,7 @@ int process_extractGreen(int nb) {
 	args->description = _("Extract Green");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9256,7 +9260,7 @@ int process_extractHa(int nb) {
 	args->description = _("Extract Ha");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9312,7 +9316,7 @@ int process_extractHaOIII(int nb) {
 	args->description = _("Extract Ha/OIII");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9917,6 +9921,7 @@ int process_stat(int nb) {
 	args->user = data;
 	args->log_hook = stat_log_hook;
 	args->max_threads = 1;
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14304,7 +14309,7 @@ int process_icc_assign(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14373,7 +14378,7 @@ int process_icc_convert_to(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14396,7 +14401,7 @@ int process_icc_remove(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;

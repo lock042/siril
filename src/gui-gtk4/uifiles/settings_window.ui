@@ -377,8 +377,10 @@
                                         <property name="adjustment">xbayeroff_adj</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="text" translatable="yes">0</property>
                                         <property name="tooltip-text" translatable="yes">X offset of Bayer array.</property>
+                                        <property name="width-chars">5</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">3</property>
@@ -390,8 +392,10 @@
                                         <property name="adjustment">ybayeroff_adj</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="text" translatable="yes">0</property>
                                         <property name="tooltip-text" translatable="yes">Y offset of Bayer array.</property>
+                                        <property name="width-chars">5</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">4</property>
@@ -415,10 +419,12 @@
                                         <property name="adjustment">xtranspass_adj</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="text" translatable="yes">1</property>
                                         <property name="tooltip-text" translatable="yes">Number of passes for the X-Trans
     Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better but slower.</property>
                                         <property name="value">1</property>
+                                        <property name="width-chars">5</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">7</property>
@@ -2005,6 +2011,7 @@
                                         <property name="digits">2</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">20,00</property>
@@ -2022,6 +2029,7 @@
                                         <property name="digits">2</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">30,00</property>
@@ -2072,6 +2080,7 @@
                                         <property name="digits">2</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">20,00</property>
@@ -2103,6 +2112,7 @@
                                         <property name="digits">2</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">3.00</property>
@@ -2163,6 +2173,7 @@
                                         <property name="adjustment">adjminpxval</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">0</property>
@@ -2178,6 +2189,7 @@
                                         <property name="adjustment">adjmaxpxval</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">65535</property>
@@ -2219,6 +2231,7 @@
                                         <property name="digits">4</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
                                         <property name="max-width-chars">7</property>
                                         <property name="numeric">1</property>
                                         <property name="text">2.3000</property>
@@ -3707,6 +3720,7 @@
                                         <child>
                                           <object class="GtkGrid">
                                             <property name="column-homogeneous">1</property>
+                                            <property name="column-spacing">6</property>
                                             <property name="margin-start">6</property>
                                             <child>
                                               <object class="GtkLabel">
@@ -4283,10 +4297,12 @@ Compose with "Prune unused script environments" for maximum effect: pruning unus
                                             <property name="adjustment">adjustment_hdstf_bitdepth</property>
                                             <property name="focusable">1</property>
                                             <property name="halign">start</property>
+                                            <property name="valign">center</property>
                                             <property name="numeric">1</property>
                                             <property name="text">20</property>
                                             <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depths require exponentially more memory for the LUT and take longer to recalculate it, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply from the next viewer mode change, and can be applied now using the button to the right.</property>
                                             <property name="value">20</property>
+                                            <property name="width-chars">5</property>
                                           </object>
                                         </child>
                                         <child>
@@ -4342,10 +4358,12 @@ Compose with "Prune unused script environments" for maximum effect: pruning unus
                                         <property name="adjustment">adj_lazy_tile_cache</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="numeric">1</property>
                                         <property name="text">128</property>
                                         <property name="tooltip-text" translatable="yes">RAM budget, in megabytes, used to display very large images. Images whose display buffer fits within this budget are shown directly with no tiling or glitching on zoom; larger images use a tiled renderer that keeps at most this many megabytes resident per channel and pages the rest in on demand. Raise this if a huge mosaic shows missing (black) tiles when zooming out quickly. Takes effect from the next image (re)load.</property>
                                         <property name="value">128</property>
+                                        <property name="width-chars">6</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">0</property>
@@ -4436,8 +4454,10 @@ Compose with "Prune unused script environments" for maximum effect: pruning unus
                                         <property name="adjustment">adj_fftw_tme</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="tooltip-text" translatable="yes">Instructs FFTW to spend at most this amount of seconds planning a FFT. In practice this may be exceeded slightly if the time limit is reached when FFTW is in the middle of an uninterruptible operation. If set to 0, a minimum planning level of Estimate will always be completed.</property>
                                         <property name="value">30</property>
+                                        <property name="width-chars">9</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">2</property>
@@ -4459,9 +4479,11 @@ Compose with "Prune unused script environments" for maximum effect: pruning unus
                                         <property name="adjustment">adj_min_rl_fft</property>
                                         <property name="focusable">1</property>
                                         <property name="halign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="text">30</property>
                                         <property name="tooltip-text" translatable="yes">Siril can calculate convolutions either by summing over the kernel at every pixel or by using Fourier Transforms. The former becomes very inefficient for large kernel sizes, while the latter involves some setup time. Therefore Fourier Transforms are faster for larger kernels, summing is faster for smaller kernels. The exact crossover point will depend on your hardware and is therefore configurable. This parameter sets the minimum size for which Fourier Transforms will be used.</property>
                                         <property name="value">30</property>
+                                        <property name="width-chars">9</property>
                                         <layout>
                                           <property name="column">1</property>
                                           <property name="row">3</property>

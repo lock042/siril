@@ -25,8 +25,11 @@ void remap_all();
 void redraw(remap_type doremap);	// redraw the image
 void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
+/* p / remap_tints: TRUE (GINT_TO_POINTER) when the mask data changed and the
+ * tinted image viewports must be remapped too; FALSE when the caller has just
+ * remapped the image buffers and only the mask buffer needs refreshing. */
 gboolean redraw_mask_idle(gpointer p);
-void queue_redraw_mask(); // queue a redraw of the mask only
+void queue_redraw_mask(gboolean remap_tints); // queue a redraw of the mask only
 void block_drawarea_handlers(void);   // block viewport draw signal handlers (GTK main thread only)
 void unblock_drawarea_handlers(void); // unblock viewport draw signal handlers (GTK main thread only)
 void install_drawarea_draw_funcs(void); // wire viewports to redraw_drawingarea (GTK4)

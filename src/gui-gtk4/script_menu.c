@@ -74,6 +74,7 @@ static GtkWidget *script_search_listbox = NULL;
 static GtkWidget *script_search_scroll = NULL;
 
 static void script_dispatch(const gchar *user_data);
+static void open_script_in_editor(const gchar *path);
 
 static void free_script_entry(gpointer data) {
 	ScriptEntry *e = data;
@@ -100,6 +101,19 @@ static void on_script_search_row_activated(GtkListBox *box, GtkListBoxRow *row,
 	if (popover)
 		gtk_popover_popdown(GTK_POPOVER(popover));
 	script_dispatch(path);
+}
+
+static void on_script_search_row_secondary(GtkGestureClick *gesture, gint n_press,
+                                            gdouble x, gdouble y, gpointer user_data) {
+	(void)n_press; (void)x; (void)y;
+	GtkWidget *row = GTK_WIDGET(user_data);
+	const gchar *path = g_object_get_data(G_OBJECT(row), "script-path");
+	if (!path || !*path) return;
+	GtkWidget *popover = gtk_widget_get_ancestor(row, GTK_TYPE_POPOVER);
+	if (popover)
+		gtk_popover_popdown(GTK_POPOVER(popover));
+	open_script_in_editor(path);
+	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
 }
 
 static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) {
@@ -135,8 +149,11 @@ static void on_script_search_changed(GtkSearchEntry *entry, gpointer user_data) 
 			GtkWidget *lrow = gtk_list_box_row_new();
 			gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(lrow), label);
 			gtk_widget_set_tooltip_text(lrow, e->full_path);
-			g_object_set_data_full(G_OBJECT(lrow), "script-path",
-			                       g_strdup(e->full_path), g_free);
+			g_object_set_data_full(G_OBJECT(lrow), "script-path", g_strdup(e->full_path), g_free);
+			GtkGesture *click = gtk_gesture_click_new();
+			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_SECONDARY);
+			g_signal_connect(click, "pressed", G_CALLBACK(on_script_search_row_secondary), lrow);
+			gtk_widget_add_controller(lrow, GTK_EVENT_CONTROLLER(click));
 			gtk_list_box_append(GTK_LIST_BOX(script_search_listbox), lrow);
 			count++;
 		}
@@ -155,30 +172,22 @@ static GtkWidget *create_script_search_widget(void) {
 	gtk_widget_set_margin_bottom(box, 6);
 
 	script_search_entry_widget = gtk_search_entry_new();
-	gtk_search_entry_set_placeholder_text(GTK_SEARCH_ENTRY(script_search_entry_widget),
-	                                      _("Search scripts\xe2\x80\xa6"));
+	gtk_search_entry_set_placeholder_text(GTK_SEARCH_ENTRY(script_search_entry_widget),  _("Search scripts\xe2\x80\xa6"));
 	gtk_box_append(GTK_BOX(box), script_search_entry_widget);
 
 	script_search_listbox = gtk_list_box_new();
-	gtk_list_box_set_selection_mode(GTK_LIST_BOX(script_search_listbox),
-	                                GTK_SELECTION_NONE);
-	g_signal_connect(script_search_listbox, "row-activated",
-	                 G_CALLBACK(on_script_search_row_activated), NULL);
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(script_search_listbox),  GTK_SELECTION_NONE);
+	g_signal_connect(script_search_listbox, "row-activated",     G_CALLBACK(on_script_search_row_activated), NULL);
 
 	script_search_scroll = gtk_scrolled_window_new();
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(script_search_scroll),
-	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_max_content_height(
-	    GTK_SCROLLED_WINDOW(script_search_scroll), 250);
-	gtk_scrolled_window_set_propagate_natural_height(
-	    GTK_SCROLLED_WINDOW(script_search_scroll), TRUE);
-	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(script_search_scroll),
-	                              script_search_listbox);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(script_search_scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(script_search_scroll), 250);
+	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(script_search_scroll), TRUE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(script_search_scroll), script_search_listbox);
 	gtk_widget_set_visible(script_search_scroll, FALSE);
 	gtk_box_append(GTK_BOX(box), script_search_scroll);
 
-	g_signal_connect(script_search_entry_widget, "search-changed",
-	                 G_CALLBACK(on_script_search_changed), NULL);
+	g_signal_connect(script_search_entry_widget, "search-changed", G_CALLBACK(on_script_search_changed), NULL);
 
 	return box;
 }
@@ -541,7 +550,12 @@ static void script_edit_action_cb(GSimpleAction *action, GVariant *parameter,
                                   gpointer user_data) {
 	(void)action; (void)user_data;
 	if (!parameter) return;
-	const gchar *path = g_variant_get_string(parameter, NULL);
+	open_script_in_editor(g_variant_get_string(parameter, NULL));
+}
+
+/* Load `path`'s contents and pop the script editor with them. Shared by the
+ * win.script-edit GAction and the search-list right-click handler. */
+static void open_script_in_editor(const gchar *path) {
 	if (!path || !*path) return;
 	gchar *contents = NULL;
 	gsize length = 0;
