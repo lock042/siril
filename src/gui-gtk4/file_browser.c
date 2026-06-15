@@ -16,6 +16,7 @@
 #include "core/initfile.h"
 #include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 
@@ -2191,11 +2192,37 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
                                            gpointer ud) {
 	(void)kc; (void)keycode;
 	SirilFileBrowser *fb = ud;
+	/* Ctrl+H toggles hidden files on every platform, matching the GTK3
+	 * GtkFileChooser (which used Ctrl even on macOS, not Cmd). */
 	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
 		fb->show_hidden_files = !fb->show_hidden_files;
 		if (fb->file_filter)
 			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
 		return TRUE;
+	}
+	/* Ctrl+L toggles the path into text-entry mode, matching the GTK3
+	 * GtkFileChooser shortcut (and the edit-path toolbar button).  GTK3 used
+	 * Ctrl on every platform, including macOS — not Cmd. */
+	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_l || keyval == GDK_KEY_L)) {
+		on_edit_path_clicked(NULL, fb);
+		return TRUE;
+	}
+	/* Ctrl+A selects every item in multi-select mode.  GtkColumnView has its
+	 * own select-all binding, but it only fires once the view has keyboard
+	 * focus; handling it here makes the shortcut work even before the user
+	 * has clicked into the list.  Skip it while the path is in text-entry
+	 * mode or search is active, so Ctrl+A keeps selecting text there. */
+	if (fb->select_multiple && (state & GDK_CONTROL_MASK) &&
+	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
+		gboolean in_entry = fb->path_stack &&
+			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
+		gboolean in_search = fb->search_bar &&
+			gtk_search_bar_get_search_mode(fb->search_bar);
+		if (!in_entry && !in_search) {
+			if (fb->selection)
+				gtk_selection_model_select_all(fb->selection);
+			return TRUE;
+		}
 	}
 	/* Escape dismisses the dialog */
 	if (keyval == GDK_KEY_Escape) {

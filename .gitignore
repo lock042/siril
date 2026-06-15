@@ -62,7 +62,6 @@ src/algos/*.kate-swp
 src/algos/octave-workspace
 src/core/*.rej
 src/core/siril_networking_internal.h
-src/gui/temp.c
 src/io/bitpix
 src/io/gitresolve.c
 src/io/m-c-bb.txt
