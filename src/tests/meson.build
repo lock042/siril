@@ -268,29 +268,5 @@ if criterion_dep.found()
 
      test('sorting_perf', sorting_perf_exec, suite: 'perfs', protocol: 'exitcode', is_parallel : false)
 
-     # Temporary diagnostic harness for the FLIS monochrome-composite bug;
-     # plain executable (no criterion test registration), remove when fixed.
-     diag_flislrgb_exec = executable('diag_flislrgb',
-                                'diag_flislrgb.c',
-                                dependencies : [siril_dep, criterion_dep],
-                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
-                                c_args : siril_c_flag,
-                                cpp_args : siril_cpp_flag)
-
-     if use_gtk4
-          diag_flis_gpu_stress_exec = executable('diag_flis_gpu_stress',
-                               ['diag_flis_gpu_stress.c', '../gui-gtk4/flis_gpu_compose.c'],
-                               dependencies : [siril_dep, criterion_dep, gtk_dep],
-                               link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
-                               c_args : siril_c_flag,
-                               cpp_args : siril_cpp_flag)
-          diag_flis_gpu_exec = executable('diag_flis_gpu',
-                               ['diag_flis_gpu.c', '../gui-gtk4/flis_gpu_compose.c'],
-                               dependencies : [siril_dep, criterion_dep, gtk_dep],
-                               link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
-                               c_args : siril_c_flag,
-                               cpp_args : siril_cpp_flag)
-     endif
-
 endif
 
