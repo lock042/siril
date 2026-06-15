@@ -2226,7 +2226,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (framing == REGISTERED_FRAME) {
-		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
+		if (seq->reference_image < 0 || seq->reference_image >= seq->number) seq->reference_image = sequence_find_refimage(seq);
 		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
@@ -2420,6 +2420,8 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
 		return FALSE;
 	}
+	if (seq->reference_image < 0 || seq->reference_image >= seq->number)
+		seq->reference_image = sequence_find_refimage(seq);
 	double orig_x = (double)(seq->rx / 2.);
 	double orig_y = (double)(seq->ry / 2.);
 	for (int i = 0; i < seq->number; i++) {
