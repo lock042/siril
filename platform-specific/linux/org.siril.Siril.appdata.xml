@@ -106,7 +106,7 @@
           Maintenance release for the 1.4.x series, focusing on bug fixes and stability improvements.
         </p>
         <ul>
-          <li>Fixed sequence file corruption (#1204)</li>
+          <li>Fixed several sequence-related issues, including file corruption (#1204), a crash when loading a sequence with an out-of-range reference image (#1950), and a regression when reading 16-bit FITSEQ files (#1946)</li>
           <li>Fixed an incorrect "not enough disk space" error on macOS external APFS/HFS volumes</li>
           <li>Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows</li>
           <li>The script repository search now also matches the category column</li>
