@@ -2298,12 +2298,16 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
 		on_edit_path_clicked(NULL, fb);
 		return TRUE;
 	}
-	/* Ctrl+A selects every item in multi-select mode.  GtkColumnView has its
-	 * own select-all binding, but it only fires once the view has keyboard
-	 * focus; handling it here makes the shortcut work even before the user
-	 * has clicked into the list.  Skip it while the path is in text-entry
-	 * mode or search is active, so Ctrl+A keeps selecting text there. */
-	if (fb->select_multiple && (state & GDK_CONTROL_MASK) &&
+	/* Primary+A (Ctrl+A, or Cmd+A on macOS) selects every item in multi-select
+	 * mode.  GtkColumnView has its own select-all binding, but it only fires
+	 * once the view has keyboard focus; handling it here makes the shortcut
+	 * work even before the user has clicked into the list.  Match the platform
+	 * primary modifier (get_primary()) rather than GDK_CONTROL_MASK: on macOS
+	 * the focus is on Cancel at open and Cmd maps to GDK_META_MASK, so a
+	 * hardcoded Ctrl check never caught Cmd+A until the list was clicked.  Skip
+	 * it while the path is in text-entry mode or search is active, so the
+	 * shortcut keeps selecting text there. */
+	if (fb->select_multiple && (state & get_primary()) &&
 	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
 		gboolean in_entry = fb->path_stack &&
 			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
