@@ -3018,6 +3018,10 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	GtkWidget *dialog = gtk_window_new();
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Right Margin Position"));
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	/* Anchor the modal to the editor window; a modal GtkWindow with no
+	 * transient parent grabs input with no anchor and can wedge the session. */
+	gtk_window_set_transient_for(GTK_WINDOW(dialog),
+			GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(code_view))));
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
 
 	GtkWidget *content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);

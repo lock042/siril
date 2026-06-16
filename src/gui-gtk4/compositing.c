@@ -1818,6 +1818,11 @@ static void on_color_tile_released(GtkGestureClick *gesture, int n_press,
 			gtk_color_dialog_button_set_rgba(color_dialog_button, &layers[layer]->color);
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
+		/* This modal dialog (modal=1 in colorchooserdialog.ui) is not opened
+		 * through siril_open_dialog(), so nothing sets its transient parent.
+		 * Anchor it to the compositing window before showing, otherwise the
+		 * modal grab has no anchor and can wedge the session on Wayland/Xorg. */
+		gtk_window_set_transient_for(color_dialog, GTK_WINDOW(gtk_widget_get_root(widget)));
 		gtk_widget_set_visible(GTK_WIDGET(color_dialog), TRUE);
 	} else if (button == GDK_BUTTON_SECONDARY) {
 		if (has_fit(current_layer_color_choosing))

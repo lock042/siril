@@ -82,11 +82,33 @@ static void on_mark_set(GtkTextBuffer *buffer, GtkTextIter *iter, GtkTextMark *m
 	gtk_widget_set_sensitive(widget, gtk_text_buffer_get_selection_bounds(buffer, &start, &end));
 }
 
+/* Every column in this view is a GtkEditableLabel, which is focusable and
+ * swallows the click that would otherwise select the row.  Because no cell
+ * leaves a non-editable surface to click, the selection model stayed
+ * permanently empty, so the Delete button and "Copy Selection" (both of which
+ * read the selection) silently did nothing.  Selecting the row whenever any of
+ * its cells gains focus restores both, and makes keyboard navigation select
+ * too. */
+static void on_key_cell_focus_enter(GtkEventControllerFocus *ctrl, gpointer user_data) {
+	(void)ctrl;
+	GtkListItem *li = GTK_LIST_ITEM(user_data);
+	if (!key_selection_model || !li)
+		return;
+	guint pos = gtk_list_item_get_position(li);
+	if (pos == GTK_INVALID_LIST_POSITION)
+		return;
+	gtk_selection_model_select_item(key_selection_model, pos, TRUE);
+}
+
 static void key_string_setup_cb(GtkSignalListItemFactory *f, GtkListItem *li, gpointer u) {
 	(void)f; (void)u;
 	GtkWidget *lbl = gtk_editable_label_new("");
 	gtk_widget_set_halign(lbl, GTK_ALIGN_FILL);
 	gtk_list_item_set_child(li, lbl);
+
+	GtkEventController *foc = gtk_event_controller_focus_new();
+	g_signal_connect(foc, "enter", G_CALLBACK(on_key_cell_focus_enter), li);
+	gtk_widget_add_controller(lbl, foc);
 }
 
 typedef enum { KEY_COL_KEY, KEY_COL_VALUE, KEY_COL_COMMENT } KeyStringCol;
@@ -640,7 +662,7 @@ static void kw_dlg_set_result_cancel(GtkButton *b, gpointer ud) { (void)b; struc
 static gboolean kw_dlg_close_request(GtkWindow *w, gpointer ud) { (void)w; struct kw_dlg_ctx *c = ud; c->result = GTK_RESPONSE_CANCEL; if (c->loop && g_main_loop_is_running(c->loop)) g_main_loop_quit(c->loop); return FALSE; }
 
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
-	(void)button;
+	(void)user_data;
 	GtkWidget *dialog;
 	GtkWidget *content_area;
 	GtkWidget *grid;
@@ -659,7 +681,14 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Add New Keyword"));
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(user_data));
+	/* The signal in keywords_dialog.ui carries no "object" attribute, so the
+	 * handler's user_data is NULL under GTK4 (there is no
+	 * gtk_builder_connect_signals to supply a default).  Deriving the parent
+	 * from the button's toplevel gives the FITS Header window as a proper
+	 * transient parent; without one, a modal GtkWindow grabs input with no
+	 * anchor and wedges the whole session on Wayland/Xorg. */
+	gtk_window_set_transient_for(GTK_WINDOW(dialog),
+			GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button))));
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 
 	content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
