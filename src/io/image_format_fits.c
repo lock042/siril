@@ -1554,8 +1554,6 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
 				return status;
 			}
 		}
@@ -1581,8 +1579,6 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
 				return status;
 			}
 		}
