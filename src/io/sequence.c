@@ -1628,8 +1628,7 @@ int sequence_find_refimage(sequence *seq) {
 		// lead to out-of-bounds accesses on imgparam/regparam (see #1950)
 		if (seq->reference_image >= 0 && seq->reference_image < seq->number)
 			return seq->reference_image;
-		siril_log_color_message(_("Invalid reference image (%d) in sequence, resetting it\n"),
-				"salmon", seq->reference_image);
+		siril_log_warning(_("Invalid reference image (%d) in sequence, resetting it\n"), seq->reference_image);
 		seq->reference_image = -1;
 	}
 	if (seq->type == SEQ_INTERNAL)
