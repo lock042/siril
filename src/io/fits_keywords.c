@@ -559,8 +559,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
 			KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
-			// PLTSOLVD can be secondary here, it's handled in save_wcs_keywords
-			KEYWORD_SECONDA( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), NULL, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), NULL, NULL),
 			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE }
 	};
 
@@ -616,7 +615,7 @@ int save_fits_keywords(fits *fit) {
 			keys->special_handler_save(fit, keys);
 		}
 
-		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) { // wcslib keys already have is_saved
+		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
 			keys++;
 			continue;
 		}
