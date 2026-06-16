@@ -2263,7 +2263,9 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	if (arg->has_output)
 		seq_finalize_hook(arg);
 	if (aargs->update_reg && !arg->retval) {
-		siril_log_info(_("Computing astrometric registration...\n"));
+		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
+		if (arg->seq->reference_image < 0 || arg->seq->reference_image >= arg->seq->number)
+			arg->seq->reference_image = sequence_find_refimage(arg->seq);
 		if (!arg->seq->imgparam[arg->seq->reference_image].incl) {
 			siril_log_warning(_("Reference image was not platesolved, changing reference\n"));
 			arg->seq->reference_image = -1;
