@@ -66,6 +66,7 @@ struct _SirilFileBrowser {
 	GtkColumnView          *columnview;
 	GtkWidget              *outer_paned;        /* sidebar | content divider */
 	GtkWidget              *list_preview_paned; /* list | preview divider */
+	GtkWidget              *sidebar_list;       /* GtkListBox inside the sidebar; populated lazily after present */
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
@@ -78,6 +79,15 @@ struct _SirilFileBrowser {
 	GtkSearchEntry         *search_entry;
 	gchar                  *search_text;       /* lower-cased substring, NULL/"" disables */
 	gboolean                show_hidden_files; /* honors org.gtk.Settings.FileChooser show-hidden; toggle with Ctrl+H */
+
+	/* The sidebar's Bookmarks / Devices sections are built asynchronously
+	 * after the window is presented — the GIO volume-monitor and bookmark
+	 * I/O were the bulk of the first-open lag.  volume_monitor is held and
+	 * signal-connected on the first populate so the Devices list stays live
+	 * while the dialog is open; sidebar_refresh_idle coalesces a burst of
+	 * mount/volume signals into a single rebuild (0 = none pending). */
+	GVolumeMonitor         *volume_monitor;     /* +1 ref, NULL until first populate */
+	guint                   sidebar_refresh_idle;
 
 	/* Owned model objects.  Kept in fields so callbacks (filter, set_file,
 	 * selection-changed) can reach them; references are taken via
@@ -1420,8 +1430,37 @@ static int sidebar_recent_cmp_visited_desc(gconstpointer a, gconstpointer b) {
 	return g_date_time_compare(tb, ta);  /* descending */
 }
 
+/* Process-wide warm reference to GIO's volume monitor.
+ *
+ * The first g_volume_monitor_get() in a process is the expensive part of
+ * opening the file browser: it spins up GIO's native backend (on Linux a
+ * D-Bus proxy to gvfs/udisks) and enumerates mounts/volumes/drives, which
+ * blocks for tens of milliseconds — longer when a network mount has to time
+ * out.  We create it once and keep it alive so every later get is free.
+ *
+ * It MUST be created on the main thread with no thread-default context
+ * pushed: GVolumeMonitor is documented as not thread-default-context aware,
+ * and its mount-added / -removed signals bind to whichever context is
+ * current at construction.  Build it on a worker thread and those signals
+ * bind to a context that never runs, so live device updates silently break
+ * (and the native backend is unsupported off the main thread regardless).
+ * Hence siril_file_browser_prewarm() is a main-loop idle, not a thread. */
+static GVolumeMonitor *g_prewarmed_monitor = NULL;
+
+static GVolumeMonitor *browser_get_volume_monitor(void) {
+	if (!g_prewarmed_monitor)
+		g_prewarmed_monitor = g_volume_monitor_get();
+	return g_prewarmed_monitor;
+}
+
+gboolean siril_file_browser_prewarm(gpointer user_data) {
+	(void) user_data;
+	browser_get_volume_monitor();
+	return G_SOURCE_REMOVE;
+}
+
 static int sidebar_populate_volumes(GtkListBox *box) {
-	GVolumeMonitor *monitor = g_volume_monitor_get();
+	GVolumeMonitor *monitor = browser_get_volume_monitor();
 	if (!monitor) return 0;
 	int count = 0;
 	GList *mounts = g_volume_monitor_get_mounts(monitor);
@@ -1447,7 +1486,7 @@ static int sidebar_populate_volumes(GtkListBox *box) {
 		if (root) g_object_unref(root);
 	}
 	g_list_free_full(mounts, g_object_unref);
-	g_object_unref(monitor);
+	/* monitor is the shared, process-warm singleton — do not unref. */
 	return count;
 }
 
@@ -1498,7 +1537,7 @@ static void sidebar_add_volume_unmounted(GtkListBox *box, GVolume *vol) {
  * of rows added.  Drives with no media are filtered out — a "Mount X"
  * row that can never succeed is just noise. */
 static int sidebar_populate_unmounted_volumes(GtkListBox *box) {
-	GVolumeMonitor *monitor = g_volume_monitor_get();
+	GVolumeMonitor *monitor = browser_get_volume_monitor();
 	if (!monitor) return 0;
 	int count = 0;
 	GList *vols = g_volume_monitor_get_volumes(monitor);
@@ -1515,7 +1554,7 @@ static int sidebar_populate_unmounted_volumes(GtkListBox *box) {
 		count++;
 	}
 	g_list_free_full(vols, g_object_unref);
-	g_object_unref(monitor);
+	/* monitor is the shared, process-warm singleton — do not unref. */
 	return count;
 }
 
@@ -1740,49 +1779,101 @@ static GtkWidget *make_pane_heading(const char *text) {
 	return heading;
 }
 
-static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
-	GtkWidget *list = gtk_list_box_new();
-	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
-	gtk_widget_add_css_class(list, "navigation-sidebar");
+/* Remove every row from the sidebar list box. */
+static void sidebar_clear(GtkListBox *list) {
+	GtkWidget *child;
+	while ((child = gtk_widget_get_first_child(GTK_WIDGET(list))))
+		gtk_list_box_remove(list, GTK_WIDGET(child));
+}
+
+/* (Re)build the sidebar contents in place: the static Places shortcuts
+ * (cheap) followed by Bookmarks and Devices (which do file I/O and
+ * volume-monitor enumeration).  Clears first, so it is safe to call
+ * repeatedly — on each open and whenever a device is plugged / unplugged.
+ * Always runs on the main thread (see browser_get_volume_monitor). */
+static void sidebar_repopulate(SirilFileBrowser *fb) {
+	if (!fb || !fb->sidebar_list) return;
+	GtkListBox *list = GTK_LIST_BOX(fb->sidebar_list);
+	sidebar_clear(list);
 
 	/* Sidebar entries.  Order mirrors the GTK3 GtkFileChooser sidebar that
 	 * Siril shipped previously, plus the Working Directory shortcut that
 	 * jumps to com.wd (the folder Siril is operating on).  Templates /
 	 * Public / Computer are intentionally omitted — see the brief. */
-	sidebar_add_section_header(GTK_LIST_BOX(list), _("Places"));
-	sidebar_add_recent_entry(GTK_LIST_BOX(list));
-	sidebar_add_location(GTK_LIST_BOX(list), "user-home-symbolic",
+	sidebar_add_section_header(list, _("Places"));
+	sidebar_add_recent_entry(list);
+	sidebar_add_location(list, "user-home-symbolic",
 	                     _("Home"), g_get_home_dir());
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-documents-symbolic",
+	sidebar_add_location(list, "folder-documents-symbolic",
 	                     _("Documents"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-pictures-symbolic",
+	sidebar_add_location(list, "folder-pictures-symbolic",
 	                     _("Pictures"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_PICTURES));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-music-symbolic",
+	sidebar_add_location(list, "folder-music-symbolic",
 	                     _("Music"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_MUSIC));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-download-symbolic",
+	sidebar_add_location(list, "folder-download-symbolic",
 	                     _("Downloads"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-videos-symbolic",
+	sidebar_add_location(list, "folder-videos-symbolic",
 	                     _("Videos"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_VIDEOS));
 	{
 		GFile *trash = g_file_new_for_uri("trash:///");
-		sidebar_add_gfile(GTK_LIST_BOX(list), "user-trash-symbolic",
+		sidebar_add_gfile(list, "user-trash-symbolic",
 		                  _("Trash"), trash);
 		g_object_unref(trash);
 	}
 	if (com.wd && *com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR))
-		sidebar_add_location(GTK_LIST_BOX(list), "folder-symbolic",
+		sidebar_add_location(list, "folder-symbolic",
 		                     _("Working Directory"), com.wd);
 
 	/* Section: Bookmarks (only if the user has any). */
-	sidebar_section(GTK_LIST_BOX(list), _("Bookmarks"), sidebar_populate_bookmarks);
+	sidebar_section(list, _("Bookmarks"), sidebar_populate_bookmarks);
 
 	/* Section: Devices (mounted first, then unmounted with a Mount badge). */
-	sidebar_section(GTK_LIST_BOX(list), _("Devices"), sidebar_populate_all_devices);
+	sidebar_section(list, _("Devices"), sidebar_populate_all_devices);
+}
+
+static gboolean sidebar_refresh_idle_cb(gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	fb->sidebar_refresh_idle = 0;
+	sidebar_repopulate(fb);
+	return G_SOURCE_REMOVE;
+}
+
+/* Queue a sidebar rebuild for the next idle, coalescing a burst of
+ * volume-monitor signals (a single plug event can fire several) into one
+ * repopulate.  On first use it also wires the volume monitor's mount /
+ * volume signals so the Devices section stays live while the dialog is
+ * open.  Deferring to idle is what keeps the window appearing instantly:
+ * gtk_window_present() returns first, the enumeration runs after.  Declared
+ * void so it can be used directly as a g_signal_connect_swapped handler. */
+static void sidebar_schedule_refresh(SirilFileBrowser *fb) {
+	if (!fb || !fb->sidebar_list) return;
+	if (!fb->volume_monitor) {
+		fb->volume_monitor = g_object_ref(browser_get_volume_monitor());
+		static const char * const sigs[] = {
+			"mount-added", "mount-removed",
+			"volume-added", "volume-removed", NULL };
+		for (int i = 0; sigs[i]; i++)
+			g_signal_connect_swapped(fb->volume_monitor, sigs[i],
+			                         G_CALLBACK(sidebar_schedule_refresh), fb);
+	}
+	if (!fb->sidebar_refresh_idle)
+		fb->sidebar_refresh_idle = g_idle_add(sidebar_refresh_idle_cb, fb);
+}
+
+/* Build the sidebar shell only.  The contents are filled asynchronously by
+ * sidebar_schedule_refresh after the window is presented — populating here
+ * would put the slow volume-monitor / bookmark I/O back on the
+ * dialog-creation path, the very thing this defers. */
+static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
+	GtkWidget *list = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
+	gtk_widget_add_css_class(list, "navigation-sidebar");
+	fb->sidebar_list = list;
 
 	g_signal_connect(list, "row-activated",
 	                 G_CALLBACK(on_sidebar_row_activated), fb);
@@ -2207,12 +2298,16 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
 		on_edit_path_clicked(NULL, fb);
 		return TRUE;
 	}
-	/* Ctrl+A selects every item in multi-select mode.  GtkColumnView has its
-	 * own select-all binding, but it only fires once the view has keyboard
-	 * focus; handling it here makes the shortcut work even before the user
-	 * has clicked into the list.  Skip it while the path is in text-entry
-	 * mode or search is active, so Ctrl+A keeps selecting text there. */
-	if (fb->select_multiple && (state & GDK_CONTROL_MASK) &&
+	/* Primary+A (Ctrl+A, or Cmd+A on macOS) selects every item in multi-select
+	 * mode.  GtkColumnView has its own select-all binding, but it only fires
+	 * once the view has keyboard focus; handling it here makes the shortcut
+	 * work even before the user has clicked into the list.  Match the platform
+	 * primary modifier (get_primary()) rather than GDK_CONTROL_MASK: on macOS
+	 * the focus is on Cancel at open and Cmd maps to GDK_META_MASK, so a
+	 * hardcoded Ctrl check never caught Cmd+A until the list was clicked.  Skip
+	 * it while the path is in text-entry mode or search is active, so the
+	 * shortcut keeps selecting text there. */
+	if (fb->select_multiple && (state & get_primary()) &&
 	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
 		gboolean in_entry = fb->path_stack &&
 			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
@@ -3000,6 +3095,10 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 
 	fb->loop = g_main_loop_new(NULL, FALSE);
 	gtk_window_present(fb->window);
+	/* Fill the sidebar (Bookmarks + Devices) now that the window is up.
+	 * Doing it here rather than at build time keeps first open instant and
+	 * picks up any bookmarks / drives that changed since the last open. */
+	sidebar_schedule_refresh(fb);
 	g_main_loop_run(fb->loop);
 	g_main_loop_unref(fb->loop);
 	fb->loop = NULL;

@@ -31,10 +31,11 @@ siril-1.5.0
 * Fixed command help popover being too tall on low-resolution screens
 
 siril-1.4.4
---/--/--
+06/17/26
 
 **Fixes**
 * Fixed seq file corruption (#1204, #1934)
+* Fixed crash when loading a sequence with an out-of-range reference image, e.g. after preprocessing (#1950)
 * Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes
 * Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows
 * Fixed regression when reading 16b fitseq (#1946)

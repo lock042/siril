@@ -612,7 +612,9 @@ void populate_recent_files_menu(void) {
 			g_free(path);
 			continue;
 		}
-		gchar *display = g_path_get_basename(path);
+		gchar *basename = g_path_get_basename(path);
+		gchar *display = ellipsize(basename, 40, ELLIPSIZE_MIDDLE);
+		g_free(basename);
 		GtkWidget *button = gtk_button_new_with_label(display);
 		gtk_widget_add_css_class(button, "flat");
 		/* Left-align the label like a menu item */

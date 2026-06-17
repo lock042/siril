@@ -1337,7 +1337,8 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 */
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->ref_stars->cat_items)
-		get_catalog_stars(args->ref_stars);
+		if (get_catalog_stars(args->ref_stars))
+			return 1;
 	TRANS t = { 0 };
 	int ret = SOLVE_NO_MATCH;
 	double ra = -1., dec = -1.;
@@ -2264,6 +2265,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		seq_finalize_hook(arg);
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_info(_("Computing astrometric registration...\n"));
+		if (arg->seq->reference_image < 0 || arg->seq->reference_image >= arg->seq->number)
+			arg->seq->reference_image = sequence_find_refimage(arg->seq);
 		if (!arg->seq->imgparam[arg->seq->reference_image].incl) {
 			siril_log_warning(_("Reference image was not platesolved, changing reference\n"));
 			arg->seq->reference_image = -1;

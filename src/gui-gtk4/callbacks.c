@@ -1616,8 +1616,14 @@ GtkWindow *siril_get_active_window() {
 	GList *list = gtk_window_list_toplevels();
 
 	for (GList *l = list; l; l = l->next) {
-		if (gtk_window_is_active((GtkWindow *) l->data)) {
-			win = (GtkWindow *) l->data;
+		GtkWindow *cand = (GtkWindow *) l->data;
+		/* Never hand back the splash as a transient parent: it is the active
+		 * toplevel during startup but is about to be destroyed, and anchoring
+		 * a modal nested-loop dialog to it can wedge the session. */
+		if (gtk_widget_has_css_class(GTK_WIDGET(cand), "splash-screen"))
+			continue;
+		if (gtk_window_is_active(cand)) {
+			win = cand;
 			break;
 		}
 	}
