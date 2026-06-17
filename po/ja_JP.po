@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-06-15 07:27+0000\n"
-"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
+"PO-Revision-Date: 2026-06-17 05:51+0000\n"
+"Last-Translator: Kei Mizuta <kmzt1013@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -363,9 +363,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:228
-#, fuzzy
 msgid "Starid: "
-msgstr "重ね合わせ"
+msgstr "Star ID: "
 
 #: src/gui/uifiles/aavso_dialog.ui:239
 msgid ""
@@ -382,14 +381,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:273
-#, fuzzy
 msgid "Comparison star: "
-msgstr "切り抜き: 処理中…\n"
+msgstr "星を比較: "
 
 #: src/gui/uifiles/aavso_dialog.ui:284
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "エクスポートされた CSV 形式のファイルのファイル名を入力."
+msgstr "比較する星の数."
 
 #: src/gui/uifiles/aavso_dialog.ui:297
 msgid "Cstd: "
@@ -424,9 +421,8 @@ msgid "Check star: "
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:337
-#, fuzzy
 msgid "The number of the check star."
-msgstr "エクスポートされた CSV 形式のファイルのファイル名を入力."
+msgstr "確認する星の数."
 
 #: src/gui/uifiles/aavso_dialog.ui:349
 msgid ""
@@ -453,14 +449,12 @@ msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2491
-#, fuzzy
 msgid "Aberration Inspector"
-msgstr "引き算"
+msgstr "収差インスペクタ"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
-#, fuzzy
 msgid "Annotate"
-msgstr "回転"
+msgstr "アノテート"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:472
@@ -485,9 +479,8 @@ msgid "Close the window."
 msgstr "ウインドウを閉じる."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "マニュアル整列"
+msgstr "要求されたアノテーションを適用"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
 msgid "Catalogue: "
@@ -510,9 +503,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:133
-#, fuzzy
 msgid "automatic"
-msgstr "自動検出"
+msgstr "自動処理"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2 (TYCHO2)"
@@ -531,9 +523,8 @@ msgid "ppmxl (PPMXL)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:138
-#, fuzzy
 msgid "bsc (Bright Stars)"
-msgstr "層の数: "
+msgstr "BSC (明るい星)"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass (APASS DR9)"
@@ -544,9 +535,8 @@ msgid "gcvs (General Catalogue of Variable Stars)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:141
-#, fuzzy
 msgid "vsx (Variable Stars Index)"
-msgstr "選択"
+msgstr "vsx (変光星インデックス)"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum (GAIA DR3 Variability)"
@@ -569,14 +559,12 @@ msgid "aavso_chart (AAVSO Standard Stars)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:147
-#, fuzzy
 msgid "solsys (IMCCE Solar System Objects)"
-msgstr "画像シーケンスを検索"
+msgstr "solsys (IMCCE太陽系天体)"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
-#, fuzzy
 msgid "Photometric"
-msgstr "測光"
+msgstr "光度測定"
 
 #: src/gui/uifiles/annotate_dialog.ui:163
 msgid ""
@@ -586,9 +574,8 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
-#, fuzzy
 msgid "Tag"
-msgstr "Mag"
+msgstr "タグ"
 
 #: src/gui/uifiles/annotate_dialog.ui:178
 #: src/gui/uifiles/annotate_dialog.ui:193
@@ -622,9 +609,8 @@ msgid "Limit magnitude used in the query."
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:253
-#, fuzzy
 msgid "13"
-msgstr "1"
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
@@ -672,9 +658,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:459
-#, fuzzy
 msgid "Import CSV"
-msgstr "CSV形式にエクスポート"
+msgstr "CSVをインポート"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
@@ -683,9 +668,8 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:486
 #: src/gui/uifiles/astrometry_dialog.ui:310
-#, fuzzy
 msgid "Declination: "
-msgstr "保存先"
+msgstr "偏角: "
 
 #: src/gui/uifiles/annotate_dialog.ui:497
 #: src/gui/uifiles/annotate_dialog.ui:508
@@ -697,30 +681,26 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:520
-#, fuzzy
 msgid "Display Name:"
-msgstr "画像処理"
+msgstr "表示名:"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
-#, fuzzy
 msgid ""
 "The display name will be used as a tag for the image and listed in the "
 "console."
-msgstr "Console に書かれているコマンドのマニュアルを表示."
+msgstr "表示名は画像のタグとして使用され、コンソールに表示されます。"
 
 #: src/gui/uifiles/annotate_dialog.ui:543
 msgid "Click this button to save the entry to the user DSO catalogue."
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "画像 %s を保存中"
+msgstr "選択範囲から座標を取得する"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
-#, fuzzy
 msgid "Single Coordinates"
-msgstr "座標なし"
+msgstr "単一座標"
 
 #: src/gui/uifiles/annotate_dialog.ui:605
 msgid "Show"
@@ -6173,13 +6153,12 @@ msgid "Quantization level"
 msgstr "量子化レベル"
 
 #: src/gui/uifiles/settings_window.ui:979
-#, fuzzy
 msgid "Tile dimensions"
-msgstr "FITS 拡張子 不明: %s"
+msgstr "タイル寸法"
 
 #: src/gui/uifiles/settings_window.ui:992
 msgid "HCompress scale factor"
-msgstr ""
+msgstr "Hコンプレス スケールファクタ"
 
 #: src/gui/uifiles/settings_window.ui:1005
 msgid ""
@@ -9030,7 +9009,6 @@ msgid ""
 msgstr "この Bias マスター画像はシーケンスのすべての画像から削除されます。"
 
 #: src/gui/uifiles/siril.ui:4761
-#, fuzzy
 msgid ""
 "Enter the master bias/offset file name here, or use the browse button.\n"
 "The bias/offset master image will be removed from all images in the "
@@ -9038,13 +9016,16 @@ msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
-"マスター bias ファイル名をここに入力するか ブラウスボタンを使用して下さい.\n"
-"Bias マスター画像はこのシーケンスのすべての画像から削除されます."
+"ここにマスターバイアス/オフセットファイル名を入力するか、参照ボタンを使用して"
+"ください。\n"
+"バイアス/オフセットマスター画像は、シーケンス内のすべての画像から削除されます"
+"。\n"
+"画像の代わりに、=256 や =64*$OFFSET のように、\"=\" 記号で始まる減算する均一"
+"レベルを指定することもできます。"
 
 #: src/gui/uifiles/siril.ui:4765
-#, fuzzy
 msgid "master-bias.fit"
-msgstr "Flat を使用"
+msgstr "master-bias.fit"
 
 #: src/gui/uifiles/siril.ui:4797
 msgid "Equalize CFA"
@@ -9061,13 +9042,12 @@ msgid "Auto evaluate normalisation value"
 msgstr "正規化値を自動評価"
 
 #: src/gui/uifiles/siril.ui:4817
-#, fuzzy
 msgid ""
 "If this box is checked, Siril will auto-evaluate the normalisation value.\n"
 "This value is the mean of the master flat calibrated with the master offset."
 msgstr ""
 "このボックスをチェックすると, Siril は正規化値を自動評価します.\n"
-"この値は"
+"この値は、マスターオフセットで調整されたマスターフラットの平均値です。"
 
 #: src/gui/uifiles/siril.ui:4835
 msgid "Choose your own normalisation value."
@@ -9075,7 +9055,7 @@ msgstr "正規化値を選択してください."
 
 #: src/gui/uifiles/siril.ui:4852
 msgid "Fix X-Trans AF artifact"
-msgstr "X-Trans AF artifact を削除"
+msgstr "X-Trans AF アーティファクトを削除"
 
 #: src/gui/uifiles/siril.ui:4856
 msgid ""
@@ -9085,9 +9065,13 @@ msgid ""
 "camera compensates for this and increases the values from these specific "
 "photosites giving a visible square in the middle of the dark/bias frames."
 msgstr ""
+"このオプションは、富士フイルムX-Transオートフォーカスのピクセルを修正するのに"
+"役立ちます。実際、位相差検出オートフォーカスシステムのため、オートフォーカス"
+"に使用されるフォトサイトは、周囲のフォトサイトよりもわずかに光量が少なくなり"
+"ます。カメラはこの補正を行い、これらの特定のフォトサイトの値を増加させること"
+"で、暗い/バイアスのあるフレームの中央に目に見える四角形を生成します。"
 
 #: src/gui/uifiles/siril.ui:4871
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -9102,26 +9086,34 @@ msgid ""
 "\n"
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
-msgstr "Dark subtraction 日本語でもそのままで良い？"
+msgstr ""
+"ダーク減算は最適化できます。Sirilには、このための2つの方法があります。\n"
+"- 1つ目の方法は、結果画像（明るい画像から暗い画像を引いたもの）のノイズが最小"
+"になるように適用する係数を自動的に評価します。\n"
+"- 2つ目の方法は、撮影ソフトウェアで露光時間が入力されている場合、それを考慮に"
+"入れます。\n"
+"\n"
+"ダーク最適化は、暗い画像が最適な条件下で撮影されていない場合に役立ちます。温"
+"度や露光時間の違いを補正します。\n"
+"\n"
+"<b>警告: </b> マスターバイアスを事前に差し引いていない場合は、マスターダーク"
+"にダーク最適化を適用しないでください。"
 
 #: src/gui/uifiles/siril.ui:4880
-#, fuzzy
 msgid "No dark optimization"
-msgstr "最適化"
+msgstr "ダーク最適化なし"
 
 #: src/gui/uifiles/siril.ui:4881
-#, fuzzy
 msgid "Auto-evaluation"
-msgstr "Pixel Area Relation"
+msgstr "自動評価"
 
 #: src/gui/uifiles/siril.ui:4882
 msgid "Use Exposure"
-msgstr ""
+msgstr "露光を使用"
 
 #: src/gui/uifiles/siril.ui:4902
-#, fuzzy
 msgid "Image calibration"
-msgstr "画像整列"
+msgstr "画像キャリブレーション"
 
 #: src/gui/uifiles/siril.ui:4928
 msgid "Enable Cosmectic Correction"
@@ -9137,14 +9129,14 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4962
 msgid "CFA data"
-msgstr ""
+msgstr "CFAデータ"
 
 #: src/gui/uifiles/siril.ui:5008 src/gui/uifiles/siril.ui:5032
 #: src/gui/uifiles/siril.ui:5062 src/gui/uifiles/siril.ui:5076
 msgid ""
 "How many times the standard deviation, the pixel value must differ to be "
 "considered as defective."
-msgstr ""
+msgstr "標準偏差の何倍の差があれば、ピクセル値は不良とみなされるか。"
 
 #: src/gui/uifiles/siril.ui:5048
 msgid ""
@@ -9156,19 +9148,16 @@ msgstr ""
 "その値が pixel 総数の 1 % 以上ならば、標準偏差の値を変える事が推奨されます."
 
 #: src/gui/uifiles/siril.ui:5099 src/gui/uifiles/siril.ui:5111
-#, fuzzy
 msgid "0 px"
-msgstr "過: 0 px"
+msgstr "0 px"
 
 #: src/gui/uifiles/siril.ui:5132
-#, fuzzy
 msgid "Master-dark"
-msgstr "Flat を使用"
+msgstr "マスターダーク"
 
 #: src/gui/uifiles/siril.ui:5141
-#, fuzzy
 msgid "Using Master-Dark"
-msgstr "Flat を使用"
+msgstr "マスターダークを使用"
 
 #: src/gui/uifiles/siril.ui:5167
 msgid ""
@@ -12613,13 +12602,12 @@ msgid "Crop Sequence"
 msgstr "シーケンスの切り抜き"
 
 #: src/algos/geometry.c:844
-#, fuzzy
 msgid "Scale Sequence"
-msgstr "シーケンスの切り抜き"
+msgstr "スケールシーケンス"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
-msgstr ""
+msgstr "ノイズの標準偏差: 計算中...\n"
 
 #: src/algos/noise.c:73 src/algos/noise.c:77
 #, c-format
