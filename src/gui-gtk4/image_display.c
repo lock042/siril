@@ -2688,10 +2688,27 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		const double xx = gui.display_matrix.xx;
 		const double yy = gui.display_matrix.yy;
 
+		/* Device (logical -> physical) scale of the surface: 2.0 on a macOS
+		 * Retina display, a fractional value (e.g. 1.25) under Wayland
+		 * fractional scaling, 1.0 on a plain display.  We fold it into the
+		 * per-node rects below so the TextureScaleNode rasterises straight
+		 * at physical resolution; otherwise GSK applies this residual scale
+		 * with its default (linear) filter, softening the image at every
+		 * zoom - independently of the zoom-into-rect trick described next. */
+		double ds = 1.0;
+		GtkNative *native = gtk_widget_get_native(widget);
+		if (native) {
+			GdkSurface *surface = gtk_native_get_surface(native);
+			if (surface)
+				ds = gdk_surface_get_scale(surface);
+		}
+		if (!(ds > 0.0))
+			ds = 1.0;
+
 		/* We deliberately do NOT apply gtk_snapshot_scale(xx, yy) here and
 		 * pass image-space rects.  Doing so makes the TextureScaleNode's
 		 * rect equal to the mip-0 texture size (a no-op scale), so its
-		 * GskScalingFilter is ignored — GSK then upscales to widget-space
+		 * GskScalingFilter is ignored - GSK then upscales to widget-space
 		 * via the ambient transform with the renderer's default (linear)
 		 * filter, blurring pixel edges at zoom > 1.  Instead we push the
 		 * zoom into the per-tile rect dimensions, so the TextureScaleNode
@@ -2711,6 +2728,18 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				&GRAPHENE_POINT_INIT(0.0f, (float)(yy * img_h)));
 			gtk_snapshot_scale(snapshot, 1.0f, -1.0f);
 		}
+
+		/* Compensate the device scale on the snapshot transform, then fold
+		 * it into the rect dimensions (sx/sy below): the inverse scale keeps
+		 * on-screen geometry identical while the rects now express physical
+		 * pixels, so the TextureScaleNode does its rasterise-and-scale at the
+		 * true screen resolution and `filter` is honoured to the pixel.  Note
+		 * the livestacking y-flip translate above stays in logical space — it
+		 * is applied before this inverse scale. */
+		if (ds != 1.0)
+			gtk_snapshot_scale(snapshot, (float)(1.0 / ds), (float)(1.0 / ds));
+		const double sx = xx * ds;
+		const double sy = yy * ds;
 
 		const double zoom = get_zoom_val();
 		/* TRILINEAR for downscale: mipmap pre-filtering gives correct
@@ -2732,7 +2761,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		if (draw_proxy && proxy_ref) {
 			gtk_snapshot_append_scaled_texture(snapshot, proxy_ref, filter,
 				&GRAPHENE_RECT_INIT(0.0f, 0.0f,
-					(float)(img_w * xx), (float)(img_h * yy)));
+					(float)(img_w * sx), (float)(img_h * sy)));
 		}
 
 		for (int ty = 0; ty < tile_rows; ty++) {
@@ -2749,10 +2778,10 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 					&th_unused, &tex_w_img, &tex_h_img);
 				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
 					&GRAPHENE_RECT_INIT(
-						(float)(x0 * xx),
-						(float)(y0 * yy),
-						(float)(tex_w_img * xx),
-						(float)(tex_h_img * yy)));
+						(float)(x0 * sx),
+						(float)(y0 * sy),
+						(float)(tex_w_img * sx),
+						(float)(tex_h_img * sy)));
 			}
 		}
 
