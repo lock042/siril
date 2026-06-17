@@ -40,6 +40,7 @@
 #include "core/initfile.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/splashscreen.h"
 
 #include "message_dialog.h"
 
@@ -48,6 +49,79 @@ static GtkWindow *msg_control_window = NULL;
 static void message_dialog_init_statics(void) {
 	if (msg_control_window) return;
 	msg_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+}
+
+/* ── Startup deferral guard ──────────────────────────────────────────────
+ *
+ * The whole of siril_app_activate() runs synchronously before the main
+ * window is mapped and before the GTK main loop starts.  A dialog raised in
+ * that window resolves its transient parent to the splash (about to be
+ * destroyed) or to the still-unmapped control_window, then spins a nested
+ * GMainLoop on a *modal* surface.  A modal grab anchored to a doomed or
+ * unmapped parent can wedge the entire desktop session on Wayland/KDE/Xorg
+ * (pointer moves, no clicks land anywhere) — the same failure class as a
+ * modal GtkWindow with no transient_for.  See reference: GTK4 modal
+ * transient-parent gotcha.
+ *
+ * dialogs_can_run_now() is TRUE only once the splash is gone and the main
+ * window is actually mapped, i.e. when it is safe to anchor a modal and run
+ * its nested loop.  Fire-and-forget message/data dialogs raised before that
+ * point are queued and flushed once the window is up; value-returning
+ * confirm dialogs (which cannot be answered synchronously before the loop
+ * runs) fall back to the safe "cancel" default rather than freezing. */
+static gboolean dialogs_can_run_now(void) {
+	if (is_splash_screen_active())
+		return FALSE;
+	GtkWidget *cw = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	return cw && gtk_widget_get_mapped(cw);
+}
+
+struct pending_msg {
+	GtkMessageType type;
+	gchar *title;
+	gchar *text;
+	gchar *data;     /* NULL for a plain message dialog */
+};
+
+static GSList *pending_startup_dialogs = NULL;
+static guint   pending_flush_source = 0;
+
+static gboolean flush_pending_dialogs_cb(gpointer unused) {
+	(void)unused;
+	if (!dialogs_can_run_now())
+		return G_SOURCE_CONTINUE;     /* re-check on the next tick */
+
+	GSList *list = pending_startup_dialogs;
+	pending_startup_dialogs = NULL;
+	pending_flush_source = 0;
+
+	for (GSList *l = list; l; l = l->next) {
+		struct pending_msg *m = l->data;
+		/* The window is mapped now, so these run normally (modal, properly
+		 * parented) instead of re-deferring. */
+		if (m->data)
+			siril_data_dialog(m->type, m->title, m->text, m->data);
+		else
+			siril_message_dialog(m->type, m->title, m->text);
+		g_free(m->title);
+		g_free(m->text);
+		g_free(m->data);
+		g_free(m);
+	}
+	g_slist_free(list);
+	return G_SOURCE_REMOVE;
+}
+
+static void defer_message_dialog(GtkMessageType type, const char *title,
+		const char *text, const char *data) {
+	struct pending_msg *m = g_new0(struct pending_msg, 1);
+	m->type  = type;
+	m->title = g_strdup(title);
+	m->text  = g_strdup(text);
+	m->data  = data ? g_strdup(data) : NULL;
+	pending_startup_dialogs = g_slist_append(pending_startup_dialogs, m);
+	if (!pending_flush_source)
+		pending_flush_source = g_timeout_add(100, flush_pending_dialogs_cb, NULL);
 }
 
 gchar *strip_last_ret_char(gchar *str) {
@@ -238,6 +312,12 @@ gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text,
 	(void)type;  /* GtkAlertDialog/GtkWindow surrogate has no message-type icon */
 	if (com.headless || com.script)
 		return FALSE;
+	if (!dialogs_can_run_now()) {
+		/* Cannot run a modal nested loop before the main window is mapped
+		 * without risking a session-wide grab; answer the safe default. */
+		g_warning("Confirm dialog requested during startup ('%s'); returning cancel", title ? title : "");
+		return FALSE;
+	}
 	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
@@ -293,6 +373,10 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	(void)type;
 	if (com.headless || com.script)
 		return;
+	if (!dialogs_can_run_now()) {
+		defer_message_dialog(type, title, text, NULL);
+		return;
+	}
 	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
@@ -341,6 +425,10 @@ void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data
 	(void)type;
 	if (com.headless || com.script)
 		return;
+	if (!dialogs_can_run_now()) {
+		defer_message_dialog(type, title, text, data);
+		return;
+	}
 	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
@@ -359,6 +447,14 @@ void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data
 }
 
 static gboolean siril_confirm_dialog_internal(gchar *title, gchar *msg, gchar *button_accept, gboolean checkbutton, gboolean *user_data) {
+	if (!dialogs_can_run_now()) {
+		/* Cannot run a modal nested loop before the main window is mapped
+		 * without risking a session-wide grab; answer the safe default. */
+		g_warning("Confirm dialog requested during startup ('%s'); returning cancel", title ? title : "");
+		if (user_data)
+			*user_data = FALSE;
+		return FALSE;
+	}
 	GtkWindow *parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(parent)) {
 		message_dialog_init_statics();
