@@ -332,6 +332,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
@@ -349,6 +350,7 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -371,6 +373,7 @@ if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
