@@ -137,6 +137,18 @@ static GtkWidget *get_widget_by_index(int index) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
+/* When a transient dialog is hidden, some compositors (notably Wayland) do
+ * not automatically return keyboard focus to the parent window.  The main
+ * window then stops receiving key events, so the app/win accelerators
+ * (Ctrl+P, Ctrl+O, ...) silently stop working until the user clicks back
+ * into it.  Re-presenting the control window restores it as the active
+ * toplevel so the shortcuts keep working. */
+static void reactivate_main_window() {
+	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (main_win && gtk_widget_get_visible(main_win))
+		gtk_window_present(GTK_WINDOW(main_win));
+}
+
 /* Phase 14: GTK4 routes key input through GtkEventControllerKey instead
  * of the legacy "key-press-event" signal.  The escape-to-close behaviour
  * for the search-entry dialog is hooked via gtk_event_controller_key,
@@ -147,6 +159,7 @@ static gboolean check_escape(GtkEventControllerKey *ctrl, guint keyval,
 	if (keyval == GDK_KEY_Escape) {
 		GtkWidget *widget = GTK_WIDGET(data);
 		gtk_widget_set_visible(widget, FALSE);
+		reactivate_main_window();
 		return TRUE;
 	}
 	return FALSE;
@@ -203,6 +216,7 @@ void siril_open_dialog(gchar *id) {
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_set_visible(get_widget_by_id(id), FALSE);
+	reactivate_main_window();
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
@@ -212,13 +226,17 @@ void siril_close_dialog(gchar *id) {
 }
 
 void siril_close_preview_dialogs() {
+	gboolean closed_any = FALSE;
 	for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
 		GtkWidget *w = get_widget_by_index(i);
 		if (gtk_widget_get_visible(w) && (entries[i].has_preview)) {
 			entries[i].apply_function();
 			gtk_widget_set_visible(w, FALSE);
+			closed_any = TRUE;
 		}
 	}
+	if (closed_any)
+		reactivate_main_window();
 }
 
 // WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
@@ -228,6 +246,7 @@ void siril_close_preview_dialogs() {
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_set_visible(widget, FALSE);
+    reactivate_main_window();
     return TRUE;
 }
 
@@ -366,8 +385,16 @@ void siril_fc_add_filter_pattern(SirilFileChooser *fc, const gchar *title,
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, title);
 	gchar **patterns = g_strsplit(pattern, ";", -1);
-	for (gint i = 0; patterns[i] != NULL; i++)
+	for (gint i = 0; patterns[i] != NULL; i++) {
 		gtk_file_filter_add_pattern(f, patterns[i]);
+		/* Also register the bare suffix of each "*.ext" pattern. Pattern-only
+		 * filters don't tell platform-native save panels (notably macOS
+		 * NSSavePanel) which extension is expected, so the panel treats a
+		 * pre-filled "foo.fit" as a base name and re-appends ".fit", yielding
+		 * "foo.fit.fit". Declaring the suffix lets the panel recognise it. */
+		if (g_str_has_prefix(patterns[i], "*.") && patterns[i][2] != '\0')
+			gtk_file_filter_add_suffix(f, patterns[i] + 2);
+	}
 	g_strfreev(patterns);
 	siril_fc_add_filter(fc, f, set_default);
 	g_object_unref(f);

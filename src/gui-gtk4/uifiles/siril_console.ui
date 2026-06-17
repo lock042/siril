@@ -44,6 +44,8 @@
                   <object class="GtkLabel" id="statusbar_script">
                     <property name="halign">start</property>
                     <property name="hexpand">1</property>
+                    <property name="ellipsize">end</property>
+                    <property name="max-width-chars">1</property>
                     <property name="margin-bottom">2</property>
                     <property name="margin-end">6</property>
                     <property name="margin-start">6</property>

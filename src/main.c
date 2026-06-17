@@ -34,11 +34,7 @@
 #include <unistd.h>
 #include <fftw3.h>
 
-#ifdef USE_GTK4
 #include "gui-gtk4/histo_display.h"
-#else
-#include "gui/histo_display.h"
-#endif
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -65,20 +61,12 @@
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
-#ifdef USE_GTK4
 #include "gui-gtk4/gui_state.h"
-#else
-#include "gui/gui_state.h"
-#endif
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
 #include "algos/photometric_cc.h"
-#ifdef USE_GTK4
 #include "gui-gtk4/siril_actions.h"
-#else
-#include "gui/siril_actions.h"
-#endif
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/processing_thread.h"
@@ -95,22 +83,15 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
-#ifdef USE_GTK4
 #include "gui-gtk4/ui_files.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/siril_css.h"
 #include "gui-gtk4/splashscreen.h"
-#else
-#include "gui/ui_files.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
-#include "gui/siril_css.h"
-#include "gui/splashscreen.h"
-#endif
+#include "gui-gtk4/file_browser.h"
 
-/* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui/photometric_cc.h) */
+/* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui-gtk4/photometric_cc.h) */
 void force_paned_restore();
 
 /* the global variables of the whole project */
@@ -406,31 +387,20 @@ static void siril_app_startup(GApplication *application) {
 	 * that named-icon lookups (e.g. "siril" for the window's titlebar
 	 * icon) find /org/siril/ui/pixmaps/siril.svg.  Without this, a
 	 * stock-iconless dev build falls back to the broken-image / no-entry
-	 * placeholder.  The accessor differs between GTK versions:
-	 *   GTK3 — gtk_icon_theme_get_default()
-	 *   GTK4 — gtk_icon_theme_get_for_display(...)
+	 * placeholder.
 	 */
-#ifdef USE_GTK4
 	gtk_icon_theme_add_resource_path(
 		gtk_icon_theme_get_for_display(gdk_display_get_default()),
 		"/org/siril/ui/pixmaps");
-#else
-	gtk_icon_theme_add_resource_path(
-		gtk_icon_theme_get_default(),
-		"/org/siril/ui/pixmaps");
-#endif
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
 	register_toolkit_app_actions(application);
-	// Initialize GtkSource (only needed for gtksourceview-4; v5 auto-initialises).
-#ifndef USE_GTK4
-	gtk_source_init();
-#endif
+	/* GtkSourceView 5 auto-initialises, so no gtk_source_init() call is needed. */
 
-#if defined(USE_GTK4) && defined(OS_OSX)
+#if defined(OS_OSX)
 	/* GTK4's macOS backend dropped the GTK3 quartz workaround that forwarded
 	 * performKeyEquivalent: to keyDown:.  Re-install it so Cmd+key shortcuts
 	 * reach GTK4's shortcut controller without requiring a native menu bar. */
@@ -570,11 +540,9 @@ static void siril_app_activate(GApplication *application) {
 
 		/* Load UI files */
 		update_splash_progress(_("Loading user interface..."), 0.65);
-#ifdef USE_GTK4
 		/* Register custom widget types before the builder reads any XML
 		 * that references them. */
 		siril_image_view_register();
-#endif
 		load_ui_files();
 		init_histogram_overlay();
 		siril_register_gui_iface();
@@ -586,7 +554,7 @@ static void siril_app_activate(GApplication *application) {
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
 
-#if defined(USE_GTK4) && defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
+#if defined(OS_OSX) && GTK_CHECK_VERSION(4, 18, 0)
 		/* Enable macOS-native traffic-light window controls on the headerbar.
 		 * Available since GTK 4.18; renders the close/minimise/maximise buttons
 		 * as native Cocoa widgets in the top-left corner instead of GTK-drawn
@@ -595,7 +563,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_header_bar_set_use_native_controls(bar, TRUE);
 #endif
 
-#if defined(USE_GTK4) && defined(OS_OSX)
+#if defined(OS_OSX)
 		/* GTK4's macOS backend automatically adds app.preferences and app.about
 		 * to the native Application menu, so hide them from the hamburger menu
 		 * to avoid duplicates. The separator between Preferences and the help
@@ -641,6 +609,15 @@ static void siril_app_activate(GApplication *application) {
 		log_num_procs();
 		siril_log_message(_("Supported file types: %s\n"), supported_files);
 		initialize_all_GUI(supported_files);
+
+		/* Warm GIO's volume monitor off the critical path.  The first
+		 * g_volume_monitor_get() spins up the native backend (D-Bus to
+		 * gvfs/udisks on Linux) and was the main reason the first Open
+		 * dialog was slow to appear.  A low-priority main-loop idle folds
+		 * that cost into idle launch time; it has to be the main thread
+		 * (GVolumeMonitor is not thread-default-context aware), not a
+		 * worker thread. */
+		g_idle_add_full(G_PRIORITY_LOW, siril_file_browser_prewarm, NULL, NULL);
 
 		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);

@@ -306,13 +306,21 @@ static gboolean script_version_check(const gchar *filename) {
 		g_free(buffer);
 	}
 	ERROR_OR_COMPLETE:
-	g_input_stream_close(stream, NULL, &error);
-	if (error)
+	/* Reachable with stream / data_input / file still NULL (e.g. g_file_read
+	 * failed, or a pre-read .pyc magic check bailed out).  Guard every
+	 * teardown so we don't trip G_IS_* assertions on NULL, and clear any
+	 * pending error before reusing it for the close. */
+	g_clear_error(&error);
+	if (stream)
+		g_input_stream_close(stream, NULL, &error);
+	if (error) {
 		siril_log_debug("Error closing data input stream from file\n");
+		g_clear_error(&error);
+	}
 	g_free(scriptpath);
-	g_object_unref(data_input);
-	g_object_unref(stream);
-	g_object_unref(file);
+	g_clear_object(&data_input);
+	g_clear_object(&stream);
+	g_clear_object(&file);
 	return retval;
 }
 
@@ -447,13 +455,21 @@ static gboolean pyscript_version_check(const gchar *filename) {
 			break;
 	}
 	ERROR_OR_COMPLETE:
-	g_input_stream_close(stream, NULL, &error);
-	if (error)
+	/* Reachable with stream / data_input / file still NULL (e.g. g_file_read
+	 * failed, or a pre-read .pyc magic check bailed out).  Guard every
+	 * teardown so we don't trip G_IS_* assertions on NULL, and clear any
+	 * pending error before reusing it for the close. */
+	g_clear_error(&error);
+	if (stream)
+		g_input_stream_close(stream, NULL, &error);
+	if (error) {
 		siril_log_debug("Error closing data input stream from file\n");
+		g_clear_error(&error);
+	}
 	g_free(scriptpath);
-	g_object_unref(data_input);
-	g_object_unref(stream);
-	g_object_unref(file);
+	g_clear_object(&data_input);
+	g_clear_object(&stream);
+	g_clear_object(&file);
 	return retval;
 }
 

@@ -471,6 +471,18 @@ static void on_siril_plot_save_activate(GtkWidget *menuitem, gpointer user_data)
 	g_free(outname);
 }
 
+// A GtkButton centers its label by default; for a menu-style entry inside the
+// popover we want the text flush left, so left-align the internal label.
+static GtkWidget *spl_menu_button_new(const char *text) {
+	GtkWidget *button = gtk_button_new_with_label(text);
+	GtkWidget *child = gtk_button_get_child(GTK_BUTTON(button));
+	if (GTK_IS_LABEL(child)) {
+		gtk_label_set_xalign(GTK_LABEL(child), 0.0);
+		gtk_widget_set_halign(child, GTK_ALIGN_FILL);
+	}
+	return button;
+}
+
 gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *window, *vbox, *da, *label, *menu;
 	GtkWidget *spl_menu_grid, *spl_menu_legend;
@@ -599,24 +611,24 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	spl_menu_sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 
 	// save to clipboard
-	spl_menu_save_cb = gtk_button_new_with_label("Save view to Clipboard");
+	spl_menu_save_cb = spl_menu_button_new("Save view to Clipboard");
 	gtk_widget_set_name(spl_menu_save_cb, "cb");
 	g_signal_connect(G_OBJECT(spl_menu_save_cb), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
 
 	// save as png
-	spl_menu_save_png = gtk_button_new_with_label("Save view as PNG");
+	spl_menu_save_png = spl_menu_button_new("Save view as PNG");
 	gtk_widget_set_name(spl_menu_save_png, "png");
 	g_signal_connect(G_OBJECT(spl_menu_save_png), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
 
 #ifdef CAIRO_HAS_SVG_SURFACE
 	// save as svg
-	spl_menu_save_svg = gtk_button_new_with_label("Save view as SVG");
+	spl_menu_save_svg = spl_menu_button_new("Save view as SVG");
 	gtk_widget_set_name(spl_menu_save_svg, "svg");
 	g_signal_connect(G_OBJECT(spl_menu_save_svg), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
 #endif
 
 	// save as dat
-	spl_menu_save_dat = gtk_button_new_with_label("Export dat file");
+	spl_menu_save_dat = spl_menu_button_new("Export dat file");
 	gtk_widget_set_name(spl_menu_save_dat, "dat");
 	g_signal_connect(G_OBJECT(spl_menu_save_dat), "clicked", G_CALLBACK(on_siril_plot_save_activate), window);
 

@@ -41,7 +41,6 @@ static GtkWidget *apass_radio = NULL;
 static GtkWidget *check_narrow = NULL;
 static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
 static GtkWidget *auto_data_grp;
-static GtkToggleButton *annotate_button = NULL;
 
 static void on_compstars_response(GtkWindow *self, gint response_id, gpointer user_data);
 
@@ -61,16 +60,20 @@ static gboolean end_compstars(gpointer p) {
 	if (args->has_GUI && !args->retval) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(args->comp_stars)) {
-			if (!annotate_button)
-			annotate_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
-		GtkToggleButton *button = annotate_button;
+			/* the annotate button is bound to the win.annotate-object action;
+			 * unlike GTK3, setting the toggle active in GTK4 does not activate
+			 * the action, so drive the action state directly */
+			GActionMap *map = G_ACTION_MAP(gtk_builder_get_object(gui.builder, "control_window"));
+			GAction *annotate = g_action_map_lookup_action(map, "annotate-object");
 			refresh_found_objects();
-			if (!siril_toggle_get_active(GTK_WIDGET(button))) {
-				siril_toggle_set_active(GTK_WIDGET(button), TRUE);
+			GVariant *state = g_action_get_state(annotate);
+			if (!g_variant_get_boolean(state)) {
+				g_action_change_state(annotate, g_variant_new_boolean(TRUE));
 			} else {
 				refresh_found_objects();
 				redraw(REDRAW_OVERLAY);
 			}
+			g_variant_unref(state);
 		}
 	} else {
 		siril_catalog_free(args->comp_stars);
@@ -92,6 +95,9 @@ static void build_the_dialog() {
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	/* A modal GtkWindow with no transient parent grabs input with no anchor
+	 * and can wedge the whole session on Wayland/Xorg. */
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
 	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 

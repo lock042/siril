@@ -20,7 +20,7 @@
 #include "core/undo.h"
 #include "core/gui_iface.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
-#include "gui/user_polygons.h"
+#include "gui-gtk4/user_polygons.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -3503,7 +3503,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				gui_iface.show_or_hide_mask_tab();
 				if (!com.script) {
-					gui_iface.redraw_mask_idle();
+					gui_iface.redraw_mask_idle(TRUE); // mask data changed: tints are stale
 				}
 			}
 			break;

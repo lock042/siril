@@ -1373,7 +1373,9 @@ gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
 	gui_iface.on_mask_state_changed();
-	gui_iface.queue_redraw_mask();
+	/* The mask worker modified the mask data and does not remap the display,
+	 * so the tinted image vports are stale: request the tint remap. */
+	gui_iface.queue_redraw_mask(TRUE);
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1383,7 +1385,10 @@ gboolean end_generic_image_update_gfit(gpointer p) {
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
-		gui_iface.queue_redraw_mask();
+		/* generic_image_worker already ran notify_gfit_data_modified() with
+		 * the final mask in place, so the tints are current: only the mask
+		 * vport buffer needs refreshing. */
+		gui_iface.queue_redraw_mask(FALSE);
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -1547,7 +1552,7 @@ gpointer generic_image_worker(gpointer p) {
 	 * a local. */
 	fits *argfit = args->fit;
 	gboolean argpreview = args->for_preview;
-	gboolean arg_custom_undo = args->custom_undo;
+	gboolean arg_skip_undo = args->skip_generic_undo;
 	gboolean arg_update_gfit = args->command_updates_gfit;
 	gboolean verbose = args->verbose || !args->for_preview;
 	gchar* desc = g_strdup(args->description);
@@ -1694,7 +1699,7 @@ gpointer generic_image_worker(gpointer p) {
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description);
 		/* Undo only applies on the swap path (argfit == gfit), not
 		 * when previewing or running from a script. */
-		undo_state = use_swap && !(args->custom_undo || args->for_preview || com.script);
+		undo_state = use_swap && !(args->skip_generic_undo || args->for_preview || com.script);
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1710,9 +1715,9 @@ the_end:;
 	 * through the swap onto gfit (swap path), or lands directly on
 	 * args->fit (non-swap path).  Skipped when undo_save_state() will
 	 * persist its own log_hook entry, or when the caller has its own
-	 * custom_undo flow. */
+	 * skip_generic_undo flow. */
 	gboolean append_history_fallback =
-	    !retval && !(undo_state && orig) && !arg_custom_undo && arg_update_gfit;
+	    !retval && !(undo_state && orig) && !arg_skip_undo && arg_update_gfit;
 	if (append_history_fallback) {
 		hook_fit->history = g_slist_append(hook_fit->history, g_strdup(history));
 		update_fits_header(hook_fit);
