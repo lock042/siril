@@ -28,6 +28,7 @@ siril-1.5.0
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
 * Fixed command help popover being too tall on low-resolution screens
 
 siril-1.4.4
