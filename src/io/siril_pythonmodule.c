@@ -2090,7 +2090,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_return_val_if_fail(venv_path != NULL, FALSE);
 
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-	siril_debug_print("Python path: %s\n", python_path ? python_path : "null");
+	siril_debug_print("Python path: %s\n", python_path);
 	g_return_val_if_fail(python_path != NULL, FALSE);
 
 	// Verify the python executable is actually executable

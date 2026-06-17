@@ -1324,8 +1324,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 */
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->ref_stars->cat_items)
-		if (get_catalog_stars(args->ref_stars))
-			return 1;
+		get_catalog_stars(args->ref_stars);
 	TRANS t = { 0 };
 	int ret = SOLVE_NO_MATCH;
 	double ra = -1., dec = -1.;
