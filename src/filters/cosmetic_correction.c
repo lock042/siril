@@ -45,8 +45,6 @@
 #include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
-static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
-		double amount, gboolean is_cfa, threading_type threads);
 
 /* see also getMedian3x3 in algos/PSF.c */
 static float getMedian5x5_float(const float *buf, const int xx, const int yy, const int w,
@@ -622,9 +620,8 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 	}
 }
 
-/* this is an autodetect algorithm. Cold and hot pixels
- *  are corrected in the same time */
-static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
+/* this is an autodetect algorithm. Cold and hot pixels are corrected in the same time */
+int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
 		double amount, gboolean is_cfa, threading_type threading) {
 
 	/* XXX: if cfa, stats are irrelevant. We should compute them taking

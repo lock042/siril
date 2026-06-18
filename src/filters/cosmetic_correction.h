@@ -34,6 +34,9 @@ struct deviant_struct {
 	typeOfDeviant type;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 deviant_pixel *find_deviant_pixels(fits *fit, const double sig[2], long *icold, long *ihot, gboolean eval_only);
 void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args);
 int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa);
@@ -42,7 +45,12 @@ gpointer autoDetectThreaded(gpointer p);
 int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_CFA);
 int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa);
 int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa);
+int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
+		double amount, gboolean is_cfa, threading_type threads);
 
 int denoise_hook_cosmetic(fits *fit);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COSMETIC_CORRECTION_H_ */
