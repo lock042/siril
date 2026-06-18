@@ -185,7 +185,7 @@ macos:
     ORKA_RUNNER: sonoma-5
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
-    SDKROOT: /opt/sdks/MacOSX11.3.sdk
+    SDKROOT: /opt/sdks/MacOSX13.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
     SM_REPO_REF: 7f306663cd1f0deff7739b51097bb9fd6d67d8b5
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
