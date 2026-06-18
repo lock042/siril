@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-03-09 21:55+0000\n"
+"PO-Revision-Date: 2026-05-18 21:10+0000\n"
 "Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -24091,7 +24091,7 @@ msgstr "facteur de quantification pour nombres flottants 32 bits"
 
 #: src/core/settings.c:443
 msgid "Hcompress scale factor"
-msgstr "HCompress, facteur d'echelle"
+msgstr "Facteur d'échelle HCompress"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
 #: src/core/settings.c:446

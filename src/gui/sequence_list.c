@@ -846,6 +846,12 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 			valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
 		}
 	}
+	if (!found) {
+		// index not present in the list (e.g. an out-of-range seq->current):
+		// iter is invalid here, using it would trigger a GtkTreeModel assertion
+		siril_debug_print("sequence_list_select_row_from_index: index %d not found in list\n", index);
+		return;
+	}
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
 	if (!model) return;
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view)); //clear current selection

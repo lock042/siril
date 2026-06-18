@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-05-09 10:17+0000\n"
+"PO-Revision-Date: 2026-05-22 07:53+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -14847,9 +14847,8 @@ msgid "Manual alignment"
 msgstr "Выравнивание вручную"
 
 #: src/compositing/compositing.c:832
-#, fuzzy
 msgid "Select source image"
-msgstr "Выберите изображение"
+msgstr "Выберите исходное изображение"
 
 #: src/compositing/compositing.c:872
 msgid "Could not display image, unloading it\n"
@@ -29545,7 +29544,7 @@ msgstr "Извлечение индекса в кэш\n"
 
 #: src/io/healpix/healpix.cpp:440
 msgid "Failed to download index via HTTP\n"
-msgstr "Загрузка индекса через HTTP не удалась\n"
+msgstr "Не удалось скачать индекс через HTTP\n"
 
 #: src/io/healpix/healpix.cpp:447
 msgid "Failed to write index cache file\n"

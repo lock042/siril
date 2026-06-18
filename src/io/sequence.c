@@ -1725,8 +1725,16 @@ void close_sequence(int loading_sequence_from_combo) {
  * selected in the sequence, the best of the first registration data found if
  * any, the first otherwise */
 int sequence_find_refimage(sequence *seq) {
-	if (seq->reference_image != -1)
-		return seq->reference_image;
+	if (seq->reference_image != -1) {
+		// guard against a corrupted/out-of-range reference stored in the .seq
+		// file: returning it as-is would set seq->current out of bounds and
+		// lead to out-of-bounds accesses on imgparam/regparam (see #1950)
+		if (seq->reference_image >= 0 && seq->reference_image < seq->number)
+			return seq->reference_image;
+		siril_log_color_message(_("Invalid reference image (%d) in sequence, resetting it\n"),
+				"salmon", seq->reference_image);
+		seq->reference_image = -1;
+	}
 	if (seq->type == SEQ_INTERNAL)
 		return 1; // green channel
 	int layer, image, best = -1;
@@ -2218,7 +2226,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (framing == REGISTERED_FRAME) {
-		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
+		if (seq->reference_image < 0 || seq->reference_image >= seq->number) seq->reference_image = sequence_find_refimage(seq);
 		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
@@ -2412,6 +2420,8 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
 		return FALSE;
 	}
+	if (seq->reference_image < 0 || seq->reference_image >= seq->number)
+		seq->reference_image = sequence_find_refimage(seq);
 	double orig_x = (double)(seq->rx / 2.);
 	double orig_y = (double)(seq->ry / 2.);
 	for (int i = 0; i < seq->number; i++) {

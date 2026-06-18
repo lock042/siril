@@ -182,12 +182,12 @@ macos:
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "500Mi"
-    ORKA_RUNNER: sonoma-2
+    ORKA_RUNNER: sonoma-5
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 5bcfbecdf28cd11a89e820118a36df0019cb5281
+    SM_REPO_REF: 7f306663cd1f0deff7739b51097bb9fd6d67d8b5
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -206,8 +206,8 @@ macos:
       PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
         sm/build_toolset.sh
-        rm $VER_DIR/var/cache/pkg/.skip
-        sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
+        rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
+        sm/jhb/usr/bin/jhb run rustup self uninstall -y
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
         curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
@@ -242,7 +242,7 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 63
+    SDW_VERSION: 68
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
