@@ -204,15 +204,15 @@ macos:
       SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
       VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
       PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
-      if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
+      # if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
         sm/build_toolset.sh
         rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
         sm/jhb/usr/bin/jhb run rustup self uninstall -y
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
-        curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
+        # curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
         rm -rf ${VER_DIR:?}
-      fi
+      # fi
     - sm/jhb/usr/bin/archive install_dmg
     - sm/build_siril.sh
   after_script:
