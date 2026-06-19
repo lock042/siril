@@ -4043,6 +4043,39 @@ static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
 	return y + radius * sin(angle);
 }
 
+static void draw_arrow(cairo_t *cr, double x1, double y1, double x2, double y2, double ratio) {
+	double length = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+	if (length < 1e-6) return;  // Avoid division by zero
+	if (ratio > 1.0) ratio = 1.0;
+	if (ratio < 0.0) ratio = 0.0;
+	
+	// Draw the line
+	cairo_move_to(cr, x1, y1);
+	cairo_line_to(cr, x2, y2);
+	cairo_stroke(cr);
+	
+	// Draw the arrowhead
+	double arrowhead_length = length * ratio;
+	double dx = (x2 - x1) / length;  // normalized direction vector
+	double dy = (y2 - y1) / length;
+	double px = -dy;  // perpendicular vector
+	double py = dx;
+	
+	// Arrowhead base (perpendicular to trajectory)
+	double base_x1 = x2 - dx * arrowhead_length + px * arrowhead_length * 0.5;
+	double base_y1 = y2 - dy * arrowhead_length + py * arrowhead_length * 0.5;
+	double base_x2 = x2 - dx * arrowhead_length - px * arrowhead_length * 0.5;
+	double base_y2 = y2 - dy * arrowhead_length - py * arrowhead_length * 0.5;
+	
+	// Draw arrowhead lines
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x1, base_y1);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x2, base_y2);
+	cairo_stroke(cr);
+}
+
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	gdouble resolution = get_wcs_image_resolution(gfit);
@@ -4055,16 +4088,19 @@ static void draw_annotates(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
+	gboolean show_sso_vectors = get_annotation_visibility(CAT_AN_SSO_VECTORS);
 
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
-		gdouble radius = get_catalogue_object_radius(object);
-		gdouble x = get_catalogue_object_x(object);
-		gdouble y = get_catalogue_object_y(object);
-		gdouble x1 = get_catalogue_object_x1(object);
-		gdouble y1 = get_catalogue_object_y1(object);
+		gdouble radius = object->radius;
+		gdouble x = object->x;
+		gdouble y = object->y;
+		gdouble x1 = object->x1;
+		gdouble y1 = object->y1;
+		gdouble x2 = object->x2;
+		gdouble y2 = object->y2;
 		gchar *code = get_catalogue_object_code_pretty(object);
-		guint catalog = get_catalogue_object_cat(object);
+		guint catalog = object->catalogue;
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;
 		double addoffset = 0.;
@@ -4103,6 +4139,17 @@ static void draw_annotates(const draw_data_t* dd) {
 		if (catalog == CAT_AN_CONST) { // constellation line
 			cairo_move_to(cr, x, y);
 			cairo_line_to(cr, x1, y1);
+			cairo_stroke(cr);
+		} else if ((catalog == CAT_AN_USER_TEMP || catalog == CAT_AN_USER_SSO) && (x1 != 0 || y1 != 0)) {
+			// Handle sso moving
+			if (show_sso_vectors) {
+				if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
+					draw_arrow(cr, x1, y1, x2, y2, 0.1);
+				} else {
+					draw_arrow(cr, x, y, x1, y1, 0.2);
+				}
+			}
+			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 			cairo_stroke(cr);
 		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
@@ -4145,7 +4192,6 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_show_text(cr, name);
 			cairo_stroke(cr);
 		}
-
 	}
 }
 
