@@ -40,6 +40,22 @@
   #define FAST_MATH_POP
 #endif
 
+/* Function decorator that lets the compiler assume floating-point operations do
+ * not trap. This permits speculative (branch-free) execution of select-heavy
+ * code such as the colour-space transforms, which is what unlocks their
+ * auto-vectorisation. It is much milder than -ffast-math: no reassociation, no
+ * loss of precision and NaN semantics are preserved - only FP-trap reliance is
+ * dropped (Siril never enables FP exception traps). clang already assumes this
+ * by default, so it needs no decoration. Apply to the inline maths core *and*
+ * to the loop-bearing caller for GCC to vectorise through the inlined body. */
+#if defined(__clang__)
+  #define SIRIL_VECTORIZABLE
+#elif defined(__GNUC__)
+  #define SIRIL_VECTORIZABLE __attribute__((optimize("no-trapping-math")))
+#else
+  #define SIRIL_VECTORIZABLE
+#endif
+
 #ifdef SIRIL_OUTPUT_DEBUG
 #define DEBUG_TEST 1
 #else

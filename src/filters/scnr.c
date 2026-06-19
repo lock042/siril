@@ -84,7 +84,7 @@ static int scnr_process(struct scnr_data *args, fits *fit) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
-		double red, green, blue;
+		double red = 0.0, green = 0.0, blue = 0.0;
 		switch (fit->type) {
 			case DATA_USHORT:
 				red = fit->pdata[RLAYER][i] * invnorm;
@@ -100,10 +100,11 @@ static int scnr_process(struct scnr_data *args, fits *fit) {
 				break;
 		}
 
-		double x, y, z, L, a, b, m;
+		double m;
+		float x, y, z, L, a, b;
 		if (args->preserve) {
-			linrgb_to_xyz(red, green, blue, &x, &y, &z, TRUE);
-			xyz_to_LAB(x, y, z, &L, &a, &b);
+			linrgb_to_xyzf(red, green, blue, &x, &y, &z, TRUE);
+			xyz_to_LABf(x, y, z, &L, &a, &b);
 		}
 
 		switch (args->type) {
@@ -125,11 +126,12 @@ static int scnr_process(struct scnr_data *args, fits *fit) {
 		}
 
 		if (args->preserve) {
-			double tmp;
-			linrgb_to_xyz(red, green, blue, &x, &y, &z, TRUE);
-			xyz_to_LAB(x, y, z, &tmp, &a, &b);
-			LAB_to_xyz(L, a, b, &x, &y, &z);
-			xyz_to_linrgb(x, y, z, &red, &green, &blue, TRUE);
+			float tmp, rf, gf, bf;
+			linrgb_to_xyzf(red, green, blue, &x, &y, &z, TRUE);
+			xyz_to_LABf(x, y, z, &tmp, &a, &b);
+			LAB_to_xyzf(L, a, b, &x, &y, &z);
+			xyz_to_linrgbf(x, y, z, &rf, &gf, &bf, TRUE);
+			red = rf; green = gf; blue = bf;
 			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
 				g_atomic_int_inc(&nb_above_1);
 		}

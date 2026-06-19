@@ -660,6 +660,7 @@ ENDEST:
 	return GINT_TO_POINTER(retval);
 }
 
+SIRIL_VECTORIZABLE
 gpointer deconvolve(gpointer p) {
 	gui_iface.lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
 	// done, in order not to have the_fit changed under us
@@ -764,7 +765,7 @@ gpointer deconvolve(gpointer p) {
 		yuvdata = malloc(npixels * args->fit->naxes[2] * sizeof(float));
 #ifdef _OPENMP
 		threads = sequence_is_running ? 1 : com.max_thread;
-#pragma omp parallel for num_threads(threads) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			rgb_to_yuvf(args->fdata[i], args->fdata[i + npixels], args->fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
@@ -813,7 +814,7 @@ gpointer deconvolve(gpointer p) {
 		args->nchans = 3;
 		args->fdata = malloc(npixels * args->nchans * sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) schedule(static)
+#pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args->fdata[i], &args->fdata[i + npixels], &args->fdata[i + 2 * npixels]);

@@ -95,6 +95,15 @@ if criterion_dep.found()
 
      test('siril_spawn_test', siril_spawn_test_exec)
 
+     color_transforms_exec = executable('color_transforms_test',
+                                        'color_transforms_test.c',
+                                        dependencies : [siril_dep, criterion_dep],
+                                        link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                        c_args : siril_c_flag,
+                                        cpp_args : siril_cpp_flag)
+
+     test('color_transforms_test', color_transforms_exec, suite: 'arithmetic')
+
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',
                                        dependencies : [siril_dep, criterion_dep],

@@ -920,6 +920,7 @@ void apply_ght_to_fits_channel(fits *from, fits *to, int channel, ght_params *pa
 }
 
 /* Can't avoid creation of a full-sized float buffer here owing to the need to convert to hsl and back */
+SIRIL_VECTORIZABLE
 void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded) {
 	g_assert(fit);
 	g_assert(fit->naxes[2] == 1 || fit->naxes[2] == 3);
@@ -931,7 +932,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (multithreaded)
 		{
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				rgb_to_hslf(fit->fpdata[RLAYER][i], fit->fpdata[GLAYER][i], fit->fpdata[BLAYER][i], &fit->fpdata[HLAYER][i], &fit->fpdata[SLAYER][i], &fit->fpdata[LLAYER][i]);
@@ -944,7 +945,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 			apply_linked_ght_to_fbuf_indep(fit->fpdata[SLAYER], fit->fpdata[SLAYER], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				hsl_to_rgbf(fit->fpdata[HLAYER][i], fit->fpdata[SLAYER][i], fit->fpdata[LLAYER][i], &fit->fpdata[RLAYER][i], &fit->fpdata[GLAYER][i], &fit->fpdata[BLAYER][i]);

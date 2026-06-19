@@ -1546,9 +1546,9 @@ static void luminance_and_colors_align_and_compose() {
 	for (y = 0; y < gfit->ry; y++) {
 		for (x = 0; x < gfit->rx; x++) {
 			int layer;
-			gdouble h, s, i;
-			gdouble X, Y, Z;
-			gdouble a, b;
+			float h, s, i;
+			float X, Y, Z;
+			float a, b;
 			/* get color information */
 			GdkRGBA pixel;
 			clear_pixel(&pixel);
@@ -1561,36 +1561,28 @@ static void luminance_and_colors_align_and_compose() {
 			}
 			rgb_pixel_limiter(&pixel);
 
-			/* GdkRGBA fields are float in GTK4 but the colour-space
-			 * helpers all take double*; use scratch doubles. */
+			/* GdkRGBA fields are float in GTK4; the colour-space helpers
+			 * operate in single precision and write straight into them. */
+			float invnorm = 1.0f / (float) norm;
 			switch (coloring_type) {
-				case HSL: {
-					double r, g, bb;
-					rgb_to_hsl(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					hsl_to_rgb(h, s, i, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
+				case HSL:
+					rgb_to_hslf(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
+					i = get_composition_pixel_value(0, 0, x, y) * invnorm;
+					hsl_to_rgbf(h, s, i, &pixel.red, &pixel.green, &pixel.blue);
 					break;
-				}
-				case HSV: {
-					double r, g, bb;
-					rgb_to_hsv(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					hsv_to_rgb(h, s, i, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
+				case HSV:
+					rgb_to_hsvf(pixel.red, pixel.green, pixel.blue, &h, &s, &i);
+					i = get_composition_pixel_value(0, 0, x, y) * invnorm;
+					hsv_to_rgbf(h, s, i, &pixel.red, &pixel.green, &pixel.blue);
 					break;
-				}
-				case CIELAB: {
-					double r, g, bb;
-					rgb_to_xyz(pixel.red, pixel.green, pixel.blue, &X, &Y, &Z);
-					xyz_to_LAB(X, Y, Z, &i, &a, &b);
-					i = (double) get_composition_pixel_value(0, 0, x, y) / norm;
-					i *= 100.0; // 0 < L < 100
-					LAB_to_xyz(i, a, b, &X, &Y, &Z);
-					xyz_to_rgb(X, Y, Z, &r, &g, &bb);
-					pixel.red = r; pixel.green = g; pixel.blue = bb;
+				case CIELAB:
+					rgb_to_xyzf(pixel.red, pixel.green, pixel.blue, &X, &Y, &Z);
+					xyz_to_LABf(X, Y, Z, &i, &a, &b);
+					i = get_composition_pixel_value(0, 0, x, y) * invnorm;
+					i *= 100.0f; // 0 < L < 100
+					LAB_to_xyzf(i, a, b, &X, &Y, &Z);
+					xyz_to_rgbf(X, Y, Z, &pixel.red, &pixel.green, &pixel.blue);
 					break;
-				}
 			}
 
 			rgb_pixel_limiter(&pixel);
@@ -1654,31 +1646,25 @@ static void update_result(int and_refresh) {
 
 // update the saturated color from the new real colour
 static void color_has_been_updated(int layer) {
-	double h, s, v;
+	float h, s, v;
 	GdkRGBA *real = &layers[layer]->color;
 	GdkRGBA *satu = &layers[layer]->saturated_color;
-	rgb_to_hsv(real->red, real->green, real->blue, &h, &s, &v);
+	rgb_to_hsvf(real->red, real->green, real->blue, &h, &s, &v);
 	printf("%d: saturation: %g, light: %g\n", layer, s, v);
 	/* in HSL, the actual saturated pure colour happens at l=0.5 and s=1 */
-	s = 1.0;
-	v = 1.0;
-	{
-		double r, g, b;
-		hsv_to_rgb(h, s, v, &r, &g, &b);
-		satu->red = r; satu->green = g; satu->blue = b;
-	}
+	s = 1.0f;
+	v = 1.0f;
+	hsv_to_rgbf(h, s, v, &satu->red, &satu->green, &satu->blue);
 	printf("%d: r: %g, g: %g, b: %g\n", layer, satu->red, satu->green, satu->blue);
 }
 
 // update a real colour from the saturated colour with a new lightness
 static void update_color_from_saturation(int layer, double newl) {
-	double h, s, v;
+	float h, s, v;
 	GdkRGBA *real = &layers[layer]->color;
 	GdkRGBA *satu = &layers[layer]->saturated_color;
-	rgb_to_hsv(satu->red, satu->green, satu->blue, &h, &s, &v);
-	double r, g, b;
-	hsv_to_rgb(h, s, newl, &r, &g, &b);
-	real->red = r; real->green = g; real->blue = b;
+	rgb_to_hsvf(satu->red, satu->green, satu->blue, &h, &s, &v);
+	hsv_to_rgbf(h, s, (float) newl, &real->red, &real->green, &real->blue);
 }
 
 /* Phase 14G.3: GtkColorChooserDialog::response is replaced by per-button
@@ -1854,23 +1840,19 @@ static void on_color_tile_drag_update(GtkGestureDrag *gesture,
 	gtk_gesture_drag_get_start_point(gesture, &sx, &sy);
 	double x = sx + offset_x;
 	double y = sy + offset_y;
-	double h, s, v;
-	rgb_to_hsv(qe_ref_color.red, qe_ref_color.green,
-	           qe_ref_color.blue, &h, &s, &v);
-	h += x / 600.0;
-	v -= y / 600.0;
-	while (h < 0.0) h += 1.0;
-	while (h > 1.0) h -= 1.0;
-	if (v < 0.0) v = 0.0;
-	if (v > 1.0) v = 1.0;
-	/* GdkRGBA fields are float in GTK4; hsv_to_rgb expects double*.  Use
-	 * stack doubles then narrow back into the GdkRGBA struct. */
-	double r, g, b;
-	hsv_to_rgb(h, s, v, &r, &g, &b);
+	float h, s, v;
+	rgb_to_hsvf(qe_ref_color.red, qe_ref_color.green,
+	            qe_ref_color.blue, &h, &s, &v);
+	h += (float)(x / 600.0);
+	v -= (float)(y / 600.0);
+	while (h < 0.0f) h += 1.0f;
+	while (h > 1.0f) h -= 1.0f;
+	if (v < 0.0f) v = 0.0f;
+	if (v > 1.0f) v = 1.0f;
+	/* GdkRGBA fields are float in GTK4; write the single-precision result
+	 * straight into them. */
 	GdkRGBA *col = &layers[current_layer_color_choosing]->color;
-	col->red   = (float)r;
-	col->green = (float)g;
-	col->blue  = (float)b;
+	hsv_to_rgbf(h, s, v, &col->red, &col->green, &col->blue);
 	/* The colour tile draws display_color, not color (see
 	 * draw_layer_color).  display_color normally holds the monitor-
 	 * space picked colour and color is its ICC-transformed image-space

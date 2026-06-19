@@ -268,14 +268,14 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 }
 
 
-static void fit_to_hsl() {
+static SIRIL_VECTORIZABLE void fit_to_hsl() {
 	size_t npixels = fit->rx * fit->ry;
 	if (fit->type == DATA_FLOAT) {
 		float* hf = (float*) huebuf;
 		float* sf = (float*) satbuf_orig;
 		float* lf = (float*) lumbuf;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
