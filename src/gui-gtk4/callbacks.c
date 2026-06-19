@@ -3252,7 +3252,9 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_data_ok_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_set_visible(lookup_widget("data_dialog"), FALSE);
+	GtkWidget *w = lookup_widget("data_dialog");
+	gtk_widget_set_visible(w, FALSE);
+	reactivate_parent(w);
 }
 
 void on_comboboxreglayer_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -3532,6 +3534,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full
 	 * for the model, so cv consumed the ref. */
 	g_object_unref(store);
+	reactivate_parent(dialog);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 
 	return selected_pid;

@@ -809,6 +809,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	} while (TRUE);
 
 	g_main_loop_unref(ctx.loop);
+	reactivate_parent(dialog);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 }
 

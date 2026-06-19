@@ -1691,6 +1691,10 @@ void on_colordialog_cancel_clicked(GtkButton *button, gpointer user_data) {
 	(void)button; (void)user_data;
 	current_layer_color_choosing = 0;
 	gtk_widget_set_visible(GTK_WIDGET(color_dialog), FALSE);
+	/* This dialog is transient for the compositing window, not the main
+	 * control window; reactivate_parent() reads that link off color_dialog
+	 * and re-presents the right window so its shortcuts keep working. */
+	reactivate_parent(GTK_WIDGET(color_dialog));
 	gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
 }
@@ -1748,6 +1752,7 @@ void on_colordialog_ok_clicked(GtkButton *button, gpointer user_data) {
 		color_has_been_updated(current_layer_color_choosing);
 		gtk_widget_queue_draw(GTK_WIDGET(layers[current_layer_color_choosing]->color_w));
 		gtk_widget_set_visible(GTK_WIDGET(color_dialog), FALSE);
+		reactivate_parent(GTK_WIDGET(color_dialog));
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
 		if (has_fit(current_layer_color_choosing))

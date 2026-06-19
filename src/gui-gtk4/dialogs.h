@@ -24,7 +24,7 @@ struct _SirilDialogEntry {
 
 void siril_open_dialog(gchar *id);
 void siril_close_dialog(gchar *id);
-void reactivate_main_window();
+void reactivate_parent(GtkWidget *dialog);
 void siril_close_preview_dialogs();
 gboolean siril_widget_hide_on_delete(GtkWidget *widget);
 gboolean is_a_dialog_opened();

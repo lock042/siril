@@ -489,7 +489,7 @@ static gboolean end_save(gpointer p) {
 
 	gtk_editable_set_text(GTK_EDITABLE(args->entry), "");
 	gtk_widget_set_visible(sd_savepopup, FALSE);
-	reactivate_main_window();
+	reactivate_parent(sd_savepopup);
 	display_filename(); // update filename display
 	adjust_sellabel();
 	gui_function(set_precision_switch, NULL);
@@ -843,16 +843,15 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(sd_savepopup, FALSE);
-	reactivate_main_window();
+	reactivate_parent(sd_savepopup);
 }
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (save_dialog() != GTK_RESPONSE_ACCEPT) {
-			/* Native file dialog dismissed without a selection: macOS does
-			 * not return activation to the parent on its own, so the main
-			 * window would lose keyboard focus. */
-			reactivate_main_window();
+			/* Native file dialog dismissed without a selection.  Focus is
+			 * already handed back to the parent inside siril_fc_run(); just
+			 * bail out without showing the format popup. */
 			return;
 		}
 		{

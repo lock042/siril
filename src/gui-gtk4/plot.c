@@ -1407,6 +1407,7 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 }
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -1448,6 +1449,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 
 	set_cursor_waiting(FALSE);
 }

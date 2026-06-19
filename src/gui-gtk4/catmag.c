@@ -188,6 +188,7 @@ static void on_catmag_response(GtkWindow *self, gint response_id, gpointer user_
 		if (catmag_ok_button)
 			gtk_widget_grab_focus(catmag_ok_button);
 		gtk_widget_set_visible(dialog, FALSE);
+		reactivate_parent(dialog);
 		return;
 	}
 

@@ -238,6 +238,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		gtk_editable_set_text(GTK_EDITABLE(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 		gtk_editable_set_text(GTK_EDITABLE(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 		gtk_widget_set_visible(dialog, FALSE);
+		reactivate_parent(dialog);
 		return;
 	}
 	if (!sequence_is_loaded()) {	// Tests if a valid sequence is loaded
