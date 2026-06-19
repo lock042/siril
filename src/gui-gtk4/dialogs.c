@@ -143,7 +143,7 @@ static GtkWidget *get_widget_by_index(int index) {
  * (Ctrl+P, Ctrl+O, ...) silently stop working until the user clicks back
  * into it.  Re-presenting the control window restores it as the active
  * toplevel so the shortcuts keep working. */
-static void reactivate_main_window() {
+void reactivate_main_window() {
 	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	if (main_win && gtk_widget_get_visible(main_win))
 		gtk_window_present(GTK_WINDOW(main_win));
