@@ -21,6 +21,7 @@ gboolean set_seq(gpointer user_data);
 char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
 int	seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, int thread_id);
 int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
+int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt);
 int	seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread_id);
 int	seq_load_image(sequence *seq, int index, gboolean load_it);
 gboolean seq_load_image_in_thread(gpointer user_data);

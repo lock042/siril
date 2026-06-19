@@ -1085,7 +1085,6 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 static gboolean end_conesearch(gpointer p) {
 	siril_catalogue *temp_cat = (siril_catalogue *) p;
 	if (temp_cat) {
-		// purge_user_catalogue(CAT_AN_USER_TEMP); // we don't clear so as to accumulate displays of various conesearches/show commands
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			gui_iface.activate_annotation_display();
 		}
@@ -1300,6 +1299,9 @@ gpointer conesearch_worker(gpointer p) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
 			goto exit_conesearch;
+		}
+		if (siril_cat->dateobs) {
+			temp_cat->dateobs = g_date_time_ref(siril_cat->dateobs);
 		}
 	}
 

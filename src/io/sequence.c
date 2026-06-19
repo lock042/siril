@@ -58,6 +58,7 @@
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
+#include "core/siril_date.h"
 
 #include "sequence.h"
 
@@ -1027,6 +1028,77 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	}
 	seq->imgparam[index].rx = dest->rx;
 	seq->imgparam[index].ry = dest->ry;
+	return 0;
+}
+
+// reads the date of frame at index in the sequence
+// returns it as a GDateTime in dt and as a Julian Day in jdt if the corresponding pointer is not null
+int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt) {
+	assert(index < seq->number);
+	char filename[256];
+	if (jdt)
+		 *jdt = 0.;
+	if (dt)
+		*dt = NULL;
+	GDateTime *dtread = NULL;
+	switch (seq->type) {
+		case SEQ_REGULAR:
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
+			dtread = get_date_from_fits(filename);
+			break;
+		case SEQ_SER:
+			assert(seq->ser_file);
+			dtread = ser_timestamp_to_date_time(seq->ser_file->ts[index]);
+			break;
+		case SEQ_FITSEQ:
+			assert(seq->fitseq_file);
+			fitsfile **fptr = NULL;
+			if (seq->fitseq_file->thread_fptr) {
+#ifdef _OPENMP
+				int thread_id = omp_get_thread_num();
+				int status = 0;
+				fits_movabs_hdu(seq->fitseq_file->thread_fptr[thread_id], seq->fitseq_file->hdu_index[index], NULL, &status);
+				if (status) {
+					siril_log_error(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
+							index, seq->seqname, status);
+					return 1;
+				}
+				fptr = &seq->fitseq_file->thread_fptr[thread_id];
+#else
+				return 1;
+#endif
+			} else {
+				if (fitseq_set_current_frame(seq->fitseq_file, index)) {
+					siril_log_error(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
+				fptr = &seq->fitseq_file->fptr;
+			}
+			char date_obs[FLEN_VALUE] = { 0 };
+			int status = 0;
+			fits_read_key(*fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
+			if (!status)
+				dtread = FITS_date_to_date_time(date_obs);
+			break;
+#ifdef HAVE_FFMS2
+		case SEQ_AVI:
+			assert(seq->film_file);
+			return 0;
+			break;
+#endif
+		case SEQ_INTERNAL:
+			return 0;
+			break;
+	}
+	if (dt) {
+		*dt = dtread;
+	}
+	if (jdt && dtread) {
+		*jdt = date_time_to_Julian(dtread);
+		if (!dt)
+			g_date_time_unref(dtread);
+	}
 	return 0;
 }
 
