@@ -14816,7 +14816,7 @@ static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
 	return CMD_OK;
 }
 
-int process_pss(int nb) {
+int process_mpp(int nb) {
 	/* `pss seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
 	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]

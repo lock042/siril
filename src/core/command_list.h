@@ -134,6 +134,7 @@ static command commands[] = {
 	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 1, "modasinh -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-mask]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-noseed] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_PSS, TRUE, REQ_CMD_NO_THREAD},
 	{"mtf", 3, "mtf low mid high [channels] [-mask]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg [-mask]", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -154,7 +155,6 @@ static command commands[] = {
 //	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y [-bgremove [-bgpoly=] ] ] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"pss", 1, "pss seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-noseed] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_pss, STR_PSS, TRUE, REQ_CMD_NO_THREAD},
 	{"pwd", 0, "pwd", process_pwd, STR_PWD, TRUE, REQ_CMD_NONE},
 	{"pyscript", 1, "pyscript [-async] scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
 

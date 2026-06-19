@@ -132,6 +132,7 @@ int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
+int	process_mpp(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);
@@ -155,7 +156,6 @@ int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
-int	process_pss(int nb);
 int	process_pwd(int nb);
 int	process_pyscript(int nb);
 
