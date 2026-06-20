@@ -49,6 +49,22 @@ int stack_mpp_handler(struct stacking_args *args) {
 	}
 	g_free(sidecar_path);
 
+	/* An analysis-only sidecar (written by Analyze / Stage A) has the AP
+	 * grid and reference frame but no per-AP shifts — the registration step
+	 * has not been run, so there is nothing to stack. Catch this here with
+	 * an actionable message rather than letting mpp_stack_apply bail out
+	 * with an opaque error code. */
+	if (!run->shifts) {
+		siril_log_error(_("Stack (mpp): this sequence has been analysed but not "
+		                  "registered — the sidecar has no per-AP shifts. Run "
+		                  "\"Multipoint Registration\" from the registration tab "
+		                  "before stacking.\n"));
+		mpp_run_free(run);
+		args->retval = ST_GENERIC_ERROR;
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+		return ST_GENERIC_ERROR;
+	}
+
 	/* Apply stack-side widget overrides on top of the cfg the sidecar
 	 * persisted at register time. Only stack-side fields are touched;
 	 * register-side decisions (AP grid, per-AP shifts) are already baked

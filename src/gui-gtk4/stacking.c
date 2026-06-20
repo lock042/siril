@@ -770,17 +770,18 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
 
-	/* If a .mpp sidecar already exists for this sequence (left by a previous
-	 * "Multipoint Registration" run, or by the CLI register_mpp command),
-	 * default the stack-method combo to STACK_MPP — the only method that can
-	 * consume the sidecar. dont_change_stack_type guards the case where the
-	 * user has already manually picked something. */
-	if (!dont_change_stack_type && stackparam.seq->seqname) {
-		gchar *mpp_path = g_strdup_printf("%s.mpp", stackparam.seq->seqname);
-		if (g_file_test(mpp_path, G_FILE_TEST_EXISTS)) {
+	/* If a complete (registered) .mpp sidecar is loaded for this sequence
+	 * (left by a previous "Multipoint Registration" run, or by the CLI
+	 * register_mpp command), default the stack-method combo to STACK_MPP —
+	 * the only method that can consume the sidecar. An analysis-only sidecar
+	 * (Analyze / Stage A) carries no per-AP shifts and cannot be stacked, so
+	 * don't steer the user into it; the cached run reflects whichever the
+	 * sidecar held when the sequence was opened. dont_change_stack_type
+	 * guards the case where the user has already manually picked something. */
+	if (!dont_change_stack_type) {
+		const mpp_run_t *run = mpp_get_cached_run();
+		if (run && run->shifts)
 			gtk_drop_down_set_selected(method_combo, STACK_MPP);
-		}
-		g_free(mpp_path);
 	}
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
 	gboolean can_upscale = can_reframe && !com.seq.is_variable && !com.seq.is_drizzle;

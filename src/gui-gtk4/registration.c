@@ -1584,6 +1584,26 @@ void mpp_update_edit_button_sensitivity(void) {
 	gtk_widget_set_sensitive(btn, mpp_get_cached_run() != NULL);
 }
 
+/* See registration.h. Push the AP-placement settings the loaded run was built
+ * with into the spin buttons so (a) the user sees the real settings behind the
+ * loaded grid, and (b) register_mpp's "settings changed since analysis" check
+ * doesn't spuriously regenerate the grid on a no-change Register after load.
+ * Only the placement-relevant widgets are touched; the user's other choices
+ * (alignment mode, dewarp, percentages…) are left as set. These spins have no
+ * "changed" handlers, so no signal blocking is needed. */
+void mpp_sync_widgets_from_cached_run(void) {
+	registration_init_statics();
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->cfg)
+		return;
+	const mpp_config_t *cfg = run->cfg;
+	gtk_spin_button_set_value(spin_mpp_half_box,       cfg->alignment_points_half_box_width);
+	gtk_spin_button_set_value(spin_mpp_search_width,   cfg->alignment_points_search_width);
+	gtk_spin_button_set_value(spin_mpp_min_brightness, cfg->alignment_points_brightness_threshold);
+	gtk_spin_button_set_value(spin_mpp_min_contrast,   cfg->alignment_points_contrast_threshold);
+	gtk_spin_button_set_value(spin_mpp_min_structure,  cfg->alignment_points_structure_threshold);
+}
+
 /* Move the "suggested-action" highlight between the registration tab's
  * Analyze and Register buttons so only one is emphasised at a time. The
  * cached run is the single source of truth: it is what the AP overlay draws

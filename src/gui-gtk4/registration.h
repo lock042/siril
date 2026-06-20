@@ -46,6 +46,13 @@ void initialize_registration_methods();
  * sub-panel from the presence of a cached run. Defined in registration.c. */
 void mpp_update_edit_button_sensitivity(void);
 
+/* Sync the multipoint AP-placement spin buttons (AP size, search width and
+ * the brightness/contrast/structure thresholds) from a sidecar-loaded run's
+ * baked config, so the widgets reflect the settings the loaded grid was built
+ * with. Called on sequence open after the .mpp auto-load. No-op when there is
+ * no cached run. Defined in registration.c. */
+void mpp_sync_widgets_from_cached_run(void);
+
 /* Paint the multipoint reference frame when entering the Registration or
  * Stacking tab, if the cached run carries one and a sequence frame is
  * currently shown. Called from the main control-tab switch handler. */

@@ -2122,6 +2122,22 @@ extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
 	seq->needs_saving = TRUE;
 }
 
+/* True if two cfgs differ in any field that feeds AP placement
+ * (ap_create_grid / blur_mean_frame_for_ap). When Register reuses a cached
+ * or sidecar-loaded run, a difference here means the baked AP grid no longer
+ * matches the requested settings and must be regenerated. Fields with no GUI
+ * widget (frames_gauss_width, dim_fraction_threshold) always carry their
+ * default in both cfgs, so they never spuriously trigger a regeneration. */
+static bool ap_placement_cfg_differs(const mpp_config_t *a, const mpp_config_t *b) {
+	return a->alignment_points_half_box_width        != b->alignment_points_half_box_width
+	    || a->alignment_points_search_width          != b->alignment_points_search_width
+	    || a->alignment_points_brightness_threshold  != b->alignment_points_brightness_threshold
+	    || a->alignment_points_contrast_threshold    != b->alignment_points_contrast_threshold
+	    || a->alignment_points_structure_threshold   != b->alignment_points_structure_threshold
+	    || a->alignment_points_dim_fraction_threshold != b->alignment_points_dim_fraction_threshold
+	    || a->frames_gauss_width                     != b->frames_gauss_width;
+}
+
 extern "C" int register_mpp(struct registration_args *regargs) {
 	if (!regargs || !regargs->seq)
 		return MPP_EINVAL;
@@ -2220,6 +2236,30 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 		gui_iface.set_progress(PROGRESS_DONE, _("Analyze: done"));
 		mpp_set_cached_run(run);
 		return MPP_OK;
+	}
+
+	/* If the AP-placement settings changed since this run's grid was built,
+	 * regenerate the grid at the new settings before Stage B. Without this,
+	 * Register would silently reuse the cached/loaded grid (e.g. the previous
+	 * AP size) and ignore the spin buttons. Re-placement runs on the existing
+	 * mean reference frame, so it does not re-read frames; it does discard
+	 * manual AP-editor edits, which is the expected outcome of a global
+	 * placement change. A fresh Analyze run has run->cfg == cfg, so this is a
+	 * no-op there; it only fires for a reused cache or a sidecar-loaded run
+	 * whose baked settings differ from the current widgets. */
+	if (run->cfg && ap_placement_cfg_differs(run->cfg, &cfg)) {
+		siril_log_message(_("mpp: alignment-point settings changed since "
+		                    "analysis — regenerating the AP grid (any manual "
+		                    "AP edits are discarded)\n"));
+		const mpp_status_t rc_r = mpp_ap_replace(run, &cfg);
+		if (rc_r != MPP_OK) {
+			siril_log_error(_("mpp: AP grid regeneration failed (code %d)\n"), rc_r);
+			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+			if (run_owned) mpp_run_free(run);
+			return rc_r;
+		}
+		siril_log_message(_("mpp: regenerated %d APs at the new settings\n"),
+		                  run->aps->count);
 	}
 
 	/* Refresh inclusion from the live frame selector before ranking, so the
