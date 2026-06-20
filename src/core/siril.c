@@ -36,7 +36,7 @@
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "opencv/opencv.h"
-#include "rt/gauss.h"
+#include "algos/gaussian_blur.h"
 /* gui_calls.h removed: computeHisto/computeHisto_Selection come from algos/statistics.h */
 
 int threshlo(fits *fit, WORD level) {
@@ -99,13 +99,13 @@ int nozero(fits *fit, WORD level) {
 	return 0;
 }
 
-// in-place Gaussian blur with RawTherapee's implementation (SSE/vectorization and OpenMP)
+// in-place recursive Gaussian blur (OpenMP-vectorised, see algos/gaussian_blur.cc)
 // only implemented for float and monochrome images, as support for other one-channel algorithms
 int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 	g_assert(fit->naxes[2] == 1);
 	if (fit->type == DATA_FLOAT) {
-		siril_log_debug("Using RawTherapee in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
-		// RawTherapee gaussianBlur (mono only)
+		siril_log_debug("Using in-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		// recursive Gaussian blur (mono only)
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
 		float **src = malloc(ry * sizeof(float *));
@@ -114,7 +114,7 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 			src[k] = fit->fdata + k * rx;
 		}
 
-		gaussianBlurC(src, src, rx, ry, sigma, threads);
+		gaussian_blur_mono(src, src, rx, ry, sigma, threads);
 		free(src);
 		return 0;
 	}
@@ -127,8 +127,8 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 // using a temporary buffer
 int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 	if (fit->type == DATA_FLOAT) {
-		siril_log_debug("Using RawTherapee out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
-		// RawTherapee gaussianBlur (mono only)
+		siril_log_debug("Using out-of-place Gaussian blur with sigma=%f and %d threads\n", sigma, threads);
+		// recursive Gaussian blur (mono only)
 		size_t n = fit->naxes[0] * fit->naxes[1];
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
@@ -143,7 +143,7 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 			dst[k] = result + k * rx;
 		}
 
-		gaussianBlurC(src, dst, rx, ry, sigma, threads);
+		gaussian_blur_mono(src, dst, rx, ry, sigma, threads);
 		free(src);
 		free(dst);
 		float *olddata = gfit->fdata;

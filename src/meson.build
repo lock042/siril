@@ -42,6 +42,7 @@ src_files = [
   'algos/fix_xtrans_af.c',
   'algos/geometry.c',
   'algos/io_wave.c',
+  'algos/gaussian_blur.cc',
   'algos/median_fast.c',
   'algos/noise.c',
   'algos/pave.c',
@@ -241,8 +242,6 @@ src_files = [
   'stacking/sum.c',
   'stacking/upscaling.c',
 
-  'rt/boxblur.cc',
-  'rt/gauss.cc',
   'rt/rt_algo.cc'
 ]
 

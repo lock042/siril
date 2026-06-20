@@ -17,27 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_OPTIMIZE_UTILS_H_
-#define SRC_CORE_OPTIMIZE_UTILS_H_
+#ifndef SRC_ALGOS_GAUSSIAN_BLUR_H_
+#define SRC_ALGOS_GAUSSIAN_BLUR_H_
 
-#include <glib.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// some convenience functions from RT
-inline __attribute__((always_inline)) float intpf(float a, float b, float c)
-{
-    // calculate a * b + (1 - a) * c
-    // following is valid:
-    // intp(a, b+x, c+x) = intp(a, b, c) + x
-    // intp(a, b*x, c*x) = intp(a, b, c) * x
-    return a * (b - c) + c;
+/* Separable Young-van Vliet recursive Gaussian blur, monochrome float.
+ * src and dst are arrays of H row pointers each of width W. src == dst is
+ * supported (in-place). Portable OpenMP implementation (no x86 intrinsics). */
+void gaussian_blur_mono(float **src, float **dst, const int W, const int H, const double sigma, int threads);
+
+#ifdef __cplusplus
 }
+#endif
 
-inline __attribute__((always_inline)) gboolean inInterval(float val, float low, float high)
-{
-    // returns TRUE if val is in [low;high]
-    float maxVal = max(val, low);
-    return val == min(maxVal, high);
-}
-
-
-#endif /* SRC_CORE_OPTIMIZE_UTILS_H_ */
+#endif /* SRC_ALGOS_GAUSSIAN_BLUR_H_ */
