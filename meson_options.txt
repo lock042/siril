@@ -108,6 +108,12 @@ option('arch_native',
  description : 'Enable -march=native optimization'
 )
 
+option('ancient_hw',
+ type : 'boolean',
+ value : false,
+ description : 'Target the original amd64 (x86-64-v1) baseline instead of the default Haswell (x86-64-v3) for old x86_64 CPUs'
+)
+
 option('flatpak-id',
  type : 'string',
  value : '',

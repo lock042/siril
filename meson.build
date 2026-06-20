@@ -173,6 +173,22 @@ if enable_arch_native
   message('Enabling -march=native optimization')
   siril_c_flag += ['-march=native', '-O3', '-mtune=native']
   siril_cpp_flag += ['-march=native', '-O3', '-mtune=native']
+elif host_cpu_family == 'x86_64'
+  # Default x86_64 baseline. We target Haswell (x86-64-v3: AVX2, FMA, BMI2)
+  # so the auto-vectoriser can emit modern SIMD. The ancient_hw option restores
+  # the original amd64 (x86-64-v1) baseline for pre-Haswell CPUs.
+  if get_option('ancient_hw')
+    amd64_march = '-march=x86-64'
+  else
+    amd64_march = '-march=x86-64-v3'
+  endif
+  if cc.has_argument(amd64_march) and cpp.has_argument(amd64_march)
+    message('Setting x86_64 baseline: ' + amd64_march)
+    siril_c_flag += amd64_march
+    siril_cpp_flag += amd64_march
+  else
+    warning('Compiler does not support ' + amd64_march + '; falling back to compiler default')
+  endif
 endif
 
 if platform_linux
@@ -850,6 +866,7 @@ summary(
     'gtk (GUI)' : enable_gtk,
     'openmp'    : get_option('openmp'),
     'arch_native' : get_option('arch_native'),
+    'ancient_hw' : get_option('ancient_hw'),
   }, section: 'Optional features'
 )
 
