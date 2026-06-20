@@ -752,66 +752,101 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
 	}
 
-	// Loop over pixels
+	// Hoist clip_mode outside the pixel loop: each mode gets its own tight
+	// parallel loop with no per-pixel switch overhead (mirrors the float
+	// luminance path above). The transcendental stretch is already baked into
+	// the LUT, so each loop is LUT lookups plus simple per-channel arithmetic.
+	switch (clip_mode) {
+	case CLIP:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0 ; i < layersize ; i++) {
+			float f[3];
+			for (size_t chan = 0; chan < 3 ; chan++)
+				f[chan] = Wpbuf[chan][i] * invnorm;
+			WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
+			WORD sfbar = lut[fbar];
+			float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
+			blend_data data = { .do_channel = do_channel };
+			for (size_t chan = 0; chan < 3 ; chan++)
+				data.sf[chan] = f[chan] * stretch_factor;
+			for (size_t chan = 0 ; chan < 3 ; chan++)
+				outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
+		}
+		break;
+
+	case RGBBLEND:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0 ; i < layersize ; i++) {
+			float f[3];
+			for (size_t chan = 0; chan < 3 ; chan++)
+				f[chan] = fmaxf(0.f, fminf(1.f, Wpbuf[chan][i] * invnorm));
+			WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
+			WORD sfbar = lut[fbar];
+			float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
+			blend_data data = { .do_channel = do_channel };
+			for (size_t chan = 0; chan < 3 ; chan++)
+				data.sf[chan] = f[chan] * stretch_factor;
+			for (size_t chan = 0; chan < 3 ; chan++)
+				if (do_channel[chan])
+					data.tf[chan] = invnorm * lut[roundf_to_WORD(USHRT_MAX_SINGLE * f[chan])];
+			rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
+			for (size_t chan = 0 ; chan < 3 ; chan++) {
+				f[chan] = (do_channel[chan]) ? data.sf[chan] : f[chan];
+				outp[chan][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[chan]);
+			}
+		}
+		break;
+
+	case RESCALE:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0 ; i < layersize ; i++) {
+			float f[3];
+			for (size_t chan = 0; chan < 3 ; chan++)
+				f[chan] = Wpbuf[chan][i] * invnorm;
+			WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
+			WORD sfbar = lut[fbar];
+			float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
+			blend_data data = { .do_channel = do_channel };
+			for (size_t chan = 0; chan < 3 ; chan++)
+				data.sf[chan] = f[chan] * stretch_factor;
+			float maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+			float invmaxval = 1.f / maxval;
+			if (maxval > 1.f) {
+				data.sf[0] *= invmaxval;
+				data.sf[1] *= invmaxval;
+				data.sf[2] *= invmaxval;
+			}
+			for (size_t chan = 0 ; chan < 3 ; chan++)
+				outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
+		}
+		break;
+
+	case RESCALEGLOBAL:
+		// Pass 1: find the global maximum stretch value.
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:globalmax) if (multithreaded)
 #endif
-	for (size_t i = 0 ; i < layersize ; i++) {
-		float f[3];
-		if (clip_mode == RGBBLEND) {
-			for (size_t chan = 0; chan < 3 ; chan++)
-				f[chan] = fmaxf(0.f, fminf(1.f, Wpbuf[chan][i] * invnorm));
-		} else {
+		for (size_t i = 0 ; i < layersize ; i++) {
+			float f[3];
 			for (size_t chan = 0; chan < 3 ; chan++)
 				f[chan] = Wpbuf[chan][i] * invnorm;
+			WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
+			WORD sfbar = lut[fbar];
+			float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
+			blend_data data = { .do_channel = do_channel };
+			for (size_t chan = 0; chan < 3 ; chan++)
+				data.sf[chan] = f[chan] * stretch_factor;
+			float maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+			if (maxval > globalmax)
+				globalmax = maxval;
 		}
-		WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
-		WORD sfbar = lut[fbar];
-		float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
-		blend_data data = { .do_channel = do_channel };
-		//Calculate the luminance and independent channel stretches for the pixel
-		for (size_t chan = 0; chan < 3 ; chan++) {
-			data.sf[chan] = f[chan] * stretch_factor;
-		}
-		if (clip_mode == RGBBLEND) {
-			for (size_t chan = 0; chan < 3 ; chan++) {
-				if (do_channel[chan]) {
-					data.tf[chan] = invnorm * lut[roundf_to_WORD(USHRT_MAX_SINGLE * f[chan])];
-				}
-			}
-		}
-		float maxval;
-		switch (clip_mode) {
-			case CLIP:
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
-				}
-				break;
-			case RGBBLEND:
-				rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					f[chan] = (do_channel[chan]) ? data.sf[chan] : f[chan];
-					outp[chan][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[chan]);
-				}
-				break;
-			case RESCALE:
-				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
-				float invmaxval = 1.f / maxval;
-				if (maxval > 1.f) {
-					data.sf[0] *= invmaxval;
-					data.sf[1] *= invmaxval;
-					data.sf[2] *= invmaxval;
-				}
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
-				}
-				break;
-			case RESCALEGLOBAL:
-				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
-				if (maxval > globalmax)
-					globalmax = maxval;
-				break;
-		}
+		break;
 	}
 	free(lut);
 	if (clip_mode == RESCALEGLOBAL) {
