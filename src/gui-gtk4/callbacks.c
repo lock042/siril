@@ -45,6 +45,7 @@
 #include "gui-gtk4/mpp_ap_editor.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
 #include "registration/mpp.h"
+#include "registration/registration.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/stacking.h"
 #include "gui-gtk4/python_gui.h"
@@ -1561,7 +1562,21 @@ int set_layers_for_registration() {
 		const gchar *layer_name = layer_name_for_gfit(i);
 		layer = g_strdup_printf("%d: %s", i, layer_name);
 		if (com.seq.regparam && com.seq.regparam[i]) {
-			str_append(&layer,  " (*)");
+			/* The (*) means "registered". For most methods that is simply
+			 * "regparam exists" (they store per-frame transforms in H).
+			 * MPP is different: Analyze (Stage A) writes only per-frame
+			 * quality into regdata and leaves H null — the actual
+			 * registration lives in the .mpp sidecar's per-AP shifts,
+			 * computed by Register (Stage B). So for a quality-only layer
+			 * (no usable H) only show (*) once Stage B shifts exist;
+			 * otherwise the sequence is analysed but not yet registered. */
+			gboolean registered = layer_has_usable_registration(&com.seq, i);
+			if (!registered) {
+				const mpp_run_t *run = mpp_get_cached_run();
+				registered = (run && run->shifts != NULL);
+			}
+			if (registered)
+				str_append(&layer,  " (*)");
 			if (reminder == -1 || ((reminder >= 0) && !(com.seq.regparam[reminder]))) // set as default selection
 				reminder = i;
 		}

@@ -153,6 +153,36 @@ Test(mpp_sidecar, roundtrip_without_shifts) {
 	unlink(tmp);
 }
 
+/* Stage-A-only run: per-AP ranking is deferred, so best_frame_indices is
+ * NULL (has_bfi == 0) and there are no shifts. v9 must persist and restore
+ * this state without inventing a bfi block. */
+Test(mpp_sidecar, roundtrip_stage_a_only) {
+	mpp_run_t *src = make_test_run(0);
+	cr_assert_not_null(src);
+	free(src->best_frame_indices);
+	src->best_frame_indices = NULL;
+
+	char tmp[] = "/tmp/mpp_sidecar_test_XXXXXX";
+	int fd = mkstemp(tmp);
+	cr_assert_gt(fd, 0);
+	close(fd);
+
+	cr_assert_eq(mpp_sidecar_write(tmp, src), MPP_OK);
+
+	mpp_run_t *dst = NULL;
+	cr_assert_eq(mpp_sidecar_read(tmp, &dst), MPP_OK);
+	cr_assert_not_null(dst);
+	cr_assert_null(dst->shifts);
+	cr_assert_null(dst->best_frame_indices);
+	cr_assert_eq(dst->aps->count, src->aps->count);
+	for (int i = 0; i < src->mean_frame_rows * src->mean_frame_cols; ++i)
+		cr_assert_eq(dst->mean_frame_data[i], src->mean_frame_data[i]);
+
+	mpp_run_free(src);
+	mpp_run_free(dst);
+	unlink(tmp);
+}
+
 Test(mpp_sidecar, roundtrip_with_shifts) {
 	mpp_run_t *src = make_test_run(1);
 	char tmp[] = "/tmp/mpp_sidecar_test_XXXXXX";

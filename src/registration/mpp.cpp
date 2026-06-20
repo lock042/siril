@@ -2198,6 +2198,21 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	mpp_write_quality_to_regdata(regargs->seq, regargs->layer, run);
 
 	if (stage_a_only) {
+		/* Persist Stage A to the .mpp sidecar (mean reference frame + AP
+		 * grid; per-AP shifts omitted, so it reads back as "analysed,
+		 * registration pending"). This means closing and reopening the
+		 * sequence restores the APs and reference frame via the auto-load
+		 * in load_sequence — no need to re-Analyze. Non-fatal on failure:
+		 * the in-memory cached run installed below still drives this
+		 * session's overlay. */
+		char sidecar_path[2048];
+		snprintf(sidecar_path, sizeof(sidecar_path), "%s.mpp", regargs->seq->seqname);
+		if (mpp_sidecar_write(sidecar_path, run) != MPP_OK)
+			siril_log_message(_("mpp: Stage A sidecar write to %s failed — "
+			                    "APs will be lost when the sequence is closed\n"),
+			                  sidecar_path);
+		else
+			siril_log_message(_("mpp: Stage A sidecar written to %s\n"), sidecar_path);
 		/* Install the run in the GUI cache so end_register_idle can
 		 * paint the mean frame and the AP overlay can pick up the AP
 		 * grid. mpp_set_cached_run takes ownership and frees any prior

@@ -134,7 +134,7 @@ static command commands[] = {
 	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 1, "modasinh -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-mask]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-noseed] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_PSS, TRUE, REQ_CMD_NO_THREAD},
+	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-noseed] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"mtf", 3, "mtf low mid high [channels] [-mask]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg [-mask]", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
