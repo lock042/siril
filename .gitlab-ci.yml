@@ -182,12 +182,12 @@ macos:
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "500Mi"
-    ORKA_RUNNER: sonoma-5
+    ORKA_RUNNER: sequoia-8
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
-    SDKROOT: /opt/sdks/MacOSX11.3.sdk
+    SDKROOT: /opt/sdks/MacOSX13.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 7f306663cd1f0deff7739b51097bb9fd6d67d8b5
+    SM_REPO_REF: 819279a5d533c9d4dbc0fd1b1279959802d8ab69
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -205,7 +205,10 @@ macos:
       VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
       PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
-        sm/build_toolset.sh
+        sm/110-bootstrap_jhb.sh
+        sm/120-build_gtk3.sh
+        sm/130-build_sirildeps.sh
+        sm/140-build_packaging.sh
         rm $VER_DIR/var/cache/pkg/.skip_remove_nonessential_files
         sm/jhb/usr/bin/jhb run rustup self uninstall -y
         sm/jhb/usr/bin/archive remove_nonessentials
@@ -214,7 +217,10 @@ macos:
         rm -rf ${VER_DIR:?}
       fi
     - sm/jhb/usr/bin/archive install_dmg
-    - sm/build_siril.sh
+    - |
+      sm/210-siril_build.sh
+      sm/220-siril_package.sh
+      sm/230-siril_distrib.sh
   after_script:
     - sm/jhb/usr/bin/archive uninstall_dmg
   needs: []
