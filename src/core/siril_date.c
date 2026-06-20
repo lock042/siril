@@ -285,6 +285,7 @@ GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t us) {
 	return date;
 }
 
+// computes dt2 - dt1
 double timediff_in_s(GDateTime *dt1, GDateTime *dt2) {
 	return (double)g_date_time_difference(dt2, dt1) * 1.e-6;
 }

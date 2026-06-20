@@ -312,6 +312,8 @@ siril_core_sources = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gps_parser.c \
+	io/gps_parser.h \
 	io/healpix/fluxcache.cpp \
 	io/healpix/fluxcache.h \
 	io/healpix/gaia_xp_design.c \

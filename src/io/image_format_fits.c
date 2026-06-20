@@ -50,6 +50,7 @@
 #include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
 #include "image_format_fits.h"
+#include "io/gps_parser.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
@@ -73,7 +74,6 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 		__iter__++; \
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
-
 
 void fit_get_photometry_data(fits *fit) {
 	int status = 0;
@@ -1316,6 +1316,14 @@ void clearfits_header(fits *fit) {
 		g_date_time_unref(fit->keywords.date);
 		fit->keywords.date = NULL;
 	}
+	if (fit->keywords.gps_data) {
+		if (fit->keywords.gps_data->end_vsync_date) {
+			g_date_time_unref(fit->keywords.gps_data->end_vsync_date);
+			fit->keywords.gps_data->end_vsync_date = NULL;
+		}
+		free(fit->keywords.gps_data);
+		fit->keywords.gps_data = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
@@ -2116,6 +2124,7 @@ int copyfits(fits *from, fits *to, unsigned int oper, int layer) {
 		to->history = NULL;
 		to->keywords.date = NULL;
 		to->keywords.date_obs = NULL;
+		to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 		to->icc_profile = NULL;
 		to->color_managed = FALSE;
 		to->keywords.wcslib = NULL;
@@ -2337,6 +2346,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->keywords.date = NULL;
 	to->keywords.date_obs = NULL;
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
@@ -2438,6 +2448,8 @@ void copy_fits_metadata(fits *from, fits *to) {
 		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
 	}
 
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
+
 	if (from->keywords.wcslib) {
 		int status = -1;
 		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
@@ -2450,6 +2462,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	if (from->unknown_keys) {
 		to->unknown_keys = g_strdup(from->unknown_keys);
 	}
+
 	// Set boolean flags
 //	to->pixelkey = (from->keywords.pixel_size_x > 0.);
 //	to->focalkey = (from->keywords.focal_length > 0.);
@@ -2458,9 +2471,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->focalkey = from->focalkey;
 
 	// copy from->history?
-
 }
-
 
 int copy_fits_from_file(const char *source, const char *destination) {
 	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */
@@ -2632,6 +2643,7 @@ static void fits_flip_top_to_bottom_float(fits *fit) {
 	free(swapline);
 }
 
+// only flips data, not metadata!
 void fits_flip_top_to_bottom(fits *fit) {
 	if (fit->type == DATA_USHORT)
 		fits_flip_top_to_bottom_ushort(fit);
@@ -3609,7 +3621,6 @@ int save_wcs_fits(fits *f, const gchar *name) {
 
 	if (g_unlink(name))
 		siril_log_debug("g_unlink() failed\n");
-	
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
