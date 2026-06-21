@@ -16,7 +16,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/line_detection.h"
-//#include "io/gps_parser.h"
+#include "io/gps_parser.h"
 
 // side of the square in which sampling will be done for magnitde estimation
 #define MAG_SAMPLE_SIZE 7
@@ -312,28 +312,28 @@ gpointer streak_detection_worker(gpointer ptr) {
 				(end_ra == 0.0 && end_dec == 0.0))
 			continue;
 
-		GDateTime *center_date = NULL;
+		GDateTime *center_date = NULL;	// the one that matters, that has a GPS timestamp is available
 		gboolean date_is_gps = FALSE;
-		/*if (arg->fit->date_and_exp_from_gps && !arg->fit->gps_data) {
-			date_is_gps = TRUE;
-		} else {
+		if (arg->fit->keywords.gps_data) {
 			// check for rolling shutter QHY GPS camera data
 			int mid_y = round_to_int(middle_y);
 			siril_log_debug("getting GPS timestamp for middle exposure of row %d\n", mid_y);
-			center_date = get_timestamp_for_pixel(arg->fit->gps_data, EXP_MIDDLE, 0, mid_y);
+			center_date = get_timestamp_for_pixel(arg->fit->keywords.gps_data, EXP_MIDDLE, 0, mid_y);
 			date_is_gps = center_date != NULL;
-		}*/
-		/* fallback: use DATE-OBS + EXPOSURE / 2 */
+		}
+		/* general case: use DATE-OBS + EXPOSURE / 2 */
 		double exposure;
 		if (arg->fit->keywords.expstart > 0.0 && arg->fit->keywords.expend > 0.0) {
 			// warning: this is precise to 0.1 seconds at best
 			exposure = julian_date_difference_sec(arg->fit->keywords.expend, arg->fit->keywords.expstart);
 			siril_log_debug("using EXPSTART and EXPEND %f as exposure\n", exposure);
 		}
-		else exposure = arg->fit->keywords.exposure;
+		else {
+			exposure = arg->fit->keywords.exposure;
+			date_is_gps = arg->fit->keywords.date_and_exp_from_gps;
+		}
 		if (!center_date)
-			center_date = g_date_time_add_seconds(arg->fit->keywords.date_obs,
-					exposure * 0.5);
+			center_date = g_date_time_add_seconds(arg->fit->keywords.date_obs, exposure * 0.5);
 
 		GDateTime *start_date = g_date_time_ref(arg->fit->keywords.date_obs);
 		GDateTime *end_date = g_date_time_add_seconds(arg->fit->keywords.date_obs, exposure);
