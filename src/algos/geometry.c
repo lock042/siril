@@ -35,6 +35,7 @@
 #include "opencv/opencv.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/gps_parser.h"
 #include "io/single_image.h"
 #include "core/gui_iface.h"
 
@@ -619,19 +620,16 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		const float *buf = fit->fdata + (width * height) * channel;
 
-		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
-				int c = 0;
-				newbuf[k] = 0;
+				long k = channel * npixels + (long)nrow * new_width + ncol;
+				float sum = 0.f;
 				for (int i = 0; i < bin_factor; i++) {
 					for (int j = 0; j < bin_factor; j++) {
-						newbuf[k] += buf[i + col + (j + row) * width];
-						c++;
+						sum += buf[col + i + (row + j) * width];
 					}
 				}
-				if (mean) newbuf[k] /= c;
-				k++;
+				newbuf[k] = mean ? sum / (bin_factor * bin_factor) : sum;
 			}
 		}
 	}
@@ -658,20 +656,17 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		const WORD *buf = fit->data + (width * height) * channel;
 
-		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
-				int c = 0;
-				int tmp = 0;
+				long k = channel * npixels + (long)nrow * new_width + ncol;
+				int sum = 0;
 				for (int i = 0; i < bin_factor; i++) {
 					for (int j = 0; j < bin_factor; j++) {
-						tmp += (buf[i + col + (j + row) * width]);
-						c++;
+						sum += buf[col + i + (row + j) * width];
 					}
 				}
-				if (mean) tmp /= c;
-				newbuf[k] = truncate_to_WORD(tmp);
-				k++;
+				if (mean) sum /= bin_factor * bin_factor;
+				newbuf[k] = truncate_to_WORD(sum);
 			}
 		}
 	}
@@ -691,6 +686,8 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 	} else if (fit->type == DATA_FLOAT) {
 		fits_binning_float(fit, factor, mean);
 	}
+
+	apply_binning_to_gps_data(fit);
 
 	if (fit->mask) {
 		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
@@ -896,83 +893,21 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	return 0;
 }
 
-static void mirrorx_ushort(fits *fit, gboolean verbose) {
-	int line, axis;
-	WORD *swapline, *src, *dst;
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_error(_("Horizontal mirror: processing...\n"));
-		gettimeofday(&t_start, NULL);
-	}
-
-	size_t line_size = fit->rx * sizeof(WORD);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->pdata[axis] + line * fit->rx;
-			dst = fit->pdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
-static void mirrorx_float(fits *fit, gboolean verbose) {
-	int line, axis;
-	float *swapline, *src, *dst;
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_info(_("Horizontal mirror: processing...\n"));
-		gettimeofday(&t_start, NULL);
-	}
-
-	size_t line_size = fit->rx * sizeof(float);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->fpdata[axis] + line * fit->rx;
-			dst = fit->fpdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
 void mirrorx(fits *fit, gboolean verbose) {
 	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
+	struct timeval t_start, t_end;
 
-	if (fit->type == DATA_USHORT) {
-		mirrorx_ushort(fit, verbose);
-	} else if (fit->type == DATA_FLOAT) {
-		mirrorx_float(fit, verbose);
+	// given how long flipping an image takes, I think we can remove all the verbose code, also because of the weird naming of horizontal and vertical mirrors
+	if (verbose) {
+		siril_log_info(_("Horizontal mirror: processing...\n"));
+		gettimeofday(&t_start, NULL);
+	}
+	fits_flip_top_to_bottom(fit);
+	if (verbose) {
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
 	}
 
 	if (fit->mask) {
@@ -988,10 +923,10 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
 		sprintf(fit->keywords.row_order, "TOP-DOWN");
-	else {
-		sprintf(fit->keywords.row_order, "BOTTOM-UP");
-	}
-	fit->history = g_slist_append(fit->history, g_strdup("TOP-DOWN mirror"));
+	else	sprintf(fit->keywords.row_order, "BOTTOM-UP");
+	apply_flip_to_gps_data(fit);
+
+	fit->history = g_slist_append(fit->history, g_strdup("Top-down mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
@@ -1194,6 +1129,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
 	switch (cfa) {
 		case BAYER_FILTER_NONE:
+			apply_crop_to_gps_data(fit, bounds); // this is only for mono images
 			break;
 		case BAYER_FILTER_RGGB: // Fallthrough intentional
 		case BAYER_FILTER_BGGR:

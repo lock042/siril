@@ -16,25 +16,25 @@ if criterion_dep.found()
      stacking_exec = executable('stacking_blocks_test',
                                 'stacking_blocks_test.c',
                                 dependencies : [siril_dep, criterion_dep],
-                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                link_args : siril_link_arg,
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
 
      test('stacking_blocks_test', stacking_exec)
-     
+
      date_exec = executable('siril_date_test',
                             'siril_date_test.c',
                             dependencies : [siril_dep, criterion_dep],
-                            link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                            link_args : siril_link_arg,
                             c_args : siril_c_flag,
                             cpp_args : siril_cpp_flag)
 
      test('siril_date_test', date_exec)
-     
+
      world_cs_exec = executable('siril_world_cs_test',
                                 'siril_world_cs_test.c',
                                 dependencies : [siril_dep, criterion_dep],
-                                link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                link_args : siril_link_arg,
                                 c_args : siril_c_flag,
                                 cpp_args : siril_cpp_flag)
 
@@ -44,7 +44,7 @@ if criterion_dep.found()
      imoper_exec = executable('imoper_test',
                               'imoper_test.c',
                               dependencies : [siril_dep, criterion_dep],
-                              link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                              link_args : siril_link_arg,
                               c_args : siril_c_flag,
                               cpp_args : siril_cpp_flag)
 
@@ -53,7 +53,7 @@ if criterion_dep.found()
      soper_exec = executable('soper_test',
                              'soper_test.c',
                              dependencies : [siril_dep, criterion_dep],
-                             link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                             link_args : siril_link_arg,
                              c_args : siril_c_flag,
                              cpp_args : siril_cpp_flag)
 
@@ -62,7 +62,7 @@ if criterion_dep.found()
      photometry_exec = executable('photometry_test',
                                   'photometry_test.c',
                                   dependencies : [siril_dep, criterion_dep],
-                                  link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                  link_args : siril_link_arg,
                                   c_args : siril_c_flag,
                                   cpp_args : siril_cpp_flag)
 
@@ -71,7 +71,7 @@ if criterion_dep.found()
      rejection_exec = executable('rejection_test',
                                  'rejection_test.c',
                                  dependencies : [siril_dep, criterion_dep],
-                                 link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                 link_args : siril_link_arg,
                                  c_args : siril_c_flag,
                                  cpp_args : siril_cpp_flag)
 
@@ -80,7 +80,7 @@ if criterion_dep.found()
      ser_exec = executable('ser_test',
                            'ser_test.c',
                            dependencies : [siril_dep, criterion_dep],
-                           link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                           link_args : siril_link_arg,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
@@ -94,6 +94,15 @@ if criterion_dep.found()
                                         cpp_args : siril_cpp_flag)
 
      test('siril_spawn_test', siril_spawn_test_exec)
+
+     gps_exec = executable('qhy_gps_test',
+                           'qhy_gps_test.c',
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('qhy_gps_test', gps_exec)
 
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',

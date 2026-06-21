@@ -83,7 +83,8 @@ typedef enum {
 	CAT_AN_CONST_NAME = 67,
 	CAT_AN_USER_DSO = 68,
 	CAT_AN_USER_SSO = 69,
-	CAT_AN_USER_TEMP = 70,
+	CAT_AN_SSO_VECTORS = 70, // for velocity vectors of solar system objects, not really a catalogue but easier to handle with the same code
+	CAT_AN_USER_TEMP = 71,
 // Special
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,

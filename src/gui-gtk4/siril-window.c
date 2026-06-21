@@ -303,6 +303,11 @@ void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean ena
 		NULL
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+	/* The link/unlink button is only meaningful in autostretch mode, so
+	 * hide it entirely outside of it rather than just greying it out. */
+	GtkWidget *button = lookup_widget("linked_autostretch_button");
+	if (button)
+		gtk_widget_set_visible(button, enable);
 }
 
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {

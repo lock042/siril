@@ -53,6 +53,7 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
@@ -68,6 +69,7 @@
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
+#include "io/gps_parser.h"
 #include "drizzle/cdrizzleutil.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
 #include "filters/asinh.h"
@@ -1857,6 +1859,7 @@ int process_entropy(int nb) {
 	args->description = _("Entropy");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = entropy_log_hook;
@@ -6915,6 +6918,7 @@ int process_bg(int nb) {
 	args->description = _("Background");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = bg_log_hook;
@@ -6971,6 +6975,7 @@ int process_bgnoise(int nb) {
 	args->description = _("Background noise");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = noise_args;
 	args->log_hook = bgnoise_log_hook;
@@ -7930,7 +7935,7 @@ int process_findhot(int nb){
 	args->description = _("Find Hot/Cold Pixels");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = data;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -8216,6 +8221,7 @@ int process_cdg(int nb) {
 	args->description = _("Center of gravity");
 	args->verbose = TRUE;
 	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 	args->command = TRUE;
 	args->user = data;
 	args->log_hook = cdg_log_hook;
@@ -9174,7 +9180,7 @@ int process_split_cfa(int nb) {
 	args->description = _("Split CFA");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9212,7 +9218,7 @@ int process_extractGreen(int nb) {
 	args->description = _("Extract Green");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9257,7 +9263,7 @@ int process_extractHa(int nb) {
 	args->description = _("Extract Ha");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9313,7 +9319,7 @@ int process_extractHaOIII(int nb) {
 	args->description = _("Extract Ha/OIII");
 	args->verbose = TRUE;
 	args->command = TRUE;
-	args->custom_undo = TRUE;
+	args->skip_generic_undo = TRUE;
 	args->user = cfa_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -9918,6 +9924,7 @@ int process_stat(int nb) {
 	args->user = data;
 	args->log_hook = stat_log_hook;
 	args->max_threads = 1;
+	args->skip_generic_undo = TRUE;  // measurement-only: no undo state
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14305,7 +14312,7 @@ int process_icc_assign(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14374,7 +14381,7 @@ int process_icc_convert_to(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14397,7 +14404,7 @@ int process_icc_remove(int nb) {
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	args->skip_generic_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -14678,6 +14685,166 @@ int process_pyscript(int nb) {
 	}
 }
 
+/* QHY GPS: there are two use cases:
+ * 1. we have images from a QHY global shutter camera (QHY174GPS and a few others) taken with any
+ * software that is able to handle the specifics of acquisition of this type of camera like the
+ * calibration and that keeps the metadata in the first row of pixels.
+ * 	In that case, use the `gps` command to read the metadata (in parse_gps_image()) and replace
+ * 	DATE-OBS and EXPOSURE in the image (in update_fit_from_qhy_header()), with another header
+ * 	(DATE-GPS) anad history indicating that this operation has been done. The metadata line is also
+ * 	removed to not cause statistics problems.
+ * 	The `gps -ro` command only does the first part and prints out the parsed metadata, useful to
+ * 	check if the GPS works on the camera and with the acquisition software.
+ *
+ * 2. we have images from a QHY rolling shutter camera (QHY268M-PRO, QHY600M-PRO and a few others) taken
+ * by NINA. In that case we explicitly read and manage the headers that NINA set to be able to compute
+ * timestamps if needed.
+ *	The command `gps 1234` will compute the timestamp of the middle of the exposure for pixel row
+ *	1234 for example.
+ */
+
+int process_gps(int nb) {
+        int crop_rows = 1; // used to be 6 because of a QHY bug in 2023
+        if (nb == 2 || nb == 3) {
+                gchar *end;
+                const char *arg = word[1];
+                int pix_y = g_ascii_strtoull(arg, &end, 10);
+                if (end == arg) {
+			if (nb > 2) { // only one of those allowed
+				siril_log_message(_("Error parsing arguments, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!g_strcmp0(word[1], "-header")) {
+				/* read from header instead of from pixels */
+				struct _qhy_struct qhy_header = { 0 };
+				gchar *filename = get_image_filename_no_ext(NULL, -1);
+				int retval = parse_gps_from_header(gfit, filename, &qhy_header);
+				g_free(filename);
+				if (retval >= 0) {
+					print_qhy_data(&qhy_header);
+					release_qhy_struct(&qhy_header);
+					if (retval) retval = CMD_INVALID_IMAGE;
+					return retval;
+				}
+				return CMD_INVALID_IMAGE;
+			}
+			if (!g_strcmp0(word[1], "-ro")) {
+				/* gps -ro */
+				struct _qhy_struct qhy_header = { 0 };
+				int retval = parse_gps_image(gfit, &qhy_header);
+				if (retval >= 0) {
+					print_qhy_data(&qhy_header);
+					release_qhy_struct(&qhy_header);
+					if (retval) retval = CMD_INVALID_IMAGE;
+					return retval;
+				}
+				return CMD_INVALID_IMAGE;
+			}
+			if (g_str_has_prefix(word[1], "-crop=")) {
+				gchar *end;
+				char *arg = word[1] + 6;
+				crop_rows = g_ascii_strtoull(arg, &end, 10);
+				if (end == arg || crop_rows > 6)
+					return CMD_ARG_ERROR;
+			}
+			else return CMD_ARG_ERROR;
+		} else {
+			/* gps row_number */
+			if (!gfit->keywords.gps_data) {
+				siril_log_message(_("The loaded image does not have the expected QHY GPS headers from NINA\n"));
+				return CMD_INVALID_IMAGE;
+			}
+			if (pix_y < 0 || pix_y >= gfit->ry) {
+				siril_log_message(_("Line is outside image\n"));
+				return CMD_ARG_ERROR;
+			}
+			enum timestamp_type moment = EXP_MIDDLE;
+			char *moment_str = "middle";
+			if (nb == 3) {
+				if (!g_strcmp0(word[2], "start") || !g_strcmp0(word[2], "s")) {
+					moment = EXP_START;
+					moment_str = "start";
+				}
+				else if (!g_strcmp0(word[2], "end") || !g_strcmp0(word[2], "e")) {
+					moment = EXP_END;
+					moment_str = "end";
+				}
+				else if (!g_strcmp0(word[2], "middle") || !g_strcmp0(word[2], "m")) {
+					moment = EXP_MIDDLE;
+				}
+				else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
+					return CMD_ARG_ERROR;
+				}
+			}
+			GDateTime *date = get_timestamp_for_pixel(gfit->keywords.gps_data, moment, 0, pix_y);
+			if (date) {
+				gchar *date_str = date_time_to_FITS_date(date);
+				siril_log_message(_("%4d: %s (exposure %s)\n"), pix_y, date_str, moment_str);
+				g_free(date_str);
+				g_date_time_unref(date);
+				return CMD_OK;
+			}
+			return CMD_ARG_ERROR;
+		}
+	}
+	else if (nb > 3) {
+		siril_log_message(_("Error parsing arguments, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+	// else, no argument, extract metadata and crop
+	struct generic_seq_args args = { 0 };
+	args.user = GINT_TO_POINTER(crop_rows);
+	int retval = gps_extract_image_hook(&args, 0, 0, gfit, NULL, MULTI_THREADED);
+	if (!retval) {
+		siril_log_message(_("Successfully extracted metadata and cropped %d row(s) of the image\n"), crop_rows);
+		notify_gfit_data_modified();
+	}
+	else retval = CMD_INVALID_IMAGE;
+	return retval;
+}
+
+int process_seq_gps_extract(int nb) {
+        sequence *seq = load_sequence(word[1], NULL);
+        if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+        int crop_rows = 6; // matching the QHY bug on most cameras in 2023
+        if (nb == 3) {
+                if (g_str_has_prefix(word[2], "-crop=")) {
+                        gchar *end;
+                        char *arg = word[2] + 6;
+                        crop_rows = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || crop_rows > 6) {
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
+                                return CMD_ARG_ERROR;
+			}
+                }
+                else {
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
+			return CMD_ARG_ERROR;
+		}
+
+        }
+        struct generic_seq_args *args = create_default_seqargs(seq);
+        args->filtering_criterion = seq_filter_included;
+        args->nb_filtered_images = seq->selnum;
+        args->image_hook = gps_extract_image_hook;
+        args->description = "GPS metadata extraction";
+        args->has_output = TRUE;
+        args->output_type = get_data_type(seq->bitpix);
+        args->new_seq_prefix = strdup("gps_");
+        args->load_new_sequence = TRUE;
+        args->user = GINT_TO_POINTER(crop_rows);
+        start_in_new_thread(generic_sequence_worker, args);
+        return 0;
+}
+
 int process_eqcrop(int nb) {
         int image_size;
 	if (!has_wcs(gfit)) {
@@ -14696,8 +14863,6 @@ int process_eqcrop(int nb) {
                 return CMD_ARG_ERROR;
         }
 
-        //TODO: sequence operation
-        //gboolean sliding = FALSE;
         int minsize = 0, margin_px = INT_MAX;
         double margin_asec = DBL_MAX;
         for (int i = arg_idx; i < nb; i++) {

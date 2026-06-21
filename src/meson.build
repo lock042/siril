@@ -181,6 +181,7 @@ src_files = [
   'io/fits_keywords.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
+  'io/gps_parser.c',
   'io/healpix/healpix.cpp',
   'io/healpix/healpix_image.cpp',
   'io/healpix/fluxcache.cpp',
@@ -248,12 +249,9 @@ src_files = [
 
 # GUI-only source files (require GTK; excluded when -Dgtk=false).
 #
-# gui_subdir is set in the top-level meson.build to either 'gui' (gtk3,
-# default) or 'gui-gtk4' (gtk4).  The two trees are physically separated
-# and only one is compiled into a given build.  As the GTK4 migration
-# progresses, some files exist in only one tree; this is captured by
-# splitting the file list into shared + per-tree extras.
-gui_filenames_shared = [
+# gui_subdir is fixed to 'gui-gtk4' in the top-level meson.build; the GUI
+# is GTK4-only.
+gui_filenames = [
   'livestacking_gui.c',
   'about_dialog.c',
   'annotate.c',
@@ -342,26 +340,15 @@ gui_filenames_shared = [
   'siril_cmd_help.c',
   'utils.c',
   'wavelets.c',
-]
-
-# Files that exist only in src/gui-gtk4/ (no GTK3 counterpart).
-gui_filenames_gtk4_only = [
   'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
 ]
-
-# Files that exist only in src/gui/ (no GTK4 counterpart).  Currently none.
-gui_filenames_gtk3_only = []
-
-gui_filenames = gui_filenames_shared + (use_gtk4
-  ? gui_filenames_gtk4_only
-  : gui_filenames_gtk3_only)
 
 src_files_gui = []
 foreach f : gui_filenames
   src_files_gui += gui_subdir / f
 endforeach
 
-# enable_gtk / use_gtk4 / gui_subdir are defined in the top-level meson.build
+# enable_gtk / gui_subdir are defined in the top-level meson.build
 #
 # Build strategy:
 #
@@ -388,10 +375,10 @@ endforeach
 #                      (in siril_lib) provides headless no-ops for all slots.
 #                      main-cli.c does NOT define guiinfo gui.  Always built.
 
-# Define the resource file.  The gtk4 backend uses a parallel xml that
-# points at gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
+# Define the resource file.  It points at gui-gtk4/uifiles/* and
+# gui-gtk4/siril.css.
 gnome = import('gnome')
-resource_xml = use_gtk4 ? 'siril_resource_gtk4.xml' : 'siril_resource.xml'
+resource_xml = 'siril_resource_gtk4.xml'
 siril_resources = gnome.compile_resources(
   'siril_resource', resource_xml,
   source_dir : [ '..', '.' ],

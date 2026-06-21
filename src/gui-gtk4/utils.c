@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
 #include "core/siril_log.h"
 #include "utils.h"
 #include "message_dialog.h"
@@ -796,6 +797,7 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 	 * transfer-full for BOTH the model and the factory, so gridview
 	 * consumed the refs we passed in. */
 	g_object_unref(store);
+	reactivate_parent(GTK_WIDGET(dlg));
 	gtk_window_destroy(GTK_WINDOW(dlg));
 
 	for (int i = 0; i < numImages; i++)
@@ -1125,6 +1127,30 @@ void siril_drop_down_append_text(GtkDropDown *dd, const gchar *text) {
 		sl = GTK_STRING_LIST(m);
 	}
 	gtk_string_list_append(sl, text);
+}
+
+const gchar *siril_seqlist_none_text(void) {
+	return _("(None)");
+}
+
+void siril_drop_down_prepend_none(GtkDropDown *dd) {
+	if (!dd) return;
+	GListModel *m = gtk_drop_down_get_model(dd);
+	if (m && GTK_IS_STRING_LIST(m) && g_list_model_get_n_items(m) > 0) {
+		GtkStringObject *so = g_list_model_get_item(m, 0);
+		const char *s = gtk_string_object_get_string(so);
+		gboolean has_none = (s && !strcmp(s, siril_seqlist_none_text()));
+		g_object_unref(so);
+		if (has_none) return; /* already present */
+	}
+	if (!m || !GTK_IS_STRING_LIST(m)) {
+		GtkStringList *sl = gtk_string_list_new(NULL);
+		gtk_drop_down_set_model(dd, G_LIST_MODEL(sl));
+		g_object_unref(sl);
+		m = gtk_drop_down_get_model(dd);
+	}
+	const char *additions[] = { siril_seqlist_none_text(), NULL };
+	gtk_string_list_splice(GTK_STRING_LIST(m), 0, 0, additions);
 }
 
 gboolean siril_toggle_get_active(GtkWidget *w) {

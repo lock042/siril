@@ -23,7 +23,7 @@
 
 #include "core/siril.h"
 #include "core/gtk_forward_decls.h"
-#include "gui/plot.h"
+#include "gui-gtk4/plot.h"
 #include "kplot.h"
 #include "extern.h"
 

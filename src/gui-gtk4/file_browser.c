@@ -16,6 +16,9 @@
 #include "core/initfile.h"
 #include "io/avi_preview.h"
 #include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/utils.h"
 
 #include <string.h>
@@ -57,10 +60,14 @@ struct _SirilFileBrowser {
 	GtkWidget              *breadcrumb_left_btn;  /* scroll-left chevron */
 	GtkWidget              *breadcrumb_right_btn; /* scroll-right chevron */
 	GtkWidget              *edit_path_btn;     /* toggle between breadcrumb / entry */
+	GtkWidget              *new_folder_btn;    /* create a subfolder; shown in directory-only mode */
+	GtkPopover             *new_folder_popover;/* name-entry popover for new_folder_btn */
+	GtkEntry               *new_folder_entry;  /* folder name input inside the popover */
 	guint                   pending_breadcrumb_idle; /* g_idle_add id, 0 = none */
 	GtkColumnView          *columnview;
 	GtkWidget              *outer_paned;        /* sidebar | content divider */
 	GtkWidget              *list_preview_paned; /* list | preview divider */
+	GtkWidget              *sidebar_list;       /* GtkListBox inside the sidebar; populated lazily after present */
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
@@ -73,6 +80,15 @@ struct _SirilFileBrowser {
 	GtkSearchEntry         *search_entry;
 	gchar                  *search_text;       /* lower-cased substring, NULL/"" disables */
 	gboolean                show_hidden_files; /* honors org.gtk.Settings.FileChooser show-hidden; toggle with Ctrl+H */
+
+	/* The sidebar's Bookmarks / Devices sections are built asynchronously
+	 * after the window is presented — the GIO volume-monitor and bookmark
+	 * I/O were the bulk of the first-open lag.  volume_monitor is held and
+	 * signal-connected on the first populate so the Devices list stays live
+	 * while the dialog is open; sidebar_refresh_idle coalesces a burst of
+	 * mount/volume signals into a single rebuild (0 = none pending). */
+	GVolumeMonitor         *volume_monitor;     /* +1 ref, NULL until first populate */
+	guint                   sidebar_refresh_idle;
 
 	/* Owned model objects.  Kept in fields so callbacks (filter, set_file,
 	 * selection-changed) can reach them; references are taken via
@@ -809,6 +825,58 @@ static gboolean on_path_entry_key_pressed(GtkEventControllerKey *c,
 	return FALSE;
 }
 
+static void on_new_folder_create(SirilFileBrowser *fb) {
+	if (!fb || !fb->current_folder) return;
+	const gchar *raw = gtk_editable_get_text(GTK_EDITABLE(fb->new_folder_entry));
+	gchar *name = raw ? g_strstrip(g_strdup(raw)) : NULL;
+	if (!name || !*name) {
+		g_free(name);
+		return;  /* nothing typed yet — keep the popover open */
+	}
+	/* Reject path separators: this creates a single child, not a tree. */
+	if (strchr(name, G_DIR_SEPARATOR) ||
+	    !g_strcmp0(name, ".") || !g_strcmp0(name, "..")) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid folder name"),
+			_("The folder name must not be empty or contain a path separator."));
+		g_free(name);
+		return;
+	}
+
+	GFile *child = g_file_get_child(fb->current_folder, name);
+	GError *err = NULL;
+	gboolean ok = g_file_make_directory(child, NULL, &err);
+	if (ok) {
+		gtk_editable_set_text(GTK_EDITABLE(fb->new_folder_entry), "");
+		if (fb->new_folder_popover)
+			gtk_popover_popdown(fb->new_folder_popover);
+		navigate_to(fb, child);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not create folder"),
+			err && err->message ? err->message : _("Unknown error"));
+	}
+	g_clear_error(&err);
+	g_object_unref(child);
+	g_free(name);
+}
+
+static void on_new_folder_entry_activate(GtkEntry *entry, gpointer ud) {
+	(void)entry;
+	on_new_folder_create(ud);
+}
+
+static void on_new_folder_confirm_clicked(GtkButton *b, gpointer ud) {
+	(void)b;
+	on_new_folder_create(ud);
+}
+
+/* Clear any stale text and focus the entry each time the popover opens. */
+static void on_new_folder_popover_show(GtkPopover *p, gpointer ud) {
+	(void)p;
+	SirilFileBrowser *fb = ud;
+	gtk_editable_set_text(GTK_EDITABLE(fb->new_folder_entry), "");
+	gtk_widget_grab_focus(GTK_WIDGET(fb->new_folder_entry));
+}
+
 /* ── column factories ─────────────────────────────────────────────── */
 
 /* Forward decl — defined further down (after the picture / preview helpers)
@@ -1363,8 +1431,37 @@ static int sidebar_recent_cmp_visited_desc(gconstpointer a, gconstpointer b) {
 	return g_date_time_compare(tb, ta);  /* descending */
 }
 
+/* Process-wide warm reference to GIO's volume monitor.
+ *
+ * The first g_volume_monitor_get() in a process is the expensive part of
+ * opening the file browser: it spins up GIO's native backend (on Linux a
+ * D-Bus proxy to gvfs/udisks) and enumerates mounts/volumes/drives, which
+ * blocks for tens of milliseconds — longer when a network mount has to time
+ * out.  We create it once and keep it alive so every later get is free.
+ *
+ * It MUST be created on the main thread with no thread-default context
+ * pushed: GVolumeMonitor is documented as not thread-default-context aware,
+ * and its mount-added / -removed signals bind to whichever context is
+ * current at construction.  Build it on a worker thread and those signals
+ * bind to a context that never runs, so live device updates silently break
+ * (and the native backend is unsupported off the main thread regardless).
+ * Hence siril_file_browser_prewarm() is a main-loop idle, not a thread. */
+static GVolumeMonitor *g_prewarmed_monitor = NULL;
+
+static GVolumeMonitor *browser_get_volume_monitor(void) {
+	if (!g_prewarmed_monitor)
+		g_prewarmed_monitor = g_volume_monitor_get();
+	return g_prewarmed_monitor;
+}
+
+gboolean siril_file_browser_prewarm(gpointer user_data) {
+	(void) user_data;
+	browser_get_volume_monitor();
+	return G_SOURCE_REMOVE;
+}
+
 static int sidebar_populate_volumes(GtkListBox *box) {
-	GVolumeMonitor *monitor = g_volume_monitor_get();
+	GVolumeMonitor *monitor = browser_get_volume_monitor();
 	if (!monitor) return 0;
 	int count = 0;
 	GList *mounts = g_volume_monitor_get_mounts(monitor);
@@ -1390,7 +1487,7 @@ static int sidebar_populate_volumes(GtkListBox *box) {
 		if (root) g_object_unref(root);
 	}
 	g_list_free_full(mounts, g_object_unref);
-	g_object_unref(monitor);
+	/* monitor is the shared, process-warm singleton — do not unref. */
 	return count;
 }
 
@@ -1441,7 +1538,7 @@ static void sidebar_add_volume_unmounted(GtkListBox *box, GVolume *vol) {
  * of rows added.  Drives with no media are filtered out — a "Mount X"
  * row that can never succeed is just noise. */
 static int sidebar_populate_unmounted_volumes(GtkListBox *box) {
-	GVolumeMonitor *monitor = g_volume_monitor_get();
+	GVolumeMonitor *monitor = browser_get_volume_monitor();
 	if (!monitor) return 0;
 	int count = 0;
 	GList *vols = g_volume_monitor_get_volumes(monitor);
@@ -1458,7 +1555,7 @@ static int sidebar_populate_unmounted_volumes(GtkListBox *box) {
 		count++;
 	}
 	g_list_free_full(vols, g_object_unref);
-	g_object_unref(monitor);
+	/* monitor is the shared, process-warm singleton — do not unref. */
 	return count;
 }
 
@@ -1683,49 +1780,101 @@ static GtkWidget *make_pane_heading(const char *text) {
 	return heading;
 }
 
-static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
-	GtkWidget *list = gtk_list_box_new();
-	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
-	gtk_widget_add_css_class(list, "navigation-sidebar");
+/* Remove every row from the sidebar list box. */
+static void sidebar_clear(GtkListBox *list) {
+	GtkWidget *child;
+	while ((child = gtk_widget_get_first_child(GTK_WIDGET(list))))
+		gtk_list_box_remove(list, GTK_WIDGET(child));
+}
+
+/* (Re)build the sidebar contents in place: the static Places shortcuts
+ * (cheap) followed by Bookmarks and Devices (which do file I/O and
+ * volume-monitor enumeration).  Clears first, so it is safe to call
+ * repeatedly — on each open and whenever a device is plugged / unplugged.
+ * Always runs on the main thread (see browser_get_volume_monitor). */
+static void sidebar_repopulate(SirilFileBrowser *fb) {
+	if (!fb || !fb->sidebar_list) return;
+	GtkListBox *list = GTK_LIST_BOX(fb->sidebar_list);
+	sidebar_clear(list);
 
 	/* Sidebar entries.  Order mirrors the GTK3 GtkFileChooser sidebar that
 	 * Siril shipped previously, plus the Working Directory shortcut that
 	 * jumps to com.wd (the folder Siril is operating on).  Templates /
 	 * Public / Computer are intentionally omitted — see the brief. */
-	sidebar_add_section_header(GTK_LIST_BOX(list), _("Places"));
-	sidebar_add_recent_entry(GTK_LIST_BOX(list));
-	sidebar_add_location(GTK_LIST_BOX(list), "user-home-symbolic",
+	sidebar_add_section_header(list, _("Places"));
+	sidebar_add_recent_entry(list);
+	sidebar_add_location(list, "user-home-symbolic",
 	                     _("Home"), g_get_home_dir());
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-documents-symbolic",
+	sidebar_add_location(list, "folder-documents-symbolic",
 	                     _("Documents"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-pictures-symbolic",
+	sidebar_add_location(list, "folder-pictures-symbolic",
 	                     _("Pictures"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_PICTURES));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-music-symbolic",
+	sidebar_add_location(list, "folder-music-symbolic",
 	                     _("Music"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_MUSIC));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-download-symbolic",
+	sidebar_add_location(list, "folder-download-symbolic",
 	                     _("Downloads"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
-	sidebar_add_location(GTK_LIST_BOX(list), "folder-videos-symbolic",
+	sidebar_add_location(list, "folder-videos-symbolic",
 	                     _("Videos"),
 	                     g_get_user_special_dir(G_USER_DIRECTORY_VIDEOS));
 	{
 		GFile *trash = g_file_new_for_uri("trash:///");
-		sidebar_add_gfile(GTK_LIST_BOX(list), "user-trash-symbolic",
+		sidebar_add_gfile(list, "user-trash-symbolic",
 		                  _("Trash"), trash);
 		g_object_unref(trash);
 	}
 	if (com.wd && *com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR))
-		sidebar_add_location(GTK_LIST_BOX(list), "folder-symbolic",
+		sidebar_add_location(list, "folder-symbolic",
 		                     _("Working Directory"), com.wd);
 
 	/* Section: Bookmarks (only if the user has any). */
-	sidebar_section(GTK_LIST_BOX(list), _("Bookmarks"), sidebar_populate_bookmarks);
+	sidebar_section(list, _("Bookmarks"), sidebar_populate_bookmarks);
 
 	/* Section: Devices (mounted first, then unmounted with a Mount badge). */
-	sidebar_section(GTK_LIST_BOX(list), _("Devices"), sidebar_populate_all_devices);
+	sidebar_section(list, _("Devices"), sidebar_populate_all_devices);
+}
+
+static gboolean sidebar_refresh_idle_cb(gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	fb->sidebar_refresh_idle = 0;
+	sidebar_repopulate(fb);
+	return G_SOURCE_REMOVE;
+}
+
+/* Queue a sidebar rebuild for the next idle, coalescing a burst of
+ * volume-monitor signals (a single plug event can fire several) into one
+ * repopulate.  On first use it also wires the volume monitor's mount /
+ * volume signals so the Devices section stays live while the dialog is
+ * open.  Deferring to idle is what keeps the window appearing instantly:
+ * gtk_window_present() returns first, the enumeration runs after.  Declared
+ * void so it can be used directly as a g_signal_connect_swapped handler. */
+static void sidebar_schedule_refresh(SirilFileBrowser *fb) {
+	if (!fb || !fb->sidebar_list) return;
+	if (!fb->volume_monitor) {
+		fb->volume_monitor = g_object_ref(browser_get_volume_monitor());
+		static const char * const sigs[] = {
+			"mount-added", "mount-removed",
+			"volume-added", "volume-removed", NULL };
+		for (int i = 0; sigs[i]; i++)
+			g_signal_connect_swapped(fb->volume_monitor, sigs[i],
+			                         G_CALLBACK(sidebar_schedule_refresh), fb);
+	}
+	if (!fb->sidebar_refresh_idle)
+		fb->sidebar_refresh_idle = g_idle_add(sidebar_refresh_idle_cb, fb);
+}
+
+/* Build the sidebar shell only.  The contents are filled asynchronously by
+ * sidebar_schedule_refresh after the window is presented — populating here
+ * would put the slow volume-monitor / bookmark I/O back on the
+ * dialog-creation path, the very thing this defers. */
+static GtkWidget *build_sidebar(SirilFileBrowser *fb) {
+	GtkWidget *list = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list), GTK_SELECTION_NONE);
+	gtk_widget_add_css_class(list, "navigation-sidebar");
+	fb->sidebar_list = list;
 
 	g_signal_connect(list, "row-activated",
 	                 G_CALLBACK(on_sidebar_row_activated), fb);
@@ -2135,11 +2284,41 @@ static gboolean browser_window_key_pressed(GtkEventControllerKey *kc, guint keyv
                                            gpointer ud) {
 	(void)kc; (void)keycode;
 	SirilFileBrowser *fb = ud;
+	/* Ctrl+H toggles hidden files on every platform, matching the GTK3
+	 * GtkFileChooser (which used Ctrl even on macOS, not Cmd). */
 	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_h || keyval == GDK_KEY_H)) {
 		fb->show_hidden_files = !fb->show_hidden_files;
 		if (fb->file_filter)
 			gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
 		return TRUE;
+	}
+	/* Ctrl+L toggles the path into text-entry mode, matching the GTK3
+	 * GtkFileChooser shortcut (and the edit-path toolbar button).  GTK3 used
+	 * Ctrl on every platform, including macOS — not Cmd. */
+	if ((state & GDK_CONTROL_MASK) && (keyval == GDK_KEY_l || keyval == GDK_KEY_L)) {
+		on_edit_path_clicked(NULL, fb);
+		return TRUE;
+	}
+	/* Primary+A (Ctrl+A, or Cmd+A on macOS) selects every item in multi-select
+	 * mode.  GtkColumnView has its own select-all binding, but it only fires
+	 * once the view has keyboard focus; handling it here makes the shortcut
+	 * work even before the user has clicked into the list.  Match the platform
+	 * primary modifier (get_primary()) rather than GDK_CONTROL_MASK: on macOS
+	 * the focus is on Cancel at open and Cmd maps to GDK_META_MASK, so a
+	 * hardcoded Ctrl check never caught Cmd+A until the list was clicked.  Skip
+	 * it while the path is in text-entry mode or search is active, so the
+	 * shortcut keeps selecting text there. */
+	if (fb->select_multiple && (state & get_primary()) &&
+	    (keyval == GDK_KEY_a || keyval == GDK_KEY_A)) {
+		gboolean in_entry = fb->path_stack &&
+			g_strcmp0(gtk_stack_get_visible_child_name(fb->path_stack), "entry") == 0;
+		gboolean in_search = fb->search_bar &&
+			gtk_search_bar_get_search_mode(fb->search_bar);
+		if (!in_entry && !in_search) {
+			if (fb->selection)
+				gtk_selection_model_select_all(fb->selection);
+			return TRUE;
+		}
 	}
 	/* Escape dismisses the dialog */
 	if (keyval == GDK_KEY_Escape) {
@@ -2342,6 +2521,36 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	g_signal_connect(fb->edit_path_btn, "clicked",
 	                 G_CALLBACK(on_edit_path_clicked), fb);
 	gtk_box_append(GTK_BOX(toolbar), fb->edit_path_btn);
+
+	fb->new_folder_btn = gtk_button_new_from_icon_name("folder-new-symbolic");
+	gtk_widget_set_tooltip_text(fb->new_folder_btn, _("Create folder"));
+	gtk_widget_add_css_class(fb->new_folder_btn, "flat");
+	gtk_widget_set_margin_start(fb->new_folder_btn, 6);
+	gtk_widget_set_visible(fb->new_folder_btn, FALSE);
+	gtk_box_append(GTK_BOX(toolbar), fb->new_folder_btn);
+
+	fb->new_folder_popover = GTK_POPOVER(gtk_popover_new());
+	gtk_widget_set_parent(GTK_WIDGET(fb->new_folder_popover), fb->new_folder_btn);
+	{
+		GtkWidget *nf_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		fb->new_folder_entry = GTK_ENTRY(gtk_entry_new());
+		gtk_entry_set_placeholder_text(fb->new_folder_entry, _("Folder name"));
+		gtk_entry_set_activates_default(fb->new_folder_entry, FALSE);
+		gtk_widget_set_hexpand(GTK_WIDGET(fb->new_folder_entry), TRUE);
+		g_signal_connect(fb->new_folder_entry, "activate",
+		                 G_CALLBACK(on_new_folder_entry_activate), fb);
+		GtkWidget *nf_create = gtk_button_new_with_label(_("Create"));
+		gtk_widget_add_css_class(nf_create, "suggested-action");
+		g_signal_connect(nf_create, "clicked",
+		                 G_CALLBACK(on_new_folder_confirm_clicked), fb);
+		gtk_box_append(GTK_BOX(nf_box), GTK_WIDGET(fb->new_folder_entry));
+		gtk_box_append(GTK_BOX(nf_box), nf_create);
+		gtk_popover_set_child(fb->new_folder_popover, nf_box);
+	}
+	g_signal_connect(fb->new_folder_popover, "show",
+	                 G_CALLBACK(on_new_folder_popover_show), fb);
+	g_signal_connect_swapped(fb->new_folder_btn, "clicked",
+	                         G_CALLBACK(gtk_popover_popup), fb->new_folder_popover);
 
 	/* Search toggle — sits to the left of Open in the top toolbar.  Bound
 	 * bidirectionally to the search bar's `search-mode-enabled` so clicking
@@ -2688,6 +2897,8 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	/* Folder-picker mode is per-open; clear it so the next caller starts as
 	 * a normal file picker unless it opts back in. */
 	fb->directory_only = FALSE;
+	if (fb->new_folder_btn)
+		gtk_widget_set_visible(fb->new_folder_btn, FALSE);
 
 	/* Revert multi-select back to single — set_select_multiple() rebuilds
 	 * the selection model and rewires the columnview for us. */
@@ -2842,6 +3053,9 @@ void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_on
 	 * start; in normal mode it stays gated on an actual selection. */
 	if (fb->open_button)
 		gtk_widget_set_sensitive(fb->open_button, dir_only || any_selected(fb));
+	/* The create-folder button only makes sense when picking a directory. */
+	if (fb->new_folder_btn)
+		gtk_widget_set_visible(fb->new_folder_btn, dir_only);
 }
 
 gint siril_file_browser_run(SirilFileBrowser *fb) {
@@ -2882,6 +3096,10 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 
 	fb->loop = g_main_loop_new(NULL, FALSE);
 	gtk_window_present(fb->window);
+	/* Fill the sidebar (Bookmarks + Devices) now that the window is up.
+	 * Doing it here rather than at build time keeps first open instant and
+	 * picks up any bookmarks / drives that changed since the last open. */
+	sidebar_schedule_refresh(fb);
 	g_main_loop_run(fb->loop);
 	g_main_loop_unref(fb->loop);
 	fb->loop = NULL;
@@ -2923,6 +3141,10 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
 		fb->parent = NULL;
 	}
+	/* Restore keyboard focus/activation to the browser's parent so its
+	 * accelerators keep working after the browser is dismissed.  fb->window
+	 * is hidden (not destroyed), so its transient-parent link is still set. */
+	reactivate_parent(GTK_WIDGET(fb->window));
 	return fb->response;
 }
 

@@ -208,6 +208,8 @@ struct editor_config {
 	gboolean showspaces;
 	gboolean shownewlines;
 	gboolean minimap;
+	gboolean dynamic_wrap;
+	gboolean code_folding;
 };
 
 typedef enum {
@@ -254,8 +256,8 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
-				// short-lived catalogue for "who's in the field" annotations
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations, 
+				// 1 for velocity vectors display
 				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides

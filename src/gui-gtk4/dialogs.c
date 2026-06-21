@@ -137,6 +137,54 @@ static GtkWidget *get_widget_by_index(int index) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
+/* When a transient dialog or native file dialog is dismissed, some
+ * compositors (notably Wayland) and macOS do not automatically return
+ * keyboard focus/activation to the parent window.  That window then stops
+ * receiving key events, so its app/win accelerators (Ctrl+P, Ctrl+O, ...)
+ * silently stop working until the user clicks back into it.  Re-presenting
+ * the parent restores it as the active toplevel so the shortcuts keep
+ * working.
+ *
+ * Re-present `win` so it regains keyboard focus/activation; a NULL window
+ * falls back to the main control window.  Internal helper for the
+ * reactivate_parent() entry point and the native file-dialog runner. */
+static gboolean present_toplevel_idle(gpointer data) {
+	GtkWindow *win = GTK_WINDOW(data);
+	/* Only present if the window isn't already the active toplevel.  When the
+	 * compositor already handed focus back (X11, and most Wayland cases), the
+	 * parent is active and presenting it again is both pointless and harmful:
+	 * it makes GTK recompute pointer focus and clear active-state that was
+	 * never set, spewing "Broken accounting of active state" up the widget
+	 * tree.  We only need the present on the platforms that drop focus on
+	 * dismissal (notably macOS), where the parent is not active here. */
+	if (gtk_widget_get_visible(GTK_WIDGET(win)) && !gtk_window_is_active(win))
+		gtk_window_present(win);
+	return G_SOURCE_REMOVE;
+}
+
+static void present_toplevel(GtkWindow *win) {
+	if (!win)
+		win = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return;
+	/* Defer to the next main-loop iteration: we are called from a dialog's
+	 * button handler (or synchronously after a nested modal loop quits on
+	 * that click), so the triggering click's press/release is still in
+	 * flight, and acting on focus now races GTK's own input tracking.  The
+	 * window is ref'd to outlive the dialog teardown that may follow. */
+	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, present_toplevel_idle,
+	                g_object_ref(win), g_object_unref);
+}
+
+/* Re-present the transient parent of a now-dismissed `dialog`, falling back
+ * to the main control window when it has none.  Call this AFTER hiding the
+ * dialog but BEFORE destroying it (the transient-parent link is read off the
+ * dialog).  A NULL dialog targets the control window directly. */
+void reactivate_parent(GtkWidget *dialog) {
+	present_toplevel((dialog && GTK_IS_WINDOW(dialog))
+	                 ? gtk_window_get_transient_for(GTK_WINDOW(dialog)) : NULL);
+}
+
 /* Phase 14: GTK4 routes key input through GtkEventControllerKey instead
  * of the legacy "key-press-event" signal.  The escape-to-close behaviour
  * for the search-entry dialog is hooked via gtk_event_controller_key,
@@ -147,6 +195,7 @@ static gboolean check_escape(GtkEventControllerKey *ctrl, guint keyval,
 	if (keyval == GDK_KEY_Escape) {
 		GtkWidget *widget = GTK_WIDGET(data);
 		gtk_widget_set_visible(widget, FALSE);
+		reactivate_parent(widget);
 		return TRUE;
 	}
 	return FALSE;
@@ -202,7 +251,9 @@ void siril_open_dialog(gchar *id) {
 }
 
 void siril_close_dialog(gchar *id) {
-	gtk_widget_set_visible(get_widget_by_id(id), FALSE);
+	GtkWidget *w = get_widget_by_id(id);
+	gtk_widget_set_visible(w, FALSE);
+	reactivate_parent(w);
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
@@ -212,13 +263,17 @@ void siril_close_dialog(gchar *id) {
 }
 
 void siril_close_preview_dialogs() {
+	gboolean closed_any = FALSE;
 	for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
 		GtkWidget *w = get_widget_by_index(i);
 		if (gtk_widget_get_visible(w) && (entries[i].has_preview)) {
 			entries[i].apply_function();
 			gtk_widget_set_visible(w, FALSE);
+			closed_any = TRUE;
 		}
 	}
+	if (closed_any)
+		reactivate_parent(NULL);
 }
 
 // WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
@@ -228,6 +283,7 @@ void siril_close_preview_dialogs() {
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_set_visible(widget, FALSE);
+    reactivate_parent(widget);
     return TRUE;
 }
 
@@ -366,8 +422,16 @@ void siril_fc_add_filter_pattern(SirilFileChooser *fc, const gchar *title,
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, title);
 	gchar **patterns = g_strsplit(pattern, ";", -1);
-	for (gint i = 0; patterns[i] != NULL; i++)
+	for (gint i = 0; patterns[i] != NULL; i++) {
 		gtk_file_filter_add_pattern(f, patterns[i]);
+		/* Also register the bare suffix of each "*.ext" pattern. Pattern-only
+		 * filters don't tell platform-native save panels (notably macOS
+		 * NSSavePanel) which extension is expected, so the panel treats a
+		 * pre-filled "foo.fit" as a base name and re-appends ".fit", yielding
+		 * "foo.fit.fit". Declaring the suffix lets the panel recognise it. */
+		if (g_str_has_prefix(patterns[i], "*.") && patterns[i][2] != '\0')
+			gtk_file_filter_add_suffix(f, patterns[i] + 2);
+	}
 	g_strfreev(patterns);
 	siril_fc_add_filter(fc, f, set_default);
 	g_object_unref(f);
@@ -458,6 +522,10 @@ gint siril_fc_run(SirilFileChooser *fc) {
 	g_main_loop_run(fc->loop);
 	g_main_loop_unref(fc->loop);
 	fc->loop = NULL;
+	/* The native file dialog does not always hand keyboard focus/activation
+	 * back to the parent on dismissal (macOS in particular), so re-present
+	 * its parent to keep that window's accelerators working. */
+	present_toplevel(fc->parent);
 	return fc->response;
 }
 

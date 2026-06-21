@@ -46,13 +46,8 @@ AM_CPPFLAGS = \
 	$(X11_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
-# The gtk4 backend uses a parallel resource XML pointing at
-# gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
-if USE_GTK4
+# The resource XML points at gui-gtk4/uifiles/* and gui-gtk4/siril.css.
 siril_resource_xml = $(srcdir)/siril_resource_gtk4.xml
-else
-siril_resource_xml = $(srcdir)/siril_resource.xml
-endif
 
 siril_resource.c: siril_resource.h
 	$(AM_V_GEN)
@@ -317,6 +312,8 @@ siril_core_sources = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gps_parser.c \
+	io/gps_parser.h \
 	io/healpix/fluxcache.cpp \
 	io/healpix/fluxcache.h \
 	io/healpix/gaia_xp_design.c \
@@ -416,9 +413,8 @@ siril_core_sources = \
 
 # ── GUI (GTK-dependent) sources ─────────────────────────────────────────────
 # Compiled into siril only.  Each file may include <gtk/gtk.h>.
-# Mirrors meson's src_files_gui — keep in sync.  The gtk3 (src/gui) and
-# gtk4 (src/gui-gtk4) trees are parallel implementations; only one is
-# compiled into a given build, selected by --enable-gtk=gtk3|gtk4.
+# Mirrors meson's src_files_gui — keep in sync.  The GUI is GTK4-only and
+# lives in src/gui-gtk4.
 if USE_GTK4
 siril_gui_sources = \
 	gui-gtk4/about_dialog.c \
@@ -572,147 +568,6 @@ siril_gui_sources = \
 	gui-gtk4/utils.h \
 	gui-gtk4/wavelets.c \
 	gui-gtk4/wavelets.h
-else
-siril_gui_sources = \
-	gui/about_dialog.c \
-	gui/about_dialog.h \
-	gui/annotate.c \
-	gui/annotations_pref.c \
-	gui/asinh.c \
-	gui/astrometry_solver.c \
-	gui/background_extraction.c \
-	gui/banding.c \
-	gui/callbacks.c \
-	gui/callbacks.h \
-	gui/catmag.c \
-	gui/catmag.h \
-	gui/ccd-inspector.c \
-	gui/clahe.c \
-	gui/colors.c \
-	gui/colors.h \
-	gui/compositing.c \
-	gui/compstars.c \
-	gui/compstars.h \
-	gui/conversion.c \
-	gui/conversion.h \
-	gui/cosmetic_correction.c \
-	gui/curves.c \
-	gui/curves.h \
-	gui/cut.c \
-	gui/denoisegui.c \
-	gui/dialog_preview.c \
-	gui/dialog_preview.h \
-	gui/dialogs.c \
-	gui/dialogs.h \
-	gui/documentation.c \
-	gui/documentation.h \
-	gui/epf.c \
-	gui/epf.h \
-	gui/fft.c \
-	gui/fix_xtrans_af.c \
-	gui/fix_xtrans_af.h \
-	gui/geometry.c \
-	gui/git_gui.c \
-	gui/gui_iface_impl.c \
-	gui/gui_state.h \
-	gui/histo_display.c \
-	gui/histo_display.h \
-	gui/histogram.c \
-	gui/histogram.h \
-	gui/histogram_utils.c \
-	gui/histogram_utils.h \
-	gui/icc_profile.c \
-	gui/icc_profile.h \
-	gui/image_display.c \
-	gui/image_display.h \
-	gui/image_interactions.c \
-	gui/image_interactions.h \
-	gui/keywords_tree.c \
-	gui/keywords_tree.h \
-	gui/linear_match.c \
-	gui/livestacking_gui.c \
-	gui/masks_gui.c \
-	gui/masks_gui.h \
-	gui/median.c \
-	gui/menu_gray_geometry.c \
-	gui/menu_gray_geometry.h \
-	gui/menu_gray_selection.c \
-	gui/merge_cfa.c \
-	gui/message_dialog.c \
-	gui/message_dialog.h \
-	gui/mouse_action_functions.c \
-	gui/mouse_action_functions.h \
-	gui/mouse_action_preferences.c \
-	gui/newdeconv.c \
-	gui/nina_light_curve.c \
-	gui/nina_light_curve.h \
-	gui/open_dialog.c \
-	gui/open_dialog.h \
-	gui/photometric_cc.c \
-	gui/photometric_cc.h \
-	gui/pixelmath.c \
-	gui/plot.c \
-	gui/plot.h \
-	gui/preferences.c \
-	gui/preferences.h \
-	gui/preprocess.c \
-	gui/progress_and_log.c \
-	gui/progress_and_log.h \
-	gui/PSF_list.h \
-	gui/PSF_list.c \
-	gui/python_gui.h \
-	gui/python_gui.c \
-	gui/registration.h \
-	gui/registration.c \
-	gui/registration_preview.c \
-	gui/remixer.c \
-	gui/remixer.h \
-	gui/rgradient.c \
-	gui/saturation.c \
-	gui/save_dialog.c \
-	gui/save_dialog.h \
-	gui/scnr.c \
-	gui/script_console.c \
-	gui/script_menu.c \
-	gui/script_menu.h \
-	gui/search_objects.c \
-	gui/sequence_export.c \
-	gui/sequence_list.c \
-	gui/sequence_list.h \
-	gui/single_image.c \
-	gui/single_image.h \
-	gui/siril_actions.c \
-	gui/siril_actions.h \
-	gui/siril_cmd_help.c \
-	gui/siril_cmd_help.h \
-	gui/siril_css.c \
-	gui/siril_css.h \
-	gui/siril_intro.c \
-	gui/siril_intro.h \
-	gui/siril_preview.c \
-	gui/siril_preview.h \
-	gui/siril_plot.c \
-	gui/siril_plot.h \
-	gui/siril-window.c \
-	gui/siril-window.h \
-	gui/splashscreen.c \
-	gui/splashscreen.h \
-	gui/split_cfa.c \
-	gui/stacking.c \
-	gui/stacking.h \
-	gui/star_finder.c \
-	gui/starnetgui.c \
-	gui/starnetgui.h \
-	gui/statistics.c \
-	gui/statistics_list.c \
-	gui/undo_gui.c \
-	gui/unpurple.c \
-	gui/unpurple.h \
-	gui/user_polygons.c \
-	gui/user_polygons.h \
-	gui/utils.c \
-	gui/utils.h \
-	gui/wavelets.c
 endif
 
 # ── Headless stubs ──────────────────────────────────────────────────────────

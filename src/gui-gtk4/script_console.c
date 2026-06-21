@@ -65,7 +65,11 @@ static gboolean log_status_bar_idle_callback(gpointer p) {
 	struct log_status_bar_idle_data *data = (struct log_status_bar_idle_data *) p;
 	GtkLabel *statusbar = GTK_LABEL(gtk_builder_get_object(gui.builder, "statusbar_script"));
 	gchar *newline = g_strdup(data->myline);
-	gchar *status = g_strdup_printf(_("Processing line %d: %s"), data->line, newline);
+	/* line <= 0 is an interactive command: show it alone, without the
+	 * "Processing line N:" prefix that only makes sense inside a script. */
+	gchar *status = (data->line > 0)
+			? g_strdup_printf(_("Processing line %d: %s"), data->line, newline)
+			: g_strdup_printf(_("Running command: %s"), newline);
 	update_log_icon(TRUE);
 	gtk_label_set_text(statusbar, status);
 	g_free(newline);
@@ -82,7 +86,7 @@ void console_log_status(const gchar *msg, int line) {
 	struct log_status_bar_idle_data *data = malloc(sizeof(*data));
 	data->line = line;
 	data->myline = msg ? g_strdup(msg) : NULL;
-	g_idle_add(log_status_bar_idle_callback, data);
+	gui_function(log_status_bar_idle_callback, data);
 }
 
 void console_clear_status_bar(void) {
