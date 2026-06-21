@@ -14702,7 +14702,7 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && g_str_has_prefix(arg, "-min-structure=")) {
 		cfg->alignment_points_structure_threshold = atof(arg + 15); return MPP_FLAG_OK;
 	}
-	if (accept_register && !strcmp(arg, "-no-dewarp")) {
+	if (accept_register && !strcmp(arg, "-no-shifts")) {
 		cfg->alignment_points_de_warp = FALSE; return MPP_FLAG_OK;
 	}
 	if (accept_register && !strcmp(arg, "-no-normalize")) {
@@ -14821,7 +14821,7 @@ int process_mpp(int nb) {
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
 	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]
 	 *              [-min-brightness=N] [-min-contrast=N] [-min-structure=F]
-	 *              [-bg-fraction=F] [-bg-blend=F] [-no-dewarp] [-no-normalize]
+	 *              [-bg-fraction=F] [-bg-blend=F] [-no-shifts] [-no-normalize]
 	 *              [-noseed] [-avi-bayer=K] [-skip-failed-aps] [-32b]`
 	 *
 	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given

@@ -1063,7 +1063,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                             </child>
                                                                             <child>
                                                                               <object class="GtkCheckButton" id="check_mpp_dewarp">
-                                                                                <property name="label" translatable="1">De-warp per-AP shifts</property>
+                                                                                <property name="label" translatable="1">Apply per-AP shifts</property>
                                                                                 <property name="focusable">1</property>
                                                                                 <property name="tooltip-text" translatable="1">When off, all APs use the same single best-frame shift instead of per-AP shifts. Default on.</property>
                                                                                 <property name="halign">start</property>
