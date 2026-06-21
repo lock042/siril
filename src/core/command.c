@@ -118,6 +118,11 @@
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
 #include "registration/mpp/mpp_sidecar.h"
+#include "registration/mpp/mpp_derot_sidecar.h"
+#include "registration/mpp/mpp_derot_build.h"
+#include "algos/planet_ephem.h"
+#include "core/siril_date.h"
+#include "io/ser.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -14865,7 +14870,7 @@ int process_mpp(int nb) {
 	                  cfg.drizzle_scale > 1.001 ? " (upscaled)" : "");
 
 	mpp_run_t *run = NULL;
-	int rc = mpp_analyze(seq, &cfg, &run);
+	int rc = mpp_analyze(seq, &cfg, &run, NULL);
 	if (rc != MPP_OK) {
 		siril_log_error(_("pss: Stage A failed (code %d)\n"), rc);
 		g_free(out_path);
@@ -14880,7 +14885,7 @@ int process_mpp(int nb) {
 	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
 
 	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
-	rc = mpp_recompute_qualities(seq, run);
+	rc = mpp_recompute_qualities(seq, run, NULL);
 	if (rc != MPP_OK) {
 		siril_log_error(_("pss: per-AP frame ranking failed (code %d)\n"), rc);
 		mpp_run_free(run);
@@ -14888,7 +14893,7 @@ int process_mpp(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	rc = mpp_compute_shifts(seq, &cfg, run);
+	rc = mpp_compute_shifts(seq, &cfg, run, NULL);
 	if (rc != MPP_OK) {
 		siril_log_error(_("pss: Stage B failed (code %d)\n"), rc);
 		mpp_run_free(run);
@@ -14899,7 +14904,7 @@ int process_mpp(int nb) {
 	                  run->shifts ? run->shifts->failure_counter : -1);
 
 	fits stacked = {0};
-	rc = mpp_stack_apply(seq, &cfg, run, &stacked);
+	rc = mpp_stack_apply(seq, &cfg, run, NULL, &stacked);
 	if (rc != MPP_OK) {
 		siril_log_error(_("pss: Stage C failed (code %d)\n"), rc);
 		clearfits(&stacked);
@@ -14964,10 +14969,20 @@ int process_register_mpp(int nb) {
 	siril_log_message(_("register_mpp: %d frames, %dx%d, bitdepth=%d\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth);
 
+	/* Derotation-aware registration: if a <seqname>.derot plan exists, Stage A
+	 * and Stage B operate in the reference-epoch frame. */
+	mpp_derot_t *derot = NULL;
+	gchar *derot_path = g_strdup_printf("%s.derot", seq->seqname);
+	if (mpp_derot_read(derot_path, &derot) == MPP_OK && derot)
+		siril_log_message(_("register_mpp: derotation plan found (%d frames)\n"),
+		                  derot->num_frames);
+	g_free(derot_path);
+
 	mpp_run_t *run = NULL;
-	int rc = mpp_analyze(seq, &cfg, &run);
+	int rc = mpp_analyze(seq, &cfg, &run, derot);
 	if (rc != MPP_OK) {
 		siril_log_error(_("register_mpp: Stage A failed (code %d)\n"), rc);
+		mpp_derot_free(derot);
 		return CMD_GENERIC_ERROR;
 	}
 	siril_log_message(_("register_mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
@@ -14977,14 +14992,16 @@ int process_register_mpp(int nb) {
 	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
 
 	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
-	rc = mpp_recompute_qualities(seq, run);
+	rc = mpp_recompute_qualities(seq, run, derot);
 	if (rc != MPP_OK) {
 		siril_log_error(_("register_mpp: per-AP frame ranking failed (code %d)\n"), rc);
 		mpp_run_free(run);
+		mpp_derot_free(derot);
 		return CMD_GENERIC_ERROR;
 	}
 
-	rc = mpp_compute_shifts(seq, &cfg, run);
+	rc = mpp_compute_shifts(seq, &cfg, run, derot);
+	mpp_derot_free(derot);
 	if (rc != MPP_OK) {
 		siril_log_error(_("register_mpp: Stage B failed (code %d)\n"), rc);
 		mpp_run_free(run);
@@ -15067,8 +15084,33 @@ int process_stack_mpp(int nb) {
 	                  run->aps->count, run->bitdepth,
 	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
 
+	/* Optional derotation plan: if <seqname>.derot exists, force the warp
+	 * engine and derotate every frame to the reference epoch. */
+	mpp_derot_t *derot = NULL;
+	gchar *derot_path = g_strdup_printf("%s.derot", seq->seqname);
+	if (mpp_derot_read(derot_path, &derot) == MPP_OK && derot) {
+		/* Same plan-consistency guard as the GUI handler (stack_mpp.c): the AP
+		 * shifts must have been measured against this exact derotation plan. */
+		if (run->derot_fingerprint != mpp_derot_fingerprint(derot)) {
+			siril_log_error(_("stack_mpp: a derotation plan is present but the "
+			    "registration was %s — re-run register_mpp with the .derot in "
+			    "place, then stack.\n"),
+			    run->derot_fingerprint == 0 ? _("done without derotation")
+			                                : _("done for a different derotation plan"));
+			mpp_derot_free(derot);
+			g_free(derot_path);
+			mpp_run_free(run);
+			return CMD_GENERIC_ERROR;
+		}
+		run->cfg->stack_method = MPP_STACK_WARP;
+		siril_log_message(_("stack_mpp: derotation plan loaded (%d frames) — "
+		                    "using the warp engine.\n"), derot->num_frames);
+	}
+	g_free(derot_path);
+
 	fits stacked = {0};
-	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);
+	rc = mpp_stack_apply(seq, run->cfg, run, derot, &stacked);
+	mpp_derot_free(derot);
 	if (rc != MPP_OK) {
 		siril_log_error(_("stack_mpp: Stage C failed (code %d)\n"), rc);
 		clearfits(&stacked);
@@ -15095,6 +15137,125 @@ int process_stack_mpp(int nb) {
 	mpp_run_free(run);
 	g_free(resolved_out);
 	return CMD_OK;
+}
+
+int process_derotate(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("derotate: missing sequence name\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	planet_body_t body = PLANET_JUPITER;
+	int system = 2;                 /* default System II for Jupiter */
+	gboolean system_set = FALSE;
+	double cx = 0, cy = 0, radius = 0, pa_deg = 0.0, parity = 1.0, fps = 0.0;
+	gboolean has_center = FALSE, has_radius = FALSE;
+	double obs_lat = NAN, obs_lon = NAN, obs_elev = NAN;
+	GDateTime *epoch_dt = NULL, *start_dt = NULL;
+	gchar *out_path = NULL;
+	int ret = CMD_OK;
+
+	for (int i = 2; i < nb; i++) {
+		const char *w = word[i];
+		if (g_str_has_prefix(w, "-body=")) {
+			const char *v = w + 6;
+			if (!g_ascii_strcasecmp(v, "jupiter")) { body = PLANET_JUPITER; if (!system_set) system = 2; }
+			else if (!g_ascii_strcasecmp(v, "saturn")) { body = PLANET_SATURN; if (!system_set) system = 3; }
+			else if (!g_ascii_strcasecmp(v, "mars")) { body = PLANET_MARS; if (!system_set) system = 1; }
+			else { siril_log_error(_("derotate: unknown body '%s'\n"), v); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-system=")) {
+			system = atoi(w + 8); system_set = TRUE;
+			if (system < 1 || system > 3) { siril_log_error(_("derotate: -system must be 1, 2 or 3\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-center=")) {
+			if (sscanf(w + 8, "%lf,%lf", &cx, &cy) != 2) { siril_log_error(_("derotate: -center=x,y\n")); ret = CMD_ARG_ERROR; goto done; }
+			has_center = TRUE;
+		} else if (g_str_has_prefix(w, "-radius=")) {
+			radius = g_ascii_strtod(w + 8, NULL); has_radius = (radius > 0);
+			if (!has_radius) { siril_log_error(_("derotate: -radius must be > 0\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-pa=")) {
+			pa_deg = g_ascii_strtod(w + 4, NULL);
+		} else if (g_str_has_prefix(w, "-parity=")) {
+			parity = (g_ascii_strtod(w + 8, NULL) < 0) ? -1.0 : 1.0;
+		} else if (g_str_has_prefix(w, "-fps=")) {
+			fps = g_ascii_strtod(w + 5, NULL);
+		} else if (g_str_has_prefix(w, "-epoch=")) {
+			epoch_dt = FITS_date_to_date_time((gchar *) (w + 7));
+			if (!epoch_dt) { siril_log_error(_("derotate: bad -epoch (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-start=")) {
+			start_dt = FITS_date_to_date_time((gchar *) (w + 7));
+			if (!start_dt) { siril_log_error(_("derotate: bad -start (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-obs-lat=")) {
+			obs_lat = g_ascii_strtod(w + 9, NULL);
+		} else if (g_str_has_prefix(w, "-obs-lon=")) {
+			obs_lon = g_ascii_strtod(w + 9, NULL);
+		} else if (g_str_has_prefix(w, "-obs-elev=")) {
+			obs_elev = g_ascii_strtod(w + 10, NULL);
+		} else if (g_str_has_prefix(w, "-out=")) {
+			g_free(out_path); out_path = g_strdup(w + 5);
+		} else {
+			siril_log_error(_("derotate: unknown argument '%s'\n"), w);
+			ret = CMD_ARG_ERROR; goto done;
+		}
+	}
+	if (!has_center || !has_radius) {
+		siril_log_error(_("derotate: -center=x,y and -radius=R are required\n"));
+		ret = CMD_ARG_ERROR; goto done;
+	}
+
+	const int N = seq->number;
+	double *jd = malloc((size_t) N * sizeof(double));
+	if (!jd) { ret = CMD_GENERIC_ERROR; goto done; }
+	const double start_jd = start_dt ? date_time_to_Julian(start_dt) : NAN;
+	if (!mpp_derot_frame_times(seq, fps, start_jd, jd)) {
+		siril_log_error(_("derotate: no per-frame timestamps; supply -fps (and "
+		                  "-start for non-SER inputs)\n"));
+		free(jd); ret = CMD_ARG_ERROR; goto done;
+	}
+
+	const double epoch_jd = epoch_dt ? date_time_to_Julian(epoch_dt)
+	                                 : mpp_derot_midpoint_epoch(jd, N);
+
+	mpp_derot_t *d = mpp_derot_build(body, system, epoch_jd, jd, N,
+	                                 (int) seq->ry, (int) seq->rx,
+	                                 cx, cy, radius, pa_deg, parity,
+	                                 obs_lat, obs_lon, obs_elev);
+	if (!d) {
+		siril_log_error(_("derotate: ephemeris/plan build failed\n"));
+		free(jd); ret = CMD_GENERIC_ERROR; goto done;
+	}
+	planet_geom_t ge;
+	planet_ephemeris(body, epoch_jd, obs_lat, obs_lon, obs_elev, &ge);
+
+	gchar *derot_path = out_path ? g_strdup(out_path)
+	                             : g_strdup_printf("%s.derot", seq->seqname);
+	mpp_status_t wr = mpp_derot_write(derot_path, d);
+	if (wr != MPP_OK) {
+		siril_log_error(_("derotate: failed to write %s (code %d)\n"), derot_path, wr);
+		ret = CMD_GENERIC_ERROR;
+	} else {
+		const double span_min = (jd[N - 1] - jd[0]) * 24.0 * 60.0;
+		const double total_rot = fabs(d->cm[N - 1] - d->cm[0]);
+		siril_log_message(_("derotate: wrote %s — %d frames, span %.2f min, "
+		                    "System %d rotation %.2f deg, app. diam %.2f\"\n"),
+		                  derot_path, N, span_min, system,
+		                  total_rot > 180.0 ? 360.0 - total_rot : total_rot,
+		                  ge.ang_diam_eq);
+	}
+	g_free(derot_path);
+	mpp_derot_free(d);
+	free(jd);
+
+done:
+	g_free(out_path);
+	if (epoch_dt) g_date_time_unref(epoch_dt);
+	if (start_dt) g_date_time_unref(start_dt);
+	return ret;
 }
 
 int process_pwd(int nb) {

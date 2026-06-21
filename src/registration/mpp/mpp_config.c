@@ -90,5 +90,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->drizzle_pixfrac = 0.7;
 	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
 	cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
+	cfg->stack_method = MPP_STACK_PATCH;
 	return MPP_OK;
 }

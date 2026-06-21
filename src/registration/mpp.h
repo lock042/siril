@@ -15,6 +15,7 @@ extern "C" {
 #endif
 
 struct registration_args;
+struct mpp_derot;
 typedef struct mpp_aps mpp_aps_t;
 typedef struct mpp_shifts mpp_shifts_t;
 
@@ -109,6 +110,14 @@ typedef struct mpp_run {
 	/* Stage B — per-AP per-frame shifts. Null until Stage B runs. */
 	mpp_shifts_t *shifts;
 
+	/* Fingerprint (mpp_derot_fingerprint) of the .derot plan this run was
+	 * registered against when derotation was active (0 = registered without
+	 * derotation). Persisted so Stage C can refuse to apply a .derot that
+	 * differs in ANY way (epoch, disk fit, body/system, per-frame geometry)
+	 * from the one the AP shifts were measured in — applying derotation on top
+	 * of mismatched shifts double-counts the planet's rotation. */
+	uint64_t derot_fingerprint;
+
 	/* Analysis-frame cache populated by Stage A and reused by Stage B
 	 * and mpp_recompute_qualities. Owned by the run; freed via
 	 * mpp_cache_free(). Null when caching was skipped (STREAMING) or
@@ -138,19 +147,25 @@ void mpp_run_drop_cache(mpp_run_t *run);
  * step; this Stage A processes every frame so the GUI's frame selector has
  * data for all of them. */
 mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
-                         mpp_run_t **run_out);
+                         mpp_run_t **run_out, const struct mpp_derot *derot);
 
 /* Stage B: compute per-AP per-frame shifts (with PSS's penalty weight
  * matrix). Reads `run->aps`, `run->best_frame_indices`, etc.; writes
  * `run->shifts`. Re-reads frames from `seq`. */
 mpp_status_t mpp_compute_shifts(sequence *seq, const mpp_config_t *cfg,
-                                mpp_run_t *run);
+                                mpp_run_t *run, const struct mpp_derot *derot);
 
 /* Stage C: apply pre-computed Stage-B shifts and produce the final stacked
  * fits. Re-reads frames from `seq`. `run` is non-const because Stage C
- * drops the analysis cache at entry — see mpp_run_drop_cache. */
+ * drops the analysis cache at entry — see mpp_run_drop_cache.
+ *
+ * `derot` (may be NULL) is the optional derotation plan from a .derot sidecar;
+ * when non-NULL and cfg->stack_method == MPP_STACK_WARP, each frame is
+ * derotated to the reference epoch as part of the warp engine's single
+ * resample. */
 mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
-                             mpp_run_t *run, fits *out);
+                             mpp_run_t *run, const struct mpp_derot *derot,
+                             fits *out);
 
 /* Top-level Siril `register -method=mpp` entry. Drives Stages A + B and
  * writes the sidecar next to the sequence. */
@@ -236,7 +251,8 @@ void       mpp_aps_restore(mpp_run_t *run, mpp_aps_t *snapshot);
  * Called at Stage B start on every Register path (CLI and GUI). This is
  * where per-AP ranking actually happens — deferred out of Stage A so the
  * final (possibly hand-edited) AP grid is ranked exactly once. */
-mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run);
+mpp_status_t mpp_recompute_qualities(sequence *seq, mpp_run_t *run,
+                                     const struct mpp_derot *derot);
 
 /* GUI-side cache of the current run. Stage A installs the run via
  * mpp_set_cached_run; the AP overlay and the AP editor read it back via

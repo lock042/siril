@@ -777,3 +777,88 @@ Test(mpp_stack, skip_failed_aps_drops_corrupted_pairs) {
 	mpp_shift_free(shifts);
 	mpp_ap_free(aps);
 }
+
+/* Warp-field engine: it must (a) produce the scene from a set of identical
+ * frames, and (b) apply a supplied derotation base map. With identical frames
+ * and zero global/AP shifts the engine reduces to remap(frame, base_map), so a
+ * pure -3px x translation in the derot provider shifts the output by exactly 3
+ * columns — the load-bearing property for folding derotation into the stack's
+ * single resample. mu = 1 everywhere, so weighting is unchanged. */
+Test(mpp_stack, warp_engine_applies_derot_base) {
+	const auto cfg = default_cfg();
+	const cv::Mat truth = make_textured_frame();
+	std::vector<cv::Mat> frames_raw, frames_blurred;
+	std::vector<double> q;
+	for (int i = 0; i < 4; ++i) {
+		frames_raw.push_back(truth.clone());           /* identical frames */
+		frames_blurred.push_back(blurred(truth, cfg));
+		q.push_back(i == 0 ? 1.0 : 0.5);
+	}
+	const auto align = mpp::align_global_from_frames(frames_blurred, q, cfg);
+	auto cfg_no_fc = cfg;
+	cfg_no_fc.align_frames_fast_changing_object = false;
+	const auto avg = mpp::align_average_frame(frames_raw, q, align.shifts, cfg_no_fc);
+	const cv::Mat mean_blurred = mpp::blur_mean_frame_for_ap(avg.mean_frame, cfg);
+	mpp_aps_t *aps = mpp::ap_create_grid(mean_blurred, cfg);
+	cr_assert_not_null(aps);
+	cr_assert_gt(aps->count, 1);
+	const auto offsets = mpp::shift_frame_offsets(align.shifts, avg.intersection);
+	std::vector<double> brightness;
+	for (const auto &f : frames_raw)
+		brightness.push_back(mpp::rank_average_brightness(f, cfg));
+	const auto apq = mpp::ap_compute_frame_qualities(
+	    frames_raw, brightness, *aps, offsets, truth.rows, truth.cols, cfg);
+	const auto ref_boxes = mpp::shift_prepare_ref_boxes(avg.mean_frame, *aps);
+	mpp_shifts_t *shifts = mpp::shift_compute_all(frames_blurred, *aps,
+	                                              ref_boxes, offsets, cfg);
+	cr_assert_not_null(shifts);
+	std::vector<int> sorted(frames_raw.size());
+	std::iota(sorted.begin(), sorted.end(), 0);
+	const cv::Vec4i isect = avg.intersection;
+	mpp::FrameProvider provider = [&](int i) { return frames_raw[i]; };
+
+	auto run = [&](const mpp::DerotMapProvider *derot) {
+		return mpp::stack_warp_apply_streamed(
+		    provider, (int) frames_raw.size(), 1, *aps, apq, shifts, offsets,
+		    brightness, sorted, isect, cfg, nullptr, 1, false, 0, derot);
+	};
+
+	const auto ident = run(nullptr);
+	cr_assert(!ident.image.empty());
+	cr_assert(!ident.oom && !ident.cancelled);
+	const int DY = isect[1] - isect[0], DX = isect[3] - isect[2];
+	cr_assert_eq(ident.image.rows, DY);
+	cr_assert_eq(ident.image.cols, DX);
+	/* the engine reproduced the disk: centre much brighter than a corner */
+	cr_assert_gt(ident.image.at<uint16_t>(DY / 2, DX / 2),
+	             ident.image.at<uint16_t>(4, 4) + 5000);
+
+	const int tx = 3;
+	mpp::DerotMapProvider shift_provider =
+	    [tx](int, int dy, int dx, cv::Mat &mx, cv::Mat &my, cv::Mat &mu) {
+		mx.create(dy, dx, CV_32F); my.create(dy, dx, CV_32F); mu.create(dy, dx, CV_32F);
+		for (int y = 0; y < dy; ++y)
+			for (int x = 0; x < dx; ++x) {
+				mx.at<float>(y, x) = (float) (x - tx);
+				my.at<float>(y, x) = (float) y;
+				mu.at<float>(y, x) = 1.0f;
+			}
+		return true;
+	};
+	const auto sh = run(&shift_provider);
+	cr_assert(!sh.image.empty());
+
+	/* interior: shifted output column x equals identity column x - tx */
+	double max_d = 0.0;
+	for (int y = 30; y < DY - 30; ++y)
+		for (int x = 30; x < DX - 30; ++x) {
+			const double d = std::abs((double) sh.image.at<uint16_t>(y, x)
+			                          - (double) ident.image.at<uint16_t>(y, x - tx));
+			max_d = std::max(max_d, d);
+		}
+	cr_assert_leq(max_d, 3.0,
+	              "derot base map not applied: interior max diff %.0f LSB", max_d);
+
+	mpp_shift_free(shifts);
+	mpp_ap_free(aps);
+}

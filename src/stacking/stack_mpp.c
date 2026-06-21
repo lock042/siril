@@ -23,6 +23,7 @@
 #include "registration/mpp/mpp_ap.h"        /* mpp_aps_t — full type for aps->count */
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_sidecar.h"
+#include "registration/mpp/mpp_derot_sidecar.h"
 
 #include "stacking/stacking.h"
 
@@ -131,8 +132,40 @@ int stack_mpp_handler(struct stacking_args *args) {
 	                  run->aps->count, run->bitdepth,
 	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
 
+	/* Optional derotation plan: if <seqname>.derot exists, force the warp
+	 * engine and derotate every frame to the reference epoch as part of the
+	 * single resample. Absent .derot leaves the patch-blend engine untouched. */
+	mpp_derot_t *derot = NULL;
+	gchar *derot_path = g_strdup_printf("%s.derot", args->seq->seqname);
+	if (mpp_derot_read(derot_path, &derot) == MPP_OK && derot) {
+		/* The per-AP shifts must have been measured against this exact
+		 * derotation plan; otherwise derotation would be applied twice (once by
+		 * the warp map, once by shifts measured against a smeared mean — or a
+		 * mismatched disk fit). Refuse with an actionable message rather than
+		 * silently producing a smeared stack. */
+		if (run->derot_fingerprint != mpp_derot_fingerprint(derot)) {
+			siril_log_error(_("Stack (mpp): a derotation plan is present but the "
+			    "registration was %s. Re-run \"Multipoint Registration\" with the "
+			    "derotation plan in place so the per-AP shifts are measured in the "
+			    "reference-epoch frame, then stack again.\n"),
+			    run->derot_fingerprint == 0 ? _("done without derotation")
+			                                : _("done for a different derotation plan"));
+			mpp_derot_free(derot);
+			g_free(derot_path);
+			mpp_run_free(run);
+			args->retval = ST_GENERIC_ERROR;
+			gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+			return ST_GENERIC_ERROR;
+		}
+		run->cfg->stack_method = MPP_STACK_WARP;
+		siril_log_message(_("Stack (mpp): derotation plan loaded (%d frames) — "
+		                    "using the warp engine.\n"), derot->num_frames);
+	}
+	g_free(derot_path);
+
 	fits stacked = { 0 };
-	rc = mpp_stack_apply(args->seq, run->cfg, run, &stacked);
+	rc = mpp_stack_apply(args->seq, run->cfg, run, derot, &stacked);
+	mpp_derot_free(derot);
 	if (rc == MPP_EINTR) {
 		siril_log_message(_("Stack (mpp): cancelled by user.\n"));
 		clearfits(&stacked);

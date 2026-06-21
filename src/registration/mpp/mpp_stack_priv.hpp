@@ -7,6 +7,7 @@
 #define SRC_REGISTRATION_MPP_STACK_PRIV_HPP_
 
 #include <opencv2/core.hpp>
+#include <functional>
 #include <vector>
 
 #include "registration/mpp.h"
@@ -344,6 +345,58 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
                                             const RemapBorder &border,
                                             const mpp_aps_t &aps,
                                             const mpp_config_t &cfg);
+
+/* Final-output conversion shared by both stacking engines: scale the float
+ * canvas by 1/255 (8-bit) or 1/65535, clip to [0,1] and cast to uint16 via
+ * skimage img_as_uint rounding. */
+cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth);
+
+/* Optional per-frame derotation hook for the warp engine. Fills, in the
+ * engine's drizzled canvas (rows=DY, cols=DX):
+ *   mapx/mapy (CV_32F) — source position in the MPP-aligned frame canvas of the
+ *                        surface point seen at each epoch-canvas pixel (replaces
+ *                        the identity base of the remap);
+ *   mu (CV_32F)        — cosine of the emission angle at frame time (0 off-disk),
+ *                        folded into the accumulation weight so foreshortened
+ *                        near-limb samples are down-weighted and off-disk points
+ *                        drop out.
+ * Returns false to treat the frame as un-derotated (identity base, mu = 1). The
+ * provider must be thread-safe (called concurrently across frames). */
+using DerotMapProvider =
+    std::function<bool(int frame, int DY, int DX,
+                       cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu)>;
+
+/* Warp-field stacking engine (MPP_STACK_WARP) — Stage C alternative to the
+ * patch-blend pipeline. Per frame: per-AP shifts -> smooth dense displacement
+ * field D, per-(frame,AP) selection weights -> dense weight field W; the frame
+ * is warped once (cv::remap, Lanczos4) through
+ *   map = derot_base + global_offset*S - D*S
+ * and accumulated acc += (W*mu) (.) warped, wsum += W*mu. Output acc/wsum plus
+ * the PSS background blend where AP coverage thins. `derot` is optional; when
+ * null the base is the identity and mu = 1 (pure de-warp, no rotation). Same
+ * frame-parallel private-accumulator scheme and mem_budget clamp as
+ * stack_apply_shifts_streamed. */
+struct WarpStackResult {
+	cv::Mat image;          /* final CV_16U / CV_16UC3; empty on cancel/error */
+	bool oom = false;
+	bool cancelled = false;
+};
+
+WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
+                                          int num_frames, int num_layers,
+                                          const mpp_aps_t &aps,
+                                          const APQualities &apq,
+                                          const mpp_shifts_t *shifts,
+                                          const std::vector<FrameOffset> &offsets,
+                                          const std::vector<double> &frame_brightness,
+                                          const std::vector<int> &quality_sorted_idx,
+                                          const cv::Vec4i &intersection,
+                                          const mpp_config_t &cfg,
+                                          const int *included = nullptr,
+                                          int max_threads = 0,
+                                          bool provider_thread_safe = false,
+                                          size_t mem_budget_bytes = 0,
+                                          const DerotMapProvider *derot = nullptr);
 
 }  // namespace mpp
 
