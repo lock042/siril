@@ -240,6 +240,10 @@ src_files = [
   'registration/mpp/mpp_ap.cpp',
   'registration/mpp/mpp_shift.cpp',
   'registration/mpp/mpp_stack.cpp',
+  'registration/mpp/mpp_derot_geom.cpp',
+  'registration/mpp/mpp_derot.cpp',
+  'registration/mpp/mpp_derot_build.c',
+  'registration/mpp/mpp_derot_sidecar.c',
   'registration/mpp/mpp_sidecar.c',
 
   'stacking/blending.c',

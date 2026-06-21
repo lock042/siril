@@ -102,7 +102,7 @@ if criterion_dep.found()
      # required.
      foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
                   'mpp_shift_test', 'mpp_stack_test',
-                  'mpp_pipeline_test']
+                  'mpp_pipeline_test', 'mpp_derot_geom_test']
          mpp_exec = executable(t,
                                t + '.cpp',
                                dependencies : [siril_dep, criterion_dep],
@@ -120,6 +120,15 @@ if criterion_dep.found()
                                    cpp_args : siril_cpp_flag)
 
      test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+
+     mpp_derot_sidecar_exec = executable('mpp_derot_sidecar_test',
+                                         'mpp_derot_sidecar_test.c',
+                                         dependencies : [siril_dep, criterion_dep],
+                                         link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                         c_args : siril_c_flag,
+                                         cpp_args : siril_cpp_flag)
+
+     test('mpp_derot_sidecar_test', mpp_derot_sidecar_exec, suite: 'mpp')
 
      planet_ephem_exec = executable('planet_ephem_test',
                                     'planet_ephem_test.c',

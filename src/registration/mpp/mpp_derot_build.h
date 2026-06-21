@@ -1,0 +1,68 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef SRC_REGISTRATION_MPP_DEROT_BUILD_H_
+#define SRC_REGISTRATION_MPP_DEROT_BUILD_H_
+
+#include "core/siril.h"                          /* sequence */
+#include "algos/planet_ephem.h"                  /* planet_body_t */
+#include "registration/mpp/mpp_derot_sidecar.h"  /* mpp_derot_t */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Shared builder for the .derot plan — used by the `derotate` command and the
+ * derotation GUI window so both produce identical sidecars from the same
+ * ephemeris path. */
+
+/* Fill jd_out[seq->number] with each frame's UTC Julian date. When fps > 0 a
+ * uniform cadence is used, anchored at start_jd (or, if start_jd is NaN, the
+ * SER frame-0 timestamp). Otherwise per-frame SER timestamps are read. Returns
+ * FALSE when no timing source is available (caller should ask for -fps). */
+gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
+                               double *jd_out);
+
+/* Midpoint of a per-frame Julian-date array (the default reference epoch). */
+double mpp_derot_midpoint_epoch(const double *jd, int n);
+
+/* Build a fully-populated plan (per-frame + epoch geometry) from the built-in
+ * ephemeris. `system` is 1..3. Disk fit is in original full-frame pixels;
+ * pa_deg is the in-image pole position angle, parity ±1. obs_* may be NaN for
+ * geocentric. Returns a heap plan (free with mpp_derot_free) or NULL. */
+mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
+                             const double *jd, int num_frames,
+                             int frame_rows, int frame_cols,
+                             double cx, double cy, double radius,
+                             double pa_deg, double parity,
+                             double obs_lat, double obs_lon, double obs_elev);
+
+/* Rough planet-disk detector: bounding box of pixels brighter than a fraction
+ * of the image maximum in the loaded gfit. Fills centre/radius (full-frame
+ * pixels) and returns TRUE when a plausible disk was found. Used to seed the
+ * GUI disk fit. */
+gboolean mpp_derot_autodetect_disk(const fits *fit, double *cx, double *cy,
+                                   double *radius);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SRC_REGISTRATION_MPP_DEROT_BUILD_H_ */
