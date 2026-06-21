@@ -425,7 +425,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				ret = CMD_GENERIC_ERROR;
 		}
 
-		if (ret != CMD_NO_WAIT)
+		if (ret != CMD_NO_WAIT && !processing_is_job_active())
 			gui_iface.console_clear_status();
 		free(myline);
 	}
