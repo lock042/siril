@@ -43,6 +43,7 @@
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
 #include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/derotation.h"
 #include "gui-gtk4/mpp_shift_viewer.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -2458,6 +2459,7 @@ static void draw_brg_boxes(const draw_data_t* dd);
 static void draw_regframe(const draw_data_t* dd);
 static void draw_rgb_centers(const draw_data_t* dd);
 static void draw_mpp_aps(const draw_data_t* dd);
+static void draw_derot_disk(const draw_data_t* dd);
 
 /* ── SirilImageView: GTK4 snapshot-based image viewport ───────────────────
  *
@@ -2824,6 +2826,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	draw_brg_boxes(&dd);
 	/* multipoint planetary alignment-point grid (active after Analyze) */
 	draw_mpp_aps(&dd);
+	/* planet disk outline while the derotation window is open */
+	draw_derot_disk(&dd);
 	draw_regframe(&dd);
 	draw_rgb_centers(&dd);
 	if (gui.draw_extra)
@@ -3770,6 +3774,39 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 			}
 		}
 	}
+}
+
+/* Live planet-disk outline while the derotation window is open: a circle of the
+ * fitted equatorial radius at the fitted centre (full-frame pixels, Y-flipped
+ * to the Cairo top-left origin), a small centre cross, and a marker toward the
+ * north pole at the fitted position angle. Pure visual feedback for the fit. */
+static void draw_derot_disk(const draw_data_t* dd) {
+	if (!derotation_is_open() || !gfit || gfit->ry <= 0)
+		return;
+	double cx, cy, radius, pa_deg;
+	gboolean mirror = FALSE;
+	if (!derotation_get_disk(&cx, &cy, &radius, &pa_deg, &mirror) || radius < 1.0)
+		return;
+	const double yc = (double) (gfit->ry - 1) - cy;   /* pdata row -> cairo y */
+
+	cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
+	cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.9);   /* cyan limb */
+	cairo_arc(dd->cr, cx, yc, radius, 0, 2 * G_PI);
+	cairo_stroke(dd->cr);
+
+	const double t = radius * 0.12;
+	cairo_move_to(dd->cr, cx - t, yc); cairo_line_to(dd->cr, cx + t, yc);
+	cairo_move_to(dd->cr, cx, yc - t); cairo_line_to(dd->cr, cx, yc + t);
+	cairo_stroke(dd->cr);
+
+	/* north pole at position angle pa_deg, measured from up toward east
+	 * (+x, flipped when the image is mirrored). */
+	const double par = pa_deg * G_PI / 180.0;
+	const double ex = mirror ? -1.0 : 1.0;
+	cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.9);   /* yellow pole marker */
+	cairo_move_to(dd->cr, cx, yc);
+	cairo_line_to(dd->cr, cx + ex * radius * sin(par), yc - radius * cos(par));
+	cairo_stroke(dd->cr);
 }
 
 static void draw_brg_boxes(const draw_data_t* dd) {

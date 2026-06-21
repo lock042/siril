@@ -70,6 +70,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_thresholds_dialog.ui">gui-gtk4/uifiles/mask_thresholds_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_fmul_dialog.ui">gui-gtk4/uifiles/mask_fmul_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui-gtk4/uifiles/Median_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="derotation_dialog.ui">gui-gtk4/uifiles/derotation_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui-gtk4/uifiles/merge_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui-gtk4/uifiles/mouse_actions.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mpp_ap_editor_dialog.ui">gui-gtk4/uifiles/mpp_ap_editor_dialog.ui</file>

@@ -316,6 +316,7 @@ gui_filenames = [
   'message_dialog.c',
   'mouse_action_functions.c',
   'mouse_action_preferences.c',
+  'derotation.c',
   'mpp_ap_editor.c',
   'mpp_shift_viewer.c',
   'newdeconv.c',

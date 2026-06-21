@@ -50,6 +50,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/cut_spectroscopy_dialog.ui",
 	"/org/siril/ui/data_dialog.ui",
 	"/org/siril/ui/denoise_dialog.ui",
+	"/org/siril/ui/derotation_dialog.ui",
 	"/org/siril/ui/dialog_FFT.ui",
 	"/org/siril/ui/dialog_star_remix.ui",
 	"/org/siril/ui/epf_dialog.ui",
