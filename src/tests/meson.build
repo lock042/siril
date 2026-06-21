@@ -96,13 +96,22 @@ if criterion_dep.found()
      test('siril_spawn_test', siril_spawn_test_exec)
 
      gps_exec = executable('qhy_gps_test',
-                           'qhy_gps_test.c',
+                           ['qhy_gps_test.c', 'download_files.c'],
                            dependencies : [siril_dep, criterion_dep],
                            link_args : siril_link_arg,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
      test('qhy_gps_test', gps_exec)
+
+     streaks_exec = executable('streaks_test',
+                           ['streaks_test.c', 'download_files.c'],
+                           dependencies : [siril_dep, criterion_dep],
+                           link_args : siril_link_arg,
+                           c_args : siril_c_flag,
+                           cpp_args : siril_cpp_flag)
+
+     test('streaks_test', streaks_exec)
 
      harmonize_img_t_exec = executable('harmonize_img_t_test',
                                        'harmonize_img_t_test.cpp',

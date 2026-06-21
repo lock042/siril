@@ -15714,7 +15714,7 @@ int process_mask_from_color(int nb) {
 }
 
 int process_detect_streaks(int nb) {
-	// detect_streaks [-out=csv_file] [length]
+	// detect_streaks [-out=csv_file] [-bright] [length]
 	/*if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
@@ -15754,7 +15754,7 @@ int process_detect_streaks(int nb) {
 	arg->fit = fit;
 	arg->free_fit = TRUE;
 	arg->im_idx = com.uniq ? 0 : com.seq.current;
-	//arg->filename = get_image_filename(NULL, -1); // TODO: added in the GPS MR
+	arg->filename = get_image_filename_no_ext(NULL, -1);
 	arg->layer = 0;
 	arg->initial_segment_length = initial_segment_length;
 	arg->minimum_segment_length = initial_segment_length / 2;
