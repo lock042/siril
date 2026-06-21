@@ -38,6 +38,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FIT_DISK */
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/derotation.h"
 
@@ -53,6 +54,7 @@ static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
 static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
+static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar */
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -155,14 +157,22 @@ void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	init_statics();
 	window_open = TRUE;
+	mouse_status = MOUSE_ACTION_FIT_DISK;   /* clicks on the image now fit the disc */
 	on_derot_body_changed(NULL, NULL, NULL);   /* sync system to the body default */
 	populate_from_sequence();
 	redraw(REDRAW_OVERLAY);
 }
 
+static void leave_fit_mode(void) {
+	window_open = FALSE;
+	g_drag_mode = 0;
+	if (mouse_status == MOUSE_ACTION_FIT_DISK)
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+}
+
 gboolean on_derotation_dialog_close_request(GtkWindow *win, gpointer user_data) {
 	(void) user_data;
-	window_open = FALSE;
+	leave_fit_mode();
 	gtk_widget_set_visible(GTK_WIDGET(win), FALSE);
 	redraw(REDRAW_OVERLAY);
 	return TRUE;   /* hide, don't destroy */
@@ -171,7 +181,7 @@ gboolean on_derotation_dialog_close_request(GtkWindow *win, gpointer user_data) 
 void on_derotation_close_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (dialog) {
-		window_open = FALSE;
+		leave_fit_mode();
 		gtk_widget_set_visible(dialog, FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
@@ -266,6 +276,60 @@ gboolean derotation_is_open(void) { return window_open; }
 
 int derotation_get_body(void) {
 	return (window_open && dd_body) ? (int) gtk_drop_down_get_selected(dd_body) : -1;
+}
+
+/* ---- interactive fitting (drag the disc to move, drag handles to resize) ---- */
+
+/* Current fit in display coords (image pixels, y-down to match mouse events):
+ * centre (cx, ycd) plus the equator (eu) and pole (pu) unit directions. */
+static gboolean fit_display_geom(double *cx, double *ycd, double *req,
+                                 double *rpol, double *eux, double *euy,
+                                 double *pux, double *puy) {
+	if (!window_open || !spin_cx || !gfit || gfit->ry <= 0) return FALSE;
+	*cx  = gtk_spin_button_get_value(spin_cx);
+	*ycd = (double) (gfit->ry - 1) - gtk_spin_button_get_value(spin_cy);
+	*req  = gtk_spin_button_get_value(spin_radius);
+	*rpol = gtk_spin_button_get_value(spin_rpol);
+	const double pa = gtk_spin_button_get_value(spin_pa) * M_PI / 180.0;
+	const double ex = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
+	const double Px = ex * sin(pa), Py = -cos(pa);   /* pole unit (cairo/display) */
+	*pux = Px; *puy = Py; *eux = -Py; *euy = Px;
+	return TRUE;
+}
+
+/* Hit-test a display-space click: returns the drag mode, or 0 for a miss. */
+int derotation_hit_test(double dx, double dy) {
+	double cx, ycd, req, rpol, eux, euy, pux, puy;
+	if (!fit_display_geom(&cx, &ycd, &req, &rpol, &eux, &euy, &pux, &puy))
+		return 0;
+	const double tol = fmax(8.0, req * 0.12);
+	const double hx[4] = { cx + req * eux, cx - req * eux, cx + rpol * pux, cx - rpol * pux };
+	const double hy[4] = { ycd + req * euy, ycd - req * euy, ycd + rpol * puy, ycd - rpol * puy };
+	const int hmode[4] = { 2, 2, 3, 3 };
+	for (int i = 0; i < 4; ++i)
+		if (hypot(dx - hx[i], dy - hy[i]) <= tol) return hmode[i];
+	if (hypot(dx - cx, dy - ycd) <= req) return 1;   /* inside the disc -> move */
+	return 0;
+}
+
+void derotation_set_drag(int mode) { g_drag_mode = mode; }
+int  derotation_get_drag(void)     { return g_drag_mode; }
+
+/* Apply a drag to a display-space point, updating the spin controls (which
+ * redraw the overlay). Resizes are centred (the centre stays put). */
+void derotation_drag_to(double dx, double dy) {
+	if (!window_open || !spin_cx || !gfit) return;
+	if (g_drag_mode == 1) {
+		gtk_spin_button_set_value(spin_cx, dx);
+		gtk_spin_button_set_value(spin_cy, (double) (gfit->ry - 1) - dy);
+		return;
+	}
+	const double cx = gtk_spin_button_get_value(spin_cx);
+	const double ycd = (double) (gfit->ry - 1) - gtk_spin_button_get_value(spin_cy);
+	const double r = hypot(dx - cx, dy - ycd);
+	if (r < 1.0) return;
+	if (g_drag_mode == 2) gtk_spin_button_set_value(spin_radius, r);
+	else if (g_drag_mode == 3) gtk_spin_button_set_value(spin_rpol, r);
 }
 
 gboolean derotation_get_disk(double *cx, double *cy, double *radius, double *rpol,

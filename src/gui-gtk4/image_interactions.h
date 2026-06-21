@@ -83,7 +83,8 @@ typedef enum {
 	MOUSE_ACTION_ADD_POLY_TO_MASK, // 11
 	MOUSE_ACTION_CLEAR_POLY_FROM_MASK, // 12
 	MOUSE_ACTION_SAMPLE_MASK_COLOR, // 13
-	MOUSE_ACTION_EDIT_APS // 14 — multipoint AP grid editor (left=add, right=remove, drag=move)
+	MOUSE_ACTION_EDIT_APS, // 14 — multipoint AP grid editor (left=add, right=remove, drag=move)
+	MOUSE_ACTION_FIT_DISK // 15 — derotation planet-disk fit (drag disc to move, drag handles to resize)
 } mouse_status_enum;
 
 typedef enum {

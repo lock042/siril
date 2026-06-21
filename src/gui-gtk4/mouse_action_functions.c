@@ -40,6 +40,7 @@
 #include "image_interactions.h"
 #include "gui-gtk4/mouse_action_functions.h"
 #include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/derotation.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "gui-gtk4/masks_gui.h"
@@ -360,6 +361,14 @@ gboolean mouse_nullfunction(mouse_data *data) {
 gboolean mpp_ap_drag_release(mouse_data *data) {
 	(void) data;
 	mpp_ap_editor_set_drag_idx(-1);
+	return TRUE;
+}
+
+/* Release callback for the derotation disk-fit drag — ends the drag so motion
+ * events stop moving/resizing the disc. */
+static gboolean derotation_drag_release(mouse_data *data) {
+	(void) data;
+	derotation_set_drag(0);
 	return TRUE;
 }
 
@@ -773,6 +782,16 @@ gboolean main_action_click(mouse_data *data) {
 						mpp_ap_editor_refresh_count_label();
 						redraw(REDRAW_OVERLAY);
 					}
+				}
+				break;
+			}
+			case MOUSE_ACTION_FIT_DISK: {
+				/* Derotation disk fit: grab the centre or a cardinal handle
+				 * under the cursor; motion events then move/resize it. */
+				int mode = derotation_hit_test(data->zoomed.x, data->zoomed.y);
+				if (mode > 0) {
+					derotation_set_drag(mode);
+					register_release_callback(derotation_drag_release, data->button);
 				}
 				break;
 			}

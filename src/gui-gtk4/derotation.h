@@ -36,4 +36,12 @@ gboolean derotation_get_disk(double *cx, double *cy, double *radius, double *rpo
  * Lets the overlay draw body-specific fitting guides. */
 int derotation_get_body(void);
 
+/* Interactive fit (mouse). Coordinates are display/image pixels (y-down).
+ * hit_test returns a drag mode (0 none, 1 move centre, 2 equatorial radius,
+ * 3 polar radius); set/get_drag hold the active drag; drag_to applies it. */
+int  derotation_hit_test(double dx, double dy);
+void derotation_set_drag(int mode);
+int  derotation_get_drag(void);
+void derotation_drag_to(double dx, double dy);
+
 #endif /* SRC_GUI_GTK4_DEROTATION_H_ */

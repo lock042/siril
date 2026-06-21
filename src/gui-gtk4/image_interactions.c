@@ -38,6 +38,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/histo_display.h"
 #include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/derotation.h"
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_ap.h"
 #include "progress_and_log.h"
@@ -778,6 +779,13 @@ static void update_drawingarea_cursor(const drawingarea_ctx *c) {
  * delivers motion-while-pressed to the drag gesture). */
 static void apply_drag_motion(const drawingarea_ctx *c) {
 	const pointi zoomed = c->zoomed;
+
+	if (mouse_status == MOUSE_ACTION_FIT_DISK) {
+		/* Derotation disk fit: a centre/handle was grabbed on press; track it. */
+		if (c->inside && derotation_get_drag() > 0)
+			derotation_drag_to(zoomed.x, zoomed.y);
+		return;
+	}
 
 	if (mouse_status == MOUSE_ACTION_EDIT_APS) {
 		/* AP editor: a button is held on an AP, drag it (mpp_ap_move each
