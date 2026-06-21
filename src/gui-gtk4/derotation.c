@@ -54,6 +54,17 @@ static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
 
+/* Default rotation system per body (matches the command): Jupiter -> II,
+ * Saturn -> III, Mars -> I. */
+static void on_derot_body_changed(GObject *obj, GParamSpec *pspec, gpointer u) {
+	(void) obj; (void) pspec; (void) u;
+	if (!dd_system) return;
+	const guint body = gtk_drop_down_get_selected(dd_body);
+	const guint sys = (body == 0) ? 1u : (body == 1) ? 2u : 0u;   /* Jup II, Sat III, Mars I */
+	gtk_drop_down_set_selected(dd_system, sys);
+	if (window_open) redraw(REDRAW_OVERLAY);
+}
+
 static void init_statics(void) {
 	if (dialog) return;
 	dialog      = GTK_WIDGET      (gtk_builder_get_object(gui.builder, "derotation_dialog"));
@@ -67,6 +78,9 @@ static void init_statics(void) {
 	spin_fps    = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_fps"));
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
+	if (dd_body)
+		g_signal_connect(dd_body, "notify::selected",
+		                 G_CALLBACK(on_derot_body_changed), NULL);
 }
 
 static void set_status(const char *msg) {
@@ -121,6 +135,7 @@ void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	init_statics();
 	window_open = TRUE;
+	on_derot_body_changed(NULL, NULL, NULL);   /* sync system to the body default */
 	populate_from_sequence();
 	redraw(REDRAW_OVERLAY);
 }
@@ -222,6 +237,10 @@ void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 /* ---- overlay query ---- */
 
 gboolean derotation_is_open(void) { return window_open; }
+
+int derotation_get_body(void) {
+	return (window_open && dd_body) ? (int) gtk_drop_down_get_selected(dd_body) : -1;
+}
 
 gboolean derotation_get_disk(double *cx, double *cy, double *radius,
                              double *pa_deg, gboolean *mirrored) {

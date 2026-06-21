@@ -3803,10 +3803,34 @@ static void draw_derot_disk(const draw_data_t* dd) {
 	 * (+x, flipped when the image is mirrored). */
 	const double par = pa_deg * G_PI / 180.0;
 	const double ex = mirror ? -1.0 : 1.0;
+	const double pux = ex * sin(par), puy = -cos(par);   /* pole unit (cairo) */
 	cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.9);   /* yellow pole marker */
 	cairo_move_to(dd->cr, cx, yc);
-	cairo_line_to(dd->cr, cx + ex * radius * sin(par), yc - radius * cos(par));
+	cairo_line_to(dd->cr, cx + radius * pux, yc + radius * puy);
 	cairo_stroke(dd->cr);
+
+	/* Equator guide: a line through the centre perpendicular to the pole. Align
+	 * it with the prominent belts (Jupiter) or the ring plane (Saturn) to set
+	 * the rotation-axis orientation. The equator direction is the pole rotated
+	 * 90 deg. */
+	const double eux = -puy, euy = pux;
+	const int body = derotation_get_body();
+	/* Saturn: extend to the A-ring outer edge (~2.27 Req) with tip ticks so the
+	 * ring tips can be lined up; others: span the disk. */
+	const double elen = (body == 1) ? radius * 2.27 : radius;
+	cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.4, 0.85);   /* green equator/ring axis */
+	cairo_move_to(dd->cr, cx - elen * eux, yc - elen * euy);
+	cairo_line_to(dd->cr, cx + elen * eux, yc + elen * euy);
+	cairo_stroke(dd->cr);
+	if (body == 1) {
+		const double tk = radius * 0.12;       /* tip ticks perpendicular to axis */
+		for (int s = -1; s <= 1; s += 2) {
+			const double tx = cx + s * elen * eux, ty = yc + s * elen * euy;
+			cairo_move_to(dd->cr, tx - tk * pux, ty - tk * puy);
+			cairo_line_to(dd->cr, tx + tk * pux, ty + tk * puy);
+		}
+		cairo_stroke(dd->cr);
+	}
 }
 
 static void draw_brg_boxes(const draw_data_t* dd) {

@@ -32,5 +32,8 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data);
 gboolean derotation_is_open(void);
 gboolean derotation_get_disk(double *cx, double *cy, double *radius,
                              double *pa_deg, gboolean *mirrored);
+/* Selected target body (0 = Jupiter, 1 = Saturn, 2 = Mars), or -1 if unknown.
+ * Lets the overlay draw body-specific fitting guides. */
+int derotation_get_body(void);
 
 #endif /* SRC_GUI_GTK4_DEROTATION_H_ */
