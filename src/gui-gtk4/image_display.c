@@ -3776,60 +3776,80 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	}
 }
 
-/* Live planet-disk outline while the derotation window is open: a circle of the
- * fitted equatorial radius at the fitted centre (full-frame pixels, Y-flipped
- * to the Cairo top-left origin), a small centre cross, and a marker toward the
- * north pole at the fitted position angle. Pure visual feedback for the fit. */
+/* Live planet-fit overlay while the derotation window is open: the fitted
+ * ellipse (equatorial x polar radius, oriented to the pole), a centre cross, a
+ * north-pole marker, an equator/ring guide, and draggable cardinal handles.
+ * Coordinates are full-frame pixels, Y-flipped to the Cairo top-left origin. */
 static void draw_derot_disk(const draw_data_t* dd) {
 	if (!derotation_is_open() || !gfit || gfit->ry <= 0)
 		return;
-	double cx, cy, radius, pa_deg;
+	double cx, cy, req, rpol, pa_deg;
 	gboolean mirror = FALSE;
-	if (!derotation_get_disk(&cx, &cy, &radius, &pa_deg, &mirror) || radius < 1.0)
+	if (!derotation_get_disk(&cx, &cy, &req, &rpol, &pa_deg, &mirror) || req < 1.0)
 		return;
+	if (rpol < 1.0) rpol = req;
 	const double yc = (double) (gfit->ry - 1) - cy;   /* pdata row -> cairo y */
+	const double par = pa_deg * G_PI / 180.0;
+	const double ex = mirror ? -1.0 : 1.0;
+	const double pux = ex * sin(par), puy = -cos(par);   /* pole unit (cairo) */
+	const double eux = -puy, euy = pux;                  /* equator unit */
+	const int body = derotation_get_body();
 
 	cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
-	cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.9);   /* cyan limb */
-	cairo_arc(dd->cr, cx, yc, radius, 0, 2 * G_PI);
+
+	/* fitted ellipse (cyan) */
+	cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.9);
+	for (int i = 0; i <= 64; ++i) {
+		const double th = 2.0 * G_PI * i / 64.0;
+		const double a = req * cos(th), b = rpol * sin(th);
+		const double px = cx + a * eux + b * pux;
+		const double py = yc + a * euy + b * puy;
+		if (i == 0) cairo_move_to(dd->cr, px, py);
+		else        cairo_line_to(dd->cr, px, py);
+	}
 	cairo_stroke(dd->cr);
 
-	const double t = radius * 0.12;
+	/* centre cross */
+	const double t = req * 0.12;
 	cairo_move_to(dd->cr, cx - t, yc); cairo_line_to(dd->cr, cx + t, yc);
 	cairo_move_to(dd->cr, cx, yc - t); cairo_line_to(dd->cr, cx, yc + t);
 	cairo_stroke(dd->cr);
 
-	/* north pole at position angle pa_deg, measured from up toward east
-	 * (+x, flipped when the image is mirrored). */
-	const double par = pa_deg * G_PI / 180.0;
-	const double ex = mirror ? -1.0 : 1.0;
-	const double pux = ex * sin(par), puy = -cos(par);   /* pole unit (cairo) */
-	cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.9);   /* yellow pole marker */
+	/* north-pole marker (yellow) */
+	cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.9);
 	cairo_move_to(dd->cr, cx, yc);
-	cairo_line_to(dd->cr, cx + radius * pux, yc + radius * puy);
+	cairo_line_to(dd->cr, cx + rpol * pux, yc + rpol * puy);
 	cairo_stroke(dd->cr);
 
-	/* Equator guide: a line through the centre perpendicular to the pole. Align
-	 * it with the prominent belts (Jupiter) or the ring plane (Saturn) to set
-	 * the rotation-axis orientation. The equator direction is the pole rotated
-	 * 90 deg. */
-	const double eux = -puy, euy = pux;
-	const int body = derotation_get_body();
-	/* Saturn: extend to the A-ring outer edge (~2.27 Req) with tip ticks so the
-	 * ring tips can be lined up; others: span the disk. */
-	const double elen = (body == 1) ? radius * 2.27 : radius;
-	cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.4, 0.85);   /* green equator/ring axis */
+	/* equator/ring guide (green): align with the belts (Jupiter) or ring plane
+	 * (Saturn); for Saturn it runs out to the A-ring edge (~2.27 Req) with tip
+	 * ticks so the ring tips can be lined up. */
+	const double elen = (body == 1) ? req * 2.27 : req;
+	cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.4, 0.85);
 	cairo_move_to(dd->cr, cx - elen * eux, yc - elen * euy);
 	cairo_line_to(dd->cr, cx + elen * eux, yc + elen * euy);
 	cairo_stroke(dd->cr);
 	if (body == 1) {
-		const double tk = radius * 0.12;       /* tip ticks perpendicular to axis */
+		const double tk = req * 0.12;
 		for (int s = -1; s <= 1; s += 2) {
 			const double tx = cx + s * elen * eux, ty = yc + s * elen * euy;
 			cairo_move_to(dd->cr, tx - tk * pux, ty - tk * puy);
 			cairo_line_to(dd->cr, tx + tk * pux, ty + tk * puy);
 		}
 		cairo_stroke(dd->cr);
+	}
+
+	/* cardinal resize handles: equatorial (E/W, magenta) and polar (N/S, yellow) */
+	const double hs = 4.0 / dd->zoom;
+	const double hpts[4][3] = {   /* x, y, is_polar */
+		{ cx + req * eux, yc + req * euy, 0 }, { cx - req * eux, yc - req * euy, 0 },
+		{ cx + rpol * pux, yc + rpol * puy, 1 }, { cx - rpol * pux, yc - rpol * puy, 1 },
+	};
+	for (int i = 0; i < 4; ++i) {
+		if (hpts[i][2] != 0.0) cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.95);
+		else                   cairo_set_source_rgba(dd->cr, 1.0, 0.3, 1.0, 0.95);
+		cairo_rectangle(dd->cr, hpts[i][0] - hs, hpts[i][1] - hs, 2 * hs, 2 * hs);
+		cairo_fill(dd->cr);
 	}
 }
 

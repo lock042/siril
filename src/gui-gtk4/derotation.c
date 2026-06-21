@@ -49,19 +49,37 @@ static GtkWidget *dialog = NULL;
 static GtkDropDown *dd_body = NULL, *dd_system = NULL;
 static GtkEntry *entry_epoch = NULL;
 static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
-                     *spin_pa = NULL, *spin_fps = NULL;
+                     *spin_rpol = NULL, *spin_pa = NULL, *spin_fps = NULL;
 static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
 
+/* Known geometric flattening per body, used to default the polar radius. */
+static double body_flattening(int body) {
+	switch (body) {
+		case 1:  return 0.09796;   /* Saturn */
+		case 2:  return 0.00589;   /* Mars */
+		default: return 0.06487;   /* Jupiter */
+	}
+}
+
+/* Set the polar radius from the equatorial radius and the body's flattening. */
+static void set_polar_default(void) {
+	if (!spin_radius || !spin_rpol || !dd_body) return;
+	const double req = gtk_spin_button_get_value(spin_radius);
+	gtk_spin_button_set_value(spin_rpol,
+	    req * (1.0 - body_flattening((int) gtk_drop_down_get_selected(dd_body))));
+}
+
 /* Default rotation system per body (matches the command): Jupiter -> II,
- * Saturn -> III, Mars -> I. */
+ * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
 static void on_derot_body_changed(GObject *obj, GParamSpec *pspec, gpointer u) {
 	(void) obj; (void) pspec; (void) u;
 	if (!dd_system) return;
 	const guint body = gtk_drop_down_get_selected(dd_body);
 	const guint sys = (body == 0) ? 1u : (body == 1) ? 2u : 0u;   /* Jup II, Sat III, Mars I */
 	gtk_drop_down_set_selected(dd_system, sys);
+	set_polar_default();
 	if (window_open) redraw(REDRAW_OVERLAY);
 }
 
@@ -74,6 +92,7 @@ static void init_statics(void) {
 	spin_cx     = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_cx"));
 	spin_cy     = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_cy"));
 	spin_radius = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_radius"));
+	spin_rpol   = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_rpol"));
 	spin_pa     = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_pa"));
 	spin_fps    = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_fps"));
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
@@ -113,6 +132,7 @@ static void populate_from_sequence(void) {
 		gtk_spin_button_set_value(spin_cx, cx);
 		gtk_spin_button_set_value(spin_cy, cy);
 		gtk_spin_button_set_value(spin_radius, r);
+		set_polar_default();
 	}
 }
 
@@ -169,6 +189,7 @@ void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 		gtk_spin_button_set_value(spin_cx, cx);
 		gtk_spin_button_set_value(spin_cy, cy);
 		gtk_spin_button_set_value(spin_radius, r);
+		set_polar_default();
 		set_status(_("Disk auto-detected — adjust if needed, then compute."));
 	} else {
 		set_status(_("Could not auto-detect a disk; set the centre and radius manually."));
@@ -188,6 +209,7 @@ void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 	const double cx = gtk_spin_button_get_value(spin_cx);
 	const double cy = gtk_spin_button_get_value(spin_cy);
 	const double radius = gtk_spin_button_get_value(spin_radius);
+	const double rpol = gtk_spin_button_get_value(spin_rpol);
 	const double pa = gtk_spin_button_get_value(spin_pa);
 	const double parity = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
 	const double fps = gtk_spin_button_get_value(spin_fps);
@@ -213,6 +235,10 @@ void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 	                                 cx, cy, radius, pa, parity, NAN, NAN, NAN);
 	free(jd);
 	if (!d) { set_status(_("Ephemeris/plan build failed.")); return; }
+	/* Let the user's polar radius set the disk oblateness (overriding the
+	 * ephemeris default) so the fitted ellipse is used as drawn. */
+	if (rpol > 0.0 && rpol < radius)
+		d->flattening = 1.0 - rpol / radius;
 
 	gchar *path = g_strdup_printf("%s.derot", com.seq.seqname);
 	const mpp_status_t rc = mpp_derot_write(path, d);
@@ -242,12 +268,13 @@ int derotation_get_body(void) {
 	return (window_open && dd_body) ? (int) gtk_drop_down_get_selected(dd_body) : -1;
 }
 
-gboolean derotation_get_disk(double *cx, double *cy, double *radius,
+gboolean derotation_get_disk(double *cx, double *cy, double *radius, double *rpol,
                              double *pa_deg, gboolean *mirrored) {
 	if (!window_open || !spin_cx) return FALSE;
 	if (cx) *cx = gtk_spin_button_get_value(spin_cx);
 	if (cy) *cy = gtk_spin_button_get_value(spin_cy);
 	if (radius) *radius = gtk_spin_button_get_value(spin_radius);
+	if (rpol) *rpol = gtk_spin_button_get_value(spin_rpol);
 	if (pa_deg) *pa_deg = gtk_spin_button_get_value(spin_pa);
 	if (mirrored) *mirrored = gtk_check_button_get_active(chk_parity);
 	return TRUE;

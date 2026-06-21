@@ -30,7 +30,7 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data);
 /* Overlay support: true while the window is open, and the current disk fit
  * (full-frame pixels) so the image canvas can draw a live outline. */
 gboolean derotation_is_open(void);
-gboolean derotation_get_disk(double *cx, double *cy, double *radius,
+gboolean derotation_get_disk(double *cx, double *cy, double *radius, double *rpol,
                              double *pa_deg, gboolean *mirrored);
 /* Selected target body (0 = Jupiter, 1 = Saturn, 2 = Mars), or -1 if unknown.
  * Lets the overlay draw body-specific fitting guides. */

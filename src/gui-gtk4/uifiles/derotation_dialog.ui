@@ -13,6 +13,10 @@
     <property name="lower">1</property><property name="upper">10000</property>
     <property name="step-increment">1</property><property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_derot_rpol">
+    <property name="lower">1</property><property name="upper">10000</property>
+    <property name="step-increment">1</property><property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_derot_pa">
     <property name="lower">-180</property><property name="upper">180</property>
     <property name="step-increment">0.5</property><property name="page-increment">5</property>
@@ -92,12 +96,17 @@
                 <layout><property name="column">1</property><property name="row">4</property></layout></object>
             </child>
             <child>
-              <object class="GtkLabel"><property name="label" translatable="yes">Equatorial radius (px)</property><property name="halign">start</property>
+              <object class="GtkLabel"><property name="label" translatable="yes">Equatorial / polar radius (px)</property><property name="halign">start</property>
                 <layout><property name="column">0</property><property name="row">5</property></layout></object>
             </child>
             <child>
-              <object class="GtkSpinButton" id="derot_radius"><property name="adjustment">adj_derot_radius</property><property name="digits">1</property>
-                <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/>
+              <object class="GtkBox"><property name="spacing">6</property>
+                <child><object class="GtkSpinButton" id="derot_radius"><property name="adjustment">adj_derot_radius</property><property name="digits">1</property>
+                  <property name="tooltip-text" translatable="yes">Equatorial radius (px)</property>
+                  <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
+                <child><object class="GtkSpinButton" id="derot_rpol"><property name="adjustment">adj_derot_rpol</property><property name="digits">1</property>
+                  <property name="tooltip-text" translatable="yes">Polar radius (px) — sets the disk oblateness; defaults to the body's known flattening</property>
+                  <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
                 <layout><property name="column">1</property><property name="row">5</property></layout></object>
             </child>
             <child>
