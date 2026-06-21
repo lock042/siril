@@ -66,22 +66,15 @@ Test(mpp_derot_geom, identity_map) {
 	derot_geom_t g = { 8 * DEG, 33 * DEG, 0.0 };
 	cv::Mat mx, my, valid, mu;
 	derot_build_map(200, 200, disk, g, g, mx, my, valid, mu);
-	int nvalid = 0;
+	/* epoch == frame: the globe maps to itself and everything outside passes
+	 * through, so the whole canvas is the identity and fully usable. */
 	for (int y = 0; y < 200; ++y)
 		for (int x = 0; x < 200; ++x) {
-			if (valid.at<uint8_t>(y, x)) {
-				cr_assert_float_eq(mx.at<float>(y, x), (float) x, 1e-3f);
-				cr_assert_float_eq(my.at<float>(y, x), (float) y, 1e-3f);
-				cr_assert_gt(mu.at<float>(y, x), 0.0f);
-				nvalid++;
-			}
+			cr_assert_eq(valid.at<uint8_t>(y, x), 1);
+			cr_assert_float_eq(mx.at<float>(y, x), (float) x, 1e-3f);
+			cr_assert_float_eq(my.at<float>(y, x), (float) y, 1e-3f);
+			cr_assert_float_eq(mu.at<float>(y, x), 1.0f, 1e-6f);
 		}
-	/* roughly the projected disk area (pi * a * b, b foreshortened) */
-	double approx = M_PI * 80.0 * 80.0;
-	cr_assert_gt(nvalid, (int)(0.4 * approx));
-	cr_assert_lt(nvalid, (int)(1.1 * approx));
-	/* a corner pixel is well outside the disk */
-	cr_assert_eq(valid.at<uint8_t>(2, 2), 0);
 }
 
 /* rotating CM by a small angle shifts the central feature by r_eq * dCM */
@@ -133,13 +126,41 @@ Test(mpp_derot_geom, bridge_identity_at_epoch) {
 				nvalid++;
 			}
 	cr_assert_gt(nvalid, 5000);
-	cr_assert_eq(mu.at<float>(2, 2), 0.0f);   /* corner is off-disk */
+	cr_assert_eq(mu.at<float>(2, 2), 1.0f);   /* corner is off-globe: pass-through */
 
 	/* canvas origin + scale: a 2x canvas offset by (10,10) puts the disk
 	 * centre at ((100-10)*2, (100-10)*2) = (180,180). */
 	mpp_derot_frame_map(d, 0, 400, 400, 10.0, 10.0, 2.0, mx, my, mu);
 	cr_assert_gt(mu.at<float>(180, 180), 0.9f);   /* near disk centre, mu~1 */
 	mpp_derot_free(d);
+}
+
+/* The map only derotates the globe: pixels outside the fitted disk pass
+ * through as identity (rings/sky survive), and a small CM rotation displaces a
+ * central globe feature while masking only the sliver that rotated off-limb. */
+Test(mpp_derot_geom, off_globe_passthrough_and_limb_mask) {
+	derot_diskfit_t disk = { 256.0, 256.0, 120.0, 0.0648, +1.0 };
+	derot_geom_t e = { 0.0, 0.0,        0.0 };
+	derot_geom_t fr = { 0.0, 6.0 * DEG, 0.0 };   /* 6 deg rotation */
+	cv::Mat mx, my, valid, mu;
+	derot_build_map(512, 512, disk, e, fr, mx, my, valid, mu);
+
+	/* corner is far outside the globe -> identity pass-through, usable */
+	cr_assert_eq(valid.at<uint8_t>(8, 8), 1);
+	cr_assert_float_eq(mx.at<float>(8, 8), 8.0f, 1e-3f);
+	cr_assert_float_eq(my.at<float>(8, 8), 8.0f, 1e-3f);
+	cr_assert_float_eq(mu.at<float>(8, 8), 1.0f, 1e-6f);
+
+	/* centre globe feature is displaced (not identity) and masked nowhere */
+	cr_assert(valid.at<uint8_t>(256, 256));
+	cr_assert_neq(mx.at<float>(256, 256), 256.0f);
+
+	/* somewhere along the leading limb a globe point has rotated out of view */
+	int masked = 0;
+	for (int x = 0; x < 512; ++x)
+		for (int y = 200; y < 312; ++y)
+			if (valid.at<uint8_t>(y, x) == 0) masked++;
+	cr_assert_gt(masked, 0, "expected a masked off-limb sliver");
 }
 
 /* a feature that rotates onto the far side becomes invalid in the map */

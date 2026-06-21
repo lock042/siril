@@ -31,10 +31,11 @@
  * whose pixel (0,0) corresponds to original-frame coordinate (org_x, org_y)
  * and which is scaled by `scale` (the drizzle factor at stack time, 1.0 at
  * registration). Fills:
- *   mapx/mapy (CV_32F) — source position in the (MPP-aligned, same-scale) frame
- *                        canvas of the surface point seen at each output pixel;
- *   mu (CV_32F)        — cosine of the emission angle at the frame's time, 0
- *                        off-disk.
+ *   mapx/mapy (CV_32F) — source position to sample: the derotated globe point,
+ *                        or the identity for pixels outside the fitted globe
+ *                        (rings/sky pass through and stack normally);
+ *   mu (CV_32F)        — 1 where usable, 0 only where a globe point rotated
+ *                        behind the limb (masked).
  * These are exactly the inputs the warp engine's DerotMapProvider expects (the
  * engine adds the global offset and AP-residual terms). */
 void mpp_derot_frame_map(const mpp_derot_t *d, int frame,

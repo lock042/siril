@@ -132,24 +132,38 @@ void derot_build_map(int out_w, int out_h,
 		for (int x = 0; x < out_w; ++x) {
 			double u0, v0, lat, lon, uf, vf, m;
 			pixel_to_norm(x, y, disk, epoch.pole_angle, &u0, &v0);
-			bool ok = derot_unproject(u0, v0, epoch.sub_obs_lat, epoch.cm,
-			                          disk.flattening, &lat, &lon);
-			if (ok)
-				ok = derot_project(lat, lon, frame.sub_obs_lat, frame.cm,
-				                   disk.flattening, &uf, &vf, &m);
-			if (ok) {
-				double sx, sy;
-				norm_to_pixel(uf, vf, disk, frame.pole_angle, &sx, &sy);
-				mx[x] = (float) sx;
-				my[x] = (float) sy;
+			if (!derot_unproject(u0, v0, epoch.sub_obs_lat, epoch.cm,
+			                     disk.flattening, &lat, &lon)) {
+				/* Outside the fitted globe (rings, moons, sky): pass the pixel
+				 * through unchanged so it is aligned/stacked normally — only the
+				 * globe is derotated. */
+				mx[x] = (float) x;
+				my[x] = (float) y;
 				vp[x] = 1;
-				mp[x] = (float) m;
-			} else {
+				mp[x] = 1.0f;
+				continue;
+			}
+			if (!derot_project(lat, lon, frame.sub_obs_lat, frame.cm,
+			                   disk.flattening, &uf, &vf, &m)) {
+				/* On the globe but rotated behind the limb at this frame's time:
+				 * no source data, so mask it out. */
 				mx[x] = -1.0f;
 				my[x] = -1.0f;
 				vp[x] = 0;
 				mp[x] = 0.0f;
+				continue;
 			}
+			/* Visible globe point. Full weight: the emission-angle (mu = m)
+			 * down-weighting darkened the limb via the background blend, so the
+			 * map carries only a hard visible/hidden mask, not a brightness
+			 * taper. */
+			double sx, sy;
+			norm_to_pixel(uf, vf, disk, frame.pole_angle, &sx, &sy);
+			mx[x] = (float) sx;
+			my[x] = (float) sy;
+			vp[x] = 1;
+			mp[x] = 1.0f;
+			(void) m;
 		}
 	}
 }

@@ -71,13 +71,15 @@ bool derot_unproject(double u, double v, double B, double CM, double f,
                      double *lat_g, double *lon);
 
 /* Build the dense derotation maps for one frame, sized out_h x out_w (CV_32F
- * for mapx/mapy/mu, CV_8U for valid). For each output (epoch-canvas) pixel:
- *   - mapx/mapy: source pixel in the frame image to sample (cv::remap input);
- *                set to -1 where invalid so remap reads the border.
- *   - valid:     1 where the surface point is visible at both epoch and frame
- *                time, else 0 (off-disk / rotated to the far side).
- *   - mu:        cosine of the emission angle at frame time (foreshortening),
- *                0 where invalid — the warp engine folds this into its weight.
+ * for mapx/mapy/mu, CV_8U for valid). Only the globe is derotated; pixels
+ * outside the fitted globe (rings/sky) pass through as identity. For each
+ * output (epoch-canvas) pixel:
+ *   - mapx/mapy: source pixel to sample — the derotated globe point, the
+ *                identity outside the globe, or -1 where masked.
+ *   - valid:     1 where the map is usable; 0 only where a globe point rotated
+ *                behind the limb (no source data).
+ *   - mu:        1 where usable, 0 where masked — a hard visible/hidden mask
+ *                the warp engine folds into its weight (no brightness taper).
  */
 void derot_build_map(int out_w, int out_h,
                      const derot_diskfit_t &disk,

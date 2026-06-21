@@ -356,10 +356,11 @@ cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth);
  *   mapx/mapy (CV_32F) — source position in the MPP-aligned frame canvas of the
  *                        surface point seen at each epoch-canvas pixel (replaces
  *                        the identity base of the remap);
- *   mu (CV_32F)        — cosine of the emission angle at frame time (0 off-disk),
- *                        folded into the accumulation weight so foreshortened
- *                        near-limb samples are down-weighted and off-disk points
- *                        drop out.
+ *   mu (CV_32F)        — 1 where the map is usable, 0 only where a globe point
+ *                        rotated behind the limb; folded into the accumulation
+ *                        weight to drop those masked points. Pixels outside the
+ *                        globe pass through (identity, mu=1) so rings/sky stack
+ *                        normally.
  * Returns false to treat the frame as un-derotated (identity base, mu = 1). The
  * provider must be thread-safe (called concurrently across frames). */
 using DerotMapProvider =
