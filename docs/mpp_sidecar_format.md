@@ -1,0 +1,242 @@
+# `.mpp` multi-point sidecar — format spec
+
+## Purpose
+
+A `.mpp` sidecar persists the full output of Stages A + B of Siril's multipoint-planetary (MPP/PSS) pipeline so that Stage C (stack) can run later — and so the GUI can resume from a prior Analyze + Register without rescanning frames.
+
+It is written by `register_mpp` (`src/registration/mpp.cpp:1316`) next to the sequence as `<seqname>.mpp`, and read by:
+
+- `stack_mpp_handler` (Stage C — `src/stacking/stack_mpp.c:38`)
+- the GUI auto-load on sequence open (`src/io/sequence.c:621`)
+- the GUI stacking page auto-select (`src/gui/stacking.c:858`)
+
+The file is a one-to-one binary serialization of `mpp_run_t` (`src/registration/mpp.h:43`) plus its `mpp_config_t`, `mpp_aps_t`, and (optional) `mpp_shifts_t` substructures. There is no compression and no framing per section — readers must walk the file in declared order using the header for sizing.
+
+> **Version note.** This document describes the original **version 2** layout.
+> The format has since grown (current is **version 12**); the authoritative,
+> always-current layout and the full version history live in the header comment
+> of `src/registration/mpp/mpp_sidecar.c`. Changes since v2, in brief:
+> v3 (`drizzle_factor:int` → `drizzle_scale:double` + drizzle mode/pixfrac/kernel),
+> v7 (split per-AP frame selection into register vs stack `mpp_config_t` fields),
+> v8 (`output_32bit`), v9 (a `has_bfi` byte after `has_shifts`, so Stage-A-only
+> runs serialise), v10 (`stack_method` — Stage C patch vs warp engine),
+> v11/v12 (a `uint64 derot_fingerprint` after the `has_bfi` byte — see the
+> derotation note at the end of this file). Every `mpp_config_t` layout change
+> bumps the version and renders older sidecars unreadable (re-register to
+> regenerate).
+
+## Endianness, alignment, types
+
+- **Byte order**: little-endian. Siril only builds for LE hosts. The header is written byte-for-byte; a future LE/BE port would need an explicit byte-swap pass on read.
+- **Scalar types**: `int32_t`, `uint32_t`, `uint8_t`, IEEE-754 `double` (8 bytes). No padding between fields.
+- **POD structs** (`mpp_config_t`, `mpp_ap_record_t`) are written via `fwrite(&struct, sizeof(struct), 1, …)`, so the on-disk layout includes any compiler-inserted padding. **This makes the format ABI-sensitive to those two structs** — any field add/remove/reorder requires a version bump.
+- **No checksum / no trailer.** Truncation is detected only by short reads. `mpp_sidecar_read` returns `MPP_EIO` on any short read or magic/version mismatch.
+
+## Top-level layout
+
+```
++----------------------------------------------------------+
+| 8  bytes : magic       "SIRILMPP"                        |
+| 4  bytes : uint32 version    (currently 2)               |
+| 4  bytes : uint32 flags      (reserved; 0)               |
++----------------------------------------------------------+
+| sizeof(mpp_config_t) : raw POD snapshot                  |
++----------------------------------------------------------+
+| 20 × int32  : run header (see below)                     |
+| 1   uint8   : has_shifts (0/1)                           |
++----------------------------------------------------------+
+| N × double  : quality[N]                                 |
+| N × double  : frame_brightness[N]                        |
+| N × int32   : included[N]                                |
+| 2N× int32   : global_shifts[2N]   (frame-major dy, dx)   |
++----------------------------------------------------------+
+| Hm×Wm × int32 : mean_frame_data                          |
++----------------------------------------------------------+
+| M × sizeof(mpp_ap_record_t) : aps->records[M]            |
+| M*S × int32 : best_frame_indices[M*S]   (row-major M×S)  |
++----------------------------------------------------------+
+| Optional, only if has_shifts == 1:                       |
+|   int32 : shifts.num_frames    (= N; sanity)             |
+|   int32 : shifts.num_aps       (= M; sanity)             |
+|   2NM × double : shifts.shifts (frame-major)             |
+|   NM   × uint8  : shifts.success                         |
+|   int32 : shifts.failure_counter                         |
++----------------------------------------------------------+
+```
+
+Where:
+
+- `N` = `num_frames`
+- `M` = `aps->count`
+- `S` = `stack_size` (number of best frames retained per AP)
+- `Hm`, `Wm` = `mean_frame_rows`, `mean_frame_cols`
+
+## Header
+
+### Magic & version
+
+| Offset | Type     | Field   | Value      |
+|--------|----------|---------|------------|
+| 0      | char[8]  | magic   | `SIRILMPP` (no NUL) |
+| 8      | uint32   | version | `2`        |
+| 12     | uint32   | flags   | `0` (reserved; must be zero) |
+
+`version` is checked with `==` — readers reject any mismatch. **Version 1 sidecars are not readable** (the `mpp_config_t` ABI changed when `drizzle_factor:int` was replaced by `drizzle_scale:double`; the trailing `drizzle_mode/pixfrac/kernel` fields shifted). v1 files must be regenerated by re-running Analyze.
+
+### `mpp_config_t` snapshot (16…16+sizeof(mpp_config_t))
+
+The full `struct mpp_config` (`src/registration/mpp/mpp_config.h:15`) written as one `fwrite`. Fields (semantics documented in `mpp_config.h`):
+
+```
+frames_gauss_width                       int
+align_frames_sampling_stride             int
+rank_laplacian_alpha                     double
+frames_normalization                     bool
+frames_normalization_threshold           int
+bitdepth                                 int     (8 or 16, PSS convention)
+align_frames_search_width                int
+align_frames_rectangle_scale_factor      double
+align_frames_border_width                int
+align_frames_rectangle_stride            int
+align_frames_rectangle_black_threshold   int
+align_frames_rectangle_min_fraction      double
+align_frames_average_frame_percent       int
+align_frames_fast_changing_object        bool
+align_frames_best_frames_window_extension int
+alignment_points_half_box_width          int
+alignment_points_search_width            int
+alignment_points_brightness_threshold    int
+alignment_points_contrast_threshold      int
+alignment_points_structure_threshold     double
+alignment_points_dim_fraction_threshold  double
+alignment_points_local_search_subpixel   bool
+alignment_points_frame_percent           int
+alignment_points_frame_number            int     (positive value overrides percent)
+alignment_points_rank_pixel_stride       int
+alignment_points_de_warp                 bool
+alignment_points_penalty_factor          double
+stack_frames_background_fraction         double
+stack_frames_background_blend_threshold  double
+stack_frames_background_patch_size       int
+drizzle_scale                            double  (≥ 1.0; 1.0 = no upscale)
+drizzle_mode                             int     (enum mpp_drizzle_mode)
+drizzle_pixfrac                          double  (dobox modes only)
+drizzle_kernel                           int     (enum mpp_drizzle_kernel)
+```
+
+Padding inside the struct is implementation-defined but stable for a given build target (all current Siril builds are x86-64 / aarch64 LE with the same struct layout).
+
+### Run header (20 × int32, then 1 × uint8)
+
+Written as a single `int32[20]` to make the layout obvious at the call site:
+
+| Index | Field                       | Notes                                             |
+|------:|-----------------------------|---------------------------------------------------|
+| 0     | `num_frames` (N)            |                                                   |
+| 1     | `frame_rows`                | Pixel dims of input frames                        |
+| 2     | `frame_cols`                |                                                   |
+| 3     | `num_layers`                | 1 = mono, 3 = RGB                                 |
+| 4     | `bitdepth`                  | 8 or 16 (PSS convention)                          |
+| 5–8   | `patch_yxyx[4]`             | `(y_low, y_high, x_low, x_high)` on best frame    |
+| 9–12  | `intersection[4]`           | Mean-frame bounds in original coords              |
+| 13    | `best_frame_idx`            | Index into `[0, N)` of best-quality frame         |
+| 14    | `stack_size` (S)            | Frames retained per AP                            |
+| 15    | `mean_frame_rows` (Hm)      |                                                   |
+| 16    | `mean_frame_cols` (Wm)      |                                                   |
+| 17    | `aps->count` (M)            | Number of alignment points                        |
+| 18    | `aps->dropped_dim`          | Diagnostic; rejected by brightness/contrast       |
+| 19    | `aps->dropped_structure`    | Diagnostic; rejected by structure threshold       |
+
+Then:
+
+| Type  | Field        | Notes                                          |
+|-------|--------------|------------------------------------------------|
+| uint8 | `has_shifts` | 1 if Stage B output is present, else 0         |
+
+## Per-frame arrays
+
+All four are length-N, written in the order listed:
+
+1. `double[N]` — `quality` — Laplace-sigma quality, post-rank.
+2. `double[N]` — `frame_brightness` — PSS brightness normalization basis.
+3. `int32[N]`  — `included` — 0/1 inclusion flag (CLI `-selected` filter etc.).
+4. `int32[2N]` — `global_shifts` — packed `(dy, dx)` per frame. Index: `dy = global_shifts[2*i]`, `dx = global_shifts[2*i + 1]`.
+
+## Mean reference frame
+
+`int32[Hm * Wm]`, row-major. CV_32S equivalent. Always 16-bit-equivalent value range regardless of input `bitdepth` (PSS convention — see `mean_frame_data` doc comment in `mpp.h`).
+
+## Alignment points
+
+1. `mpp_ap_record_t[M]` — raw `fwrite` of the AP record array (`src/registration/mpp/mpp_ap.h:15`). Each record:
+
+   ```
+   int    y, x
+   int    box_y_low, box_y_high, box_x_low, box_x_high
+   int    patch_y_low, patch_y_high, patch_x_low, patch_x_high
+   double structure       (post-normalisation, ∈ [0, 1])
+   ```
+
+2. `int32[M * S]` — `best_frame_indices`, row-major (AP-major, then per-AP ranked frame index). Row `a` is the list of `stack_size` frame indices (into `[0, N)`) that AP `a` will stack.
+
+## Shifts block (optional)
+
+Only present if `has_shifts == 1`. Written by Stage B (`mpp_compute_shifts`).
+
+```
+int32   shifts.num_frames     (must equal num_frames)
+int32   shifts.num_aps        (must equal aps->count)
+double  shifts.shifts[2 * N * M]
+uint8   shifts.success[N * M]
+int32   shifts.failure_counter
+```
+
+Indexing (frame-major; comment in `mpp_shift.h:13`):
+
+```
+dy = shifts[2 * (frame * num_aps + ap) + 0];
+dx = shifts[2 * (frame * num_aps + ap) + 1];
+ok = success[frame * num_aps + ap];
+```
+
+Sign convention: positive `(dy, dx)` is the shift the *frame* needs (post-global-alignment) to align to the reference.
+
+`failure_counter` is the diagnostic count of `(frame, AP)` pairs where the multilevel correlation rejected the shift.
+
+## Compatibility & evolution
+
+- **Magic + version are checked strictly.** Mismatch → `MPP_EIO`, no partial recovery.
+- The current writer always emits version 2.
+- Forward-compatible additions are intended to be appended after the shifts block, gated on a future `version >= 3` check. The reserved `flags` word is also available for boolean feature gates.
+- Any change to the layout of `mpp_config_t` or `mpp_ap_record_t` is a breaking change and **requires a version bump**, since both are written as raw structs.
+
+## File lifecycle
+
+- **Written**: `mpp_sidecar_write` (`src/registration/mpp/mpp_sidecar.c:75`) — overwrite-on-write; no atomic rename.
+- **Read**: `mpp_sidecar_read` returns a freshly-allocated `mpp_run_t*` owned by the caller; free via `mpp_run_free` (or the equivalent `mpp_sidecar_free` wrapper).
+- **Location**: `<seqname>.mpp`, always in the same directory as the sequence file.
+- **Auto-load**: `sequence.c` loads the sidecar into `com.mpp_run` on sequence open so the GUI's AP overlay / editor and `STACK_MPP` find it without an explicit step.
+- **Errors are all `MPP_EIO`** — readers do not distinguish "no file" from "bad magic" from "truncated"; the caller logs the path and treats it as a missing/invalid sidecar.
+
+## Size estimate
+
+Dominated by `mean_frame_data` (4 × Hm × Wm bytes), `shifts.shifts` (16 × N × M bytes) and `best_frame_indices` (4 × M × S bytes). For a typical planetary run (N=2000 frames, M=400 APs, S=200 best-per-AP, mean-frame 1024×1024) that's roughly:
+
+- mean frame: 4 MB
+- shifts: 12.8 MB
+- best frame indices: 320 KB
+- everything else: a few hundred KB
+
+So on the order of 15–20 MB per sidecar — small relative to the sequence itself.
+
+## Derotation fingerprint (v11/v12)
+
+When derotation-aware registration runs (a `<seqname>.derot` plan is present),
+the per-AP shifts are measured in the reference-epoch frame. To stop Stage C
+from applying derotation on top of shifts that were *not* measured that way
+(which would double-count the planet's rotation), the run header carries a
+`uint64 derot_fingerprint` (0 = registered without derotation) — a hash of the
+entire `.derot` plan (`mpp_derot_fingerprint`). Stage C refuses to stack unless
+that fingerprint matches the `.derot` being applied, i.e. the sequence must be
+re-registered after the derotation plan is added or changed. See
+[`mpp_derot_sidecar_format.md`](mpp_derot_sidecar_format.md).
