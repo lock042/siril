@@ -21,8 +21,11 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_date.h"
 #include "io/image_format_fits.h"
+#include "core/command.h"
+#include "algos/streaks.h"
 #include "download_files.h"
 
 cominfo com;	// the core data struct
@@ -34,4 +37,28 @@ void test_streak_detection_gps() {
 	cr_assert(file_path);
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
+
+	float fwhm = 3.0f;
+	simple_star_removal(&fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf);
+
+	// TODO: refactor the main function
+	/*int expected_length = 250;
+	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
+	arg->fit = &fit;
+	arg->free_fit = FALSE;
+	arg->im_idx = com.uniq ? 0 : com.seq.current;
+	arg->filename = g_strdup("streak1");
+	arg->layer = 0;
+	arg->initial_segment_length = expected_length;
+	arg->minimum_segment_length = round_to_int(expected_length * 0.7);
+	arg->bright_target = FALSE;
+	arg->display_streaks = FALSE;
+	arg->use_idle = TRUE;
+	arg->nb_threads = com.max_thread;
+	arg->results = alloc_results(1);
+	arg->fwhm = fwhm;
+	int retval = GPOINTER_TO_INT(streak_detection_worker(arg));
+	cr_assert(!retval);
+	cr_assert(is_readable_file("streak1.streaks"));
+	*/
 }

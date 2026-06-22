@@ -15747,8 +15747,7 @@ int process_detect_streaks(int nb) {
 	copy_fits_metadata(gfit, fit);
 
 	float fwhm = 3.0f;
-	if (simple_star_removal(fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf))
-		siril_log_debug("did not find any star, using an arbitrary FWHM for magnitude estimation\n");
+	simple_star_removal(fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf);
 
 	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
 	arg->fit = fit;
@@ -15768,7 +15767,7 @@ int process_detect_streaks(int nb) {
 	return CMD_OK;
 }
 
-int simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
+void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
 	imstats *stats = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, MULTI_THREADED);
 	double median = stats->median;
 	double bgnoise = stats->bgnoise;
@@ -15783,7 +15782,7 @@ int simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_f
 
 	if (!stars || nb_stars <= 0) {
 		siril_log_warning(_("No star found\n"));
-		return 0;
+		return;
 	}
 
 	ssr_internal(fit, layer, median, bgnoise, pixvalue, stars, nb_stars);
@@ -15796,7 +15795,6 @@ int simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_f
 	}
 	free_fitted_stars(stars);
 	invalidate_stats_from_fit(fit);
-	return 0;
 }
 
 int process_ssr(int nb) {
@@ -15806,9 +15804,9 @@ int process_ssr(int nb) {
 
 	clear_stars_list(FALSE);
 	int layer = (gfit->naxes[2] == 3) ? 1 : 0;
-	int retval = simple_star_removal(gfit, layer, knoise, NULL, &com.pref.starfinder_conf);
+	simple_star_removal(gfit, layer, knoise, NULL, &com.pref.starfinder_conf);
 
 	notify_gfit_data_modified();
-	return retval;
+	return 0;
 }
 

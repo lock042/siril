@@ -61,6 +61,17 @@ gchar *check_or_download_test_file(const char *filename) {
 		UNLOCK;
 		return NULL;
 	}
+	if (string_is_a_path(filename)) {
+		gchar *dir = g_path_get_dirname(file_path);
+		if (g_mkdir_with_parents(dir, 0700)) {
+			siril_log_debug("failed to create dir %s\n", dir);
+			g_free(dir);
+			g_free(file_path);
+			UNLOCK;
+			return NULL;
+		}
+		g_free(dir);
+	}
 #ifdef HAVE_LIBCURL
 	siril_log_debug("test file %s is missing, downloading...\n", file_path);
 	FILE *dest_file = g_fopen(file_path, "wb");
@@ -93,6 +104,8 @@ gchar *check_or_download_test_file(const char *filename) {
 	//siril_log_debug("test file %s was downloaded\n", file_path);
 #else
 	siril_log_debug("test file %s is missing and cannot be doawnloaded (libcurl missing)\n", file_path);
+	g_free(file_path);
+	file_path = NULL;
 #endif
 	UNLOCK;
 	return file_path;
