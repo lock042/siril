@@ -117,7 +117,16 @@ static void populate_from_sequence(void) {
 	const int N = com.seq.number;
 	double *jd = malloc((size_t) N * sizeof(double));
 	if (jd && mpp_derot_frame_times(&com.seq, 0.0, NAN, jd)) {
-		GDateTime *mid = Julian_to_date_time(mpp_derot_midpoint_epoch(jd, N));
+		/* Build the midpoint datetime from the J2000 anchor (full JD 2451545.0):
+		 * Julian_to_date_time() expects MJD, not the full JD that
+		 * date_time_to_Julian()/the .derot use, so using it here would land the
+		 * default epoch thousands of years off. */
+		GDateTime *j2000 = g_date_time_new_utc(2000, 1, 1, 12, 0, 0);
+		GDateTime *mid = j2000
+		    ? g_date_time_add_seconds(j2000,
+		          (mpp_derot_midpoint_epoch(jd, N) - 2451545.0) * 86400.0)
+		    : NULL;
+		if (j2000) g_date_time_unref(j2000);
 		if (mid) {
 			gchar *s = date_time_to_FITS_date(mid);
 			if (s) { gtk_editable_set_text(GTK_EDITABLE(entry_epoch), s); g_free(s); }
