@@ -404,6 +404,16 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	 * Cancellation / OOM leave the region via flags, never a return or an
 	 * escaping exception. */
 	const int nt = (provider_thread_safe && max_threads > 1) ? max_threads : 1;
+	/* The frame loop is the parallel level — stop OpenCV from *also* threading
+	 * each per-frame op (the derot remap, the Laplacian, every meanStdDev).
+	 * With OpenCV's TBB backend, nt OpenMP workers each submitting to TBB's one
+	 * global arena oversubscribe and stall on the arena, so utilisation
+	 * collapses to a fraction of the cores. Pinning OpenCV to one thread makes
+	 * each frame's ops run inline in their OpenMP worker; the cores stay busy
+	 * because many frames are in flight. Restored right after the loop. When
+	 * nt==1 we leave OpenCV alone so the lone frame still uses every core. */
+	const int cv_saved_threads = cv::getNumThreads();
+	if (nt > 1) cv::setNumThreads(1);
 	gint cancelled = 0, cur_nb = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nt) schedule(dynamic) if (nt > 1)
@@ -459,6 +469,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		if (progress) progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
 		                       / (double) N, progress_user);
 	}
+	if (nt > 1) cv::setNumThreads(cv_saved_threads);
 	if (g_atomic_int_get(&cancelled)) {
 		out.stack_size = 0;   /* cancellation / OOM sentinel */
 		return out;
@@ -679,6 +690,13 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 	 * return or an escaping exception, both of which are UB inside a parallel
 	 * for. */
 	const int nt = (provider_thread_safe && max_threads > 1) ? max_threads : 1;
+	/* See ap_compute_frame_qualities_streamed: the frame loop is the parallel
+	 * level, so pin OpenCV to one thread for the per-frame ops (derot remap +
+	 * blur + the multilevel correlation's cv calls). Otherwise nt OpenMP
+	 * workers contend on OpenCV's single TBB arena and utilisation collapses.
+	 * Restored right after the loop; left untouched when nt==1. */
+	const int cv_saved_threads = cv::getNumThreads();
+	if (nt > 1) cv::setNumThreads(1);
 	gint cancelled = 0, failures = 0, cur_nb = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nt) schedule(dynamic) if (nt > 1)
@@ -744,6 +762,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		gui_iface.set_progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
 		                       / (double) n_included, NULL);
 	}
+	if (nt > 1) cv::setNumThreads(cv_saved_threads);
 	if (g_atomic_int_get(&cancelled)) {
 		out->failure_counter = -1;   /* cancellation / OOM sentinel */
 		return out;
