@@ -163,6 +163,7 @@ int	process_rebayer(int nb);
 int	process_register(int nb);
 int	process_register_mpp(int nb);
 int	process_derotate(int nb);
+int	process_ser_fix_timestamps(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
 int	process_requires(int nb);

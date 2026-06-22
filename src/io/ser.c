@@ -392,6 +392,57 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 	return SER_OK;
 }
 
+/* TRUE when the per-frame timestamps are missing, non-monotonic, or have no
+ * spread (all equal) — i.e. they cannot be trusted and a rebuild would help. */
+gboolean ser_timestamps_need_fixing(const struct ser_struct *ser_file) {
+	if (!ser_file || ser_file->frame_count <= 1)
+		return FALSE;
+	if (!ser_file->ts)
+		return TRUE;                       /* no trailer at all */
+	for (int i = 1; i < ser_file->frame_count && i < ser_file->ts_alloc; i++)
+		if (ser_file->ts[i] < ser_file->ts[i - 1])
+			return TRUE;                   /* out of order */
+	if (ser_file->ts_min == ser_file->ts_max)
+		return TRUE;                       /* all identical -> no cadence */
+	return FALSE;
+}
+
+/* Rebuild the per-frame timestamp trailer assuming the frames are in capture
+ * order at a uniform cadence: ts[i] = start + i/fps. Overwrites a broken
+ * trailer or appends a missing one, and stamps the header UTC start to match.
+ * The file must be open (ser_open_file opens "r+b"). The uniform-cadence
+ * assumption is the caller's to honour — it warns the user. */
+int ser_rebuild_timestamps(struct ser_struct *ser_file, GDateTime *start, double fps) {
+	if (!ser_file || !ser_file->file || !start || fps <= 0.0
+			|| ser_file->frame_count <= 0)
+		return SER_GENERIC_ERROR;
+	const int N = ser_file->frame_count;
+	if (ser_file->ts_alloc < N) {
+		guint64 *nt = realloc(ser_file->ts, (size_t) N * sizeof(guint64));
+		if (!nt) {
+			PRINT_ALLOC_ERR;
+			return SER_GENERIC_ERROR;
+		}
+		ser_file->ts = nt;
+		ser_file->ts_alloc = N;
+	}
+	for (int i = 0; i < N; i++) {
+		GDateTime *t = g_date_time_add_seconds(start, (double) i / fps);
+		ser_file->ts[i] = t ? date_time_to_ser_timestamp(t) : 0;
+		if (t) g_date_time_unref(t);
+	}
+	ser_file->ts_min = ser_file->ts[0];
+	ser_file->ts_max = ser_file->ts[N - 1];
+	ser_file->fps = fps;
+	ser_file->date_utc = ser_file->ts[0];   /* keep the header start consistent */
+	if (ser_write_header(ser_file) != SER_OK)
+		return SER_GENERIC_ERROR;
+	const int rc = ser_write_timestamps(ser_file);
+	if (ser_file->file)
+		fflush(ser_file->file);   /* persist immediately, even if left open */
+	return rc;
+}
+
 /* (over)write the header of the opened file on the disk */
 static int ser_write_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];

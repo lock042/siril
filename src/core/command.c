@@ -15296,6 +15296,87 @@ done:
 	return ret;
 }
 
+int process_ser_fix_timestamps(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("ser_fix_timestamps: missing sequence name\n"));
+		return CMD_WRONG_N_ARG;
+	}
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	gboolean is_com = check_seq_is_comseq(seq);
+	if (is_com) { free_sequence(seq, TRUE); seq = &com.seq; }
+	int ret = CMD_OK;
+
+	if (seq->type != SEQ_SER || !seq->ser_file) {
+		siril_log_error(_("ser_fix_timestamps: '%s' is not a SER sequence\n"), word[1]);
+		ret = CMD_INVALID_IMAGE; goto done;
+	}
+
+	double fps = 0.0;
+	GDateTime *start_dt = NULL;
+	for (int i = 2; i < nb; i++) {
+		const char *w = word[i];
+		if (g_str_has_prefix(w, "-fps=")) {
+			fps = g_ascii_strtod(w + 5, NULL);
+		} else if (g_str_has_prefix(w, "-start=")) {
+			start_dt = FITS_date_to_date_time((gchar *) (w + 7));
+			if (!start_dt) { siril_log_error(_("ser_fix_timestamps: bad -start (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else {
+			siril_log_error(_("ser_fix_timestamps: unknown argument '%s'\n"), w);
+			ret = CMD_ARG_ERROR; goto done;
+		}
+	}
+	if (fps <= 0.0) {
+		siril_log_error(_("ser_fix_timestamps: -fps=F (frames per second) is required\n"));
+		ret = CMD_ARG_ERROR; goto done;
+	}
+
+	/* Start instant: explicit -start, else the SER header UTC, else the file's
+	 * modification time. */
+	GDateTime *start = NULL;
+	gboolean own_start = FALSE;
+	if (start_dt) {
+		start = start_dt;
+	} else if (seq->ser_file->date_utc != 0) {
+		start = ser_timestamp_to_date_time(seq->ser_file->date_utc);
+		own_start = TRUE;
+	} else if (seq->ser_file->filename) {
+		GFile *f = g_file_new_for_path(seq->ser_file->filename);
+		GFileInfo *fi = g_file_query_info(f, G_FILE_ATTRIBUTE_TIME_MODIFIED,
+		                                  G_FILE_QUERY_INFO_NONE, NULL, NULL);
+		if (fi) {
+			start = g_file_info_get_modification_date_time(fi);
+			own_start = (start != NULL);
+			g_object_unref(fi);
+		}
+		g_object_unref(f);
+	}
+	if (!start) {
+		siril_log_error(_("ser_fix_timestamps: no start time — supply -start=YYYY-MM-DDTHH:MM:SS\n"));
+		ret = CMD_ARG_ERROR; goto done;
+	}
+
+	siril_log_warning(_("ser_fix_timestamps: assuming all %d frames are in capture "
+	                    "order at a uniform %.4f fps — gaps or dropped frames are "
+	                    "not accounted for.\n"), seq->number, fps);
+	if (ser_rebuild_timestamps(seq->ser_file, start, fps) == SER_OK) {
+		gchar *s = date_time_to_FITS_date(start);
+		siril_log_message(_("ser_fix_timestamps: rebuilt %d timestamps in '%s' "
+		                    "from start %s at %.4f fps\n"),
+		                  seq->number, word[1], s ? s : "?", fps);
+		g_free(s);
+	} else {
+		siril_log_error(_("ser_fix_timestamps: failed to write the timestamps\n"));
+		ret = CMD_GENERIC_ERROR;
+	}
+	if (own_start) g_date_time_unref(start);
+
+done:
+	if (start_dt) g_date_time_unref(start_dt);
+	if (!is_com && seq != &com.seq) free_sequence(seq, TRUE);
+	return ret;
+}
+
 int process_pwd(int nb) {
 	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
