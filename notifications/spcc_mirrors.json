@@ -20,6 +20,10 @@
     "description": "OVH Mumbai"
   },
   {
+    "url": "http://siril-spcc-public-lz-santiago.s3-website.sa-west-lz-scl-a.cloud.ovh.net",
+    "description": "OVH Santiago"
+  },
+  {
     "url": "http://gaia.wheep.co.uk",
     "description": "UK Mirror"
   },
