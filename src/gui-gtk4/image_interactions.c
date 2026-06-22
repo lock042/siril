@@ -780,9 +780,11 @@ static void update_drawingarea_cursor(const drawingarea_ctx *c) {
 static void apply_drag_motion(const drawingarea_ctx *c) {
 	const pointi zoomed = c->zoomed;
 
-	if (mouse_status == MOUSE_ACTION_FIT_DISK) {
-		/* Derotation disk fit: a centre/handle was grabbed on press; track it. */
-		if (c->inside && derotation_get_drag() > 0)
+	if (derotation_get_drag() > 0) {
+		/* Derotation disk fit: a centre/handle was grabbed on press; track it
+		 * until release. Only active during a disc drag, so a plain selection
+		 * drag started elsewhere falls through to the normal handling below. */
+		if (c->inside)
 			derotation_drag_to(zoomed.x, zoomed.y);
 		return;
 	}

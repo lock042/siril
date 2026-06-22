@@ -679,6 +679,18 @@ mouse_function_metadata main_action = { main_action_click, NAME_MAIN_ACTION,
 
 gboolean main_action_click(mouse_data *data) {
 	if (data->inside) {
+		/* Derotation disk fit is layered over the normal action: grab the disc
+		 * or a fit handle if one is under the cursor, otherwise fall through to
+		 * the usual selection/sampling behaviour so the main view stays
+		 * interactive while the tool window is open. */
+		if (derotation_is_open()) {
+			int dmode = derotation_hit_test(data->zoomed.x, data->zoomed.y);
+			if (dmode > 0) {
+				derotation_set_drag(dmode);
+				register_release_callback(derotation_drag_release, data->button);
+				return TRUE;
+			}
+		}
 		point pt;
 		int radius, s;
 		gboolean right, left, bottom, top;
@@ -782,16 +794,6 @@ gboolean main_action_click(mouse_data *data) {
 						mpp_ap_editor_refresh_count_label();
 						redraw(REDRAW_OVERLAY);
 					}
-				}
-				break;
-			}
-			case MOUSE_ACTION_FIT_DISK: {
-				/* Derotation disk fit: grab the centre or a cardinal handle
-				 * under the cursor; motion events then move/resize it. */
-				int mode = derotation_hit_test(data->zoomed.x, data->zoomed.y);
-				if (mode > 0) {
-					derotation_set_drag(mode);
-					register_release_callback(derotation_drag_release, data->button);
 				}
 				break;
 			}

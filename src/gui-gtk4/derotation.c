@@ -41,7 +41,7 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_display.h"
-#include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FIT_DISK */
+#include "gui-gtk4/image_interactions.h"   /* redraw, REDRAW_OVERLAY */
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/derotation.h"
 
@@ -187,7 +187,10 @@ void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	init_statics();
 	window_open = TRUE;
-	mouse_status = MOUSE_ACTION_FIT_DISK;   /* clicks on the image now fit the disc */
+	/* Disk fitting is layered on top of the normal mouse action (the press
+	 * handler intercepts clicks that hit the disc/handles via derotation_is_open
+	 * + hit-test); the main view stays interactive, so mouse_status is left
+	 * untouched. */
 	on_derot_body_changed(NULL, NULL, NULL);   /* sync system to the body default */
 	populate_from_sequence();
 	redraw(REDRAW_OVERLAY);
@@ -196,8 +199,6 @@ void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 static void leave_fit_mode(void) {
 	window_open = FALSE;
 	g_drag_mode = 0;
-	if (mouse_status == MOUSE_ACTION_FIT_DISK)
-		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
 gboolean on_derotation_dialog_close_request(GtkWindow *win, gpointer user_data) {
