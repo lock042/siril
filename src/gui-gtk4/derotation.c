@@ -54,7 +54,7 @@ static GtkDropDown *dd_body = NULL, *dd_system = NULL;
 static GtkEntry *entry_epoch = NULL;
 static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
                      *spin_rpol = NULL, *spin_pa = NULL, *spin_fps = NULL;
-static GtkCheckButton *chk_parity = NULL;
+static GtkCheckButton *chk_parity = NULL, *chk_epoch_lock = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
 static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
@@ -107,6 +107,7 @@ static void init_statics(void) {
 	spin_pa     = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_pa"));
 	spin_fps    = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_fps"));
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
+	chk_epoch_lock = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_epoch_lock"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
 	/* Restore the remembered mirror state when the window is first created. */
 	if (chk_parity)
@@ -150,25 +151,32 @@ static void populate_from_sequence(void) {
 		set_status(_("Load a planetary sequence first."));
 		return;
 	}
+	/* When "Shared epoch" is ticked, keep the current epoch across sequences so
+	 * several channels derotate to the same instant — don't overwrite it with
+	 * this sequence's midpoint. */
+	const gboolean locked = chk_epoch_lock && gtk_check_button_get_active(chk_epoch_lock);
 	const int N = com.seq.number;
 	double *jd = malloc((size_t) N * sizeof(double));
 	if (jd && mpp_derot_frame_times(&com.seq, 0.0, NAN, jd)) {
-		/* Build the midpoint datetime from the J2000 anchor (full JD 2451545.0):
-		 * Julian_to_date_time() expects MJD, not the full JD that
-		 * date_time_to_Julian()/the .derot use, so using it here would land the
-		 * default epoch thousands of years off. */
-		GDateTime *j2000 = g_date_time_new_utc(2000, 1, 1, 12, 0, 0);
-		GDateTime *mid = j2000
-		    ? g_date_time_add_seconds(j2000,
-		          (mpp_derot_midpoint_epoch(jd, N) - 2451545.0) * 86400.0)
-		    : NULL;
-		if (j2000) g_date_time_unref(j2000);
-		if (mid) {
-			gchar *s = date_time_to_FITS_date(mid);
-			if (s) { gtk_editable_set_text(GTK_EDITABLE(entry_epoch), s); g_free(s); }
-			g_date_time_unref(mid);
+		if (!locked) {
+			/* Build the midpoint datetime from the J2000 anchor (full JD
+			 * 2451545.0): Julian_to_date_time() expects MJD, not the full JD
+			 * that date_time_to_Julian()/the .derot use, so using it here would
+			 * land the default epoch thousands of years off. */
+			GDateTime *j2000 = g_date_time_new_utc(2000, 1, 1, 12, 0, 0);
+			GDateTime *mid = j2000
+			    ? g_date_time_add_seconds(j2000,
+			          (mpp_derot_midpoint_epoch(jd, N) - 2451545.0) * 86400.0)
+			    : NULL;
+			if (j2000) g_date_time_unref(j2000);
+			if (mid) {
+				gchar *s = date_time_to_FITS_date(mid);
+				if (s) { gtk_editable_set_text(GTK_EDITABLE(entry_epoch), s); g_free(s); }
+				g_date_time_unref(mid);
+			}
 		}
-		set_status(_("Fit the disk to the planet, then compute."));
+		set_status(locked ? _("Using the shared epoch — fit the disk, then compute.")
+		                  : _("Fit the disk to the planet, then compute."));
 	} else {
 		set_status(_("No per-frame timestamps — set the frame rate (fps)."));
 	}

@@ -73,8 +73,12 @@
                 <layout><property name="column">0</property><property name="row">2</property></layout></object>
             </child>
             <child>
-              <object class="GtkEntry" id="derot_epoch">
-                <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS — defaults to the capture midpoint</property>
+              <object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">2</property>
+                <child><object class="GtkEntry" id="derot_epoch">
+                  <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS — defaults to the capture midpoint</property></object></child>
+                <child><object class="GtkCheckButton" id="derot_epoch_lock">
+                  <property name="label" translatable="yes">Shared epoch (keep for other sequences)</property>
+                  <property name="tooltip-text" translatable="yes">Keep this reference epoch when you load another sequence, so several channels (e.g. R/G/B shot minutes apart) all derotate to the same instant and can then be combined in the Compositing tool (use its Planetary alignment). For the best result set the epoch to the midpoint of the whole session; the "derotate" command's -epoch-from option computes that automatically from a list of sequences.</property></object></child>
                 <layout><property name="column">1</property><property name="row">2</property></layout></object>
             </child>
             <child>
