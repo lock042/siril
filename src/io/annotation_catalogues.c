@@ -341,11 +341,12 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
 	if (!object->pretty_code) {
 		if (!object->code)
 			return NULL;
-		/* only star catalogues use the Greek letter
-		 * conversion must not be applied to other catalogues, otherwise it
+		/* only the named stars catalogue uses the Greek letter
+		 * conversion; it must not be applied to other catalogues, otherwise it
 		 * corrupts names that happen to contain a Latin spelling of a Greek
-		 * letter (e.g. constellations "Cen-tau-rus", "O-phi-uchus") */
-		if (!is_star_catalogue(object->catalogue)) {
+		 * letter (e.g. constellations "Cen-tau-rus", "O-phi-uchus", or the
+		 * asteroid "Am-phi-trite" in the solar system objects catalogue). */
+		if (object->catalogue != CAT_AN_STARS) {
 			object->pretty_code = g_strdup(object->code);
 			return object->pretty_code;
 		}
