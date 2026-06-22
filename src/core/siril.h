@@ -663,7 +663,7 @@ struct ffit {
 	int x_offset, y_offset;	// x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
-	GSList *history;	// Former HISTORY comments of FITS file
+	GSList *history;	// HISTORY comments of FITS file, list of gchar *
 
 	/* ICC Color Management data */
 	gboolean color_managed;	// Whether color management applies to this FITS

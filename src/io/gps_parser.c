@@ -350,7 +350,7 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 		siril_log_message(_("DATE-OBS and EXPTIME overwritten by GPS metadata. GPS_* keys untouched\n"));
 	else siril_log_warning(_("DATE-OBS and EXPTIME overwritten by GPS metadata, but GPS was not locked. GPS_* keys untouched\n"));
 	fit->keywords.date_and_exp_from_gps = TRUE;
-	fit->history = g_slist_append(fit->history, strdup("DATE-OBS and EXPTIME overwritten by GPS metadata"));
+	fit->history = g_slist_append(fit->history, g_strdup("DATE-OBS and EXPTIME overwritten by GPS metadata"));
 	return 0;
 }
 
