@@ -341,6 +341,15 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
 	if (!object->pretty_code) {
 		if (!object->code)
 			return NULL;
+		/* only the named stars catalogue uses the Greek letter
+		 * conversion; it must not be applied to other catalogues, otherwise it
+		 * corrupts names that happen to contain a Latin spelling of a Greek
+		 * letter (e.g. constellations "Cen-tau-rus", "O-phi-uchus", or the
+		 * asteroid "Am-phi-trite" in the solar system objects catalogue). */
+		if (object->catalogue != CAT_AN_STARS) {
+			object->pretty_code = g_strdup(object->code);
+			return object->pretty_code;
+		}
 		/* in case of stars we want to convert to Greek letter */
 		while (convert_to_greek[i].latin) {
 			gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
