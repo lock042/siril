@@ -50,6 +50,7 @@
             </child>
             <child>
               <object class="GtkDropDown" id="derot_body">
+                <property name="tooltip-text" translatable="yes">The planet being captured. Sets the rotation model, the default rotation system and the disk oblateness used when fitting.</property>
                 <property name="model"><object class="GtkStringList"><items>
                   <item translatable="yes">Jupiter</item><item translatable="yes">Saturn</item><item translatable="yes">Mars</item>
                 </items></object></property>
@@ -61,6 +62,7 @@
             </child>
             <child>
               <object class="GtkDropDown" id="derot_system">
+                <property name="tooltip-text" translatable="yes">Rotation system used to track features: I, II or III. The standard choice is filled in automatically for the selected planet (Jupiter II, Saturn III, Mars I); change it only to follow a feature in a different system.</property>
                 <property name="model"><object class="GtkStringList"><items>
                   <item>I</item><item>II</item><item>III</item>
                 </items></object></property>
@@ -81,6 +83,7 @@
             </child>
             <child>
               <object class="GtkSpinButton" id="derot_fps"><property name="adjustment">adj_derot_fps</property><property name="digits">2</property>
+                <property name="tooltip-text" translatable="yes">Capture frame rate. Only used when the video carries no per-frame timestamps (SER files normally do); leave at 0 to use the embedded timestamps.</property>
                 <layout><property name="column">1</property><property name="row">3</property></layout></object>
             </child>
             <child>
@@ -90,8 +93,10 @@
             <child>
               <object class="GtkBox"><property name="spacing">6</property>
                 <child><object class="GtkSpinButton" id="derot_cx"><property name="adjustment">adj_derot_cx</property><property name="digits">1</property>
+                  <property name="tooltip-text" translatable="yes">Disk centre, X (pixels). You can also drag the disk on the image to move it.</property>
                   <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
                 <child><object class="GtkSpinButton" id="derot_cy"><property name="adjustment">adj_derot_cy</property><property name="digits">1</property>
+                  <property name="tooltip-text" translatable="yes">Disk centre, Y (pixels). You can also drag the disk on the image to move it.</property>
                   <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
                 <layout><property name="column">1</property><property name="row">4</property></layout></object>
             </child>
@@ -102,10 +107,10 @@
             <child>
               <object class="GtkBox"><property name="spacing">6</property>
                 <child><object class="GtkSpinButton" id="derot_radius"><property name="adjustment">adj_derot_radius</property><property name="digits">1</property>
-                  <property name="tooltip-text" translatable="yes">Equatorial radius (px)</property>
+                  <property name="tooltip-text" translatable="yes">Equatorial radius of the globe in pixels (for Saturn, the globe — not the rings). Drag the magenta handles on the image to resize.</property>
                   <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
                 <child><object class="GtkSpinButton" id="derot_rpol"><property name="adjustment">adj_derot_rpol</property><property name="digits">1</property>
-                  <property name="tooltip-text" translatable="yes">Polar radius (px) — sets the disk oblateness; defaults to the body's known flattening</property>
+                  <property name="tooltip-text" translatable="yes">Polar radius in pixels; sets the disk oblateness. Defaults to the body's known flattening. Drag the yellow N/S handles on the image to adjust.</property>
                   <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/></object></child>
                 <layout><property name="column">1</property><property name="row">5</property></layout></object>
             </child>
@@ -115,11 +120,13 @@
             </child>
             <child>
               <object class="GtkSpinButton" id="derot_pa"><property name="adjustment">adj_derot_pa</property><property name="digits">2</property>
+                <property name="tooltip-text" translatable="yes">In-image position angle of the planet's north pole, in degrees (0 = up, increasing clockwise). Drag the round handle at the "N" end of the axis on the image to rotate it.</property>
                 <signal name="value-changed" handler="on_derotation_value_changed" swapped="no"/>
                 <layout><property name="column">1</property><property name="row">6</property></layout></object>
             </child>
             <child>
               <object class="GtkCheckButton" id="derot_parity"><property name="label" translatable="yes">Mirrored image</property>
+                <property name="tooltip-text" translatable="yes">Tick if the image is mirrored (flipped left-right), e.g. from a star diagonal. This flips the east-west sense of the rotation so features derotate the correct way.</property>
                 <layout><property name="column">1</property><property name="row">7</property></layout></object>
             </child>
           </object>
@@ -131,10 +138,13 @@
         <child>
           <object class="GtkBox"><property name="spacing">6</property><property name="halign">end</property>
             <child><object class="GtkButton" id="derot_autofit"><property name="label" translatable="yes">Auto-detect disk</property>
+              <property name="tooltip-text" translatable="yes">Estimate the globe centre and radius from the current image. It is only a starting point — check it against the disk and adjust on the image before computing.</property>
               <signal name="clicked" handler="on_derotation_autofit_clicked" swapped="no"/></object></child>
             <child><object class="GtkButton" id="derot_close"><property name="label" translatable="yes">Close</property>
+              <property name="tooltip-text" translatable="yes">Close the tool without computing. The fit is kept for next time.</property>
               <signal name="clicked" handler="on_derotation_close_clicked" swapped="no"/></object></child>
             <child><object class="GtkButton" id="derot_compute"><property name="label" translatable="yes">Compute &amp; save</property>
+              <property name="tooltip-text" translatable="yes">Compute the per-frame derotation from the ephemeris and the fitted disk and save it next to the sequence. Then register and stack as usual; the result is picked up automatically.</property>
               <signal name="clicked" handler="on_derotation_compute_clicked" swapped="no"/></object></child>
           </object>
         </child>

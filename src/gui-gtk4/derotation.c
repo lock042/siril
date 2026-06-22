@@ -34,8 +34,11 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/proto.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "io/sequence.h"
 #include "gui-gtk4/utils.h"
+#include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/image_interactions.h"   /* mouse_status, MOUSE_ACTION_FIT_DISK */
@@ -54,7 +57,7 @@ static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
 static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
-static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar */
+static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -139,7 +142,8 @@ static void populate_from_sequence(void) {
 	free(jd);
 
 	double cx, cy, r;
-	if (gfit && mpp_derot_autodetect_disk(gfit, &cx, &cy, &r)) {
+	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
+	if (gfit && mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r)) {
 		gtk_spin_button_set_value(spin_cx, cx);
 		gtk_spin_button_set_value(spin_cy, cy);
 		gtk_spin_button_set_value(spin_radius, r);
@@ -204,7 +208,8 @@ void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
 void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	double cx, cy, r;
-	if (gfit && mpp_derot_autodetect_disk(gfit, &cx, &cy, &r)) {
+	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
+	if (gfit && mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r)) {
 		gtk_spin_button_set_value(spin_cx, cx);
 		gtk_spin_button_set_value(spin_cy, cy);
 		gtk_spin_button_set_value(spin_radius, r);
@@ -215,6 +220,101 @@ void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
+/* The ephemeris runs once per frame (thousands of evaluations) plus the SER
+ * timestamp reads, so the compute is done off the GTK thread with the busy
+ * cursor; the result goes to the log and, on success, the window closes. */
+struct derot_compute_args {
+	planet_body_t body;
+	int system, N, ry, rx;
+	double cx, cy, radius, rpol, pa, parity, fps;
+	gchar *epoch_text;   /* user text, may be empty -> capture midpoint */
+	gchar *seqname;
+	/* results, filled by the worker */
+	gboolean ok;
+	gchar *path;
+	double span_min;
+	const char *err;     /* static string when !ok */
+};
+
+static void derot_compute_args_free(struct derot_compute_args *a) {
+	if (!a) return;
+	g_free(a->epoch_text);
+	g_free(a->seqname);
+	g_free(a->path);
+	free(a);
+}
+
+/* Runs on the GTK thread once the worker has finished. */
+static gboolean derot_compute_idle(gpointer p) {
+	struct derot_compute_args *a = p;
+	stop_processing_thread();
+	if (a->ok) {
+		siril_log_message(_("derotation: wrote %s — %d frames, %.2f min span, "
+		                    "System %d. Now register and stack the sequence.\n"),
+		                  a->path, a->N, a->span_min, a->system);
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		if (dialog) {   /* success: close the tool window */
+			leave_fit_mode();
+			gtk_widget_set_visible(dialog, FALSE);
+			redraw(REDRAW_OVERLAY);
+		}
+	} else {
+		siril_log_error(_("derotation: %s\n"),
+		                a->err ? a->err : _("compute failed"));
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		set_status(a->err ? a->err : _("Derotation compute failed — see the log."));
+	}
+	set_cursor_waiting(FALSE);
+	derot_compute_args_free(a);
+	return FALSE;
+}
+
+/* Runs in the processing thread. */
+static gpointer derot_compute_worker(gpointer p) {
+	struct derot_compute_args *a = p;
+	a->ok = FALSE;
+
+	double *jd = malloc((size_t) a->N * sizeof(double));
+	if (!jd) { a->err = _("Out of memory."); siril_add_idle(derot_compute_idle, a); return GINT_TO_POINTER(1); }
+	if (!mpp_derot_frame_times(&com.seq, a->fps, NAN, jd)) {
+		a->err = _("No per-frame timestamps — set the frame rate (fps).");
+		free(jd);
+		siril_add_idle(derot_compute_idle, a);
+		return GINT_TO_POINTER(1);
+	}
+
+	double epoch_jd;
+	GDateTime *ep = (a->epoch_text && *a->epoch_text)
+	    ? FITS_date_to_date_time(a->epoch_text) : NULL;
+	if (ep) { epoch_jd = date_time_to_Julian(ep); g_date_time_unref(ep); }
+	else      epoch_jd = mpp_derot_midpoint_epoch(jd, a->N);
+
+	mpp_derot_t *d = mpp_derot_build(a->body, a->system, epoch_jd, jd, a->N,
+	                                 a->ry, a->rx, a->cx, a->cy, a->radius,
+	                                 a->pa, a->parity, NAN, NAN, NAN);
+	free(jd);
+	if (!d) {
+		a->err = _("Ephemeris/plan build failed.");
+		siril_add_idle(derot_compute_idle, a);
+		return GINT_TO_POINTER(1);
+	}
+	/* Let the user's polar radius set the disk oblateness (overriding the
+	 * ephemeris default) so the fitted ellipse is used as drawn. */
+	if (a->rpol > 0.0 && a->rpol < a->radius)
+		d->flattening = 1.0 - a->rpol / a->radius;
+
+	a->path = g_strdup_printf("%s.derot", a->seqname);
+	a->span_min = (d->jd[a->N - 1] - d->jd[0]) * 24.0 * 60.0;
+	if (mpp_derot_write(a->path, d) == MPP_OK) {
+		a->ok = TRUE;
+	} else {
+		a->err = _("Failed to write the .derot sidecar.");
+	}
+	mpp_derot_free(d);
+	siril_add_idle(derot_compute_idle, a);
+	return GINT_TO_POINTER(a->ok ? 0 : 1);
+}
+
 void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	init_statics();
@@ -222,61 +322,33 @@ void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 		set_status(_("No sequence loaded."));
 		return;
 	}
-	const int N = com.seq.number;
-	const planet_body_t body = (planet_body_t) gtk_drop_down_get_selected(dd_body);
-	const int system = (int) gtk_drop_down_get_selected(dd_system) + 1;
-	const double cx = gtk_spin_button_get_value(spin_cx);
-	const double cy = gtk_spin_button_get_value(spin_cy);
 	const double radius = gtk_spin_button_get_value(spin_radius);
-	const double rpol = gtk_spin_button_get_value(spin_rpol);
-	const double pa = gtk_spin_button_get_value(spin_pa);
-	const double parity = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
-	const double fps = gtk_spin_button_get_value(spin_fps);
-
 	if (radius < 1.0) { set_status(_("Set a valid disk radius.")); return; }
 
-	double *jd = malloc((size_t) N * sizeof(double));
-	if (!jd) { set_status(_("Out of memory.")); return; }
-	if (!mpp_derot_frame_times(&com.seq, fps, NAN, jd)) {
-		set_status(_("No per-frame timestamps — set the frame rate (fps)."));
-		free(jd);
-		return;
+	struct derot_compute_args *a = calloc(1, sizeof(*a));
+	if (!a) { set_status(_("Out of memory.")); return; }
+	a->body       = (planet_body_t) gtk_drop_down_get_selected(dd_body);
+	a->system     = (int) gtk_drop_down_get_selected(dd_system) + 1;
+	a->cx         = gtk_spin_button_get_value(spin_cx);
+	a->cy         = gtk_spin_button_get_value(spin_cy);
+	a->radius     = radius;
+	a->rpol       = gtk_spin_button_get_value(spin_rpol);
+	a->pa         = gtk_spin_button_get_value(spin_pa);
+	a->parity     = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
+	a->fps        = gtk_spin_button_get_value(spin_fps);
+	a->epoch_text = g_strdup(gtk_editable_get_text(GTK_EDITABLE(entry_epoch)));
+	a->seqname    = g_strdup(com.seq.seqname);
+	a->N          = com.seq.number;
+	a->ry         = (int) com.seq.ry;
+	a->rx         = (int) com.seq.rx;
+
+	set_status(_("Computing derotation…"));
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(derot_compute_worker, a)) {
+		set_cursor_waiting(FALSE);
+		derot_compute_args_free(a);
+		set_status(_("Could not start the derotation worker (another job is running?)."));
 	}
-
-	double epoch_jd;
-	const char *eptxt = gtk_editable_get_text(GTK_EDITABLE(entry_epoch));
-	GDateTime *ep = (eptxt && *eptxt) ? FITS_date_to_date_time((gchar *) eptxt) : NULL;
-	if (ep) { epoch_jd = date_time_to_Julian(ep); g_date_time_unref(ep); }
-	else      epoch_jd = mpp_derot_midpoint_epoch(jd, N);
-
-	mpp_derot_t *d = mpp_derot_build(body, system, epoch_jd, jd, N,
-	                                 (int) com.seq.ry, (int) com.seq.rx,
-	                                 cx, cy, radius, pa, parity, NAN, NAN, NAN);
-	free(jd);
-	if (!d) { set_status(_("Ephemeris/plan build failed.")); return; }
-	/* Let the user's polar radius set the disk oblateness (overriding the
-	 * ephemeris default) so the fitted ellipse is used as drawn. */
-	if (rpol > 0.0 && rpol < radius)
-		d->flattening = 1.0 - rpol / radius;
-
-	gchar *path = g_strdup_printf("%s.derot", com.seq.seqname);
-	const mpp_status_t rc = mpp_derot_write(path, d);
-	const double span_min = (d->jd[N - 1] - d->jd[0]) * 24.0 * 60.0;
-	if (rc == MPP_OK) {
-		gchar *msg = g_strdup_printf(_("Wrote %s — %d frames, %.2f min span. "
-		                               "Now register and stack the sequence."),
-		                             path, N, span_min);
-		set_status(msg);
-		siril_log_message(_("derotation: wrote %s (%d frames, %.2f min span, "
-		                    "System %d)\n"), path, N, span_min, system);
-		g_free(msg);
-	} else {
-		gchar *msg = g_strdup_printf(_("Failed to write %s."), path);
-		set_status(msg);
-		g_free(msg);
-	}
-	g_free(path);
-	mpp_derot_free(d);
 }
 
 /* ---- overlay query ---- */
@@ -312,6 +384,10 @@ int derotation_hit_test(double dx, double dy) {
 	if (!fit_display_geom(&cx, &ycd, &req, &rpol, &eux, &euy, &pux, &puy))
 		return 0;
 	const double tol = fmax(8.0, req * 0.12);
+	/* Rotation handle: sits beyond the north-pole tip; grabbing it spins the PA.
+	 * Must match the draw position in draw_derot_disk(). */
+	const double rh = rpol + fmax(16.0, rpol * 0.30);
+	if (hypot(dx - (cx + rh * pux), dy - (ycd + rh * puy)) <= tol) return 4;
 	const double hx[4] = { cx + req * eux, cx - req * eux, cx + rpol * pux, cx - rpol * pux };
 	const double hy[4] = { ycd + req * euy, ycd - req * euy, ycd + rpol * puy, ycd - rpol * puy };
 	const int hmode[4] = { 2, 2, 3, 3 };
@@ -335,6 +411,16 @@ void derotation_drag_to(double dx, double dy) {
 	}
 	const double cx = gtk_spin_button_get_value(spin_cx);
 	const double ycd = (double) (gfit->ry - 1) - gtk_spin_button_get_value(spin_cy);
+	if (g_drag_mode == 4) {
+		const double vx = dx - cx, vy = dy - ycd;
+		if (hypot(vx, vy) < 1.0) return;
+		/* Pole unit (cairo) is (ex·sin pa, -cos pa); solve for the PA that
+		 * points it at the cursor. ex is the image parity. */
+		const double ex = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
+		const double pa = atan2(vx * ex, -vy) * 180.0 / M_PI;
+		gtk_spin_button_set_value(spin_pa, pa);
+		return;
+	}
 	const double r = hypot(dx - cx, dy - ycd);
 	if (r < 1.0) return;
 	if (g_drag_mode == 2) gtk_spin_button_set_value(spin_radius, r);

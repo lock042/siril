@@ -104,46 +104,70 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 	return d;
 }
 
-gboolean mpp_derot_autodetect_disk(const fits *fit, double *cx, double *cy,
-                                   double *radius) {
+gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
+                                   double *cx, double *cy, double *radius) {
 	if (!fit || !cx || !cy || !radius || fit->rx <= 0 || fit->ry <= 0)
 		return FALSE;
 	const int rx = (int) fit->rx, ry = (int) fit->ry;
+	const gboolean is_float = (fit->type == DATA_FLOAT);
+	const float *fp = is_float ? fit->fdata : NULL;
+	const WORD  *wp = is_float ? NULL : fit->data;
+	if ((is_float && !fp) || (!is_float && !wp)) return FALSE;
+	const size_t npix = (size_t) rx * ry;
+#define PIXV(i) (is_float ? (double) fp[(i)] : (double) wp[(i)])
 
-	/* Threshold at a fraction of the per-image maximum (use the first channel;
-	 * a planet disk is bright against a dark sky). Works for 8/16-bit USHORT
+	/* Peak, and a sky-background estimate from the frame border (the planet is
+	 * roughly centred, so the edge pixels are sky). Works for 8/16-bit USHORT
 	 * and 32-bit float buffers. */
 	double maxv = 0.0;
-	const gboolean is_float = (fit->type == DATA_FLOAT);
-	const size_t npix = (size_t) rx * ry;
-	if (is_float) {
-		const float *p = fit->fdata;
-		if (!p) return FALSE;
-		for (size_t i = 0; i < npix; i++) if (p[i] > maxv) maxv = p[i];
-	} else {
-		const WORD *p = fit->data;
-		if (!p) return FALSE;
-		for (size_t i = 0; i < npix; i++) if (p[i] > maxv) maxv = p[i];
-	}
+	for (size_t i = 0; i < npix; i++) { const double v = PIXV(i); if (v > maxv) maxv = v; }
 	if (maxv <= 0.0) return FALSE;
-	const double thr = 0.25 * maxv;
+	double bsum = 0.0; long bn = 0;
+	for (int x = 0; x < rx; x++) {
+		bsum += PIXV((size_t) x) + PIXV((size_t)(ry - 1) * rx + x); bn += 2;
+	}
+	for (int y = 0; y < ry; y++) {
+		bsum += PIXV((size_t) y * rx) + PIXV((size_t) y * rx + (rx - 1)); bn += 2;
+	}
+	const double bg = bn > 0 ? bsum / (double) bn : 0.0;
+	if (maxv <= bg) return FALSE;
+	/* Half-max above background catches the disk out to its limb without
+	 * dragging in faint glow. Saturn's bright ring ansae may still be
+	 * included, but the minor-axis radius below is robust to them. */
+	const double thr = bg + 0.30 * (maxv - bg);
 
-	long sx = 0, sy = 0, count = 0;
-	int minx = rx, maxx = -1, miny = ry, maxy = -1;
+	/* Centroid and second moments of the thresholded region (geometric, binary
+	 * mask: the second moment along a semi-axis r of a uniform region is
+	 * r^2/4). */
+	double sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+	long count = 0;
 	for (int y = 0; y < ry; y++) {
 		for (int x = 0; x < rx; x++) {
-			double v = is_float ? (double) fit->fdata[(size_t) y * rx + x]
-			                    : (double) fit->data[(size_t) y * rx + x];
-			if (v >= thr) {
-				sx += x; sy += y; count++;
-				if (x < minx) minx = x; if (x > maxx) maxx = x;
-				if (y < miny) miny = y; if (y > maxy) maxy = y;
+			if (PIXV((size_t) y * rx + x) >= thr) {
+				sx += x; sy += y;
+				sxx += (double) x * x; syy += (double) y * y; sxy += (double) x * y;
+				count++;
 			}
 		}
 	}
-	if (count < 16 || maxx < minx || maxy < miny) return FALSE;
-	*cx = (double) sx / (double) count;
-	*cy = (double) sy / (double) count;
-	*radius = 0.25 * ((maxx - minx) + (maxy - miny));   /* mean semi-extent */
+#undef PIXV
+	if (count < 16) return FALSE;
+	const double n = (double) count;
+	const double mx = sx / n, my = sy / n;
+	const double cxx = sxx / n - mx * mx;
+	const double cyy = syy / n - my * my;
+	const double cxy = sxy / n - mx * my;
+	/* Smaller eigenvalue of the 2x2 covariance = the minor axis. The major
+	 * axis runs along Saturn's ring plane (rings inflate it); the minor axis,
+	 * perpendicular to it, tracks the globe's polar extent. */
+	const double tr = cxx + cyy;
+	const double disc = sqrt(fmax(0.0, 0.25 * (cxx - cyy) * (cxx - cyy) + cxy * cxy));
+	const double lam_minor = 0.5 * tr - disc;
+	if (lam_minor <= 0.0) return FALSE;
+	const double b = 2.0 * sqrt(lam_minor);   /* minor semi-axis ≈ polar radius */
+	const double f = (flattening > 0.0 && flattening < 0.9) ? flattening : 0.0;
+	*cx = mx;
+	*cy = my;
+	*radius = b / (1.0 - f);   /* recover the equatorial radius */
 	return (*radius > 1.0);
 }

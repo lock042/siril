@@ -54,12 +54,16 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              double pa_deg, double parity,
                              double obs_lat, double obs_lon, double obs_elev);
 
-/* Rough planet-disk detector: bounding box of pixels brighter than a fraction
- * of the image maximum in the loaded gfit. Fills centre/radius (full-frame
- * pixels) and returns TRUE when a plausible disk was found. Used to seed the
- * GUI disk fit. */
-gboolean mpp_derot_autodetect_disk(const fits *fit, double *cx, double *cy,
-                                   double *radius);
+/* Rough planet-disk detector. Thresholds the bright region (half-max above a
+ * border-estimated sky background) and takes its flux centroid and the minor
+ * axis of the brightness distribution; the equatorial radius is recovered from
+ * that minor (≈ polar) axis using the body's known `flattening`. Using the
+ * minor axis makes it robust to Saturn's rings, which inflate the major axis
+ * but not the perpendicular extent. Fills centre/equatorial-radius (full-frame
+ * pixels) and returns TRUE when a plausible disk was found. Pass flattening = 0
+ * for a spherical estimate. Used to seed the GUI disk fit. */
+gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
+                                   double *cx, double *cy, double *radius);
 
 #ifdef __cplusplus
 }
