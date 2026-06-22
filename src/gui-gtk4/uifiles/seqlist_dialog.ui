@@ -108,6 +108,20 @@
               </object>
             </child>
             <child>
+              <object class="GtkButton" id="seqfixts_button">
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <property name="sensitive">0</property>
+                <property name="tooltip-text" translatable="yes">Rebuild the SER per-frame timestamps as start + i/fps (the rate is derived from the existing span). Enabled only when the loaded SER's timestamps are out of order. Assumes frames are in capture order at a uniform cadence.</property>
+                <signal name="clicked" handler="on_seqfixts_button_clicked"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon-name">document-edit-symbolic</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
               <object class="GtkToggleButton" id="drawframe_check">
                 <property name="action-name">win.regframe</property>
                 <property name="active">1</property>

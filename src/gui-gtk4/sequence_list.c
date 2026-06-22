@@ -34,6 +34,8 @@
 #include "gui-gtk4/registration.h"	// for update_reg_interface
 #include "gui-gtk4/stacking.h"	// for update_stack_interface
 #include "io/sequence.h"
+#include "io/ser.h"
+#include "core/siril_date.h"
 #include "io/image_format_fits.h"
 #include "algos/PSF.h"
 #include "registration/registration.h"
@@ -54,6 +56,7 @@ static GtkWidget *combo = NULL, *arcsec = NULL, *sourceCombo = NULL;
 static GtkDropDown *seqlist_dialog_combo = NULL;
 static GtkHeaderBar *seqlist_headerbar = NULL;
 static GtkWidget *seqlist_buttonbar = NULL;
+static GtkWidget *seqlist_fixts_button = NULL;
 static GtkWidget *seqlist_refframe2 = NULL;
 static GtkWidget *seqlist_ext_ref_label = NULL;
 /* GTK4: GtkSearchEntry no longer derives from GtkEntry — both implement
@@ -86,6 +89,7 @@ static void sequence_list_init_statics(void) {
 	gtk_header_bar_set_use_native_controls(seqlist_headerbar, TRUE);
 #endif
 	seqlist_buttonbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqlist_buttonbar"));
+	seqlist_fixts_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seqfixts_button"));
 	seqlist_refframe2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "refframe2"));
 	seqlist_ext_ref_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ext_ref"));
 	seqlist_search_entry = GTK_EDITABLE(gtk_builder_get_object(gui.builder, "seqlistsearch"));
@@ -858,11 +862,56 @@ void on_column_clicked(GtkDropDown *widget, gpointer user_data) {
 	sequence_list_select_row_from_index(active, FALSE);
 }
 
+/* Enable the "fix timestamps" button only when a SER with an out-of-order (but
+ * non-empty) trailer is loaded — that's the case the button can repair, since
+ * the min/max span still gives a usable cadence. A missing/all-equal trailer
+ * has no span to derive the rate from, so it stays disabled (use the
+ * ser_fix_timestamps command with an explicit -fps instead). */
+static void update_seqfixts_sensitivity(void) {
+	if (!seqlist_fixts_button) return;
+	gboolean ok = sequence_is_loaded() && com.seq.type == SEQ_SER
+	    && com.seq.ser_file && ser_timestamps_need_fixing(com.seq.ser_file)
+	    && com.seq.ser_file->ts
+	    && com.seq.ser_file->ts_max > com.seq.ser_file->ts_min;
+	gtk_widget_set_sensitive(seqlist_fixts_button, ok);
+}
+
+void on_seqfixts_button_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	if (!sequence_is_loaded() || com.seq.type != SEQ_SER || !com.seq.ser_file)
+		return;
+	struct ser_struct *s = com.seq.ser_file;
+	if (!s->ts || s->ts_max <= s->ts_min || s->frame_count < 2) {
+		siril_log_warning(_("Fix timestamps: no usable cadence in this SER — run "
+		                    "the ser_fix_timestamps command with an explicit -fps.\n"));
+		return;
+	}
+	/* Cadence from the existing (disordered) span; first frame at the earliest
+	 * timestamp. */
+	const double span_s = (double) (s->ts_max - s->ts_min) * 1e-7;
+	const double fps = (double) (s->frame_count - 1) / span_s;
+	GDateTime *start = ser_timestamp_to_date_time(s->ts_min);
+	if (!start || fps <= 0.0) { if (start) g_date_time_unref(start); return; }
+
+	siril_log_warning(_("Fix timestamps: assuming the %d frames are in capture "
+	                    "order at a uniform %.4f fps (derived from the existing "
+	                    "span) — gaps or dropped frames are not accounted for.\n"),
+	                  s->frame_count, fps);
+	if (ser_rebuild_timestamps(s, start, fps) == SER_OK)
+		siril_log_message(_("Fix timestamps: rebuilt %d timestamps at %.4f fps\n"),
+		                  s->frame_count, fps);
+	else
+		siril_log_error(_("Fix timestamps: failed to write the trailer\n"));
+	g_date_time_unref(start);
+	update_seqfixts_sensitivity();   /* now in order -> disables the button */
+}
+
 void update_seqlist(int layer) {
 	initialize_title();
 	update_seqlist_dialog_combo(layer);
 	initialize_search_entry();
 	display_status();
+	update_seqfixts_sensitivity();
 	if (sequence_is_loaded()) sequence_list_select_row_from_index(com.seq.current, FALSE);
 }
 
