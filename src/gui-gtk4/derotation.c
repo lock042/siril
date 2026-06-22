@@ -401,15 +401,37 @@ static gboolean fit_display_geom(double *cx, double *ycd, double *req,
 }
 
 /* Hit-test a display-space click: returns the drag mode, or 0 for a miss. */
+gboolean derotation_rotate_handle(double *hx, double *hy, gboolean *inside) {
+	double cx, ycd, req, rpol, eux, euy, pux, puy;
+	if (!fit_display_geom(&cx, &ycd, &req, &rpol, &eux, &euy, &pux, &puy))
+		return FALSE;
+	double rh = rpol + fmax(16.0, rpol * 0.30);   /* normal: beyond the pole tip */
+	double x = cx + rh * pux, y = ycd + rh * puy;
+	gboolean in = FALSE;
+	if (gfit && (x < 0.0 || x >= (double) gfit->rx
+	          || y < 0.0 || y >= (double) gfit->ry)) {
+		/* Off the image (tightly-cropped planet): pull the handle to the
+		 * midpoint of the north axis, inside the disc, so it stays grabbable. */
+		rh = 0.5 * rpol;
+		x = cx + rh * pux; y = ycd + rh * puy;
+		in = TRUE;
+	}
+	if (hx) *hx = x;
+	if (hy) *hy = y;
+	if (inside) *inside = in;
+	return TRUE;
+}
+
 int derotation_hit_test(double dx, double dy) {
 	double cx, ycd, req, rpol, eux, euy, pux, puy;
 	if (!fit_display_geom(&cx, &ycd, &req, &rpol, &eux, &euy, &pux, &puy))
 		return 0;
 	const double tol = fmax(8.0, req * 0.12);
-	/* Rotation handle: sits beyond the north-pole tip; grabbing it spins the PA.
-	 * Must match the draw position in draw_derot_disk(). */
-	const double rh = rpol + fmax(16.0, rpol * 0.30);
-	if (hypot(dx - (cx + rh * pux), dy - (ycd + rh * puy)) <= tol) return 4;
+	/* Rotation handle (drag to spin the PA); position from the shared helper so
+	 * it tracks the overlay, including the off-image fallback. */
+	double rhx, rhy;
+	if (derotation_rotate_handle(&rhx, &rhy, NULL)
+	 && hypot(dx - rhx, dy - rhy) <= tol) return 4;
 	const double hx[4] = { cx + req * eux, cx - req * eux, cx + rpol * pux, cx - rpol * pux };
 	const double hy[4] = { ycd + req * euy, ycd - req * euy, ycd + rpol * puy, ycd - rpol * puy };
 	const int hmode[4] = { 2, 2, 3, 3 };

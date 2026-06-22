@@ -44,4 +44,11 @@ void derotation_set_drag(int mode);
 int  derotation_get_drag(void);
 void derotation_drag_to(double dx, double dy);
 
+/* Rotation grab-handle centre in display/image pixels (y-down). Normally beyond
+ * the north-pole tip; when that falls outside the image it is pulled to the
+ * midpoint of the north axis (inside the disc) and *inside is set TRUE. Used by
+ * both the overlay and the hit-test so they stay in sync. Returns FALSE if no
+ * fit is active. */
+gboolean derotation_rotate_handle(double *hx, double *hy, gboolean *inside);
+
 #endif /* SRC_GUI_GTK4_DEROTATION_H_ */

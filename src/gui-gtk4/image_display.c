@@ -3816,24 +3816,32 @@ static void draw_derot_disk(const draw_data_t* dd) {
 	cairo_stroke(dd->cr);
 
 	/* north-pole marker + rotation grab-handle + "N" label (yellow). The handle
-	 * sits beyond the pole tip; dragging it spins the position angle. Its
-	 * position must match derotation_hit_test(). */
+	 * normally sits beyond the pole tip; for a tightly-cropped planet it falls
+	 * off the image, so the shared helper pulls it (and the "N") to the midpoint
+	 * of the north axis. Hit-test and overlay use the same helper. */
 	cairo_set_source_rgba(dd->cr, 1.0, 0.9, 0.2, 0.9);
 	cairo_move_to(dd->cr, cx, yc);
-	const double rh = rpol + fmax(16.0, rpol * 0.30);
-	cairo_line_to(dd->cr, cx + rh * pux, yc + rh * puy);
+	cairo_line_to(dd->cr, cx + rpol * pux, yc + rpol * puy);   /* pole tip at limb */
 	cairo_stroke(dd->cr);
-	const double rr = 5.0 / dd->zoom;
-	cairo_arc(dd->cr, cx + rh * pux, yc + rh * puy, rr, 0, 2 * G_PI);
-	cairo_stroke(dd->cr);
-	cairo_set_font_size(dd->cr, 14.0 / dd->zoom);
-	cairo_text_extents_t te;
-	cairo_text_extents(dd->cr, "N", &te);
-	const double lrad = rh + 13.0 / dd->zoom;
-	const double lx = cx + lrad * pux, ly = yc + lrad * puy;
-	cairo_move_to(dd->cr, lx - te.width / 2 - te.x_bearing,
-	                      ly - te.height / 2 - te.y_bearing);
-	cairo_show_text(dd->cr, "N");
+	double hx, hy; gboolean h_inside = FALSE;
+	if (derotation_rotate_handle(&hx, &hy, &h_inside)) {
+		if (!h_inside) {   /* connector from the limb out to the handle */
+			cairo_move_to(dd->cr, cx + rpol * pux, yc + rpol * puy);
+			cairo_line_to(dd->cr, hx, hy);
+			cairo_stroke(dd->cr);
+		}
+		const double rr = 5.0 / dd->zoom;
+		cairo_arc(dd->cr, hx, hy, rr, 0, 2 * G_PI);
+		cairo_stroke(dd->cr);
+		cairo_set_font_size(dd->cr, 14.0 / dd->zoom);
+		cairo_text_extents_t te;
+		cairo_text_extents(dd->cr, "N", &te);
+		const double lgap = (rr + 9.0 / dd->zoom);
+		const double lx = hx + lgap * pux, ly = hy + lgap * puy;
+		cairo_move_to(dd->cr, lx - te.width / 2 - te.x_bearing,
+		                      ly - te.height / 2 - te.y_bearing);
+		cairo_show_text(dd->cr, "N");
+	}
 
 	/* equator/ring guide (green): align with the belts (Jupiter) or ring plane
 	 * (Saturn); for Saturn it runs out to the A-ring edge (~2.27 Req) with tip
