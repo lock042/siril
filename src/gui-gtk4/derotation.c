@@ -76,15 +76,21 @@ static void set_polar_default(void) {
 	    req * (1.0 - body_flattening((int) gtk_drop_down_get_selected(dd_body))));
 }
 
+static gboolean apply_autodetect(void);
+
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
 static void on_derot_body_changed(GObject *obj, GParamSpec *pspec, gpointer u) {
-	(void) obj; (void) pspec; (void) u;
+	(void) pspec; (void) u;
 	if (!dd_system) return;
 	const guint body = gtk_drop_down_get_selected(dd_body);
 	const guint sys = (body == 0) ? 1u : (body == 1) ? 2u : 0u;   /* Jup II, Sat III, Mars I */
 	gtk_drop_down_set_selected(dd_system, sys);
 	set_polar_default();
+	/* A genuine change of planet (the notify signal, not the manual sync during
+	 * window show) re-runs the auto-fit so the centre, size and orientation suit
+	 * the new body — Saturn uses the ring sizing, Jupiter the minor axis, etc. */
+	if (obj && window_open) apply_autodetect();
 	if (window_open) redraw(REDRAW_OVERLAY);
 }
 
@@ -102,6 +108,9 @@ static void init_statics(void) {
 	spin_fps    = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_fps"));
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
+	/* Restore the remembered mirror state when the window is first created. */
+	if (chk_parity)
+		gtk_check_button_set_active(chk_parity, com.pref.gui.derot_mirror);
 	if (dd_body)
 		g_signal_connect(dd_body, "notify::selected",
 		                 G_CALLBACK(on_derot_body_changed), NULL);
@@ -227,6 +236,14 @@ void on_derotation_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	(void) spin; (void) user_data;
+	if (window_open) redraw(REDRAW_OVERLAY);
+}
+
+/* Mirror toggle: remember the state in preferences (persisted to the initfile)
+ * and flip the overlay's east-west sense. */
+void on_derotation_parity_toggled(GtkCheckButton *button, gpointer user_data) {
+	(void) user_data;
+	com.pref.gui.derot_mirror = gtk_check_button_get_active(button);
 	if (window_open) redraw(REDRAW_OVERLAY);
 }
 

@@ -157,6 +157,7 @@ preferences pref_init = {
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
+		.derot_mirror = FALSE,
 		.pm_presets = NULL,
 		.roi_mode = ROI_MANUAL,
 		.enable_roi_warning = TRUE,
@@ -480,6 +481,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
+	{ "gui_registration", "derot_mirror", STYPE_BOOL, N_("derotation tool: mirrored-image state"), &com.pref.gui.derot_mirror },
 	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MPP } } },

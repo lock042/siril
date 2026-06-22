@@ -126,7 +126,8 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="derot_parity"><property name="label" translatable="yes">Mirrored image</property>
-                <property name="tooltip-text" translatable="yes">Tick if the image is mirrored (flipped left-right), e.g. from a star diagonal. This flips the east-west sense of the rotation so features derotate the correct way.</property>
+                <property name="tooltip-text" translatable="yes">Tick if the image is mirrored (flipped left-right, not merely rotated). This flips the east-west sense so features derotate the correct way. Mirroring comes from an odd number of reflections in the light path, and a star diagonal adds one. Imaging straight-through at prime focus — a refractor, Newtonian/reflector, Schmidt-Cassegrain, Ritchey-Chrétien or Maksutov — is not mirrored; the same refractor, SCT, RC or Mak used with a star diagonal is. If unsure, do a quick test stack and watch which way a known feature drifts.</property>
+                <signal name="toggled" handler="on_derotation_parity_toggled" swapped="no"/>
                 <layout><property name="column">1</property><property name="row">7</property></layout></object>
             </child>
           </object>

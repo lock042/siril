@@ -269,6 +269,7 @@ struct gui_config {
 	int reg_settings;	// selected registration method
 	int reg_interpolation; // selected interpolation method
 	gboolean reg_clamping; // clamping for Lanczos/Cubic
+	gboolean derot_mirror;	// derotation tool: remembered "mirrored image" state
 	GSList *pm_presets; // list of pixel math presets
 	int default_rendering_mode; // Default view STF to use at startup
 	int display_histogram_mode; // Default histogram view to use at startup
