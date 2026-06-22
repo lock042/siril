@@ -96,14 +96,21 @@ void derot_build_map(int out_w, int out_h,
  * relocates/rescales/re-orients it from this sequence's frame into the common
  * reference canvas. With out_disk == src_disk this is identical to the
  * single-disk derot_build_map above. The flattening (same body) is taken from
- * out_disk. Outside the output globe, pixels pass through as identity (rings/
- * sky of the reference canvas stack normally). */
+ * out_disk.
+ *
+ * `mask_outside` governs pixels that fall outside the output globe. false
+ * (single-source default): they pass through as identity so rings/sky of the
+ * one frame stack normally. true (multi-source): they are masked (mu=0) — when
+ * the source globe sits elsewhere in its own frame, identity passthrough would
+ * sample that displaced globe where the reference expects sky, ghosting it; only
+ * the globe co-registers across sources, so everything off it is dropped. */
 void derot_build_map_ms(int out_w, int out_h,
                         const derot_diskfit_t &out_disk,
                         const derot_diskfit_t &src_disk,
                         const derot_geom_t &epoch,
                         const derot_geom_t &frame,
                         cv::Mat &mapx, cv::Mat &mapy,
-                        cv::Mat &valid, cv::Mat &mu);
+                        cv::Mat &valid, cv::Mat &mu,
+                        bool mask_outside = false);
 
 #endif /* SRC_REGISTRATION_MPP_MPP_DEROT_GEOM_H_ */

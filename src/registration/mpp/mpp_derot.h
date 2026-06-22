@@ -55,6 +55,7 @@ void mpp_derot_frame_map_ms(const mpp_derot_t *out_d, const mpp_derot_t *src_d,
                             int frame, int out_w, int out_h,
                             double out_org_x, double out_org_y, double out_scale,
                             double src_org_x, double src_org_y, double src_scale,
-                            cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu);
+                            cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu,
+                            bool mask_outside = false);
 
 #endif /* SRC_REGISTRATION_MPP_DEROT_H_ */

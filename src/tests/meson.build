@@ -103,7 +103,8 @@ if criterion_dep.found()
      foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
                   'mpp_shift_test', 'mpp_stack_test',
                   'mpp_pipeline_test', 'mpp_derot_geom_test',
-                  'mpp_derot_pipeline_test', 'mpp_multisource_test']
+                  'mpp_derot_pipeline_test', 'mpp_multisource_test',
+                  'mpp_multistack_test']
          mpp_exec = executable(t,
                                t + '.cpp',
                                dependencies : [siril_dep, criterion_dep],

@@ -119,7 +119,7 @@ void derot_build_map_ms(int out_w, int out_h,
                         const derot_geom_t &epoch,
                         const derot_geom_t &frame,
                         cv::Mat &mapx, cv::Mat &mapy,
-                        cv::Mat &valid, cv::Mat &mu) {
+                        cv::Mat &valid, cv::Mat &mu, bool mask_outside) {
 	mapx.create(out_h, out_w, CV_32F);
 	mapy.create(out_h, out_w, CV_32F);
 	valid.create(out_h, out_w, CV_8U);
@@ -137,9 +137,19 @@ void derot_build_map_ms(int out_w, int out_h,
 			pixel_to_norm(x, y, out_disk, epoch.pole_angle, &u0, &v0);
 			if (!derot_unproject(u0, v0, epoch.sub_obs_lat, epoch.cm,
 			                     f, &lat, &lon)) {
-				/* Outside the fitted globe (rings, moons, sky): pass the pixel
-				 * through unchanged so it is aligned/stacked normally — only the
-				 * globe is derotated. */
+				if (mask_outside) {
+					/* Multi-source: nothing off the globe co-registers across
+					 * sources, and identity here would ghost a displaced source
+					 * globe into the reference sky. Drop it. */
+					mx[x] = -1.0f;
+					my[x] = -1.0f;
+					vp[x] = 0;
+					mp[x] = 0.0f;
+					continue;
+				}
+				/* Single-source: outside the fitted globe (rings, moons, sky)
+				 * pass the pixel through unchanged so it is aligned/stacked
+				 * normally — only the globe is derotated. */
 				mx[x] = (float) x;
 				my[x] = (float) y;
 				vp[x] = 1;

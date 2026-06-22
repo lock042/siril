@@ -246,6 +246,7 @@ src_files = [
   'registration/mpp/mpp_derot_build.c',
   'registration/mpp/mpp_derot_sidecar.c',
   'registration/mpp/mpp_session.c',
+  'registration/mpp/mpp_multistack.cpp',
   'registration/mpp/mpp_sidecar.c',
 
   'stacking/blending.c',

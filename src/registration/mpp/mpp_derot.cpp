@@ -42,7 +42,8 @@ void mpp_derot_frame_map_ms(const mpp_derot_t *out_d, const mpp_derot_t *src_d,
                             int frame, int out_w, int out_h,
                             double out_org_x, double out_org_y, double out_scale,
                             double src_org_x, double src_org_y, double src_scale,
-                            cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu) {
+                            cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu,
+                            bool mask_outside) {
 	/* output globe = reference sequence's epoch disk in the common canvas */
 	derot_diskfit_t out_disk = place_disk(out_d, out_org_x, out_org_y, out_scale);
 	/* source globe = this sequence's own fitted disk in its source frame */
@@ -64,7 +65,7 @@ void mpp_derot_frame_map_ms(const mpp_derot_t *out_d, const mpp_derot_t *src_d,
 
 	cv::Mat valid;   /* mu already encodes validity (0 off-disk) */
 	derot_build_map_ms(out_w, out_h, out_disk, src_disk, epoch, fr,
-	                   mapx, mapy, valid, mu);
+	                   mapx, mapy, valid, mu, mask_outside);
 }
 
 void mpp_derot_frame_map(const mpp_derot_t *d, int frame,
