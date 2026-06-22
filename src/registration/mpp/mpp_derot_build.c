@@ -131,10 +131,15 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
 	}
 	const double bg = bn > 0 ? bsum / (double) bn : 0.0;
 	if (maxv <= bg) return FALSE;
-	/* Half-max above background catches the disk out to its limb without
-	 * dragging in faint glow. Saturn's bright ring ansae may still be
-	 * included, but the minor-axis radius below is robust to them. */
-	const double thr = bg + 0.30 * (maxv - bg);
+	/* Threshold as a fraction of the peak above sky. The fraction is low on
+	 * purpose: the contour must reach the actual limb, which on a real (limb-
+	 * darkened, seeing-blurred) disk sits well below a fraction of the bright
+	 * disk peak — and the minor axis used below runs through the dimmest part
+	 * of the globe (the poles), so a high fraction clips it and underestimates
+	 * the radius on both Jupiter and Saturn. 0.15 was tuned against Jupiter and
+	 * Saturn frames to land on the visible limb; it also stays well above the
+	 * ~0.07 regime where faint glow starts to inflate the moments. */
+	const double thr = bg + 0.15 * (maxv - bg);
 
 	/* Centroid and second moments of the thresholded region (geometric, binary
 	 * mask: the second moment along a semi-axis r of a uniform region is
