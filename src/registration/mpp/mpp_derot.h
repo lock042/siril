@@ -43,4 +43,18 @@ void mpp_derot_frame_map(const mpp_derot_t *d, int frame,
                          double org_x, double org_y, double scale,
                          cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu);
 
+/* Multi-source variant: the output canvas globe is the reference sequence's
+ * epoch disk (out_d, placed by out_org/out_scale), while the source frame
+ * belongs to a different sequence (src_d, frame `frame`, placed by src_org/
+ * src_scale and oriented by its own ephemeris). One remap derotates the globe
+ * to the epoch and relocates it from this sequence's frame into the common
+ * reference canvas, so several sequences (e.g. R/G/B, or many of one filter)
+ * stack as one. With out_d == src_d and equal placement this is exactly
+ * mpp_derot_frame_map. */
+void mpp_derot_frame_map_ms(const mpp_derot_t *out_d, const mpp_derot_t *src_d,
+                            int frame, int out_w, int out_h,
+                            double out_org_x, double out_org_y, double out_scale,
+                            double src_org_x, double src_org_y, double src_scale,
+                            cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu);
+
 #endif /* SRC_REGISTRATION_MPP_DEROT_H_ */

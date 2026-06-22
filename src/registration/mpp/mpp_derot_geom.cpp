@@ -113,16 +113,19 @@ static inline void pixel_to_norm(double ix, double iy, const derot_diskfit_t &d,
 	*v = vv;
 }
 
-void derot_build_map(int out_w, int out_h,
-                     const derot_diskfit_t &disk,
-                     const derot_geom_t &epoch,
-                     const derot_geom_t &frame,
-                     cv::Mat &mapx, cv::Mat &mapy,
-                     cv::Mat &valid, cv::Mat &mu) {
+void derot_build_map_ms(int out_w, int out_h,
+                        const derot_diskfit_t &out_disk,
+                        const derot_diskfit_t &src_disk,
+                        const derot_geom_t &epoch,
+                        const derot_geom_t &frame,
+                        cv::Mat &mapx, cv::Mat &mapy,
+                        cv::Mat &valid, cv::Mat &mu) {
 	mapx.create(out_h, out_w, CV_32F);
 	mapy.create(out_h, out_w, CV_32F);
 	valid.create(out_h, out_w, CV_8U);
 	mu.create(out_h, out_w, CV_32F);
+
+	const double f = out_disk.flattening;   /* same body on both sides */
 
 	for (int y = 0; y < out_h; ++y) {
 		float *mx = mapx.ptr<float>(y);
@@ -131,9 +134,9 @@ void derot_build_map(int out_w, int out_h,
 		float *mp = mu.ptr<float>(y);
 		for (int x = 0; x < out_w; ++x) {
 			double u0, v0, lat, lon, uf, vf, m;
-			pixel_to_norm(x, y, disk, epoch.pole_angle, &u0, &v0);
+			pixel_to_norm(x, y, out_disk, epoch.pole_angle, &u0, &v0);
 			if (!derot_unproject(u0, v0, epoch.sub_obs_lat, epoch.cm,
-			                     disk.flattening, &lat, &lon)) {
+			                     f, &lat, &lon)) {
 				/* Outside the fitted globe (rings, moons, sky): pass the pixel
 				 * through unchanged so it is aligned/stacked normally — only the
 				 * globe is derotated. */
@@ -144,7 +147,7 @@ void derot_build_map(int out_w, int out_h,
 				continue;
 			}
 			if (!derot_project(lat, lon, frame.sub_obs_lat, frame.cm,
-			                   disk.flattening, &uf, &vf, &m)) {
+			                   f, &uf, &vf, &m)) {
 				/* On the globe but rotated behind the limb at this frame's time:
 				 * no source data, so mask it out. */
 				mx[x] = -1.0f;
@@ -158,7 +161,7 @@ void derot_build_map(int out_w, int out_h,
 			 * map carries only a hard visible/hidden mask, not a brightness
 			 * taper. */
 			double sx, sy;
-			norm_to_pixel(uf, vf, disk, frame.pole_angle, &sx, &sy);
+			norm_to_pixel(uf, vf, src_disk, frame.pole_angle, &sx, &sy);
 			mx[x] = (float) sx;
 			my[x] = (float) sy;
 			vp[x] = 1;
@@ -166,4 +169,15 @@ void derot_build_map(int out_w, int out_h,
 			(void) m;
 		}
 	}
+}
+
+void derot_build_map(int out_w, int out_h,
+                     const derot_diskfit_t &disk,
+                     const derot_geom_t &epoch,
+                     const derot_geom_t &frame,
+                     cv::Mat &mapx, cv::Mat &mapy,
+                     cv::Mat &valid, cv::Mat &mu) {
+	/* single-source: the output and source globe coincide */
+	derot_build_map_ms(out_w, out_h, disk, disk, epoch, frame,
+	                   mapx, mapy, valid, mu);
 }
