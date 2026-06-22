@@ -138,8 +138,11 @@
         <child>
           <object class="GtkBox"><property name="spacing">6</property><property name="halign">end</property>
             <child><object class="GtkButton" id="derot_autofit"><property name="label" translatable="yes">Auto-detect disk</property>
-              <property name="tooltip-text" translatable="yes">Estimate the globe centre and radius from the current image. It is only a starting point — check it against the disk and adjust on the image before computing.</property>
+              <property name="tooltip-text" translatable="yes">Estimate the globe centre, radius and orientation from the current image. It is only a starting point — check it against the disk and adjust on the image before computing.</property>
               <signal name="clicked" handler="on_derotation_autofit_clicked" swapped="no"/></object></child>
+            <child><object class="GtkButton" id="derot_flipnorth"><property name="label" translatable="yes">Flip N</property>
+              <property name="tooltip-text" translatable="yes">Flip the north pole to the opposite end of the rotation axis. The auto-fit aligns the axis but cannot tell which pole is which, so use this if the "N" marker points to the wrong pole.</property>
+              <signal name="clicked" handler="on_derotation_flipnorth_clicked" swapped="no"/></object></child>
             <child><object class="GtkButton" id="derot_close"><property name="label" translatable="yes">Close</property>
               <property name="tooltip-text" translatable="yes">Close the tool without computing. The fit is kept for next time.</property>
               <signal name="clicked" handler="on_derotation_close_clicked" swapped="no"/></object></child>

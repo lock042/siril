@@ -116,8 +116,10 @@ static void set_status(const char *msg) {
 static gboolean apply_autodetect(void) {
 	if (!gfit) return FALSE;
 	double cx, cy, r, major_deg = 0.0;
-	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
-	if (!mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r, &major_deg))
+	const int body = (int) gtk_drop_down_get_selected(dd_body);
+	const double flat = body_flattening(body);
+	const gboolean has_rings = (body == 1);   /* Saturn */
+	if (!mpp_derot_autodetect_disk(gfit, flat, has_rings, &cx, &cy, &r, &major_deg))
 		return FALSE;
 	gtk_spin_button_set_value(spin_cx, cx);
 	gtk_spin_button_set_value(spin_cy, cy);
@@ -226,6 +228,18 @@ void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 		set_status(_("Disk auto-detected — adjust if needed, then compute."));
 	else
 		set_status(_("Could not auto-detect a disk; set the centre and radius manually."));
+}
+
+/* Flip the pole 180°: the auto-fit aligns the rotation axis from the image but
+ * can't tell which end is north, so this swaps it when the southern pole is the
+ * visible one. */
+void on_derotation_flipnorth_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	if (!spin_pa) return;
+	double pa = gtk_spin_button_get_value(spin_pa) + 180.0;
+	while (pa >  180.0) pa -= 360.0;
+	while (pa < -180.0) pa += 360.0;
+	gtk_spin_button_set_value(spin_pa, pa);
 }
 
 /* The ephemeris runs once per frame (thousands of evaluations) plus the SER

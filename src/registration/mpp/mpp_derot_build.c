@@ -105,6 +105,7 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 }
 
 gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
+                                   gboolean has_rings,
                                    double *cx, double *cy, double *radius,
                                    double *major_axis_deg) {
 	if (!fit || !cx || !cy || !radius || fit->rx <= 0 || fit->ry <= 0)
@@ -157,29 +158,68 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
 			}
 		}
 	}
-#undef PIXV
 	if (count < 16) return FALSE;
 	const double n = (double) count;
-	const double mx = sx / n, my = sy / n;
-	const double cxx = sxx / n - mx * mx;
-	const double cyy = syy / n - my * my;
-	const double cxy = sxy / n - mx * my;
-	/* Smaller eigenvalue of the 2x2 covariance = the minor axis. The major
-	 * axis runs along Saturn's ring plane (rings inflate it); the minor axis,
-	 * perpendicular to it, tracks the globe's polar extent. */
+	const double mxc = sx / n, myc = sy / n;
+	const double cxx = sxx / n - mxc * mxc;
+	const double cyy = syy / n - myc * myc;
+	const double cxy = sxy / n - mxc * myc;
+	*cx = mxc;
+	*cy = myc;
+	/* Major-axis orientation (Saturn's ring plane / Jupiter's equator), image
+	 * coordinates with y up; the caller turns it into the pole angle. */
+	const double theta = 0.5 * atan2(2.0 * cxy, cxx - cyy);
+	if (major_axis_deg) *major_axis_deg = theta * 180.0 / M_PI;
+
+	const double f = (flattening > 0.0 && flattening < 0.9) ? flattening : 0.0;
+
+	if (has_rings) {
+		/* Saturn: the minor axis is unreliable here — the rings pile mass near
+		 * the ring plane and shrink the perpendicular variance, under-sizing the
+		 * globe. Instead measure the bright rings (their tips define the major
+		 * axis) and scale by the precisely known A-ring-outer / equatorial-radius
+		 * ratio. The tip is the 99th percentile of the on-major-axis distance
+		 * over a generous-threshold mask — robust to a stray moon (which the max
+		 * is not). */
+		const double thr_ring = bg + 0.03 * (maxv - bg);
+		const double ct = cos(theta), st = sin(theta);
+		const int maxd = rx + ry;
+		int *hist = (int *) calloc((size_t) maxd + 1, sizeof(int));
+		long rc = 0;
+		if (hist) {
+			for (int y = 0; y < ry; y++) {
+				for (int x = 0; x < rx; x++) {
+					if (PIXV((size_t) y * rx + x) >= thr_ring) {
+						double pr = fabs((x - mxc) * ct + (y - myc) * st);
+						int bin = (int) (pr + 0.5);
+						if (bin < 0) bin = 0; else if (bin > maxd) bin = maxd;
+						hist[bin]++; rc++;
+					}
+				}
+			}
+			if (rc > 0) {
+				const long target = (long) (0.99 * (double) rc);
+				long cum = 0; int tip = 0;
+				for (int bbin = 0; bbin <= maxd; bbin++) {
+					cum += hist[bbin];
+					if (cum >= target) { tip = bbin; break; }
+				}
+				/* A-ring outer edge / equatorial radius = 136775 km / 60268 km. */
+				if (tip > 1) *radius = (double) tip / 2.269;
+			}
+			free(hist);
+		}
+		return (*radius > 1.0);
+	}
+#undef PIXV
+
+	/* No rings: smaller eigenvalue of the covariance = the minor (≈ polar) axis;
+	 * recover the equatorial radius from the body flattening. */
 	const double tr = cxx + cyy;
 	const double disc = sqrt(fmax(0.0, 0.25 * (cxx - cyy) * (cxx - cyy) + cxy * cxy));
 	const double lam_minor = 0.5 * tr - disc;
 	if (lam_minor <= 0.0) return FALSE;
-	const double b = 2.0 * sqrt(lam_minor);   /* minor semi-axis ≈ polar radius */
-	const double f = (flattening > 0.0 && flattening < 0.9) ? flattening : 0.0;
-	*cx = mx;
-	*cy = my;
-	*radius = b / (1.0 - f);   /* recover the equatorial radius */
-	/* Orientation of the major axis (Saturn's ring plane / Jupiter's equator)
-	 * in image coordinates with y up, which the caller turns into the pole
-	 * position angle (perpendicular). Half-angle of the covariance ellipse. */
-	if (major_axis_deg)
-		*major_axis_deg = 0.5 * atan2(2.0 * cxy, cxx - cyy) * 180.0 / M_PI;
+	const double b = 2.0 * sqrt(lam_minor);
+	*radius = b / (1.0 - f);
 	return (*radius > 1.0);
 }

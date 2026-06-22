@@ -61,12 +61,16 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
  * minor axis makes it robust to Saturn's rings, which inflate the major axis
  * but not the perpendicular extent. Fills centre/equatorial-radius (full-frame
  * pixels) and returns TRUE when a plausible disk was found. Pass flattening = 0
- * for a spherical estimate. If major_axis_deg is non-NULL it receives the
+ * for a spherical estimate. When has_rings is TRUE (Saturn) the equatorial
+ * radius is taken from the bright rings — their tips give the major axis, scaled
+ * by the known A-ring-outer / equatorial-radius ratio — because the rings
+ * corrupt the minor-axis estimate. If major_axis_deg is non-NULL it receives the
  * orientation of the bright region's major axis (Saturn's ring plane /
  * Jupiter's equator) in degrees, image coordinates with y up — the caller turns
  * this into the pole position angle (perpendicular). Used to seed the GUI disk
  * fit. */
 gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
+                                   gboolean has_rings,
                                    double *cx, double *cy, double *radius,
                                    double *major_axis_deg);
 
