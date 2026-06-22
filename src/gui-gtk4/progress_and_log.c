@@ -86,9 +86,61 @@ static gboolean progress_bar_idle_callback(gpointer p) {
 	return FALSE;	// only run once
 }
 
+/* Throttle high-frequency progress updates. Worker threads can call
+ * set_progress_bar_data() once per processed item — thousands of times a
+ * second across many threads on a long sequence.
+ *
+ *  - Headless: gate on the progress fraction. One log line per call means one
+ *    per frame (8000+ on a planetary sequence); emit only once the fraction
+ *    has moved >=1% from the last emitted, so at most ~100 lines per work item.
+ *    A single CLI process owns the bar here, so a shared fraction baseline is
+ *    safe.
+ *  - GUI: gate on time (max 20 updates/s). Each GUI call g_idle_add()s onto the
+ *    main context, so a per-frame flood makes the workers contend on GLib's
+ *    main-context lock and stall. A *time* limit keeps no per-value state, so
+ *    when a Python script and Siril both drive the bar (legal, if ugly) neither
+ *    suppresses the other's updates by value — they just share the rate budget.
+ *
+ * Text/label changes, the pulsate / no-op modes, and the 0% and 100% endpoints
+ * are never throttled in either mode. */
+#define PROGRESS_GUI_MIN_INTERVAL_US 50000   /* 50 ms => max 20 updates/s */
+static double progress_last_emit_percent = 0.0;  /* guarded by the lock below */
+static gint64 progress_last_emit_us      = 0;    /*          "               */
+G_LOCK_DEFINE_STATIC(progress_throttle_lock);
+
+static gboolean progress_always_emit(const char *text, double percent) {
+	/* text/label change, mode switch (pulsate/none), or the 0%/100% endpoints */
+	return text != NULL || percent < 0.0
+	    || percent <= PROGRESS_RESET || percent >= PROGRESS_DONE;
+}
+
+static gboolean progress_should_emit(const char *text, double percent) {
+	const gint64 now = g_get_monotonic_time();
+	gboolean emit = TRUE;
+	G_LOCK(progress_throttle_lock);
+	if (!progress_always_emit(text, percent)) {
+		if (com.headless) {
+			double d = percent - progress_last_emit_percent;
+			if (d < 0.0) d = -d;
+			emit = (d >= 0.01);                  /* >=1% move, either direction */
+		} else {
+			emit = (now - progress_last_emit_us >= PROGRESS_GUI_MIN_INTERVAL_US);
+		}
+	}
+	if (emit) {
+		if (percent >= 0.0)
+			progress_last_emit_percent = percent;
+		progress_last_emit_us = now;
+	}
+	G_UNLOCK(progress_throttle_lock);
+	return emit;
+}
+
 // Thread-safe progress bar update.
 // text can be NULL, percent can be -1 for pulsating, -2 for nothing, or between 0 and 1 for percent
 void set_progress_bar_data(const char *text, double percent) {
+	if (!progress_should_emit(text, percent))
+		return;
 	if (com.headless) {
 		if (percent < 0.0) percent = 1.0;
 		if (text)
