@@ -151,6 +151,24 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 
 	/* Now you may want to do something with the info, like check how many frames the video has */
 	film->frame_count = videoprops->NumFrames;
+	/* Container frame rate, used to synthesise timestamps on AVI->SER conversion
+	 * and as a derotation cadence default (AVI has no per-frame UTC). */
+	film->fps = (videoprops->FPSDenominator > 0)
+	            ? (double) videoprops->FPSNumerator / (double) videoprops->FPSDenominator
+	            : 0.0;
+	/* Best-effort capture end time = the file modification time (AVI has no
+	 * per-frame UTC); used to back-date synthesised per-frame timestamps. */
+	film->capture_end = NULL;
+	{
+		GFile *gf = g_file_new_for_path(sourcefile);
+		GFileInfo *fi = g_file_query_info(gf, G_FILE_ATTRIBUTE_TIME_MODIFIED,
+		                                  G_FILE_QUERY_INFO_NONE, NULL, NULL);
+		if (fi) {
+			film->capture_end = g_file_info_get_modification_date_time(fi);
+			g_object_unref(fi);
+		}
+		g_object_unref(gf);
+	}
 
 	/* Get the first frame for examination so we know what we're getting. This is required
 	because resolution and colorspace is a per frame property and NOT global for the video. */
@@ -397,7 +415,17 @@ void film_close_file(struct film_struct *film) {
 	/* now it's time to clean up */
 	free(film->errmsg);
 	free(film->filename);
+	if (film->capture_end) g_date_time_unref(film->capture_end);
 	FFMS_DestroyVideoSource(film->videosource);
+}
+
+GDateTime *film_synthesize_frame_date(const struct film_struct *film, int frame) {
+	if (!film || film->fps <= 0.0 || !film->capture_end || film->frame_count <= 0)
+		return NULL;
+	/* The last frame (frame_count-1) is taken to land at capture_end; frame i
+	 * is offset by (i - last)/fps seconds (negative for all but the last). */
+	return g_date_time_add_seconds(film->capture_end,
+	                               (double) (frame - (film->frame_count - 1)) / film->fps);
 }
 
 void film_display_info(struct film_struct *film) {

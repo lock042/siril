@@ -123,6 +123,7 @@
 #include "algos/planet_ephem.h"
 #include "core/siril_date.h"
 #include "io/ser.h"
+#include "io/films.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -15210,6 +15211,21 @@ int process_derotate(int nb) {
 		siril_log_error(_("derotate: -center=x,y and -radius=R are required\n"));
 		ret = CMD_ARG_ERROR; goto done;
 	}
+
+#ifdef HAVE_FFMS2
+	/* AVI input (not converted to SER): default the cadence to the container
+	 * frame rate and the start to the synthesised first-frame time, so
+	 * derotation works without an explicit -fps. */
+	if (seq->type == SEQ_AVI && seq->film_file) {
+		if (fps <= 0.0 && seq->film_file->fps > 0.0) {
+			fps = seq->film_file->fps;
+			siril_log_message(_("derotate: using the AVI container frame rate "
+			                    "%.4f fps (no per-frame timestamps in AVI)\n"), fps);
+		}
+		if (!start_dt)
+			start_dt = film_synthesize_frame_date(seq->film_file, 0);
+	}
+#endif
 
 	const int N = seq->number;
 	double *jd = malloc((size_t) N * sizeof(double));

@@ -27,6 +27,9 @@ struct film_struct {
 	int width, height;
 	int nb_layers;		// 1 for gray, 3 for rgb, 0 for uninit
 	int frame_count;
+	double fps;		// frame rate from the container (0 if unknown)
+	GDateTime *capture_end;	// best-effort capture end time (file mtime); the
+				// last frame is ~here, earlier frames back-dated by fps
 
 	char *filename;
 };
@@ -38,6 +41,10 @@ int film_open_file(const char *sourcefile, struct film_struct *film);
 void film_close_file(struct film_struct *film);
 int film_read_frame(struct film_struct *film, int frame_no, fits *fit);
 void film_display_info(struct film_struct *film);
+/* Best-effort UTC time of frame `frame`, synthesised from the capture end time
+ * and fps (AVI carries no per-frame UTC). Caller owns the result; NULL if the
+ * fps or end time is unknown. */
+GDateTime *film_synthesize_frame_date(const struct film_struct *film, int frame);
 
 #endif
 #endif

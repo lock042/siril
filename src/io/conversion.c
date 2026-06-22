@@ -1004,6 +1004,19 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 			*retval = READ_FAILED;
 		else {
 			*retval = READ_OK;
+			/* AVI carries no per-frame UTC time, so synthesise one from the
+			 * container frame rate and the file time. Inexact, but it gives a
+			 * SER (or FITSEQ) output a usable timestamp trailer instead of
+			 * none. */
+			if (!fit->keywords.date_obs) {
+				GDateTime *d = film_synthesize_frame_date(reader->film, reader->index);
+				if (d) fit->keywords.date_obs = d;   /* owned by the fits */
+				if (reader->index == 0 && reader->film->fps > 0.0)
+					siril_log_warning(_("Converting from AVI: per-frame timestamps "
+					    "are synthesised from the container rate (%.3f fps) and the "
+					    "file time — they are approximate, not true capture times.\n"),
+					    reader->film->fps);
+			}
 			/* AVI Bayer-pattern hint: AVI containers have no Bayer
 			 * marker, so a raw mosaic captured from an OSC camera
 			 * loses its pattern at decode time. Stamp it onto the
