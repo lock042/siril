@@ -82,6 +82,7 @@ extern "C" {
 #include "registration/mpp/mpp_rank_priv.hpp"
 #include "registration/mpp/mpp_shift_priv.hpp"
 #include "registration/mpp/mpp_stack_priv.hpp"
+#include "registration/mpp/mpp_multistack.hpp"
 
 /* mpp_run_alloc / mpp_run_free live in mpp_run.c (no Siril runtime deps). */
 
@@ -1772,6 +1773,109 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		return mpp_stack_apply_impl(seq, cfg, run, derot, out);
 	} catch (const std::exception &e) {
 		siril_log_error(_("Stack (mpp): failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+/* -------------------- Multi-source derotation stack (Option B) --------------
+ *
+ * Combine several sequences — each with its own <seqname>.derot referencing a
+ * common epoch — into one stack in the reference sequence's epoch canvas. Wraps
+ * mpp::multistack_channel with real-sequence frame readers (the same
+ * read_analysis_frame / read_full_frame the single-sequence pipeline uses) and
+ * packs the result into the caller's fits. `seqs[ref]` defines the output
+ * geometry and channel count. */
+static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
+                                        int n, int ref, const mpp_config_t *cfg,
+                                        fits *out) {
+	if (!seqs || !derots || n <= 0 || ref < 0 || ref >= n || !cfg || !out)
+		return MPP_EINVAL;
+	for (int i = 0; i < n; ++i)
+		if (!seqs[i] || !derots[i]) return MPP_EINVAL;
+
+	std::vector<mpp::MsSource> srcs(n);
+	for (int i = 0; i < n; ++i) {
+		sequence *s = seqs[i];
+		const int avi = cfg->avi_bayer_pattern;
+		const int bd  = cfg->bitdepth;
+		srcs[i].derot = derots[i];
+		srcs[i].num_frames = s->number;
+		srcs[i].analysis_read = [s, avi, bd](int l) -> cv::Mat {
+			return mpp::read_analysis_frame(s, l, avi, bd);
+		};
+		srcs[i].full_read = [s, avi](int l) -> cv::Mat {
+			return mpp::read_full_frame(s, l, avi);
+		};
+	}
+
+	/* output channel count from the reference sequence (CFA decodes to 3). */
+	const bool avi_cfa = (seqs[ref]->type == SEQ_AVI
+	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	const bool is_cfa = (mpp_classify_sequence_input(seqs[ref]) == MPP_INPUT_CFA)
+	                  || avi_cfa;
+	const int num_layers = is_cfa ? 3
+	                      : (seqs[ref]->nb_layers > 0 ? seqs[ref]->nb_layers : 1);
+
+#ifdef _OPENMP
+	const int nt = std::max(1, com.max_thread);
+#else
+	const int nt = 1;
+#endif
+
+	siril_log_message(_("Derotation stack: combining %d sequence(s), reference "
+	                    "'%s', %d output channel(s)\n"),
+	                  n, seqs[ref]->seqname, num_layers);
+
+	const mpp::MultiStackResult res =
+	    mpp::multistack_channel(srcs, ref, num_layers, *cfg, nt);
+	if (res.error) return MPP_EINVAL;
+	if (res.oom) return MPP_ENOMEM;
+	if (res.cancelled || res.image.empty()) return MPP_EINTR;
+
+	siril_log_message(_("Derotation stack: %d frames combined over %d alignment "
+	                    "points\n"), res.num_frames, res.num_aps);
+
+	/* Pack into the caller's fits (mirrors mpp_stack_apply_impl). */
+	const cv::Mat &stacked = res.image;
+	clearfits(out);
+	const int Hh = stacked.rows, Ww = stacked.cols, C = stacked.channels();
+	const size_t plane = (size_t) Hh * Ww;
+	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
+	if (!out->data) return MPP_ENOMEM;
+	if (C == 1) {
+		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
+	} else {
+		std::vector<cv::Mat> planes;
+		cv::split(stacked, planes);
+		for (int c = 0; c < C; ++c)
+			std::memcpy(out->data + c * plane, planes[c].data, plane * sizeof(WORD));
+	}
+	out->rx = Ww; out->ry = Hh;
+	out->naxes[0] = Ww; out->naxes[1] = Hh; out->naxes[2] = C;
+	out->naxis = (C == 1) ? 2 : 3;
+	out->bitpix = USHORT_IMG; out->orig_bitpix = USHORT_IMG;
+	out->type = DATA_USHORT;
+	out->pdata[0] = out->data;
+	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
+	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
+
+	if (cfg->output_32bit) {
+		float *fbuf = ushort_buffer_to_float(out->data, plane * C);
+		if (!fbuf) return MPP_ENOMEM;
+		fit_replace_buffer(out, fbuf, DATA_FLOAT);
+	}
+	return MPP_OK;
+}
+
+extern "C" mpp_status_t mpp_multistack(sequence **seqs, mpp_derot_t **derots,
+                                       int n, int ref, const mpp_config_t *cfg,
+                                       fits *out) {
+	try {
+		return mpp_multistack_impl(seqs, derots, n, ref, cfg, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
 		                  "reduce the memory ratio in Preferences.\n"), e.what());
 		return MPP_ENOMEM;
 	}

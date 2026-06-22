@@ -167,6 +167,15 @@ mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
                              mpp_run_t *run, const struct mpp_derot *derot,
                              fits *out);
 
+/* Multi-source derotation stack (Option B). Combine `n` sequences — each with a
+ * derotation plan `derots[i]` (built/loaded from <seqname>.derot) referencing a
+ * common epoch — into one stack in `seqs[ref]`'s epoch canvas, written to `out`.
+ * Every frame of every sequence is relocated + derotated into the reference
+ * canvas and stacked as one long sequence. `cfg->stack_method` is forced to the
+ * warp engine internally. The sequences must stay open for the call. */
+mpp_status_t mpp_multistack(sequence **seqs, struct mpp_derot **derots,
+                            int n, int ref, const mpp_config_t *cfg, fits *out);
+
 /* Top-level Siril `register -method=mpp` entry. Drives Stages A + B and
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);

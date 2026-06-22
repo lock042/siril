@@ -15312,6 +15312,136 @@ done:
 	return ret;
 }
 
+/* Strip a trailing ".derot" so an argument can be given either as the sidecar
+ * file or as the bare sequence name. Returns a newly allocated seqname. */
+static gchar *derot_arg_to_seqname(const char *arg) {
+	if (g_str_has_suffix(arg, ".derot"))
+		return g_strndup(arg, strlen(arg) - 6);
+	return g_strdup(arg);
+}
+
+int process_derotate_stack(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("derotate_stack: list at least one sequence "
+		                  "(its .derot sidecar must already exist)\n"));
+		return CMD_WRONG_N_ARG;
+	}
+
+	GPtrArray *names = g_ptr_array_new_with_free_func(g_free);  /* seqnames */
+	gchar *out_path = NULL;
+	gboolean out32 = FALSE;
+	double drizzle = 1.0;
+	int ref = 0;
+	int ret = CMD_OK;
+
+	for (int i = 1; i < nb; i++) {
+		const char *w = word[i];
+		if (g_str_has_prefix(w, "-out=")) {
+			g_free(out_path); out_path = g_strdup(w + 5);
+		} else if (!g_strcmp0(w, "-32b") || !g_strcmp0(w, "-32bits")) {
+			out32 = TRUE;
+		} else if (g_str_has_prefix(w, "-drizzle=")) {
+			drizzle = g_ascii_strtod(w + 9, NULL);
+			if (drizzle < 1.0) drizzle = 1.0;
+		} else if (g_str_has_prefix(w, "-ref=")) {
+			ref = atoi(w + 5);
+		} else if (w[0] == '-') {
+			siril_log_error(_("derotate_stack: unknown argument '%s'\n"), w);
+			ret = CMD_ARG_ERROR; goto done;
+		} else {
+			g_ptr_array_add(names, derot_arg_to_seqname(w));
+		}
+	}
+
+	const int n = (int) names->len;
+	if (n < 1) {
+		siril_log_error(_("derotate_stack: no sequences given\n"));
+		ret = CMD_ARG_ERROR; goto done;
+	}
+	if (ref < 0 || ref >= n) {
+		siril_log_error(_("derotate_stack: -ref=%d out of range (0..%d)\n"),
+		                ref, n - 1);
+		ret = CMD_ARG_ERROR; goto done;
+	}
+
+	sequence **seqs = g_new0(sequence *, n);
+	mpp_derot_t **derots = g_new0(mpp_derot_t *, n);
+	gboolean *is_com = g_new0(gboolean, n);
+
+	for (int i = 0; i < n; i++) {
+		const char *seqname = g_ptr_array_index(names, i);
+		gchar *derot_path = g_strdup_printf("%s.derot", seqname);
+		if (mpp_derot_read(derot_path, &derots[i]) != MPP_OK || !derots[i]) {
+			siril_log_error(_("derotate_stack: cannot read %s — run `derotate` "
+			                  "on '%s' first (sharing a common epoch via "
+			                  "-epoch-from)\n"), derot_path, seqname);
+			g_free(derot_path);
+			ret = CMD_GENERIC_ERROR; goto stack_cleanup;
+		}
+		g_free(derot_path);
+
+		seqs[i] = load_sequence_force_debayer((char *) seqname);
+		if (!seqs[i]) {
+			siril_log_error(_("derotate_stack: cannot load sequence '%s'\n"), seqname);
+			ret = CMD_SEQUENCE_NOT_FOUND; goto stack_cleanup;
+		}
+		is_com[i] = check_seq_is_comseq(seqs[i]);
+		if (is_com[i]) { free_sequence(seqs[i], TRUE); seqs[i] = &com.seq; }
+
+		if (seqs[i]->number != derots[i]->num_frames
+		    || (int) seqs[i]->ry != derots[i]->frame_rows
+		    || (int) seqs[i]->rx != derots[i]->frame_cols) {
+			siril_log_error(_("derotate_stack: '%s' (%d frames, %dx%d) does not "
+			                  "match its .derot (%d frames, %dx%d) — re-run "
+			                  "`derotate`\n"), seqname, seqs[i]->number,
+			                (int) seqs[i]->rx, (int) seqs[i]->ry,
+			                derots[i]->num_frames, derots[i]->frame_cols,
+			                derots[i]->frame_rows);
+			ret = CMD_INVALID_IMAGE; goto stack_cleanup;
+		}
+	}
+
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cfg.stack_method = MPP_STACK_WARP;   /* derotation requires the warp engine */
+	cfg.drizzle_scale = drizzle;
+	cfg.output_32bit = out32;
+
+	fits out = { 0 };
+	const mpp_status_t st = mpp_multistack(seqs, derots, n, ref, &cfg, &out);
+	if (st != MPP_OK) {
+		siril_log_error(_("derotate_stack: failed (code %d)\n"), st);
+		ret = (st == MPP_EINTR) ? CMD_OK : CMD_GENERIC_ERROR;
+		clearfits(&out);
+		goto stack_cleanup;
+	}
+
+	gchar *savename = out_path ? g_strdup(out_path)
+	                           : g_strdup_printf("%s_derot_stack", seqs[ref]->seqname);
+	if (savefits(savename, &out)) {
+		siril_log_error(_("derotate_stack: failed to save %s\n"), savename);
+		ret = CMD_GENERIC_ERROR;
+	} else {
+		siril_log_message(_("derotate_stack: saved %s\n"), savename);
+	}
+	g_free(savename);
+	clearfits(&out);
+
+stack_cleanup:
+	for (int i = 0; i < n; i++) {
+		if (derots[i]) mpp_derot_free(derots[i]);
+		if (seqs[i] && !is_com[i]) free_sequence(seqs[i], TRUE);
+	}
+	g_free(seqs);
+	g_free(derots);
+	g_free(is_com);
+
+done:
+	g_ptr_array_free(names, TRUE);
+	g_free(out_path);
+	return ret;
+}
+
 int process_ser_fix_timestamps(int nb) {
 	if (nb < 2) {
 		siril_log_error(_("ser_fix_timestamps: missing sequence name\n"));
