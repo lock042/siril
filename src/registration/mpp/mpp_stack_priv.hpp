@@ -138,7 +138,9 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
                                                 void *progress_user = nullptr,
-                                                const std::vector<int> &included = {});
+                                                const std::vector<int> &included = {},
+                                                int max_threads = 1,
+                                                bool provider_thread_safe = false);
 
 /*
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
@@ -220,7 +222,9 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             const APQualities &apq,
                                             const std::vector<FrameOffset> &offsets,
                                             const mpp_config_t &cfg,
-                                            const int *included = nullptr);
+                                            const int *included = nullptr,
+                                            int max_threads = 1,
+                                            bool provider_thread_safe = false);
 
 /* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
  * averaged_background. Takes the same shifts vector as Stage B; the rest of

@@ -1338,12 +1338,25 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 	SerAnalysisRawGuard raw_guard;
 	maybe_engage_ser_raw_for_analysis(raw_guard, seq);
 
-	/* Stage B streams: each frame is read + blurred inside the
-	 * correlation loop and discarded at iteration end. Sequential, so
-	 * max_threads=1 — the picker just verifies that a single in-flight
-	 * read (including decode intermediates, see
-	 * mpp_analysis_in_flight_slots) fits. Disk traffic is identical to
-	 * the previous cached two-pass design (1 read per included frame). */
+	/* Stage B streams: each frame is read + (optionally derotated) + blurred
+	 * inside the correlation loop and discarded at iteration end. The frame
+	 * loop is frame-parallel (each (frame, AP) shift is a disjoint slot), so
+	 * the picker is asked for up to max_threads in-flight reads — the per-AP
+	 * correlation plus the per-frame derotation remap then run across cores
+	 * instead of serialising behind OpenCV's internal threading. Disk traffic
+	 * is still 1 read per included frame. */
+#ifdef _OPENMP
+	const int stageb_max_threads = std::max(1, com.max_thread);
+#else
+	const int stageb_max_threads = 1;
+#endif
+	/* The provider is reentrant when its reads are: cache hits are trivially
+	 * so, and disk-read misses are reentrant for SER / reentrant-FITS — same
+	 * predicate Stage A uses for its parallel sweeps. */
+	const bool stageb_provider_safe =
+	    (seq->type == SEQ_SER
+	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
+	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
 	mpp_mem_pick mem_pick{MPP_MEM_STREAMING, 1, 0, 0};
 	{
 		const int bps = (cfg->bitdepth == 8) ? 1 : 2;
@@ -1352,13 +1365,13 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 		    bps,
 		    /*cached_copies=*/0,
 		    /*half_cached_copies=*/0,
-		    /*max_threads=*/1,
+		    stageb_provider_safe ? stageb_max_threads : 1,
 		    mpp_analysis_in_flight_slots(seq, cfg),
 		    /*output_bytes=*/0,
 		    _("Register"), &mem_pick);
 		if (mem != MPP_OK) return mem;
 	}
-	(void) mem_pick;
+	const int stageb_threads = std::max(1, mem_pick.threads);
 
 	const auto apq = mpp::apq_from_run(run);
 	const auto offsets = mpp::offsets_from_run(run);
@@ -1396,7 +1409,7 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 	};
 	mpp_shifts_t *shifts = mpp::stack_compute_shifts_streamed(
 	    provider, run->num_frames, mean_raw, *run->aps, apq, offsets,
-	    *cfg, run->included);
+	    *cfg, run->included, stageb_threads, stageb_provider_safe);
 	if (!shifts) return MPP_ENOMEM;
 	if (shifts->failure_counter == -1) {   /* cancellation sentinel */
 		mpp_shift_free(shifts);
@@ -1933,10 +1946,19 @@ static mpp_status_t mpp_recompute_qualities_impl(sequence *seq, mpp_run_t *run,
 	/* Rank only included frames — excluded frames must not occupy any AP's
 	 * top-N slot (they'd be dropped at Stage C anyway, wasting the slot). */
 	const std::vector<int> included(run->included, run->included + N);
+	/* Frame-parallel quality compute when the provider is reentrant — same
+	 * predicate as Stage A / Stage B (cache hits trivially, SER / reentrant-
+	 * FITS on disk-read misses). Heavy once derotation adds a per-frame
+	 * remap, so this is what keeps the cores busy here. */
+	const bool quality_provider_safe =
+	    (seq->type == SEQ_SER
+	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
+	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
 	const auto apq = mpp::ap_compute_frame_qualities_streamed(
 	    raw_provider, N, frame_brightness, *run->aps, offsets,
 	    run->frame_rows, run->frame_cols, *run->cfg,
-	    stage_progress_cb, &rp, included);
+	    stage_progress_cb, &rp, included,
+	    quality_provider_safe ? max_threads : 1, quality_provider_safe);
 	if (apq.stack_size <= 0) return MPP_EINTR;
 
 	const int stack_size = apq.stack_size > 0 ? apq.stack_size : run->stack_size;

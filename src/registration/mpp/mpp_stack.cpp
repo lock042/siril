@@ -364,7 +364,9 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
                                                 void *progress_user,
-                                                const std::vector<int> &included) {
+                                                const std::vector<int> &included,
+                                                int max_threads,
+                                                bool provider_thread_safe) {
 	APQualities out;
 	const int M = aps.count;
 	const int stride = cfg.align_frames_sampling_stride;
@@ -394,53 +396,72 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 
 	out.qualities.assign(M, std::vector<double>(N, 0.0));
 
+	/* Frame-parallel: each frame writes its own column out.qualities[*][f], so
+	 * the result is independent of thread count. The heavy per-frame work
+	 * (read + optional derotation remap + Laplacian + per-AP meanStdDev)
+	 * dominates once derotation is active, so spreading frames across cores is
+	 * what keeps them busy. Only engaged when the provider is reentrant.
+	 * Cancellation / OOM leave the region via flags, never a return or an
+	 * escaping exception. */
+	const int nt = (provider_thread_safe && max_threads > 1) ? max_threads : 1;
+	gint cancelled = 0, cur_nb = 0;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nt) schedule(dynamic) if (nt > 1)
+#endif
 	for (int f = 0; f < N; ++f) {
-		if (!processing_should_continue()) {
-			out.stack_size = 0;   /* cancellation sentinel */
-			return out;
-		}
+		if (g_atomic_int_get(&cancelled)) continue;
+		if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
 		if (!is_included(f)) {
 			/* Sentinel below the lowest real σ — never selected. No read. */
 			for (int a = 0; a < M; ++a) out.qualities[a][f] = -1.0;
-			if (progress) progress((double)(f + 1) / (double) N, progress_user);
+			if (progress) progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
+			                       / (double) N, progress_user);
 			continue;
 		}
-		const cv::Mat frame = provider(f);
-		if (frame.empty()) {
-			if (progress) progress((double)(f + 1) / (double) N, progress_user);
-			continue;
-		}
-		const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
-		/* Round sub-pixel offsets — Stage A's box-slicing math wants
-		 * integer indices; the sub-pixel residual matters only at the
-		 * drizzle pixmap stage. */
-		const int dy = (int) std::lround(offsets[f].dy);
-		const int dx = (int) std::lround(offsets[f].dx);
-		if (progress) progress((double)(f + 1) / (double) N, progress_user);
-		for (int a = 0; a < M; ++a) {
-			const auto &ap = aps.records[a];
-			/* y_low  = int(max(0, patch_y_low  + dy) / stride);
-			 * y_high = int(min(frame_h, patch_y_high + dy) / stride);
-			 * Python `int()` truncates toward zero. C integer division
-			 * does the same for non-negatives, so / stride matches. */
-			const int yl_raw = ap.patch_y_low  + dy;
-			const int yh_raw = ap.patch_y_high + dy;
-			const int xl_raw = ap.patch_x_low  + dx;
-			const int xh_raw = ap.patch_x_high + dx;
-			const int yl = std::max(0, yl_raw) / stride;
-			const int yh = std::min(frame_rows, yh_raw) / stride;
-			const int xl = std::max(0, xl_raw) / stride;
-			const int xh = std::min(frame_cols, xh_raw) / stride;
-			double sigma = 0.0;
-			if (yh > yl && xh > xl
-			 && yh <= lap.rows && xh <= lap.cols) {
-				const cv::Mat box = lap(cv::Range(yl, yh), cv::Range(xl, xh));
-				cv::Scalar mean, stddev;
-				cv::meanStdDev(box, mean, stddev);
-				sigma = stddev[0];
+		try {
+			const cv::Mat frame = provider(f);
+			if (!frame.empty()) {
+				const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
+				/* Round sub-pixel offsets — Stage A's box-slicing math wants
+				 * integer indices; the sub-pixel residual matters only at the
+				 * drizzle pixmap stage. */
+				const int dy = (int) std::lround(offsets[f].dy);
+				const int dx = (int) std::lround(offsets[f].dx);
+				for (int a = 0; a < M; ++a) {
+					const auto &ap = aps.records[a];
+					/* y_low  = int(max(0, patch_y_low  + dy) / stride);
+					 * y_high = int(min(frame_h, patch_y_high + dy) / stride);
+					 * Python `int()` truncates toward zero. C integer division
+					 * does the same for non-negatives, so / stride matches. */
+					const int yl_raw = ap.patch_y_low  + dy;
+					const int yh_raw = ap.patch_y_high + dy;
+					const int xl_raw = ap.patch_x_low  + dx;
+					const int xh_raw = ap.patch_x_high + dx;
+					const int yl = std::max(0, yl_raw) / stride;
+					const int yh = std::min(frame_rows, yh_raw) / stride;
+					const int xl = std::max(0, xl_raw) / stride;
+					const int xh = std::min(frame_cols, xh_raw) / stride;
+					double sigma = 0.0;
+					if (yh > yl && xh > xl
+					 && yh <= lap.rows && xh <= lap.cols) {
+						const cv::Mat box = lap(cv::Range(yl, yh), cv::Range(xl, xh));
+						cv::Scalar mean, stddev;
+						cv::meanStdDev(box, mean, stddev);
+						sigma = stddev[0];
+					}
+					out.qualities[a][f] = normalise ? sigma / frame_brightness[f] : sigma;
+				}
 			}
-			out.qualities[a][f] = normalise ? sigma / frame_brightness[f] : sigma;
+		} catch (const std::exception &) {
+			/* OOM in a worker: abandon the pass cleanly (sentinel below). */
+			g_atomic_int_set(&cancelled, 1);
 		}
+		if (progress) progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
+		                       / (double) N, progress_user);
+	}
+	if (g_atomic_int_get(&cancelled)) {
+		out.stack_size = 0;   /* cancellation / OOM sentinel */
+		return out;
 	}
 
 	/* Soft-selection taper (0 in explicit frame-number mode and whenever
@@ -614,7 +635,9 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             const APQualities &apq,
                                             const std::vector<FrameOffset> &offsets,
                                             const mpp_config_t &cfg,
-                                            const int *included) {
+                                            const int *included,
+                                            int max_threads,
+                                            bool provider_thread_safe) {
 	const int M = aps.count;
 	/* Sub-pixel correlation is always on: the accumulation path places
 	 * each patch at its fractional shift (stack_remap_subpixel), so an
@@ -637,7 +660,6 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 
 	const cv::Mat weight_matrix = stack_build_first_phase_weight_matrix(cfg);
 	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
-	int failures = 0;
 
 	int n_included = 0;
 	if (included) {
@@ -645,64 +667,88 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 	} else {
 		n_included = N;
 	}
-	int cur_nb = 0;
+	if (n_included <= 0) n_included = 1;
+
+	/* Frame-parallel: every (frame, AP) shift is written to a disjoint slot, so
+	 * the result is independent of thread count — bit-identical to the serial
+	 * loop. The heavy per-frame work (read + optional derotation remap + blur)
+	 * dominates once derotation is active, so spreading frames across cores is
+	 * what keeps them busy. Only engaged when the provider is reentrant
+	 * (cached frames or thread-safe reads); otherwise nt collapses to 1.
+	 * Cancellation and OOM leave the OpenMP region via flags — never a bare
+	 * return or an escaping exception, both of which are UB inside a parallel
+	 * for. */
+	const int nt = (provider_thread_safe && max_threads > 1) ? max_threads : 1;
+	gint cancelled = 0, failures = 0, cur_nb = 0;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nt) schedule(dynamic) if (nt > 1)
+#endif
 	for (int f = 0; f < N; ++f) {
 		if (included && !included[f]) continue;
-		if (!processing_should_continue()) {
-			out->failure_counter = -1;   /* cancellation sentinel */
-			return out;
+		if (g_atomic_int_get(&cancelled)) continue;
+		if (!processing_should_continue()) { g_atomic_int_set(&cancelled, 1); continue; }
+		try {
+			/* Stage B correlation works at integer pixel grids — search-box
+			 * cropping needs integer indices. Round the sub-pixel global
+			 * offset; the rounded-away residual is the sub-pixel position
+			 * where the AP's content actually sits relative to the integer
+			 * search box. Sign trace for global_shifts = -0.3 (frame
+			 * content drifted DOWN by 0.3):
+			 *   offsets[f].dy = intersection[0] - (-0.3) = +0.3.
+			 *   dy_rounded     = 0.
+			 *   sub_y          = +0.3.
+			 *   Search box at frame_y = ap.box_y_low + 0.
+			 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
+			 *     at +0.3 from search centre → r.dy = -0.3 (matches the
+			 *     algorithm's sign convention).
+			 *   We want stored per-AP shift = 0 so that drizzle's
+			 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
+			 *     alignment correction). That means r.dy + sub_y = 0. ✓
+			 * If we used r.dy − sub_y the sub-pixel global residual would
+			 * be DOUBLED in the paste and you get high-frequency CFA-phase
+			 * striping on real data. The stack path places each patch at
+			 * offsets.dy − shift (sub-pixel, see stack_apply_shifts), so
+			 * this ≤0.5 px correction lands directly in the output. */
+			const double dy_full = offsets[f].dy;
+			const double dx_full = offsets[f].dx;
+			const int dy = (int) std::lround(dy_full);
+			const int dx = (int) std::lround(dx_full);
+			const double sub_y = dy_full - (double) dy;
+			const double sub_x = dx_full - (double) dx;
+			const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
+			                                      * cached vector view in cached mode */
+			if (!frame.empty()) {
+				for (const auto &u : apq.used_alignment_points[f]) {
+					const int a = u.ap;
+					const auto &ap = aps.records[a];
+					const MultilevelShiftResult r = multilevel_correlation(
+					    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
+					    frame,
+					    ap.box_y_low + dy, ap.box_y_high + dy,
+					    ap.box_x_low + dx, ap.box_x_high + dx,
+					    cfg.frames_gauss_width, cfg.alignment_points_search_width,
+					    use_subpixel, weight_matrix);
+					const size_t off = (size_t) (f * M + a) * 2;
+					out->shifts[off + 0] = r.dy + sub_y;
+					out->shifts[off + 1] = r.dx + sub_x;
+					out->success[f * M + a] = r.success ? 1 : 0;
+					if (!r.success) g_atomic_int_inc(&failures);
+				}
+			}
+		} catch (const std::exception &) {
+			/* OOM in a worker: abandon the pass cleanly (sentinel below). */
+			g_atomic_int_set(&cancelled, 1);
 		}
-		/* Stage B correlation works at integer pixel grids — search-box
-		 * cropping needs integer indices. Round the sub-pixel global
-		 * offset; the rounded-away residual is the sub-pixel position
-		 * where the AP's content actually sits relative to the integer
-		 * search box. Sign trace for global_shifts = -0.3 (frame
-		 * content drifted DOWN by 0.3):
-		 *   offsets[f].dy = intersection[0] - (-0.3) = +0.3.
-		 *   dy_rounded     = 0.
-		 *   sub_y          = +0.3.
-		 *   Search box at frame_y = ap.box_y_low + 0.
-		 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
-		 *     at +0.3 from search centre → r.dy = -0.3 (matches the
-		 *     algorithm's sign convention).
-		 *   We want stored per-AP shift = 0 so that drizzle's
-		 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
-		 *     alignment correction). That means r.dy + sub_y = 0. ✓
-		 * If we used r.dy − sub_y the sub-pixel global residual would
-		 * be DOUBLED in the paste and you get high-frequency CFA-phase
-		 * striping on real data. The stack path places each patch at
-		 * offsets.dy − shift (sub-pixel, see stack_apply_shifts), so
-		 * this ≤0.5 px correction lands directly in the output. */
-		const double dy_full = offsets[f].dy;
-		const double dx_full = offsets[f].dx;
-		const int dy = (int) std::lround(dy_full);
-		const int dx = (int) std::lround(dx_full);
-		const double sub_y = dy_full - (double) dy;
-		const double sub_x = dx_full - (double) dx;
-		const cv::Mat frame = provider(f);   /* fresh blur in streaming mode;
-		                                      * cached vector view in cached mode */
-		for (const auto &u : apq.used_alignment_points[f]) {
-			const int a = u.ap;
-			const auto &ap = aps.records[a];
-			const MultilevelShiftResult r = multilevel_correlation(
-			    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
-			    frame,
-			    ap.box_y_low + dy, ap.box_y_high + dy,
-			    ap.box_x_low + dx, ap.box_x_high + dx,
-			    cfg.frames_gauss_width, cfg.alignment_points_search_width,
-			    use_subpixel, weight_matrix);
-			const size_t off = (size_t) (f * M + a) * 2;
-			out->shifts[off + 0] = r.dy + sub_y;
-			out->shifts[off + 1] = r.dx + sub_x;
-			out->success[f * M + a] = r.success ? 1 : 0;
-			if (!r.success) ++failures;
-		}
-		g_atomic_int_inc(&cur_nb);
 		/* Single streaming pass (read + blur + correlate happen together),
 		 * so map progress across Stage B's whole 0..1 bar. */
-		gui_iface.set_progress((double) cur_nb / (double) n_included, NULL);
+		gui_iface.set_progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
+		                       / (double) n_included, NULL);
 	}
-	out->failure_counter = failures;
+	if (g_atomic_int_get(&cancelled)) {
+		out->failure_counter = -1;   /* cancellation / OOM sentinel */
+		return out;
+	}
+	out->failure_counter = (int) g_atomic_int_get(&failures);
 	return out;
 }
 
