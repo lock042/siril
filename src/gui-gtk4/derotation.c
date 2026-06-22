@@ -111,6 +111,28 @@ static void set_status(const char *msg) {
 	if (status) gtk_label_set_text(status, msg);
 }
 
+/* Auto-detect the disk into the spin controls, including the pole angle from
+ * the fitted major axis. Returns TRUE on success. */
+static gboolean apply_autodetect(void) {
+	if (!gfit) return FALSE;
+	double cx, cy, r, major_deg = 0.0;
+	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
+	if (!mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r, &major_deg))
+		return FALSE;
+	gtk_spin_button_set_value(spin_cx, cx);
+	gtk_spin_button_set_value(spin_cy, cy);
+	gtk_spin_button_set_value(spin_radius, r);
+	set_polar_default();
+	/* Pole = perpendicular to the major axis (the ring plane for Saturn, the
+	 * equator for Jupiter). The dialog PA points the pole up at 0 and increases
+	 * clockwise; from the y-up major-axis angle that is pa = -parity·major.
+	 * North is placed up-ish — flip with the on-image handle if the visible
+	 * pole is the southern one. */
+	const double ex = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
+	gtk_spin_button_set_value(spin_pa, -ex * major_deg);
+	return TRUE;
+}
+
 /* Fill the epoch entry with the capture midpoint, and auto-detect the disk. */
 static void populate_from_sequence(void) {
 	if (!sequence_is_loaded() || com.seq.number <= 0) {
@@ -141,14 +163,7 @@ static void populate_from_sequence(void) {
 	}
 	free(jd);
 
-	double cx, cy, r;
-	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
-	if (gfit && mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r)) {
-		gtk_spin_button_set_value(spin_cx, cx);
-		gtk_spin_button_set_value(spin_cy, cy);
-		gtk_spin_button_set_value(spin_radius, r);
-		set_polar_default();
-	}
+	apply_autodetect();
 }
 
 void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data) {
@@ -207,17 +222,10 @@ void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
 
 void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
-	double cx, cy, r;
-	const double flat = body_flattening((int) gtk_drop_down_get_selected(dd_body));
-	if (gfit && mpp_derot_autodetect_disk(gfit, flat, &cx, &cy, &r)) {
-		gtk_spin_button_set_value(spin_cx, cx);
-		gtk_spin_button_set_value(spin_cy, cy);
-		gtk_spin_button_set_value(spin_radius, r);
-		set_polar_default();
+	if (apply_autodetect())
 		set_status(_("Disk auto-detected — adjust if needed, then compute."));
-	} else {
+	else
 		set_status(_("Could not auto-detect a disk; set the centre and radius manually."));
-	}
 }
 
 /* The ephemeris runs once per frame (thousands of evaluations) plus the SER

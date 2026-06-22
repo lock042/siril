@@ -52,7 +52,7 @@ Test(mpp_derot_build, autodetect_globe_not_rings) {
 	fits f = make_fits(W, H, buf);
 
 	double dcx, dcy, r;
-	cr_assert(mpp_derot_autodetect_disk(&f, sat_flat, &dcx, &dcy, &r));
+	cr_assert(mpp_derot_autodetect_disk(&f, sat_flat, &dcx, &dcy, &r, NULL));
 	cr_assert_float_eq(dcx, cx, 8.0, "centre x %.1f", dcx);
 	cr_assert_float_eq(dcy, cy, 8.0, "centre y %.1f", dcy);
 	/* Must be near the globe equatorial radius, and well below the ring span
@@ -75,7 +75,7 @@ Test(mpp_derot_build, autodetect_plain_disk) {
 	fits f = make_fits(W, H, buf);
 
 	double dcx, dcy, r;
-	cr_assert(mpp_derot_autodetect_disk(&f, 0.0, &dcx, &dcy, &r));
+	cr_assert(mpp_derot_autodetect_disk(&f, 0.0, &dcx, &dcy, &r, NULL));
 	cr_assert_float_eq(dcx, cx, 4.0);
 	cr_assert_float_eq(dcy, cy, 4.0);
 	cr_assert_float_eq(r, R, 0.2 * R, "radius %.1f vs %.0f", r, R);

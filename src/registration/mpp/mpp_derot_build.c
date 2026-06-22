@@ -105,7 +105,8 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 }
 
 gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
-                                   double *cx, double *cy, double *radius) {
+                                   double *cx, double *cy, double *radius,
+                                   double *major_axis_deg) {
 	if (!fit || !cx || !cy || !radius || fit->rx <= 0 || fit->ry <= 0)
 		return FALSE;
 	const int rx = (int) fit->rx, ry = (int) fit->ry;
@@ -136,10 +137,11 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
 	 * darkened, seeing-blurred) disk sits well below a fraction of the bright
 	 * disk peak — and the minor axis used below runs through the dimmest part
 	 * of the globe (the poles), so a high fraction clips it and underestimates
-	 * the radius on both Jupiter and Saturn. 0.15 was tuned against Jupiter and
-	 * Saturn frames to land on the visible limb; it also stays well above the
-	 * ~0.07 regime where faint glow starts to inflate the moments. */
-	const double thr = bg + 0.15 * (maxv - bg);
+	 * the radius on both Jupiter and Saturn. 0.10 was tuned against Jupiter and
+	 * Saturn frames to land on the visible limb (the disc the user sees on a log
+	 * stretch); it stays above the ~0.07 regime where faint glow starts to
+	 * inflate the moments. */
+	const double thr = bg + 0.10 * (maxv - bg);
 
 	/* Centroid and second moments of the thresholded region (geometric, binary
 	 * mask: the second moment along a semi-axis r of a uniform region is
@@ -174,5 +176,10 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
 	*cx = mx;
 	*cy = my;
 	*radius = b / (1.0 - f);   /* recover the equatorial radius */
+	/* Orientation of the major axis (Saturn's ring plane / Jupiter's equator)
+	 * in image coordinates with y up, which the caller turns into the pole
+	 * position angle (perpendicular). Half-angle of the covariance ellipse. */
+	if (major_axis_deg)
+		*major_axis_deg = 0.5 * atan2(2.0 * cxy, cxx - cyy) * 180.0 / M_PI;
 	return (*radius > 1.0);
 }
