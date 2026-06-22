@@ -1,3 +1,44 @@
+siril-1.5.0
+--/--/--
+
+**Improvements**
+* Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
+* Introduced generic_image_worker to standardize image operations (!965)
+* Added splashscreen at startup (!975)
+* Added caching of online GAIA database (!985)
+* Added image masks (!981)
+* Added QHY GPS timestamps support (!891)
+* Added eqcrop command (!889)
+* Added catmag command (!888)
+* Added draggable histogram overlay with cursor tracking (!986)
+* Improved vectorization of numerous functions, algorithm optimizations and removed dead code (!1008)
+* Improved management of the processing thread and separation of image data processing and GUI update code (!998)
+* Improved locking of data structs that may be accessed by multiple threads (!1014)
+* Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Parallelize min/max stacking algorithms (#194)
+* Update astrometry solution when resampling or binning instead of deleting it
+* Separation of GUI and processing code (!1025)
+* Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
+* Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
+* Adding TIFF support in Pixelmath (#1726)
+* Added support for continuous representation Gaia spectra. This will support a more space-efficient Gaia DR4 SPCC catalogue.
+* Converge NL_Bayes and DA3D to use the same img_t framework as deconvolution: makes noise reduction c. 11% faster (!1038).
+* Added Search Entry in the Script menu to filter scripts by name (!1042)
+* Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
+* Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
+* Added displaying velocity vectors for SSO annotations (!1045)
+
+**Fixes**
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
+* Fixed command help popover being too tall on low-resolution screens
+
+siril-1.4.5
+xx/xx/xx
+
+**Fixes**
+* Fixed constellation names in annotations (#1055)
+
 siril-1.4.4
 06/17/26
 
