@@ -27,6 +27,9 @@ gboolean seq_load_image_in_thread(gpointer user_data);
 int64_t seq_compute_size(sequence *seq, int nb_frames, data_type type);
 gboolean check_if_seq_exist(gchar *name, gboolean name_is_base);
 gboolean create_one_seq(const char *seqname, sequence_type seqtype);
+/* Open a sequence by base name, forcing debayer for Bayer SERs (defined in
+ * command.c). The result may alias com.seq — use check_seq_is_comseq. */
+sequence *load_sequence_force_debayer(const char *name);
 int	seq_open_image(sequence *seq, int index);
 void	seq_close_image(sequence *seq, int index);
 int	seq_opened_read_region(sequence *seq, int layer, int index, void *buffer, const rectangle *area, int thread_id);

@@ -39,16 +39,15 @@ extern "C" {
 namespace mpp {
 
 MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
-                                    int ref, int num_layers,
+                                    const mpp_derot_t *out_derot, int num_layers,
                                     const mpp_config_t &cfg,
                                     int max_threads) {
 	MultiStackResult res;
-	if (srcs.empty() || ref < 0 || ref >= (int) srcs.size()) {
+	if (srcs.empty() || !out_derot) {
 		res.error = true;
 		return res;
 	}
-	const mpp_derot_t *refd = srcs[ref].derot;
-	if (!refd) { res.error = true; return res; }
+	const mpp_derot_t *refd = out_derot;
 
 	/* output (reference epoch) canvas */
 	const int out_w = refd->frame_cols;

@@ -14786,7 +14786,7 @@ static gboolean mpp_should_force_debayer(const char *name) {
  * the user's saved preference. Mono SERs and non-SER inputs are loaded with
  * the saved preference untouched. Returns the sequence (caller may have to
  * substitute `&com.seq` via `check_seq_is_comseq`) or NULL. */
-static sequence *load_sequence_force_debayer(const char *name) {
+sequence *load_sequence_force_debayer(const char *name) {
 	const gboolean want_debayer = mpp_should_force_debayer(name);
 	const gboolean saved = com.pref.debayer.open_debayer;
 	if (want_debayer) com.pref.debayer.open_debayer = TRUE;

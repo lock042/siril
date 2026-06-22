@@ -176,6 +176,15 @@ mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 mpp_status_t mpp_multistack(sequence **seqs, struct mpp_derot **derots,
                             int n, int ref, const mpp_config_t *cfg, fits *out);
 
+/* Multi-channel variant: stack one channel's sequences (`seqs`/`derots`) into
+ * the canvas defined by a separate reference sequence (`ref_seq` + its plan
+ * `out_derot`), which need not be among them. Lets every channel land in the
+ * same reference canvas so the per-channel results compose to colour. */
+mpp_status_t mpp_multistack_to(sequence **seqs, struct mpp_derot **derots,
+                               int n, sequence *ref_seq,
+                               const struct mpp_derot *out_derot,
+                               const mpp_config_t *cfg, fits *out);
+
 /* Top-level Siril `register -method=mpp` entry. Drives Stages A + B and
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);

@@ -61,6 +61,7 @@ int mpp_session_add(mpp_session_t *s, const char *seqname, mpp_channel_t channel
 		s->capacity = ncap;
 	}
 	mpp_session_seq_t *e = &s->seqs[s->count];
+	memset(e, 0, sizeof(*e));   /* clears has_fit + the fit fields (realloc memory) */
 	e->seqname = g_strdup(seqname);
 	e->channel = channel;
 	e->first_jd = first_jd;
@@ -95,6 +96,20 @@ gboolean mpp_session_set_channel(mpp_session_t *s, int index, mpp_channel_t chan
 	    || channel < 0 || channel >= MPP_CHAN_COUNT)
 		return FALSE;
 	s->seqs[index].channel = channel;
+	return TRUE;
+}
+
+gboolean mpp_session_set_fit(mpp_session_t *s, int index,
+                             double cx, double cy, double r_eq, double r_pol,
+                             double pa_deg, double parity,
+                             int frame_rows, int frame_cols, double fps) {
+	if (!s || index < 0 || index >= s->count) return FALSE;
+	mpp_session_seq_t *e = &s->seqs[index];
+	e->cx = cx; e->cy = cy; e->r_eq = r_eq; e->r_pol = r_pol;
+	e->pa_deg = pa_deg; e->parity = parity;
+	e->frame_rows = frame_rows; e->frame_cols = frame_cols;
+	e->fps = fps;
+	e->has_fit = TRUE;
 	return TRUE;
 }
 

@@ -153,7 +153,7 @@ Test(mpp_multistack, combines_two_sources_into_reference_canvas) {
 	srcs[1].analysis_read = [&](int l) { return f1[l]; };
 	srcs[1].full_read     = [&](int l) { return f1[l]; };
 
-	const auto res = mpp::multistack_channel(srcs, /*ref=*/0, /*num_layers=*/1, cfg, 1);
+	const auto res = mpp::multistack_channel(srcs, /*out_derot=*/d0, /*num_layers=*/1, cfg, 1);
 	cr_assert(!res.error, "multistack reported error");
 	cr_assert(!res.oom && !res.cancelled, "multistack oom/cancelled");
 	cr_assert(!res.image.empty(), "multistack produced no image");

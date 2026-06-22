@@ -46,8 +46,11 @@
 #include "gui-gtk4/derotation.h"
 
 #include "algos/planet_ephem.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_derot_sidecar.h"
 #include "registration/mpp/mpp_derot_build.h"
+#include "registration/mpp/mpp_session.h"
 
 static GtkWidget *dialog = NULL;
 static GtkDropDown *dd_body = NULL, *dd_system = NULL;
@@ -58,6 +61,13 @@ static GtkCheckButton *chk_parity = NULL, *chk_epoch_lock = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
 static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
+
+/* Multi-sequence session (Option B): the set of sequences to combine, each
+ * tagged with a colour channel and its own disk fit, plus the designated
+ * reference. Built up as the user fits one sequence at a time. */
+static mpp_session_t *session = NULL;
+static GtkDropDown *dd_channel = NULL;   /* channel tag for the next "Add" */
+static GtkListBox *seqlist = NULL;       /* one row per session entry */
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -77,6 +87,7 @@ static void set_polar_default(void) {
 }
 
 static gboolean apply_autodetect(void);
+static void set_status(const char *msg);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -109,12 +120,142 @@ static void init_statics(void) {
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
 	chk_epoch_lock = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_epoch_lock"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
+	dd_channel  = GTK_DROP_DOWN   (gtk_builder_get_object(gui.builder, "derot_channel"));
+	seqlist     = GTK_LIST_BOX    (gtk_builder_get_object(gui.builder, "derot_seqlist"));
 	/* Restore the remembered mirror state when the window is first created. */
 	if (chk_parity)
 		gtk_check_button_set_active(chk_parity, com.pref.gui.derot_mirror);
 	if (dd_body)
 		g_signal_connect(dd_body, "notify::selected",
 		                 G_CALLBACK(on_derot_body_changed), NULL);
+}
+
+/* ---- multi-sequence session ---- */
+
+static const char *channel_label(mpp_channel_t ch) {
+	switch (ch) {
+		case MPP_CHAN_R:   return "R";
+		case MPP_CHAN_G:   return "G";
+		case MPP_CHAN_B:   return "B";
+		case MPP_CHAN_LUM: return "L";
+		default:           return "mono";
+	}
+}
+
+/* short filename suffix for a channel's stacked output */
+static const char *channel_suffix(mpp_channel_t ch) {
+	switch (ch) {
+		case MPP_CHAN_R:   return "R";
+		case MPP_CHAN_G:   return "G";
+		case MPP_CHAN_B:   return "B";
+		case MPP_CHAN_LUM: return "L";
+		default:           return "mono";
+	}
+}
+
+/* Rebuild the list box from the session. Each row shows the sequence name, its
+ * channel tag, "(fit)" once a disk has been recorded, and a star on the
+ * reference. The row index matches the session index. */
+static void refresh_seqlist(void) {
+	if (!seqlist) return;
+	GtkWidget *child;
+	while ((child = gtk_widget_get_first_child(GTK_WIDGET(seqlist))))
+		gtk_list_box_remove(seqlist, child);
+	if (!session) return;
+	for (int i = 0; i < session->count; i++) {
+		const mpp_session_seq_t *e = &session->seqs[i];
+		gchar *txt = g_strdup_printf("%s%s  [%s]%s",
+		                             i == session->reference ? "★ " : "",
+		                             e->seqname, channel_label(e->channel),
+		                             e->has_fit ? "" : _("  — not fitted"));
+		GtkWidget *row = gtk_label_new(txt);
+		gtk_label_set_xalign(GTK_LABEL(row), 0.0);
+		gtk_widget_set_margin_start(row, 4);
+		gtk_widget_set_margin_end(row, 4);
+		gtk_list_box_append(seqlist, row);
+		g_free(txt);
+	}
+}
+
+/* Read the loaded sequence's capture span (UTC JD). Falls back to the dialog's
+ * fps when there are no per-frame timestamps. Returns FALSE if neither works. */
+static gboolean current_seq_span(double *first, double *last) {
+	const double fps = spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0;
+	return mpp_derot_sequence_span(&com.seq, fps, NAN, first, last);
+}
+
+/* "Add current sequence": snapshot the live disk fit + channel into the session
+ * (creating it on first use). A sequence already present is updated in place. */
+void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	init_statics();
+	if (!sequence_is_loaded() || com.seq.number <= 0 || !com.seq.seqname) {
+		set_status(_("Load a sequence before adding it to the session."));
+		return;
+	}
+	if (gtk_spin_button_get_value(spin_radius) < 1.0) {
+		set_status(_("Fit the disk (radius) before adding the sequence."));
+		return;
+	}
+	if (!session) {
+		const int body = (int) gtk_drop_down_get_selected(dd_body);
+		const int sys  = (int) gtk_drop_down_get_selected(dd_system) + 1;
+		session = mpp_session_new((planet_body_t) body, sys);
+		if (!session) { set_status(_("Out of memory.")); return; }
+	}
+
+	double first = 0, last = 0;
+	if (!current_seq_span(&first, &last)) {
+		set_status(_("No per-frame timestamps — set the frame rate (fps) first."));
+		return;
+	}
+	const mpp_channel_t ch = dd_channel
+	    ? (mpp_channel_t) gtk_drop_down_get_selected(dd_channel) : MPP_CHAN_MONO;
+
+	int idx = -1;
+	for (int i = 0; i < session->count; i++)
+		if (!g_strcmp0(session->seqs[i].seqname, com.seq.seqname)) { idx = i; break; }
+	if (idx < 0) {
+		idx = mpp_session_add(session, com.seq.seqname, ch, first, last, com.seq.number);
+		if (idx < 0) { set_status(_("Could not add the sequence.")); return; }
+	} else {
+		mpp_session_set_channel(session, idx, ch);
+	}
+	mpp_session_set_fit(session, idx,
+	                    gtk_spin_button_get_value(spin_cx),
+	                    gtk_spin_button_get_value(spin_cy),
+	                    gtk_spin_button_get_value(spin_radius),
+	                    gtk_spin_button_get_value(spin_rpol),
+	                    gtk_spin_button_get_value(spin_pa),
+	                    gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0,
+	                    (int) com.seq.ry, (int) com.seq.rx,
+	                    spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0);
+	refresh_seqlist();
+	set_status(_("Sequence added. Load and fit the next, or combine."));
+}
+
+/* index of the currently selected session row, or -1 */
+static int selected_session_index(void) {
+	if (!seqlist) return -1;
+	GtkListBoxRow *row = gtk_list_box_get_selected_row(seqlist);
+	return row ? gtk_list_box_row_get_index(row) : -1;
+}
+
+void on_derotation_setref_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	const int idx = selected_session_index();
+	if (!session || idx < 0) { set_status(_("Select a sequence in the list first.")); return; }
+	mpp_session_set_reference(session, idx);
+	refresh_seqlist();
+	set_status(_("Reference sequence set — it defines the common output frame."));
+}
+
+void on_derotation_remove_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	const int idx = selected_session_index();
+	if (!session || idx < 0) { set_status(_("Select a sequence in the list first.")); return; }
+	mpp_session_remove(session, idx);
+	refresh_seqlist();
 }
 
 static void set_status(const char *msg) {
@@ -399,6 +540,195 @@ void on_derotation_compute_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(FALSE);
 		derot_compute_args_free(a);
 		set_status(_("Could not start the derotation worker (another job is running?)."));
+	}
+}
+
+/* ---- multi-sequence combine ---- */
+
+struct derot_combine_args {
+	int n;
+	sequence **seqs;
+	mpp_derot_t **derots;
+	gboolean *is_com;
+	mpp_channel_t *channels;
+	int ref_index;
+	gchar *base;
+	mpp_config_t cfg;
+	/* results */
+	int saved, failed;
+};
+
+static void derot_combine_args_free(struct derot_combine_args *a) {
+	if (!a) return;
+	for (int i = 0; i < a->n; i++) {
+		if (a->derots && a->derots[i]) mpp_derot_free(a->derots[i]);
+		if (a->seqs && a->seqs[i] && !a->is_com[i]) free_sequence(a->seqs[i], TRUE);
+	}
+	g_free(a->seqs);
+	g_free(a->derots);
+	g_free(a->is_com);
+	g_free(a->channels);
+	g_free(a->base);
+	free(a);
+}
+
+static gboolean derot_combine_idle(gpointer p) {
+	struct derot_combine_args *a = p;
+	stop_processing_thread();
+	if (a->saved > 0)
+		siril_log_message(_("Derotation combine: saved %d channel stack(s)%s. "
+		                    "Assemble colour with the compositing tools.\n"),
+		                  a->saved, a->failed ? _(" (some channels failed)") : "");
+	else
+		siril_log_error(_("Derotation combine: no channels stacked — see the log.\n"));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	set_status(a->saved > 0 ? _("Combine done — see the log for the saved files.")
+	                        : _("Combine failed — see the log."));
+	set_cursor_waiting(FALSE);
+	derot_combine_args_free(a);
+	return FALSE;
+}
+
+static gpointer derot_combine_worker(gpointer p) {
+	struct derot_combine_args *a = p;
+	a->saved = a->failed = 0;
+
+	/* one stack per distinct channel, each landing in the reference canvas */
+	static const mpp_channel_t order[] = {
+		MPP_CHAN_R, MPP_CHAN_G, MPP_CHAN_B, MPP_CHAN_LUM, MPP_CHAN_MONO
+	};
+	for (size_t k = 0; k < G_N_ELEMENTS(order); k++) {
+		const mpp_channel_t ch = order[k];
+		sequence **cs = g_new0(sequence *, a->n);
+		mpp_derot_t **cd = g_new0(mpp_derot_t *, a->n);
+		int m = 0;
+		for (int i = 0; i < a->n; i++)
+			if (a->channels[i] == ch) { cs[m] = a->seqs[i]; cd[m] = a->derots[i]; m++; }
+		if (m == 0) { g_free(cs); g_free(cd); continue; }
+
+		fits out = { 0 };
+		const mpp_status_t st = mpp_multistack_to(
+		    cs, cd, m, a->seqs[a->ref_index], a->derots[a->ref_index], &a->cfg, &out);
+		if (st == MPP_OK) {
+			gchar *name = (ch == MPP_CHAN_MONO)
+			    ? g_strdup_printf("%s_derot_stack", a->base)
+			    : g_strdup_printf("%s_%s", a->base, channel_suffix(ch));
+			if (savefits(name, &out) == 0) {
+				siril_log_message(_("Derotation combine: saved %s (%d sequence(s))\n"),
+				                  name, m);
+				a->saved++;
+			} else {
+				a->failed++;
+			}
+			g_free(name);
+		} else {
+			siril_log_error(_("Derotation combine: channel %s failed (code %d)\n"),
+			                channel_label(ch), st);
+			a->failed++;
+		}
+		clearfits(&out);
+		g_free(cs);
+		g_free(cd);
+		if (!processing_should_continue()) break;   /* cancelled */
+	}
+
+	siril_add_idle(derot_combine_idle, a);
+	return GINT_TO_POINTER(a->saved > 0 ? 0 : 1);
+}
+
+void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	init_statics();
+	if (!session || session->count < 1) {
+		set_status(_("Add at least one fitted sequence to the session first."));
+		return;
+	}
+	for (int i = 0; i < session->count; i++)
+		if (!session->seqs[i].has_fit) {
+			set_status(_("Every sequence in the session must be fitted first."));
+			return;
+		}
+	if (session->reference < 0 || session->reference >= session->count) {
+		set_status(_("Select a reference sequence first."));
+		return;
+	}
+
+	/* Shared reference epoch: the user's text if given, else the union midpoint
+	 * of every sequence's span. */
+	double epoch_jd;
+	const char *etxt = entry_epoch ? gtk_editable_get_text(GTK_EDITABLE(entry_epoch)) : NULL;
+	GDateTime *ep = (etxt && *etxt) ? FITS_date_to_date_time(etxt) : NULL;
+	if (ep) { epoch_jd = date_time_to_Julian(ep); g_date_time_unref(ep); }
+	else {
+		double *firsts = g_new(double, session->count);
+		double *lasts  = g_new(double, session->count);
+		for (int i = 0; i < session->count; i++) {
+			firsts[i] = session->seqs[i].first_jd;
+			lasts[i]  = session->seqs[i].last_jd;
+		}
+		epoch_jd = mpp_derot_union_epoch(firsts, lasts, session->count);
+		g_free(firsts); g_free(lasts);
+	}
+
+	/* Load every sequence and build its derotation plan at the shared epoch
+	 * (cheap; the heavy stacking runs off-thread below). */
+	const int n = session->count;
+	struct derot_combine_args *a = calloc(1, sizeof(*a));
+	if (!a) { set_status(_("Out of memory.")); return; }
+	a->n = n;
+	a->seqs     = g_new0(sequence *, n);
+	a->derots   = g_new0(mpp_derot_t *, n);
+	a->is_com   = g_new0(gboolean, n);
+	a->channels = g_new0(mpp_channel_t, n);
+	a->ref_index = session->reference;
+	a->base = g_strdup(session->seqs[session->reference].seqname);
+	mpp_config_defaults(&a->cfg);
+	a->cfg.stack_method = MPP_STACK_WARP;
+
+	gboolean ok = TRUE;
+	for (int i = 0; i < n && ok; i++) {
+		const mpp_session_seq_t *e = &session->seqs[i];
+		a->channels[i] = e->channel;
+		a->seqs[i] = load_sequence_force_debayer(e->seqname);
+		if (!a->seqs[i]) {
+			siril_log_error(_("Derotation combine: cannot load '%s'\n"), e->seqname);
+			ok = FALSE; break;
+		}
+		a->is_com[i] = check_seq_is_comseq(a->seqs[i]);
+		if (a->is_com[i]) { free_sequence(a->seqs[i], TRUE); a->seqs[i] = &com.seq; }
+
+		double *jd = g_new(double, e->num_frames);
+		if (!mpp_derot_frame_times(a->seqs[i], e->fps, NAN, jd)) {
+			siril_log_error(_("Derotation combine: '%s' has no usable timestamps "
+			                  "(set its fps)\n"), e->seqname);
+			g_free(jd); ok = FALSE; break;
+		}
+		a->derots[i] = mpp_derot_build(session->body, session->system, epoch_jd,
+		                               jd, e->num_frames, e->frame_rows, e->frame_cols,
+		                               e->cx, e->cy, e->r_eq, e->pa_deg, e->parity,
+		                               NAN, NAN, NAN);
+		g_free(jd);
+		if (!a->derots[i]) {
+			siril_log_error(_("Derotation combine: plan build failed for '%s'\n"),
+			                e->seqname);
+			ok = FALSE; break;
+		}
+		/* honour the fitted polar radius (oblateness) as drawn */
+		if (e->r_pol > 0.0 && e->r_pol < e->r_eq)
+			a->derots[i]->flattening = 1.0 - e->r_pol / e->r_eq;
+	}
+	if (!ok) {
+		derot_combine_args_free(a);
+		set_status(_("Combine setup failed — see the log."));
+		return;
+	}
+
+	set_status(_("Combining sequences…"));
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(derot_combine_worker, a)) {
+		set_cursor_waiting(FALSE);
+		derot_combine_args_free(a);
+		set_status(_("Could not start the combine worker (another job running?)."));
 	}
 }
 

@@ -49,6 +49,15 @@ typedef struct {
 	mpp_channel_t channel;
 	double first_jd, last_jd; /* capture span, UTC Julian dates (caller-filled) */
 	int num_frames;
+
+	/* Disk fit in this sequence's own frame pixels (filled via
+	 * mpp_session_set_fit once the user has fitted the planet). r_pol <= 0
+	 * means "use the body's default flattening"; fps > 0 supplies a uniform
+	 * cadence for sequences without per-frame timestamps. */
+	gboolean has_fit;
+	double cx, cy, r_eq, r_pol, pa_deg, parity;
+	int frame_rows, frame_cols;
+	double fps;
 } mpp_session_seq_t;
 
 typedef struct {
@@ -72,6 +81,13 @@ int mpp_session_add(mpp_session_t *s, const char *seqname, mpp_channel_t channel
 gboolean mpp_session_remove(mpp_session_t *s, int index);
 gboolean mpp_session_set_reference(mpp_session_t *s, int index);
 gboolean mpp_session_set_channel(mpp_session_t *s, int index, mpp_channel_t channel);
+
+/* Record the disk fit (and frame dims / cadence) for a sequence already added.
+ * Marks the entry as fitted. */
+gboolean mpp_session_set_fit(mpp_session_t *s, int index,
+                             double cx, double cy, double r_eq, double r_pol,
+                             double pa_deg, double parity,
+                             int frame_rows, int frame_cols, double fps);
 
 /* Shared epoch = midpoint of the union of every sequence's span. Stores it on
  * the session and returns it (0 when the session is empty). */

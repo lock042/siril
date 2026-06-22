@@ -141,6 +141,60 @@
             <property name="label" translatable="yes">Fit the disk to the planet, then compute.</property></object>
         </child>
         <child>
+          <object class="GtkFrame">
+            <property name="label" translatable="yes">Combine several sequences</property>
+            <property name="margin-top">6</property>
+            <child>
+              <object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">4</property>
+                <property name="margin-start">6</property><property name="margin-end">6</property>
+                <property name="margin-top">6</property><property name="margin-bottom">6</property>
+                <child>
+                  <object class="GtkLabel"><property name="wrap">1</property><property name="xalign">0</property>
+                    <property name="label" translatable="yes">Fit each sequence's disk, tag its channel and add it. Pick one as the reference (★) — it defines the shared frame all channels are stacked into. Then combine.</property></object>
+                </child>
+                <child>
+                  <object class="GtkBox"><property name="spacing">6</property>
+                    <child><object class="GtkDropDown" id="derot_channel">
+                      <property name="tooltip-text" translatable="yes">Colour channel to tag the sequence being added. Mono sequences shot through R, G and B filters each get their own stack, ready to assemble into colour; use Mono for a single-channel result.</property>
+                      <property name="model"><object class="GtkStringList"><items>
+                        <item translatable="yes">Mono</item>
+                        <item translatable="yes">Red</item>
+                        <item translatable="yes">Green</item>
+                        <item translatable="yes">Blue</item>
+                        <item translatable="yes">Luminance</item>
+                      </items></object></property></object></child>
+                    <child><object class="GtkButton" id="derot_add"><property name="label" translatable="yes">Add current sequence</property>
+                      <property name="hexpand">1</property><property name="halign">start</property>
+                      <property name="tooltip-text" translatable="yes">Snapshot the loaded sequence with its current disk fit and the chosen channel into the session. Adding a sequence already in the list updates its fit.</property>
+                      <signal name="clicked" handler="on_derotation_add_clicked" swapped="no"/></object></child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow"><property name="min-content-height">96</property>
+                    <property name="has-frame">1</property><property name="vexpand">1</property>
+                    <child><object class="GtkListBox" id="derot_seqlist">
+                      <property name="selection-mode">single</property></object></child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox"><property name="spacing">6</property>
+                    <child><object class="GtkButton" id="derot_setref"><property name="label" translatable="yes">Set as reference</property>
+                      <property name="tooltip-text" translatable="yes">Make the selected sequence the reference. Its disk fit defines the common output frame every channel is stacked into, so the channels stay aligned for colour assembly.</property>
+                      <signal name="clicked" handler="on_derotation_setref_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_remove"><property name="label" translatable="yes">Remove</property>
+                      <property name="tooltip-text" translatable="yes">Remove the selected sequence from the session.</property>
+                      <signal name="clicked" handler="on_derotation_remove_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_combine"><property name="label" translatable="yes">Combine sequences</property>
+                      <property name="hexpand">1</property><property name="halign">end</property>
+                      <property name="tooltip-text" translatable="yes">Build each sequence's derotation at the shared epoch and stack every channel into the reference frame, removing planetary rotation. Saves one image per channel; assemble colour with the compositing tools.</property>
+                      <signal name="clicked" handler="on_derotation_combine_clicked" swapped="no"/></object></child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
           <object class="GtkBox"><property name="spacing">6</property><property name="halign">end</property>
             <child><object class="GtkButton" id="derot_autofit"><property name="label" translatable="yes">Auto-detect disk</property>
               <property name="tooltip-text" translatable="yes">Estimate the globe centre, radius and orientation from the current image. It is only a starting point — check it against the disk and adjust on the image before computing.</property>

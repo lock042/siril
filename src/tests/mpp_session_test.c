@@ -43,6 +43,16 @@ Test(mpp_session, add_tag_reference_epoch) {
 	cr_assert_float_eq(mpp_session_compute_epoch(s), 100.25, 1e-9);
 	cr_assert_float_eq(s->epoch_jd, 100.25, 1e-9);
 
+	/* disk fit is recorded and flags the entry */
+	cr_assert_not(s->seqs[1].has_fit);
+	cr_assert(mpp_session_set_fit(s, 1, 50.0, 60.0, 30.0, 28.0, 12.0, -1.0,
+	                              480, 640, 25.0));
+	cr_assert(s->seqs[1].has_fit);
+	cr_assert_float_eq(s->seqs[1].cx, 50.0, 1e-9);
+	cr_assert_float_eq(s->seqs[1].r_eq, 30.0, 1e-9);
+	cr_assert_float_eq(s->seqs[1].parity, -1.0, 1e-9);
+	cr_assert_eq(s->seqs[1].frame_cols, 640);
+
 	mpp_session_free(s);
 }
 

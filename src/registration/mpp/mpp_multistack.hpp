@@ -76,14 +76,18 @@ struct MultiStackResult {
 	int num_frames = 0;       /* union total actually combined */
 };
 
-/* Combine the sources into one stack in source `ref`'s epoch canvas (its
- * .derot disk fit defines the output geometry; its frame_rows/cols the size).
- * `num_layers` is the output channel count (1 or 3 — full_read must match).
- * Reuses the standard streamed engines; every frame is relocated+derotated into
- * the reference canvas. With a single source this reduces to the ordinary
+/* Combine the sources into one stack in the epoch canvas defined by `out_derot`
+ * (its disk fit gives the output geometry, its frame_rows/cols the size). The
+ * output canvas is decoupled from the source list so that several channels
+ * (R/G/B) can each stack their OWN sequences into the SAME reference canvas and
+ * stay mutually co-registered — `out_derot` is the user-designated reference
+ * sequence's plan and need not be one of `srcs`. `num_layers` is the output
+ * channel count (1 or 3 — full_read must match). Reuses the standard streamed
+ * engines; every frame is relocated + derotated into the reference canvas. With
+ * a single source whose derot is `out_derot` this reduces to the ordinary
  * single-sequence derotation stack. */
 MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
-                                    int ref, int num_layers,
+                                    const mpp_derot_t *out_derot, int num_layers,
                                     const mpp_config_t &cfg,
                                     int max_threads = 1);
 

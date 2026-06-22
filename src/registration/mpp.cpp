@@ -1787,9 +1787,10 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
  * packs the result into the caller's fits. `seqs[ref]` defines the output
  * geometry and channel count. */
 static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
-                                        int n, int ref, const mpp_config_t *cfg,
+                                        int n, const mpp_derot_t *out_derot,
+                                        sequence *ref_seq, const mpp_config_t *cfg,
                                         fits *out) {
-	if (!seqs || !derots || n <= 0 || ref < 0 || ref >= n || !cfg || !out)
+	if (!seqs || !derots || n <= 0 || !out_derot || !ref_seq || !cfg || !out)
 		return MPP_EINVAL;
 	for (int i = 0; i < n; ++i)
 		if (!seqs[i] || !derots[i]) return MPP_EINVAL;
@@ -1809,14 +1810,16 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 		};
 	}
 
-	/* output channel count from the reference sequence (CFA decodes to 3). */
-	const bool avi_cfa = (seqs[ref]->type == SEQ_AVI
+	/* output channel count from the channel's own sequences (CFA decodes to 3).
+	 * The reference sequence supplies only the canvas geometry — it may belong
+	 * to a different channel — so the layer count is taken from the sources. */
+	const bool avi_cfa = (seqs[0]->type == SEQ_AVI
 	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
-	const bool is_cfa = (mpp_classify_sequence_input(seqs[ref]) == MPP_INPUT_CFA)
+	const bool is_cfa = (mpp_classify_sequence_input(seqs[0]) == MPP_INPUT_CFA)
 	                  || avi_cfa;
 	const int num_layers = is_cfa ? 3
-	                      : (seqs[ref]->nb_layers > 0 ? seqs[ref]->nb_layers : 1);
+	                      : (seqs[0]->nb_layers > 0 ? seqs[0]->nb_layers : 1);
 
 #ifdef _OPENMP
 	const int nt = std::max(1, com.max_thread);
@@ -1825,11 +1828,11 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 #endif
 
 	siril_log_message(_("Derotation stack: combining %d sequence(s), reference "
-	                    "'%s', %d output channel(s)\n"),
-	                  n, seqs[ref]->seqname, num_layers);
+	                    "canvas '%s', %d output channel(s)\n"),
+	                  n, ref_seq->seqname, num_layers);
 
 	const mpp::MultiStackResult res =
-	    mpp::multistack_channel(srcs, ref, num_layers, *cfg, nt);
+	    mpp::multistack_channel(srcs, out_derot, num_layers, *cfg, nt);
 	if (res.error) return MPP_EINVAL;
 	if (res.oom) return MPP_ENOMEM;
 	if (res.cancelled || res.image.empty()) return MPP_EINTR;
@@ -1872,8 +1875,28 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 extern "C" mpp_status_t mpp_multistack(sequence **seqs, mpp_derot_t **derots,
                                        int n, int ref, const mpp_config_t *cfg,
                                        fits *out) {
+	if (ref < 0 || ref >= n || !derots) return MPP_EINVAL;
 	try {
-		return mpp_multistack_impl(seqs, derots, n, ref, cfg, out);
+		/* CLI/single-channel: the reference is one of the sources and supplies
+		 * both the canvas and its own frames. */
+		return mpp_multistack_impl(seqs, derots, n, derots[ref], seqs[ref], cfg, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+/* Multi-channel entry: the output canvas is `out_derot` / `ref_seq` (the
+ * user-designated reference sequence's plan and geometry), while `seqs`/`derots`
+ * are one channel's own sources. The reference need not be among them, so every
+ * channel stacks into the same canvas and the results compose to RGB. */
+extern "C" mpp_status_t mpp_multistack_to(sequence **seqs, mpp_derot_t **derots,
+                                          int n, sequence *ref_seq,
+                                          const mpp_derot_t *out_derot,
+                                          const mpp_config_t *cfg, fits *out) {
+	try {
+		return mpp_multistack_impl(seqs, derots, n, out_derot, ref_seq, cfg, out);
 	} catch (const std::exception &e) {
 		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
 		                  "reduce the memory ratio in Preferences.\n"), e.what());
