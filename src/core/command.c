@@ -15452,14 +15452,14 @@ int process_ser_fix_timestamps(int nb) {
 	gboolean is_com = check_seq_is_comseq(seq);
 	if (is_com) { free_sequence(seq, TRUE); seq = &com.seq; }
 	int ret = CMD_OK;
+	double fps = 0.0;
+	GDateTime *start_dt = NULL;   /* declared before the first goto (done unrefs it) */
 
 	if (seq->type != SEQ_SER || !seq->ser_file) {
 		siril_log_error(_("ser_fix_timestamps: '%s' is not a SER sequence\n"), word[1]);
 		ret = CMD_INVALID_IMAGE; goto done;
 	}
 
-	double fps = 0.0;
-	GDateTime *start_dt = NULL;
 	for (int i = 2; i < nb; i++) {
 		const char *w = word[i];
 		if (g_str_has_prefix(w, "-fps=")) {

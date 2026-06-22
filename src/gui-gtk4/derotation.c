@@ -37,6 +37,7 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "io/sequence.h"
+#include "io/image_format_fits.h"   /* savefits, clearfits */
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
@@ -657,7 +658,7 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	 * of every sequence's span. */
 	double epoch_jd;
 	const char *etxt = entry_epoch ? gtk_editable_get_text(GTK_EDITABLE(entry_epoch)) : NULL;
-	GDateTime *ep = (etxt && *etxt) ? FITS_date_to_date_time(etxt) : NULL;
+	GDateTime *ep = (etxt && *etxt) ? FITS_date_to_date_time((gchar *) etxt) : NULL;
 	if (ep) { epoch_jd = date_time_to_Julian(ep); g_date_time_unref(ep); }
 	else {
 		double *firsts = g_new(double, session->count);
