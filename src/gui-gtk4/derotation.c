@@ -201,21 +201,28 @@ static void leave_fit_mode(void) {
 	g_drag_mode = 0;
 }
 
-gboolean on_derotation_dialog_close_request(GtkWindow *win, gpointer user_data) {
-	(void) user_data;
+/* Hide the tool window and clear the overlay. Crucially, hand active state back
+ * to the main window — hiding a focused tool window without re-presenting the
+ * parent leaves GTK's active-state accounting unbalanced (it warns "Broken
+ * accounting of active state" at teardown). Mirrors reactivate_main_window(). */
+static void hide_dialog(void) {
 	leave_fit_mode();
-	gtk_widget_set_visible(GTK_WIDGET(win), FALSE);
+	if (dialog) gtk_widget_set_visible(dialog, FALSE);
 	redraw(REDRAW_OVERLAY);
+	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (main_win && gtk_widget_get_visible(main_win))
+		gtk_window_present(GTK_WINDOW(main_win));
+}
+
+gboolean on_derotation_dialog_close_request(GtkWindow *win, gpointer user_data) {
+	(void) win; (void) user_data;
+	hide_dialog();
 	return TRUE;   /* hide, don't destroy */
 }
 
 void on_derotation_close_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
-	if (dialog) {
-		leave_fit_mode();
-		gtk_widget_set_visible(dialog, FALSE);
-		redraw(REDRAW_OVERLAY);
-	}
+	hide_dialog();
 }
 
 void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
@@ -276,11 +283,7 @@ static gboolean derot_compute_idle(gpointer p) {
 		                    "System %d. Now register and stack the sequence.\n"),
 		                  a->path, a->N, a->span_min, a->system);
 		control_window_switch_to_tab(OUTPUT_LOGS);
-		if (dialog) {   /* success: close the tool window */
-			leave_fit_mode();
-			gtk_widget_set_visible(dialog, FALSE);
-			redraw(REDRAW_OVERLAY);
-		}
+		hide_dialog();   /* success: close the tool window */
 	} else {
 		siril_log_error(_("derotation: %s\n"),
 		                a->err ? a->err : _("compute failed"));
