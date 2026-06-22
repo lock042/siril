@@ -65,6 +65,55 @@ double mpp_derot_midpoint_epoch(const double *jd, int n) {
 	return 0.5 * (jd[0] + jd[n - 1]);
 }
 
+gboolean mpp_derot_sequence_span(sequence *seq, double fps, double start_jd,
+                                 double *first_jd, double *last_jd) {
+	if (!seq || seq->number <= 0 || !first_jd || !last_jd) return FALSE;
+	const int N = seq->number;
+
+	if (fps > 0.0) {
+		double jd0 = start_jd;
+		if (isnan(jd0)) {
+			if (seq->type == SEQ_SER && seq->ser_file) {
+				GDateTime *t0 = ser_read_frame_date(seq->ser_file, 0);
+				if (!t0) return FALSE;
+				jd0 = date_time_to_Julian(t0);
+				g_date_time_unref(t0);
+			} else {
+				return FALSE;
+			}
+		}
+		*first_jd = jd0;
+		*last_jd  = jd0 + (double) (N - 1) / (fps * 86400.0);
+		return TRUE;
+	}
+
+	if (seq->type == SEQ_SER && seq->ser_file) {
+		GDateTime *t0 = ser_read_frame_date(seq->ser_file, 0);
+		GDateTime *tn = ser_read_frame_date(seq->ser_file, N - 1);
+		if (!t0 || !tn) {
+			if (t0) g_date_time_unref(t0);
+			if (tn) g_date_time_unref(tn);
+			return FALSE;
+		}
+		*first_jd = date_time_to_Julian(t0);
+		*last_jd  = date_time_to_Julian(tn);
+		g_date_time_unref(t0);
+		g_date_time_unref(tn);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+double mpp_derot_union_epoch(const double *first_jd, const double *last_jd, int n) {
+	if (!first_jd || !last_jd || n <= 0) return 0.0;
+	double gmin = first_jd[0], gmax = last_jd[0];
+	for (int i = 1; i < n; i++) {
+		if (first_jd[i] < gmin) gmin = first_jd[i];
+		if (last_jd[i]  > gmax) gmax = last_jd[i];
+	}
+	return 0.5 * (gmin + gmax);
+}
+
 mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              const double *jd, int num_frames,
                              int frame_rows, int frame_cols,

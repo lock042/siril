@@ -81,3 +81,21 @@ Test(mpp_derot_build, autodetect_plain_disk) {
 	cr_assert_float_eq(r, R, 0.2 * R, "radius %.1f vs %.0f", r, R);
 	free(buf);
 }
+
+/* The shared (multi-sequence) reference epoch is the midpoint of the union of
+ * the spans, regardless of order or overlap. */
+Test(mpp_derot_build, union_epoch_midpoint) {
+	/* three R/G/B spans, captured back to back */
+	const double first[3] = { 100.0, 100.2, 100.4 };
+	const double last[3]  = { 100.1, 100.3, 100.5 };
+	/* union = [100.0, 100.5] -> midpoint 100.25 */
+	cr_assert_float_eq(mpp_derot_union_epoch(first, last, 3), 100.25, 1e-12);
+	/* order-independent */
+	const double f2[3] = { 100.4, 100.0, 100.2 };
+	const double l2[3] = { 100.5, 100.1, 100.3 };
+	cr_assert_float_eq(mpp_derot_union_epoch(f2, l2, 3), 100.25, 1e-12);
+	/* single sequence collapses to its own midpoint */
+	const double f1 = 50.0, l1 = 51.0;
+	cr_assert_float_eq(mpp_derot_union_epoch(&f1, &l1, 1), 50.5, 1e-12);
+	cr_assert_float_eq(mpp_derot_union_epoch(&f1, &l1, 0), 0.0, 1e-12);
+}

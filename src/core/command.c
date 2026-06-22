@@ -15159,6 +15159,7 @@ int process_derotate(int nb) {
 	double obs_lat = NAN, obs_lon = NAN, obs_elev = NAN;
 	GDateTime *epoch_dt = NULL, *start_dt = NULL;
 	gchar *out_path = NULL;
+	gchar *epoch_from = NULL;
 	int ret = CMD_OK;
 
 	for (int i = 2; i < nb; i++) {
@@ -15187,6 +15188,8 @@ int process_derotate(int nb) {
 		} else if (g_str_has_prefix(w, "-epoch=")) {
 			epoch_dt = FITS_date_to_date_time((gchar *) (w + 7));
 			if (!epoch_dt) { siril_log_error(_("derotate: bad -epoch (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (g_str_has_prefix(w, "-epoch-from=")) {
+			g_free(epoch_from); epoch_from = g_strdup(w + 12);
 		} else if (g_str_has_prefix(w, "-start=")) {
 			start_dt = FITS_date_to_date_time((gchar *) (w + 7));
 			if (!start_dt) { siril_log_error(_("derotate: bad -start (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
@@ -15218,8 +15221,42 @@ int process_derotate(int nb) {
 		free(jd); ret = CMD_ARG_ERROR; goto done;
 	}
 
-	const double epoch_jd = epoch_dt ? date_time_to_Julian(epoch_dt)
-	                                 : mpp_derot_midpoint_epoch(jd, N);
+	double epoch_jd;
+	if (epoch_dt) {
+		epoch_jd = date_time_to_Julian(epoch_dt);
+	} else if (epoch_from) {
+		/* Shared reference epoch across a set of sequences (multi-channel /
+		 * multi-session derotation): the midpoint of the union of their spans,
+		 * so every channel presents the same planet face. */
+		gchar **names = g_strsplit(epoch_from, ",", -1);
+		const int nn = (int) g_strv_length(names);
+		double *firsts = malloc((size_t) (nn > 0 ? nn : 1) * sizeof(double));
+		double *lasts  = malloc((size_t) (nn > 0 ? nn : 1) * sizeof(double));
+		int valid = 0;
+		gboolean ok = (firsts && lasts);
+		for (int i = 0; ok && i < nn; i++) {
+			gchar *nm = g_strstrip(names[i]);
+			if (!*nm) continue;
+			sequence *s = load_sequence_force_debayer(nm);
+			if (!s) { siril_log_error(_("derotate: -epoch-from: cannot load '%s'\n"), nm); ok = FALSE; break; }
+			gboolean is_com = check_seq_is_comseq(s);
+			if (is_com) { free_sequence(s, TRUE); s = &com.seq; }
+			double f, l;
+			gboolean got = mpp_derot_sequence_span(s, fps, start_jd, &f, &l);
+			if (!is_com) free_sequence(s, TRUE);
+			if (!got) { siril_log_error(_("derotate: -epoch-from: no timestamps in '%s'\n"), nm); ok = FALSE; break; }
+			firsts[valid] = f; lasts[valid] = l; valid++;
+		}
+		g_strfreev(names);
+		if (!ok || valid == 0) {
+			free(firsts); free(lasts); free(jd); ret = CMD_ARG_ERROR; goto done;
+		}
+		epoch_jd = mpp_derot_union_epoch(firsts, lasts, valid);
+		free(firsts); free(lasts);
+		siril_log_message(_("derotate: shared reference epoch across %d sequence(s)\n"), valid);
+	} else {
+		epoch_jd = mpp_derot_midpoint_epoch(jd, N);
+	}
 
 	mpp_derot_t *d = mpp_derot_build(body, system, epoch_jd, jd, N,
 	                                 (int) seq->ry, (int) seq->rx,
@@ -15253,6 +15290,7 @@ int process_derotate(int nb) {
 
 done:
 	g_free(out_path);
+	g_free(epoch_from);
 	if (epoch_dt) g_date_time_unref(epoch_dt);
 	if (start_dt) g_date_time_unref(start_dt);
 	return ret;

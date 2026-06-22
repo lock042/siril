@@ -43,6 +43,18 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 /* Midpoint of a per-frame Julian-date array (the default reference epoch). */
 double mpp_derot_midpoint_epoch(const double *jd, int n);
 
+/* First/last frame UTC Julian dates of a sequence, without reading every frame
+ * (the endpoints are all the span needs). Same timing sources as
+ * mpp_derot_frame_times. Returns FALSE if no timing source is available. */
+gboolean mpp_derot_sequence_span(sequence *seq, double fps, double start_jd,
+                                 double *first_jd, double *last_jd);
+
+/* Common reference epoch for a set of sequences whose spans are given by
+ * first_jd[]/last_jd[]: the midpoint of their union (0.5·(min first, max last)).
+ * This is the epoch that minimises the largest rotation any one frame across
+ * all the sequences is derotated through. Returns 0 for n <= 0. */
+double mpp_derot_union_epoch(const double *first_jd, const double *last_jd, int n);
+
 /* Build a fully-populated plan (per-frame + epoch geometry) from the built-in
  * ephemeris. `system` is 1..3. Disk fit is in original full-frame pixels;
  * pa_deg is the in-image pole position angle, parity ±1. obs_* may be NaN for
