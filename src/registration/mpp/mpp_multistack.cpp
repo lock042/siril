@@ -236,7 +236,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	const auto wr = mpp::stack_warp_apply_streamed(
 	    full_provider, N, num_layers, *aps, apq, shifts, offsets, brightness,
 	    sorted_idx, intersection, cfg, included.data(), nt,
-	    /*provider_thread_safe=*/false, /*mem_budget_bytes=*/0, &derot_provider);
+	    provider_thread_safe, /*mem_budget_bytes=*/0, &derot_provider);
 
 	mpp_shift_free(shifts);
 	mpp_ap_free(aps);
