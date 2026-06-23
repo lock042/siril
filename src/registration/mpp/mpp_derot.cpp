@@ -23,7 +23,7 @@
 #include "mpp_derot.h"
 #include "mpp_derot_geom.h"
 
-#define DEG (M_PI / 180.0)
+#define DEG (G_PI / 180.0)
 
 void mpp_derot_frame_map(const mpp_derot_t *d, int frame,
                          int out_w, int out_h,
