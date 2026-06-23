@@ -105,6 +105,8 @@ static void on_derotation_seqlist_row_activated(GtkListBox *box, GtkListBoxRow *
 static void mark_fit_valid(void);
 static void update_session_epoch(void);
 static void set_model_locked(gboolean locked);
+static void update_guidance(void);
+static void populate_from_sequence(void);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -240,6 +242,7 @@ static void mark_fit_valid(void) {
 	g_free(fitted_for);
 	fitted_for = (sequence_is_loaded() && com.seq.seqname)
 	    ? g_strdup(com.seq.seqname) : NULL;
+	update_guidance();   /* a fit just happened: advance the recommended step */
 }
 
 /* Lock the planet model (body + rotation system) once a session exists: all
@@ -247,6 +250,53 @@ static void mark_fit_valid(void) {
 static void set_model_locked(gboolean locked) {
 	if (dd_body)   gtk_widget_set_sensitive(GTK_WIDGET(dd_body), !locked);
 	if (dd_system) gtk_widget_set_sensitive(GTK_WIDGET(dd_system), !locked);
+}
+
+/* ---- step-by-step guidance ----
+ * Highlight the single next recommended action with the suggested-action style,
+ * moving it as the user completes each step:
+ *   simple mode:  fit the disk -> Compute & save
+ *   multi mode:   fit the disk -> Add -> Combine
+ * Cleared while no sequence is loaded (the user must load one first) and reset
+ * after a successful combine. */
+static const char *const GUIDE_IDS[] = {
+	"derot_autofit", "derot_add", "derot_combine", "derot_compute"
+};
+
+static void guidance_set(const char *id) {
+	for (size_t i = 0; i < G_N_ELEMENTS(GUIDE_IDS); i++) {
+		GObject *o = gtk_builder_get_object(gui.builder, GUIDE_IDS[i]);
+		if (!o) continue;
+		GtkWidget *w = GTK_WIDGET(o);
+		if (id && !g_strcmp0(GUIDE_IDS[i], id))
+			gtk_widget_add_css_class(w, "suggested-action");
+		else
+			gtk_widget_remove_css_class(w, "suggested-action");
+	}
+}
+
+static int session_index_of(const char *seqname) {
+	if (!session || !seqname) return -1;
+	for (int i = 0; i < session->count; i++)
+		if (!g_strcmp0(session->seqs[i].seqname, seqname)) return i;
+	return -1;
+}
+
+static void update_guidance(void) {
+	if (!window_open) { guidance_set(NULL); return; }
+	if (!sequence_is_loaded() || com.seq.number <= 0 || !com.seq.seqname) {
+		guidance_set(NULL);   /* nothing to guide until a sequence is loaded */
+		return;
+	}
+	const gboolean fitted = (g_strcmp0(fitted_for, com.seq.seqname) == 0)
+	    && spin_radius && gtk_spin_button_get_value(spin_radius) >= 1.0;
+	if (!fitted)            { guidance_set("derot_autofit"); return; }
+	if (!multi_mode)        { guidance_set("derot_compute"); return; }
+	if (session_index_of(com.seq.seqname) < 0)
+	                       { guidance_set("derot_add"); return; }
+	if (session && session->count > 0)
+	                       { guidance_set("derot_combine"); return; }
+	guidance_set(NULL);
 }
 
 /* Show the shared reference epoch (union-span midpoint over all session
@@ -349,6 +399,7 @@ void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
 	set_model_locked(TRUE);     /* the body is now fixed by the session */
 	update_session_epoch();     /* show the shared epoch */
 	refresh_seqlist();
+	update_guidance();
 	set_status(_("Sequence added. Load and fit the next, or combine."));
 }
 
@@ -378,6 +429,7 @@ void on_derotation_remove_clicked(GtkButton *button, gpointer user_data) {
 	else
 		update_session_epoch();
 	refresh_seqlist();
+	update_guidance();
 }
 
 /* Double-click a list row: load that sequence and restore its recorded fit into
@@ -448,6 +500,7 @@ static gboolean apply_autodetect(void) {
 static void populate_from_sequence(void) {
 	if (!sequence_is_loaded() || com.seq.number <= 0) {
 		set_status(_("Load a planetary sequence first."));
+		update_guidance();   /* nothing to guide without a sequence */
 		return;
 	}
 	/* AVI has no per-frame timestamps; auto-fill the frame rate from the
@@ -489,6 +542,7 @@ static void populate_from_sequence(void) {
 	free(jd);
 
 	apply_autodetect();
+	update_guidance();   /* covers the auto-detect-failed case too */
 }
 
 /* A sequence was loaded while the tool is open: refresh the epoch + frame rate
@@ -574,6 +628,7 @@ static void leave_fit_mode(void) {
  * accounting of active state" at teardown). Mirrors reactivate_main_window(). */
 static void hide_dialog(void) {
 	leave_fit_mode();
+	guidance_set(NULL);   /* drop the highlight while hidden */
 	if (dialog) gtk_widget_set_visible(dialog, FALSE);
 	redraw(REDRAW_OVERLAY);
 	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
@@ -612,6 +667,7 @@ void on_derotation_autofit_clicked(GtkButton *button, gpointer user_data) {
 		set_status(_("Disk auto-detected — adjust if needed, then compute."));
 	else
 		set_status(_("Could not auto-detect a disk; set the centre and radius manually."));
+	update_guidance();   /* also covers the auto-detect-failed case */
 }
 
 /* Flip the pole 180°: the auto-fit aligns the rotation axis from the image but
@@ -816,6 +872,16 @@ static gboolean derot_combine_idle(gpointer p) {
 	if (a->saved > 0 && a->load_name) {
 		gchar *path = set_right_extension(a->load_name);
 		if (path) { open_single_image(path); g_free(path); }
+	}
+	/* Full workflow done: reset the dialog for a fresh session and restart the
+	 * step-by-step guidance from the beginning. */
+	if (a->saved > 0) {
+		if (session) { mpp_session_free(session); session = NULL; }
+		set_model_locked(FALSE);
+		refresh_seqlist();
+		set_status(_("Combine complete and reset — load and fit a sequence to "
+		             "start a new session."));
+		update_guidance();
 	}
 	derot_combine_args_free(a);
 	return FALSE;
