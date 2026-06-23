@@ -255,7 +255,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -279,7 +279,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	return FALSE;
 }
 
@@ -368,9 +368,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	gui_iface.enable_display_mode_menu();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
-		gui_iface.redraw_image(REMAP_ALL);
+		gui_iface.redraw_image(REDRAW_ALL);
 	else
-		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
+		gui_iface.redraw_image_async(REDRAW_ALL);	// queues a redraw if !com.script
 
 	gui_iface.redraw_previews();
 
@@ -399,6 +399,11 @@ void gfit_modified_update_gui() {
  * as dirty and recompute them on demand.  execute_script() calls this function
  * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
+	/* During application shutdown the loaded image is being torn down and the
+	 * display is going away, so recomputing the histogram and remapping the
+	 * (about-to-be-freed) pixels is pure waste — and laggy on a large image. */
+	if (com.quitting)
+		return;
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {

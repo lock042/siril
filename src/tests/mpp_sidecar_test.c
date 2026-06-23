@@ -38,6 +38,10 @@ static mpp_run_t *make_test_run(int with_shifts) {
 	}
 	run->best_frame_idx = 2;
 	run->stack_size = 2;
+	/* Soft-selection fields (v6): one taper rank, so the baked selection
+	 * stride is stack_size + taper = 3. */
+	run->taper = 1;
+	run->selected_per_ap = 3;
 
 	run->mean_frame_rows = 10;
 	run->mean_frame_cols = 12;
@@ -79,10 +83,11 @@ static mpp_run_t *make_test_run(int with_shifts) {
 	}
 	run->aps = aps;
 
-	run->best_frame_indices = malloc(3 * 2 * sizeof(int32_t));
+	run->best_frame_indices = malloc(3 * 3 * sizeof(int32_t));
 	for (int a = 0; a < 3; ++a) {
-		run->best_frame_indices[a * 2 + 0] = (a + 1) % 4;
-		run->best_frame_indices[a * 2 + 1] = (a + 2) % 4;
+		run->best_frame_indices[a * 3 + 0] = (a + 1) % 4;
+		run->best_frame_indices[a * 3 + 1] = (a + 2) % 4;
+		run->best_frame_indices[a * 3 + 2] = (a + 3) % 4;
 	}
 
 	if (with_shifts) {
@@ -122,6 +127,8 @@ Test(mpp_sidecar, roundtrip_without_shifts) {
 	cr_assert_not_null(dst);
 	cr_assert_eq(dst->num_frames, src->num_frames);
 	cr_assert_eq(dst->stack_size, src->stack_size);
+	cr_assert_eq(dst->taper, src->taper);
+	cr_assert_eq(dst->selected_per_ap, src->selected_per_ap);
 	cr_assert_eq(dst->aps->count, src->aps->count);
 	cr_assert_null(dst->shifts);
 	for (int i = 0; i < src->num_frames; ++i) {
@@ -138,8 +145,38 @@ Test(mpp_sidecar, roundtrip_without_shifts) {
 	}
 	for (int i = 0; i < src->mean_frame_rows * src->mean_frame_cols; ++i)
 		cr_assert_eq(dst->mean_frame_data[i], src->mean_frame_data[i]);
-	for (int i = 0; i < src->aps->count * src->stack_size; ++i)
+	for (int i = 0; i < src->aps->count * src->selected_per_ap; ++i)
 		cr_assert_eq(dst->best_frame_indices[i], src->best_frame_indices[i]);
+
+	mpp_run_free(src);
+	mpp_run_free(dst);
+	unlink(tmp);
+}
+
+/* Stage-A-only run: per-AP ranking is deferred, so best_frame_indices is
+ * NULL (has_bfi == 0) and there are no shifts. v9 must persist and restore
+ * this state without inventing a bfi block. */
+Test(mpp_sidecar, roundtrip_stage_a_only) {
+	mpp_run_t *src = make_test_run(0);
+	cr_assert_not_null(src);
+	free(src->best_frame_indices);
+	src->best_frame_indices = NULL;
+
+	char tmp[] = "/tmp/mpp_sidecar_test_XXXXXX";
+	int fd = mkstemp(tmp);
+	cr_assert_gt(fd, 0);
+	close(fd);
+
+	cr_assert_eq(mpp_sidecar_write(tmp, src), MPP_OK);
+
+	mpp_run_t *dst = NULL;
+	cr_assert_eq(mpp_sidecar_read(tmp, &dst), MPP_OK);
+	cr_assert_not_null(dst);
+	cr_assert_null(dst->shifts);
+	cr_assert_null(dst->best_frame_indices);
+	cr_assert_eq(dst->aps->count, src->aps->count);
+	for (int i = 0; i < src->mean_frame_rows * src->mean_frame_cols; ++i)
+		cr_assert_eq(dst->mean_frame_data[i], src->mean_frame_data[i]);
 
 	mpp_run_free(src);
 	mpp_run_free(dst);

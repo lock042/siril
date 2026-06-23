@@ -50,6 +50,7 @@
 #include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
 #include "image_format_fits.h"
+#include "io/gps_parser.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
@@ -73,7 +74,6 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 		__iter__++; \
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
-
 
 void fit_get_photometry_data(fits *fit) {
 	int status = 0;
@@ -1316,6 +1316,14 @@ void clearfits_header(fits *fit) {
 		g_date_time_unref(fit->keywords.date);
 		fit->keywords.date = NULL;
 	}
+	if (fit->keywords.gps_data) {
+		if (fit->keywords.gps_data->end_vsync_date) {
+			g_date_time_unref(fit->keywords.gps_data->end_vsync_date);
+			fit->keywords.gps_data->end_vsync_date = NULL;
+		}
+		free(fit->keywords.gps_data);
+		fit->keywords.gps_data = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
@@ -1563,8 +1571,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->data holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
@@ -1590,8 +1599,9 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 				report_fits_error(status);
 				status = 0;
 				fits_close_file(fit->fptr, &status);
-				if (olddata)
-					free(olddata);
+				/* realloc succeeded: olddata was already freed by realloc.
+				 * fit->fdata holds the live buffer, freed by the caller's
+				 * clearfits() on error. */
 				return status;
 			}
 		}
@@ -2079,7 +2089,7 @@ static inline void ffit_clone_without_lock(fits *dst, const fits *src) {
  *
  */
 
-int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
+int copyfits(fits *from, fits *to, unsigned int oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
 
@@ -2114,6 +2124,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->history = NULL;
 		to->keywords.date = NULL;
 		to->keywords.date_obs = NULL;
+		to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 		to->icc_profile = NULL;
 		to->color_managed = FALSE;
 		to->keywords.wcslib = NULL;
@@ -2245,6 +2256,41 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		color_manage(to, to->color_managed);
 	}
 
+	/* Heap-owned metadata: CP_FORMAT clones the scalar keywords but nulls
+	 * each of these pointers, so they get their own bits. Every block frees
+	 * any existing value in `to` first, so the flags compose cleanly whether
+	 * or not CP_FORMAT ran alongside them. */
+	if ((oper & CP_WCS)) {
+		free_wcs(to);
+		if (from->keywords.wcslib) {
+			int status = -1;
+			to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
+		}
+	}
+	if ((oper & CP_HEADER)) {
+		free(to->header);
+		to->header = from->header ? strdup(from->header) : NULL;
+	}
+	if ((oper & CP_UNKNOWNKEYS)) {
+		g_free(to->unknown_keys);
+		to->unknown_keys = from->unknown_keys ? g_strdup(from->unknown_keys) : NULL;
+	}
+	if ((oper & CP_HISTORY)) {
+		g_slist_free_full(to->history, g_free);
+		GSList *copy = NULL;
+		for (GSList *l = from->history; l; l = l->next)
+			copy = g_slist_prepend(copy, g_strdup(l->data));
+		to->history = g_slist_reverse(copy);
+	}
+	if ((oper & CP_DATES)) {
+		if (to->keywords.date_obs)
+			g_date_time_unref(to->keywords.date_obs);
+		to->keywords.date_obs = from->keywords.date_obs ? g_date_time_ref(from->keywords.date_obs) : NULL;
+		if (to->keywords.date)
+			g_date_time_unref(to->keywords.date);
+		to->keywords.date = from->keywords.date ? g_date_time_ref(from->keywords.date) : NULL;
+	}
+
 	return 0;
 }
 
@@ -2300,6 +2346,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->keywords.date = NULL;
 	to->keywords.date_obs = NULL;
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
@@ -2401,6 +2448,8 @@ void copy_fits_metadata(fits *from, fits *to) {
 		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
 	}
 
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
+
 	if (from->keywords.wcslib) {
 		int status = -1;
 		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
@@ -2413,6 +2462,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	if (from->unknown_keys) {
 		to->unknown_keys = g_strdup(from->unknown_keys);
 	}
+
 	// Set boolean flags
 //	to->pixelkey = (from->keywords.pixel_size_x > 0.);
 //	to->focalkey = (from->keywords.focal_length > 0.);
@@ -2421,9 +2471,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->focalkey = from->focalkey;
 
 	// copy from->history?
-
 }
-
 
 int copy_fits_from_file(const char *source, const char *destination) {
 	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */
@@ -2595,6 +2643,7 @@ static void fits_flip_top_to_bottom_float(fits *fit) {
 	free(swapline);
 }
 
+// only flips data, not metadata!
 void fits_flip_top_to_bottom(fits *fit) {
 	if (fit->type == DATA_USHORT)
 		fits_flip_top_to_bottom_ushort(fit);
@@ -2875,11 +2924,14 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	} while(0)
 
 /**
- * Create a preview of a FITS file in a GdkPixbuf (color if available)
- * @param filename
- * @return a GdkPixbuf containing the preview or NULL
+ * Build a downsampled RGB888 thumbnail from a FITS file.
+ * Returns a malloc'd 3-channel RGB byte buffer (caller frees with free()),
+ * or NULL on error.  *description is set to a freshly-allocated g_free()
+ * string with image dimensions / channel count.  *width_out and
+ * *height_out are set to the thumbnail's dimensions on success.
  */
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
+                                     int *width_out, int *height_out) {
 	fitsfile *fp;
 	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
@@ -3088,16 +3140,22 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	free(ima_data);
 	free(preview_data);
 
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
-			GDK_COLORSPACE_RGB,
-			FALSE,
-			8,
-			Ws, Hs,
-			Ws * 3,
-			(GdkPixbufDestroyNotify) free_preview_data,
-			NULL);
 	*descr = description;
-	return pixbuf;
+	if (width_out) *width_out = Ws;
+	if (height_out) *height_out = Hs;
+	return pixbuf_data;
+}
+
+/* Pixbuf-returning shim around extract_thumbnail_from_fits, kept for the
+ * GTK3 build and for any caller that still wants a GdkPixbuf.  Ownership
+ * of the byte buffer is transferred to the pixbuf via free_preview_data. */
+GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+	int w = 0, h = 0;
+	guchar *data = extract_thumbnail_from_fits(filename, descr, &w, &h);
+	if (!data) return NULL;
+	return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
+			w, h, w * 3,
+			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
@@ -3563,7 +3621,6 @@ int save_wcs_fits(fits *f, const gchar *name) {
 
 	if (g_unlink(name))
 		siril_log_debug("g_unlink() failed\n");
-	
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
@@ -3821,6 +3878,28 @@ int fits_swap_image_data(fits *a, fits *b) {
 	a->neg_ratio = b->neg_ratio;
 	b->neg_ratio = tmpf;
 
+	return 0;
+}
+
+/* Swap every member of the fits struct except the trailing rwlock.
+ * Relies on the static_assert in core/siril.h that pins GRWLock as the
+ * last field of struct ffit, so memcpy of offsetof(fits, rwlock) bytes
+ * covers everything in front of the lock and nothing behind it.  Each
+ * struct keeps the same rwlock identity / address, so readers/writers
+ * that hold the lock on `a` or `b` are unaffected by the swap.
+ *
+ * Used by generic_image_worker to install an image_hook's result into
+ * gfit under a microsecond writer-lock window — far cheaper than
+ * holding the writer lock for the duration of the hook itself. */
+int fits_swap_all_except_rwlock(fits *a, fits *b) {
+	if (a == NULL || b == NULL)
+		return 1;
+	const size_t swap_size = offsetof(fits, rwlock);
+	void *tmp = g_malloc(swap_size);
+	memcpy(tmp, a,   swap_size);
+	memcpy(a,   b,   swap_size);
+	memcpy(b,   tmp, swap_size);
+	g_free(tmp);
 	return 0;
 }
 

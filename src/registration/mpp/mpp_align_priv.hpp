@@ -98,6 +98,10 @@ struct AlignGlobalResult {
 	std::vector<cv::Vec2d> shifts;  /* (dy, dx) per frame, sub-pixel */
 	cv::Vec4i patch_yxyx;           /* (y_low, y_high, x_low, x_high) on best frame */
 	int best_frame_idx = -1;
+	/* An allocation failure was contained inside one of the parallel
+	 * sweeps (best_frame_idx is also -1). Distinguishes out-of-memory
+	 * from user cancellation so the caller can report MPP_ENOMEM. */
+	bool oom = false;
 };
 
 /* Returns the cv::Mat for frame index `i`. The pixel type / channel
@@ -158,12 +162,18 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
                                              const std::vector<cv::Vec2d> &seed = {});
 
 /* Build a per-frame gross-shift seed (see the seed param above) from the
- * sequence's existing shift registration data. Uses the first layer with
- * non-null regparam; per frame, extracts the translation via Siril's
- * canonical translation_from_H (dx = H.h02, dy = -H.h12) — the same to-align
- * content translation shift_fit_from_reg applies — and stores it as the
- * port's (dy, dx). Returns an empty vector when no layer carries regdata
- * (so the aligner falls back to its cumulative path). */
+ * sequence's existing shift registration data. Uses the first layer whose
+ * regparam carries at least one nonzero translation; per frame, extracts the
+ * translation via Siril's canonical translation_from_H (dx = H.h02,
+ * dy = -H.h12) — the same to-align content translation shift_fit_from_reg
+ * applies — and stores it as the port's (dy, dx). Returns an empty vector
+ * when no layer carries usable regdata (so the aligner falls back to its
+ * cumulative path). Layers whose translations are all zero are treated as
+ * quality-only regdata — mpp itself publishes such a layer via
+ * mpp_write_quality_to_regdata — and must NOT seed: an all-zero seed pins
+ * every search window at zero shift instead of restoring cumulative
+ * tracking, which breaks alignment for any frame drifting beyond
+ * align_frames_search_width. */
 std::vector<cv::Vec2d> seed_from_regdata(struct sequ *seq);
 
 /* Pick the `number_frames` indices that maximise the summed quality
@@ -194,6 +204,11 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_r
  * available to read them from. Only the frames listed in the computed
  * `indices` are actually requested (top-N by quality), so on a 10% top-N
  * the streaming path reads ~N/10 frames. */
+/* `included` (empty = all): when sized to num_frames, excluded frames are
+ * skipped both from the intersection/overlap bounds (a glitch frame with a
+ * wild global shift must not collapse the common area) and from the
+ * averaged-reference top-N (the caller also passes `quality` pre-masked so
+ * excluded frames sort last). */
 AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 int num_frames,
                                                 int frame_rows, int frame_cols,
@@ -201,7 +216,8 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
-                                                void *progress_user = nullptr);
+                                                void *progress_user = nullptr,
+                                                const std::vector<int> &included = {});
 
 }  // namespace mpp
 

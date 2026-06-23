@@ -107,16 +107,26 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	}
 
 	float **red = (float **)malloc(ry * sizeof(float *));
+	float **green = (float **)malloc(ry * sizeof(float *));
+	float **blue = (float **)malloc(ry * sizeof(float *));
+	if (!red || !green || !blue) {
+		PRINT_ALLOC_ERR;
+		free(red);
+		free(green);
+		free(blue);
+		free(newdata);
+		free(rawdata[0]);
+		free(rawdata);
+		return NULL;
+	}
 	red[0] = newdata;
 	for (i=1; i<ry; i++)
 		red[i] = red[i - 1] + rx;
 
-	float **green = (float **)malloc(ry * sizeof(float *));
 	green[0] = red[0] + nbpixels;
 	for (i=1; i<ry; i++)
 		green[i] = green[i - 1] + rx;
 
-	float **blue = (float **)malloc(ry * sizeof(float *));
 	blue[0] = green[0] + nbpixels;
 	for (i=1; i<ry; i++)
 		blue[i] = blue[i - 1] + rx;
@@ -270,16 +280,25 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	}
 
 	float **red = (float **)malloc(ry * sizeof(float *));
+	float **green = (float **)malloc(ry * sizeof(float *));
+	float **blue = (float **)malloc(ry * sizeof(float *));
+	if (!red || !green || !blue) {
+		PRINT_ALLOC_ERR;
+		free(red);
+		free(green);
+		free(blue);
+		free(newdata);
+		free(rawdata);
+		return NULL;
+	}
 	red[0] = newdata;
 	for (i = 1; i < ry; i++)
 		red[i] = red[i - 1] + rx;
 
-	float **green = (float **)malloc(ry * sizeof(float *));
 	green[0] = red[0] + nbpixels;
 	for (i = 1; i < ry; i++)
 		green[i] = green[i - 1] + rx;
 
-	float **blue = (float **)malloc(ry * sizeof(float *));
 	blue[0] = green[0] + nbpixels;
 	for (i = 1; i < ry; i++)
 		blue[i] = blue[i - 1] + rx;

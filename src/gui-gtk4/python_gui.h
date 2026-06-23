@@ -1,0 +1,33 @@
+#ifndef GUI_PYTHON
+#include <gtk/gtk.h>
+#define GUI_PYTHON
+
+#include <gtksourceview/gtksource.h>
+
+typedef struct {
+	GtkTextTag *search_tag;
+	GtkSourceView *source_view;
+	GtkTextBuffer *buffer;
+	GtkSearchEntry *search_entry;
+	GtkTextIter current_match_start;
+	GtkTextIter current_match_end;
+	GtkLabel *info_label;
+	gint current_match;
+	gint total_matches;
+	GSList *match_positions;
+} SearchData;
+
+typedef struct {
+	GtkTextMark *start_mark;
+	GtkTextMark *end_mark;
+} MatchPosition;
+
+
+int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data);
+void set_code_view_theme();
+gboolean code_view_exists();
+void new_script(const gchar *content, gint length, const char *ext);
+gboolean script_editor_has_unsaved_changes();
+gboolean get_python_debug_mode();
+void set_python_debug_mode(gboolean enabled);
+#endif

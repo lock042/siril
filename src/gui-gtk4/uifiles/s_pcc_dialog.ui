@@ -1,0 +1,1131 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name s_pcc_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="Adj_pcc_Mag_Limit">
+    <property name="lower">4</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">25</property>
+    <property name="value">12</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_bg_sigma_lower">
+    <property name="lower">0.10</property>
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">2.7999999999999998</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_bg_sigma_upper">
+    <property name="lower">0.10</property>
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">2</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_cc_bkg_h">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_cc_bkg_w">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_cc_bkg_x">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_cc_bkg_y">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_spcc_height">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">5700</property>
+    <property name="value">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_spcc_pressure">
+    <property name="lower">500</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">1100</property>
+    <property name="value">1013.25</property>
+  </object>
+  <object class="GtkImage" id="gaia_status_widget">
+    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
+    <property name="sensitive">0</property>
+    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
+    <property name="valign">center</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_b_bw">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_b_wl">
+    <property name="lower">380</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">700</property>
+    <property name="value">500.69999999999999</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_bw">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_wl">
+    <property name="lower">380</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">700</property>
+    <property name="value">500.69999999999999</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_bw">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_wl">
+    <property name="lower">380</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">700</property>
+    <property name="value">656.27999999999997</property>
+  </object>
+  <object class="GtkWindow" id="s_pcc_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">2</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkExpander" id="spcc_options">
+                    <property name="focusable">1</property>
+                    <property name="margin-bottom">5</property>
+                    <property name="margin-start">5</property>
+                    <property name="margin-top">5</property>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="column-spacing">5</property>
+                        <property name="row-spacing">5</property>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_wp">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">White Point Reference:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_sensors_mono">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Mono Sensor:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_sensors_osc">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">OSC Sensor:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_filters_r">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Red Filter:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">6</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_filters_g">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Green Filter:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">7</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_filters_osc">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">OSC Filter:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">5</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_filters_b">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Blue Filter:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">8</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_sensors_osc">
+                            <property name="tooltip-text" translatable="yes">Select an OSC sensor</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_sensors_mono">
+                            <property name="tooltip-text" translatable="yes">Select a mono sensor</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_filters_osc">
+                            <property name="tooltip-text" translatable="yes">Select an OSC filter (e.g. a broadband light pollution filter)</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">5</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_filters_r">
+                            <property name="tooltip-text" translatable="yes">Select a red filter used with composited mono images</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">6</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_filters_g">
+                            <property name="tooltip-text" translatable="yes">Select a green filter used with composited mono images</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">7</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_filters_b">
+                            <property name="tooltip-text" translatable="yes">Select a blue filter used with composited mono images</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">8</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_sensors_osc">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected OSC sensor</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_sensors_mono">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected mono sensor</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_filters_osc">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected OSC filter</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">5</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_filters_r">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected red filter</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">6</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_filters_g">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected green filter</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">7</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_filters_b">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected blue filter</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">8</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_filters_lpf">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">DSLR Low Pass Filter:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">4</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_filters_lpf">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected LPF</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">4</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_filters_lpf">
+                            <property name="tooltip-text" translatable="yes">For unmodified DSLRs, select the LPF most closely matching your model (many Canon LPFs are almost identical so there may not be an exact match for your model). For modified DSLRs, select the replacement LPF (if there isn't an exact match the Baader BCF is probably close).</property>
+                            <signal name="notify::selected" handler="on_spcc_combo_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">4</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_spcc_whitepoint">
+                            <property name="tooltip-text" translatable="yes">Select white balance reference</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="spcc_plot_all">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Plot all</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Plot the selected sensor QE, filter responses and white reference relative photon count as a function of wavelength</property>
+                            <signal name="clicked" handler="on_spcc_plot_all_clicked"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_spcc_wb">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Details</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Show details of the selected white reference</property>
+                            <signal name="clicked" handler="on_spcc_details_clicked"/>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkGrid" id="spcc_nb_controls">
+                            <property name="column-homogeneous">1</property>
+                            <property name="column-spacing">5</property>
+                            <property name="row-spacing">5</property>
+                            <property name="visible">0</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Blue:</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">3</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Green:</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">2</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Red:</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">1</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Wavelength</property>
+                                <property name="tooltip-text" translatable="yes">Nominal passband wavelength in nm
+    Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm</property>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">0</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Bandwidth</property>
+                                <property name="tooltip-text" translatable="yes">Filter bandwidth in nm</property>
+                                <layout>
+                                  <property name="column">2</property>
+                                  <property name="row">0</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_r_wl">
+                                <property name="adjustment">nb_r_wl</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">656,28</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the red channel narrowband filter</property>
+                                <property name="value">656.27999999999997</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">1</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_b_wl">
+                                <property name="adjustment">nb_b_wl</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">500,70</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the blue channel narrowband filter</property>
+                                <property name="value">500.69999999999999</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">3</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_g_wl">
+                                <property name="adjustment">nb_g_wl</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="text">500,70</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the green channel narrowband filter</property>
+                                <property name="value">500.69999999999999</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">2</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_r_bw">
+                                <property name="adjustment">nb_r_bw</property>
+                                <property name="digits">1</property>
+                                <property name="focusable">1</property>
+                                <property name="text">6.0</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the red channel narrowband filter</property>
+                                <property name="value">6</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">2</property>
+                                  <property name="row">1</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_g_bw">
+                                <property name="adjustment">nb_g_bw</property>
+                                <property name="digits">1</property>
+                                <property name="focusable">1</property>
+                                <property name="text">6.0</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the green channel narrowband filter</property>
+                                <property name="value">6</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">2</property>
+                                  <property name="row">2</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_nb_b_bw">
+                                <property name="adjustment">nb_b_bw</property>
+                                <property name="digits">1</property>
+                                <property name="focusable">1</property>
+                                <property name="text">6.0</property>
+                                <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the blue channel narrowband filter</property>
+                                <property name="value">6</property>
+                                <signal name="value-changed" handler="on_nb_spin_changed"/>
+                                <layout>
+                                  <property name="column">2</property>
+                                  <property name="row">3</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">9</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="spcc_plot_fits">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Plot fits</property>
+                            <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband mode, plots of degenerate ratios will not be shown.</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">12</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_spcc_sensor_type">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Sensor Type:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkSwitch" id="spcc_sensor_switch">
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="valign">start</property>
+                                <signal name="state-set" handler="on_spcc_sensor_switch_state_set" swapped="False" object="spcc_label_switch"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="spcc_label_switch">
+                                <property name="label" translatable="yes">mono</property>
+                              </object>
+                            </child>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="spcc_toggle_nb">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Narrowband mode</property>
+                            <property name="tooltip-text" translatable="yes">Set narrowband mode. This is suitable for composited narrowband images such as HOO as well as for OSC images taken with dual narrowband filters etc.</property>
+                            <signal name="toggled" handler="on_spcc_toggle_nb_toggled"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="spcc_atmos_corr">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Atmospheric corrections</property>
+                            <property name="tooltip-text" translatable="yes">Apply an atmosphere model to account for wavelength-dependent atmospheric extinction.</property>
+                            <signal name="toggled" handler="on_spcc_atmos_corr_toggled"/>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">10</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkExpander" id="spcc_atmos_widgets">
+                            <property name="focusable">1</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="column-spacing">6</property>
+                                <property name="row-spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Observer height / m:</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spcc_height">
+                                    <property name="adjustment">adjustment_spcc_height</property>
+                                    <property name="digits">1</property>
+                                    <property name="focusable">1</property>
+                                    <property name="text">10.0</property>
+                                    <property name="tooltip-text" translatable="yes">Observer's height (altitude) above sea level.</property>
+                                    <property name="value">10</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Atmospheric pressure / hPa:</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spcc_pressure">
+                                    <property name="adjustment">adjustment_spcc_pressure</property>
+                                    <property name="digits">2</property>
+                                    <property name="focusable">1</property>
+                                    <property name="text">1013.00</property>
+                                    <property name="tooltip-text" translatable="yes">Atmospheric pressure in hPa. If the "sea level" check box is checked this is taken to be sea level pressure, otherwise it is taken to be local pressure at the observer's height.</property>
+                                    <property name="value">1013</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="spcc_pressure_is_slp">
+                                    <property name="active">1</property>
+                                    <property name="focusable">1</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">sea level</property>
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Airmass:</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="spcc_plot_atmos">
+                                    <property name="focusable">1</property>
+                                    <property name="label" translatable="yes">Plot</property>
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">Plot atmosphere model</property>
+                                    <signal name="clicked" handler="on_spcc_plot_atmos_clicked"/>
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="spcc_airmass_entry">
+                                    <property name="editable">0</property>
+                                    <property name="focusable">1</property>
+                                    <property name="sensitive">0</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child type="label">
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Atmospheric Parameters</property>
+                                <property name="margin-bottom">5</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                </attributes>
+                              </object>
+                            </child>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">11</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">SPCC Parameters</property>
+                        <property name="margin-bottom">5</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkExpander" id="labelPCCCatalogParameters">
+                    <property name="expanded">1</property>
+                    <property name="focusable">1</property>
+                    <property name="margin-bottom">5</property>
+                    <property name="margin-start">5</property>
+                    <property name="margin-top">5</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkGrid" id="GtkGridIPS2">
+                        <property name="column-spacing">5</property>
+                        <property name="row-spacing">5</property>
+                        <child>
+                          <object class="GtkDropDown" id="ComboBoxPCCCatalog">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item>NOMAD</item>
+                                  <item translatable="yes">APASS</item>
+                                  <item translatable="yes">GAIA DR3</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">0</property>
+                            <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image and compute photometry.
+    * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
+    * APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.
+    * Gaia Data Release 3 was released on 13 June 2022. Photometry is given for around 1.46 billion sources, with a limiting magnitude of G = 21. It uses different filters from Johnson B and V, however it provides measures of source effective temperature based on the source's spectrum, and Siril uses this Teff for PCC.</property>
+                            <signal name="notify::selected" handler="on_combophoto_catalog_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="GtkLabelCatalogPCC">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Photometric Star Catalogue: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Catalogue Limit Mag: </property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="GtkSpinPCC_Mag_Limit">
+                            <property name="adjustment">Adj_pcc_Mag_Limit</property>
+                            <property name="focusable">1</property>
+                            <property name="sensitive">0</property>
+                            <property name="text">12</property>
+                            <property name="tooltip-text" translatable="yes">Maximum star magnitude used in the catalog queries. Wider is the field, lower is the value.</property>
+                            <property name="value">12</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="column-span">2</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="ComboBoxSPCCCatalog">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item>Gaia DR3 (remote catalogue)</item>
+                                  <item translatable="yes">Gaia DR3 (local catalogue)</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">0</property>
+                            <property name="tooltip-text" translatable="yes">Choose the catalogue to use for spectrophotometric colour calibration.
+    * Gaia DR3 archive is an online service providing direct access to the Gaia DR3 catalogue.
+    * Local Gaia DR3 xp_sampled catalogue is an optimized local catalogue designed for SPCC.
+    Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude 17.6.</property>
+                            <property name="visible">0</property>
+                            <signal name="notify::selected" handler="on_ComboBoxSPCCCatalog_changed"/>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="S_PCC_Mag_Limit">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Auto</property>
+                            <property name="tooltip-text" translatable="yes">The limit magnitude is automatically determined using the approximation of the Field Of View.</property>
+                            <signal name="toggled" handler="on_S_PCC_Mag_Limit_toggled"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="photometric_catalog_label">
+                            <property name="margin-start">4</property>
+                            <property name="tooltip-text" translatable="yes">The NOMAD catalogue can be installed locally to not rely on an Internet connection for this operation.</property>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Catalogue Parameters</property>
+                        <property name="margin-bottom">5</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkExpander" id="frame_cc_background">
+                    <property name="focusable">1</property>
+                    <property name="margin-bottom">5</property>
+                    <property name="margin-start">5</property>
+                    <property name="margin-top">5</property>
+                    <child>
+                      <object class="GtkBox" id="box_cc_background">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="label1">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Tolerance / σ</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bg_tol_upper">
+                                <property name="adjustment">adj_bg_sigma_lower</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="text">2.00</property>
+                                <property name="tooltip-text" translatable="yes">Include background samples this many σ above the median. Default is 2.00</property>
+                                <property name="value">2</property>
+                                <property name="width-chars">5</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bg_tol_lower">
+                                <property name="adjustment">adj_bg_sigma_upper</property>
+                                <property name="digits">2</property>
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="text">2.80</property>
+                                <property name="tooltip-text" translatable="yes">Include background samples this many σ below the median. Default is 2.8</property>
+                                <property name="value">2.7999999999999998</property>
+                                <property name="width-chars">5</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="button_cc_bkg_auto">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Automatic detection</property>
+                            <property name="tooltip-text" translatable="yes">Uncheck this button if you want to select the background reference by yourself. It can be useful when nebulae cover a large portion of the image.</property>
+                            <signal name="toggled" handler="on_button_cc_bkg_auto_toggled"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkBox" id="box_cc_manual_bkg">
+                                <property name="sensitive">0</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                  <object class="GtkGrid" id="grid46">
+                                    <property name="column-homogeneous">1</property>
+                                    <property name="column-spacing">5</property>
+                                    <property name="row-spacing">5</property>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_cc_bkg_x">
+                                        <property name="adjustment">adjustment_cc_bkg_x</property>
+                                        <property name="editable">0</property>
+                                        <property name="focusable">1</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text" translatable="yes">0</property>
+                                        <property name="tooltip-text" translatable="yes">x coordinate of the start of the background selection</property>
+                                        <property name="width-chars">6</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_cc_bkg_y">
+                                        <property name="adjustment">adjustment_cc_bkg_y</property>
+                                        <property name="editable">0</property>
+                                        <property name="focusable">1</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text" translatable="yes">0</property>
+                                        <property name="tooltip-text" translatable="yes">y coordinate of the start of the background selection</property>
+                                        <property name="width-chars">6</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_cc_bkg_w">
+                                        <property name="adjustment">adjustment_cc_bkg_w</property>
+                                        <property name="editable">0</property>
+                                        <property name="focusable">1</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text" translatable="yes">0</property>
+                                        <property name="tooltip-text" translatable="yes">Width of the background selection</property>
+                                        <property name="width-chars">6</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_cc_bkg_h">
+                                        <property name="adjustment">adjustment_cc_bkg_h</property>
+                                        <property name="editable">0</property>
+                                        <property name="focusable">1</property>
+                                        <property name="numeric">1</property>
+                                        <property name="text" translatable="yes">0</property>
+                                        <property name="tooltip-text" translatable="yes">Height of the background selection</property>
+                                        <property name="width-chars">6</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="label180">
+                                        <property name="label" translatable="yes">Selected area</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="column-span">2</property>
+                                          <property name="row">0</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="button_cc_bkg_selection">
+                                    <property name="focusable">1</property>
+                                    <property name="halign">center</property>
+                                    <property name="label" translatable="yes">Use current selection</property>
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="yes">You must specify a selection that represents the true background of the image, trying to exclude all stars or other stellar objects.</property>
+                                    <property name="valign">center</property>
+                                    <signal name="clicked" handler="on_button_cc_bkg_selection_clicked"/>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Background Reference</property>
+                        <property name="margin-bottom">5</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="vexpand">1</property>
+            <child>
+              <object class="GtkButton" id="button_gaia_status_check">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Status: </property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Click to update Gaia archive status check</property>
+                <property name="valign">center</property>
+                <signal name="clicked" handler="on_button_gaia_status_check_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="buttonPCC_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Close the window.</property>
+                <signal name="clicked" handler="on_buttonPCC_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_cc_ok">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">OK</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Start the photometric color calibration algorithm.</property>
+                <signal name="clicked" handler="on_button_cc_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_spcc_ok">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">OK</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_button_spcc_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="resizable">0</property>
+    <signal name="close-request" handler="s_pcc_hide_on_delete"/>
+  </object>
+</interface>

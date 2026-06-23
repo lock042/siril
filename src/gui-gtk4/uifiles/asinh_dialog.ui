@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name asinh_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_black_point_asinh">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">0.20</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_asinh">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">1000</property>
+  </object>
+  <object class="GtkWindow" id="asinh_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog_box">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkBox">
+                <child>
+                  <object class="GtkLabel" id="label176">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Stretch factor</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_asinh">
+                    <property name="adjustment">adjustment_asinh</property>
+                    <property name="digits">1</property>
+                    <property name="focusable">1</property>
+                    <property name="numeric">1</property>
+                    <signal name="value-changed" handler="on_asinh_parameter_changed"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScale" id="scale_asinh">
+                <property name="adjustment">adjustment_asinh</property>
+                <property name="focusable">1</property>
+                <property name="hexpand">1</property>
+                <property name="round-digits">1</property>
+                <property name="tooltip-text" translatable="yes">The parameter stretch factor allows to adjust the non-linearity factor.</property>
+                <property name="value-pos">bottom</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <child>
+                  <object class="GtkLabel" id="label177">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Black Point</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="black_point_spin_asinh">
+                    <property name="adjustment">adj_black_point_asinh</property>
+                    <property name="digits">5</property>
+                    <property name="focusable">1</property>
+                    <property name="numeric">1</property>
+                    <property name="width-chars">8</property>
+                    <signal name="value-changed" handler="on_asinh_parameter_changed"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScale" id="black_point_asinh">
+                <property name="adjustment">adj_black_point_asinh</property>
+                <property name="digits">5</property>
+                <property name="focusable">1</property>
+                <property name="hexpand">1</property>
+                <property name="round-digits">5</property>
+                <property name="tooltip-text" translatable="yes">Constant value that is subtracted from the image.</property>
+                <property name="value-pos">bottom</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="checkbutton_RGBspace">
+                <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Human-weighted luminance</property>
+                <property name="tooltip-text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
+                <signal name="toggled" handler="on_asinh_parameter_changed"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="asinh_preview">
+                <property name="active">1</property>
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Preview</property>
+                <signal name="toggled" handler="on_asinh_preview_toggled"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="asinh_clip_settings">
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Clip mode</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="asinh_clipmode">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Clip</item>
+                          <item translatable="yes">Rescale</item>
+                          <item translatable="yes">RGB Blend</item>
+                          <item translatable="yes">Global Rescale</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">2</property>
+                    <property name="tooltip-markup" translatable="yes">Select blend mode.
+    Clip: clips values to the range 0.0 - 1.0. &lt;b&gt;Default&lt;/b&gt;
+    Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel
+    RGB blend: applies a blending function for smooth reconstructed highlight colors.
+    Global rescale: Same as Rescale, but rescales to the global maximum component value
+
+    Clip is fastest: set one of the other modes when you're happy with your stretch if you notice colour artefacts around bright stars.</property>
+                    <signal name="notify::selected" handler="on_asinh_parameter_changed"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="asinh_undo">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reset</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_asinh_undo_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="asinh_cancel">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_asinh_cancel_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="asinh_Apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_asinh_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Asinh Transformation</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="asinh_hide_on_delete"/>
+    <signal name="show" handler="on_asinh_dialog_show"/>
+  </object>
+</interface>

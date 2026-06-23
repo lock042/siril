@@ -51,6 +51,7 @@
 #include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/gps_parser.h"
 #include "io/path_parse.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
@@ -187,7 +188,7 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	if (ml > 180.)
 		ml -= 360;
 	// fov area in deg^2
-	double S = 2 * (1 - cos(0.5 * fov_degrees * DEGTORAD)) * 180. * 180. / M_PI;
+	double S = 2 * (1 - cos(0.5 * fov_degrees * DEGTORAD)) * 180. * 180. / G_PI;
 	// mag intercept
 	double m0 = 11.68 + 2.66 * sin(fabs(mb) * DEGTORAD);
 	// mag slope
@@ -1089,6 +1090,12 @@ gpointer plate_solver(gpointer p) {
 		if (args->verbose)
 			siril_log_warning(_("Flipping image and updating astrometry data.\n"));
 		fits_flip_top_to_bottom(args->fit);
+		// code also run in mirrorx:
+		if (!strcmp(args->fit->keywords.row_order, "BOTTOM-UP"))
+			sprintf(args->fit->keywords.row_order, "TOP-DOWN");
+		else	sprintf(args->fit->keywords.row_order, "BOTTOM-UP");
+		apply_flip_to_gps_data(args->fit);
+		/////////////////////////////
 		flip_bottom_up_astrometry_data(args->fit);
 		update_wcsdata_after_ps(args);
 		args->image_flipped = TRUE;
@@ -1190,8 +1197,8 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 	int *nl = malloc(n * sizeof(int));
 	N = 0;
 	for (int i = 1; i <= n; i++) {  // we don't search the initial point which has already failed
-		d[i - 1] = M_PI_2 - i * radius;
-		nl[i - 1] = (int)ceil(2. * M_PI * sin(i * radius) / radius); // number of points of ith ring
+		d[i - 1] = G_PI_2 - i * radius;
+		nl[i - 1] = (int)ceil(2. * G_PI * sin(i * radius) / radius); // number of points of ith ring
 		N += nl[i - 1];
 	}
 	point *centers0 = malloc(N * sizeof(point)); // points in native coordinates
@@ -1200,7 +1207,7 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 	double init = 0.;
 	// setting the points in native coordinates
 	for (int i = 0; i < n; i++) {
-		double pace = 2. * M_PI / (double)nl[i];
+		double pace = 2. * G_PI / (double)nl[i];
 		for (int j = 0; j < nl[i]; j++) {
 			centers0[s + j].x = init + j * pace;
 			centers0[s + j].y = d[i];
@@ -1337,7 +1344,8 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 */
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->ref_stars->cat_items)
-		get_catalog_stars(args->ref_stars);
+		if (get_catalog_stars(args->ref_stars))
+			return 1;
 	TRANS t = { 0 };
 	int ret = SOLVE_NO_MATCH;
 	double ra = -1., dec = -1.;
@@ -2264,6 +2272,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		seq_finalize_hook(arg);
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_info(_("Computing astrometric registration...\n"));
+		if (arg->seq->reference_image < 0 || arg->seq->reference_image >= arg->seq->number)
+			arg->seq->reference_image = sequence_find_refimage(arg->seq);
 		if (!arg->seq->imgparam[arg->seq->reference_image].incl) {
 			siril_log_warning(_("Reference image was not platesolved, changing reference\n"));
 			arg->seq->reference_image = -1;

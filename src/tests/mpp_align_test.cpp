@@ -212,6 +212,67 @@ Test(mpp_align, cog_is_subpixel_not_rounded) {
 	cr_assert_float_eq(cog[1], 10.5, 1e-9, "cog x: got %g (must be sub-pixel)", cog[1]);
 }
 
+/* ---- Disc detection (default-align-mode helper) ------------------------ */
+
+/* Wrap a CV_16U mono Mat as a fits header for the C-level API (no copy). */
+static fits fits_of(cv::Mat &m) {
+	fits f = {};
+	f.rx = (unsigned) m.cols;
+	f.ry = (unsigned) m.rows;
+	f.naxis = 2;
+	f.naxes[0] = m.cols;
+	f.naxes[1] = m.rows;
+	f.naxes[2] = 1;
+	f.type = DATA_USHORT;
+	f.data = (WORD *) m.data;
+	f.orig_bitpix = 16;
+	return f;
+}
+
+/* A round planet fully inside the frame is a disc. */
+Test(mpp_align, disc_detected_for_centred_planet) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 100), 50, cv::Scalar(50000), -1);
+	fits f = fits_of(m);
+	cr_assert(mpp_frame_has_disc(&f), "centred disc must be detected");
+}
+
+/* Saturn: an elongated, rotated ellipse still counts as a disc. */
+Test(mpp_align, disc_detected_for_saturn_like_ellipse) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::ellipse(m, cv::RotatedRect(cv::Point2f(120.f, 100.f),
+	                               cv::Size2f(130.f, 50.f), 25.f),
+	            cv::Scalar(45000), -1);
+	fits f = fits_of(m);
+	cr_assert(mpp_frame_has_disc(&f), "Saturn-like ellipse must be detected");
+}
+
+/* A surface close-up (bright structure out to the frame edges) is not. */
+Test(mpp_align, no_disc_for_surface_frame) {
+	cv::Mat m(200, 240, CV_16U);
+	for (int y = 0; y < m.rows; ++y)
+		for (int x = 0; x < m.cols; ++x)
+			m.at<uint16_t>(y, x) = (uint16_t) (20000 + 30000.0 * x / m.cols);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "edge-to-edge surface is not a disc");
+}
+
+/* A limb shot — the disc runs off the frame edge — must pick Surface too. */
+Test(mpp_align, no_disc_when_object_touches_edge) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 0), 60, cv::Scalar(50000), -1);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "edge-clipped disc is a surface case");
+}
+
+/* A lone star (few bright pixels) has no disc-like extent. */
+Test(mpp_align, no_disc_for_single_star) {
+	cv::Mat m(200, 240, CV_16U, cv::Scalar(800));
+	cv::circle(m, cv::Point(120, 100), 1, cv::Scalar(60000), -1);
+	fits f = fits_of(m);
+	cr_assert_not(mpp_frame_has_disc(&f), "a lone star is not a disc");
+}
+
 /* Planet mode recovers known per-frame shifts via centroid displacement.
  * A rigidly translated image has a centroid that shifts by exactly the same
  * amount, so the internal texture is irrelevant. */
@@ -317,6 +378,59 @@ Test(mpp_align, seed_from_regdata_uses_port_convention) {
 	free(rd);
 }
 
+/* Quality-only regdata — what mpp_write_quality_to_regdata publishes after
+ * every Analyze/Register — has a zero H on every frame, i.e. no translation
+ * information. It must NOT produce a seed: an all-zero seed pins every
+ * frame's search window at zero shift (bypassing cumulative tracking), so a
+ * subsequent Analyze on a drifting sequence mis-aligns every frame whose
+ * drift exceeds align_frames_search_width and the stack shows doubled
+ * features. Regression test for the Analyze-then-Register doubling bug. */
+Test(mpp_align, seed_from_regdata_ignores_quality_only_layer) {
+	sequence seq{};
+	seq.number = 3;
+	seq.nb_layers = 1;
+	regdata *rd = (regdata *) calloc(3, sizeof(regdata));   /* H = all zeros */
+	for (int i = 0; i < 3; ++i)
+		rd[i].quality = 0.5 + 0.1 * i;
+	regdata *layers[1] = { rd };
+	seq.regparam = layers;
+
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+	cr_assert(seed.empty(),
+	          "quality-only (zero-H) regdata must not seed the aligner");
+
+	/* Identity homographies (translation 0,0 everywhere) are equally
+	 * information-free and must be skipped too. */
+	for (int i = 0; i < 3; ++i)
+		rd[i].H = H_from_translation(0.0, 0.0);
+	const std::vector<cv::Vec2d> seed_id = mpp::seed_from_regdata(&seq);
+	cr_assert(seed_id.empty(),
+	          "all-identity regdata must not seed the aligner");
+	free(rd);
+}
+
+/* A degenerate (all-zero) first layer must not shadow a later layer that
+ * holds real shift registration data. */
+Test(mpp_align, seed_from_regdata_skips_degenerate_layer) {
+	sequence seq{};
+	seq.number = 2;
+	seq.nb_layers = 2;
+	regdata *rd0 = (regdata *) calloc(2, sizeof(regdata));  /* quality-only */
+	regdata *rd1 = (regdata *) calloc(2, sizeof(regdata));
+	rd1[0].H = H_from_translation(0.0, 0.0);
+	rd1[1].H = H_from_translation(8.0, -12.0);
+	regdata *layers[2] = { rd0, rd1 };
+	seq.regparam = layers;
+
+	const std::vector<cv::Vec2d> seed = mpp::seed_from_regdata(&seq);
+	cr_assert_eq(seed.size(), 2u,
+	             "layer 1 carries real shifts, seed expected");
+	cr_assert_float_eq(seed[1][0], -12.0, 1e-9, "seed dy: got %g", seed[1][0]);
+	cr_assert_float_eq(seed[1][1], 8.0, 1e-9, "seed dx: got %g", seed[1][1]);
+	free(rd0);
+	free(rd1);
+}
+
 /* End-to-end, the careful one: a physical jump beyond search_width, regdata
  * written for that jump exactly as Siril's registration would, then the
  * regdata-derived seed must drive the real aligner to recover it. A wrong
@@ -402,3 +516,57 @@ Test(mpp_align, average_frame_basic) {
 	cr_assert_eq((int) r.indices_used.size(), n_target);
 }
 
+
+/* Upstream-parity: when phase 1 finds a coarse shift but phase 2 cannot run
+ * (its refinement window would leave the frame), the phase-1 estimate must be
+ * reported with success=false — NOT zeroed.  Upstream PSS keeps the phase-1
+ * component in exactly this situation and its stacker uses it; zeroing it
+ * made every phase-2 failure stack its patch at global-only alignment.
+ *
+ * Geometry: with search_width=14, sw1=5, the phase-1 window extends the box
+ * by index_ext=10 on each side, while phase 2 extends it by |shift1| + 4.
+ * Place the box 10 px from the bottom edge and inject a dy=-7 content shift:
+ * phase 1 fits exactly and locks ≈ +8 (even grid), phase 2 then needs
+ * y_high + 8 + 4 > y_high + 10 → out of bounds → phase-2 failure with a
+ * usable phase-1 estimate. */
+Test(mpp_align, multilevel_keeps_phase1_shift_on_phase2_failure) {
+	auto cfg = default_cfg();
+	const int search_width = 14;   /* AP-stage value: sw1 = 5, ext = 10 */
+	const cv::Mat truth = blurred(make_textured_frame(), cfg);
+
+	/* Reference box in the textured centre. */
+	const int y_low = 60, y_high = 124, x_low = 80, x_high = 144;
+	cv::Mat ref_f32;
+	truth.convertTo(ref_f32, CV_32F);
+	const cv::Mat ref_window = ref_f32(cv::Range(y_low, y_high),
+	                                   cv::Range(x_low, x_high));
+	cv::Mat ref_first;
+	{
+		const int s = 2;
+		const int new_h = (ref_window.rows + s - 1) / s;
+		const int new_w = (ref_window.cols + s - 1) / s;
+		ref_first.create(new_h, new_w, CV_32F);
+		for (int y = 0; y < new_h; ++y)
+			for (int x = 0; x < new_w; ++x)
+				ref_first.at<float>(y, x) = ref_window.at<float>(y * s, x * s);
+	}
+
+	/* Shift content by dy=+8 (content moves down; recovery shift −8, exact
+	 * on phase 1's even grid) and crop the frame so only 10 px remain below
+	 * the box: the phase-1 window [y_low−10, y_high+10) fits exactly, but
+	 * phase 2 needs [.., y_high+8+4) — out of bounds → phase-2 failure with
+	 * a usable phase-1 estimate. */
+	const cv::Mat moved_full = shifted(truth, 8, 0);
+	const cv::Mat moved = moved_full(cv::Range(0, y_high + 10), cv::Range::all());
+
+	const auto r = mpp::multilevel_correlation(
+	    ref_window, ref_first, moved,
+	    y_low, y_high, x_low, x_high,
+	    cfg.frames_gauss_width, search_width,
+	    /*subpixel_solve=*/false, cv::Mat());
+
+	cr_assert_not(r.success, "phase 2 cannot fit in the cropped frame");
+	cr_assert(r.dy <= -7.0 && r.dy >= -9.0,
+	          "phase-1 estimate should be kept on failure (got dy=%g)", r.dy);
+	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)");
+}

@@ -49,6 +49,22 @@ int stack_mpp_handler(struct stacking_args *args) {
 	}
 	g_free(sidecar_path);
 
+	/* An analysis-only sidecar (written by Analyze / Stage A) has the AP
+	 * grid and reference frame but no per-AP shifts — the registration step
+	 * has not been run, so there is nothing to stack. Catch this here with
+	 * an actionable message rather than letting mpp_stack_apply bail out
+	 * with an opaque error code. */
+	if (!run->shifts) {
+		siril_log_error(_("Stack (mpp): this sequence has been analysed but not "
+		                  "registered — the sidecar has no per-AP shifts. Run "
+		                  "\"Multipoint Registration\" from the registration tab "
+		                  "before stacking.\n"));
+		mpp_run_free(run);
+		args->retval = ST_GENERIC_ERROR;
+		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));
+		return ST_GENERIC_ERROR;
+	}
+
 	/* Apply stack-side widget overrides on top of the cfg the sidecar
 	 * persisted at register time. Only stack-side fields are touched;
 	 * register-side decisions (AP grid, per-AP shifts) are already baked
@@ -59,11 +75,17 @@ int stack_mpp_handler(struct stacking_args *args) {
 		run->cfg->drizzle_mode                            = gui->drizzle_mode;
 		run->cfg->drizzle_pixfrac                         = gui->drizzle_pixfrac;
 		run->cfg->drizzle_kernel                          = gui->drizzle_kernel;
-		run->cfg->alignment_points_frame_percent          = gui->alignment_points_frame_percent;
-		run->cfg->alignment_points_frame_number           = gui->alignment_points_frame_number;
+		run->cfg->stack_frame_percent                     = gui->stack_frame_percent;
+		run->cfg->stack_frame_number                      = gui->stack_frame_number;
 		run->cfg->stack_frames_background_fraction        = gui->stack_frames_background_fraction;
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
 	}
+
+	/* The stacking tab's "Force 32b output" checkbutton (and the auto
+	 * 32-bit decision for the chosen method) lands in args->use_32bit_output,
+	 * which is separate from the MPP widget config. Honour it here so the
+	 * checkbutton has the same effect for MPP as the CLI's `-32b` flag. */
+	run->cfg->output_32bit = args->use_32bit_output;
 
 	/* Apply the generic Stack-tab filter (all / selected / criteria) on
 	 * top of run->included. The framework hands us image_indices listing
@@ -91,10 +113,10 @@ int stack_mpp_handler(struct stacking_args *args) {
 	}
 
 	const int mpp_filter_narrows =
-	    (run->cfg->alignment_points_frame_number > 0
-	     && run->cfg->alignment_points_frame_number < run->num_frames)
-	 || (run->cfg->alignment_points_frame_number <= 0
-	     && run->cfg->alignment_points_frame_percent < 100);
+	    (run->cfg->stack_frame_number > 0
+	     && run->cfg->stack_frame_number < run->num_frames)
+	 || (run->cfg->stack_frame_number <= 0
+	     && run->cfg->stack_frame_percent < 100);
 	if (generic_filter_active && mpp_filter_narrows) {
 		siril_log_warning(_("Stack (mpp): both filters active — Siril's "
 		                    "selection narrows the eligible set to %d/%d "

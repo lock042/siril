@@ -59,6 +59,7 @@
 #include "registration/mpp.h"
 #include "registration/mpp/mpp_align.h"
 #include "registration/mpp/mpp_align_priv.hpp"
+#include "registration/mpp/mpp_image_priv.hpp"
 
 namespace mpp {
 
@@ -330,6 +331,19 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
 	if (std::abs(shift_y1) == index_ext || std::abs(shift_x1) == index_ext)
 		return result;
 
+	/* From here on phase 1 has produced a usable coarse estimate: report
+	 * it even when phase 2 fails, with success=false.  Upstream PSS keeps
+	 * the phase-1 shift in exactly this way (miscellaneous.py
+	 * multilevel_correlation zeroes only the SECOND-phase component on a
+	 * phase-2 border hit) and its stacker then stacks the patch at the
+	 * phase-1 estimate.  Returning {0,0} here instead — as this port used
+	 * to — made every phase-2 failure stack its patch at global-only
+	 * alignment, several pixels off, which shows up as ghosted AP boxes
+	 * on difficult data.  Callers that must not consume a coarse-only
+	 * estimate (the global-align sweeps) already gate on `success`. */
+	result.dy = (double) shift_y1;
+	result.dx = (double) shift_x1;
+
 	/* Phase 2: ±4 around phase-1 result, full resolution. */
 	const int y_lo2 = y_low - shift_y1 - sw2;
 	const int y_hi2 = y_high - shift_y1 + sw2;
@@ -433,26 +447,39 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 		out.shifts.assign(N, cv::Vec2d(0.0, 0.0));
 
 		gint cancelled = 0;
+		gint oom = 0;
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) if (provider_is_thread_safe)
 #endif
 		for (int idx = 0; idx < N; ++idx) {
-			if (g_atomic_int_get(&cancelled)) continue;
+			if (g_atomic_int_get(&cancelled) || g_atomic_int_get(&oom)) continue;
 			if (!processing_should_continue()) {
 				g_atomic_int_set(&cancelled, 1);
 				continue;
 			}
-			if (idx != best) {
-				const cv::Mat frame = provider(idx);
-				/* Empty frame → leave the zero-init shift (excluded). */
-				if (!frame.empty()) {
-					const cv::Vec2d cog = center_of_gravity(frame);
-					out.shifts[idx] = cv::Vec2d(cog_ref[0] - cog[0],
-					                            cog_ref[1] - cog[1]);
+			/* Contain allocation failures — an exception escaping an
+			 * OpenMP structured block is std::terminate(). */
+			try {
+				if (idx != best) {
+					const cv::Mat frame = provider(idx);
+					/* Empty frame → leave the zero-init shift (excluded). */
+					if (!frame.empty()) {
+						const cv::Vec2d cog = center_of_gravity(frame);
+						out.shifts[idx] = cv::Vec2d(cog_ref[0] - cog[0],
+						                            cog_ref[1] - cog[1]);
+					}
 				}
+			} catch (const std::exception &) {
+				g_atomic_int_set(&oom, 1);
+				continue;
 			}
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
+		}
+		if (g_atomic_int_get(&oom)) {
+			out.best_frame_idx = -1;
+			out.oom = true;
+			return out;
 		}
 		if (g_atomic_int_get(&cancelled)) {
 			out.best_frame_idx = -1;
@@ -505,7 +532,14 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	 * is added at store-time so each stored shift = (sum of integer
 	 * peaks up to here) + (this frame's local refinement). */
 	gint cancelled = 0;
+	gint oom = 0;
+	/* Each sweep contains allocation failures locally (try/catch around
+	 * its whole loop): the sweeps run as OpenMP sections, and an
+	 * exception escaping a section is std::terminate(). An aborted sweep
+	 * leaves the remaining shifts at their zero init; the oom flag below
+	 * discards the whole result, so partial data never leaks out. */
 	auto run_backward_sweep = [&] {
+		try {
 		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best; idx >= 0; --idx) {
 			if (g_atomic_int_get(&cancelled)) break;
@@ -555,8 +589,12 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
+		} catch (const std::exception &) {
+			g_atomic_int_set(&oom, 1);
+		}
 	};
 	auto run_forward_sweep = [&] {
+		try {
 		int dy_int_cum = 0, dx_int_cum = 0;
 		for (int idx = best + 1; idx < N; ++idx) {
 			if (g_atomic_int_get(&cancelled)) break;
@@ -598,6 +636,9 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 			const gint d = g_atomic_int_add(&done, 1) + 1;
 			if (progress) progress((double) d / (double) total, progress_user);
 		}
+		} catch (const std::exception &) {
+			g_atomic_int_set(&oom, 1);
+		}
 	};
 
 #ifdef _OPENMP
@@ -614,6 +655,11 @@ AlignGlobalResult align_global_from_provider(const FrameProvider &provider,
 	run_forward_sweep();
 #endif
 
+	if (g_atomic_int_get(&oom)) {
+		out.best_frame_idx = -1;
+		out.oom = true;
+		return out;
+	}
 	if (g_atomic_int_get(&cancelled)) {
 		out.best_frame_idx = -1;   /* cancellation sentinel */
 		return out;
@@ -665,19 +711,29 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const std::vector<cv::Vec2d> &shifts,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
-                                                void *progress_user) {
+                                                void *progress_user,
+                                                const std::vector<int> &included) {
 	AlignAverageResult out;
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
 		return out;
 
+	const bool have_mask = (int) included.size() == N;
+	auto is_included = [&](int i) { return !have_mask || included[i]; };
+	int n_included = 0;
+	for (int i = 0; i < N; ++i) if (is_included(i)) ++n_included;
+	if (n_included == 0) return out;   /* nothing to build a reference from */
+
 	/* Intersection bounds are integer — they're used as cv::Range slice
 	 * indices everywhere downstream. Round sub-pixel shifts to nearest
 	 * integer for the min/max; the 0.5-pixel rounding doesn't affect
-	 * the outer bounds materially. */
+	 * the outer bounds materially. Excluded frames are skipped: a glitch
+	 * frame with a wild global shift would otherwise collapse the common
+	 * overlap area to nothing. */
 	int max_dy = INT_MIN, min_dy = INT_MAX, max_dx = INT_MIN, min_dx = INT_MAX;
-	for (const auto &s : shifts) {
-		const int sy = (int) std::lround(s[0]);
-		const int sx = (int) std::lround(s[1]);
+	for (int i = 0; i < N; ++i) {
+		if (!is_included(i)) continue;
+		const int sy = (int) std::lround(shifts[i][0]);
+		const int sx = (int) std::lround(shifts[i][1]);
 		max_dy = std::max(max_dy, sy);
 		min_dy = std::min(min_dy, sy);
 		max_dx = std::max(max_dx, sx);
@@ -689,8 +745,11 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	if (int_y_hi <= int_y_lo || int_x_hi <= int_x_lo)
 		return out;
 
-	const int n_target = std::max(
-	    (int) std::ceil(N * cfg.align_frames_average_frame_percent / 100.0), 1);
+	/* Clamp to the included count so the masked quality (excluded frames
+	 * pre-set to a sentinel by the caller) can never pull an excluded
+	 * frame into the averaged reference. */
+	const int n_target = std::min(n_included, std::max(
+	    (int) std::ceil(N * cfg.align_frames_average_frame_percent / 100.0), 1));
 
 	std::vector<int> indices;
 	if (cfg.align_frames_fast_changing_object) {
@@ -781,4 +840,48 @@ extern "C" mpp_status_t mpp_align_global(sequence *seq,
 	(void) shifts_out; (void) patch_yxyx_out; (void) avg_ref_out;
 	/* Sequence integration lands with mpp_frames (Phase 1.3 / 2). */
 	return MPP_ENOTIMPL;
+}
+
+extern "C" gboolean mpp_frame_has_disc(const fits *fit) {
+	cv::Mat layer = mpp::wrap_fits_layer(fit, mpp::analysis_layer_for(fit));
+	if (layer.empty() || layer.rows < 16 || layer.cols < 16)
+		return FALSE;
+
+	/* Bin down to <= 256 px on the long side with area averaging. This
+	 * suppresses hot pixels and noise, and averages over CFA mosaics so
+	 * the test also works on raw Bayer frames. */
+	cv::Mat small_f;
+	layer.convertTo(small_f, CV_32F);
+	const int maxdim = std::max(small_f.rows, small_f.cols);
+	if (maxdim > 256) {
+		const double scale = 256.0 / maxdim;
+		cv::resize(small_f, small_f, cv::Size(), scale, scale, cv::INTER_AREA);
+	}
+	cv::GaussianBlur(small_f, small_f, cv::Size(3, 3), 0.0);
+
+	/* Mid-range threshold, same convention as center_of_gravity(). */
+	double min_val = 0.0, max_val = 0.0;
+	cv::minMaxLoc(small_f, &min_val, &max_val);
+	if (max_val <= min_val)
+		return FALSE;	/* flat frame, nothing to detect */
+	const cv::Mat mask = small_f > (min_val + max_val) / 2.0;
+
+	/* The object must have some extent: a handful of bright pixels is a
+	 * star (or noise), not a disc. */
+	const int npix = small_f.rows * small_f.cols;
+	const int bright = cv::countNonZero(mask);
+	if (bright < std::max(9, npix / 1000))
+		return FALSE;
+
+	/* A disc — round or elongated like Saturn — is a bright object
+	 * completely surrounded by sky, so (almost) no bright pixel may lie
+	 * in a thin band along the frame edges. A surface close-up always
+	 * reaches at least one edge. The 0.5 % tolerance forgives residual
+	 * noise in the band without letting a real limb through. */
+	const int band = std::max(2, std::min(small_f.rows, small_f.cols) / 50);
+	const cv::Rect inner_rect(band, band,
+	                          small_f.cols - 2 * band, small_f.rows - 2 * band);
+	const int border_bright = bright - cv::countNonZero(mask(inner_rect));
+	const int border_pix = npix - inner_rect.width * inner_rect.height;
+	return border_bright <= border_pix / 200;
 }

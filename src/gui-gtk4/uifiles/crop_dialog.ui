@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name crop_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="crop_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox33">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkGrid" id="grid21">
+                <property name="column-spacing">5</property>
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkEntry" id="cropped_entry">
+                    <property name="focusable">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="max-length">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">cropped_</property>
+                    <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the cropping process.</property>
+                    <property name="width-chars">10</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label16">
+                    <property name="label" translatable="yes">Output prefix:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area35">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="crop_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_crop_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="crop_Apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_crop_Apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Crop sequence</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="crop_hide_on_delete"/>
+  </object>
+</interface>

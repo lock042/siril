@@ -15,6 +15,12 @@
 
 
 /* first, types used here but that cannot be defined in siril.h because of the loop dependency */
+
+typedef enum {
+	SIRIL_THEME_SYSTEM = 0,  /* Follow system appearance */
+	SIRIL_THEME_DARK   = 1,
+	SIRIL_THEME_LIGHT  = 2,
+} siril_theme_t;
 typedef struct {
 	int x, y, w, h;
 } rectangle;
@@ -202,6 +208,8 @@ struct editor_config {
 	gboolean showspaces;
 	gboolean shownewlines;
 	gboolean minimap;
+	gboolean dynamic_wrap;
+	gboolean code_folding;
 };
 
 typedef enum {
@@ -228,11 +236,15 @@ struct gui_config {
 	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
+	gint open_dialog_w;		// remembered width of the custom open-file dialog (0 = use default)
+	gint open_dialog_h;		// remembered height of the custom open-file dialog (0 = use default)
+	gint open_dialog_sidebar_pos;	// remembered sidebar|content divider position (0 = use default)
+	gint open_dialog_paned_pos;	// remembered list|preview divider position (0 = use default)
 	gint pan_position;
 	gboolean is_extended;
 	gboolean is_maximized;
 
-	gint combo_theme;	// index of the combobox theme
+	siril_theme_t combo_theme;
 	gdouble font_scale;	// font scale
 	gboolean icon_symbolic;	// icon style
 
@@ -244,8 +256,8 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
-				// short-lived catalogue for "who's in the field" annotations
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations, 
+				// 1 for velocity vectors display
 				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides
@@ -400,6 +412,10 @@ struct pref_struct {
 	double memory_amount;		// amount of memory in GB to use for stacking (and others)
 
 	int hd_bitdepth; // Default bit depth for HD AutoStretch
+
+	int lazy_tile_cache_mb; // RAM budget (MB) for displaying very large images: images
+	                        // whose display buffer fits go eager (no tiling); larger ones
+	                        // use the tiled lazy renderer capped at this many MB resident
 
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes

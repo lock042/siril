@@ -52,9 +52,17 @@ struct mpp_config {
 	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
 	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic fit (drizzle path) */
 
-	/* Stacking (Phase 5a). */
-	int alignment_points_frame_percent;          /* 10  — %% of frames per AP (used when frame_number ≤ 0) */
-	int alignment_points_frame_number;           /* -1  — explicit override; positive value overrides percent */
+	/* Per-AP frame selection. Two independent controls:
+	 *  - REGISTER (alignment_points_frame_*): the upper bound baked at
+	 *    registration — how many top-quality frames per AP get a shift
+	 *    computed (selected_per_ap). It caps what the stack can use.
+	 *  - STACK (stack_frame_*): how many of those the final stack actually
+	 *    blends; may be ≤ the register bound, never more (raising it needs
+	 *    a re-register). */
+	int alignment_points_frame_percent;          /* 100 — register %% of frames per AP */
+	int alignment_points_frame_number;           /* -1  — register explicit override (>0 wins; register CLI/GUI leave it -1) */
+	int stack_frame_percent;                     /* 100 — stack %% of frames per AP (used when stack_frame_number ≤ 0) */
+	int stack_frame_number;                      /* -1  — stack explicit override; positive value overrides stack percent */
 	int alignment_points_rank_pixel_stride;      /* 2   — used only for xy/Sobel per-AP rank methods */
 	bool alignment_points_de_warp;               /* true */
 	double alignment_points_penalty_factor;       /* 0.00025 — weight matrix off-centre penalty */
@@ -62,6 +70,20 @@ struct mpp_config {
 	double stack_frames_background_fraction;     /* 0.3 */
 	double stack_frames_background_blend_threshold; /* 0.2 */
 	int stack_frames_background_patch_size;      /* 100 */
+	bool stack_skip_failed_aps;                  /* false — drop (frame, AP)
+	    contributions whose Stage B shift measurement failed instead of
+	    stacking them at the coarse phase-1 estimate.  Per-AP weight sums
+	    are reduced accordingly so brightness is unaffected.  An AP whose
+	    measurements ALL failed keeps stacking everything (a misaligned
+	    patch beats a hole). */
+
+	/* Output bit depth. The weighted merge always runs internally in
+	 * 32-bit float; by default the result is packed down to a USHORT
+	 * fits. Set true to keep the float result and emit a 32-bit float
+	 * fits instead. Stack-time only — driven by the `-32b` CLI flag
+	 * (pss / stack_mpp) and the "Force 32b output" stacking-tab
+	 * checkbutton. */
+	bool output_32bit;                           /* false */
 
 	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
 	 * routes to STScI dobox for mono / RGB input and Bayer dobox for raw

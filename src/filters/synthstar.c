@@ -52,7 +52,7 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 	float obscorr = (obstruction > 0.f) ? 1.f / pow(1 - obstruction * obstruction, 2.f) : 1.f;
 
 	// Following the formulae at the Wikipedia "Airy disk" article
-	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
+	const float constant = (2.f * G_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f) * pixel_size;
@@ -74,7 +74,7 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 
 void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff,
 				const float yoff, const float beta, const float ratio, const float angle) {
-	float anglerad = angle * M_PI / 180.f;
+	float anglerad = angle * G_PI / 180.f;
 	const float alpha = 0.6667f * fwhm;
 	const float alphax = alpha;
 	const float alphay = alpha / ratio;
@@ -99,7 +99,7 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle) {
 	int halfpsfdim = (size - 1) / 2;
-	float anglerad = angle * M_PI / 180.f;
+	float anglerad = angle * G_PI / 180.f;
 	float sigmax = fwhm / _2_SQRT_2_LOG2;
 	float sigmay = fwhm / (ratio * _2_SQRT_2_LOG2);
 	float tssx = 2 * sigmax * sigmax;
@@ -628,10 +628,8 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
@@ -816,10 +814,8 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled) {
-		notify_gfit_data_modified();
-		gfit_modified_update_gui();
-	}
+	/* No notify_gfit_data_modified() / gfit_modified_update_gui() here:
+	 * generic_image_worker performs both universally when args->fit == gfit. */
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);

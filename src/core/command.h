@@ -96,6 +96,7 @@ int	process_fmul(int nb);
 
 int	process_gauss(int nb);
 int	process_getref(int nb);
+int	process_gps(int nb);
 int	process_grey_flat(int nb);
 
 int	process_healpix(int nb);
@@ -132,6 +133,7 @@ int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
+int	process_mpp(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);
@@ -155,7 +157,6 @@ int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
-int	process_pss(int nb);
 int	process_pwd(int nb);
 int	process_pyscript(int nb);
 
@@ -208,6 +209,7 @@ int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
 int	process_seq_fixbanding(int nb);
 int	process_seq_ght(int nb);
+int	process_seq_gps_extract(int nb);
 int	process_seq_header(int nb);
 int	process_seq_invght(int nb);
 int	process_seq_invmodasinh(int nb);

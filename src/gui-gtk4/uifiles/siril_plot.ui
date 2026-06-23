@@ -1,0 +1,292 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name siril_plot.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkPopover" id="display_plot_menu">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkCheckButton" id="JulianPhotometry">
+            <property name="focusable">1</property>
+            <property name="label" translatable="yes">Julian Date</property>
+            <signal name="toggled" handler="on_JulianPhotometry_toggled"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label_display_plot">
+            <property name="label" translatable="yes">Nothing to change</property>
+            <property name="margin-bottom">5</property>
+            <property name="margin-end">5</property>
+            <property name="margin-start">5</property>
+            <property name="margin-top">5</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="arcsecPhotometry">
+            <property name="focusable">1</property>
+            <property name="label" translatable="yes">arcsec</property>
+            <signal name="toggled" handler="on_arcsecPhotometry_toggled"/>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+  <object class="GtkPopover" id="output_plot_menu">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkButton" id="ButtonSwitch_Siril_plot">
+            <property name="has-frame">0</property>
+            <property name="label" translatable="yes">Show valid data in Siril Plot</property>
+            <property name="tooltip-markup" translatable="yes">Open a new Siril Plot window to show data.
+
+&lt;b&gt;WARNING&lt;/b&gt;: if the data do not have a valid photometry, they will not be displayed, contrary of what you can see in the plot tab.</property>
+            <signal name="clicked" handler="on_ButtonSwitch_Siril_plot_clicked"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="ButtonSaveCSV">
+            <property name="has-frame">0</property>
+            <property name="label" translatable="yes">Export to CSV</property>
+            <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
+            <signal name="clicked" handler="on_ButtonSaveCSV_clicked"/>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+  <object class="GtkPopover" id="clear_menu">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkButton" id="clearAllPhotometry">
+            <property name="has-frame">0</property>
+            <property name="label" translatable="yes">Clear all</property>
+            <property name="tooltip-text" translatable="yes">Clear all curves displayed in photometry.</property>
+            <signal name="clicked" handler="on_clearAllPhotometry_clicked"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="clearLastPhotometry">
+            <property name="has-frame">0</property>
+            <property name="label" translatable="yes">Clear latest</property>
+            <property name="tooltip-text" translatable="yes">Clear the last curve added in photometry.</property>
+            <signal name="clicked" handler="on_clearLatestPhotometry_clicked"/>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+  <object class="GtkScrolledWindow" id="plot_tab">
+    <property name="child">
+      <object class="GtkViewport">
+        <property name="child">
+          <object class="GtkBox" id="GtkBoxPlot">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkViewport" id="GtkViewPortPlot">
+                <property name="child">
+                  <object class="GtkDrawingArea" id="DrawingPlot"/>
+                </property>
+                <property name="vexpand">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="GtkBoxPng">
+                <property name="spacing">5</property>
+                <property name="valign">center</property>
+                <child>
+                  <object class="GtkMenuButton" id="display_plot_button">
+                    <property name="focusable">1</property>
+                    <property name="popover">display_plot_menu</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Modify x-axis units, or y-axis units if available.</property>
+                    <child>
+                      <object class="GtkBox" id="export_box3">
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Display</property>
+                            <property name="use-underline">1</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">pan-down-symbolic</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <!-- Spacer: pushes the Output button and the Hovering legend
+                       label to the end of the row, leaving Display at the start
+                       (GTK3 packed Output and Hovering with pack-type=end). -->
+                  <object class="GtkBox">
+                    <property name="hexpand">1</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuButton" id="output_plot_button">
+                    <property name="focusable">1</property>
+                    <property name="popover">output_plot_menu</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">This button opens a CSV export of the data, or a screenshot of the plot.</property>
+                    <child>
+                      <object class="GtkBox" id="export_box1">
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Output</property>
+                            <property name="use-underline">1</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">pan-down-symbolic</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Hovering for the legend</property>
+                    <property name="single-line-mode">1</property>
+                    <property name="tooltip-text" translatable="yes">Purple curve: actual plot as configured with X and Y selectors.
+Green curve: sorted values by order of decreasing quality.
+Circle marker: the value for the reference frame.
+Cross marker: the value for the currently loaded frame.</property>
+                    <attributes>
+                      <attribute name="style" value="italic"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">X:</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="plotComboX">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">FWHM</item>
+                          <item translatable="yes">Roundness</item>
+                          <item translatable="yes">wFWHM</item>
+                          <item translatable="yes">Background</item>
+                          <item translatable="yes"># Stars</item>
+                          <item translatable="yes">X Position</item>
+                          <item translatable="yes">Y Position</item>
+                          <item translatable="yes">Quality</item>
+                          <item translatable="yes">Frame</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">6</property>
+                    <signal name="notify::selected" handler="on_plotComboX_changed"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Y:</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="plotCombo">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">FWHM</item>
+                          <item translatable="yes">Roundness</item>
+                          <item translatable="yes">wFWHM</item>
+                          <item translatable="yes">Background</item>
+                          <item translatable="yes"># Stars</item>
+                          <item translatable="yes">Quality</item>
+                          <item translatable="yes">X Position</item>
+                          <item translatable="yes">Y Position</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Select which information to display from photometry data.</property>
+                    <signal name="notify::selected" handler="on_plotCombo_changed"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkDropDown" id="plotSourceCombo">
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Registration data</item>
+                          <item translatable="yes">Photometry data</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="sensitive">0</property>
+                    <property name="tooltip-text" translatable="yes">Select the source of graph information.</property>
+                    <signal name="notify::selected" handler="on_plotSourceCombo_changed"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuButton" id="photo_clear_button">
+                    <property name="focusable">1</property>
+                    <property name="popover">clear_menu</property>
+                    <property name="receives-default">1</property>
+                    <property name="tooltip-text" translatable="yes">Deletes photometric plots displayed in the graphics area.</property>
+                    <child>
+                      <object class="GtkBox" id="export_box4">
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Clear plots</property>
+                            <property name="use-underline">1</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">pan-down-symbolic</property>
+                            <property name="valign">baseline-fill</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+  </object>
+  <object class="GtkLabel" id="labelPlot">
+    <property name="label" translatable="yes">Plot</property>
+    <property name="tooltip-text" translatable="yes">Show all relevant graphs using registration and / or photometry data.</property>
+  </object>
+</interface>

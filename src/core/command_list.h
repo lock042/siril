@@ -77,6 +77,7 @@ static command commands[] = {
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
 	{"getref", 1, "getref sequencename", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-mask]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"gps", 0, "gps [{ -ro | -header | -crop= | line_number [{s | start | m | middle | e | end}] }]", process_gps, STR_GPS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"healpix", 0, "healpix", process_healpix, STR_HEALPIX, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -134,6 +135,7 @@ static command commands[] = {
 	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 1, "modasinh -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-mask]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"mtf", 3, "mtf low mid high [channels] [-mask]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg [-mask]", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -154,7 +156,6 @@ static command commands[] = {
 //	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y [-bgremove [-bgpoly=] ] ] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"pss", 1, "pss seqname [-out=file] [-scale=N (1..3)] [-pixfrac=F] [-scale-method={square|gaussian|point|turbo|lanczos2|lanczos3|upscale}] [-stack-percent=N] [-stack-frames=N] [-half-box=N] [-search-width=N] [-min-brightness=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-selected]", process_pss, STR_PSS, TRUE, REQ_CMD_NO_THREAD},
 	{"pwd", 0, "pwd", process_pwd, STR_PWD, TRUE, REQ_CMD_NONE},
 	{"pyscript", 1, "pyscript [-async] scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
 
@@ -162,7 +163,10 @@ static command commands[] = {
 					"register sequencename ... [-layer=] [-transf=] [-minpairs=] [-maxstars=] [-nostarlist] [-disto=]\n"
 					"register sequencename ... [-interp=] [-noclamp] [-extref=filepath]\n"
 					"register sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
-	{"register_mpp", 1, "register_mpp seqname [-half-box=N] [-search-width=N] [-search-global=N] [-patch-scale=F] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-dewarp] [-no-normalize] [-selected]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
+	{"register_mpp", 1, "register_mpp seqname [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N]\n"
+					"register_mpp seqname ... [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N]\n"
+					"register_mpp seqname ... [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed]\n"
+					"register_mpp seqname ,,, [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= | -maxdim= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -211,6 +215,7 @@ static command commands[] = {
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR CMD_CAT(FINDSTAR) STR_FINDSTAR, TRUE, REQ_CMD_NONE},
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
+	{"seqgps", 1, "seqgps sequencename [-crop=]", process_seq_gps_extract, STR_SEQGPS, TRUE, REQ_CMD_NO_THREAD},
 	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqinvght", 2, "seqinvght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invght, STR_SEQINVGHT CMD_CAT(INVGHT) STR_INVGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqinvmodasinh", 2, "seqinvmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invmodasinh, STR_SEQINVMODASINH CMD_CAT(INVMODASINH) STR_INVMODASINH CMD_CAT(MODASINH) STR_MODASINH, TRUE, REQ_CMD_NONE},
@@ -267,7 +272,7 @@ static command commands[] = {
 			"stackall { sum | min | max } [-maximize] [-upscale] [-32b]\n"
 			"stackall { med | median } [-nonorm, norm=] [-32b]\n"
 			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-overlap_norm] [-weight={noise|wfwhm|nbstars|nbstack}] [-feather=] [-rgb_equal] [-out=filename] [-maximize] [-upscale] [-32b]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
-	{"stack_mpp", 1, "stack_mpp seqname [-out=file] [-scale=N (1..3)] [-pixfrac=F] [-scale-method={square|gaussian|point|turbo|lanczos2|lanczos3|upscale}] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]", process_stack_mpp, STR_STACK_MPP, TRUE, REQ_CMD_NO_THREAD},
+	{"stack_mpp", 1, "stack_mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps]", process_stack_mpp, STR_STACK_MPP, TRUE, REQ_CMD_NO_THREAD},
 #ifdef HAVE_LIBTIFF
 	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask] [-mask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif

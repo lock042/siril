@@ -43,8 +43,11 @@ AM_CPPFLAGS = \
 	$(LIBJXL_CFLAGS) \
 	$(LIBJXL_THREADS_CFLAGS) \
 	$(GTKSOURCEVIEW_CFLAGS) \
+	$(X11_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
+# The resource XML points at gui-gtk4/uifiles/* and gui-gtk4/siril.css.
+siril_resource_xml = $(srcdir)/siril_resource_gtk4.xml
 
 siril_resource.c: siril_resource.h
 	$(AM_V_GEN)
@@ -56,7 +59,7 @@ siril_resource.c: siril_resource.h
 	--target=$@ \
 	--generate-source \
 	--c-name siril_resource \
-	$(srcdir)/siril_resource.xml
+	$(siril_resource_xml)
 
 # ── Core (GTK-free) sources ─────────────────────────────────────────────────
 # Compiled into both siril and siril-cli.  Must not include <gtk/gtk.h> or
@@ -309,6 +312,8 @@ siril_core_sources = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gps_parser.c \
+	io/gps_parser.h \
 	io/healpix/fluxcache.cpp \
 	io/healpix/fluxcache.h \
 	io/healpix/gaia_xp_design.c \
@@ -408,147 +413,162 @@ siril_core_sources = \
 
 # ── GUI (GTK-dependent) sources ─────────────────────────────────────────────
 # Compiled into siril only.  Each file may include <gtk/gtk.h>.
-# Mirrors meson's src_files_gui — keep in sync.
+# Mirrors meson's src_files_gui — keep in sync.  The GUI is GTK4-only and
+# lives in src/gui-gtk4.
+if USE_GTK4
 siril_gui_sources = \
-	gui/about_dialog.c \
-	gui/about_dialog.h \
-	gui/annotate.c \
-	gui/annotations_pref.c \
-	gui/asinh.c \
-	gui/astrometry_solver.c \
-	gui/background_extraction.c \
-	gui/banding.c \
-	gui/callbacks.c \
-	gui/callbacks.h \
-	gui/catmag.c \
-	gui/catmag.h \
-	gui/ccd-inspector.c \
-	gui/clahe.c \
-	gui/colors.c \
-	gui/colors.h \
-	gui/compositing.c \
-	gui/compstars.c \
-	gui/compstars.h \
-	gui/conversion.c \
-	gui/conversion.h \
-	gui/cosmetic_correction.c \
-	gui/curves.c \
-	gui/curves.h \
-	gui/cut.c \
-	gui/denoisegui.c \
-	gui/dialog_preview.c \
-	gui/dialog_preview.h \
-	gui/dialogs.c \
-	gui/dialogs.h \
-	gui/documentation.c \
-	gui/documentation.h \
-	gui/epf.c \
-	gui/epf.h \
-	gui/fft.c \
-	gui/fix_xtrans_af.c \
-	gui/fix_xtrans_af.h \
-	gui/geometry.c \
-	gui/git_gui.c \
-	gui/gui_iface_impl.c \
-	gui/gui_state.h \
-	gui/histo_display.c \
-	gui/histo_display.h \
-	gui/histogram.c \
-	gui/histogram.h \
-	gui/histogram_utils.c \
-	gui/histogram_utils.h \
-	gui/icc_profile.c \
-	gui/icc_profile.h \
-	gui/image_display.c \
-	gui/image_display.h \
-	gui/image_interactions.c \
-	gui/image_interactions.h \
-	gui/keywords_tree.c \
-	gui/keywords_tree.h \
-	gui/linear_match.c \
-	gui/livestacking_gui.c \
-	gui/masks_gui.c \
-	gui/masks_gui.h \
-	gui/median.c \
-	gui/menu_gray_geometry.c \
-	gui/menu_gray_geometry.h \
-	gui/menu_gray_selection.c \
-	gui/merge_cfa.c \
-	gui/message_dialog.c \
-	gui/message_dialog.h \
-	gui/mouse_action_functions.c \
-	gui/mouse_action_functions.h \
-	gui/mouse_action_preferences.c \
-	gui/newdeconv.c \
-	gui/nina_light_curve.c \
-	gui/nina_light_curve.h \
-	gui/open_dialog.c \
-	gui/open_dialog.h \
-	gui/photometric_cc.c \
-	gui/photometric_cc.h \
-	gui/pixelmath.c \
-	gui/plot.c \
-	gui/plot.h \
-	gui/preferences.c \
-	gui/preferences.h \
-	gui/preprocess.c \
-	gui/progress_and_log.c \
-	gui/progress_and_log.h \
-	gui/PSF_list.h \
-	gui/PSF_list.c \
-	gui/python_gui.h \
-	gui/python_gui.c \
-	gui/registration.h \
-	gui/registration.c \
-	gui/registration_preview.c \
-	gui/remixer.c \
-	gui/remixer.h \
-	gui/rgradient.c \
-	gui/saturation.c \
-	gui/save_dialog.c \
-	gui/save_dialog.h \
-	gui/scnr.c \
-	gui/script_console.c \
-	gui/script_menu.c \
-	gui/script_menu.h \
-	gui/search_objects.c \
-	gui/sequence_export.c \
-	gui/sequence_list.c \
-	gui/sequence_list.h \
-	gui/single_image.c \
-	gui/single_image.h \
-	gui/siril_actions.c \
-	gui/siril_actions.h \
-	gui/siril_cmd_help.c \
-	gui/siril_cmd_help.h \
-	gui/siril_css.c \
-	gui/siril_css.h \
-	gui/siril_intro.c \
-	gui/siril_intro.h \
-	gui/siril_preview.c \
-	gui/siril_preview.h \
-	gui/siril_plot.c \
-	gui/siril_plot.h \
-	gui/siril-window.c \
-	gui/siril-window.h \
-	gui/splashscreen.c \
-	gui/splashscreen.h \
-	gui/split_cfa.c \
-	gui/stacking.c \
-	gui/stacking.h \
-	gui/star_finder.c \
-	gui/starnetgui.c \
-	gui/starnetgui.h \
-	gui/statistics.c \
-	gui/statistics_list.c \
-	gui/undo_gui.c \
-	gui/unpurple.c \
-	gui/unpurple.h \
-	gui/user_polygons.c \
-	gui/user_polygons.h \
-	gui/utils.c \
-	gui/utils.h \
-	gui/wavelets.c
+	gui-gtk4/about_dialog.c \
+	gui-gtk4/about_dialog.h \
+	gui-gtk4/annotate.c \
+	gui-gtk4/annotations_pref.c \
+	gui-gtk4/asinh.c \
+	gui-gtk4/astrometry_solver.c \
+	gui-gtk4/background_extraction.c \
+	gui-gtk4/banding.c \
+	gui-gtk4/callbacks.c \
+	gui-gtk4/callbacks.h \
+	gui-gtk4/catmag.c \
+	gui-gtk4/catmag.h \
+	gui-gtk4/ccd-inspector.c \
+	gui-gtk4/clahe.c \
+	gui-gtk4/colors.c \
+	gui-gtk4/colors.h \
+	gui-gtk4/compositing.c \
+	gui-gtk4/compstars.c \
+	gui-gtk4/compstars.h \
+	gui-gtk4/conversion.c \
+	gui-gtk4/conversion.h \
+	gui-gtk4/cosmetic_correction.c \
+	gui-gtk4/curves.c \
+	gui-gtk4/curves.h \
+	gui-gtk4/cut.c \
+	gui-gtk4/cut.h \
+	gui-gtk4/denoisegui.c \
+	gui-gtk4/dialog_preview.c \
+	gui-gtk4/dialog_preview.h \
+	gui-gtk4/dialogs.c \
+	gui-gtk4/dialogs.h \
+	gui-gtk4/documentation.c \
+	gui-gtk4/documentation.h \
+	gui-gtk4/epf.c \
+	gui-gtk4/epf.h \
+	gui-gtk4/fft.c \
+	gui-gtk4/file_browser.c \
+	gui-gtk4/file_browser.h \
+	gui-gtk4/fix_xtrans_af.c \
+	gui-gtk4/fix_xtrans_af.h \
+	gui-gtk4/geometry.c \
+	gui-gtk4/git_gui.c \
+	gui-gtk4/gui_iface_impl.c \
+	gui-gtk4/gui_state.h \
+	gui-gtk4/gtk3_event_compat.h \
+	gui-gtk4/histo_display.c \
+	gui-gtk4/histo_display.h \
+	gui-gtk4/histogram.c \
+	gui-gtk4/histogram.h \
+	gui-gtk4/histogram_utils.c \
+	gui-gtk4/histogram_utils.h \
+	gui-gtk4/icc_profile.c \
+	gui-gtk4/icc_profile.h \
+	gui-gtk4/image_display.c \
+	gui-gtk4/image_display.h \
+	gui-gtk4/image_interactions.c \
+	gui-gtk4/image_interactions.h \
+	gui-gtk4/keywords_tree.c \
+	gui-gtk4/keywords_tree.h \
+	gui-gtk4/linear_match.c \
+	gui-gtk4/livestacking_gui.c \
+	gui-gtk4/masks_gui.c \
+	gui-gtk4/masks_gui.h \
+	gui-gtk4/median.c \
+	gui-gtk4/median.h \
+	gui-gtk4/menu_gray_geometry.c \
+	gui-gtk4/menu_gray_geometry.h \
+	gui-gtk4/menu_gray_selection.c \
+	gui-gtk4/merge_cfa.c \
+	gui-gtk4/message_dialog.c \
+	gui-gtk4/message_dialog.h \
+	gui-gtk4/mouse_action_functions.c \
+	gui-gtk4/mouse_action_functions.h \
+	gui-gtk4/mouse_action_preferences.c \
+	gui-gtk4/newdeconv.c \
+	gui-gtk4/nina_light_curve.c \
+	gui-gtk4/nina_light_curve.h \
+	gui-gtk4/open_dialog.c \
+	gui-gtk4/open_dialog.h \
+	gui-gtk4/photometric_cc.c \
+	gui-gtk4/photometric_cc.h \
+	gui-gtk4/pixelmath.c \
+	gui-gtk4/plot.c \
+	gui-gtk4/plot.h \
+	gui-gtk4/preferences.c \
+	gui-gtk4/preferences.h \
+	gui-gtk4/preprocess.c \
+	gui-gtk4/progress_and_log.c \
+	gui-gtk4/progress_and_log.h \
+	gui-gtk4/PSF_list.h \
+	gui-gtk4/PSF_list.c \
+	gui-gtk4/python_gui.h \
+	gui-gtk4/python_gui.c \
+	gui-gtk4/registration.h \
+	gui-gtk4/registration.c \
+	gui-gtk4/registration_preview.c \
+	gui-gtk4/registration_preview.h \
+	gui-gtk4/remixer.c \
+	gui-gtk4/remixer.h \
+	gui-gtk4/rgradient.c \
+	gui-gtk4/saturation.c \
+	gui-gtk4/saturation.h \
+	gui-gtk4/save_dialog.c \
+	gui-gtk4/save_dialog.h \
+	gui-gtk4/scnr.c \
+	gui-gtk4/script_console.c \
+	gui-gtk4/script_console.h \
+	gui-gtk4/script_menu.c \
+	gui-gtk4/script_menu.h \
+	gui-gtk4/search_objects.c \
+	gui-gtk4/search_objects.h \
+	gui-gtk4/sequence_export.c \
+	gui-gtk4/sequence_list.c \
+	gui-gtk4/sequence_list.h \
+	gui-gtk4/single_image.c \
+	gui-gtk4/single_image.h \
+	gui-gtk4/siril_actions.c \
+	gui-gtk4/siril_actions.h \
+	gui-gtk4/siril_cmd_help.c \
+	gui-gtk4/siril_cmd_help.h \
+	gui-gtk4/siril_css.c \
+	gui-gtk4/siril_css.h \
+	gui-gtk4/siril_intro.c \
+	gui-gtk4/siril_intro.h \
+	gui-gtk4/siril_preview.c \
+	gui-gtk4/siril_preview.h \
+	gui-gtk4/siril_plot.c \
+	gui-gtk4/siril_plot.h \
+	gui-gtk4/siril-window.c \
+	gui-gtk4/siril-window.h \
+	gui-gtk4/splashscreen.c \
+	gui-gtk4/splashscreen.h \
+	gui-gtk4/split_cfa.c \
+	gui-gtk4/stacking.c \
+	gui-gtk4/stacking.h \
+	gui-gtk4/star_finder.c \
+	gui-gtk4/starnetgui.c \
+	gui-gtk4/starnetgui.h \
+	gui-gtk4/statistics.c \
+	gui-gtk4/statistics_list.c \
+	gui-gtk4/ui_files.h \
+	gui-gtk4/undo_gui.c \
+	gui-gtk4/undo_gui.h \
+	gui-gtk4/unpurple.c \
+	gui-gtk4/unpurple.h \
+	gui-gtk4/user_polygons.c \
+	gui-gtk4/user_polygons.h \
+	gui-gtk4/utils.c \
+	gui-gtk4/utils.h \
+	gui-gtk4/wavelets.c \
+	gui-gtk4/wavelets.h
+endif
 
 # ── Headless stubs ──────────────────────────────────────────────────────────
 # Compiled into siril-cli only.  Provides no-op implementations of GUI
@@ -649,7 +669,7 @@ siril_cli_LDADD = $(siril_common_LDADD)
 # Unconditionally defined so they appear in EXTRA_DIST regardless of
 # whether siril is built this configuration.
 siril_SOURCES = $(siril_core_sources) $(siril_gui_sources) siril_resource.c siril_resource.h main.c
-siril_LDADD = $(siril_common_LDADD) $(GTK_LIBS) ${GTK_MAC_LIBS} $(GTKSOURCEVIEW_LIBS)
+siril_LDADD = $(siril_common_LDADD) $(GTK_LIBS) ${GTK_MAC_LIBS} $(GTKSOURCEVIEW_LIBS) $(X11_LIBS)
 
 if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols

@@ -19,10 +19,13 @@
 namespace mpp {
 
 /* Length = patch_high - patch_low.
- * The peak (1.0) lands at index (box_center - patch_low). Ramp from
- * 1/(c+1) at the lower edge up to 1.0 at the centre, then 1.0 → 1/N at the
- * upper edge, where N = patch_high - box_center. extend_low / extend_high
- * replace the corresponding ramp with all-ones (edge-of-frame patches). */
+ * The peak (1.0) lands at index (box_center - patch_low). Raised-cosine
+ * (Hann) taper: the linear ramp t (1/(c+1) … c/(c+1) below the centre,
+ * N/N … 1/N above it, N = patch_high - box_center) is mapped through
+ * sin²(π/2·t), giving zero slope at the centre and at the patch edges so
+ * the blend window is C1 (PSS uses the C0 triangular ramp directly).
+ * extend_low / extend_high replace the corresponding taper with all-ones
+ * (edge-of-frame patches). */
 std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_center,
                                         bool extend_low, bool extend_high);
 
@@ -44,23 +47,62 @@ struct RemapBorder {
 void stack_remap_rigid(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
                        int shift_y, int shift_x,
                        int y_low, int y_high, int x_low, int x_high,
-                       RemapBorder &border);
+                       RemapBorder &border, float weight = 1.0f);
+
+/* Fractional-shift variant: same accumulate-into-buffer contract, with the
+ * fractional part of (shift_y, shift_x) resolved by Lanczos interpolation
+ * (cv::warpAffine, translation-only). Shifts within 1e-3 of an integer take
+ * the exact stack_remap_rigid blit. Destination rows/columns whose sample
+ * position would fall outside the frame are clipped and recorded in
+ * `border`, like the integer path. `weight` scales the contribution
+ * (soft frame selection); 1.0 is a plain add. */
+void stack_remap_subpixel(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
+                          double shift_y, double shift_x,
+                          int y_low, int y_high, int x_low, int x_high,
+                          RemapBorder &border, float weight = 1.0f);
 
 /* Per-AP per-frame quality for the default Laplace (frame-rank) +
  * Laplace (AP-rank) path. The strided LoG of each frame is computed
  * once via rank_blurred_laplacian_u8 (shared with mpp_rank), then each
  * AP's patch is sliced from it and meanStdDev gives σ. With
  * frames_normalization on, σ is divided by frame avg_brightness. */
+/* A (frame → AP) selection entry: the AP index plus the frame's selection
+ * weight at that AP (1.0 on the plateau, raised-cosine in the taper zone —
+ * see stack_selection_weight). */
+struct APUse {
+	int ap;
+	float weight;
+};
+
 struct APQualities {
 	int stack_size = 0;
+	/* Soft-selection taper half-width in ranks. 0 = hard top-N (PSS
+	 * behaviour; always the case in explicit frame-number mode). When
+	 * > 0, each AP keeps stack_size + taper frames, with ranks
+	 * stack_size − taper … stack_size + taper − 1 weighted by a raised
+	 * cosine so adjacent APs that rank a borderline frame slightly
+	 * differently give it nearly the same weight instead of a 1-vs-0
+	 * cliff. The cosine is symmetric around rank stack_size, so the
+	 * effective frame count Σw stays exactly stack_size. */
+	int taper = 0;
 	/* [num_aps][num_frames] — raw σ (or σ/brightness when normalised).
 	 * Diagnostic; tests compare against the reference implementation. */
 	std::vector<std::vector<double>> qualities;
-	/* [num_aps][stack_size] — top-N frame indices by descending quality. */
+	/* [num_aps][stack_size + taper] — top frame indices by descending
+	 * quality. The selection weight of entry k is
+	 * stack_selection_weight(k, stack_size, taper). */
 	std::vector<std::vector<int>> best_frame_indices;
-	/* [num_frames][variable] — APs for which this frame is among the best. */
-	std::vector<std::vector<int>> used_alignment_points;
+	/* [num_frames][variable] — (AP, weight) pairs for which this frame
+	 * carries selection weight. */
+	std::vector<std::vector<APUse>> used_alignment_points;
 };
+
+/* Selection weight of the frame at 0-based quality rank `rank` within an
+ * AP, for a target stack size N and taper half-width T:
+ *   1.0 for rank < N − T, 0.0 for rank ≥ N + T, raised-cosine in between
+ *   (half-sample-centred so Σ over all ranks is exactly N).
+ * T = 0 reproduces the hard top-N cliff. */
+float stack_selection_weight(int rank, int stack_size, int taper);
 
 /* `frames` are the raw mono frames (NOT blurred; we'll Gaussian-blur and
  * compute the strided LoG ourselves). `frame_brightness[i]` is the
@@ -68,6 +110,9 @@ struct APQualities {
  * mpp_rank::rank_average_brightness). `frame_rows`/`frame_cols` are the
  * common original-frame shape (used for the frame-bounds clamp before
  * stride division). */
+/* `included` (empty = all): when sized to num_frames, excluded frames are
+ * given a sentinel quality so they never enter any AP's best_frame_indices,
+ * and the per-AP selection count is clamped to the included-frame count. */
 APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        const std::vector<double> &frame_brightness,
                                        const mpp_aps_t &aps,
@@ -75,7 +120,8 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
                                        int frame_rows, int frame_cols,
                                        const mpp_config_t &cfg,
                                        progress_cb_fn progress = nullptr,
-                                       void *progress_user = nullptr);
+                                       void *progress_user = nullptr,
+                                       const std::vector<int> &included = {});
 
 /* Streamed overload — the provider returns the raw mono frame for the
  * requested index. Each iteration reads one frame, computes its strided
@@ -90,13 +136,14 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 int frame_rows, int frame_cols,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
-                                                void *progress_user = nullptr);
+                                                void *progress_user = nullptr,
+                                                const std::vector<int> &included = {});
 
 /*
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
- * (`min(weight_y[:, None], weight_x[None, :])`, ramping from the AP centre
- * to the patch boundaries, with the boundary ramp suppressed at frame
- * edges). Global: a sum_single_frame_weights buffer in drizzled coords,
+ * (`weight_y[:, None] * weight_x[None, :]`, Hann-tapering from the AP
+ * centre to the patch boundaries, with the boundary taper suppressed at
+ * frame edges). Global: a sum_single_frame_weights buffer in drizzled coords,
  * accumulating `stack_size × weights_yx` over every AP. The count of pixels
  * with summed weight < 1e-10 is the "background hole" count.
  *
@@ -123,6 +170,10 @@ struct StackState {
 	std::vector<cv::Vec2i> ap_drizzled;     /* (y, x) */
 	std::vector<cv::Mat> weights_yx;        /* CV_32F, patch-sized */
 	std::vector<cv::Mat> stacking_buffers;  /* CV_32F, patch-sized, zero-init */
+	/* Frames accumulated per AP (stack_size, or the reduced effective
+	 * count under stack_skip_failed_aps). Normalises a stacking buffer to
+	 * a mean patch — used by the merge's per-AP DC equalisation. */
+	std::vector<float> ap_frame_counts;
 
 	cv::Mat sum_single_frame_weights;       /* CV_32F, dim_y_drizzled × dim_x_drizzled */
 	int number_stacking_holes = 0;
@@ -137,7 +188,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       int stack_size,
                                       double drizzle_scale,
                                       int num_layers,
-                                      const mpp_config_t &cfg);
+                                      const mpp_config_t &cfg,
+                                      const std::vector<float> *ap_effective_counts = nullptr);
 
 /* Stage B: per-AP per-frame shift compute.
  *
@@ -255,6 +307,12 @@ struct StackLoopOutput {
 	StackState state;
 	RemapBorder border;
 	int shift_failure_counter = 0;
+	/* An allocation failure was contained inside the frame-parallel
+	 * accumulation (the partial result must be discarded). Lets the
+	 * caller report MPP_ENOMEM instead of crashing — on Windows there
+	 * is no overcommit, so cv allocations genuinely fail under memory
+	 * pressure. */
+	bool oom = false;
 };
 
 StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,

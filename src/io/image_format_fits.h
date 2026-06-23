@@ -41,7 +41,7 @@ int siril_fits_compress(fits *f);
 int save_opened_fits(fits *f);
 gchar *set_right_extension(const char *name);
 int savefits(const char *name, fits *f);
-int copyfits(fits *from, fits *to, unsigned char oper, int layer);
+int copyfits(fits *from, fits *to, unsigned int oper, int layer);
 void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(const char *source, const char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
@@ -65,7 +65,20 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-// get_thumbnail_from_fits is GUI-only; forward-declared in gui/dialog_preview.c.
+/* Thumbnail extraction (GUI-only).
+ *
+ * extract_thumbnail_from_fits returns a malloc'd RGB888 byte buffer plus
+ * the thumbnail's dimensions and a g_malloc'd description string.  The
+ * caller frees the byte buffer with free() and the description with
+ * g_free().  Use this from the GTK4 build where a raw byte buffer can be
+ * wrapped directly as a GdkTexture.
+ *
+ * get_thumbnail_from_fits is a thin GdkPixbuf wrapper around the above,
+ * kept for the GTK3 build and any other caller that still wants a
+ * GdkPixbuf.
+ *
+ * Forward-declared in callers rather than included here to keep this
+ * core header gdk-pixbuf-free. */
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);
@@ -87,6 +100,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 int fits_swap_image_data(fits *a, fits *b);
+int fits_swap_all_except_rwlock(fits *a, fits *b);
 
 int save_wcs_fits(fits *f, const gchar *filename);
 int save_mask_fits(int rx, int ry, float *buffer, const gchar *name);

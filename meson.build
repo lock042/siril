@@ -46,7 +46,14 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
+# -Dgtk is a boolean:
+#   - true  → builds the GTK4 GUI from src/gui-gtk4 (default).
+#   - false → headless CLI-only build (no GTK / GtkSourceView / X11 deps).
 enable_gtk       = get_option('gtk')
+gui_subdir       = 'gui-gtk4'
+if enable_gtk
+  add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
+endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
 enable_sqlite    = get_option('sqlite')
@@ -251,7 +258,23 @@ endif
 # (-Dgtk=false).  The GUI/core boundary is enforced by siril_lib being compiled
 # against core_dep (GTK-free); any gui/ header leakage into core sources would
 # fail to compile.
-gtk_dep = enable_gtk ? dependency('gtk+-3.0', required : true, version: '>= 3.22.0') : no_dep
+#
+# 4.10 introduced GtkAlertDialog, GtkFileDialog, GtkColorDialog and
+# gtk_widget_add_css_class.  4.12 added gtk_column_view_scroll_to /
+# GTK_LIST_SCROLL_NONE which gui-gtk4/keywords_tree.c relies on, so
+# 4.12 is the effective floor for the GTK4 backend.
+if not enable_gtk
+  gtk_dep = no_dep
+else
+  gtk_dep = dependency('gtk4',     required : true, version: '>= 4.12.0')
+endif
+# libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
+# src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
+# and host OS — only built on Linux / BSD with GTK4; off elsewhere.
+enable_x11_dnd_fallback = (enable_gtk
+  and get_option('legacy-x11-support')
+  and host_machine.system() not in ['darwin', 'windows'])
+x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
 # Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
 # are in the core library, so they are always required.
 cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
@@ -309,6 +332,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
@@ -326,6 +350,7 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -336,7 +361,11 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = enable_gtk ? dependency('gtksourceview-4', required : true) : no_dep
+if not enable_gtk
+  gtksourceview_dep = no_dep
+else
+  gtksourceview_dep = dependency('gtksourceview-5', required : true)
+endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
@@ -344,6 +373,7 @@ if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -505,6 +535,7 @@ conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') 
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
 conf_data.set('HAVE_GTK', enable_gtk ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_X11_DND_FALLBACK', enable_x11_dnd_fallback ? 1 : false, description : 'GTK4 X11 drag-and-drop fallback compiled in (libX11 linked).')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -756,6 +787,7 @@ externals_dep = declare_dependency(
     core_dep,
     gtk_dep,           # no_dep when -Dgtk=false
     gtksourceview_dep, # no_dep when -Dgtk=false
+    x11_dep,           # no_dep on non-X11 / headless builds
   ]
 )
 

@@ -79,7 +79,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+#define RADCONV (((3600.0 * 180.0) / G_PI) / 1.0E3)
 
 // Used for sanity checking reported sizes from image files.
 // Not a guarantee that the file will fit in memory
@@ -197,13 +197,24 @@ typedef enum {
 #define MAXMASKVPORT	1	// 1 vport supported for mask display
 #define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
-/* defines for copyfits actions */
-#define CP_INIT		0x01	// initialize data array with 0s
-#define CP_ALLOC	0x02	// reallocs data array
-#define CP_COPYA	0x04	// copy data array content
-#define CP_FORMAT	0x08	// copy metadata
-#define CP_COPYMASK	0x10	// copy the mask
-#define CP_EXPAND	0x20	// expands a one-channel to a three channels
+/* defines for copyfits actions — a bitmask (passed as unsigned int).
+ * Individual bits select one element to copy; the groupings below the
+ * line are just OR-combinations, not new bits. */
+#define CP_INIT		0x0001	// initialize data array with 0s
+#define CP_ALLOC	0x0002	// reallocs data array
+#define CP_COPYA	0x0004	// copy data array content (also stats and ICC profile)
+#define CP_FORMAT	0x0008	// copy the scalar metadata keywords (clones them, then nulls the heap-owned pointers — copy those with the CP_* below)
+#define CP_COPYMASK	0x0010	// copy the mask
+#define CP_EXPAND	0x0020	// expands a one-channel to a three channels
+/* heap-owned metadata elements, each deep-copied independently */
+#define CP_WCS		0x0040	// deep-copy the WCS solution (wcslib)
+#define CP_HEADER	0x0080	// copy the raw FITS header text
+#define CP_HISTORY	0x0100	// copy the HISTORY list
+#define CP_UNKNOWNKEYS	0x0200	// copy the unparsed ("unknown") keywords
+#define CP_DATES	0x0400	// copy DATE and DATE-OBS
+/* convenience groupings */
+#define CP_METADATA_HEAP	(CP_WCS | CP_HEADER | CP_HISTORY | CP_UNKNOWNKEYS | CP_DATES)	// every heap-owned metadata element
+#define CP_DEEPCOPY		(CP_COPYA | CP_FORMAT | CP_COPYMASK | CP_METADATA_HEAP)	// deep-copy every element into an already-sized destination; OR with CP_ALLOC to also (re)allocate its data buffer (e.g. a fresh or stack-allocated fits)
 
 #define PREVIEW_NB 2
 
@@ -330,9 +341,9 @@ typedef enum {
 
 // Feather mode enum
 typedef enum {
-	FEATHER_INNER,  // Feather inward from the edge
-	FEATHER_OUTER,  // Feather outward from the edge
-	FEATHER_EDGE    // Feather equally inward and outward
+	FEATHER_INNER,	// Feather inward from the edge
+	FEATHER_OUTER,	// Feather outward from the edge
+	FEATHER_EDGE	// Feather equally inward and outward
 } feather_mode;
 
 typedef enum {
@@ -374,11 +385,11 @@ typedef enum {
 } extraction_scaling;
 
 typedef enum {
-	DISTO_UNDEF, // No distortion
-	DISTO_IMAGE, // Distortion from current image
-	DISTO_FILE,  // Distortion from given file
-	DISTO_MASTER, // Distortion from master files
-	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+	DISTO_UNDEF,	// No distortion
+	DISTO_IMAGE,	// Distortion from current image
+	DISTO_FILE,	// Distortion from given file
+	DISTO_MASTER,	// Distortion from master files
+	DISTO_FILES,	// Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
 	DISTO_FILE_COMET // special for cometary alignment, to be detected by apply reg. Enables to
 } disto_source;
 
@@ -390,7 +401,7 @@ typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
-	double airmass;     /* airmass of the image, used in photometry */
+	double airmass;		/* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -531,6 +542,21 @@ typedef struct {
 	char ord[FLEN_VALUE];		// regular, centered
 } dft_info;
 
+/* data from QHY Pro rolling shutter cameras with GPSBOX, stored in the header by NINA */
+struct gps_rs_data {
+	double exposure;			// exposure reported by the SDK, in seconds
+	int line_period;			// line cycle time, in nanoseconds (QHY GPS)
+	int crop_offset_x, crop_offset_y;
+	double end_offset0;			// result of GetQHYCCDRollingShutterEndOffset(0) in µs
+	GDateTime *end_vsync_date;		// the timestamp from metadata, probably of Vsync
+	int flag;				// the flag from GPS metadata, shifted
+	char readout_mode[FLEN_VALUE];
+
+	int ry;			// image height
+	int binning;		// binning value
+	gboolean top_down;	// track the capture settings and flips
+};
+
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
 #define DEFAULT_DOUBLE_VALUE -999.0
@@ -544,38 +570,42 @@ typedef struct {
 	double bscale, bzero;
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
-	float flo, fhi; // Same but float format.
-	char program[FLEN_VALUE];           // Software that created this HDU
-	char filename[FLEN_VALUE];           // Original Filename
-	double data_max;	// used to check if 32b float is in the [0, 1] range
-	double data_min;	// used to check if 32b float is in the [0, 1] range
-	double pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
+	float flo, fhi;		// Same but float format.
+	char program[FLEN_VALUE];	// Software that created this HDU
+	char filename[FLEN_VALUE];	// Original Filename
+	double data_max;		// used to check if 32b float is in the [0, 1] range
+	double data_min;		// used to check if 32b float is in the [0, 1] range
+	double pixel_size_x, pixel_size_y; // XPIXSZ and YPIXSZ keys
+	unsigned int binning_x, binning_y; // XBINNING and YBINNING keys
 	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
-	double mjd_obs;					// date-obs in Julian
-	double expstart, expend;		// Julian dates
-	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];		// IMAGETYP key
-	char object[FLEN_VALUE];		// OBJECT key
-	char instrume[FLEN_VALUE];		// INSTRUME key
-	char telescop[FLEN_VALUE];		// TELESCOP key
-	char observer[FLEN_VALUE];		// OBSERVER key
+	GDateTime *date, *date_obs;	// creation and acquisition UTC dates
+	double mjd_obs;			// date-obs in Julian
+	double expstart, expend;	// Julian dates
+	struct gps_rs_data *gps_data;	// data for QHY Pro cameras, from NINA
+	gboolean date_and_exp_from_gps;	// date_obs and exposure are set from global shutter GPS
+	char gps_eutc[FLEN_VALUE];	// backup, see the note in gps_keys_handler_save
+	int gps_eflag;			// backup, same
+	char filter[FLEN_VALUE];	// FILTER key
+	char image_type[FLEN_VALUE];	// IMAGETYP key
+	char object[FLEN_VALUE];	// OBJECT key
+	char instrume[FLEN_VALUE];	// INSTRUME key
+	char telescop[FLEN_VALUE];	// TELESCOP key
+	char observer[FLEN_VALUE];	// OBSERVER key
 	double centalt, centaz;
-	double sitelat, sitelong;		// SITE LAT and LONG as double
-	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
-	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
-	double siteelev;			// SITE ELEVATION key as double
-	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
+	double sitelat, sitelong;	// SITE LAT and LONG as double
+	char sitelat_str[FLEN_VALUE];	// SITE LATITUDE key as string
+	char sitelong_str[FLEN_VALUE];	// SITE LONGITUDE key as string
+	double siteelev;		// SITE ELEVATION key as double
+	char bayer_pattern[FLEN_VALUE];	// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
-	double airmass;                   // relative optical path length through atmosphere.
+	double airmass;			// relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, flength, iso_speed, exposure, aperture, ccd_temp, set_temp;
 	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
 	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
-	char focname[FLEN_VALUE]; // focuser name
+	char focname[FLEN_VALUE];	// focuser name
 	int focuspos, focussz;
 	double foctemp;
 
@@ -608,11 +638,11 @@ struct ffit {
 	 * For RGB images, naxes[2] is 3 and naxis is 3.
 	 * */
 
-	fkeywords keywords; // keywords structure
-	gboolean checksum; // flag to save checksum
+	fkeywords keywords;	// keywords structure
+	gboolean checksum;	// flag to save checksum
 
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
-	gchar *unknown_keys; // list of unknown keys
+	gchar *unknown_keys;	// list of unknown keys
 
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
@@ -629,17 +659,17 @@ struct ffit {
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
 	gboolean debayer_checked; // whether bayer pattern has already been checked and adjusted or not. This is set true for SER upon opening, not for other formats
-	unsigned int orig_ry; // original ry of the image (only set when reading partial)
-	int x_offset, y_offset; // x and y offset of partial read wrt to original image
+	unsigned int orig_ry;	// original ry of the image (only set when reading partial)
+	int x_offset, y_offset;	// x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
 
 	/* ICC Color Management data */
-	gboolean color_managed; // Whether color management applies to this FITS
+	gboolean color_managed;	// Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
 	mask_t* mask; // Mask for image operations
-	gboolean mask_active; // Whether or not the mask is active
+	gboolean mask_active;	// Whether or not the mask is active
 
 	/* GRWLock for thread safety. Most issues around concurrent access to gfit are protected against by
 	 * the processing thread system fed by start_in_new_thread, which will only handle jobs serially.
@@ -770,8 +800,8 @@ typedef struct _child_info {
 } child_info;
 
 struct historic_struct {
-	int fd;             /* open fd for the swap file; -1 if none */
-	int mask_fd;        /* open fd for the mask swap file; -1 if none */
+	int fd;		/* open fd for the swap file; -1 if none */
+	int mask_fd;	/* open fd for the mask swap file; -1 if none */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
@@ -830,6 +860,7 @@ struct common_icc {
 struct cominf {
 	GResource *resource; // resources
 	gboolean headless;		// pure console, no GUI
+	gboolean quitting;		// application is shutting down; suppress display refreshes during teardown
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -869,17 +900,17 @@ struct cominf {
 	// required.
 	GRWLock pref_rwlock;
 
-	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
-	GThread *python_thread;	// the thread for the python interpreter
-	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
-	gboolean python_script;	// python script being executed
+	GThread *python_init_thread;	// python initialization thread, used to monitor startup completion
+	GThread *python_thread;		// the thread for the python interpreter
+	char python_magic[9];		// magic number for the python interpreter, used to check .pyc compatibility
+	gboolean python_script;		// python script being executed
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
-	int fftw_max_thread;	// max number of threads for FFTW execution
+	int fftw_max_thread;		// max number of threads for FFTW execution
 
 	rectangle selection;		// coordinates of the selection rectangle
 
@@ -916,16 +947,16 @@ struct cominf {
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
-	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
-	version_number python_version; // Holds the python version number
+	struct gui_icc gui_icc;		// Display ICC profiles (monitor, soft proof); initialized even headlessly
+	version_number python_version;	// Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
 	gchar *spcc_remote_catalogue;	// Current preferred mirror for the remote xp_sampled catalogue
 	gchar *spcc_remote_catalogue_xpcts;	// Current preferred mirror for the remote xp_continuous catalogue (NULL until configured)
 
 	/* Repository / script state (not display state; lives here, not in guiinfo) */
-	GSList   *repo_scripts;          // list of scripts from the remote repository
-	gboolean  script_repo_available; // remote script repository is reachable
-	gboolean  spcc_repo_available;   // remote SPCC repository is reachable
+	GSList *repo_scripts;		// list of scripts from the remote repository
+	gboolean script_repo_available;	// remote script repository is reachable
+	gboolean spcc_repo_available;	// remote SPCC repository is reachable
 };
 
 #ifndef MAIN

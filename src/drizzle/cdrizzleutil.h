@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/siril.h"
 #include <assert.h>
 #include <errno.h>
-#define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
+#define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #if __STDC_VERSION__ >= 199901L
 #include <stdint.h>

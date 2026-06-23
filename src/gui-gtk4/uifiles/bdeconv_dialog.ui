@@ -1,0 +1,1691 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name bdeconv_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjustment_stochastic_clip">
+    <property name="page-increment">0.01</property>
+    <property name="step-increment">0.001</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stochastic_gammatv">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">10000</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stochastic_gammavalue">
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stochastic_mutationsigma">
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stochastic_quantize">
+    <property name="page-increment">0.0001</property>
+    <property name="step-increment">1.0000000000000001e-05</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stochastic_resetprobability">
+    <property name="page-increment">0.001</property>
+    <property name="step-increment">0.0001</property>
+    <property name="upper">1</property>
+    <property name="value">0.005</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_pixelsize">
+    <property name="lower">0.10</property>
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">30</property>
+    <property name="value">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="convadflambda">
+    <property name="lower">0.0001</property>
+    <property name="page-increment">0.001</property>
+    <property name="step-increment">0.0001</property>
+    <property name="upper">100</property>
+  </object>
+  <object class="GtkAdjustment" id="convalpha">
+    <property name="lower">1</property>
+    <property name="page-increment">100</property>
+    <property name="step-increment">10</property>
+    <property name="upper">50000</property>
+    <property name="value">3000</property>
+  </object>
+  <object class="GtkAdjustment" id="convcompensation">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">100</property>
+    <property name="value">2.10</property>
+  </object>
+  <object class="GtkAdjustment" id="convdownsampleblur">
+    <property name="page-increment">0.20</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">5</property>
+  </object>
+  <object class="GtkAdjustment" id="convgamma">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">100</property>
+  </object>
+  <object class="GtkAdjustment" id="convgflambda">
+    <property name="lower">1</property>
+    <property name="page-increment">100</property>
+    <property name="step-increment">10</property>
+    <property name="upper">5000</property>
+    <property name="value">3000</property>
+  </object>
+  <object class="GtkAdjustment" id="conviter">
+    <property name="lower">1</property>
+    <property name="page-increment">5</property>
+    <property name="step-increment">1</property>
+    <property name="upper">50</property>
+  </object>
+  <object class="GtkAdjustment" id="convkernelthreshold">
+    <property name="page-increment">0.0005</property>
+    <property name="step-increment">0.0001</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="convkernl1">
+    <property name="page-increment">0.01</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="convlambdamin">
+    <property name="lower">0.0001</property>
+    <property name="page-increment">0.0002</property>
+    <property name="step-increment">0.0001</property>
+    <property name="upper">0.01</property>
+    <property name="value">0.001</property>
+  </object>
+  <object class="GtkAdjustment" id="convlambdaratio">
+    <property name="page-increment">0.01</property>
+    <property name="step-increment">0.001</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="convninner">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">500</property>
+    <property name="value">300</property>
+  </object>
+  <object class="GtkAdjustment" id="convnouter">
+    <property name="lower">1</property>
+    <property name="page-increment">1</property>
+    <property name="step-increment">1</property>
+    <property name="upper">10</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkAdjustment" id="convntries">
+    <property name="lower">4</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">128</property>
+    <property name="value">32</property>
+  </object>
+  <object class="GtkAdjustment" id="convpsfangle">
+    <property name="page-increment">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">360</property>
+  </object>
+  <object class="GtkAdjustment" id="convpsfbeta">
+    <property name="lower">1.5</property>
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">4.5</property>
+  </object>
+  <object class="GtkAdjustment" id="convpsfratio">
+    <property name="lower">0.5</property>
+    <property name="page-increment">0.05</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">2</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="convpsfwhm">
+    <property name="lower">0.5</property>
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkAdjustment" id="convscalefactor">
+    <property name="page-increment">0.02</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+  </object>
+  <object class="GtkAdjustment" id="convupsampleblur">
+    <property name="page-increment">0.02</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_airy_fl">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">60000</property>
+    <property name="value">750</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_airy_obstruction">
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">99</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_airy_wl">
+    <property name="lower">100</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">30000</property>
+    <property name="value">525</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_diameter">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">2000</property>
+    <property name="value">150</property>
+  </object>
+  <object class="GtkAdjustment" id="bdeconv_kernelsize">
+    <property name="lower">3</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">2</property>
+    <property name="upper">9999</property>
+    <property name="value">15</property>
+  </object>
+  <object class="GtkAdjustment" id="bdeconv_rliters">
+    <property name="lower">1</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">10000</property>
+    <property name="value">10</property>
+  </object>
+  <object class="GtkAdjustment" id="bdeconv_stepsiz">
+    <property name="lower">0.0001</property>
+    <property name="page-increment">0.0005</property>
+    <property name="step-increment">0.0001</property>
+    <property name="upper">0.10</property>
+    <property name="value">0.0005</property>
+  </object>
+  <object class="GtkAdjustment" id="bdeconv_stopadjustment">
+    <property name="lower">1.0000000000000001e-05</property>
+    <property name="page-increment">0.0001</property>
+    <property name="step-increment">1.0000000000000001e-05</property>
+    <property name="upper">0.10</property>
+    <property name="value">0.001</property>
+  </object>
+  <object class="GtkWindow" id="bdeconv_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="spacing">4</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="spacing">8</property>
+                    <child>
+                      <object class="GtkExpander">
+                        <property name="expanded">1</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkGrid">
+                                <property name="column-spacing">6</property>
+                                <property name="margin-top">5</property>
+                                <property name="row-spacing">5</property>
+                                <child>
+                                  <object class="GtkFrame">
+                                    <property name="child">
+                                      <object class="GtkGrid">
+                                        <property name="margin-top">5</property>
+                                        <property name="row-spacing">6</property>
+                                        <child>
+                                          <object class="GtkCheckButton" id="bdeconv_psfblind">
+                                            <property name="active">1</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Blind deconvolution</property>
+                                            <property name="tooltip-markup" translatable="yes">Estimates a PSF from the image</property>
+                                            <signal name="toggled" handler="on_bdeconv_psfblind_toggled"/>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="bdeconv_psfstars">
+                                            <property name="group">bdeconv_psfblind</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">PSF from stars</property>
+                                            <property name="tooltip-text" translatable="yes">Models a PSF based on the average PSF parameters of the identified stars. If no stars have been detected, an attempt will be made to detect stars in the image within a suitable range of peak brightness.</property>
+                                            <signal name="toggled" handler="on_bdeconv_psfstars_toggled"/>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">3</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="bdeconv_psfmanual">
+                                            <property name="group">bdeconv_psfblind</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Manual PSF</property>
+                                            <property name="tooltip-text" translatable="yes">Use a manually defined PSF based on the parameters chosen.</property>
+                                            <signal name="toggled" handler="on_bdeconv_psfmanual_toggled"/>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">4</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkDropDown" id="bdeconv_blindtype">
+                                            <property name="model">
+                                              <object class="GtkStringList">
+                                                <items>
+                                                  <item translatable="yes">Spectral Irregularity</item>
+                                                  <item translatable="yes">ℓ0 Descent</item>
+                                                </items>
+                                              </object>
+                                            </property>
+                                            <property name="selected">1</property>
+                                            <property name="tooltip-text" translatable="yes">Select the blind PSF estimation method to use. ℓ0 descent is the default and usually the best option.</property>
+                                            <signal name="notify::selected" handler="on_bdeconv_blindtype_changed"/>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">1</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="bdeconv_psfprevious">
+                                            <property name="group">bdeconv_psfblind</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Previous PSF</property>
+                                            <property name="tooltip-text" translatable="yes">Reuse the previously calculated PSF.</property>
+                                            <signal name="toggled" handler="on_bdeconv_psfprevious_toggled"/>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">5</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="bdeconv_filechooser">
+                                            <property name="label">(None)</property>
+                                            <property name="tooltip-text" translatable="yes">Select a PSF to load from file. The PSF must be square and should ideally have odd length / width.</property>
+                                            <property name="visible">True</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">7</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Load PSF from file</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">6</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkButton" id="bdeconv_estimate">
+                                                <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Generate PSF</property>
+                                                <property name="receives-default">1</property>
+                                                <property name="tooltip-text" translatable="yes">Generate and preview the PSF, but do not carry out deconvolution</property>
+                                                <signal name="clicked" handler="on_bdeconv_estimate_clicked"/>
+                                                <style>
+                                                  <class name="suggested-action"/>
+                                                </style>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkButton" id="bdeconv_savekernel">
+                                                <property name="focusable">1</property>
+                                                <property name="receives-default">1</property>
+                                                <signal name="clicked" handler="on_bdeconv_savekernel_clicked"/>
+                                                <child>
+                                                  <object class="GtkImage">
+                                                    <property name="icon-name">document-save-symbolic</property>
+                                                    <property name="tooltip-text" translatable="yes">Save PSF to a file</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">8</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="bdeconv_psfselection">
+                                            <property name="group">bdeconv_psfblind</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">PSF from selection</property>
+                                            <property name="tooltip-text" translatable="yes">Takes a PSF directly from the image fitted to the current dimension. The PSF size will be the minimum of the selection width and height.</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">2</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </property>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">PSF Source</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">General PSF Parameters</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="homogeneous">1</property>
+                                            <property name="margin-top">5</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">PSF size</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkSpinButton" id="bdeconv_ks">
+                                                <property name="adjustment">bdeconv_kernelsize</property>
+                                                <property name="focusable">1</property>
+                                                <property name="text">15</property>
+                                                <property name="tooltip-text" translatable="yes">Make sure the size is big enough not to crop off any significant parts of the PSF.</property>
+                                                <property name="value">15</property>
+                                                <signal name="value-changed" handler="on_bdeconv_ks_value_changed"/>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame" id="bdeconv_psfcontrols">
+                                        <property name="child">
+                                          <object class="GtkBox">
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkGrid">
+                                                <property name="column-homogeneous">1</property>
+                                                <property name="column-spacing">6</property>
+                                                <property name="row-spacing">6</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Profile</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkDropDown" id="bdeconv_profile">
+                                                    <property name="model">
+                                                      <object class="GtkStringList">
+                                                        <items>
+                                                          <item translatable="yes">Gaussian</item>
+                                                          <item translatable="yes">Moffat</item>
+                                                          <item translatable="yes">Disc</item>
+                                                          <item translatable="yes">Airy Disc</item>
+                                                        </items>
+                                                      </object>
+                                                    </property>
+                                                    <property name="selected">0</property>
+                                                    <property name="tooltip-text" translatable="yes">Gaussian and Moffat profiles are good models for star shapes. Disc profiles can be used to improve out-of-focus issues. Airy disc models the inherent diffraction of your telescope.</property>
+                                                    <signal name="notify::selected" handler="on_bdeconv_profile_changed"/>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">end</property>
+                                                    <property name="label"> </property>
+                                                    <layout>
+                                                      <property name="column">3</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="label"> </property>
+                                                    <property name="margin-top">5</property>
+                                                    <layout>
+                                                      <property name="column">2</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkGrid" id="bdeconv_manual_stars">
+                                                <property name="column-homogeneous">1</property>
+                                                <property name="column-spacing">6</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="row-spacing">6</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Ratio</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">2</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="bdeconv_psfratio">
+                                                    <property name="adjustment">convpsfratio</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">1.00</property>
+                                                    <property name="tooltip-text" translatable="yes">For elliptical PSFs, this gives the ratio of the shorter and longer dimensions.</property>
+                                                    <property name="value">1</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">2</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">fwhm / "</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="bdeconv_psfwhm">
+                                                    <property name="adjustment">convpsfwhm</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">3.00</property>
+                                                    <property name="tooltip-text" translatable="yes">Full width at half maximum. For disc profiles this is just the diameter of the disc. For elliptical PSFs this is the longer PSF dimension.</property>
+                                                    <property name="value">3</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Angle / º</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">1</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="bdeconv_psfangle">
+                                                    <property name="adjustment">convpsfangle</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">0.00</property>
+                                                    <property name="tooltip-text" translatable="yes">For elliptical PSFs, the angle from the x axis in degrees.</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">1</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">beta (β)</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">3</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="bdeconv_psfbeta">
+                                                    <property name="adjustment">convpsfbeta</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="sensitive">0</property>
+                                                    <property name="text">4.50</property>
+                                                    <property name="tooltip-text" translatable="yes">For Moffat profiles, this sets the value of beta. See the astrometry documentation for information on this parameter.</property>
+                                                    <property name="value">4.5</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">3</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkGrid" id="bdeconv_manual_airy">
+                                                <property name="column-homogeneous">1</property>
+                                                <property name="column-spacing">6</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="row-spacing">6</property>
+                                                <property name="visible">0</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Pixel Size / μm</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">3</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Wavelength / nm</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">2</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Focal length / mm</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">1</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Diameter / mm</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="airy_pixelsize">
+                                                    <property name="adjustment">adj_pixelsize</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">0.1</property>
+                                                    <property name="tooltip-text" translatable="yes">Sensor pixel size in microns</property>
+                                                    <property name="value">0.10</property>
+                                                    <signal name="value-changed" handler="on_airy_pixelsize_value_changed"/>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">3</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="airy_wl">
+                                                    <property name="adjustment">adj_airy_wl</property>
+                                                    <property name="digits">1</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">525.0</property>
+                                                    <property name="tooltip-text" translatable="yes">Wavelength to calculate the diffraction pattern for. May be specified exactly for narrowband filters, or for broadband / OSC / luminance filters just use a representative central wavelength.</property>
+                                                    <property name="value">525</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">2</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="airy_fl">
+                                                    <property name="adjustment">adj_airy_fl</property>
+                                                    <property name="digits">1</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">750.0</property>
+                                                    <property name="tooltip-text" translatable="yes">Telescope focal length (this should account for any multiplication factor introduced by Barlows or field flatteners)</property>
+                                                    <property name="value">750</property>
+                                                    <signal name="value-changed" handler="on_airy_fl_value_changed"/>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">1</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="airy_diameter">
+                                                    <property name="adjustment">adj_diameter</property>
+                                                    <property name="digits">1</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">150.0</property>
+                                                    <property name="tooltip-text" translatable="yes">Diameter of the telescope primary aperture</property>
+                                                    <property name="value">150</property>
+                                                    <signal name="value-changed" handler="on_airy_diameter_value_changed"/>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">0</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Central Obstruction / %</property>
+                                                    <layout>
+                                                      <property name="column">0</property>
+                                                      <property name="row">4</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="airy_obstruction">
+                                                    <property name="adjustment">adj_airy_obstruction</property>
+                                                    <property name="digits">1</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">0.0</property>
+                                                    <property name="tooltip-text" translatable="yes">Sets the central obstruction as a percentage of the total aperture area. This is zero for refractors, typically around 10-20% for fast Newtonians and may be as much as 40% for a Corrected Dall-Kirkham.</property>
+                                                    <layout>
+                                                      <property name="column">1</property>
+                                                      <property name="row">4</property>
+                                                    </layout>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                        <property name="name">bdeconv_psfcontrols</property>
+                                        <property name="visible">0</property>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">Manual PSF Parameters</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame" id="bdeconv_blindcontrols">
+                                        <property name="child">
+                                          <object class="GtkGrid">
+                                            <property name="column-homogeneous">1</property>
+                                            <property name="column-spacing">6</property>
+                                            <property name="margin-top">5</property>
+                                            <property name="row-spacing">6</property>
+                                            <child>
+                                              <object class="GtkSpinButton" id="bdeconv_gflambda">
+                                                <property name="adjustment">convgflambda</property>
+                                                <property name="focusable">1</property>
+                                                <property name="text">3000</property>
+                                                <property name="tooltip-text" translatable="yes">Regularization parameter for PSF estimation. Try decreasing this value for noisy images.</property>
+                                                <property name="value">3000</property>
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Lambda (λ)</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">Blind Deconvolution PSF Estimation</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame" id="bdeconv_l0controls">
+                                        <property name="name">bdeconv_l0controls</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="margin-top">5</property>
+                                            <property name="orientation">vertical</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkCheckButton" id="bdeconv_multiscale">
+                                                <property name="focusable">1</property>
+                                                <property name="label" translatable="yes">Multiscale</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="tooltip-text" translatable="yes">This improves ℓ0 PSF estimation for large PSFs. It is not required for small PSFs and takes longer to compute. Consider using it for PSF sizes above 20.</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkExpander" id="bdeconv_expander">
+                                                <property name="focusable">1</property>
+                                                <property name="tooltip-text" translatable="yes">These settings can be left alone in the vast majority of cases. </property>
+                                                <child>
+                                                  <object class="GtkGrid">
+                                                    <property name="column-homogeneous">1</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="row-spacing">6</property>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Gamma (γ)</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">0</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_gamma">
+                                                        <property name="adjustment">convgamma</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">20</property>
+                                                        <property name="tooltip-text" translatable="yes">PSF estimation regularisation parameter</property>
+                                                        <property name="value">20</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">0</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Iterations</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">1</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_iters">
+                                                        <property name="adjustment">conviter</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">2</property>
+                                                        <property name="tooltip-text" translatable="yes">Number of iterations for PSF estimation. Do not reduce this below 2. There is negligible benefit in increasing it beyond 3.</property>
+                                                        <property name="value">2</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">1</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Lambda ratio</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">2</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_lambdaratio">
+                                                        <property name="adjustment">convlambdaratio</property>
+                                                        <property name="digits">4</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.9091</property>
+                                                        <property name="tooltip-text" translatable="yes">Ratio of lambda at successive scales for multiscale PSF estimation.</property>
+                                                        <property name="value">0.9091</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">2</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Lambda min</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">3</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_lambdamin">
+                                                        <property name="adjustment">convlambdamin</property>
+                                                        <property name="digits">4</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.0001</property>
+                                                        <property name="tooltip-text" translatable="yes">Minimum value of lambda for multiscale PSF estimation</property>
+                                                        <property name="value">0.0001</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">3</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Scale factor</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">4</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_scalefactor">
+                                                        <property name="adjustment">convscalefactor</property>
+                                                        <property name="digits">2</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.50</property>
+                                                        <property name="tooltip-text" translatable="yes">Scale factor between successive scales of multiscale PSF estimation</property>
+                                                        <property name="value">0.5</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">4</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_upsampleblur">
+                                                        <property name="adjustment">convupsampleblur</property>
+                                                        <property name="digits">2</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.00</property>
+                                                        <property name="tooltip-text" translatable="yes">Amount of blur to use for upsampling during PSF estimation</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">5</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Upsample blur</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">5</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Downsample blur</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">6</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Kernel threshold</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">7</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Better kernel</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">8</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Kernel ℓ1</property>
+                                                        <property name="use-markup">1</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">9</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_downsampleblur">
+                                                        <property name="adjustment">convdownsampleblur</property>
+                                                        <property name="digits">2</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">1.60</property>
+                                                        <property name="tooltip-text" translatable="yes">Amount of blur to use for downsampling during PSF estimation</property>
+                                                        <property name="value">1.60</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">6</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_kthresh">
+                                                        <property name="adjustment">convkernelthreshold</property>
+                                                        <property name="digits">4</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.0000</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets a minimum pixel value for the PSF. PSF pixels with values less than this will be set to zero.</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">7</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkCheckButton" id="bdeconv_betterkernel">
+                                                        <property name="active">1</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="label"> </property>
+                                                        <property name="tooltip-text" translatable="yes">Uses a refinement technique to improve subsequent iterations of the PSF estimator. This should essentially always be enabled.</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">8</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_kl1">
+                                                        <property name="adjustment">convkernl1</property>
+                                                        <property name="digits">2</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">0.50</property>
+                                                        <property name="tooltip-markup" translatable="yes">ℓ1 gradient parameter</property>
+                                                        <property name="value">0.5</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">9</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child type="label">
+                                                  <object class="GtkLabel">
+                                                    <property name="label" translatable="yes">Expert Settings</property>
+                                                    <property name="tooltip-text" translatable="yes">These settings should almost always be left at the default value.</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">ℓ0 Descent Method</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame" id="bdeconv_gfcontrols">
+                                        <property name="child">
+                                          <object class="GtkBox">
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkBox">
+                                                <property name="homogeneous">1</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="spacing">6</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="halign">start</property>
+                                                    <property name="label" translatable="yes">Compensation factor</property>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSpinButton" id="bdeconv_ncomp">
+                                                    <property name="adjustment">convcompensation</property>
+                                                    <property name="digits">2</property>
+                                                    <property name="focusable">1</property>
+                                                    <property name="text">2.10</property>
+                                                    <property name="tooltip-text" translatable="yes">This parameter controls the sharpness of the estimated PSF. If the underlying image is sharp, this parameter should be set to a large value to avoid artefacts in the estimated PSF. On the other hand, if the underlying image contains a small amount of intrinsic blur (i.e. as a result of being oversampled) this parameter should be reduced to close to unity in order to obtain sufficient sharpness in the PSF.</property>
+                                                    <property name="value">2.10</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkExpander">
+                                                <property name="focusable">1</property>
+                                                <child>
+                                                  <object class="GtkGrid">
+                                                    <property name="column-homogeneous">1</property>
+                                                    <property name="column-spacing">6</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="row-spacing">6</property>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Samples per outer loop</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">1</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Outer loop iterations</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">2</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_ntries">
+                                                        <property name="adjustment">convntries</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">30</property>
+                                                        <property name="tooltip-text" translatable="yes">This parameter sets the number of samples per outer loop. Sufficient samples must be chosen to ensure the PSF estimate converges: for low noise images a fairly small number of samples will suffice. For noisy images, the value may require increasing to as much as around 250.</property>
+                                                        <property name="value">30</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">1</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_nouter">
+                                                        <property name="adjustment">convnouter</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">3</property>
+                                                        <property name="tooltip-text" translatable="yes">Outer loop iterations. This parameter should not generally require adjustment.</property>
+                                                        <property name="value">3</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">2</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Inner loop iterations</property>
+                                                        <layout>
+                                                          <property name="column">0</property>
+                                                          <property name="row">0</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="bdeconv_ninner">
+                                                        <property name="adjustment">convninner</property>
+                                                        <property name="focusable">1</property>
+                                                        <property name="text">300</property>
+                                                        <property name="tooltip-text" translatable="yes">This parameter sets the number of iterations in the algorithm inner loop. It should not usually require adjustment.</property>
+                                                        <property name="value">300</property>
+                                                        <layout>
+                                                          <property name="column">1</property>
+                                                          <property name="row">0</property>
+                                                        </layout>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child type="label">
+                                                  <object class="GtkLabel">
+                                                    <property name="label" translatable="yes">Expert Settings</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                        <property name="name">bdeconv_gfcontrols</property>
+                                        <property name="visible">0</property>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">Spectral Irregularity Method</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame" id="bdeconv_starpsf_details">
+                                        <property name="visible">0</property>
+                                        <child>
+                                          <object class="GtkGrid">
+                                            <property name="column-homogeneous">1</property>
+                                            <property name="margin-top">5</property>
+                                            <property name="row-spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Profile</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">fwhm / "</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">1</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Ratio</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">2</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Angle / º</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">3</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">beta (β)</property>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="bdeconv_starprofile_text">
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">0</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="bdeconv_starfwhm_text">
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">1</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="bdeconv_starratio_text">
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">2</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="bdeconv_starangle_text">
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">3</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel" id="bdeconv_starbeta_text">
+                                                <layout>
+                                                  <property name="column">1</property>
+                                                  <property name="row">4</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkCheckButton" id="bdeconv_symkern">
+                                                <property name="focusable">1</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Symmetrical PSF</property>
+                                                <property name="tooltip-text" translatable="yes">If checked, a PSF defined from stars will be circularly symmetric. If unchecked the PSF may be elongated and have a defined rotation angle.</property>
+                                                <signal name="toggled" handler="on_bdeconv_symkern_toggled"/>
+                                                <layout>
+                                                  <property name="column">0</property>
+                                                  <property name="row">5</property>
+                                                </layout>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="label" translatable="yes">PSF from Stars</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">PSF Generation</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">PSF Preview</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDrawingArea" id="bdeconv_drawingarea">
+                            <property name="halign">start</property>
+                            <property name="height-request">128</property>
+                            <property name="margin-top">5</property>
+                            <property name="tooltip-text" translatable="yes">Shows a preview of the PSF, if one has been calculated.</property>
+                            <property name="valign">start</property>
+                            <property name="width-request">128</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="bdeconv_advice_button">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Usage tips</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="yes">Opens a page in the online Siril documentation with usage tips and examples of settings that can work for different types of image.</property>
+                            <property name="valign">start</property>
+                            <signal name="clicked" handler="on_bdeconv_advice_button_clicked"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="margin-bottom">6</property>
+                    <property name="margin-top">6</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkExpander">
+                    <property name="expanded">1</property>
+                    <property name="focusable">1</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="column-spacing">6</property>
+                        <property name="hexpand">1</property>
+                        <property name="margin-top">5</property>
+                        <property name="row-spacing">6</property>
+                        <child>
+                          <object class="GtkDropDown" id="bdeconv_nonblindtype">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Split Bregman method with TV regularization</item>
+                                  <item translatable="yes">Richardson-Lucy method with TV regularization</item>
+                                  <item translatable="yes">Wiener filter</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">1</property>
+                            <property name="tooltip-text" translatable="yes">Once the PSF is estimated or provided the image is finally deconvolved using the selected algorithm.
+    Choose Richardson-Lucy for deep space images; choose either Split Bregman or Wiener filtering for lunar and planetary images.</property>
+                            <signal name="notify::selected" handler="on_bdeconv_nonblindtype_changed"/>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">4</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="bdeconv_iterlabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Iterations</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bdeconv_finaliters">
+                            <property name="adjustment">bdeconv_rliters</property>
+                            <property name="focusable">1</property>
+                            <property name="text">10</property>
+                            <property name="tooltip-text" translatable="yes">Number of iterations for final deconvolution if using an iterative method</property>
+                            <property name="value">10</property>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bdeconv_alpha">
+                            <property name="adjustment">convalpha</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="text">3000.00</property>
+                            <property name="tooltip-text" translatable="yes">Regularization parameter for the final non-blind stage deconvolution</property>
+                            <property name="value">3000</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bdeconv_stopcriterion">
+                            <property name="adjustment">bdeconv_stopadjustment</property>
+                            <property name="digits">5</property>
+                            <property name="focusable">1</property>
+                            <property name="text">0.00100</property>
+                            <property name="tooltip-text" translatable="yes">Sets an early stop criterion for the Richardson-Lucy algorithm to prevent noise amplification. Deconvolution will stop early if the average pixel difference ratio between subsequent iterations is less than this value.</property>
+                            <property name="value">0.001</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="bdeconv_rl_regularization">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Total Variation</item>
+                                  <item translatable="yes">Frobenius norm of Hessian</item>
+                                  <item translatable="yes">None</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">0</property>
+                            <property name="tooltip-text" translatable="yes">Total Variation regularization preserves sharp edges in the image well. If in doubt, stick with Total Variation. However it can have a tendency to produce a "staircase effect" in large uniform areas.
+    Frobenius norm of the Hessian uses a second order regularization term. It is more often used in regularizing denoising algorithms but can perform well when deconvolving a star mask produced by Siril's Starnet++ interface.</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Alpha (α)</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="bdeconv_stopping_toggle">
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Stopping criterion</property>
+                            <property name="tooltip-text" translatable="yes">Sets a stopping criterion based on difference between successive estimates. To activate the criterion the checkbox must be selected.</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="regul_label">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Regularization</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="bdeconv_steplabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Gradient descent step size</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="algo_method_label">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Algorithm method</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="bdeconv_rl_method">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Multiplicative</item>
+                                  <item translatable="yes">Gradient Descent</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">1</property>
+                            <property name="tooltip-text" translatable="yes">If in doubt, use Gradient Descent. It is more gradual and has a controllable step size that can help to avoid ringing artefacts around stars. For stretched images Mulitiplicative may give good results and require fewer iterations.</property>
+                            <signal name="notify::selected" handler="on_bdeconv_rl_method_changed"/>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bdeconv_stepsize">
+                            <property name="adjustment">bdeconv_stepsiz</property>
+                            <property name="digits">4</property>
+                            <property name="focusable">1</property>
+                            <property name="text">0.0005</property>
+                            <property name="tooltip-text" translatable="yes">Gradient descent step size. The larger the step size, the greater the effect of each step. Large values will give quicker convergence but smaller values will offer better control over artefact formation.</property>
+                            <property name="value">0.0005</property>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Non-Blind Deconvolution</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="homogeneous">1</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkCheckButton" id="bdeconv_seqapply">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Apply to sequence</property>
+                    <property name="tooltip-text" translatable="yes">Deconvolve the currently loaded sequence. If no sequence is loaded, the current image will be deconvolved.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Sequence prefix:</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="bdeconv_seq_prefix">
+                    <property name="focusable">1</property>
+                    <property name="input-hints">no-emoji|none</property>
+                    <property name="max-length">10</property>
+                    <property name="text">dec_</property>
+                    <property name="tooltip-text" translatable="yes">Provides a custom prefix to use when deconvolving a sequence.</property>
+                    <property name="width-chars">10</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkButton" id="bdeconv_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_bdeconv_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="bdeconv_roi_preview">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Generate the kernel and use it to deconvolve the current image or sequence</property>
+                <signal name="clicked" handler="on_bdeconv_roi_preview_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="bdeconv_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Generate the kernel and use it to deconvolve the current image or sequence</property>
+                <signal name="clicked" handler="on_bdeconv_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Deconvolution</property>
+    <signal name="close-request" handler="siril_widget_hide_on_delete"/>
+    <signal name="hide" handler="on_bdeconv_close_clicked"/>
+    <signal name="show" handler="on_bdeconv_dialog_show"/>
+  </object>
+</interface>

@@ -215,11 +215,15 @@ gpointer stack_function_handler(gpointer p) {
 				}
 			}
 		}
-		/* notify_gfit_data_modified is documented to be called from the worker
-		 * thread; it is internally gated by !com.headless. */
-		notify_gfit_data_modified();
 		g_rw_lock_writer_unlock(&gfit->rwlock);
-		/* Launch noise estimation after releasing the writer lock so the
+		/* notify_gfit_data_modified must run with the writer lock released:
+		 * it reaches copy_roi_into_gfit() which itself acquires the writer
+		 * lock, triggering pthread EDEADLK on glibc and silent self-deadlock
+		 * elsewhere.  Defer to here, immediately after unlock, so the rest
+		 * of the cleanup pipeline (bgnoise, end_stacking idle) sees the
+		 * histogram/stats invalidations as expected. */
+		notify_gfit_data_modified();
+		/* Launch noise estimation after the writer lock is released so the
 		 * bgnoise thread can acquire the reader lock immediately and run
 		 * concurrently with the GTK idle work in end_stacking. */
 		bgnoise_async(gfit, TRUE);

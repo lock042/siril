@@ -43,6 +43,13 @@ struct xisf_data {
 };
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);
+
+/* Thumbnail extraction.  extract_thumbnail_from_xisf returns a malloc'd
+ * RGB888 byte buffer (caller frees with free()) plus dimensions and a
+ * description (caller g_frees).  get_thumbnail_from_xisf is the GdkPixbuf
+ * shim kept for the GTK3 build. */
+guchar *extract_thumbnail_from_xisf(const char *filename, gchar **descr,
+                                     int *width_out, int *height_out);
 GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr);
 
 #ifdef __cplusplus

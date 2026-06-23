@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-02 11:27+0200\n"
-"PO-Revision-Date: 2026-05-24 11:27+0000\n"
+"PO-Revision-Date: 2026-06-04 11:07+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/de/>\n"
@@ -1614,7 +1614,7 @@ msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:467
 msgid "Optimize sample positions"
-msgstr ""
+msgstr "Optimiere die Positionen der Messpunkte"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:471
 msgid ""
@@ -5054,7 +5054,7 @@ msgstr "Gauss"
 
 #: src/gui/uifiles/mask_blur_dialog.ui:90
 msgid "Blur radius (pixels):"
-msgstr ""
+msgstr "Radius der Unschärfe (in Pixel):"
 
 #: src/gui/uifiles/mask_blur_dialog.ui:101
 #, fuzzy
@@ -5098,7 +5098,7 @@ msgstr "Äußere"
 
 #: src/gui/uifiles/mask_feather_dialog.ui:131
 msgid "Edge"
-msgstr ""
+msgstr "Rand"
 
 #: src/gui/uifiles/mask_fmul_dialog.ui:14
 msgid "Multiply Image Mask"
@@ -5119,7 +5119,7 @@ msgstr "Farbmaske erstellen"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:119
 msgid "Bit Depth"
-msgstr ""
+msgstr "Bittiefe"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:132
 #: src/gui/uifiles/mask_from_image.ui:231
@@ -5170,7 +5170,7 @@ msgstr "Farbe vom Bild auswählen"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:234
 msgid "Click to select a pixel from the image to use its color"
-msgstr ""
+msgstr "Klicken um ein Pixel aus dem Bild zu wählen um die Farbe zu verwenden"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:268
 msgid ""
@@ -5225,7 +5225,7 @@ msgstr ""
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:425
 msgid "Clean up mask"
-msgstr ""
+msgstr "Maske bereinigen"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:429
 msgid ""
@@ -7684,7 +7684,7 @@ msgstr "gaia_astrometric.dat"
 
 #: src/gui/uifiles/settings_window.ui:1594
 msgid "Online Gaia Cache Duration (days):"
-msgstr ""
+msgstr "Dauer des Gaia Online Caches (in Tagen):"
 
 #: src/gui/uifiles/settings_window.ui:1616
 #, fuzzy
@@ -7693,7 +7693,7 @@ msgstr "Sequenz säubern"
 
 #: src/gui/uifiles/settings_window.ui:1620
 msgid "Clean the Gaia online cache"
-msgstr ""
+msgstr "Gaia Online Cache bereinigen"
 
 #: src/gui/uifiles/settings_window.ui:1636
 msgid ""
@@ -9691,7 +9691,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:1222
 msgid "Blur Mask"
-msgstr ""
+msgstr "Maske verwischen"
 
 #: src/gui/uifiles/siril.ui:1230
 msgid "Feather Mask"
@@ -9699,7 +9699,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:1238
 msgid "Invert Mask"
-msgstr ""
+msgstr "Maske invertieren"
 
 #: src/gui/uifiles/siril.ui:1246 src/core/command.c:15336
 #: src/gui/masks_gui.c:645
@@ -17347,7 +17347,7 @@ msgstr "Negativ Ansicht"
 #: src/core/command.c:7343
 #, c-format
 msgid "Replace zeros with %d"
-msgstr ""
+msgstr "Ersetze Nullen mit %d"
 
 #: src/core/command.c:7375
 #, fuzzy
@@ -19041,7 +19041,7 @@ msgstr "SIRIL Bild ist nicht astrometrisch gelöst"
 
 #: src/core/command.c:14786
 msgid "Reference temperature is out of usual range [2000, 10000]K\n"
-msgstr ""
+msgstr "Referenztemperatur ist außerhalb der normalen Werte [2000, 10000]K\n"
 
 #: src/core/command.c:14804
 #, c-format
@@ -19192,7 +19192,7 @@ msgstr "Ungültiges Argument %s. Abbruch.\n"
 
 #: src/core/command.c:15417
 msgid "Change mask bitdepth"
-msgstr ""
+msgstr "Bittiefe der Maske ändern"
 
 #: src/core/command.c:15445
 #, fuzzy, c-format

@@ -302,7 +302,7 @@ int visu(fits *fit, int low, int high) {
 		return 1;
 	notify_gfit_data_modified();
 	gui_iface.set_display_range(low, high);
-	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_image(REDRAW_ALL);
 	gui_iface.redraw_previews();
 	return 0;
 }

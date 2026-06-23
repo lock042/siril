@@ -65,8 +65,7 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/siril_pythonmodule.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
+#include "algos/photometric_cc.h" /* initialize_spcc_mirrors() */
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct

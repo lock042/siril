@@ -1416,7 +1416,6 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->user = params;
 	args->log_hook = ccm_log_hook;
 	args->max_threads = com.max_thread;
-	args->populate_roi_on_complete = TRUE;
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent
 	// args->for_preview = FALSE;

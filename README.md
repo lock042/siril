@@ -46,8 +46,8 @@ color calibration and metadata output
 GUI libraries are optional: most users will require them so they are enabled
 by default, but can be disabled if you only wish to build the headless siril-cli:
 
-- **GTK+ 3**, (>= 3.20) as GUI toolkit
-- **gtksourceview4** to provide context highlighting in the script editor
+- **GTK 4**, (>= 4.12) as GUI toolkit
+- **gtksourceview5** to provide context highlighting in the script editor
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file

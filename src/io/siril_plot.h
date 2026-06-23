@@ -23,7 +23,7 @@
 
 #include "core/siril.h"
 #include "core/gtk_forward_decls.h"
-#include "gui/plot.h"
+#include "gui-gtk4/plot.h"
 #include "kplot.h"
 #include "extern.h"
 
@@ -61,7 +61,7 @@ typedef struct siril_plot_legend_struct {
 
 typedef struct siril_plot_bkg_struct {
 	gchar *bkgfilepath;
-	GdkPixbuf *img;
+	cairo_surface_t *img;
 	double width, height;
 } splbkg;
 

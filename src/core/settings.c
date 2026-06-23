@@ -41,6 +41,7 @@ preferences pref_init = {
 	.memory_ratio = 0.9,
 	.memory_amount = 10,
 	.hd_bitdepth = 20,
+	.lazy_tile_cache_mb = 128,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
  #ifdef SIRIL_UNSTABLE
@@ -123,6 +124,10 @@ preferences pref_init = {
 				.w = 0,
 				.h = 0
 		},
+		.open_dialog_w = 0,
+		.open_dialog_h = 0,
+		.open_dialog_sidebar_pos = 0,
+		.open_dialog_paned_pos = 0,
 		.pan_position = -1,
 		.is_extended = TRUE,
 		.is_maximized = FALSE,
@@ -180,7 +185,9 @@ preferences pref_init = {
 			.smarthomeend = TRUE,
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
-			.minimap = FALSE
+			.minimap = FALSE,
+			.dynamic_wrap = FALSE,
+			.code_folding = FALSE
 		},
 		.mask_tints_vports = TRUE
 	},
@@ -358,6 +365,7 @@ struct settings_access all_settings[] = {
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
 	{ "core", "mem_amount", STYPE_DOUBLE, N_("amount of memory in GB"), &com.pref.memory_amount, { .range_double = { 0.1, 1000000. } } },
 	{ "core", "hd_bitdepth", STYPE_INT, N_("HD AutoStretch bit depth"), &com.pref.hd_bitdepth, { .range_int = { 17, 24 } } },
+	{ "core", "lazy_tile_cache_mb", STYPE_INT, N_("RAM budget in MB for displaying very large images"), &com.pref.lazy_tile_cache_mb, { .range_int = { 128, 4096 } } },
 	{ "core", "script_check_requires", STYPE_BOOL, N_("need requires cmd in script"), &com.pref.script_check_requires },
 	{ "core", "pipe_check_requires", STYPE_BOOL, N_("need requires cmd in pipe"), &com.pref.pipe_check_requires },
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
@@ -493,10 +501,14 @@ struct settings_access all_settings[] = {
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
 	{ "gui", "main_win_pos_w", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.w },
 	{ "gui", "main_win_pos_h", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.h },
+	{ "gui", "open_dialog_w", STYPE_INT, N_("remembered open-file dialog width"), &com.pref.gui.open_dialog_w },
+	{ "gui", "open_dialog_h", STYPE_INT, N_("remembered open-file dialog height"), &com.pref.gui.open_dialog_h },
+	{ "gui", "open_dialog_sidebar_pos", STYPE_INT, N_("remembered open-file dialog sidebar divider"), &com.pref.gui.open_dialog_sidebar_pos },
+	{ "gui", "open_dialog_paned_pos", STYPE_INT, N_("remembered open-file dialog list/preview divider"), &com.pref.gui.open_dialog_paned_pos },
 	{ "gui", "pan_position", STYPE_INT, N_("position of the two sides separator"), &com.pref.gui.pan_position },
 	{ "gui", "extended", STYPE_BOOL, N_("main window is extended"), &com.pref.gui.is_extended },
 	{ "gui", "maximized", STYPE_BOOL, N_("main window is maximized"), &com.pref.gui.is_maximized },
-	{ "gui", "theme", STYPE_INT, N_("index of the selected theme"), &com.pref.gui.combo_theme, { .range_int = { 0, 1 } } },
+	{ "gui", "theme", STYPE_INT, N_("index of the selected theme"), &com.pref.gui.combo_theme, { .range_int = { 0, 2 } } },
 	{ "gui", "font_scale", STYPE_DOUBLE, N_("font scale in percent"), &com.pref.gui.font_scale },
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
@@ -552,6 +564,7 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_const_names", STYPE_BOOL, N_("show constellations names in annotations"), &com.pref.gui.catalog[7] },
 	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[8] },
 	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[9] },
+	{ "gui_astrometry", "cat_sso_vect", STYPE_BOOL, N_("show SSO objects velocity vectors"), &com.pref.gui.catalog[10] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
@@ -569,6 +582,8 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
 	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
 	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
+	{ "script_editor", "dynamic_wrap", STYPE_BOOL, N_("Dynamically wrap long lines in the script editor"), &com.pref.gui.editor_cfg.dynamic_wrap },
+	{ "script_editor", "code_folding", STYPE_BOOL, N_("Enable code folding in the script editor"), &com.pref.gui.editor_cfg.code_folding },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

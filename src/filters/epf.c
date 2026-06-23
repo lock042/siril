@@ -210,9 +210,8 @@ static int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
-	if (fit == gfit && args->applying && !com.script) {
-		gui_iface.populate_roi();
-	}
+	/* No populate_roi() / notify here: generic_image_worker performs both
+	 * universally when args->fit == gfit. */
 	return 0;
 }
 

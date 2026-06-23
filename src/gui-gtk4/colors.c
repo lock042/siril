@@ -1,0 +1,669 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <assert.h>
+#include <math.h>
+
+#include "core/siril.h"
+#include "core/proto.h"
+#include "algos/colors.h"
+#include "core/icc_profile.h"
+#include "core/processing.h"
+#include "core/siril_log.h"
+#include "core/undo.h"
+#include "core/OS_utils.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
+#include "io/image_format_fits.h"
+#include "algos/statistics.h"
+
+#include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/image_interactions.h"
+#include "gui-gtk4/registration_preview.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/histogram.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/utils.h"
+#include "gui-gtk4/colors.h"
+
+void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
+	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
+
+	if ((!com.selection.h) || (!com.selection.w)) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area"));
+		return;
+	}
+
+	if (!selection_black_value[0]) {
+		selection_black_value[0] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
+		selection_black_value[1] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
+		selection_black_value[2] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
+		selection_black_value[3] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
+	}
+
+	gtk_spin_button_set_value(selection_black_value[0], com.selection.x);
+	gtk_spin_button_set_value(selection_black_value[1], com.selection.y);
+	gtk_spin_button_set_value(selection_black_value[2], com.selection.w);
+	gtk_spin_button_set_value(selection_black_value[3], com.selection.h);
+}
+
+void initialize_calibration_interface() {
+	static GtkAdjustment *selection_black_adjustment[4] = { NULL, NULL, NULL,
+		NULL };
+	static GtkAdjustment *selection_white_adjustment[4] = { NULL, NULL, NULL,
+		NULL };
+
+	if (!selection_black_adjustment[0]) {
+		selection_black_adjustment[0] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_x"));
+		selection_black_adjustment[1] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_y"));
+		selection_black_adjustment[2] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_w"));
+		selection_black_adjustment[3] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_h"));
+	}
+	if (!selection_white_adjustment[0]) {
+		selection_white_adjustment[0] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_white_x"));
+		selection_white_adjustment[1] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_white_y"));
+		selection_white_adjustment[2] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_white_w"));
+		selection_white_adjustment[3] = GTK_ADJUSTMENT(
+				gtk_builder_get_object(gui.builder, "adjustment_white_h"));
+	}
+	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_black_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[3], gfit->ry);
+	gtk_adjustment_set_value(selection_black_adjustment[0], 0);
+	gtk_adjustment_set_value(selection_black_adjustment[1], 0);
+	gtk_adjustment_set_value(selection_black_adjustment[2], 0);
+	gtk_adjustment_set_value(selection_black_adjustment[3], 0);
+
+	gtk_adjustment_set_upper(selection_white_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_white_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[3], gfit->ry);
+	gtk_adjustment_set_value(selection_white_adjustment[0], 0);
+	gtk_adjustment_set_value(selection_white_adjustment[1], 0);
+	gtk_adjustment_set_value(selection_white_adjustment[2], 0);
+	gtk_adjustment_set_value(selection_white_adjustment[3], 0);
+}
+
+void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
+	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
+	rectangle black_selection;
+	int width, height;
+
+	if (!selection_black_value[0]) {
+		selection_black_value[0] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
+		selection_black_value[1] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
+		selection_black_value[2] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
+		selection_black_value[3] = GTK_SPIN_BUTTON(
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
+	}
+	width = (int) gtk_spin_button_get_value(selection_black_value[2]);
+	height = (int) gtk_spin_button_get_value(selection_black_value[3]);
+
+	if ((!width) || (!height)) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area"));
+		return;
+	}
+	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
+	black_selection.y = gtk_spin_button_get_value(selection_black_value[1]);
+	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
+	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
+
+	undo_save_state(gfit, _("Background neutralization"));
+
+	set_cursor_waiting(TRUE);
+	background_neutralize(gfit, black_selection);
+	populate_roi();
+	delete_selected_area();
+
+	update_gfit_histogram_if_needed();
+	notify_gfit_data_modified();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+	set_cursor_waiting(FALSE);
+}
+
+void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
+	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
+
+	if (!selection_white_value[0]) {
+		selection_white_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_h"));
+	}
+
+	if ((!com.selection.h) || (!com.selection.w)) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the white reference area"));
+		return;
+	}
+
+	gtk_spin_button_set_value(selection_white_value[0], com.selection.x);
+	gtk_spin_button_set_value(selection_white_value[1], com.selection.y);
+	gtk_spin_button_set_value(selection_white_value[2], com.selection.w);
+	gtk_spin_button_set_value(selection_white_value[3], com.selection.h);
+}
+
+static void white_balance(fits *fit, gboolean is_manual, rectangle white_selection,
+		rectangle black_selection) {
+	int chan;
+	double norm, low, high;
+	double kw[3] = { 0.0, 0.0, 0.0 };
+	double bg[3] = { 0.0, 0.0, 0.0 };
+	static GtkRange *scale_white_balance[3] = { NULL, NULL, NULL };
+	static GtkRange *scaleLimit[2] = { NULL, NULL };
+
+	if (scale_white_balance[RLAYER] == NULL) {
+		scale_white_balance[RLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_r"));
+		scale_white_balance[GLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_g"));
+		scale_white_balance[BLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_b"));
+
+		scaleLimit[0] = GTK_RANGE(gtk_builder_get_object(gui.builder, "lowWhiteColorCalibScale"));
+		scaleLimit[1] = GTK_RANGE(gtk_builder_get_object(gui.builder, "upWhiteColorCalibScale"));
+	}
+
+	assert(fit->naxes[2] == 3);
+	norm = get_normalized_value(fit);
+
+	if (is_manual) {
+		kw[RLAYER] = gtk_range_get_value(scale_white_balance[RLAYER]);
+		kw[GLAYER] = gtk_range_get_value(scale_white_balance[GLAYER]);
+		kw[BLAYER] = gtk_range_get_value(scale_white_balance[BLAYER]);
+
+	} else {
+		low = gtk_range_get_value(scaleLimit[0]);
+		high = gtk_range_get_value(scaleLimit[1]);
+		get_coeff_for_wb(fit, white_selection, black_selection, kw, bg, norm, low, high);
+	}
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(chan) schedule(static)
+#endif
+	for (chan = 0; chan < 3; chan++) {
+		if (kw[chan] == 1.0) continue;
+		calibrate(fit, chan, kw[chan], bg[chan], norm);
+	}
+
+	invalidate_stats_from_fit(fit);
+	invalidate_gfit_histogram();
+}
+
+void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	rectangle black_selection, white_selection;
+	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
+	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
+	struct timeval t_start, t_end;
+
+	siril_log_info(_("Color Calibration: processing...\n"));
+	gettimeofday(&t_start, NULL);
+
+	static GtkCheckButton *manual = NULL;
+	if (!manual) manual = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_manual_calibration"));
+	gboolean is_manual = siril_toggle_get_active(GTK_WIDGET(manual));
+
+	if (!selection_black_value[0]) {
+		selection_black_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_x"));
+		selection_black_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_y"));
+		selection_black_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_w"));
+		selection_black_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_h"));
+	}
+
+	if (!selection_white_value[0]) {
+		selection_white_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_h"));
+	}
+
+	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
+	black_selection.y = gtk_spin_button_get_value(selection_black_value[1]);
+	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
+	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
+
+	if ((!black_selection.w || !black_selection.h) && !is_manual) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area"));
+		return;
+	}
+
+	white_selection.x = gtk_spin_button_get_value(selection_white_value[0]);
+	white_selection.y = gtk_spin_button_get_value(selection_white_value[1]);
+	white_selection.w = gtk_spin_button_get_value(selection_white_value[2]);
+	white_selection.h = gtk_spin_button_get_value(selection_white_value[3]);
+
+	if ((!white_selection.w || !white_selection.h) && !is_manual) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the white reference area"));
+		return;
+	}
+
+	set_cursor_waiting(TRUE);
+	undo_save_state(gfit, _("Color Calibration"));
+	white_balance(gfit, is_manual, white_selection, black_selection);
+
+	gettimeofday(&t_end, NULL);
+
+	show_time(t_start, t_end);
+
+	populate_roi();
+	delete_selected_area();
+
+	notify_gfit_data_modified();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+	update_gfit_histogram_if_needed();
+	set_cursor_waiting(FALSE);
+}
+
+void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("color_calibration");
+}
+
+gboolean calibration_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("color_calibration");
+	return TRUE;
+}
+
+void on_checkbutton_manual_calibration_toggled(GtkCheckButton *togglebutton,
+		gpointer user_data) {
+	static GtkWidget *cc_box_red = NULL, *scale_r = NULL, *cc_box_green = NULL;
+	static GtkWidget *scale_g = NULL, *cc_box_blue = NULL, *scale_b = NULL;
+	if (!cc_box_red) {
+		cc_box_red = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_red"));
+		scale_r = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_r"));
+		cc_box_green = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_green"));
+		scale_g = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_g"));
+		cc_box_blue = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_blue"));
+		scale_b = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_b"));
+	}
+	gtk_widget_set_sensitive(cc_box_red, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+	gtk_widget_set_sensitive(scale_r, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+	gtk_widget_set_sensitive(cc_box_green, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+	gtk_widget_set_sensitive(scale_g, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+	gtk_widget_set_sensitive(cc_box_blue, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+	gtk_widget_set_sensitive(scale_b, siril_toggle_get_active(GTK_WIDGET(togglebutton)));
+}
+
+void negative_processing() {
+	set_cursor_waiting(TRUE);
+	undo_save_state(gfit, _("Negative Transformation"));
+	siril_log_info(_("Negative Transformation\n"));
+	pos_to_neg(gfit);
+	invalidate_stats_from_fit(gfit);
+	invalidate_gfit_histogram();
+	update_gfit_histogram_if_needed();
+	notify_gfit_data_modified();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+	set_cursor_waiting(FALSE);
+}
+/**********************************************************************/
+
+void on_extract_channel_button_close_clicked(GtkButton *button,
+		gpointer user_data) {
+	siril_close_dialog("extract_channel_dialog");
+}
+
+void on_combo_extract_colors_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	GtkDropDown *box = GTK_DROP_DOWN(obj);
+	(void)pspec;
+	static GtkLabel *label_c1 = NULL, *label_c2 = NULL, *label_c3 = NULL;
+	if (!label_c1) {
+		label_c1 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c1"));
+		label_c2 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c2"));
+		label_c3 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c3"));
+	}
+	switch(gtk_drop_down_get_selected(box)) {
+		default:
+		case 0: // RGB
+			gtk_label_set_text(label_c1, _("Red: "));
+			gtk_label_set_text(label_c2, _("Green: "));
+			gtk_label_set_text(label_c3, _("Blue: "));
+			break;
+		case 1: // HSL
+			gtk_label_set_text(label_c1, _("Hue: "));
+			gtk_label_set_text(label_c2, _("Saturation: "));
+			gtk_label_set_text(label_c3, _("Lightness: "));
+			break;
+		case 2: // HSV
+			gtk_label_set_text(label_c1, _("Hue: "));
+			gtk_label_set_text(label_c2, _("Saturation: "));
+			gtk_label_set_text(label_c3, _("Value: "));
+			break;
+		case 3: // CIE L*a*b*
+			gtk_label_set_text(label_c1, "L*: ");
+			gtk_label_set_text(label_c2, "a*: ");
+			gtk_label_set_text(label_c3, "b*: ");
+	}
+}
+
+void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data) {
+	static GtkEntry *channel_extract_entry[3] = { NULL, NULL, NULL };
+	static GtkDropDown *combo_extract_channel = NULL;
+
+	if (processing_is_job_active()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return;
+	}
+
+	struct extract_channels_data *args = calloc(1, sizeof(struct extract_channels_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	if (combo_extract_channel == NULL) {
+		combo_extract_channel = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_extract_colors"));
+		channel_extract_entry[0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch1_extract_channel_entry"));
+		channel_extract_entry[1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch2_extract_channel_entry"));
+		channel_extract_entry[2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch3_extract_channel_entry"));
+	}
+
+	args->type = gtk_drop_down_get_selected(combo_extract_channel);
+	/* IDs aligned with extract_channel_dialog.ui combo_extract_colors items */
+	static const char *const extract_color_ids[] = {"RGB", "HSL", "HSV", "CIE L*a*b*"};
+	args->str_type = (args->type < G_N_ELEMENTS(extract_color_ids))
+			? extract_color_ids[args->type] : NULL;
+
+	if (args->type != EXTRACT_RGB) {
+		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
+		if (!value_check(gfit)) {
+			siril_log_error(_("Error in value_check(). This should not happen...\n"));
+			return;
+		}
+	}
+
+	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
+
+	for (int i = 0; i < 3; i++) {
+	    const gchar *text = gtk_editable_get_text(GTK_EDITABLE(channel_extract_entry[i]));
+	    if (text && *text) {
+	        args->channel[i] = g_strdup_printf("%s%s", text, com.pref.ext);
+	    }
+	}
+
+	args->fit = calloc(1, sizeof(fits));
+	set_cursor_waiting(TRUE);
+	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+		siril_log_message(_("Could not copy the input image, aborting.\n"));
+		clearfits(args->fit);
+		free(args->fit);
+		free(args->channel[0]);
+		free(args->channel[1]);
+		free(args->channel[2]);
+		free(args);
+	} else {
+		copy_fits_metadata(gfit, args->fit);
+		if (!start_in_new_thread(extract_channels, args)) {
+			clearfits(args->fit);
+			free(args->fit);
+			free(args->channel[0]);
+			free(args->channel[1]);
+			free(args->channel[2]);
+			free(args);
+		}
+	}
+}
+
+void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
+    GtkWidget *button = GTK_WIDGET(user_data);
+    static GtkEntry *channel_extract_entry[3] = { NULL };
+    if (!channel_extract_entry[0]) {
+        channel_extract_entry[0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch1_extract_channel_entry"));
+        channel_extract_entry[1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch2_extract_channel_entry"));
+        channel_extract_entry[2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch3_extract_channel_entry"));
+    }
+
+    gboolean has_text = FALSE;
+
+    for (int i = 0; i < 3; i++) {
+        const gchar *text = gtk_editable_get_text(GTK_EDITABLE(channel_extract_entry[i]));
+        if (text && *text) {
+            has_text = TRUE;
+            break;
+        }
+    }
+
+    gtk_widget_set_sensitive(button, has_text);
+}
+
+
+/* Helper function to read matrix from GUI */
+static void get_ccm_values(ccm matrix, float *power) {
+	static GtkEntry *entry_m[3][3] = { { NULL } };
+	static GtkSpinButton *spin_power = NULL;
+	if (!entry_m[0][0]) {
+		entry_m[0][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m00"));
+		entry_m[0][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m01"));
+		entry_m[0][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m02"));
+		entry_m[1][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m10"));
+		entry_m[1][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m11"));
+		entry_m[1][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m12"));
+		entry_m[2][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m20"));
+		entry_m[2][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m21"));
+		entry_m[2][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m22"));
+		spin_power = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ccm_power"));
+	}
+	matrix[0][0] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[0][0])), NULL);
+	matrix[0][1] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[0][1])), NULL);
+	matrix[0][2] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[0][2])), NULL);
+	matrix[1][0] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[1][0])), NULL);
+	matrix[1][1] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[1][1])), NULL);
+	matrix[1][2] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[1][2])), NULL);
+	matrix[2][0] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[2][0])), NULL);
+	matrix[2][1] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[2][1])), NULL);
+	matrix[2][2] = g_ascii_strtod(gtk_editable_get_text(GTK_EDITABLE(entry_m[2][2])), NULL);
+
+	if (power) {
+		*power = gtk_spin_button_get_value(spin_power);
+	}
+}
+
+void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
+	static GtkCheckButton *btn = NULL;
+	static GtkEntry *ccmSeqEntry = NULL;
+	static GtkWidget *ccm_restore_icc = NULL;
+	if (!btn) {
+		btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_apply_seq_ccm"));
+		ccmSeqEntry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryCCMSeq"));
+		ccm_restore_icc = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_restore_icc"));
+	}
+	struct ccm_data *args = new_ccm_data();
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	get_ccm_values(args->matrix, &args->power);
+
+	gboolean seq_toggle = siril_toggle_get_active(GTK_WIDGET(btn));
+
+	if (seq_toggle && sequence_is_loaded()) {
+		args->seqEntry = strdup(gtk_editable_get_text(GTK_EDITABLE(ccmSeqEntry)));
+		args->seq = &com.seq;
+		apply_ccm_to_sequence(args);
+	} else {
+		if (seq_toggle) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
+			free_ccm_data(args);
+			return;
+		}
+
+		// Check for ICC profile warning
+		if (gfit->icc_profile && gfit->color_managed) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"),
+				_("This image has an attached ICC profile. Applying the CCM will invalidate the "
+				"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
+				"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
+			color_manage(gfit, FALSE);
+			gtk_widget_set_sensitive(ccm_restore_icc, TRUE);
+		}
+
+		// Free the args structure as we're using the worker
+		ccm temp_matrix;
+		float temp_power = args->power;
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				temp_matrix[i][j] = args->matrix[i][j];
+			}
+		}
+		free_ccm_data(args);
+
+		// Process using worker
+		set_cursor_waiting(TRUE);
+		if (ccm_process_with_worker(temp_matrix, temp_power) == 0) {
+			invalidate_stats_from_fit(gfit);
+		}
+		set_cursor_waiting(FALSE);
+	}
+}
+
+void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
+	if (gfit->icc_profile) {
+		color_manage(gfit, TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+	}
+}
+
+static void update_ccm_matrix(ccm matrix) {
+	static GtkEntry *entry_m[3][3] = { { NULL } };
+	if (!entry_m[0][0]) {
+		entry_m[0][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m00"));
+		entry_m[0][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m01"));
+		entry_m[0][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m02"));
+		entry_m[1][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m10"));
+		entry_m[1][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m11"));
+		entry_m[1][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m12"));
+		entry_m[2][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m20"));
+		entry_m[2][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m21"));
+		entry_m[2][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m22"));
+	}
+	gchar buf[G_ASCII_DTOSTR_BUF_SIZE+1];
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[0][0]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[0][1]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[0][2]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[1][0]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[1][1]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[1][2]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[2][0]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[2][1]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]));
+	gtk_editable_set_text(GTK_EDITABLE(entry_m[2][2]), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]));
+}
+
+void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
+	ccm matrix = { { 0.f } };
+	matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0f;
+	update_ccm_matrix(matrix);
+}
+
+void on_combo_ccm_preset_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	GtkDropDown *combo = GTK_DROP_DOWN(obj);
+	(void)pspec;
+	static GtkSpinButton *spin_ccm_power = NULL;
+	if (!spin_ccm_power) spin_ccm_power = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ccm_power"));
+	ccm matrix;
+	float power;
+	int index = gtk_drop_down_get_selected(combo);
+	switch (index) {
+		case 0:
+			// Custom - does nothing
+			return;
+		case 1: // Linear Rec.709 to XYZ
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 1.f;
+			break;
+		case 3:
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 2.2f;
+			break;
+		case 2: // XYZ to Linear Rec.709
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f;
+			break;
+		case 4:
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f / 2.2f;
+			break;
+		default:
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("This case is not handled yet"));
+			return;
+	}
+	update_ccm_matrix(matrix);
+	gtk_spin_button_set_value(spin_ccm_power, power);
+}
+
+void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
+	siril_close_dialog("ccm_dialog");
+}
+
+gboolean ccm_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("ccm_dialog");
+	return TRUE;
+}

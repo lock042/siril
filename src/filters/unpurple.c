@@ -218,9 +218,8 @@ static int unpurple_filter(struct unpurpleargs *args) {
 		}
 	}
 
-	if (fit == gfit && args->applying && !com.script) {
-		gui_iface.populate_roi();
-	}
+	/* No populate_roi() here: generic_image_worker performs it universally
+	 * when args->fit == gfit. */
 
 	if (fit == gfit && args->applying) {
 		siril_log_info(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"),

@@ -1,0 +1,336 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name ccm_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_ccm_power">
+    <property name="page-increment">0.5</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkWindow" id="ccm_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="vexpand">1</property>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="child">
+                      <object class="GtkGrid">
+                        <property name="column-homogeneous">1</property>
+                        <property name="column-spacing">6</property>
+                        <property name="margin-start">6</property>
+                        <property name="row-spacing">6</property>
+                        <child>
+                          <object class="GtkEntry" id="entry_m00">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">1.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m01">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m02">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m10">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m11">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">1.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m12">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m20">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m21">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">0.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_m22">
+                            <property name="focusable">1</property>
+                            <property name="input-purpose">number</property>
+                            <property name="max-length">8</property>
+                            <property name="text" translatable="yes">1.0</property>
+                            <property name="width-chars">8</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Color Conversion Matrix</property>
+                        <property name="margin-bottom">10</property>
+                        <property name="margin-top">10</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="child">
+                      <object class="GtkGrid">
+                        <property name="column-homogeneous">1</property>
+                        <property name="column-spacing">6</property>
+                        <property name="margin-start">6</property>
+                        <property name="row-spacing">6</property>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ccm_power">
+                            <property name="adjustment">adj_ccm_power</property>
+                            <property name="digits">3</property>
+                            <property name="focusable">1</property>
+                            <property name="text">1.000</property>
+                            <property name="tooltip-text" translatable="yes">The power to which each result pixel will be raised.</property>
+                            <property name="value">1</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Power:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Presets:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="combo_ccm_preset">
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Custom</item>
+                                  <item translatable="yes">Linear Rec.709_D65 to XYZ</item>
+                                  <item translatable="yes">XYZ to Linear Rec.709_D65</item>
+                                  <item translatable="yes">Simplified sRGB (gamma = 2.2) to XYZ</item>
+                                  <item translatable="yes">XYZ to Simplified sRGB (gamma = 2.2)</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">0</property>
+                            <signal name="notify::selected" handler="on_combo_ccm_preset_changed"/>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkCheckButton" id="check_apply_seq_ccm">
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Apply to sequence</property>
+                                <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label37">
+                                <property name="label" translatable="yes">Output prefix:</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entryCCMSeq">
+                                <property name="focusable">1</property>
+                                <property name="input-hints">no-emoji|none</property>
+                                <property name="max-length">10</property>
+                                <property name="max-width-chars">10</property>
+                                <property name="text">ccm_</property>
+                                <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the cosmetic correction process.</property>
+                                <property name="width-chars">10</property>
+                              </object>
+                            </child>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="column-span">2</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Settings</property>
+                        <property name="margin-bottom">10</property>
+                        <property name="margin-top">10</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkButton" id="ccm_restore_icc">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Restore ICC</property>
+                <property name="receives-default">1</property>
+                <property name="sensitive">0</property>
+                <property name="tooltip-text" translatable="yes">Reactivate ICC profile previously disabled by applying a CCM</property>
+                <signal name="clicked" handler="on_ccm_restore_icc_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="ccm_reset">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Reset</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_ccm_reset_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="ccm_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_ccm_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="ccm_apply">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_ccm_apply_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="title" translatable="yes">Color Conversion Matrix</property>
+    <signal name="close-request" handler="ccm_hide_on_delete"/>
+  </object>
+</interface>

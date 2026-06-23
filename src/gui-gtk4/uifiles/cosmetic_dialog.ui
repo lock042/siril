@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
+<interface>
+  <!-- interface-name cosmetic_dialog.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjCosmeAmount">
+    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjSigCosmeCold">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">50</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkAdjustment" id="adjSigCosmeHot">
+    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
+    <property name="upper">50</property>
+    <property name="value">3</property>
+  </object>
+  <object class="GtkWindow" id="cosmetic_dialog">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="dialog-vbox36">
+            <property name="margin-bottom">6</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-top">6</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkBox" id="box14">
+                <property name="orientation">vertical</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkBox">
+                    <child>
+                      <object class="GtkCheckButton" id="checkSigColdBox">
+                        <property name="active">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Cold Sigma:</property>
+                        <property name="tooltip-text" translatable="yes">How many times (in averrage deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
+                        <signal name="toggled" handler="on_checkSigCosme_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinSigCosmeColdBox">
+                        <property name="adjustment">adjSigCosmeCold</property>
+                        <property name="climb-rate">0.10</property>
+                        <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="numeric">1</property>
+                        <property name="text">3.00</property>
+                        <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
+                        <property name="value">3</property>
+                        <property name="width-chars">5</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale">
+                    <property name="adjustment">adjSigCosmeCold</property>
+                    <property name="draw-value">1</property>
+                    <property name="focusable">1</property>
+                    <property name="round-digits">1</property>
+                    <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <child>
+                      <object class="GtkCheckButton" id="checkSigHotBox">
+                        <property name="active">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Hot Sigma:</property>
+                        <property name="tooltip-text" translatable="yes">How many times (in averrage deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
+                        <signal name="toggled" handler="on_checkSigCosme_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinSigCosmeHotBox">
+                        <property name="adjustment">adjSigCosmeHot</property>
+                        <property name="climb-rate">0.10</property>
+                        <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="numeric">1</property>
+                        <property name="text">3.00</property>
+                        <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
+                        <property name="value">3</property>
+                        <property name="width-chars">5</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale">
+                    <property name="adjustment">adjSigCosmeHot</property>
+                    <property name="draw-value">1</property>
+                    <property name="focusable">1</property>
+                    <property name="round-digits">1</property>
+                    <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <child>
+                      <object class="GtkLabel" id="label163">
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Amount</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton">
+                        <property name="adjustment">adjCosmeAmount</property>
+                        <property name="digits">2</property>
+                        <property name="focusable">1</property>
+                        <property name="width-chars">5</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale" id="scaleCosmeAmount">
+                    <property name="adjustment">adjCosmeAmount</property>
+                    <property name="digits">2</property>
+                    <property name="focusable">1</property>
+                    <property name="round-digits">2</property>
+                    <property name="tooltip-text" translatable="yes">0: No correction
+    1 : 100% corrected</property>
+                    <property name="value-pos">bottom</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="cosmCFACheckBox">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">CFA</property>
+                    <property name="tooltip-text" translatable="yes">Check if the target frames are CFA images.
+    Uncheck if images come from a monochrome sensor.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="spacing">10</property>
+                    <child>
+                      <object class="GtkCheckButton" id="checkCosmeticSeq">
+                        <property name="focusable">1</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Apply to sequence</property>
+                        <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label37">
+                        <property name="label" translatable="yes">Output prefix:</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entryCosmeticSeq">
+                        <property name="focusable">1</property>
+                        <property name="input-hints">no-emoji|none</property>
+                        <property name="max-length">10</property>
+                        <property name="max-width-chars">10</property>
+                        <property name="text">cc_</property>
+                        <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the cosmetic correction process.</property>
+                        <property name="width-chars">10</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="dialog-action_area37">
+            <property name="halign">end</property>
+            <property name="margin-bottom">12</property>
+            <property name="margin-end">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-top">12</property>
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="button_cosmetic_close">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Close</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Close current window</property>
+                <signal name="clicked" handler="on_button_cosmetic_close_clicked"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_cosmetic_ok">
+                <property name="focusable">1</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes">Apply Cosmetic Correction</property>
+                <signal name="clicked" handler="on_button_cosmetic_ok_clicked"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <property name="height-request">200</property>
+    <property name="resizable">0</property>
+    <property name="title" translatable="yes">Cosmetic Correction</property>
+    <property name="width-request">400</property>
+    <signal name="close-request" handler="cosmetic_hide_on_delete"/>
+  </object>
+</interface>
