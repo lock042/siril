@@ -18,6 +18,7 @@
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/utils.h"
 
 #include <string.h>
@@ -3140,6 +3141,10 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 		gtk_widget_set_sensitive(GTK_WIDGET(fb->parent), TRUE);
 		fb->parent = NULL;
 	}
+	/* Restore keyboard focus/activation to the browser's parent so its
+	 * accelerators keep working after the browser is dismissed.  fb->window
+	 * is hidden (not destroyed), so its transient-parent link is still set. */
+	reactivate_parent(GTK_WIDGET(fb->window));
 	return fb->response;
 }
 
