@@ -73,12 +73,8 @@
                 <layout><property name="column">0</property><property name="row">2</property></layout></object>
             </child>
             <child>
-              <object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">2</property>
-                <child><object class="GtkEntry" id="derot_epoch">
-                  <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS — defaults to the capture midpoint</property></object></child>
-                <child><object class="GtkCheckButton" id="derot_epoch_lock">
-                  <property name="label" translatable="yes">Shared epoch (keep for other sequences)</property>
-                  <property name="tooltip-text" translatable="yes">Keep this reference epoch when you load another sequence, so several channels (e.g. R/G/B shot minutes apart) all derotate to the same instant and can then be combined in the Compositing tool (use its Planetary alignment). For the best result set the epoch to the midpoint of the whole session; the "derotate" command's -epoch-from option computes that automatically from a list of sequences.</property></object></child>
+              <object class="GtkEntry" id="derot_epoch">
+                <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS. For a single sequence this defaults to the capture midpoint; once you build a combine session it shows the shared epoch (the midpoint across all the listed sequences), updated automatically as you add them. Edit it to override.</property>
                 <layout><property name="column">1</property><property name="row">2</property></layout></object>
             </child>
             <child>
@@ -137,7 +133,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkLabel" id="derot_status"><property name="wrap">1</property><property name="xalign">0</property>
+          <object class="GtkLabel" id="derot_status"><property name="wrap">1</property><property name="xalign">0</property><property name="max-width-chars">64</property>
             <property name="label" translatable="yes">Fit the disk to the planet, then compute.</property></object>
         </child>
         <child>
@@ -149,7 +145,7 @@
                 <property name="margin-start">6</property><property name="margin-end">6</property>
                 <property name="margin-top">6</property><property name="margin-bottom">6</property>
                 <child>
-                  <object class="GtkLabel"><property name="wrap">1</property><property name="xalign">0</property>
+                  <object class="GtkLabel"><property name="wrap">1</property><property name="xalign">0</property><property name="max-width-chars">64</property>
                     <property name="label" translatable="yes">Fit each sequence's disk, tag its channel and add it. Pick one as the reference (★) — it defines the shared frame all channels are stacked into. Then combine.</property></object>
                 </child>
                 <child>

@@ -58,7 +58,7 @@ static GtkDropDown *dd_body = NULL, *dd_system = NULL;
 static GtkEntry *entry_epoch = NULL;
 static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
                      *spin_rpol = NULL, *spin_pa = NULL, *spin_fps = NULL;
-static GtkCheckButton *chk_parity = NULL, *chk_epoch_lock = NULL;
+static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL;
 static gboolean window_open = FALSE;
 static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
@@ -69,6 +69,10 @@ static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4
 static mpp_session_t *session = NULL;
 static GtkDropDown *dd_channel = NULL;   /* channel tag for the next "Add" */
 static GtkListBox *seqlist = NULL;       /* one row per session entry */
+/* Base name of the sequence whose fit currently sits in the spin controls, so
+ * "Add" can refuse a sequence that hasn't been fitted (the spins would still
+ * hold the previous sequence's disk). NULL until a fit is made. */
+static gchar *fitted_for = NULL;
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -89,6 +93,10 @@ static void set_polar_default(void) {
 
 static gboolean apply_autodetect(void);
 static void set_status(const char *msg);
+static void on_derotation_seqlist_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer u);
+static void mark_fit_valid(void);
+static void update_session_epoch(void);
+static void set_model_locked(gboolean locked);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -119,13 +127,16 @@ static void init_statics(void) {
 	spin_pa     = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_pa"));
 	spin_fps    = GTK_SPIN_BUTTON (gtk_builder_get_object(gui.builder, "derot_fps"));
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
-	chk_epoch_lock = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_epoch_lock"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
 	dd_channel  = GTK_DROP_DOWN   (gtk_builder_get_object(gui.builder, "derot_channel"));
 	seqlist     = GTK_LIST_BOX    (gtk_builder_get_object(gui.builder, "derot_seqlist"));
 	/* One-shot colour is the common case, so make it the default tag. */
 	if (dd_channel)
 		gtk_drop_down_set_selected(dd_channel, MPP_CHAN_OSC);
+	/* Double-click a row to switch to that sequence and restore its fit. */
+	if (seqlist)
+		g_signal_connect(seqlist, "row-activated",
+		                 G_CALLBACK(on_derotation_seqlist_row_activated), NULL);
 	/* Restore the remembered mirror state when the window is first created. */
 	if (chk_parity)
 		gtk_check_button_set_active(chk_parity, com.pref.gui.derot_mirror);
@@ -170,16 +181,20 @@ static void refresh_seqlist(void) {
 	if (!session) return;
 	for (int i = 0; i < session->count; i++) {
 		const mpp_session_seq_t *e = &session->seqs[i];
+		gchar *base = g_path_get_basename(e->seqname);
 		gchar *txt = g_strdup_printf("%s%s  [%s]%s",
 		                             i == session->reference ? "★ " : "",
-		                             e->seqname, channel_label(e->channel),
+		                             base, channel_label(e->channel),
 		                             e->has_fit ? "" : _("  — not fitted"));
 		GtkWidget *row = gtk_label_new(txt);
 		gtk_label_set_xalign(GTK_LABEL(row), 0.0);
+		gtk_label_set_ellipsize(GTK_LABEL(row), PANGO_ELLIPSIZE_END);
+		gtk_widget_set_tooltip_text(row, e->seqname);   /* full path on hover */
 		gtk_widget_set_margin_start(row, 4);
 		gtk_widget_set_margin_end(row, 4);
 		gtk_list_box_append(seqlist, row);
 		g_free(txt);
+		g_free(base);
 	}
 }
 
@@ -188,6 +203,53 @@ static void refresh_seqlist(void) {
 static gboolean current_seq_span(double *first, double *last) {
 	const double fps = spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0;
 	return mpp_derot_sequence_span(&com.seq, fps, NAN, first, last);
+}
+
+/* A CFA-pattern signature for compatibility checks: the SER ColorID, or -1 for
+ * mono / non-SER inputs. */
+static int current_seq_bayer(void) {
+	if (com.seq.type == SEQ_SER && com.seq.ser_file)
+		return (int) com.seq.ser_file->color_id;
+	return -1;
+}
+
+/* Record that the disk now in the spin controls was fitted for the loaded
+ * sequence (gates "Add"; see fitted_for). */
+static void mark_fit_valid(void) {
+	g_free(fitted_for);
+	fitted_for = (sequence_is_loaded() && com.seq.seqname)
+	    ? g_strdup(com.seq.seqname) : NULL;
+}
+
+/* Lock the planet model (body + rotation system) once a session exists: all
+ * sequences in one combine must be the same body, fixed by the reference. */
+static void set_model_locked(gboolean locked) {
+	if (dd_body)   gtk_widget_set_sensitive(GTK_WIDGET(dd_body), !locked);
+	if (dd_system) gtk_widget_set_sensitive(GTK_WIDGET(dd_system), !locked);
+}
+
+/* Show the shared reference epoch (union-span midpoint over all session
+ * sequences) in the epoch entry, so it is visible and editable. */
+static void update_session_epoch(void) {
+	if (!entry_epoch || !session || session->count <= 0) return;
+	double *firsts = g_new(double, session->count);
+	double *lasts  = g_new(double, session->count);
+	for (int i = 0; i < session->count; i++) {
+		firsts[i] = session->seqs[i].first_jd;
+		lasts[i]  = session->seqs[i].last_jd;
+	}
+	const double epoch_jd = mpp_derot_union_epoch(firsts, lasts, session->count);
+	g_free(firsts); g_free(lasts);
+
+	GDateTime *j2000 = g_date_time_new_utc(2000, 1, 1, 12, 0, 0);
+	GDateTime *mid = j2000
+	    ? g_date_time_add_seconds(j2000, (epoch_jd - 2451545.0) * 86400.0) : NULL;
+	if (j2000) g_date_time_unref(j2000);
+	if (mid) {
+		gchar *s = date_time_to_FITS_date(mid);
+		if (s) { gtk_editable_set_text(GTK_EDITABLE(entry_epoch), s); g_free(s); }
+		g_date_time_unref(mid);
+	}
 }
 
 /* "Add current sequence": snapshot the live disk fit + channel into the session
@@ -203,6 +265,33 @@ void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
 		set_status(_("Fit the disk (radius) before adding the sequence."));
 		return;
 	}
+	/* The spin controls must hold a fit made for THIS sequence — otherwise the
+	 * previous sequence's disk would be recorded against it. */
+	if (g_strcmp0(fitted_for, com.seq.seqname) != 0) {
+		set_status(_("Fit this sequence's disk first (Auto-detect or adjust it on "
+		             "the image)."));
+		return;
+	}
+
+	const int bayer = current_seq_bayer();
+
+	/* Basic compatibility: every sequence must share the reference's frame size
+	 * and CFA layout, or they cannot be stacked into one canvas. */
+	if (session && session->count > 0) {
+		const mpp_session_seq_t *ref = &session->seqs[
+		    (session->reference >= 0) ? session->reference : 0];
+		if ((int) com.seq.rx != ref->frame_cols || (int) com.seq.ry != ref->frame_rows) {
+			set_status(_("Incompatible dimensions — every sequence must match the "
+			             "reference frame size."));
+			return;
+		}
+		if (bayer != ref->bayer) {
+			set_status(_("Incompatible Bayer pattern — it must match the reference "
+			             "sequence."));
+			return;
+		}
+	}
+
 	if (!session) {
 		const int body = (int) gtk_drop_down_get_selected(dd_body);
 		const int sys  = (int) gtk_drop_down_get_selected(dd_system) + 1;
@@ -234,8 +323,10 @@ void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
 	                    gtk_spin_button_get_value(spin_rpol),
 	                    gtk_spin_button_get_value(spin_pa),
 	                    gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0,
-	                    (int) com.seq.ry, (int) com.seq.rx,
+	                    (int) com.seq.ry, (int) com.seq.rx, bayer,
 	                    spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0);
+	set_model_locked(TRUE);     /* the body is now fixed by the session */
+	update_session_epoch();     /* show the shared epoch */
 	refresh_seqlist();
 	set_status(_("Sequence added. Load and fit the next, or combine."));
 }
@@ -261,7 +352,43 @@ void on_derotation_remove_clicked(GtkButton *button, gpointer user_data) {
 	const int idx = selected_session_index();
 	if (!session || idx < 0) { set_status(_("Select a sequence in the list first.")); return; }
 	mpp_session_remove(session, idx);
+	if (session->count == 0)
+		set_model_locked(FALSE);   /* empty session: planet selectable again */
+	else
+		update_session_epoch();
 	refresh_seqlist();
+}
+
+/* Double-click a list row: load that sequence and restore its recorded fit into
+ * the controls, so the user can review or re-fit it. */
+static void on_derotation_seqlist_row_activated(GtkListBox *box, GtkListBoxRow *row,
+                                                gpointer u) {
+	(void) box; (void) u;
+	if (!session || !row) return;
+	const int idx = gtk_list_box_row_get_index(row);
+	if (idx < 0 || idx >= session->count) return;
+	const mpp_session_seq_t *e = &session->seqs[idx];
+
+	/* switch the displayed sequence (no-op if it is already current) */
+	if (g_strcmp0(com.seq.seqname, e->seqname) != 0)
+		set_seq(e->seqname);
+
+	/* restore the stored disk fit + channel into the controls */
+	if (e->has_fit) {
+		gtk_spin_button_set_value(spin_cx, e->cx);
+		gtk_spin_button_set_value(spin_cy, e->cy);
+		gtk_spin_button_set_value(spin_radius, e->r_eq);
+		gtk_spin_button_set_value(spin_rpol, e->r_pol);
+		gtk_spin_button_set_value(spin_pa, e->pa_deg);
+		if (chk_parity) gtk_check_button_set_active(chk_parity, e->parity < 0.0);
+		if (spin_fps && e->fps > 0.0) gtk_spin_button_set_value(spin_fps, e->fps);
+	}
+	if (dd_channel) gtk_drop_down_set_selected(dd_channel, e->channel);
+	/* the fit now matches the loaded sequence */
+	g_free(fitted_for);
+	fitted_for = g_strdup(e->seqname);
+	if (window_open) redraw(REDRAW_OVERLAY);
+	set_status(_("Switched to the selected sequence; adjust and re-add if needed."));
 }
 
 static void set_status(const char *msg) {
@@ -289,23 +416,24 @@ static gboolean apply_autodetect(void) {
 	 * pole is the southern one. */
 	const double ex = gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0;
 	gtk_spin_button_set_value(spin_pa, -ex * major_deg);
+	mark_fit_valid();   /* this fit belongs to the loaded sequence */
 	return TRUE;
 }
 
-/* Fill the epoch entry with the capture midpoint, and auto-detect the disk. */
+/* Fill the epoch entry with the capture midpoint, and auto-detect the disk.
+ * Once a multi-sequence session exists the epoch is the shared union midpoint
+ * (managed by update_session_epoch), so this single-sequence midpoint is only
+ * applied when no session is in progress. */
 static void populate_from_sequence(void) {
 	if (!sequence_is_loaded() || com.seq.number <= 0) {
 		set_status(_("Load a planetary sequence first."));
 		return;
 	}
-	/* When "Shared epoch" is ticked, keep the current epoch across sequences so
-	 * several channels derotate to the same instant — don't overwrite it with
-	 * this sequence's midpoint. */
-	const gboolean locked = chk_epoch_lock && gtk_check_button_get_active(chk_epoch_lock);
+	const gboolean has_session = session && session->count > 0;
 	const int N = com.seq.number;
 	double *jd = malloc((size_t) N * sizeof(double));
 	if (jd && mpp_derot_frame_times(&com.seq, 0.0, NAN, jd)) {
-		if (!locked) {
+		if (!has_session) {
 			/* Build the midpoint datetime from the J2000 anchor (full JD
 			 * 2451545.0): Julian_to_date_time() expects MJD, not the full JD
 			 * that date_time_to_Julian()/the .derot use, so using it here would
@@ -322,8 +450,9 @@ static void populate_from_sequence(void) {
 				g_date_time_unref(mid);
 			}
 		}
-		set_status(locked ? _("Using the shared epoch — fit the disk, then compute.")
-		                  : _("Fit the disk to the planet, then compute."));
+		set_status(has_session
+		    ? _("Using the shared epoch — fit the disk, then add or combine.")
+		    : _("Fit the disk to the planet, then compute."));
 	} else {
 		set_status(_("No per-frame timestamps — set the frame rate (fps)."));
 	}
@@ -391,7 +520,8 @@ void on_derotation_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	(void) spin; (void) user_data;
-	if (window_open) redraw(REDRAW_OVERLAY);
+	/* Any change to the disk controls counts as fitting the loaded sequence. */
+	if (window_open) { mark_fit_valid(); redraw(REDRAW_OVERLAY); }
 }
 
 /* Mirror toggle: remember the state in preferences (persisted to the initfile)
@@ -667,6 +797,11 @@ static gpointer derot_combine_worker(gpointer p) {
 			if (a->channels[i] == ch) { cs[m] = a->seqs[i]; cd[m] = a->derots[i]; m++; }
 		if (m == 0) { g_free(cs); g_free(cd); continue; }
 
+		gchar *ptext = g_strdup_printf(_("Derotating + stacking channel %s…"),
+		                               channel_label(ch));
+		set_progress_bar_data(ptext, PROGRESS_RESET);
+		g_free(ptext);
+
 		fits out = { 0 };
 		const mpp_status_t st = mpp_multistack_to(
 		    cs, cd, m, a->seqs[a->ref_index], a->derots[a->ref_index], &a->cfg, &out);
@@ -717,6 +852,9 @@ static gpointer derot_combine_worker(gpointer p) {
 	for (int ch = 0; ch < MPP_CHAN_COUNT; ch++)
 		if (have[ch]) clearfits(&chan_fits[ch]);
 
+	set_progress_bar_data(a->saved > 0 ? _("Derotation combine complete")
+	                                   : _("Derotation combine failed"),
+	                      a->saved > 0 ? PROGRESS_DONE : PROGRESS_RESET);
 	siril_add_idle(derot_combine_idle, a);
 	return GINT_TO_POINTER(a->saved > 0 ? 0 : 1);
 }
@@ -809,9 +947,12 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_status(_("Combining sequences…"));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	set_progress_bar_data(_("Combining sequences…"), PROGRESS_RESET);
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(derot_combine_worker, a)) {
 		set_cursor_waiting(FALSE);
+		set_progress_bar_data(_("Ready."), PROGRESS_RESET);
 		derot_combine_args_free(a);
 		set_status(_("Could not start the combine worker (another job running?)."));
 	}

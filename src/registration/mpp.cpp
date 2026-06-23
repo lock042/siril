@@ -1827,12 +1827,27 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	const int nt = 1;
 #endif
 
+	/* Parallelise the streamed passes only when every source's reads are
+	 * reentrant — SER (serialises just the fread) or reentrant-built FITS — the
+	 * same predicate the single-sequence pipeline uses. Otherwise the frame
+	 * loops stay serial (the multi-source throughput limiter). */
+	bool provider_thread_safe = true;
+	for (int i = 0; i < n; ++i) {
+		const sequence *s = seqs[i];
+		const bool safe = (s->type == SEQ_SER)
+		    || ((s->type == SEQ_REGULAR || s->type == SEQ_FITSEQ
+		         || s->type == SEQ_INTERNAL) && fits_is_reentrant());
+		if (!safe) { provider_thread_safe = false; break; }
+	}
+
 	siril_log_message(_("Derotation stack: combining %d sequence(s), reference "
-	                    "canvas '%s', %d output channel(s)\n"),
-	                  n, ref_seq->seqname, num_layers);
+	                    "canvas '%s', %d output channel(s), %s reads\n"),
+	                  n, ref_seq->seqname, num_layers,
+	                  provider_thread_safe ? _("parallel") : _("serial"));
 
 	const mpp::MultiStackResult res =
-	    mpp::multistack_channel(srcs, out_derot, num_layers, *cfg, nt);
+	    mpp::multistack_channel(srcs, out_derot, num_layers, *cfg, nt,
+	                            provider_thread_safe);
 	if (res.error) return MPP_EINVAL;
 	if (res.oom) return MPP_ENOMEM;
 	if (res.cancelled || res.image.empty()) return MPP_EINTR;

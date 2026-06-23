@@ -58,6 +58,7 @@ typedef struct {
 	gboolean has_fit;
 	double cx, cy, r_eq, r_pol, pa_deg, parity;
 	int frame_rows, frame_cols;
+	int bayer;                /* CFA signature for compatibility (SER color_id; -1 = none) */
 	double fps;
 } mpp_session_seq_t;
 
@@ -88,7 +89,7 @@ gboolean mpp_session_set_channel(mpp_session_t *s, int index, mpp_channel_t chan
 gboolean mpp_session_set_fit(mpp_session_t *s, int index,
                              double cx, double cy, double r_eq, double r_pol,
                              double pa_deg, double parity,
-                             int frame_rows, int frame_cols, double fps);
+                             int frame_rows, int frame_cols, int bayer, double fps);
 
 /* Shared epoch = midpoint of the union of every sequence's span. Stores it on
  * the session and returns it (0 when the session is empty). */

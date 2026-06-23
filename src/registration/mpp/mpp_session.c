@@ -102,12 +102,13 @@ gboolean mpp_session_set_channel(mpp_session_t *s, int index, mpp_channel_t chan
 gboolean mpp_session_set_fit(mpp_session_t *s, int index,
                              double cx, double cy, double r_eq, double r_pol,
                              double pa_deg, double parity,
-                             int frame_rows, int frame_cols, double fps) {
+                             int frame_rows, int frame_cols, int bayer, double fps) {
 	if (!s || index < 0 || index >= s->count) return FALSE;
 	mpp_session_seq_t *e = &s->seqs[index];
 	e->cx = cx; e->cy = cy; e->r_eq = r_eq; e->r_pol = r_pol;
 	e->pa_deg = pa_deg; e->parity = parity;
 	e->frame_rows = frame_rows; e->frame_cols = frame_cols;
+	e->bayer = bayer;
 	e->fps = fps;
 	e->has_fit = TRUE;
 	return TRUE;

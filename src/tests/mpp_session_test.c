@@ -46,7 +46,7 @@ Test(mpp_session, add_tag_reference_epoch) {
 	/* disk fit is recorded and flags the entry */
 	cr_assert_not(s->seqs[1].has_fit);
 	cr_assert(mpp_session_set_fit(s, 1, 50.0, 60.0, 30.0, 28.0, 12.0, -1.0,
-	                              480, 640, 25.0));
+	                              480, 640, /*bayer=*/-1, 25.0));
 	cr_assert(s->seqs[1].has_fit);
 	cr_assert_float_eq(s->seqs[1].cx, 50.0, 1e-9);
 	cr_assert_float_eq(s->seqs[1].r_eq, 30.0, 1e-9);

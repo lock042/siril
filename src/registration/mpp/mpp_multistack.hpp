@@ -89,7 +89,8 @@ struct MultiStackResult {
 MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
                                     const mpp_derot_t *out_derot, int num_layers,
                                     const mpp_config_t &cfg,
-                                    int max_threads = 1);
+                                    int max_threads = 1,
+                                    bool provider_thread_safe = false);
 
 }  // namespace mpp
 
