@@ -118,6 +118,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	 * readers are reentrant (SER / reentrant FITS), like the single-sequence
 	 * Stage A: this is the first of several streamed passes, so serialising it
 	 * — and the engines below — is the main multi-source throughput limiter. */
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: reading and ranking frames"));
 	std::vector<double> quality(N, 0.0), brightness(N, 0.0);
 	std::vector<int> included(N, 1);
 	std::atomic<bool> p1_fail{false};
@@ -143,6 +144,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 
 	/* Global alignment of the relocated frames (small residuals — derotation
 	 * already co-registers the disks). */
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: aligning frames"));
 	const auto align = mpp::align_global_from_provider(
 	    blurred_provider, N, quality, cfg, ms_progress, nullptr,
 	    provider_thread_safe);
@@ -150,6 +152,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	if (align.best_frame_idx < 0) { res.cancelled = true; return res; }
 
 	/* Averaged reference + frame intersection, in the reference canvas. */
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: building reference"));
 	const auto avg = mpp::align_average_frame_streamed(
 	    raw_provider, N, out_h, out_w, quality, align.shifts, cfg,
 	    ms_progress, nullptr, included);
@@ -178,11 +181,13 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	                  aps->count);
 
 	/* Per-AP per-frame qualities over the union. */
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: ranking alignment points"));
 	const auto apq = mpp::ap_compute_frame_qualities_streamed(
 	    raw_provider, N, brightness, *aps, offsets, out_h, out_w, cfg,
 	    ms_progress, nullptr, included, nt, provider_thread_safe);
 
 	/* Per-AP per-frame shifts (epoch space, against the shared reference). */
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: measuring local shifts"));
 	mpp_shifts_t *shifts = mpp::stack_compute_shifts_streamed(
 	    blurred_provider, N, avg.mean_frame, *aps, apq, offsets, cfg,
 	    included.data(), nt, provider_thread_safe);
@@ -227,6 +232,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		return true;
 	};
 
+	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: stacking frames"));
 	const auto wr = mpp::stack_warp_apply_streamed(
 	    full_provider, N, num_layers, *aps, apq, shifts, offsets, brightness,
 	    sorted_idx, intersection, cfg, included.data(), nt,

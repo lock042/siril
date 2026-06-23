@@ -797,10 +797,8 @@ static gpointer derot_combine_worker(gpointer p) {
 			if (a->channels[i] == ch) { cs[m] = a->seqs[i]; cd[m] = a->derots[i]; m++; }
 		if (m == 0) { g_free(cs); g_free(cd); continue; }
 
-		gchar *ptext = g_strdup_printf(_("Derotating + stacking channel %s…"),
-		                               channel_label(ch));
-		set_progress_bar_data(ptext, PROGRESS_RESET);
-		g_free(ptext);
+		siril_log_message(_("Derotation combine: channel %s (%d sequence(s))…\n"),
+		                  channel_label(ch), m);
 
 		fits out = { 0 };
 		const mpp_status_t st = mpp_multistack_to(

@@ -1795,11 +1795,25 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	for (int i = 0; i < n; ++i)
 		if (!seqs[i] || !derots[i]) return MPP_EINVAL;
 
+	/* The caller built cfg from defaults, which assume 16-bit; the analysis
+	 * reader stores frames at cfg.bitdepth, so an 8-bit source read as 16-bit is
+	 * near-black and finds no structure. Derive the real bit depth from the
+	 * sources (all share it — the GUI checks compatibility). */
+	mpp_config_t lcfg = *cfg;
+	lcfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seqs[0]->bitpix);
+
+	/* Pin CFA SER sources to raw-mosaic reads for the analysis passes, like the
+	 * single-sequence pipeline, so read_analysis_frame demosaics deterministically
+	 * regardless of the debayer-on-open preference. Restored on return. */
+	std::vector<SerAnalysisRawGuard> raw_guards(n);
+	for (int i = 0; i < n; ++i)
+		maybe_engage_ser_raw_for_analysis(raw_guards[i], seqs[i]);
+
 	std::vector<mpp::MsSource> srcs(n);
 	for (int i = 0; i < n; ++i) {
 		sequence *s = seqs[i];
-		const int avi = cfg->avi_bayer_pattern;
-		const int bd  = cfg->bitdepth;
+		const int avi = lcfg.avi_bayer_pattern;
+		const int bd  = lcfg.bitdepth;
 		srcs[i].derot = derots[i];
 		srcs[i].num_frames = s->number;
 		srcs[i].analysis_read = [s, avi, bd](int l) -> cv::Mat {
@@ -1814,8 +1828,8 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	 * The reference sequence supplies only the canvas geometry — it may belong
 	 * to a different channel — so the layer count is taken from the sources. */
 	const bool avi_cfa = (seqs[0]->type == SEQ_AVI
-	                      && cfg->avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
-	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	                      && lcfg.avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && lcfg.avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
 	const bool is_cfa = (mpp_classify_sequence_input(seqs[0]) == MPP_INPUT_CFA)
 	                  || avi_cfa;
 	const int num_layers = is_cfa ? 3
@@ -1846,7 +1860,7 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	                  provider_thread_safe ? _("parallel") : _("serial"));
 
 	const mpp::MultiStackResult res =
-	    mpp::multistack_channel(srcs, out_derot, num_layers, *cfg, nt,
+	    mpp::multistack_channel(srcs, out_derot, num_layers, lcfg, nt,
 	                            provider_thread_safe);
 	if (res.error) return MPP_EINVAL;
 	if (res.oom) return MPP_ENOMEM;
