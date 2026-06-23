@@ -81,6 +81,10 @@ static gboolean multi_mode = FALSE;
  * "Add" can refuse a sequence that hasn't been fitted (the spins would still
  * hold the previous sequence's disk). NULL until a fit is made. */
 static gchar *fitted_for = NULL;
+/* Base name of the sequence whose .derot was last written by Compute & save with
+ * the current (unchanged) fit — drives the Compute & save step of the guidance.
+ * Cleared whenever the fit changes. */
+static gchar *computed_for = NULL;
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -106,7 +110,7 @@ static void mark_fit_valid(void);
 static void update_session_epoch(void);
 static void set_model_locked(gboolean locked);
 static void update_guidance(void);
-static void populate_from_sequence(void);
+static void populate_from_sequence(gboolean autofit);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -242,6 +246,8 @@ static void mark_fit_valid(void) {
 	g_free(fitted_for);
 	fitted_for = (sequence_is_loaded() && com.seq.seqname)
 	    ? g_strdup(com.seq.seqname) : NULL;
+	/* the fit changed: any previously saved .derot no longer matches it */
+	g_clear_pointer(&computed_for, g_free);
 	update_guidance();   /* a fit just happened: advance the recommended step */
 }
 
@@ -290,12 +296,15 @@ static void update_guidance(void) {
 	}
 	const gboolean fitted = (g_strcmp0(fitted_for, com.seq.seqname) == 0)
 	    && spin_radius && gtk_spin_button_get_value(spin_radius) >= 1.0;
-	if (!fitted)            { guidance_set("derot_autofit"); return; }
-	if (!multi_mode)        { guidance_set("derot_compute"); return; }
+	const gboolean computed = (g_strcmp0(computed_for, com.seq.seqname) == 0);
+	/* fit the disk -> Compute & save -> (multi only) Add -> Combine */
+	if (!fitted)             { guidance_set("derot_autofit"); return; }
+	if (!computed)           { guidance_set("derot_compute"); return; }
+	if (!multi_mode)         { guidance_set(NULL); return; }   /* simple: closed on save */
 	if (session_index_of(com.seq.seqname) < 0)
-	                       { guidance_set("derot_add"); return; }
+	                         { guidance_set("derot_add"); return; }
 	if (session && session->count > 0)
-	                       { guidance_set("derot_combine"); return; }
+	                         { guidance_set("derot_combine"); return; }
 	guidance_set(NULL);
 }
 
@@ -497,7 +506,10 @@ static gboolean apply_autodetect(void) {
  * Once a multi-sequence session exists the epoch is the shared union midpoint
  * (managed by update_session_epoch), so this single-sequence midpoint is only
  * applied when no session is in progress. */
-static void populate_from_sequence(void) {
+/* `autofit`: auto-detect the disk too (the simple single-sequence convenience).
+ * The multi-sequence flow passes FALSE so the guidance starts on "Auto-detect
+ * disk" as a deliberate step rather than pre-fitting silently. */
+static void populate_from_sequence(gboolean autofit) {
 	if (!sequence_is_loaded() || com.seq.number <= 0) {
 		set_status(_("Load a planetary sequence first."));
 		update_guidance();   /* nothing to guide without a sequence */
@@ -541,8 +553,9 @@ static void populate_from_sequence(void) {
 	}
 	free(jd);
 
-	apply_autodetect();
-	update_guidance();   /* covers the auto-detect-failed case too */
+	if (autofit)
+		apply_autodetect();   /* calls update_guidance via mark_fit_valid */
+	update_guidance();        /* covers the no-autofit and autofit-failed cases */
 }
 
 /* A sequence was loaded while the tool is open: refresh the epoch + frame rate
@@ -551,7 +564,8 @@ static void populate_from_sequence(void) {
 void derotation_sequence_changed(void) {
 	if (!window_open) return;
 	init_statics();
-	populate_from_sequence();
+	/* Multi mode guides through Auto-detect explicitly, so don't pre-fit there. */
+	populate_from_sequence(!multi_mode);
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -613,7 +627,7 @@ void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 	 * + hit-test); the main view stays interactive, so mouse_status is left
 	 * untouched. */
 	on_derot_body_changed(NULL, NULL, NULL);   /* sync system to the body default */
-	populate_from_sequence();
+	populate_from_sequence(!multi_mode);       /* simple mode auto-fits; multi guides */
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -715,12 +729,17 @@ static gboolean derot_compute_idle(gpointer p) {
 		                    "System %d. Now register and stack the sequence.\n"),
 		                  a->path, a->N, a->span_min, a->system);
 		control_window_switch_to_tab(OUTPUT_LOGS);
+		/* Mark this sequence's fit as computed so the guidance advances to Add. */
+		g_free(computed_for);
+		computed_for = g_strdup(a->seqname);
 		/* Simple single-sequence mode closes on save (the old behaviour); the
 		 * multi-sequence tool stays open so the user can keep adding sequences. */
 		if (!multi_mode)
 			hide_dialog();
-		else
+		else {
 			set_status(_("Saved the .derot — add this sequence, or fit the next."));
+			update_guidance();
+		}
 	} else {
 		siril_log_error(_("derotation: %s\n"),
 		                a->err ? a->err : _("compute failed"));
@@ -877,6 +896,8 @@ static gboolean derot_combine_idle(gpointer p) {
 	 * step-by-step guidance from the beginning. */
 	if (a->saved > 0) {
 		if (session) { mpp_session_free(session); session = NULL; }
+		g_clear_pointer(&computed_for, g_free);
+		g_clear_pointer(&fitted_for, g_free);
 		set_model_locked(FALSE);
 		refresh_seqlist();
 		set_status(_("Combine complete and reset — load and fit a sequence to "
