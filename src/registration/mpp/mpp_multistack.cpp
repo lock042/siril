@@ -169,10 +169,16 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	}
 	res.num_aps = aps->count;
 
+	/* Frame offsets in the SAME convention the engines expect (matches
+	 * offsets_from_run): the intersection origin minus the global shift, NOT the
+	 * raw shift. The AP boxes and the warp map are positioned relative to the
+	 * intersection canvas, so this term carries the crop origin and the
+	 * alignment in one — passing the raw shift mis-places every frame by the
+	 * intersection origin (and with the wrong sign), smearing the stack. */
 	std::vector<FrameOffset> offsets(N);
 	for (int g = 0; g < N; ++g) {
-		offsets[g].dy = align.shifts[g][0];
-		offsets[g].dx = align.shifts[g][1];
+		offsets[g].dy = (double) avg.intersection[0] - align.shifts[g][0];
+		offsets[g].dx = (double) avg.intersection[2] - align.shifts[g][1];
 	}
 
 	/* AP grid built — log a count so a degenerate fit (e.g. an over-masked or
@@ -219,8 +225,18 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		return srcs[s].full_read(l);
 	};
 
-	/* Warp-stack derot map: output = reference disk in the drizzled
-	 * intersection canvas, source = this frame's own sequence disk. */
+	/* Warp-stack derot map: output = reference disk in the drizzled intersection
+	 * canvas, source = this frame's own sequence disk. BOTH sides use the same
+	 * intersection origin and drizzle scale: the warp engine's map is
+	 *   sample = derot_base + global_offset*S - residual*S,
+	 * and the global offset (measured in the reference canvas) carries the
+	 * intersection origin, so the source disk must be placed at
+	 * (cx - intersection_x)*S to cancel it — exactly as the single-sequence
+	 * mpp_derot_frame_map does (which places one disk for both sides). Using
+	 * (0,0,1) for the source instead samples every frame off by the intersection
+	 * origin whenever it is cropped (sharp on a full-frame intersection, smeared
+	 * otherwise). The source sequence still contributes its OWN disk centre via
+	 * srcs[s].derot, so a displaced sequence is still relocated correctly. */
 	const double S = std::max(1.0, cfg.drizzle_scale);
 	DerotMapProvider derot_provider =
 	    [&](int g, int DY, int DX, cv::Mat &mx, cv::Mat &my, cv::Mat &mu) -> bool {
@@ -228,7 +244,8 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		if (!layout.locate(g, &s, &l)) return false;
 		mpp_derot_frame_map_ms(refd, srcs[s].derot, l, DX, DY,
 		                       (double) intersection[2], (double) intersection[0], S,
-		                       0.0, 0.0, 1.0, mx, my, mu, src_masks(s));
+		                       (double) intersection[2], (double) intersection[0], S,
+		                       mx, my, mu, src_masks(s));
 		return true;
 	};
 

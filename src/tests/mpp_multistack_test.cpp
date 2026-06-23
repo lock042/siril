@@ -181,3 +181,91 @@ Test(mpp_multistack, combines_two_sources_into_reference_canvas) {
 	mpp_derot_free(d0);
 	mpp_derot_free(d1);
 }
+
+/* Regression for the warp-stack source-map placement: when the frames drift
+ * (so the global alignment crops the intersection to a non-zero origin), the
+ * derotation map's source side must carry the same intersection origin/scale as
+ * the output side. With the source placed at (0,0,1) instead, every frame is
+ * sampled off by the intersection origin and the recovered planet smears. No
+ * rotation here — pure per-frame translation — isolates the placement: the only
+ * way recovery can succeed is if that origin cancels correctly. */
+Test(mpp_multistack, drift_cropped_intersection_recovers) {
+	const int W = 240, H = 220;
+	const int N = 9;
+	const double cx = 120, cy = 108, R = 64, B = 4.0, CM = 30.0;
+	const cv::Mat base = make_planet(H, W, cx, cy, R);
+
+	/* Frame 0 is the untranslated base (sharpest, so the aligner picks it as the
+	 * reference); the rest are translated by NEGATIVE integer steps. Aligning
+	 * them back to frame 0 needs positive shifts, so the intersection crops to a
+	 * large positive origin — exactly the case that broke when the derotation
+	 * map's source side dropped that origin. Integer steps keep the (integer)
+	 * global/per-AP search exact. */
+	std::vector<cv::Mat> frames(N);
+	frames[0] = base.clone();
+	for (int f = 1; f < N; ++f) {
+		const int tx = -3 * f, ty = -2 * f;     /* down to (-24, -16) at f=8 */
+		cv::Mat M = (cv::Mat_<double>(2, 3) << 1, 0, tx, 0, 1, ty);
+		cv::warpAffine(base, frames[f], M, base.size(), cv::INTER_LANCZOS4,
+		               cv::BORDER_CONSTANT, cv::Scalar(0));
+	}
+
+	mpp_config_t cfg{};
+	mpp_config_defaults(&cfg);
+	cfg.frames_normalization = false;
+	cfg.alignment_points_frame_percent = 100;
+	cfg.align_frames_mode = MPP_ALIGN_SURFACE;   /* tracks integer translation */
+	cfg.stack_method = MPP_STACK_WARP;
+	cfg.drizzle_scale = 1.0;
+
+	mpp_derot_t *d = mpp_derot_alloc(N);
+	d->num_frames = N; d->frame_rows = H; d->frame_cols = W;
+	d->cx = cx; d->cy = cy; d->r_eq = R; d->flattening = 0.0; d->parity = 1.0;
+	d->pole_angle_epoch = 0.0;
+	d->epoch_sub_obs_lat = B; d->epoch_cm = CM; d->epoch_pole_pa = 0.0;
+	for (int f = 0; f < N; ++f) {                 /* no rotation: all == epoch */
+		d->sub_obs_lat[f] = B; d->cm[f] = CM; d->pole_pa[f] = 0.0;
+	}
+
+	std::vector<mpp::MsSource> srcs(1);
+	srcs[0].derot = d; srcs[0].num_frames = N;
+	srcs[0].analysis_read = [&](int l) { return frames[l]; };
+	srcs[0].full_read     = [&](int l) { return frames[l]; };
+
+	const auto res = mpp::multistack_channel(srcs, d, 1, cfg, 1);
+	cr_assert(!res.error && !res.oom && !res.cancelled && !res.image.empty());
+
+	const int ox = res.intersection[2], oy = res.intersection[0];
+	cr_log_info("drift intersection=(%d,%d,%d,%d) img=%dx%d",
+	            res.intersection[0], res.intersection[1], res.intersection[2],
+	            res.intersection[3], res.image.cols, res.image.rows);
+	/* the intersection must actually be cropped, else the test proves nothing */
+	cr_assert(ox >= 1 && oy >= 1 && res.image.cols < W && res.image.rows < H,
+	          "expected a cropped intersection (got x_low=%d y_low=%d)", ox, oy);
+	/* crop-aware compare: res.image[y][x] corresponds to base[y+oy][x+ox] */
+	double sum = 0.0; int n = 0;
+	for (int y = 0; y < res.image.rows; ++y)
+		for (int x = 0; x < res.image.cols; ++x) {
+			const int by = y + oy, bx = x + ox;
+			if (by < 0 || by >= base.rows || bx < 0 || bx >= base.cols) continue;
+			if (std::hypot(y - (cy - oy), x - (cx - ox)) < R * 0.7) {
+				sum += std::abs((double) res.image.at<uint16_t>(y, x)
+				              - (double) base.at<uint16_t>(by, bx));
+				++n;
+			}
+		}
+	const double err = n ? sum / n : 1e9;
+	cr_log_info("drift test: intersection=(%d,%d,%d,%d) img=%dx%d err=%.0f",
+	            res.intersection[0], res.intersection[1],
+	            res.intersection[2], res.intersection[3],
+	            res.image.cols, res.image.rows, err);
+	/* With the source placement + offset convention correct this recovers the
+	 * base (residual is the Lanczos / integer-alignment floor of an aggressive
+	 * +/-24 px synthetic drift). The pre-fix code (source at (0,0,1), raw shift
+	 * offset) mis-samples by the ~21 px origin and roughly doubles the error. */
+	cr_assert_lt(err, 2000.0,
+	             "drifted frames should recover the base after global align "
+	             "(err %.0f LSB)", err);
+
+	mpp_derot_free(d);
+}
