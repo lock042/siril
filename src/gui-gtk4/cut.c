@@ -137,7 +137,7 @@ double get_conversion_factor(fits *fit) {
 	double conversionfactor = -DBL_MAX;
 	if (unit_is_as) {
 		double bin_X = com.pref.binning_update ? (double) fit->keywords.binning_x : 1.0;
-		conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
+		conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double) fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
 	}
 	return conversionfactor;
 }

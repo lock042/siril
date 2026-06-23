@@ -43,7 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algos/demosaicing.h"
 
 #include <assert.h>
-#define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
+#define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #include <stdlib.h>
 
@@ -514,7 +514,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 	 * in the numerator. */
 //    gaussian_efac = (2.3548f*2.3548f) * scale2 * ac / 2.0f;
 	gaussian_efac = (2.3548f * 2.3548f) * ac / (2.f * scale2);
-	gaussian_es = gaussian_efac / M_PI;
+	gaussian_es = gaussian_efac / G_PI;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 

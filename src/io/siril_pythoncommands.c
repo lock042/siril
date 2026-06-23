@@ -1365,8 +1365,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Update the imgparam rx and ry
 				com.seq.imgparam[index].rx = fit->rx;
 				com.seq.imgparam[index].ry = fit->ry;
-				// Clean the sequence registration data, stats and selection as they will no longer be valid
-				clean_sequence(&com.seq, TRUE, TRUE, TRUE);
+				// Clean the sequence registration data, stats, selection and mpp sidecar as they will no longer be valid
+				clean_sequence(&com.seq, TRUE, TRUE, TRUE, TRUE);
 			}
 			clearfits(fit);
 			free(fit);

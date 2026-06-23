@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,6 +29,8 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "io/sequence.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_config.h"
 #include "stacking/sum.h"
 #include "stacking/stacking.h"
 
@@ -49,8 +52,15 @@ static char *filter_tooltip_text[] = {
 };
 
 stack_method stacking_methods[] = {
-	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
+	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin,
+	stack_mpp_handler
 };
+
+/* Mpp drizzle scale dropdown. User picks a scale factor; the dispatcher
+ * (mpp_stack_apply) then performs all scaling via cv::resize. Entries map
+ * one-to-one to the GtkStringList items in siril_stacking.ui (1x / 1.5x /
+ * 2x / 3x); sequence-type-specific gating happens at run time. */
+static const double mpp_drizzle_scales[] = { 1.0, 1.5, 2.0, 3.0 };
 
 void initialize_stacking_methods() {
 	init_stacking_args(&stackparam);
@@ -98,6 +108,10 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
+	static GtkDropDown *mpp_drizzle_combo = NULL;
+	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
+	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
+	static GtkCheckButton *mpp_skip_failed = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -120,6 +134,13 @@ static void start_stacking() {
 		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
 		overlap_norm = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
 		force32b = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
+		/* STACK_MPP widgets */
+		mpp_drizzle_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
+		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
+		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
+		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
+		mpp_bg_blend      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_blend"));
+		mpp_skip_failed   = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_skip_failed"));
 	}
 
 	if (processing_is_job_active()) {
@@ -176,14 +197,20 @@ static void start_stacking() {
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
-	// checking regdata is absent, or if present, is only shift
-	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
-		int confirm = siril_confirm_dialog(_("Registration data found"),
-			_("Stacking has detected registration data with more than simple shifts.\n"
-			"Normally, you should apply existing registration before stacking."),
-			_("Stack anyway"));
-		if (!confirm)
-			return;
+	/* STACK_MPP doesn't go through the homography-aware regdata path — it
+	 * reads its own per-AP per-frame shifts from the .mpp sidecar. The
+	 * "registration data with more than simple shifts" prompt would fire
+	 * for a sidecar's quality-only regdata so we skip it for STACK_MPP. */
+	if (stackparam.method != stack_mpp_handler) {
+		// checking regdata is absent, or if present, is only shift
+		if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
+			int confirm = siril_confirm_dialog(_("Registration data found"),
+				_("Stacking has detected registration data with more than simple shifts.\n"
+				"Normally, you should apply existing registration before stacking."),
+				_("Stack anyway"));
+			if (!confirm)
+				return;
+		}
 	}
 
 	if (stackparam.overlap_norm && stackparam.nb_images_to_stack > 20) {
@@ -212,6 +239,28 @@ static void start_stacking() {
 	/* Stacking. Result is in gfit if success */
 	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
+
+	/* For STACK_MPP, capture the stack-side widget values into a fresh
+	 * mpp_config_t and hang it off params. stack_mpp_handler reads from
+	 * params->mpp_cfg and stacking_args_deep_free will release it.
+	 * Allocated AFTER deep_copy so stackparam never owns the pointer. */
+	if (stackparam.method == stack_mpp_handler) {
+		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
+		mpp_config_defaults(cfg);
+		const guint driz_idx = gtk_drop_down_get_selected(mpp_drizzle_combo);
+		if (driz_idx < G_N_ELEMENTS(mpp_drizzle_scales))
+			cfg->drizzle_scale = mpp_drizzle_scales[driz_idx];
+		else	/* GTK_INVALID_LIST_POSITION */
+			cfg->drizzle_scale = 1.0;
+		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* dobox disabled; scaling via cv::resize */
+		cfg->stack_frame_percent                     = gtk_spin_button_get_value_as_int(mpp_stack_percent);
+		cfg->stack_frame_number                      = gtk_spin_button_get_value_as_int(mpp_stack_frames);
+		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
+		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
+		cfg->stack_skip_failed_aps                   = siril_toggle_get_active(GTK_WIDGET(mpp_skip_failed));
+		params->mpp_cfg = cfg;
+	}
+
 	if (!start_in_new_thread(stack_function_handler, params)) {
 		stacking_args_deep_free(params);
 	}
@@ -680,11 +729,13 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkDropDown *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	static GtkExpander *stack_expander_method = NULL, *stack_expander_output = NULL;
+	static GtkWidget *seq_filters_frame = NULL;
 	gchar *labelbuffer;
 
 	if(!go_stack) {
 		go_stack = GTK_WIDGET(gtk_builder_get_object(gui.builder, "gostack_button"));
 		filter_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combofilter1"));
+		seq_filters_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "seq_filters_frame_stack"));
 		method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
 		widgetnormalize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combonormalize"));
 		force_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkforcenorm"));
@@ -717,6 +768,20 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		g_signal_handlers_block_by_func(filter_combo, on_stacksel_changed, NULL);
 		gtk_drop_down_set_selected(filter_combo, SELECTED_IMAGES);
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
+	}
+
+	/* If a complete (registered) .mpp sidecar is loaded for this sequence
+	 * (left by a previous "Multipoint Registration" run, or by the CLI
+	 * register_mpp command), default the stack-method combo to STACK_MPP —
+	 * the only method that can consume the sidecar. An analysis-only sidecar
+	 * (Analyze / Stage A) carries no per-AP shifts and cannot be stacked, so
+	 * don't steer the user into it; the cached run reflects whichever the
+	 * sidecar held when the sequence was opened. dont_change_stack_type
+	 * guards the case where the user has already manually picked something. */
+	if (!dont_change_stack_type) {
+		const mpp_run_t *run = mpp_get_cached_run();
+		if (run && run->shifts)
+			gtk_drop_down_set_selected(method_combo, STACK_MPP);
 	}
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
 	gboolean can_upscale = can_reframe && !com.seq.is_variable && !com.seq.is_drizzle;
@@ -766,6 +831,13 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		if (!gtk_widget_get_sensitive(overlap_norm))
 			siril_toggle_set_active(GTK_WIDGET(overlap_norm), FALSE);
 	}
+
+	/* Multipoint stacking always honours the sequence's frame-selector
+	 * inclusion state directly (in mpp_stack_apply); the global Stack-tab
+	 * frame filter (and its frame-count label) is completely ignored here,
+	 * so hide the whole section for STACK_MPP rather than leaving a stale
+	 * "all" combo visible. */
+	gtk_widget_set_visible(seq_filters_frame, stack_method != STACK_MPP);
 
 	if (com.seq.reference_image == -1)
 		com.seq.reference_image = sequence_find_refimage(&com.seq);
