@@ -138,6 +138,21 @@ static void init_statics(void) {
 	dd_channel  = GTK_DROP_DOWN   (gtk_builder_get_object(gui.builder, "derot_channel"));
 	seqlist     = GTK_LIST_BOX    (gtk_builder_get_object(gui.builder, "derot_seqlist"));
 	combine_frame = GTK_WIDGET    (gtk_builder_get_object(gui.builder, "derot_combine_frame"));
+	/* Default the MPP param widgets to mpp_config_defaults (the .ui sets the
+	 * spin defaults; set the toggles/combo here). */
+	{
+		GtkBuilder *b = gui.builder;
+		#define MDP_SET(id, on) do { GObject *o = gtk_builder_get_object(b, id); \
+			if (o) gtk_check_button_set_active(GTK_CHECK_BUTTON(o), on); } while (0)
+		MDP_SET("mdp_normalize", TRUE);
+		MDP_SET("mdp_dewarp", TRUE);
+		MDP_SET("mdp_seed", TRUE);
+		MDP_SET("mdp_fast_changing", FALSE);
+		MDP_SET("mdp_skip_failed", FALSE);
+		#undef MDP_SET
+		GObject *am = gtk_builder_get_object(b, "mdp_align_mode");
+		if (am) gtk_drop_down_set_selected(GTK_DROP_DOWN(am), MPP_ALIGN_PLANET);
+	}
 	/* One-shot colour is the common case, so make it the default tag. */
 	if (dd_channel)
 		gtk_drop_down_set_selected(dd_channel, MPP_CHAN_OSC);
@@ -944,33 +959,41 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 		if (o) cfg->f = gtk_spin_button_get_value(GTK_SPIN_BUTTON(o)); } while (0)
 	#define MPP_TOGG(f, id) do { GObject *o = gtk_builder_get_object(b, id); \
 		if (o) cfg->f = siril_toggle_get_active(GTK_WIDGET(o)); } while (0)
-	/* registration page */
-	MPP_SPIN_I(alignment_points_half_box_width,       "spin_mpp_half_box");
-	MPP_SPIN_I(alignment_points_search_width,         "spin_mpp_search_width");
-	MPP_SPIN_I(align_frames_search_width,             "spin_mpp_search_global");
-	MPP_SPIN_I(align_frames_average_frame_percent,    "spin_mpp_ref_percent");
-	MPP_SPIN_I(alignment_points_brightness_threshold, "spin_mpp_min_brightness");
-	MPP_SPIN_I(alignment_points_contrast_threshold,   "spin_mpp_min_contrast");
-	MPP_SPIN_D(alignment_points_structure_threshold,  "spin_mpp_min_structure");
-	MPP_SPIN_I(alignment_points_frame_percent,        "spin_mpp_reg_stack_percent");
-	MPP_TOGG(align_frames_fast_changing_object,       "check_mpp_fast_changing");
-	MPP_TOGG(alignment_points_de_warp,                "check_mpp_dewarp");
-	MPP_TOGG(frames_normalization,                    "check_mpp_normalize");
-	MPP_TOGG(align_frames_seed_from_regdata,          "check_mpp_seed");
+	/* registration parameters (the dialog's own widgets) */
+	MPP_SPIN_I(alignment_points_half_box_width,       "mdp_half_box");
+	MPP_SPIN_I(alignment_points_search_width,         "mdp_search_width");
+	MPP_SPIN_I(align_frames_search_width,             "mdp_search_global");
+	MPP_SPIN_I(align_frames_average_frame_percent,    "mdp_ref_percent");
+	MPP_SPIN_I(alignment_points_brightness_threshold, "mdp_min_brightness");
+	MPP_SPIN_I(alignment_points_contrast_threshold,   "mdp_min_contrast");
+	MPP_SPIN_D(alignment_points_structure_threshold,  "mdp_min_structure");
+	MPP_SPIN_I(alignment_points_frame_percent,        "mdp_reg_percent");
+	MPP_TOGG(align_frames_fast_changing_object,       "mdp_fast_changing");
+	MPP_TOGG(alignment_points_de_warp,                "mdp_dewarp");
+	MPP_TOGG(frames_normalization,                    "mdp_normalize");
+	MPP_TOGG(align_frames_seed_from_regdata,          "mdp_seed");
 	{
-		GObject *o = gtk_builder_get_object(b, "combo_mpp_align_mode");
+		GObject *o = gtk_builder_get_object(b, "mdp_align_mode");
 		if (o) {
 			const int am = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
 			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
 			                                                  : MPP_ALIGN_SURFACE;
 		}
 	}
-	/* stacking page */
-	MPP_SPIN_I(stack_frame_percent,                    "spin_mpp_stack_percent");
-	MPP_SPIN_I(stack_frame_number,                     "spin_mpp_stack_frames");
-	MPP_SPIN_D(stack_frames_background_fraction,        "spin_mpp_bg_fraction");
-	MPP_SPIN_D(stack_frames_background_blend_threshold, "spin_mpp_bg_blend");
-	MPP_TOGG(stack_skip_failed_aps,                     "check_mpp_skip_failed");
+	/* stacking parameters */
+	MPP_SPIN_I(stack_frame_percent,                    "mdp_stack_percent");
+	MPP_SPIN_I(stack_frame_number,                     "mdp_stack_frames");
+	MPP_SPIN_D(stack_frames_background_fraction,        "mdp_bg_fraction");
+	MPP_SPIN_D(stack_frames_background_blend_threshold, "mdp_bg_blend");
+	MPP_TOGG(stack_skip_failed_aps,                     "mdp_skip_failed");
+	{
+		static const double scales[] = { 1.0, 1.5, 2.0, 3.0 };
+		GObject *o = gtk_builder_get_object(b, "mdp_drizzle");
+		if (o) {
+			const guint i = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
+			cfg->drizzle_scale = (i < G_N_ELEMENTS(scales)) ? scales[i] : 1.0;
+		}
+	}
 	#undef MPP_SPIN_I
 	#undef MPP_SPIN_D
 	#undef MPP_TOGG
