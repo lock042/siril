@@ -524,15 +524,11 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data) 
 	present_dialog(FALSE);
 }
 
-/* Tools menu "Multi-sequence derotation...": full multi-sequence mode. */
+/* Tools menu "Multi-sequence derotation...": full multi-sequence mode. Opens
+ * with or without a sequence loaded — the user loads and adds the first (and
+ * each subsequent) sequence from the main window while the tool stays open. */
 void on_derotation_multi_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
-	if (!sequence_is_loaded()) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("No sequence"),
-		    _("Load a planetary sequence (video) before opening the "
-		      "multi-sequence derotation tool."));
-		return;
-	}
 	present_dialog(TRUE);
 }
 
