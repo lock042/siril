@@ -132,7 +132,8 @@ int mpp_session_channels(const mpp_session_t *s, mpp_channel_t *out) {
 	if (!s || !out) return 0;
 	/* report in a stable, display-friendly order */
 	static const mpp_channel_t order[] = {
-		MPP_CHAN_R, MPP_CHAN_G, MPP_CHAN_B, MPP_CHAN_LUM, MPP_CHAN_MONO
+		MPP_CHAN_R, MPP_CHAN_G, MPP_CHAN_B, MPP_CHAN_LUM,
+		MPP_CHAN_OSC, MPP_CHAN_MONO
 	};
 	int n = 0;
 	for (size_t k = 0; k < sizeof(order) / sizeof(order[0]); k++) {

@@ -41,6 +41,7 @@ typedef enum {
 	MPP_CHAN_G,
 	MPP_CHAN_B,
 	MPP_CHAN_LUM,
+	MPP_CHAN_OSC,        /* one-shot colour (CFA): stacks to a 3-layer result */
 	MPP_CHAN_COUNT
 } mpp_channel_t;
 

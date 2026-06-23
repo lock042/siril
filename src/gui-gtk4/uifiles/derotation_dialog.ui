@@ -155,13 +155,14 @@
                 <child>
                   <object class="GtkBox"><property name="spacing">6</property>
                     <child><object class="GtkDropDown" id="derot_channel">
-                      <property name="tooltip-text" translatable="yes">Colour channel to tag the sequence being added. Mono sequences shot through R, G and B filters each get their own stack, ready to assemble into colour; use Mono for a single-channel result.</property>
+                      <property name="tooltip-text" translatable="yes">Colour channel to tag the sequence being added. Use OSC for a one-shot-colour (CFA) camera — it stacks straight to colour. Mono sequences shot through R, G and B filters each get their own stack, ready to assemble into colour; use Mono for a single mono result.</property>
                       <property name="model"><object class="GtkStringList"><items>
                         <item translatable="yes">Mono</item>
                         <item translatable="yes">Red</item>
                         <item translatable="yes">Green</item>
                         <item translatable="yes">Blue</item>
                         <item translatable="yes">Luminance</item>
+                        <item translatable="yes">OSC (one-shot color)</item>
                       </items></object></property></object></child>
                     <child><object class="GtkButton" id="derot_add"><property name="label" translatable="yes">Add current sequence</property>
                       <property name="hexpand">1</property><property name="halign">start</property>

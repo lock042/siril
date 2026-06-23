@@ -123,6 +123,9 @@ static void init_statics(void) {
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
 	dd_channel  = GTK_DROP_DOWN   (gtk_builder_get_object(gui.builder, "derot_channel"));
 	seqlist     = GTK_LIST_BOX    (gtk_builder_get_object(gui.builder, "derot_seqlist"));
+	/* One-shot colour is the common case, so make it the default tag. */
+	if (dd_channel)
+		gtk_drop_down_set_selected(dd_channel, MPP_CHAN_OSC);
 	/* Restore the remembered mirror state when the window is first created. */
 	if (chk_parity)
 		gtk_check_button_set_active(chk_parity, com.pref.gui.derot_mirror);
@@ -139,6 +142,7 @@ static const char *channel_label(mpp_channel_t ch) {
 		case MPP_CHAN_G:   return "G";
 		case MPP_CHAN_B:   return "B";
 		case MPP_CHAN_LUM: return "L";
+		case MPP_CHAN_OSC: return "OSC";
 		default:           return "mono";
 	}
 }
@@ -150,6 +154,7 @@ static const char *channel_suffix(mpp_channel_t ch) {
 		case MPP_CHAN_G:   return "G";
 		case MPP_CHAN_B:   return "B";
 		case MPP_CHAN_LUM: return "L";
+		case MPP_CHAN_OSC: return "OSC";
 		default:           return "mono";
 	}
 }
