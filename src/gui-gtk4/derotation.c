@@ -562,6 +562,8 @@ struct derot_combine_args {
 	mpp_config_t cfg;
 	/* results */
 	int saved, failed;
+	gboolean composed;       /* an RGB image was assembled from R+G+B */
+	gchar *rgb_name;
 };
 
 static void derot_combine_args_free(struct derot_combine_args *a) {
@@ -575,24 +577,70 @@ static void derot_combine_args_free(struct derot_combine_args *a) {
 	g_free(a->is_com);
 	g_free(a->channels);
 	g_free(a->base);
+	g_free(a->rgb_name);
 	free(a);
 }
 
 static gboolean derot_combine_idle(gpointer p) {
 	struct derot_combine_args *a = p;
 	stop_processing_thread();
-	if (a->saved > 0)
+	if (a->saved > 0 && a->composed)
+		siril_log_message(_("Derotation combine: saved %d channel stack(s) and "
+		                    "assembled %s%s.\n"),
+		                  a->saved, a->rgb_name,
+		                  a->failed ? _(" (some channels failed)") : "");
+	else if (a->saved > 0)
 		siril_log_message(_("Derotation combine: saved %d channel stack(s)%s. "
 		                    "Assemble colour with the compositing tools.\n"),
 		                  a->saved, a->failed ? _(" (some channels failed)") : "");
 	else
 		siril_log_error(_("Derotation combine: no channels stacked — see the log.\n"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	set_status(a->saved > 0 ? _("Combine done — see the log for the saved files.")
-	                        : _("Combine failed — see the log."));
+	set_status(a->saved > 0
+	    ? (a->composed ? _("Combine done — colour image assembled (see the log).")
+	                   : _("Combine done — see the log for the saved files."))
+	    : _("Combine failed — see the log."));
 	set_cursor_waiting(FALSE);
 	derot_combine_args_free(a);
 	return FALSE;
+}
+
+/* Assemble three co-registered mono channel stacks into one 3-layer image (Siril
+ * planar layout: R plane, then G, then B). The channels already share the
+ * reference canvas, so this is a straight per-plane copy — no alignment. Handles
+ * both 16-bit and 32-bit float stacks. */
+static gboolean compose_rgb(const fits *R, const fits *G, const fits *B, fits *out) {
+	const int W = R->rx, H = R->ry;
+	if (G->rx != W || G->ry != H || B->rx != W || B->ry != H) return FALSE;
+	if (R->type != G->type || R->type != B->type) return FALSE;
+	const size_t plane = (size_t) W * H;
+
+	clearfits(out);
+	out->rx = W; out->ry = H;
+	out->naxes[0] = W; out->naxes[1] = H; out->naxes[2] = 3;
+	out->naxis = 3;
+	if (R->type == DATA_FLOAT) {
+		out->fdata = malloc(plane * 3 * sizeof(float));
+		if (!out->fdata) return FALSE;
+		memcpy(out->fdata,             R->fdata, plane * sizeof(float));
+		memcpy(out->fdata + plane,     G->fdata, plane * sizeof(float));
+		memcpy(out->fdata + plane * 2, B->fdata, plane * sizeof(float));
+		out->bitpix = FLOAT_IMG; out->orig_bitpix = FLOAT_IMG; out->type = DATA_FLOAT;
+		out->fpdata[0] = out->fdata;
+		out->fpdata[1] = out->fdata + plane;
+		out->fpdata[2] = out->fdata + plane * 2;
+	} else {
+		out->data = malloc(plane * 3 * sizeof(WORD));
+		if (!out->data) return FALSE;
+		memcpy(out->data,             R->data, plane * sizeof(WORD));
+		memcpy(out->data + plane,     G->data, plane * sizeof(WORD));
+		memcpy(out->data + plane * 2, B->data, plane * sizeof(WORD));
+		out->bitpix = USHORT_IMG; out->orig_bitpix = USHORT_IMG; out->type = DATA_USHORT;
+		out->pdata[0] = out->data;
+		out->pdata[1] = out->data + plane;
+		out->pdata[2] = out->data + plane * 2;
+	}
+	return TRUE;
 }
 
 static gpointer derot_combine_worker(gpointer p) {
@@ -601,8 +649,15 @@ static gpointer derot_combine_worker(gpointer p) {
 
 	/* one stack per distinct channel, each landing in the reference canvas */
 	static const mpp_channel_t order[] = {
-		MPP_CHAN_R, MPP_CHAN_G, MPP_CHAN_B, MPP_CHAN_LUM, MPP_CHAN_MONO
+		MPP_CHAN_R, MPP_CHAN_G, MPP_CHAN_B, MPP_CHAN_LUM,
+		MPP_CHAN_OSC, MPP_CHAN_MONO
 	};
+	/* keep each channel's result so co-registered mono R/G/B can be composed */
+	fits chan_fits[MPP_CHAN_COUNT];
+	gboolean have[MPP_CHAN_COUNT];
+	memset(chan_fits, 0, sizeof(chan_fits));
+	memset(have, 0, sizeof(have));
+
 	for (size_t k = 0; k < G_N_ELEMENTS(order); k++) {
 		const mpp_channel_t ch = order[k];
 		sequence **cs = g_new0(sequence *, a->n);
@@ -627,16 +682,40 @@ static gpointer derot_combine_worker(gpointer p) {
 				a->failed++;
 			}
 			g_free(name);
+			chan_fits[ch] = out;   /* keep for compose (ownership transferred) */
+			have[ch] = TRUE;
 		} else {
 			siril_log_error(_("Derotation combine: channel %s failed (code %d)\n"),
 			                channel_label(ch), st);
 			a->failed++;
+			clearfits(&out);
 		}
-		clearfits(&out);
 		g_free(cs);
 		g_free(cd);
 		if (!processing_should_continue()) break;   /* cancelled */
 	}
+
+	/* RGB compose: the three mono channels share the reference canvas, so a
+	 * straight planar assembly yields a colour image (LRGB is left to the
+	 * compositing tools when a separate Luminance was also stacked). */
+	if (have[MPP_CHAN_R] && have[MPP_CHAN_G] && have[MPP_CHAN_B]) {
+		fits rgb = { 0 };
+		if (compose_rgb(&chan_fits[MPP_CHAN_R], &chan_fits[MPP_CHAN_G],
+		                &chan_fits[MPP_CHAN_B], &rgb)) {
+			a->rgb_name = g_strdup_printf("%s_rgb", a->base);
+			if (savefits(a->rgb_name, &rgb) == 0) {
+				siril_log_message(_("Derotation combine: assembled colour image %s\n"),
+				                  a->rgb_name);
+				a->composed = TRUE;
+			} else {
+				siril_log_error(_("Derotation combine: failed to save the colour image\n"));
+			}
+		}
+		clearfits(&rgb);
+	}
+
+	for (int ch = 0; ch < MPP_CHAN_COUNT; ch++)
+		if (have[ch]) clearfits(&chan_fits[ch]);
 
 	siril_add_idle(derot_combine_idle, a);
 	return GINT_TO_POINTER(a->saved > 0 ? 0 : 1);
