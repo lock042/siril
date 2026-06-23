@@ -672,6 +672,7 @@ static void show_script_revision_dialog(const gchar *scriptpath) {
 
 	int revisions_back = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin));
 	gint response = ctx.result;
+	reactivate_parent(dialog);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 	g_main_loop_unref(ctx.loop);
 

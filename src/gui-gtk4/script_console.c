@@ -86,7 +86,7 @@ void console_log_status(const gchar *msg, int line) {
 	struct log_status_bar_idle_data *data = malloc(sizeof(*data));
 	data->line = line;
 	data->myline = msg ? g_strdup(msg) : NULL;
-	g_idle_add(log_status_bar_idle_callback, data);
+	gui_function(log_status_bar_idle_callback, data);
 }
 
 void console_clear_status_bar(void) {

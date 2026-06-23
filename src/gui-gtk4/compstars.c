@@ -413,6 +413,7 @@ static void on_compstars_response(GtkWindow *self, gint response_id, gpointer us
 		if (compstars_ok_button)
 			gtk_widget_grab_focus(compstars_ok_button);
 		gtk_widget_set_visible(dialog, FALSE);
+		reactivate_parent(dialog);
 		return;
 	}
 

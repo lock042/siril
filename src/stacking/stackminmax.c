@@ -265,14 +265,14 @@ static int stack_minmax_generic(struct stacking_args *stackargs, gboolean ismax)
 		cvGetEye(&Hs);
 		double dx, dy;
 		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
-		siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
-		siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		// siril_log_debug("ref shift: %d %d\n", (int)dx, (int)dy);
+		// siril_log_debug("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - mmdata->offset[0];
 		Hs.h12 -= dy - mmdata->offset[1];
-		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
+		// int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
 		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
-		siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
-		cvApplyFlips(&Hs, orig_ry, 0);
+		// siril_log_debug("size: %d %d\n", orig_rx, orig_ry);
+		cvApplyFlips(&Hs, orig_ry, result->naxes[1]);
 		reframe_wcs(result->keywords.wcslib, &Hs);
 		update_wcsdata_from_wcs(result);
 	}

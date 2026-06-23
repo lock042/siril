@@ -35,6 +35,7 @@
 #include "opencv/opencv.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/gps_parser.h"
 #include "io/single_image.h"
 #include "core/gui_iface.h"
 
@@ -47,23 +48,42 @@ static int resize_mask(mask_t *mask, int old_rx, int old_ry, int new_rx, int new
 		return 0; // No mask to resize, not an error
 	}
 
-	// Determine element size based on bitpix
-	size_t elem_size;
-	switch (mask->bitpix) {
-		case 8:  elem_size = sizeof(uint8_t);  break;
-		case 16: elem_size = sizeof(uint16_t); break;
-		case 32: elem_size = sizeof(float);    break;
-		default:
-			return -1; // Invalid bitpix value
+	int old_nbdata = old_rx * old_ry;
+	int new_nbdata = new_rx * new_ry;
+
+	/* cvResizeGaussian resizes its fits argument in place: it frees the
+	 * input buffer and replaces the data pointer with the resized result.
+	 * We must therefore hand it a *copy* of the mask data, never mask->data
+	 * itself, otherwise mask->data would be freed underneath us and freed
+	 * again below (double free). This mirrors transform_mask(). cvResizeGaussian
+	 * only supports USHORT and FLOAT, so 8-bit masks are widened to USHORT
+	 * and narrowed back afterwards. */
+	WORD *input_ushort = NULL;
+	float *input_float = NULL;
+	gboolean needs_conversion = FALSE;
+
+	if (mask->bitpix == 32) {
+		input_float = malloc((size_t)old_nbdata * sizeof(float));
+		if (!input_float) return -1;
+		memcpy(input_float, mask->data, (size_t)old_nbdata * sizeof(float));
+	} else if (mask->bitpix == 16 || mask->bitpix == 8) {
+		input_ushort = malloc((size_t)old_nbdata * sizeof(WORD));
+		if (!input_ushort) return -1;
+
+		if (mask->bitpix == 8) {
+			needs_conversion = TRUE;
+			uint8_t *src = (uint8_t *)mask->data;
+			for (int i = 0; i < old_nbdata; i++) {
+				input_ushort[i] = (WORD)src[i];
+			}
+		} else {
+			memcpy(input_ushort, mask->data, (size_t)old_nbdata * sizeof(WORD));
+		}
+	} else {
+		return -1; // Invalid bitpix value
 	}
 
-	int newnbdata = new_rx * new_ry;
-	void *newdata = malloc((size_t)newnbdata * elem_size);
-	if (!newdata) {
-		return -1;
-	}
-
-	// Create temporary fits structures for mask data
+	// Create temporary fits structure pointing at the copy
 	fits temp_in = { 0 };
 	temp_in.rx = old_rx;
 	temp_in.ry = old_ry;
@@ -71,48 +91,48 @@ static int resize_mask(mask_t *mask, int old_rx, int old_ry, int new_rx, int new
 	temp_in.naxes[1] = old_ry;
 	temp_in.naxes[2] = 1;
 
-	fits temp_out = { 0 };
-	temp_out.rx = new_rx;
-	temp_out.ry = new_ry;
-	temp_out.naxes[0] = new_rx;
-	temp_out.naxes[1] = new_ry;
-	temp_out.naxes[2] = 1;
-
 	if (mask->bitpix == 32) {
 		temp_in.type = DATA_FLOAT;
-		temp_in.fdata = (float *)mask->data;
+		temp_in.fdata = input_float;
 		temp_in.fpdata[0] = temp_in.fdata;
 		temp_in.fpdata[1] = temp_in.fdata;
 		temp_in.fpdata[2] = temp_in.fdata;
-
-		temp_out.type = DATA_FLOAT;
-		temp_out.fdata = (float *)newdata;
-		temp_out.fpdata[0] = temp_out.fdata;
-		temp_out.fpdata[1] = temp_out.fdata;
-		temp_out.fpdata[2] = temp_out.fdata;
 	} else {
 		temp_in.type = DATA_USHORT;
-		temp_in.data = (WORD *)mask->data;
+		temp_in.data = input_ushort;
 		temp_in.pdata[0] = temp_in.data;
 		temp_in.pdata[1] = temp_in.data;
 		temp_in.pdata[2] = temp_in.data;
-
-		temp_out.type = DATA_USHORT;
-		temp_out.data = (WORD *)newdata;
-		temp_out.pdata[0] = temp_out.data;
-		temp_out.pdata[1] = temp_out.data;
-		temp_out.pdata[2] = temp_out.data;
 	}
 
+	// cvResizeGaussian frees the copy and replaces it with the resized data
 	if (cvResizeGaussian(&temp_in, new_rx, new_ry, interpolation, FALSE)) {
-		free(newdata);
+		if (input_ushort) free(input_ushort);
+		if (input_float) free(input_float);
 		return -1;
 	}
 
-	// Replace old mask data
-	void *tmp = mask->data;
-	mask->data = newdata;
-	free(tmp);
+	// The original mask data is no longer referenced; release it
+	free(mask->data);
+
+	if (mask->bitpix == 32) {
+		mask->data = temp_in.fdata;
+	} else if (needs_conversion) {
+		// Narrow USHORT back to uint8_t
+		uint8_t *new_data = malloc((size_t)new_nbdata * sizeof(uint8_t));
+		if (!new_data) {
+			free(temp_in.data);
+			mask->data = NULL;
+			return -1;
+		}
+		for (int i = 0; i < new_nbdata; i++) {
+			new_data[i] = (uint8_t)(temp_in.data[i] > 255 ? 255 : temp_in.data[i]);
+		}
+		free(temp_in.data);
+		mask->data = new_data;
+	} else {
+		mask->data = temp_in.data;
+	}
 
 	return 0;
 }
@@ -161,7 +181,7 @@ static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboole
 				k++;
 			}
 		}
-	} else {
+	} else if (mask->bitpix == 16) {
 		WORD *buf = (WORD *)mask->data;
 		WORD *new_buf = (WORD *)newdata;
 
@@ -177,7 +197,30 @@ static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboole
 					}
 				}
 				if (mean) tmp /= c;
-				new_buf[k] = (mask->bitpix == 8) ? (uint8_t)tmp : truncate_to_WORD(tmp);
+				new_buf[k] = truncate_to_WORD(tmp);
+				k++;
+			}
+		}
+	} else {
+		// 8-bit: element size is one byte for both source and destination,
+		// so read and write through uint8_t pointers (a WORD view would
+		// over-read the source and overflow the byte-sized destination).
+		uint8_t *buf = (uint8_t *)mask->data;
+		uint8_t *new_buf = (uint8_t *)newdata;
+
+		long k = 0;
+		for (int row = 0; row < old_ry - bin_factor + 1; row += bin_factor) {
+			for (int col = 0; col < old_rx - bin_factor + 1; col += bin_factor) {
+				int c = 0;
+				int tmp = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						tmp += buf[i + col + (j + row) * old_rx];
+						c++;
+					}
+				}
+				if (mean) tmp /= c;
+				new_buf[k] = (uint8_t)(tmp > 255 ? 255 : tmp);
 				k++;
 			}
 		}
@@ -686,6 +729,8 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
+	apply_binning_to_gps_data(fit);
+
 	if (fit->mask) {
 		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
 			siril_log_error(_("Error binning mask\n"));
@@ -890,83 +935,21 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	return 0;
 }
 
-static void mirrorx_ushort(fits *fit, gboolean verbose) {
-	int line, axis;
-	WORD *swapline, *src, *dst;
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_error(_("Horizontal mirror: processing...\n"));
-		gettimeofday(&t_start, NULL);
-	}
-
-	size_t line_size = fit->rx * sizeof(WORD);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->pdata[axis] + line * fit->rx;
-			dst = fit->pdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
-static void mirrorx_float(fits *fit, gboolean verbose) {
-	int line, axis;
-	float *swapline, *src, *dst;
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_info(_("Horizontal mirror: processing...\n"));
-		gettimeofday(&t_start, NULL);
-	}
-
-	size_t line_size = fit->rx * sizeof(float);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->fpdata[axis] + line * fit->rx;
-			dst = fit->fpdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
 void mirrorx(fits *fit, gboolean verbose) {
 	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
+	struct timeval t_start, t_end;
 
-	if (fit->type == DATA_USHORT) {
-		mirrorx_ushort(fit, verbose);
-	} else if (fit->type == DATA_FLOAT) {
-		mirrorx_float(fit, verbose);
+	// given how long flipping an image takes, I think we can remove all the verbose code, also because of the weird naming of horizontal and vertical mirrors
+	if (verbose) {
+		siril_log_info(_("Horizontal mirror: processing...\n"));
+		gettimeofday(&t_start, NULL);
+	}
+	fits_flip_top_to_bottom(fit);
+	if (verbose) {
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
 	}
 
 	if (fit->mask) {
@@ -982,10 +965,10 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
 		sprintf(fit->keywords.row_order, "TOP-DOWN");
-	else {
-		sprintf(fit->keywords.row_order, "BOTTOM-UP");
-	}
-	fit->history = g_slist_append(fit->history, g_strdup("TOP-DOWN mirror"));
+	else	sprintf(fit->keywords.row_order, "BOTTOM-UP");
+	apply_flip_to_gps_data(fit);
+
+	fit->history = g_slist_append(fit->history, g_strdup("Top-down mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
@@ -1188,6 +1171,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
 	switch (cfa) {
 		case BAYER_FILTER_NONE:
+			apply_crop_to_gps_data(fit, bounds); // this is only for mono images
 			break;
 		case BAYER_FILTER_RGGB: // Fallthrough intentional
 		case BAYER_FILTER_BGGR:
