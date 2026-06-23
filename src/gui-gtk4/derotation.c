@@ -37,7 +37,8 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "io/sequence.h"
-#include "io/image_format_fits.h"   /* savefits, clearfits */
+#include "io/single_image.h"        /* open_single_image */
+#include "io/image_format_fits.h"   /* savefits, clearfits, set_right_extension */
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
@@ -694,6 +695,7 @@ struct derot_combine_args {
 	int saved, failed;
 	gboolean composed;       /* an RGB image was assembled from R+G+B */
 	gchar *rgb_name;
+	gchar *load_name;        /* result to open on completion (base name, no ext) */
 };
 
 static void derot_combine_args_free(struct derot_combine_args *a) {
@@ -708,6 +710,7 @@ static void derot_combine_args_free(struct derot_combine_args *a) {
 	g_free(a->channels);
 	g_free(a->base);
 	g_free(a->rgb_name);
+	g_free(a->load_name);
 	free(a);
 }
 
@@ -731,6 +734,11 @@ static gboolean derot_combine_idle(gpointer p) {
 	                   : _("Combine done — see the log for the saved files."))
 	    : _("Combine failed — see the log."));
 	set_cursor_waiting(FALSE);
+	/* Open the primary result so it is shown straight away. */
+	if (a->saved > 0 && a->load_name) {
+		gchar *path = set_right_extension(a->load_name);
+		if (path) { open_single_image(path); g_free(path); }
+	}
 	derot_combine_args_free(a);
 	return FALSE;
 }
@@ -847,6 +855,19 @@ static gpointer derot_combine_worker(gpointer p) {
 		clearfits(&rgb);
 	}
 
+	/* Pick the result to open on completion: the assembled colour image if R+G+B
+	 * were combined, otherwise the stack of the channel the reference sequence
+	 * belongs to (which is the only channel in the single-channel case). */
+	if (a->composed) {
+		a->load_name = g_strdup(a->rgb_name);
+	} else {
+		const mpp_channel_t rch = a->channels[a->ref_index];
+		if (have[rch])
+			a->load_name = (rch == MPP_CHAN_MONO)
+			    ? g_strdup_printf("%s_derot_stack", a->base)
+			    : g_strdup_printf("%s_%s", a->base, channel_suffix(rch));
+	}
+
 	for (int ch = 0; ch < MPP_CHAN_COUNT; ch++)
 		if (have[ch]) clearfits(&chan_fits[ch]);
 
@@ -855,6 +876,54 @@ static gpointer derot_combine_worker(gpointer p) {
 	                      a->saved > 0 ? PROGRESS_DONE : PROGRESS_RESET);
 	siril_add_idle(derot_combine_idle, a);
 	return GINT_TO_POINTER(a->saved > 0 ? 0 : 1);
+}
+
+/* Copy the MPP registration + stacking settings from their page widgets into
+ * cfg, so the combine behaves exactly like the single-sequence register + stack
+ * the user already tunes there — most importantly the per-AP frame selection
+ * (stack/register percent), without which every frame is averaged and the
+ * planet comes out soft. Reads gui.builder directly so it does not depend on
+ * those pages having been opened. Fields whose widget is missing keep cfg's
+ * existing (default) value. */
+static void apply_gui_mpp_config(mpp_config_t *cfg) {
+	GtkBuilder *b = gui.builder;
+	if (!cfg || !b) return;
+	#define MPP_SPIN_I(f, id) do { GObject *o = gtk_builder_get_object(b, id); \
+		if (o) cfg->f = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(o)); } while (0)
+	#define MPP_SPIN_D(f, id) do { GObject *o = gtk_builder_get_object(b, id); \
+		if (o) cfg->f = gtk_spin_button_get_value(GTK_SPIN_BUTTON(o)); } while (0)
+	#define MPP_TOGG(f, id) do { GObject *o = gtk_builder_get_object(b, id); \
+		if (o) cfg->f = siril_toggle_get_active(GTK_WIDGET(o)); } while (0)
+	/* registration page */
+	MPP_SPIN_I(alignment_points_half_box_width,       "spin_mpp_half_box");
+	MPP_SPIN_I(alignment_points_search_width,         "spin_mpp_search_width");
+	MPP_SPIN_I(align_frames_search_width,             "spin_mpp_search_global");
+	MPP_SPIN_I(align_frames_average_frame_percent,    "spin_mpp_ref_percent");
+	MPP_SPIN_I(alignment_points_brightness_threshold, "spin_mpp_min_brightness");
+	MPP_SPIN_I(alignment_points_contrast_threshold,   "spin_mpp_min_contrast");
+	MPP_SPIN_D(alignment_points_structure_threshold,  "spin_mpp_min_structure");
+	MPP_SPIN_I(alignment_points_frame_percent,        "spin_mpp_reg_stack_percent");
+	MPP_TOGG(align_frames_fast_changing_object,       "check_mpp_fast_changing");
+	MPP_TOGG(alignment_points_de_warp,                "check_mpp_dewarp");
+	MPP_TOGG(frames_normalization,                    "check_mpp_normalize");
+	MPP_TOGG(align_frames_seed_from_regdata,          "check_mpp_seed");
+	{
+		GObject *o = gtk_builder_get_object(b, "combo_mpp_align_mode");
+		if (o) {
+			const int am = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
+			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
+			                                                  : MPP_ALIGN_SURFACE;
+		}
+	}
+	/* stacking page */
+	MPP_SPIN_I(stack_frame_percent,                    "spin_mpp_stack_percent");
+	MPP_SPIN_I(stack_frame_number,                     "spin_mpp_stack_frames");
+	MPP_SPIN_D(stack_frames_background_fraction,        "spin_mpp_bg_fraction");
+	MPP_SPIN_D(stack_frames_background_blend_threshold, "spin_mpp_bg_blend");
+	MPP_TOGG(stack_skip_failed_aps,                     "check_mpp_skip_failed");
+	#undef MPP_SPIN_I
+	#undef MPP_SPIN_D
+	#undef MPP_TOGG
 }
 
 void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
@@ -904,7 +973,15 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	a->ref_index = session->reference;
 	a->base = g_strdup(session->seqs[session->reference].seqname);
 	mpp_config_defaults(&a->cfg);
+	apply_gui_mpp_config(&a->cfg);   /* use the user's register/stack settings */
 	a->cfg.stack_method = MPP_STACK_WARP;
+	/* The combine registers and stacks in one streamed pass, ranking every
+	 * frame, so the per-AP selection IS the stack selection. Drive it from the
+	 * Stacking-tab percent/number (the quality pass reads
+	 * alignment_points_frame_*); otherwise the register percent (often 100)
+	 * would stack every frame and average the detail away. */
+	a->cfg.alignment_points_frame_number  = a->cfg.stack_frame_number;
+	a->cfg.alignment_points_frame_percent = a->cfg.stack_frame_percent;
 
 	gboolean ok = TRUE;
 	for (int i = 0; i < n && ok; i++) {
