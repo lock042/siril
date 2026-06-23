@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
 #include "core/siril_log.h"
 #include "utils.h"
 #include "message_dialog.h"
@@ -796,6 +797,7 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 	 * transfer-full for BOTH the model and the factory, so gridview
 	 * consumed the refs we passed in. */
 	g_object_unref(store);
+	reactivate_parent(GTK_WIDGET(dlg));
 	gtk_window_destroy(GTK_WINDOW(dlg));
 
 	for (int i = 0; i < numImages; i++)

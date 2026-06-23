@@ -578,7 +578,7 @@ static void open_script_in_editor(const gchar *path) {
  * label becomes a stack page name, so labels must be globally unique.
  * The edit-tree (parallel "Edit Scripts" submenu) passes " (edit)" so its
  * directory submenus don't collide with the run-tree's. */
-static GMenu *get_py_submenu(const gchar *script_path, GMenu *menu_py,
+static GMenu *get_py_submenu(const gchar *script_path,
                              GHashTable *py_submenus, const gchar *label_suffix) {
 	gchar *dir_path = g_path_get_dirname(script_path);
 	gchar *dir_name = g_path_get_basename(dir_path);
@@ -591,9 +591,10 @@ static GMenu *get_py_submenu(const gchar *script_path, GMenu *menu_py,
 	GMenu *submenu = (GMenu *)g_hash_table_lookup(py_submenus, display_label);
 	if (!submenu) {
 		submenu = g_menu_new();
-		g_menu_append_submenu(menu_py, display_label, G_MENU_MODEL(submenu));
-		/* hash table takes ownership of the display_label key string and
-		 * a borrowed reference to the GMenu (which is owned by menu_py). */
+		/* Don't append to menu_py here: the categories are discovered in
+		 * filesystem order, but we want a fixed display order. The hash
+		 * table owns the only reference until finalize_py_submenu_order()
+		 * appends every submenu to menu_py in the desired order. */
 		g_hash_table_insert(py_submenus, g_strdup(display_label), submenu);
 	}
 
@@ -609,7 +610,7 @@ static GMenu *get_py_submenu(const gchar *script_path, GMenu *menu_py,
  * action target.  Edit-on-right-click is wired via a CAPTURE-phase
  * gesture installed on the popover (see install_script_popover_rmb). */
 static void append_script_entries(const gchar *display_name, const gchar *full_path,
-                                  GMenu *menu_ssf, GMenu *menu_py, GHashTable *py_submenus) {
+                                  GMenu *menu_ssf, GHashTable *py_submenus) {
 	const gchar *extension = get_filename_ext(display_name);
 	if (!extension) return;
 	gboolean match_ssf = !g_strcmp0(extension, SCRIPT_EXT);
@@ -625,10 +626,68 @@ static void append_script_entries(const gchar *display_name, const gchar *full_p
 	if (match_ssf) {
 		g_menu_append_item(menu_ssf, run);
 	} else {
-		GMenu *psub = get_py_submenu(full_path, menu_py, py_submenus, NULL);
+		GMenu *psub = get_py_submenu(full_path, py_submenus, NULL);
 		g_menu_append_item(psub, run);
 	}
 	g_object_unref(run);
+}
+
+/* Fixed display order for the well-known Python script categories. Any other
+ * category is shown after these, alphabetically, separated by a section
+ * break (which GtkPopoverMenu renders as a separator line). */
+static const gchar *py_priority_order[] = { "Core", "Preprocessing", "Processing", "Utility" };
+
+static gboolean is_priority_category(const gchar *label) {
+	for (guint i = 0; i < G_N_ELEMENTS(py_priority_order); i++) {
+		if (!g_ascii_strcasecmp(label, py_priority_order[i]))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+static gint py_label_alpha_cmp(gconstpointer a, gconstpointer b) {
+	return g_ascii_strcasecmp(*(const gchar * const *)a, *(const gchar * const *)b);
+}
+
+/* Populate menu_py from the category submenus collected in py_submenus, in the
+ * desired display order: the priority group first, then every other category
+ * alphabetically in a separate section. */
+static void finalize_py_submenu_order(GMenu *menu_py, GHashTable *py_submenus) {
+	/* Priority section, in fixed order. */
+	GMenu *priority = g_menu_new();
+	guint n_priority = 0;
+	for (guint i = 0; i < G_N_ELEMENTS(py_priority_order); i++) {
+		GMenu *sub = (GMenu *)g_hash_table_lookup(py_submenus, py_priority_order[i]);
+		if (sub) {
+			g_menu_append_submenu(priority, py_priority_order[i], G_MENU_MODEL(sub));
+			n_priority++;
+		}
+	}
+	if (n_priority)
+		g_menu_append_section(menu_py, NULL, G_MENU_MODEL(priority));
+	g_object_unref(priority);
+
+	/* Alphabetical section: every remaining category. */
+	GList *labels = g_hash_table_get_keys(py_submenus);
+	GPtrArray *rest = g_ptr_array_new();
+	for (GList *l = labels; l; l = l->next) {
+		if (!is_priority_category(l->data))
+			g_ptr_array_add(rest, l->data);
+	}
+	g_list_free(labels);
+	g_ptr_array_sort(rest, py_label_alpha_cmp);
+
+	if (rest->len) {
+		GMenu *alpha = g_menu_new();
+		for (guint i = 0; i < rest->len; i++) {
+			const gchar *label = g_ptr_array_index(rest, i);
+			GMenu *sub = (GMenu *)g_hash_table_lookup(py_submenus, label);
+			g_menu_append_submenu(alpha, label, G_MENU_MODEL(sub));
+		}
+		g_menu_append_section(menu_py, NULL, G_MENU_MODEL(alpha));
+		g_object_unref(alpha);
+	}
+	g_ptr_array_free(rest, TRUE);
 }
 
 static int initialize_script_menu(gboolean verbose, gboolean first_run) {
@@ -659,7 +718,10 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GMenu *menu_ssf = g_menu_new();
 	GMenu *menu_py  = g_menu_new();
 
-	GHashTable *py_submenus = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	/* Values (category GMenus) are owned by the table until
+	 * finalize_py_submenu_order() appends them into menu_py. */
+	GHashTable *py_submenus = g_hash_table_new_full(g_str_hash, g_str_equal,
+	                                                g_free, (GDestroyNotify) g_object_unref);
 
 	/* Wrap the submenu rows in their own (label-less) section so they sit at
 	 * the same GtkPopoverMenu nesting depth as the "Get Scripts" tail
@@ -701,7 +763,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 				gchar *display_name = l->data;
 				gchar *full_path = g_build_filename(s->data, l->data, NULL);
 				append_script_entries(display_name, full_path,
-				                      menu_ssf, menu_py, py_submenus);
+				                      menu_ssf, py_submenus);
 				if (verbose)
 					siril_log_message(_("Loading script: %s\n"), l->data);
 				g_free(full_path);
@@ -746,7 +808,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 				com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, l);
 			} else if (included) {
 				gchar *basename = g_path_get_basename(path);
-				append_script_entries(basename, path, menu_ssf, menu_py, py_submenus);
+				append_script_entries(basename, path, menu_ssf, py_submenus);
 				if (verbose)
 					siril_log_message(_("Loading script from repository: %s\n"), basename);
 				g_free(basename);
@@ -777,7 +839,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 					continue;
 				}
 				gchar *full_path = g_build_filename(siril_get_scripts_repo_path(), script_path, NULL);
-				append_script_entries(basename, full_path, menu_ssf, menu_py, py_submenus);
+				append_script_entries(basename, full_path, menu_ssf, py_submenus);
 				if (verbose)
 					siril_log_message(_("Adding core script to menu: %s\n"), basename);
 				g_free(basename);
@@ -785,6 +847,9 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 			}
 		}
 	}
+
+	// Order the Python category submenus before installing the model.
+	finalize_py_submenu_order(menu_py, py_submenus);
 
 	// Phase 15: install the populated GMenuModel on the menu button.
 	gtk_menu_button_set_menu_model(GTK_MENU_BUTTON(menuscript), G_MENU_MODEL(menu));

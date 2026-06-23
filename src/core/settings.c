@@ -564,6 +564,7 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_const_names", STYPE_BOOL, N_("show constellations names in annotations"), &com.pref.gui.catalog[7] },
 	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[8] },
 	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[9] },
+	{ "gui_astrometry", "cat_sso_vect", STYPE_BOOL, N_("show SSO objects velocity vectors"), &com.pref.gui.catalog[10] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 

@@ -40,6 +40,7 @@
 #include "core/initfile.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/splashscreen.h"
 
 #include "message_dialog.h"
@@ -289,6 +290,9 @@ static int run_custom_message_window(GtkWindow *parent,
 	if (check_out_opt)
 		*check_out_opt = st.check_value;
 
+	/* Return focus/activation to whatever parent this dialog was transient
+	 * for (a sub-dialog or the control window) before tearing it down. */
+	reactivate_parent(win);
 	gtk_window_destroy(GTK_WINDOW(win));
 	return st.result;
 }
