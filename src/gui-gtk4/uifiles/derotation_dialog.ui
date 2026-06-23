@@ -167,7 +167,7 @@
                       </items></object></property></object></child>
                     <child><object class="GtkButton" id="derot_add"><property name="label" translatable="yes">Add current sequence</property>
                       <property name="hexpand">1</property><property name="halign">start</property>
-                      <property name="tooltip-text" translatable="yes">Snapshot the loaded sequence with its current disk fit and the chosen channel into the session. Adding a sequence already in the list updates its fit.</property>
+                      <property name="tooltip-text" translatable="yes">Snapshot the loaded sequence into the session: its current disk fit, the chosen channel, and the frame rate and capture span shown above (which set its timing). Load a sequence, fit its disk, then Add — repeat for each. Adding a sequence already in the list updates it.</property>
                       <signal name="clicked" handler="on_derotation_add_clicked" swapped="no"/></object></child>
                   </object>
                 </child>
@@ -261,7 +261,6 @@
                     <child><object class="GtkCheckButton" id="mdp_normalize"><property name="label" translatable="yes">Normalise frames</property><layout><property name="column">0</property><property name="row">8</property><property name="column-span">2</property></layout></object></child>
                     <child><object class="GtkCheckButton" id="mdp_dewarp"><property name="label" translatable="yes">De-warp alignment points</property><layout><property name="column">0</property><property name="row">9</property><property name="column-span">2</property></layout></object></child>
                     <child><object class="GtkCheckButton" id="mdp_seed"><property name="label" translatable="yes">Seed from existing registration</property><layout><property name="column">0</property><property name="row">10</property><property name="column-span">2</property></layout></object></child>
-                    <child><object class="GtkCheckButton" id="mdp_fast_changing"><property name="label" translatable="yes">Fast-changing object</property><layout><property name="column">0</property><property name="row">11</property><property name="column-span">2</property></layout></object></child>
                   </object>
                 </child>
               </object>

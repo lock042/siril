@@ -37,6 +37,7 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "io/sequence.h"
+#include "io/films.h"                /* film_struct->fps for AVI frame rate */
 #include "io/single_image.h"        /* open_single_image */
 #include "io/image_format_fits.h"   /* savefits, clearfits, set_right_extension */
 #include "gui-gtk4/utils.h"
@@ -147,7 +148,6 @@ static void init_statics(void) {
 		MDP_SET("mdp_normalize", TRUE);
 		MDP_SET("mdp_dewarp", TRUE);
 		MDP_SET("mdp_seed", TRUE);
-		MDP_SET("mdp_fast_changing", FALSE);
 		MDP_SET("mdp_skip_failed", FALSE);
 		#undef MDP_SET
 	}
@@ -450,10 +450,19 @@ static void populate_from_sequence(void) {
 		set_status(_("Load a planetary sequence first."));
 		return;
 	}
+	/* AVI has no per-frame timestamps; auto-fill the frame rate from the
+	 * container so the epoch can be computed. SER carries timestamps, so its
+	 * fps fallback is left at 0. */
+#ifdef HAVE_FFMS2
+	if (com.seq.type == SEQ_AVI && com.seq.film_file
+	    && com.seq.film_file->fps > 0.0 && spin_fps)
+		gtk_spin_button_set_value(spin_fps, com.seq.film_file->fps);
+#endif
+	const double fps = spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0;
 	const gboolean has_session = session && session->count > 0;
 	const int N = com.seq.number;
 	double *jd = malloc((size_t) N * sizeof(double));
-	if (jd && mpp_derot_frame_times(&com.seq, 0.0, NAN, jd)) {
+	if (jd && mpp_derot_frame_times(&com.seq, fps, NAN, jd)) {
 		if (!has_session) {
 			/* Build the midpoint datetime from the J2000 anchor (full JD
 			 * 2451545.0): Julian_to_date_time() expects MJD, not the full JD
@@ -480,6 +489,16 @@ static void populate_from_sequence(void) {
 	free(jd);
 
 	apply_autodetect();
+}
+
+/* A sequence was loaded while the tool is open: refresh the epoch + frame rate
+ * for it and re-fit the disk. (Selecting a row during a future "pause" will be
+ * handled separately; this is the ordinary load path.) */
+void derotation_sequence_changed(void) {
+	if (!window_open) return;
+	init_statics();
+	populate_from_sequence();
+	redraw(REDRAW_OVERLAY);
 }
 
 /* Show/hide the MPP register/stack parameter column (full mode only).
@@ -962,13 +981,14 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 	MPP_SPIN_I(alignment_points_contrast_threshold,   "mdp_min_contrast");
 	MPP_SPIN_D(alignment_points_structure_threshold,  "mdp_min_structure");
 	MPP_SPIN_I(alignment_points_frame_percent,        "mdp_reg_percent");
-	MPP_TOGG(align_frames_fast_changing_object,       "mdp_fast_changing");
 	MPP_TOGG(alignment_points_de_warp,                "mdp_dewarp");
 	MPP_TOGG(frames_normalization,                    "mdp_normalize");
 	MPP_TOGG(align_frames_seed_from_regdata,          "mdp_seed");
 	/* Derotation only makes sense for a full-disc planet, so always use the
-	 * Planet (centroid) global-alignment mode (the mpp_config_defaults value). */
+	 * Planet (centroid) global-alignment mode and treat it as a fast-changing
+	 * object (per-AP frame selection from a sliding window). */
 	cfg->align_frames_mode = MPP_ALIGN_PLANET;
+	cfg->align_frames_fast_changing_object = TRUE;
 	/* stacking parameters */
 	MPP_SPIN_I(stack_frame_percent,                    "mdp_stack_percent");
 	MPP_SPIN_I(stack_frame_number,                     "mdp_stack_frames");

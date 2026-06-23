@@ -34,6 +34,7 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/derotation.h"
 #include "gui-gtk4/open_dialog.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
@@ -367,6 +368,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	notify_gfit_data_modified();
 	gui_iface.redraw_image(REDRAW_ALL);
 	drawPlot();
+	derotation_sequence_changed();   /* refresh the derotation tool if it is open */
 	return FALSE;
 }
 
