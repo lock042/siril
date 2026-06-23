@@ -37,6 +37,9 @@
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/histo_display.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
@@ -776,6 +779,27 @@ static void update_drawingarea_cursor(const drawingarea_ctx *c) {
 static void apply_drag_motion(const drawingarea_ctx *c) {
 	const pointi zoomed = c->zoomed;
 
+	if (mouse_status == MOUSE_ACTION_EDIT_APS) {
+		/* AP editor: a button is held on an AP, drag it (mpp_ap_move each
+		 * motion event for live tracking). The drag index was set on press
+		 * in mouse_action_functions.c; if nothing is grabbed this is a no-op. */
+		mpp_run_t *run = mpp_get_cached_run();
+		const int drag = mpp_ap_editor_get_drag_idx();
+		if (run && c->inside && drag >= 0) {
+			int ap_x, ap_y;
+			mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+			                        com.seq.current, zoomed.x, zoomed.y,
+			                        &ap_x, &ap_y);
+			/* One undo step per drag: coalesce all motion events for this
+			 * AP. The +(1<<24) offset keeps a drag distinct from a resize
+			 * of the same AP (which uses the bare AP index). */
+			mpp_ap_editor_record_undo((1 << 24) + drag);
+			mpp_ap_move(run, drag, ap_x, ap_y);
+			redraw(REDRAW_OVERLAY);
+		}
+		return;
+	}
+
 	if (c->inside && gui.measure_start.x != -1) {
 		gui.measure_end.x = zoomed.x;
 		gui.measure_end.y = zoomed.y;
@@ -862,6 +886,26 @@ static void on_drawingarea_motion_cb(GtkEventControllerMotion *ctrl,
 	if (!ctx.valid) return;
 	update_pointer_feedback(&ctx);
 	update_drawingarea_cursor(&ctx);
+	if (mouse_status == MOUSE_ACTION_EDIT_APS) {
+		/* AP editor hover (no button held): update the hover index so the
+		 * overlay can highlight the AP under the cursor. */
+		mpp_run_t *run = mpp_get_cached_run();
+		if (run && ctx.inside) {
+			int ap_x, ap_y;
+			mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+			                        com.seq.current, ctx.zoomed.x, ctx.zoomed.y,
+			                        &ap_x, &ap_y);
+			const int new_hover = mpp_ap_hit_test(run, ap_x, ap_y);
+			if (new_hover != mpp_ap_editor_get_hover_idx()) {
+				mpp_ap_editor_set_hover_idx(new_hover);
+				redraw(REDRAW_OVERLAY);
+			}
+		} else if (mpp_ap_editor_get_hover_idx() != -1) {
+			/* cursor left the image — clear hover */
+			mpp_ap_editor_set_hover_idx(-1);
+			redraw(REDRAW_OVERLAY);
+		}
+	}
 }
 
 /* Drag controllers.  GtkGestureDrag.drag-update is the only event
@@ -1015,6 +1059,31 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
  * the controller's current-event accessor. */
 static gboolean on_drawingarea_scroll_cb(GtkEventControllerScroll *ctrl,
                                          double dx, double dy, gpointer user_data) {
+	/* AP editor: with an AP selected, the scroll wheel resizes it (grow on
+	 * scroll-up, shrink on scroll-down) instead of zooming. Gate on the
+	 * editor being open and an AP selected (same as the +/- key path). */
+	if (mpp_ap_editor_is_open()) {
+		const int sel = mpp_ap_editor_get_selected_idx();
+		mpp_run_t *run = mpp_get_cached_run();
+		if (sel >= 0 && run && run->aps && sel < run->aps->count) {
+			GdkEvent *sevt = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(ctrl));
+			GdkScrollDirection sdir = sevt ? gdk_scroll_event_get_direction(sevt) : GDK_SCROLL_SMOOTH;
+			int step = 0;
+			if (sdir == GDK_SCROLL_UP)        step = 2;
+			else if (sdir == GDK_SCROLL_DOWN) step = -2;
+			else if (sdir == GDK_SCROLL_SMOOTH) {
+				if (dy < 0.0)      step = 2;
+				else if (dy > 0.0) step = -2;
+			}
+			if (step != 0) {
+				mpp_ap_editor_record_undo(sel);   /* coalesce the resize burst */
+				mpp_ap_resize(run, sel, step);
+				redraw(REDRAW_OVERLAY);
+				return TRUE;   /* consume — no zoom while resizing an AP */
+			}
+		}
+	}
+
 	if (!gui.scroll_actions)
 		load_or_initialize_scroll_actions();
 

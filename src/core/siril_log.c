@@ -172,7 +172,7 @@ const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 }
 
 void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
-	siril_log_color_message("%s: %s\n", "green", msg, format_time_diff(t_start, t_end));
+	siril_log_status("%s: %s\n", msg, format_time_diff(t_start, t_end));
 }
 
 void show_time(struct timeval t_start, struct timeval t_end) {

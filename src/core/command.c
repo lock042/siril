@@ -115,6 +115,11 @@
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "registration/mpp/mpp_sidecar.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "io/healpix/healpix_cat.h"
@@ -214,7 +219,7 @@ int process_dumpheader(int nb) {
 }
 
 int process_seq_clean(int nb) {
-	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE, cleanmpp = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
@@ -236,6 +241,9 @@ int process_seq_clean(int nb) {
 				else if (!strcmp(word[i], "-sel")) {
 					cleansel = TRUE;
 				}
+				else if (!strcmp(word[i], "-mpp")) {
+					cleanmpp = TRUE;
+				}
 				else {
 					siril_log_error(_("Unknown parameter %s, aborting.\n"), word[i]);
 					if (!check_seq_is_comseq(seq))
@@ -248,10 +256,18 @@ int process_seq_clean(int nb) {
 		cleanreg = TRUE;
 		cleanstat = TRUE;
 		cleansel = TRUE;
+		cleanmpp = TRUE;
 	}
 
-	clean_sequence(seq, cleanreg, cleanstat, cleansel);
+	clean_sequence(seq, cleanreg, cleanstat, cleansel, cleanmpp);
 	if (check_seq_is_comseq(seq)) {
+		if (cleanmpp) {
+			/* The sidecar is gone — forget any in-memory Stage-A run so the
+			 * AP overlay and a later Multipoint stack don't use stale data
+			 * (mirrors the Clean Sequence GUI button). */
+			mpp_clear_cached_run();
+			gui_iface.redraw_image_async(REDRAW_OVERLAY);
+		}
 		fix_selnum(&com.seq, FALSE);
 		gui_iface.update_stack_interface(TRUE);
 		gui_iface.update_reg_interface(FALSE);
@@ -14580,6 +14596,506 @@ int process_online(int nb) {
 
 int process_offline(int nb) {
 	set_online_status(FALSE);
+	return CMD_OK;
+}
+
+/* ----- shared mpp CLI plumbing (used by `pss`, `register_mpp`, `stack_mpp`) -----
+ *
+ * `apply_mpp_flag` parses a single argv entry into `cfg`/`out_path`.
+ * Flags fall into three categories driven by the matrix in pss_port_plan.md §6:
+ *   register-time  — affect Stage A/B (AP placement + per-AP shift compute)
+ *   stack-time     — affect Stage C  (top-N pick, drizzle resize, blending, output)
+ *   shared         — accepted everywhere
+ * Each command passes `accept_register` and `accept_stack` to opt in/out.
+ *
+ * Returns 1 on a successful parse, 0 if the flag wasn't recognised in the
+ * caller's mode, -1 on a value error. The caller logs the diagnostic message
+ * appropriate to its command name. */
+typedef enum {
+	MPP_FLAG_OK            =  1,
+	MPP_FLAG_NOT_FOR_MODE  =  0,
+	MPP_FLAG_INVALID_VALUE = -1,
+} mpp_flag_status;
+
+static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
+                                      gchar **out_path,
+                                      gboolean accept_register,
+                                      gboolean accept_stack) {
+	/* Frame inclusion is not a flag: the mpp pipeline always honours the
+	 * sequence's frame-selector state (excluded frames are kept out of the
+	 * reference build, AP placement, ranking and stack). There is therefore
+	 * no -selected flag — the former one was a no-op. */
+
+	/* stack-time */
+	if (accept_stack && g_str_has_prefix(arg, "-out=")) {
+		g_free(*out_path);
+		*out_path = g_strdup(arg + 5);
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-scale=")) {
+		/* Output scale factor in [1.0, 3.0]; fractional values are
+		 * supported. Scaling is done by cv::resize in the classical stack
+		 * (the dobox drizzle backends are no longer used). */
+		const char *v = arg + 7;
+		char *end = NULL;
+		const double s = g_ascii_strtod(v, &end);
+		if (end == v || *end != '\0' || s < 1.0 || s > 3.0)
+			return MPP_FLAG_INVALID_VALUE;
+		cfg->drizzle_scale = s;
+		return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-stack-percent=")) {
+		cfg->stack_frame_percent = atoi(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
+		cfg->stack_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_stack && !strcmp(arg, "-skip-failed-aps")) {
+		/* Drop (frame, AP) contributions whose Stage B shift measurement
+		 * failed instead of stacking them at the coarse phase-1 estimate.
+		 * Per-AP weight sums are reduced to match, so brightness is
+		 * unaffected. */
+		cfg->stack_skip_failed_aps = TRUE; return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-bg-fraction=")) {
+		cfg->stack_frames_background_fraction = atof(arg + 13); return MPP_FLAG_OK;
+	}
+	if (accept_stack && g_str_has_prefix(arg, "-bg-blend=")) {
+		cfg->stack_frames_background_blend_threshold = atof(arg + 10); return MPP_FLAG_OK;
+	}
+	if (accept_stack && !strcmp(arg, "-32b")) {
+		/* Force the stacked output to 32-bit float. The merge always
+		 * runs internally in 32-bit float; this only changes whether the
+		 * saved result is packed down to 16-bit integer or kept as float
+		 * (same effect as the stacking tab's "Force 32b output" checkbutton). */
+		cfg->output_32bit = TRUE; return MPP_FLAG_OK;
+	}
+
+	/* register-time */
+	if (accept_register && g_str_has_prefix(arg, "-half-box=")) {
+		cfg->alignment_points_half_box_width = atoi(arg + 10); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-search-width=")) {
+		cfg->alignment_points_search_width = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-search-global=")) {
+		cfg->align_frames_search_width = atoi(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-fast-changing")) {
+		/* Build the reference frame from a short interval of best frames
+		 * (for a fast-changing object). Default off. */
+		cfg->align_frames_fast_changing_object = TRUE; return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-ref-percent=")) {
+		/* %% of frames averaged into the reference frame (both modes). */
+		cfg->align_frames_average_frame_percent = atoi(arg + 13); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-register-percent=")) {
+		/* Register-time per-AP frame cap: how many top-quality frames per AP
+		 * get a shift computed. Upper bound on what the stack can use. */
+		cfg->alignment_points_frame_percent = atoi(arg + 18); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-brightness=")) {
+		cfg->alignment_points_brightness_threshold = atoi(arg + 16); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-contrast=")) {
+		cfg->alignment_points_contrast_threshold = atoi(arg + 14); return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-min-structure=")) {
+		cfg->alignment_points_structure_threshold = atof(arg + 15); return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-no-shifts")) {
+		cfg->alignment_points_de_warp = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-no-normalize")) {
+		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-noseed")) {
+		/* Disable auto-seeding the global aligner from existing .seq shift
+		 * registration data (default on). */
+		cfg->align_frames_seed_from_regdata = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-align=")) {
+		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
+		 * "planet" = brightness centroid (default), for discs on a dark
+		 * background; "surface" = patch correlation, for detailed surfaces. */
+		const char *v = arg + 7;
+		if      (!g_ascii_strcasecmp(v, "surface")) cfg->align_frames_mode = MPP_ALIGN_SURFACE;
+		else if (!g_ascii_strcasecmp(v, "planet"))  cfg->align_frames_mode = MPP_ALIGN_PLANET;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-avi-bayer=")) {
+		/* AVI Bayer-pattern hint (see mpp_config.h enum mpp_avi_bayer).
+		 * Only consulted for SEQ_AVI sequences; ignored for SER/FITS. */
+		const char *v = arg + 11;
+		if      (!g_ascii_strcasecmp(v, "auto")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
+		else if (!g_ascii_strcasecmp(v, "none")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_NONE;
+		else if (!g_ascii_strcasecmp(v, "rggb")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_RGGB;
+		else if (!g_ascii_strcasecmp(v, "bggr")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_BGGR;
+		else if (!g_ascii_strcasecmp(v, "gbrg")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_GBRG;
+		else if (!g_ascii_strcasecmp(v, "grbg")) cfg->avi_bayer_pattern = MPP_AVI_BAYER_GRBG;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
+
+	return MPP_FLAG_NOT_FOR_MODE;
+}
+
+/* Peek at byte offset 18 of a `.ser` file (ColorID, little-endian int32) to
+ * decide whether forcing the debayer pref is the right call. Returns TRUE
+ * for SER files that need debayering (anything with a Bayer pattern), FALSE
+ * for mono SERs (where Siril would otherwise reinterpret them as CFA using
+ * the user's preferred Bayer pattern — wrong for true-mono planetary work),
+ * and TRUE for non-SER inputs (no-op since their readers don't have this
+ * footgun). */
+static gboolean mpp_should_force_debayer(const char *name) {
+	if (!name) return TRUE;
+	/* Try the name as-is, then with .ser appended (sequences are typically
+	 * referenced by basename). If neither exists or doesn't look like an SER,
+	 * default to forcing debayer — non-SER readers handle their own colour
+	 * logic and ignore the pref. */
+	const gchar *dot = strrchr(name, '.');
+	const gboolean has_ser_ext = dot && !g_ascii_strcasecmp(dot, ".ser");
+	const gboolean has_other_ext = dot && !has_ser_ext;
+	FILE *f = NULL;
+	if (has_ser_ext) {
+		f = g_fopen(name, "rb");
+	} else if (!has_other_ext) {
+		gchar *with_ext = g_strdup_printf("%s.ser", name);
+		f = g_fopen(with_ext, "rb");
+		g_free(with_ext);
+	}
+	if (!f) return TRUE;
+	if (fseek(f, 18, SEEK_SET) != 0) { fclose(f); return TRUE; }
+	int32_t color_id = -1;
+	const size_t n = fread(&color_id, sizeof(color_id), 1, f);
+	fclose(f);
+	if (n != 1) return TRUE;
+	/* SER ColorID 0 == SER_MONO. Anything else (Bayer or CYYM/YCMY family)
+	 * is interpreted by Siril's reader; force debayer for those. */
+	return color_id != 0;
+}
+
+/* `load_sequence_force_debayer` opens a sequence with `com.pref.debayer.open_debayer`
+ * forced TRUE for Bayer SERs so they come back as 3-layer RGB regardless of
+ * the user's saved preference. Mono SERs and non-SER inputs are loaded with
+ * the saved preference untouched. Returns the sequence (caller may have to
+ * substitute `&com.seq` via `check_seq_is_comseq`) or NULL. */
+static sequence *load_sequence_force_debayer(const char *name) {
+	const gboolean want_debayer = mpp_should_force_debayer(name);
+	const gboolean saved = com.pref.debayer.open_debayer;
+	if (want_debayer) com.pref.debayer.open_debayer = TRUE;
+	sequence *seq = load_sequence(name, NULL);
+	com.pref.debayer.open_debayer = saved;
+	return seq;
+}
+
+/* Validate drizzle-mode / input-type mismatches in sidecars from
+ * older runs that explicitly pinned a backend. New sidecars produced
+ * by either the CLI (-scale=) or the GUI always leave drizzle_mode =
+ * OFF and let the dispatcher auto-route.
+ *
+ * STSCI on CFA used to be rejected (would amplify debayer artefacts);
+ * with the current routing STSCI on CFA is the *intended* default
+ * (auto-debayer is engaged by mpp_stack_apply's SerAnalysisDebayerGuard
+ * before the dobox call), so the check has been removed.
+ *
+ * Bayer drizzle on CFA is allowed but no longer the auto-routed
+ * default — mpp_stack_apply promotes BAYER to STSCI (see comment
+ * there). A non-CFA sidecar that pinned BAYER is still a hard
+ * mismatch since the path requires a raw mosaic input. */
+static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
+                                   const char *cmd_name) {
+	const mpp_input_type type = mpp_classify_sequence_input(seq);
+	if (cfg->drizzle_mode == MPP_DRIZZLE_OFF) return CMD_OK;
+	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER && type != MPP_INPUT_CFA) {
+		siril_log_error(_("%s: sidecar pins Bayer drizzle but this is not a "
+		                  "CFA SER. Re-run Analyse to regenerate the "
+		                  "sidecar, then stack with -scale=N.\n"), cmd_name);
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_mpp(int nb) {
+	/* `pss seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
+	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
+	 *              [-search-global=N] [-align=K] [-fast-changing] [-ref-percent=N]
+	 *              [-min-brightness=N] [-min-contrast=N] [-min-structure=F]
+	 *              [-bg-fraction=F] [-bg-blend=F] [-no-shifts] [-no-normalize]
+	 *              [-noseed] [-avi-bayer=K] [-skip-failed-aps] [-32b]`
+	 *
+	 * Runs the mpp pipeline (Stages A + B + C) end-to-end on the given
+	 * sequence and writes the stacked output to a FITS file. See
+	 * pss_port_plan.md §6 for the full design. */
+	if (nb < 2) {
+		siril_log_error(_("pss: missing sequence name\n"));
+		return CMD_WRONG_N_ARG;
+	}
+
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
+
+	gchar *out_path = NULL;
+	for (int i = 2; i < nb; i++) {
+		mpp_flag_status rc = apply_mpp_flag(word[i], &cfg, &out_path,
+		                                    TRUE, TRUE);
+		if (rc == MPP_FLAG_OK) continue;
+		const char *err = (rc == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_error(_("pss: %s '%s'\n"), err, word[i]);
+		g_free(out_path);
+		return CMD_ARG_ERROR;
+	}
+
+	const int reject_rc = reject_drizzle_mismatch(seq, &cfg, "pss");
+	if (reject_rc != CMD_OK) {
+		g_free(out_path);
+		return reject_rc;
+	}
+
+	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
+	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
+	                  cfg.drizzle_scale > 1.001 ? " (upscaled)" : "");
+
+	mpp_run_t *run = NULL;
+	int rc = mpp_analyze(seq, &cfg, &run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("pss: Stage A failed (code %d)\n"), rc);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: Stage A done — best=%d, %d APs, stack_size=%d\n"),
+	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	/* Phase 9.2: write quality into Siril's regdata so the frame selector
+	 * and quality plot show PSS Laplace-σ. Layer 1 for RGB (green) / 0 for
+	 * mono — matches the existing register_mpp(args) default. */
+	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
+
+	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
+	rc = mpp_recompute_qualities(seq, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("pss: per-AP frame ranking failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
+	rc = mpp_compute_shifts(seq, &cfg, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("pss: Stage B failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: Stage B done — %d shift failures\n"),
+	                  run->shifts ? run->shifts->failure_counter : -1);
+
+	fits stacked = {0};
+	rc = mpp_stack_apply(seq, &cfg, run, &stacked);
+	if (rc != MPP_OK) {
+		siril_log_error(_("pss: Stage C failed (code %d)\n"), rc);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
+	gchar *resolved_out = out_path;
+	if (!resolved_out) {
+		resolved_out = g_strdup_printf("%s_stacked.fit", seq->seqname);
+	}
+	if (savefits(resolved_out, &stacked)) {
+		siril_log_error(_("pss: failed to save %s\n"), resolved_out);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(resolved_out);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("pss: stacked image saved to %s (%dx%d)\n"),
+	                  resolved_out, stacked.rx, stacked.ry);
+
+	clearfits(&stacked);
+	mpp_run_free(run);
+	g_free(resolved_out);
+	return CMD_OK;
+}
+
+/* `register_mpp seqname [register-side flags...]`
+ *
+ * Runs the mpp pipeline Stages A + B (frame ranking, global alignment, AP
+ * placement, per-AP per-frame shift compute) and writes a `<seqname>.mpp`
+ * sidecar in the working directory. Consumed by `stack_mpp`. Mirrors the
+ * register-side flag surface of `pss`; rejects stack-only flags. */
+int process_register_mpp(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("register_mpp: missing sequence name\n"));
+		return CMD_WRONG_N_ARG;
+	}
+
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
+
+	gchar *out_path = NULL;  /* unused by register; kept for shared parser */
+	for (int i = 2; i < nb; i++) {
+		mpp_flag_status fs = apply_mpp_flag(word[i], &cfg, &out_path,
+		                                    TRUE, FALSE);
+		if (fs == MPP_FLAG_OK) continue;
+		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_error(_("register_mpp: %s '%s'\n"), err, word[i]);
+		return CMD_ARG_ERROR;
+	}
+
+	siril_log_message(_("register_mpp: %d frames, %dx%d, bitdepth=%d\n"),
+	                  seq->number, seq->rx, seq->ry, cfg.bitdepth);
+
+	mpp_run_t *run = NULL;
+	int rc = mpp_analyze(seq, &cfg, &run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("register_mpp: Stage A failed (code %d)\n"), rc);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: Stage A done — best=%d, %d APs, stack_size=%d\n"),
+	                  run->best_frame_idx, run->aps->count, run->stack_size);
+
+	/* Phase 9.2: surface quality through Siril regdata for the frame selector. */
+	mpp_write_quality_to_regdata(seq, seq->nb_layers == 3 ? 1 : 0, run);
+
+	/* Per-AP frame ranking — deferred from Stage A; runs at Stage B entry. */
+	rc = mpp_recompute_qualities(seq, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("register_mpp: per-AP frame ranking failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
+
+	rc = mpp_compute_shifts(seq, &cfg, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("register_mpp: Stage B failed (code %d)\n"), rc);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: Stage B done — %d shift failures\n"),
+	                  run->shifts ? run->shifts->failure_counter : -1);
+
+	gchar *sidecar_path = g_strdup_printf("%s.mpp", seq->seqname);
+	rc = mpp_sidecar_write(sidecar_path, run);
+	if (rc != MPP_OK) {
+		siril_log_error(_("register_mpp: sidecar write to %s failed (code %d)\n"), sidecar_path, rc);
+		g_free(sidecar_path);
+		mpp_run_free(run);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("register_mpp: sidecar written to %s\n"), sidecar_path);
+
+	g_free(sidecar_path);
+	mpp_run_free(run);
+	return CMD_OK;
+}
+
+/* `stack_mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
+ *                   [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F]
+ *                   [-skip-failed-aps]`
+ *
+ * Reads the `<seqname>.mpp` sidecar written by `register_mpp`, runs Stage C
+ * (per-AP remap, weighted merge, cv::resize upscale, background blend, uint16
+ * cast), and writes the stacked FITS. */
+int process_stack_mpp(int nb) {
+	if (nb < 2) {
+		siril_log_error(_("stack_mpp: missing sequence name\n"));
+		return CMD_WRONG_N_ARG;
+	}
+
+	sequence *seq = load_sequence_force_debayer(word[1]);
+	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	gchar *sidecar_path = g_strdup_printf("%s.mpp", seq->seqname);
+	mpp_run_t *run = NULL;
+	int rc = mpp_sidecar_read(sidecar_path, &run);
+	if (rc != MPP_OK || !run) {
+		siril_log_error(_("stack_mpp: cannot read sidecar %s (code %d) — "
+		                          "did you run `register_mpp` first?\n"), sidecar_path, rc);
+		g_free(sidecar_path);
+		return CMD_GENERIC_ERROR;
+	}
+	g_free(sidecar_path);
+
+	/* The sidecar carries the cfg snapshot from register-time. Apply only the
+	 * stack-time flag overrides on top of it; never touch register-time
+	 * settings here as those decisions are already baked into run->aps and
+	 * run->shifts. */
+	gchar *out_path = NULL;
+	for (int i = 2; i < nb; i++) {
+		mpp_flag_status fs = apply_mpp_flag(word[i], run->cfg, &out_path,
+		                                    FALSE, TRUE);
+		if (fs == MPP_FLAG_OK) continue;
+		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
+		siril_log_error(_("stack_mpp: %s '%s'\n"), err, word[i]);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_ARG_ERROR;
+	}
+
+	const int reject_rc = reject_drizzle_mismatch(seq, run->cfg, "stack_mpp");
+	if (reject_rc != CMD_OK) {
+		mpp_run_free(run);
+		g_free(out_path);
+		return reject_rc;
+	}
+
+	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
+	                  run->num_frames, run->frame_cols, run->frame_rows,
+	                  run->aps->count, run->bitdepth,
+	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
+
+	fits stacked = {0};
+	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);
+	if (rc != MPP_OK) {
+		siril_log_error(_("stack_mpp: Stage C failed (code %d)\n"), rc);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(out_path);
+		return CMD_GENERIC_ERROR;
+	}
+
+	gchar *resolved_out = out_path;
+	if (!resolved_out) {
+		resolved_out = g_strdup_printf("%s_mpp_stacked.fit", seq->seqname);
+	}
+	if (savefits(resolved_out, &stacked)) {
+		siril_log_error(_("stack_mpp: failed to save %s\n"), resolved_out);
+		clearfits(&stacked);
+		mpp_run_free(run);
+		g_free(resolved_out);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("stack_mpp: stacked image saved to %s (%dx%d)\n"),
+	                  resolved_out, stacked.rx, stacked.ry);
+
+	clearfits(&stacked);
+	mpp_run_free(run);
+	g_free(resolved_out);
 	return CMD_OK;
 }
 

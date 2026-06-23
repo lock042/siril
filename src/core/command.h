@@ -133,6 +133,7 @@ int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
+int	process_mpp(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);
@@ -161,6 +162,7 @@ int	process_pyscript(int nb);
 
 int	process_rebayer(int nb);
 int	process_register(int nb);
+int	process_register_mpp(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
 int	process_requires(int nb);
@@ -247,6 +249,7 @@ int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
+int	process_stack_mpp(int nb);
 int	process_stackone(int nb);
 int	process_synthstar(int nb);
 

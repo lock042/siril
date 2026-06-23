@@ -38,6 +38,12 @@
 #include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_interactions.h"
@@ -88,6 +94,10 @@ static GtkCheckButton *imgdisp_autohd_item = NULL;
 static GtkWidget *imgdisp_drawing_rgb = NULL;
 static GtkWidget *imgdisp_drawing_r = NULL;
 
+// objects for APs overlay
+static GtkNotebook *center_notebook = NULL;
+GtkDropDown *comboboxregmethod = NULL;
+
 static void image_display_init_statics(void) {
 	if (imgdisp_app_win) return;
 	imgdisp_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
@@ -102,6 +112,8 @@ static void image_display_init_statics(void) {
 	cut_sdialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_spectroscopy_dialog"));
 	tri_cut_toggle = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "cut_tri_cut"));
 	tri_cut_spin_step = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "cut_tricut_step"));
+	center_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	comboboxregmethod = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 }
 
 static void invalidate_image_render_cache(int vport);
@@ -2445,6 +2457,7 @@ static void draw_analysis(const draw_data_t *dd);
 static void draw_brg_boxes(const draw_data_t* dd);
 static void draw_regframe(const draw_data_t* dd);
 static void draw_rgb_centers(const draw_data_t* dd);
+static void draw_mpp_aps(const draw_data_t* dd);
 
 /* ── SirilImageView: GTK4 snapshot-based image viewport ───────────────────
  *
@@ -2838,6 +2851,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	draw_annotates(&dd);
 	draw_analysis(&dd);
 	draw_brg_boxes(&dd);
+	/* multipoint planetary alignment-point grid (active after Analyze) */
+	draw_mpp_aps(&dd);
 	draw_regframe(&dd);
 	draw_rgb_centers(&dd);
 	if (gui.draw_extra)
@@ -3221,7 +3236,7 @@ static void draw_selection(const draw_data_t* dd) {
 			// draw a circle at top left corner to visualize rots larger than 90
 			double size = 10. / dd->zoom;
 			cairo_set_dash(cr, NULL, 0, 0);
-			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * G_PI);
 			cairo_stroke_preserve(cr);
 			cairo_fill(cr);
 			cairo_set_dash(cr, dash_format, 2, 0);
@@ -3480,10 +3495,10 @@ static void draw_stars(const draw_data_t* dd) {
 			}
 			cairo_save(cr); // save the original transform
 			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
-			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
+			cairo_rotate(cr, G_PI * 0.5 + com.stars[i]->angle * G_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
-			cairo_arc(cr, 0., 0., size, 0., 2 * M_PI);
+			cairo_arc(cr, 0., 0., size, 0., 2 * G_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
 			/* to keep  for debugging boxes adjustements */
@@ -3511,7 +3526,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		/* fwhm * 2: first circle */
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * G_PI);
 		cairo_stroke(cr);
 
 		/* sky annulus */
@@ -3521,9 +3536,9 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 		}
 
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * G_PI);
 		cairo_stroke(cr);
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * G_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -3545,17 +3560,17 @@ static void draw_stars(const draw_data_t* dd) {
 						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * G_PI);
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -3612,6 +3627,175 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_show_text(cr, text);
 				cairo_stroke(cr);
 				g_free(text);
+			}
+		}
+	}
+}
+
+/* Draw alignment-point boxes from the cached MPP run (com.mpp_run).
+ * Called from the snapshot overlay pass right after draw_brg_boxes so APs
+ * sit in the same overlay stratum as bgext samples.
+ *
+ * AP records hold mean-frame coordinates. When gfit shows the mean ref
+ * frame (== analyze just ran or user re-clicked it), no shift compensation
+ * is needed; otherwise, the user is viewing a source frame and we apply
+ * the per-frame offset (intersection - global_shift) so AP boxes track
+ * the same physical features as they slew through the sequence.
+ *
+ * Hovered AP (mpp_ap_editor_get_hover_idx) is drawn in orange with a
+ * thicker line so the user knows which AP a click would affect. */
+static void draw_mpp_aps(const draw_data_t* dd) {
+	/* Only paint the AP overlay while the user is on the Registration
+	 * tab and MPP is selected — the overlay is a registration-workflow tool, and once the
+	 * user has switched to Plot / Stacking / etc. the boxes are visual
+	 * clutter that confuses what they're looking at. */
+	if (gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
+		return;
+	if (gtk_drop_down_get_selected(comboboxregmethod) != REG_MPP)
+		return;
+
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
+	/* AP coordinates live in the run's mean-frame space. Show them
+	 * when gfit's dimensions match a known coordinate system in the
+	 * run — either the mean frame itself (the Analyse-painted ref
+	 * image, where ap.{x,y} maps directly), or a sequence frame at
+	 * the run's frame_cols/_rows (where per-frame shift compensates).
+	 * Hide otherwise (stacking result at non-mean-frame dims, an
+	 * unrelated single image the user has loaded, etc.). The check
+	 * is dim-based rather than com.seq.current-based so APs reappear
+	 * after re-Analyse even when com.seq.current is still RESULT_IMAGE
+	 * from a prior stack run. */
+	const gboolean showing_ref = (gfit
+	    && (int) gfit->rx == run->mean_frame_cols
+	    && (int) gfit->ry == run->mean_frame_rows);
+	const gboolean showing_seq_frame = (gfit
+	    && com.seq.current >= 0
+	    && com.seq.current < run->num_frames
+	    && (int) gfit->rx == run->frame_cols
+	    && (int) gfit->ry == run->frame_rows
+	    && run->global_shifts
+	    && sequence_is_loaded());
+	if (!showing_ref && !showing_seq_frame) return;
+
+	int dx = 0, dy = 0;
+	if (showing_seq_frame) {
+		const int i = com.seq.current;
+		/* mean_frame row r maps to frame row
+		 *   r + intersection[0] - global_shifts[i]
+		 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
+		 * gives the AP's pdata-row position on frame i. The
+		 * global_shifts are now sub-pixel (for Bayer drizzle's
+		 * CFA-phase coverage); the overlay only needs integer
+		 * placement so round to nearest pixel. */
+		dy = (int) lround((double) run->intersection[0] - run->global_shifts[2 * i + 0]);
+		dx = (int) lround((double) run->intersection[2] - run->global_shifts[2 * i + 1]);
+	}
+
+	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata
+	 * convention has row 0 at the bottom of the displayed scene for
+	 * both native FITS and SER-after-load-time-flip). The Cairo
+	 * overlay context has y=0 at the TOP of the surface, so the row
+	 * index has to be flipped to draw at the correct vertical position. */
+	const int H = (int) gfit->ry;
+	const int hover = mpp_ap_editor_get_hover_idx();
+	const int selected = mpp_ap_editor_get_selected_idx();
+
+	/* Optional patch overlay — gated by the persistent "Show stacking
+	 * patches" toggle in the AP editor dialog. Drawn underneath the
+	 * boxes so the box outlines stay on top. Dashed cyan emphasises
+	 * that adjacent patches overlap (~25 % per neighbour), which is
+	 * where Stage C's per-AP weighted shifts cross-fade. */
+	if (mpp_ap_editor_show_patches()) {
+		cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+		cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.55);   /* cyan-ish */
+		const double dashes[2] = { 4.0 / dd->zoom, 3.0 / dd->zoom };
+		cairo_set_dash(dd->cr, dashes, 2, 0.0);
+		for (int i = 0; i < run->aps->count; ++i) {
+			const mpp_ap_record_t *ap = &run->aps->records[i];
+			const int pw = ap->patch_x_high - ap->patch_x_low;
+			const int ph = ap->patch_y_high - ap->patch_y_low;
+			if (pw <= 0 || ph <= 0) continue;
+			const int patch_y_top = (H - 1) - (ap->patch_y_low + dy) - (ph - 1);
+			cairo_rectangle(dd->cr, ap->patch_x_low + dx, patch_y_top, pw, ph);
+			cairo_stroke(dd->cr);
+		}
+		cairo_set_dash(dd->cr, NULL, 0, 0.0);   /* reset for subsequent strokes */
+	}
+
+	for (int i = 0; i < run->aps->count; ++i) {
+		const mpp_ap_record_t *ap = &run->aps->records[i];
+		if (i == selected) {
+			cairo_set_line_width(dd->cr, 2.5 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.2, 1.0, 1.0);   /* magenta — selected */
+		} else if (i == hover) {
+			cairo_set_line_width(dd->cr, 2.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange — hover */
+		} else {
+			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
+		}
+		/* Draw each AP's actual (per-AP, possibly resized/clamped) box,
+		 * not a fixed global size. Same pdata-row→display-y flip as the
+		 * patch overlay above. */
+		const int bw = ap->box_x_high - ap->box_x_low;
+		const int bh = ap->box_y_high - ap->box_y_low;
+		if (bw <= 0 || bh <= 0) continue;
+		const int box_y_top = (H - 1) - (ap->box_y_low + dy) - (bh - 1);
+		cairo_rectangle(dd->cr, ap->box_x_low + dx, box_y_top, bw, bh);
+		cairo_stroke(dd->cr);
+	}
+
+	/* Diagnostic: only when the shift viewer is open do we overlay
+	 * per-AP shift arrows. Green = Stage B converged, red = fell back
+	 * to zero shift. */
+	if (mpp_shift_viewer_is_open() && run->shifts && run->shifts->shifts) {
+		const int fv = mpp_shift_viewer_get_frame();
+		const double scale = mpp_shift_viewer_get_scale();
+		const int M = run->shifts->num_aps;
+		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
+			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);
+			const double dot_r = 1.8 / dd->zoom;
+			for (int a = 0; a < M; ++a) {
+				const mpp_ap_record_t *ap = &run->aps->records[a];
+				const size_t k = (size_t) fv * M + a;
+				const double sdy = run->shifts->shifts[2 * k + 0];
+				const double sdx = run->shifts->shifts[2 * k + 1];
+				const uint8_t ok = run->shifts->success[k];
+				if (ok)
+					cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.3, 0.9);
+				else
+					cairo_set_source_rgba(dd->cr, 1.0, 0.2, 0.2, 0.9);
+				const double x0 = ap->x + dx;
+				/* Same pdata-row→display-y flip as the box draw above;
+				 * sdy is a pdata-row delta so its display contribution
+				 * is also negated. */
+				const double y0 = (double)(H - 1) - (double)(ap->y + dy);
+				const double x1 = x0 + sdx * scale;
+				const double y1 = y0 - sdy * scale;
+				cairo_move_to(dd->cr, x0, y0);
+				cairo_line_to(dd->cr, x1, y1);
+				cairo_stroke(dd->cr);
+				/* Arrowhead: filled triangle at (x1, y1) pointing along
+				 * the arrow direction. Skip when shift is sub-pixel
+				 * tiny (would be a degenerate triangle anyway). */
+				const double mag = hypot(x1 - x0, y1 - y0);
+				if (mag > 1.5 / dd->zoom) {
+					const double ux = (x1 - x0) / mag;
+					const double uy = (y1 - y0) / mag;
+					const double head = 7.0 / dd->zoom;
+					cairo_move_to(dd->cr, x1, y1);
+					cairo_line_to(dd->cr, x1 - head * ux - 0.5 * head * uy,
+					                       y1 - head * uy + 0.5 * head * ux);
+					cairo_line_to(dd->cr, x1 - head * ux + 0.5 * head * uy,
+					                       y1 - head * uy - 0.5 * head * ux);
+					cairo_close_path(dd->cr);
+					cairo_fill(dd->cr);
+				}
+				/* Always paint a small filled dot at the AP centre so
+				 * zero/sub-pixel-shift APs are still visible. */
+				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * G_PI);
+				cairo_fill(dd->cr);
 			}
 		}
 	}
@@ -3795,8 +3979,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	/* get ra and dec of center of the image */
 	center2wcs(fit, &ra0, &dec0);
 	if (ra0 == -1.) return;
-	dec0 *= (M_PI / 180.0);
-	ra0  *= (M_PI / 180.0);
+	dec0 *= (G_PI / 180.0);
+	ra0  *= (G_PI / 180.0);
 	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
@@ -3836,8 +4020,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (polesign) stepRA = 45.;
 
 	// round image centers
-	double centra = stepRA * round(ra0 * 180 / (M_PI * stepRA)); // rounded image centers
-	double centdec = step * round(dec0 * 180 / (M_PI * step));
+	double centra = stepRA * round(ra0 * 180 / (G_PI * stepRA)); // rounded image centers
+	double centdec = step * round(dec0 * 180 / (G_PI * step));
 
 	// plot DEC grid
 	cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
@@ -3951,10 +4135,10 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_save(cr); // save the orginal transform
 				cairo_translate(cr, pt->x, pt->y);
 				// add pi for angles larger than +/- pi/2
-				if (pt->angle > M_PI_2)
-					pt->angle -= M_PI;
-				if (pt->angle < -M_PI_2)
-					pt->angle += M_PI;
+				if (pt->angle > G_PI_2)
+					pt->angle -= G_PI;
+				if (pt->angle < -G_PI_2)
+					pt->angle += G_PI;
 				double dx = 0., dy = 0.;
 				switch (pt->border) { // shift to get back in the image
 				case 0: // bottom
@@ -4023,7 +4207,7 @@ static void draw_wcs_disto(const draw_data_t* dd) {
 				double startX, startY, endX, endY;
 				fits_to_display(currX, currY, &startX, &startY, fit->ry);
 				fits_to_display(disX, disY, &endX, &endY, fit->ry);
-				cairo_arc(cr, startX, startY, radius,  0., 2. * M_PI);
+				cairo_arc(cr, startX, startY, radius,  0., 2. * G_PI);
 				cairo_fill(cr);
 				cairo_move_to(cr, startX, startY);
 				cairo_line_to(cr, endX, endY);
@@ -4154,7 +4338,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
-			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_arc(cr, x, y, radius, 0., 2. * G_PI);
 			cairo_stroke(cr);
 			if (code) {
 				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
@@ -4207,7 +4391,7 @@ static void draw_rgb_centers(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 
 	double size = 10. / dd->zoom;
-	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 }
 
@@ -4334,7 +4518,7 @@ static void draw_regframe(const draw_data_t* dd) {
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
-	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke_preserve(cr);
 	cairo_fill(cr);
 	// reference frame
@@ -4346,7 +4530,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_stroke(cr);
 
 	// reference center
-	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 	// current center
 	cairo_set_source_rgb(cr, 0., 1., 0.);
