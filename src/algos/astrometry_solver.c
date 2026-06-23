@@ -1645,6 +1645,39 @@ gboolean asnet_is_available() {
 	return success;
 }
 
+/* Returns a newly-allocated copy of `path` whose directory component has been
+ * replaced by its 8.3 short (pure-ASCII) form, keeping the original base name.
+ * This lets the cygwin build of solve-field read the file even when the working
+ * directory contains non-ASCII characters (e.g. a national-character Windows
+ * account name), while leaving the base name untouched so the .wcs/.solved
+ * outputs solve-field derives from it keep their expected names. Returns NULL
+ * on failure (e.g. 8.3 generation disabled), in which case the caller should
+ * fall back to the original path. */
+static gchar *asnet_short_dir_path(const gchar *path) {
+	gchar *dir = g_path_get_dirname(path);
+	gchar *base = g_path_get_basename(path);
+	gchar *result = NULL;
+
+	wchar_t *wdir = g_utf8_to_utf16(dir, -1, NULL, NULL, NULL);
+	if (wdir) {
+		DWORD len = GetShortPathNameW(wdir, NULL, 0);
+		if (len > 0) {
+			wchar_t *wshort = g_new(wchar_t, len);
+			if (GetShortPathNameW(wdir, wshort, len) > 0) {
+				gchar *shortdir = g_utf16_to_utf8(wshort, -1, NULL, NULL, NULL);
+				if (shortdir)
+					result = g_build_filename(shortdir, base, NULL);
+				g_free(shortdir);
+			}
+			g_free(wshort);
+		}
+		g_free(wdir);
+	}
+	g_free(dir);
+	g_free(base);
+	return result;
+}
+
 #else
 
 static gchar *siril_get_asnet_bin() {
@@ -1783,11 +1816,17 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		g_free(command);
 		return SOLVE_ASNET_PROC;
 	}
-	/* Write data to this file  */
-	fprintf(tmpfd, "p=\"%s\"\n", (char*)table_filename);
-	fprintf(tmpfd, "c=\"%s\"\n", (char*)stopfile);
+	/* Write data to this file. Replace the directory component of the input
+	 * table and stop-file paths with their 8.3 short form so that cygwin
+	 * solve-field can open them when com.wd contains non-ASCII characters. */
+	gchar *p_short = asnet_short_dir_path(table_filename);
+	gchar *c_short = asnet_short_dir_path(stopfile);
+	fprintf(tmpfd, "p=\"%s\"\n", p_short ? p_short : (char*)table_filename);
+	fprintf(tmpfd, "c=\"%s\"\n", c_short ? c_short : (char*)stopfile);
 	fprintf(tmpfd, "%s\n", command);
 	fclose(tmpfd);
+	g_free(p_short);
+	g_free(c_short);
 	g_free(asnetscript);
 	gchar *asnet_bash = g_build_filename(asnet_shell, "bin", "bash", NULL);
 	memset(sfargs, '\0', sizeof(sfargs));

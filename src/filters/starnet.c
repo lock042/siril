@@ -62,6 +62,40 @@
 static fits *current_fit = NULL;
 static gboolean verbose = TRUE;
 
+#ifdef _WIN32
+/* Returns a newly-allocated copy of `path` whose directory component has been
+ * replaced by its 8.3 short (pure-ASCII) form, keeping the original base name.
+ * This lets the external StarNet process open the working TIFF files even when
+ * the working directory contains non-ASCII characters (e.g. a national-character
+ * Windows account name). Siril keeps using the original long paths (its own TIFF
+ * I/O is UTF-16-safe) and, as the short path is just an alias for the same
+ * directory, the files line up either way. Returns NULL on failure. */
+static gchar *starnet_short_dir_path(const gchar *path) {
+	gchar *dir = g_path_get_dirname(path);
+	gchar *base = g_path_get_basename(path);
+	gchar *result = NULL;
+
+	wchar_t *wdir = g_utf8_to_utf16(dir, -1, NULL, NULL, NULL);
+	if (wdir) {
+		DWORD len = GetShortPathNameW(wdir, NULL, 0);
+		if (len > 0) {
+			wchar_t *wshort = g_new(wchar_t, len);
+			if (GetShortPathNameW(wdir, wshort, len) > 0) {
+				gchar *shortdir = g_utf16_to_utf8(wshort, -1, NULL, NULL, NULL);
+				if (shortdir)
+					result = g_build_filename(shortdir, base, NULL);
+				g_free(shortdir);
+			}
+			g_free(wshort);
+		}
+		g_free(wdir);
+	}
+	g_free(dir);
+	g_free(base);
+	return result;
+}
+#endif
+
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
 	GPid child_pid;
@@ -331,6 +365,11 @@ gpointer do_starnet(gpointer p) {
 	gchar *torcharg_weights = NULL;
 	gchar *torcharg_mask = NULL; // We don't want the mask output, but the new starnet generates it regardless
 			// so we may as well put it somewhere known so we can delete it so as not to leave behind clutter.
+#ifdef _WIN32
+	gchar *temptif_arg = NULL, *starlesstif_arg = NULL, *starmasktif_arg = NULL;
+#endif
+	// paths passed to the external StarNet process (see argv construction below)
+	const char *temptif_p = NULL, *starlesstif_p = NULL, *starmasktif_p = NULL;
 	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
@@ -603,18 +642,35 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 
+	// The external StarNet process receives the working TIFF paths as argv. On
+	// Windows, pass the short (8.3, pure-ASCII) directory form so StarNet can
+	// open them even when com.wd contains non-ASCII characters; Siril itself
+	// still reads/writes them via the original long paths above and below.
+#ifdef _WIN32
+	temptif_arg = starnet_short_dir_path(temptif);
+	starlesstif_arg = starnet_short_dir_path(starlesstif);
+	starmasktif_arg = starnet_short_dir_path(starmasktif);
+	temptif_p = temptif_arg ? temptif_arg : temptif;
+	starlesstif_p = starlesstif_arg ? starlesstif_arg : starlesstif;
+	starmasktif_p = starmasktif_arg ? starmasktif_arg : starmasktif;
+#else
+	temptif_p = temptif;
+	starlesstif_p = starlesstif;
+	starmasktif_p = starmasktif;
+#endif
+
 	// Process StarNet arguments
 	int nb = 0;
 	my_argv[nb++] = starnetcommand;
 	if (version & TORCH) {
-		torcharg_in = g_strdup_printf("-i %s", temptif);
+		torcharg_in = g_strdup_printf("-i %s", temptif_p);
 		my_argv[nb++] = torcharg_in;
 
-		torcharg_out = g_strdup_printf("-o %s", starlesstif);
+		torcharg_out = g_strdup_printf("-o %s", starlesstif_p);
 		my_argv[nb++] = torcharg_out;
 	} else {
-		my_argv[nb++] = temptif;
-		my_argv[nb++] = starlesstif;
+		my_argv[nb++] = (char*) temptif_p;
+		my_argv[nb++] = (char*) starlesstif_p;
 	}
 	if (args->customstride) {
 		if (version & TORCH) {
@@ -637,7 +693,7 @@ gpointer do_starnet(gpointer p) {
 			torcharg_weights = g_strdup_printf("-w %s", com.pref.starnet_weights);
 			my_argv[nb++] = torcharg_weights;
 		}
-		torcharg_mask = g_strdup_printf("-m %s", starmasktif);
+		torcharg_mask = g_strdup_printf("-m %s", starmasktif_p);
 		my_argv[nb++] = torcharg_mask;
 	}
 
@@ -849,6 +905,11 @@ gpointer do_starnet(gpointer p) {
 	g_free(torcharg_weights);
 	g_free(torcharg_mask);
 	g_free(torcharg_up);
+#ifdef _WIN32
+	g_free(temptif_arg);
+	g_free(starlesstif_arg);
+	g_free(starmasktif_arg);
+#endif
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
