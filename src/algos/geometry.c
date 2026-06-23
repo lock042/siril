@@ -181,7 +181,7 @@ static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboole
 				k++;
 			}
 		}
-	} else {
+	} else if (mask->bitpix == 16) {
 		WORD *buf = (WORD *)mask->data;
 		WORD *new_buf = (WORD *)newdata;
 
@@ -197,7 +197,30 @@ static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboole
 					}
 				}
 				if (mean) tmp /= c;
-				new_buf[k] = (mask->bitpix == 8) ? (uint8_t)tmp : truncate_to_WORD(tmp);
+				new_buf[k] = truncate_to_WORD(tmp);
+				k++;
+			}
+		}
+	} else {
+		// 8-bit: element size is one byte for both source and destination,
+		// so read and write through uint8_t pointers (a WORD view would
+		// over-read the source and overflow the byte-sized destination).
+		uint8_t *buf = (uint8_t *)mask->data;
+		uint8_t *new_buf = (uint8_t *)newdata;
+
+		long k = 0;
+		for (int row = 0; row < old_ry - bin_factor + 1; row += bin_factor) {
+			for (int col = 0; col < old_rx - bin_factor + 1; col += bin_factor) {
+				int c = 0;
+				int tmp = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						tmp += buf[i + col + (j + row) * old_rx];
+						c++;
+					}
+				}
+				if (mean) tmp /= c;
+				new_buf[k] = (uint8_t)(tmp > 255 ? 255 : tmp);
 				k++;
 			}
 		}
