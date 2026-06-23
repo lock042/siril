@@ -136,7 +136,7 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 	d->epoch_jd = epoch_jd;
 	d->obs_lat = obs_lat; d->obs_lon = obs_lon; d->obs_elev = obs_elev;
 	d->cx = cx; d->cy = cy; d->r_eq = radius; d->parity = parity;
-	d->pole_angle_epoch = pa_deg * M_PI / 180.0;
+	d->pole_angle_epoch = pa_deg * G_PI / 180.0;
 	d->flattening = ge.flattening;
 	d->epoch_sub_obs_lat = ge.sub_obs_lat;
 	d->epoch_cm = ge.cm[system - 1];
@@ -218,7 +218,7 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
 	/* Major-axis orientation (Saturn's ring plane / Jupiter's equator), image
 	 * coordinates with y up; the caller turns it into the pole angle. */
 	const double theta = 0.5 * atan2(2.0 * cxy, cxx - cyy);
-	if (major_axis_deg) *major_axis_deg = theta * 180.0 / M_PI;
+	if (major_axis_deg) *major_axis_deg = theta * 180.0 / G_PI;
 
 	const double f = (flattening > 0.0 && flattening < 0.9) ? flattening : 0.0;
 
