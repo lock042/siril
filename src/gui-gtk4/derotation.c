@@ -150,8 +150,6 @@ static void init_statics(void) {
 		MDP_SET("mdp_fast_changing", FALSE);
 		MDP_SET("mdp_skip_failed", FALSE);
 		#undef MDP_SET
-		GObject *am = gtk_builder_get_object(b, "mdp_align_mode");
-		if (am) gtk_drop_down_set_selected(GTK_DROP_DOWN(am), MPP_ALIGN_PLANET);
 	}
 	/* One-shot colour is the common case, so make it the default tag. */
 	if (dd_channel)
@@ -968,14 +966,9 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 	MPP_TOGG(alignment_points_de_warp,                "mdp_dewarp");
 	MPP_TOGG(frames_normalization,                    "mdp_normalize");
 	MPP_TOGG(align_frames_seed_from_regdata,          "mdp_seed");
-	{
-		GObject *o = gtk_builder_get_object(b, "mdp_align_mode");
-		if (o) {
-			const int am = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
-			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
-			                                                  : MPP_ALIGN_SURFACE;
-		}
-	}
+	/* Derotation only makes sense for a full-disc planet, so always use the
+	 * Planet (centroid) global-alignment mode (the mpp_config_defaults value). */
+	cfg->align_frames_mode = MPP_ALIGN_PLANET;
 	/* stacking parameters */
 	MPP_SPIN_I(stack_frame_percent,                    "mdp_stack_percent");
 	MPP_SPIN_I(stack_frame_number,                     "mdp_stack_frames");
@@ -984,7 +977,7 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 	MPP_TOGG(stack_skip_failed_aps,                     "mdp_skip_failed");
 	{
 		static const double scales[] = { 1.0, 1.5, 2.0, 3.0 };
-		GObject *o = gtk_builder_get_object(b, "mdp_drizzle");
+		GObject *o = gtk_builder_get_object(b, "mdp_scale");
 		if (o) {
 			const guint i = gtk_drop_down_get_selected(GTK_DROP_DOWN(o));
 			cfg->drizzle_scale = (i < G_N_ELEMENTS(scales)) ? scales[i] : 1.0;
