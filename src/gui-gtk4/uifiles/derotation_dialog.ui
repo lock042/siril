@@ -137,7 +137,7 @@
             <property name="label" translatable="yes">Fit the disk to the planet, then compute.</property></object>
         </child>
         <child>
-          <object class="GtkFrame">
+          <object class="GtkFrame" id="derot_combine_frame">
             <property name="label" translatable="yes">Combine several sequences</property>
             <property name="margin-top">6</property>
             <child>

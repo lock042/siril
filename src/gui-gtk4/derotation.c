@@ -70,6 +70,12 @@ static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4
 static mpp_session_t *session = NULL;
 static GtkDropDown *dd_channel = NULL;   /* channel tag for the next "Add" */
 static GtkListBox *seqlist = NULL;       /* one row per session entry */
+static GtkWidget *combine_frame = NULL;  /* multi-sequence panel (full mode only) */
+/* The same dialog serves two entry points: the Registration-tab button opens it
+ * in simple single-sequence mode (just fit + Compute & save, closes on save);
+ * the Tools menu opens it in full multi-sequence mode (the combine panel and the
+ * MPP parameter widgets, and Compute & save stays open). */
+static gboolean multi_mode = FALSE;
 /* Base name of the sequence whose fit currently sits in the spin controls, so
  * "Add" can refuse a sequence that hasn't been fitted (the spins would still
  * hold the previous sequence's disk). NULL until a fit is made. */
@@ -131,6 +137,7 @@ static void init_statics(void) {
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
 	dd_channel  = GTK_DROP_DOWN   (gtk_builder_get_object(gui.builder, "derot_channel"));
 	seqlist     = GTK_LIST_BOX    (gtk_builder_get_object(gui.builder, "derot_seqlist"));
+	combine_frame = GTK_WIDGET    (gtk_builder_get_object(gui.builder, "derot_combine_frame"));
 	/* One-shot colour is the common case, so make it the default tag. */
 	if (dd_channel)
 		gtk_drop_down_set_selected(dd_channel, MPP_CHAN_OSC);
@@ -462,6 +469,36 @@ static void populate_from_sequence(void) {
 	apply_autodetect();
 }
 
+/* Show/hide the MPP register/stack parameter column (full mode only).
+ * Populated in Phase 2; a no-op until the param widgets exist. */
+static void apply_params_visibility(gboolean show) {
+	GtkWidget *col = GTK_WIDGET(gtk_builder_get_object(gui.builder, "derot_params_col"));
+	if (col) gtk_widget_set_visible(col, show);
+}
+
+/* Show/hide the full-mode sections and set the title for the current mode. */
+static void apply_dialog_mode(void) {
+	if (combine_frame)
+		gtk_widget_set_visible(combine_frame, multi_mode);
+	apply_params_visibility(multi_mode);
+	if (dialog)
+		gtk_window_set_title(GTK_WINDOW(dialog),
+		    multi_mode ? _("Multi-sequence planetary derotation")
+		               : _("Planetary derotation"));
+}
+
+static void present_dialog(gboolean multi) {
+	init_statics();
+	if (!dialog) return;
+	multi_mode = multi;
+	apply_dialog_mode();
+	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	if (parent)
+		gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+	gtk_window_present(GTK_WINDOW(dialog));
+}
+
+/* Registration-tab "Derotation" button: simple single-sequence mode. */
 void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!sequence_is_loaded()) {
@@ -469,18 +506,26 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data) 
 		    _("Load the planetary sequence (video) before setting up derotation."));
 		return;
 	}
-	init_statics();
-	if (!dialog) return;
-	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
-	if (parent)
-		gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
-	gtk_window_present(GTK_WINDOW(dialog));
+	present_dialog(FALSE);
+}
+
+/* Tools menu "Multi-sequence derotation...": full multi-sequence mode. */
+void on_derotation_multi_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	if (!sequence_is_loaded()) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("No sequence"),
+		    _("Load a planetary sequence (video) before opening the "
+		      "multi-sequence derotation tool."));
+		return;
+	}
+	present_dialog(TRUE);
 }
 
 void on_derotation_dialog_show(GtkWidget *widget, gpointer user_data) {
 	(void) widget; (void) user_data;
 	init_statics();
 	window_open = TRUE;
+	apply_dialog_mode();
 	/* Disk fitting is layered on top of the normal mouse action (the press
 	 * handler intercepts clicks that hit the disc/handles via derotation_is_open
 	 * + hit-test); the main view stays interactive, so mouse_status is left
@@ -586,7 +631,12 @@ static gboolean derot_compute_idle(gpointer p) {
 		                    "System %d. Now register and stack the sequence.\n"),
 		                  a->path, a->N, a->span_min, a->system);
 		control_window_switch_to_tab(OUTPUT_LOGS);
-		hide_dialog();   /* success: close the tool window */
+		/* Simple single-sequence mode closes on save (the old behaviour); the
+		 * multi-sequence tool stays open so the user can keep adding sequences. */
+		if (!multi_mode)
+			hide_dialog();
+		else
+			set_status(_("Saved the .derot — add this sequence, or fit the next."));
 	} else {
 		siril_log_error(_("derotation: %s\n"),
 		                a->err ? a->err : _("compute failed"));

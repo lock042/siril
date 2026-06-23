@@ -1748,6 +1748,17 @@
                     <property name="label" translatable="yes">Image Information...</property>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkSeparator"/>
+                </child>
+                <child>
+                  <object class="GtkButton" id="tools_menu_derotation_multi">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Multi-sequence derotation...</property>
+                    <property name="tooltip-text" translatable="yes">Combine several derotated planetary videos (e.g. R/G/B or a long capture split across files) into one stack, with full access to the registration and stacking parameters.</property>
+                    <signal name="clicked" handler="on_derotation_multi_clicked" swapped="no"/>
+                  </object>
+                </child>
               </object>
             </property>
             <property name="name">root</property>
