@@ -1094,9 +1094,10 @@ gchar *get_siril_bundle_path() {
 // will find an executable in PATH if path is set to NULL
 // will find an executable in passed path otherwise
 gchar *find_executable_in_path(const char *exe_name, const char *path) {
-	char full_path[MAX_PATH];
+	wchar_t full_path[MAX_PATH];
 	DWORD result;
 	const gchar *path_value;
+	gboolean free_path_value = FALSE;
 	if (!path) { // we need to remove mingw64 tokens from PATH
 		const gchar *tmp_path_value = g_getenv("PATH");
 		// siril_debug_print("Unfiltered: %s\n", tmp_path_value);
@@ -1109,6 +1110,7 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 		}
 		g_ptr_array_add(filtered_tokens, NULL);
 		path_value = g_strjoinv(";", (gchar **)filtered_tokens->pdata);
+		free_path_value = TRUE;
 		// siril_debug_print("Filtered: %s\n", path_value);
 		// Free memory
 		g_strfreev(tokens);
@@ -1116,19 +1118,28 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 	} else
 		path_value = path;
 
-	// Use SearchPath to find the executable in PATH
-	result = SearchPath(
-		path_value,		// Search in PATH directories
-		exe_name,	// The executable name
-		".exe",		// Default extension (NULL if no default extension)
+	// Use SearchPathW (not SearchPathA) so that PATH directories and the
+	// executable name containing non-ASCII characters are handled correctly:
+	// the ANSI variant would interpret the UTF-8 inputs, and return its result,
+	// in the legacy code page and fail on national characters.
+	wchar_t *wpath_value = g_utf8_to_utf16(path_value, -1, NULL, NULL, NULL);
+	wchar_t *wexe_name = g_utf8_to_utf16(exe_name, -1, NULL, NULL, NULL);
+	result = SearchPathW(
+		wpath_value,	// Search in PATH directories
+		wexe_name,	// The executable name
+		L".exe",	// Default extension (NULL if no default extension)
 		MAX_PATH,	// Buffer size
 		full_path,	// Buffer to store the full path
 		NULL		// Address of a pointer to the file part of the path (can be NULL)
 	);
+	g_free(wpath_value);
+	g_free(wexe_name);
+	if (free_path_value)
+		g_free((gchar *)path_value);
 
 	if (result > 0 && result < MAX_PATH) {
-		// Found the executable, so return a copy of the path
-		return g_strdup(full_path);
+		// Found the executable, so return a copy of the path as UTF-8
+		return g_utf16_to_utf8(full_path, -1, NULL, NULL, NULL);
 	} else {
 		// Executable not found
 		return NULL;

@@ -2750,7 +2750,25 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #endif
 
 	struct heif_context *ctx = heif_context_alloc();
-	err = heif_context_read_from_file(ctx, name, NULL);
+
+	// Load the file through GLib so that non-ASCII (UTF-8) paths work on
+	// Windows. libheif's heif_context_read_from_file() opens the path with an
+	// internal narrow stream (ANSI code page) and fails on national characters.
+	gchar *fbuffer = NULL;
+	gsize fsize = 0;
+	GError *gerr = NULL;
+	if (!g_file_get_contents(name, &fbuffer, &fsize, &gerr)) {
+		siril_log_color_message(_("Error opening %s: %s\n"), "red", name,
+				gerr ? gerr->message : "");
+		g_clear_error(&gerr);
+		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
+		return OPEN_IMAGE_ERROR;
+	}
+	err = heif_context_read_from_memory(ctx, fbuffer, fsize, NULL);
+	g_free(fbuffer);
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_context_free(ctx);

@@ -199,7 +199,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	GDir *dir;
 	GError *error = NULL;
 	gint count = 0;
-	struct stat fileInfo, currfileInfo;
+	GStatBuf fileInfo, currfileInfo;
 	GList *fds = NULL;
 
 	//we need to check that the folder path does not contain wildcards
@@ -244,15 +244,15 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 			if (!target_date) { // No date_obs we fetch the most recent file based on stat
 				if (!count) {
 					out = g_build_filename(dirname, file, NULL);
-						if (stat(out, &fileInfo))
+						if (g_stat(out, &fileInfo))
 							siril_debug_print("stat() failed\n");
 				} else {
 					currfile = g_build_filename(dirname, file, NULL);
-					if (stat(currfile, &currfileInfo))
+					if (g_stat(currfile, &currfileInfo))
 							siril_debug_print("stat() failed\n");
 					if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
 						out = g_build_filename(dirname, file, NULL);
-						if (stat(out, &fileInfo))
+						if (g_stat(out, &fileInfo))
 							siril_debug_print("stat() failed\n");
 					}
 				}

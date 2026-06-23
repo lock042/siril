@@ -2966,7 +2966,7 @@ gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic)
 		return FALSE;
 	}
 
-	FILE *f = fopen(pyc_path, "rb");
+	FILE *f = g_fopen(pyc_path, "rb");
 	if (!f) return FALSE;
 
 	unsigned char buf[4];

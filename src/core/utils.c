@@ -324,6 +324,22 @@ gboolean string_is_a_path(const char *file) {
 	return FALSE;
 }
 
+#ifdef _WIN32
+/* Returns TRUE if filename is a reparse point (symlink/junction). Uses the
+ * wide API so that non-ASCII (UTF-8) paths are handled correctly; GetFileAttributesA
+ * would interpret the path in the legacy ANSI code page and fail on national
+ * characters. Also returns FALSE on error rather than misreading
+ * INVALID_FILE_ATTRIBUTES as a reparse point. */
+static gboolean win32_is_reparse_point(const char *filename) {
+	wchar_t *wfilename = g_utf8_to_utf16(filename, -1, NULL, NULL, NULL);
+	if (!wfilename)
+		return FALSE;
+	DWORD attrs = GetFileAttributesW(wfilename);
+	g_free(wfilename);
+	return (attrs != INVALID_FILE_ATTRIBUTES) && (attrs & FILE_ATTRIBUTE_REPARSE_POINT);
+}
+#endif
+
 /**
 * Tests whether the given file is either regular or a symlink
 * @param filename input
@@ -337,7 +353,7 @@ int is_readable_file(const char *filename) {
 #ifndef _WIN32
 			|| S_ISLNK(sts.st_mode)
 #else
-		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+		|| win32_is_reparse_point(filename)
 #endif
 	)
 		return 1;
@@ -356,7 +372,7 @@ int is_symlink_file(const char *filename) {
 #ifndef _WIN32
 	if (S_ISLNK(sts.st_mode))
 #else
-	if (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+	if (win32_is_reparse_point(filename))
 #endif
 		return 1;
 	return 0;

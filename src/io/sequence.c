@@ -2496,7 +2496,7 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
 		return CACHE_NOT_FOUND;
 
-	struct stat imgfileInfo, cachefileInfo;
+	GStatBuf imgfileInfo, cachefileInfo;
 	// if sequence is FITS, we check individual img file date vs cachefile date
 	if (seq->type == SEQ_REGULAR) {
 		char last_char = cache_filename[strlen(cache_filename) - 1];
@@ -2504,8 +2504,8 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 		char img_filename[256];
 		if (!fit_sequence_get_image_filename_checkext(seq, index, img_filename) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
-				stat(img_filename, &imgfileInfo) ||
-				stat(cache_filename, &cachefileInfo))
+				g_stat(img_filename, &imgfileInfo) ||
+				g_stat(cache_filename, &cachefileInfo))
 			return CACHE_NOT_FOUND;
 		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime - margin) {
 			siril_debug_print("%s is older than %s, removing\n", cache_filename, img_filename);
@@ -2520,7 +2520,7 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 	if (seq->type == SEQ_SER)
 		seqname = seq->ser_file->filename;
 	else seqname = seq->fitseq_file->filename;
-	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
+	if (g_stat(seqname, &imgfileInfo) || g_stat(cache_filename, &cachefileInfo))
 		return CACHE_NOT_FOUND;
 	if (cachefileInfo.st_mtime < imgfileInfo.st_mtime) {
 		siril_debug_print("%s is older than %s, removing\n", cache_filename, seqname);

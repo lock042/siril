@@ -6,6 +6,7 @@
 #include <cstring>
 #include "pipp_avi_write.h"
 #include "pipp_utf8.h"
+#include <glib/gstdio.h>  // g_fopen: UTF-8/non-ASCII path support on Windows
 
 #include <cwchar>
 #include <memory>
@@ -531,7 +532,7 @@ bool c_pipp_avi_write::create(
                           + sizeof(m_movi_avix_list_header) - sizeof(m_movi_avix_list_header.four_cc)
                           + m_movi_avix_list_header.size;
 
-    mp_avi_file = fopen(filename, "wb+");
+    mp_avi_file = g_fopen(filename, "wb+");
 
     // Check file opened
     // Return if file did not open
@@ -588,7 +589,7 @@ void c_pipp_avi_write::split_create()
     }
 
     // Open new file
-    mp_avi_file = fopen(p_split_filename.get(), "wb+");
+    mp_avi_file = g_fopen(p_split_filename.get(), "wb+");
 
     // Check file opened
     // Return if file did not open

@@ -42,10 +42,32 @@ extern "C" {
 #include "libxisf.h"
 
 
+// Open an XISF file by loading its bytes through GLib first, so that non-ASCII
+// (UTF-8) paths work on Windows. LibXISF::XISFReader::open(const String&) uses
+// a narrow std::ifstream internally (ANSI code page) and fails on national
+// characters. Throws LibXISF::Error on parse failure (both callers run inside
+// a try/catch); returns false only if the file itself could not be read.
+static bool xisf_open_utf8(LibXISF::XISFReader &reader, const char *filename) {
+	gchar *buffer = NULL;
+	gsize len = 0;
+	GError *err = NULL;
+	if (!g_file_get_contents(filename, &buffer, &len, &err)) {
+		g_warning("Error opening XISF file %s: %s", filename,
+				err ? err->message : "(unknown)");
+		g_clear_error(&err);
+		return false;
+	}
+	LibXISF::ByteArray data(buffer, len);
+	g_free(buffer);
+	reader.open(data);
+	return true;
+}
+
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	try {
 		LibXISF::XISFReader xisfReader;
-		xisfReader.open(filename);
+		if (!xisf_open_utf8(xisfReader, filename))
+			return -1;
 
 		if (xisfReader.imagesCount() == 0) {
 			xisfReader.close();
@@ -166,7 +188,8 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 	gchar *description = NULL;
 	try {
 		LibXISF::XISFReader xisfReader;
-		xisfReader.open(filename);
+		if (!xisf_open_utf8(xisfReader, filename))
+			return NULL;
 
 		if (xisfReader.imagesCount() == 0) {
 			xisfReader.close();
