@@ -26,11 +26,11 @@
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
 
-#define CDSSESAME "http://cds.unistra.fr/cgi-bin/nph-sesame"
-#define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
-#define SIMBADSESAME "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
+#define CDSSESAME "https://cds.unistra.fr/cgi-bin/nph-sesame"
+#define VIZIERSESAME "https://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
+#define SIMBADSESAME "https://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
-#define SIMBAD "http://simbad.cds.unistra.fr/simbad/sim-id?output.format=ASCII&Ident="
+#define SIMBAD "https://simbad.cds.unistra.fr/simbad/sim-id?output.format=ASCII&Ident="
 #define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?-tcoor=5&-mime=text/csv&-output=--jd&-from=Siril"
 
 typedef enum {

@@ -767,8 +767,13 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 			continue;
 		}
 
-		// Store the URL in the string vector
-		spcc_mirrors[valid_count] = g_strdup(url);
+		// Store the URL in the string vector, stripping any trailing slash so the
+		// later "base/filename" concatenation cannot produce a double slash.
+		gchar *mirror_url = g_strdup(url);
+		size_t mirror_len = strlen(mirror_url);
+		while (mirror_len > 0 && mirror_url[mirror_len - 1] == '/')
+			mirror_url[--mirror_len] = '\0';
+		spcc_mirrors[valid_count] = mirror_url;
 		valid_count++;
 
 		siril_debug_print("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
