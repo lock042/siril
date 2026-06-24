@@ -402,16 +402,16 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 	switch (marker_t) {
 		default:
 		case MARKER_X_MIN:
-			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_X_MAX:
-			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[1], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[1], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_Y_MIN:
-			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_Y_MAX:
-			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 	}
 	cairo_fill(cr);
@@ -1407,6 +1407,7 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 }
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -1448,6 +1449,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 
 	set_cursor_waiting(FALSE);
 }
@@ -1537,7 +1539,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
 	cfgplot.xtics = 5;
 	cfgplot.yaxislabel = ylabel;
-	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	cfgplot.yaxislabelrot = G_PI_2 * 3.0;
 	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
 	cfgplot.xticlabelfmt = formatX;
 	cfgplot.yticlabelfmt = formatY;

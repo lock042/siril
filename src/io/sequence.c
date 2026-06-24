@@ -56,8 +56,12 @@
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_sidecar.h"
+#include "registration/mpp/mpp_ap.h"
 #include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
+#include "core/siril_date.h"
 
 #include "sequence.h"
 
@@ -560,12 +564,17 @@ gboolean set_seq(gpointer user_data){
 
 #ifdef HAVE_FFMS2
 	int convert = (int)((com.headless));
+	int avi_bayer_pattern = 0;   /* MPP_AVI_BAYER_AUTO */
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = gui_iface.confirm_dialog(_("Deprecated sequence"),
+			convert = gui_iface.confirm_dialog_with_avi_bayer(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
-							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
+							" SER file format is a simple image sequence format, similar to uncompressed films."
+							"\n\nIf this AVI is a raw Bayer mosaic (OSC planetary capture), pick the camera's"
+							" Bayer pattern below — it will be stamped into the SER ColorID so future runs"
+							" see the right mosaic layout. Leave Auto if you don't know or the AVI is true mono."),
+					_("Convert to SER"), &avi_bayer_pattern);
 		}
 	} else {
 		siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
@@ -575,7 +584,7 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (convert) {
 		close_sequence(FALSE);
-		convert_single_film_to_ser(seq);
+		convert_single_film_to_ser_with_bayer(seq, avi_bayer_pattern);
 		return FALSE;
 	}
 #endif
@@ -610,6 +619,35 @@ gboolean set_seq(gpointer user_data){
 	update_gain_from_gfit();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 
+	/* If a .mpp sidecar exists next to this sequence, load it into the
+	 * cached run so the AP overlay (and shift arrows, when shifts were
+	 * computed) come up immediately — no need to re-Analyze or re-Register
+	 * just to inspect a previous registration's output. */
+	if (com.seq.seqname) {
+		gchar *sidecar_path = g_strdup_printf("%s.mpp", com.seq.seqname);
+		if (g_file_test(sidecar_path, G_FILE_TEST_EXISTS)) {
+			mpp_run_t *run = NULL;
+			mpp_status_t rc = mpp_sidecar_read(sidecar_path, &run);
+			if (rc == MPP_OK && run && run->num_frames == com.seq.number) {
+				siril_log_status(_("mpp: loaded sidecar %s — %d APs%s\n"), sidecar_path, run->aps->count,
+				                        run->shifts ? ", shifts available" : "");
+				mpp_set_cached_run(run);
+			} else if (rc == MPP_OK && run) {
+				/* Readable but for a different sequence state. */
+				siril_log_error(_("mpp: sidecar %s does not match this sequence "
+				                  "(%d frames vs %d) — ignoring it; re-run Analyze.\n"),
+				                sidecar_path, run->num_frames, com.seq.number);
+				mpp_run_free(run);
+			} else {
+				/* Unreadable — e.g. written by an older Siril version. */
+				siril_log_error(_("mpp: could not read sidecar %s (code %d) — it may "
+				                  "be from an older version; re-run Analyze.\n"),
+				                sidecar_path, rc);
+			}
+		}
+		g_free(sidecar_path);
+	}
+
 	if (!com.script && !com.headless) {
 		gui_iface.on_sequence_opened();
 	}
@@ -636,6 +674,21 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gui_iface.invalidate_histogram();
 	undo_flush();
 	close_single_image();
+	/* close_single_image() above no-ops while a sequence is loaded (its
+	 * guard returns early), so it won't release a single-image overlay left
+	 * on top of the sequence — specifically the MPP "REFERENCE IMAGE" frame
+	 * painted by paint_mpp_ref_frame_into_gfit, which sets com.uniq while the
+	 * sequence stays loaded. Without clearing it single_image_is_loaded()
+	 * stays true and display_filename() keeps showing "REFERENCE IMAGE"
+	 * instead of the frame we're loading. com.uniq is normally NULL during
+	 * sequence navigation, so this only fires for that overlay case
+	 * (com.uniq->fit aliases gfit and is not owned, so it is not freed). */
+	if (com.uniq) {
+		free(com.uniq->filename);
+		free(com.uniq->comment);
+		free(com.uniq);
+		com.uniq = NULL;
+	}
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {
@@ -662,6 +715,16 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			gui_iface.set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			gui_iface.update_display_mode_state();		// display the display mode in the combo box
 		}
+		/* Re-sync the viewport notebook to gfit's channel count. Normally
+		 * sequence frames within a single sequence all share the same
+		 * layout so the tabs were set at sequence-open time and stay; but
+		 * the MPP Analyze flow temporarily replaces gfit with a single-
+		 * channel reference frame (paint_mpp_ref_frame_into_gfit calls
+		 * close_tab/init_right_tab to fold the RGB tabs away), so when
+		 * the user navigates back to a 3-channel source frame the tabs
+		 * have to expand again. Both calls are idempotent and cheap. */
+		gui_iface.close_tab();
+		gui_iface.init_right_tab();
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		gui_iface.remap_all_vports();
@@ -811,6 +874,24 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 			return name_buf;
 	}
 	return NULL;
+}
+
+/* supported for currently loaded image from single or regular sequence */
+gchar *get_image_filename_no_ext(sequence *seq, int idx) {
+	if (!seq) {
+		// check loaded image
+		if (com.uniq)
+			return g_strdup(com.uniq->filename);
+		seq = &com.seq;
+		idx = com.seq.current;
+	}
+	if (seq->type != SEQ_REGULAR)
+		return NULL;
+	char root[256];
+	if (!fit_sequence_get_image_filename(seq, idx, root, FALSE)) {
+		return NULL;
+	}
+	return g_strdup(root);
 }
 
 /* Read an entire image from a sequence, inside a pre-allocated fits.
@@ -1027,6 +1108,77 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	}
 	seq->imgparam[index].rx = dest->rx;
 	seq->imgparam[index].ry = dest->ry;
+	return 0;
+}
+
+// reads the date of frame at index in the sequence
+// returns it as a GDateTime in dt and as a Julian Day in jdt if the corresponding pointer is not null
+int seq_read_frame_date(sequence *seq, int index, GDateTime **dt, double *jdt) {
+	assert(index < seq->number);
+	char filename[256];
+	if (jdt)
+		 *jdt = 0.;
+	if (dt)
+		*dt = NULL;
+	GDateTime *dtread = NULL;
+	switch (seq->type) {
+		case SEQ_REGULAR:
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
+			dtread = get_date_from_fits(filename);
+			break;
+		case SEQ_SER:
+			assert(seq->ser_file);
+			dtread = ser_timestamp_to_date_time(seq->ser_file->ts[index]);
+			break;
+		case SEQ_FITSEQ:
+			assert(seq->fitseq_file);
+			fitsfile **fptr = NULL;
+			if (seq->fitseq_file->thread_fptr) {
+#ifdef _OPENMP
+				int thread_id = omp_get_thread_num();
+				int status = 0;
+				fits_movabs_hdu(seq->fitseq_file->thread_fptr[thread_id], seq->fitseq_file->hdu_index[index], NULL, &status);
+				if (status) {
+					siril_log_error(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
+							index, seq->seqname, status);
+					return 1;
+				}
+				fptr = &seq->fitseq_file->thread_fptr[thread_id];
+#else
+				return 1;
+#endif
+			} else {
+				if (fitseq_set_current_frame(seq->fitseq_file, index)) {
+					siril_log_error(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
+				fptr = &seq->fitseq_file->fptr;
+			}
+			char date_obs[FLEN_VALUE] = { 0 };
+			int status = 0;
+			fits_read_key(*fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
+			if (!status)
+				dtread = FITS_date_to_date_time(date_obs);
+			break;
+#ifdef HAVE_FFMS2
+		case SEQ_AVI:
+			assert(seq->film_file);
+			return 0;
+			break;
+#endif
+		case SEQ_INTERNAL:
+			return 0;
+			break;
+	}
+	if (dt) {
+		*dt = dtread;
+	}
+	if (jdt && dtread) {
+		*jdt = date_time_to_Julian(dtread);
+		if (!dt)
+			g_date_time_unref(dtread);
+	}
 	return 0;
 }
 
@@ -1613,6 +1765,9 @@ void close_sequence(int loading_sequence_from_combo) {
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
 
+		/* Drop any cached MPP run — it pertains to the closed sequence. */
+		mpp_clear_cached_run();
+
 		if (!com.headless)
 			gui_iface.on_sequence_closed(loading_sequence_from_combo);
 	}
@@ -1622,8 +1777,15 @@ void close_sequence(int loading_sequence_from_combo) {
  * selected in the sequence, the best of the first registration data found if
  * any, the first otherwise */
 int sequence_find_refimage(sequence *seq) {
-	if (seq->reference_image != -1)
-		return seq->reference_image;
+	if (seq->reference_image != -1) {
+		// guard against a corrupted/out-of-range reference stored in the .seq
+		// file: returning it as-is would set seq->current out of bounds and
+		// lead to out-of-bounds accesses on imgparam/regparam (see #1950)
+		if (seq->reference_image >= 0 && seq->reference_image < seq->number)
+			return seq->reference_image;
+		siril_log_warning(_("Invalid reference image (%d) in sequence, resetting it\n"), seq->reference_image);
+		seq->reference_image = -1;
+	}
 	if (seq->type == SEQ_INTERNAL)
 		return 1; // green channel
 	int layer, image, best = -1;
@@ -2111,7 +2273,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (framing == REGISTERED_FRAME) {
-		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
+		if (seq->reference_image < 0 || seq->reference_image >= seq->number) seq->reference_image = sequence_find_refimage(seq);
 		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_error(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"));
 			free(args);
@@ -2298,6 +2460,8 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		siril_log_warning(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
 		return FALSE;
 	}
+	if (seq->reference_image < 0 || seq->reference_image >= seq->number)
+		seq->reference_image = sequence_find_refimage(seq);
 	double orig_x = (double)(seq->rx / 2.);
 	double orig_y = (double)(seq->ry / 2.);
 	for (int i = 0; i < seq->number; i++) {
@@ -2315,7 +2479,7 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	return FALSE;
 }
 
-void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel) {
+void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel, gboolean cleanmpp) {
 	if (cleanreg && seq->regparam) {
 		for (int i = 0; i < seq->nb_layers; i++) {
 			if (seq->regparam[i]) {
@@ -2361,6 +2525,19 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 		// unsetting ref image
 		seq->reference_image = -1;
 		fix_selnum(seq, TRUE);
+	}
+	if (cleanmpp) {
+		/* Remove the mpp registration sidecar (<seqname>.mpp) written by
+		 * REGISTER_MPP / PSS. The in-memory cached run, if any, is cleared
+		 * by the GUI caller — the io layer must not call into registration. */
+		gchar *mpp_path = g_strdup_printf("%s.mpp", seq->seqname);
+		if (g_file_test(mpp_path, G_FILE_TEST_EXISTS)) {
+			if (g_unlink(mpp_path))
+				siril_log_debug("g_unlink() failed for %s\n", mpp_path);
+			else
+				siril_log_message(_("MPP registration data (sidecar) cleared\n"));
+		}
+		g_free(mpp_path);
 	}
 	writeseqfile(seq);
 }

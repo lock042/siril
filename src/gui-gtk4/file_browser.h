@@ -34,6 +34,16 @@ typedef void (*SirilFileBrowserPreview)(const gchar *path,
 
 SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title);
 
+/* Warm GIO's volume monitor ahead of first use.  The first
+ * g_volume_monitor_get() in a process spins up the native backend (a D-Bus
+ * proxy to gvfs/udisks on Linux) and was the bulk of the first Open dialog's
+ * lag.  Install this as a low-priority main-loop idle at startup —
+ * g_idle_add_full(G_PRIORITY_LOW, siril_file_browser_prewarm, NULL, NULL) —
+ * so the cost is paid during otherwise idle launch time.  MUST run on the
+ * main thread: GVolumeMonitor is not thread-default-context aware.  Returns
+ * G_SOURCE_REMOVE so it fires exactly once. */
+gboolean siril_file_browser_prewarm(gpointer user_data);
+
 void siril_file_browser_set_initial_folder (SirilFileBrowser *fb, const gchar *path);
 void siril_file_browser_set_initial_file   (SirilFileBrowser *fb, const gchar *path);
 void siril_file_browser_add_filter_pattern (SirilFileBrowser *fb,

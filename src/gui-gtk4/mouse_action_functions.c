@@ -39,6 +39,9 @@
 #include "gui-gtk4/PSF_list.h"
 #include "image_interactions.h"
 #include "gui-gtk4/mouse_action_functions.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
 #include "gui-gtk4/masks_gui.h"
 #include "image_display.h"
 #include "gui-gtk4/callbacks.h"
@@ -349,6 +352,14 @@ void cache_widgets() {
 // this is required in order to avoid calling a NULL pointer if the mouse
 // action does not have any other function assigned.
 gboolean mouse_nullfunction(mouse_data *data) {
+	return TRUE;
+}
+
+/* Release callback for the MPP AP editor's left-click drag — clears the
+ * drag-index. Motion events stop affecting an AP once this fires. */
+gboolean mpp_ap_drag_release(mouse_data *data) {
+	(void) data;
+	mpp_ap_editor_set_drag_idx(-1);
 	return TRUE;
 }
 
@@ -734,6 +745,37 @@ gboolean main_action_click(mouse_data *data) {
 				}
 				break;
 			}
+			case MOUSE_ACTION_EDIT_APS: {
+				/* MPP AP editor: left-click on existing AP starts a drag,
+				 * left-click on empty space adds a new AP. Right-click
+				 * removal is in second_action_click below. */
+				mpp_run_t *run = mpp_get_cached_run();
+				if (!run) break;
+				int ap_x, ap_y;
+				mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+				                        com.seq.current,
+				                        data->zoomed.x, data->zoomed.y,
+				                        &ap_x, &ap_y);
+				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
+				if (hit >= 0) {
+					mpp_ap_editor_set_drag_idx(hit);
+					mpp_ap_editor_set_selected_idx(hit);   /* resize controls act on this AP */
+					register_release_callback(mpp_ap_drag_release, data->button);
+					redraw(REDRAW_OVERLAY);   /* show selection highlight */
+				} else if (mpp_ap_editor_get_selected_idx() >= 0) {
+					/* Background click while an AP is selected: fix its size
+					 * and deselect (don't add a new AP). */
+					mpp_ap_editor_set_selected_idx(-1);
+					redraw(REDRAW_OVERLAY);
+				} else {
+					mpp_ap_editor_record_undo(-1);
+					if (mpp_ap_add(run, ap_x, ap_y) == MPP_OK) {
+						mpp_ap_editor_refresh_count_label();
+						redraw(REDRAW_OVERLAY);
+					}
+				}
+				break;
+			}
 			case MOUSE_ACTION_SELECT_PREVIEW1: {
 				register_release_callback(select_preview1_release, data->button);
 				break;
@@ -877,6 +919,25 @@ gboolean second_action_click(mouse_data *data) {
 
 				redraw(REDRAW_OVERLAY);
 				gui_function(redraw_previews, NULL);
+			}
+		} else if (*data->mouse_status == MOUSE_ACTION_EDIT_APS) {
+			/* MPP AP editor: right-click on an AP removes it. */
+			mpp_run_t *run = mpp_get_cached_run();
+			if (run) {
+				int ap_x, ap_y;
+				mpp_display_to_ap_coord(run, (int)gfit->rx, (int)gfit->ry,
+				                        com.seq.current,
+				                        data->zoomed.x, data->zoomed.y,
+				                        &ap_x, &ap_y);
+				int hit = mpp_ap_hit_test(run, ap_x, ap_y);
+				if (hit >= 0) {
+					mpp_ap_editor_record_undo(-1);
+					if (mpp_ap_remove(run, hit) == MPP_OK) {
+						mpp_ap_editor_set_selected_idx(-1);   /* indices shifted */
+						mpp_ap_editor_refresh_count_label();
+						redraw(REDRAW_OVERLAY);
+					}
+				}
 			}
 		} else if (*data->mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 			if (sequence_is_loaded()) {

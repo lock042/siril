@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (C) The free-astro development team, 2026
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+-->
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_mpp_shift_viewer_frame">
+    <property name="lower">1</property>
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_shift_viewer_scale">
+    <property name="lower">1</property>
+    <property name="upper">200</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkWindow" id="mpp_shift_viewer_dialog">
+    <property name="width-request">380</property>
+    <property name="height-request">200</property>
+    <property name="title" translatable="yes">AP Shift Viewer (diagnostic)</property>
+    <property name="resizable">0</property>
+    <property name="modal">0</property>
+    <signal name="close-request" handler="on_mpp_shift_viewer_dialog_close_request" swapped="no"/>
+    <signal name="show" handler="on_mpp_shift_viewer_dialog_show" swapped="no"/>
+    <signal name="hide" handler="on_mpp_shift_viewer_dialog_hide" swapped="no"/>
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <property name="margin-top">8</property>
+        <property name="margin-bottom">8</property>
+        <property name="margin-start">8</property>
+        <property name="margin-end">8</property>
+        <child>
+          <object class="GtkGrid">
+            <property name="vexpand">1</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">10</property>
+            <property name="margin-top">8</property>
+            <property name="margin-bottom">8</property>
+            <property name="margin-start">12</property>
+            <property name="margin-end">12</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="yes">Frame</property>
+                <property name="halign">end</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_mpp_shift_viewer_frame">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="adjustment">adj_mpp_shift_viewer_frame</property>
+                <property name="numeric">1</property>
+                <signal name="value-changed" handler="on_mpp_shift_viewer_frame_changed" swapped="no"/>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="yes">Vector scale (×)</property>
+                <property name="halign">end</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_mpp_shift_viewer_scale">
+                <property name="focusable">1</property>
+                <property name="halign">start</property>
+                <property name="adjustment">adj_mpp_shift_viewer_scale</property>
+                <property name="numeric">1</property>
+                <property name="tooltip-text" translatable="yes">Multiplier for arrow lengths. Useful when per-AP shifts are sub-pixel and would otherwise be invisible.</property>
+                <signal name="value-changed" handler="on_mpp_shift_viewer_scale_changed" swapped="no"/>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_mpp_shift_viewer_stats">
+                <property name="label" translatable="yes">No data</property>
+                <property name="halign">start</property>
+                <property name="margin-top">8</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">2</property>
+                  <property name="column-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="yes">Green arrows: successful Stage B fits. Red arrows: Stage B failed (shift = 0 fallback). The arrow tail sits at the AP centre; the head shows the displaced position scaled by the multiplier above.</property>
+                <property name="halign">start</property>
+                <property name="wrap">1</property>
+                <property name="max-width-chars">48</property>
+                <property name="margin-top">4</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">3</property>
+                  <property name="column-span">2</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">end</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="button_mpp_shift_viewer_close">
+                <property name="label" translatable="yes">Close</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <signal name="clicked" handler="on_mpp_shift_viewer_close_clicked" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+</interface>

@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/siril_log.h"
 
 #include <assert.h>
-#define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
+#define _USE_MATH_DEFINES       /* needed for MS Windows to define G_PI */
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -289,8 +289,8 @@ create_lanczos_lut(const int kernel_order, const size_t npix,
   lanczos_lut[0] = 1.0;
 
   for (i = 1; i < npix; ++i) {
-    poff = M_PI * (float)i * del;
-    if (poff < M_PI * forder) {
+    poff = G_PI * (float)i * del;
+    if (poff < G_PI * forder) {
       lanczos_lut[i] = sin(poff) / poff * sin(poff / forder) / (poff / forder);
     } else {
       lanczos_lut[i] = 0.0;
