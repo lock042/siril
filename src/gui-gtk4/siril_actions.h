@@ -119,7 +119,6 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void unpurple_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

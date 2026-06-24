@@ -3710,9 +3710,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case SPLIT_CFA_DIALOG:
 							action_name="split-cfa-processing";
 							break;
-						case STARNET_DIALOG:
-							action_name="starnet-processing";
-							break;
 						case STARS_LIST_WINDOW:
 							action_name="dyn-psf";
 							break;
