@@ -14,29 +14,33 @@ sqlite, XISF, healpix/htmesh, Python scripting); only the test framework
 > container simply sees whatever directories you bind-mount, with normal POSIX
 > access inside them.
 
-## Pulling
+## Obtaining the image
 
-Images are published to the project GitLab Container Registry:
+The CI does **not** push to a registry. The `docker-cli-image` job builds the
+image, smoke-tests it, and saves it as a downloadable artifact,
+`siril-cli-image.tar.gz`. Download that artifact from the pipeline and load it:
 
 ```sh
-docker pull registry.gitlab.com/free-astro/siril:latest   # newest release
-docker pull registry.gitlab.com/free-astro/siril:1.4       # latest 1.4.x
-docker pull registry.gitlab.com/free-astro/siril:1.4.4     # exact version
-docker pull registry.gitlab.com/free-astro/siril:edge      # tip of master
+docker load -i siril-cli-image.tar.gz      # -> siril-cli:<ref>  (e.g. siril-cli:1.4.4)
+docker image ls siril-cli
 ```
+
+Official release images are published to Docker Hub manually from the
+release-tag artifact (`docker load`, `docker tag`, `docker push`).
 
 ## Running
 
 The entrypoint is `siril-cli`, so arguments are passed straight through. Mount
-the directory holding your data/scripts at `/data` (the working directory):
+the directory holding your data/scripts at `/data` (the working directory).
+Replace `siril-cli:<ref>` below with the tag you loaded:
 
 ```sh
 # Run a script over data in the current directory
 docker run --rm -v "$PWD:/data" --user "$(id -u):$(id -g)" \
-    registry.gitlab.com/free-astro/siril -s /data/process.ssf
+    siril-cli:<ref> -s /data/process.ssf
 
 # Quick check that it works headlessly
-docker run --rm registry.gitlab.com/free-astro/siril --version
+docker run --rm siril-cli:<ref> --version
 ```
 
 ### File ownership
@@ -68,7 +72,7 @@ docker volume create siril-state
 docker run --rm \
     -v siril-state:/home/siril \
     -v "$PWD:/data" \
-    registry.gitlab.com/free-astro/siril -s /data/process.ssf
+    siril-cli:<ref> -s /data/process.ssf
 ```
 
 Or fold the config into your data tree by pointing the XDG dirs at the mount
@@ -79,7 +83,7 @@ docker run --rm -v "$PWD:/data" \
     -e XDG_CONFIG_HOME=/data/.siril-config \
     -e XDG_DATA_HOME=/data/.siril-data \
     --user "$(id -u):$(id -g)" \
-    registry.gitlab.com/free-astro/siril -s /data/process.ssf
+    siril-cli:<ref> -s /data/process.ssf
 ```
 
 The image pins `HOME=/home/siril` and makes it world-writable, so it works even
