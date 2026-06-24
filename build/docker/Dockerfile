@@ -110,7 +110,18 @@ RUN apt-get update \
 # Run as a non-root user with uid/gid 1000 so files written to a bind-mounted
 # /data are owned by the typical host user.  Override with `--user $(id -u):$(id -g)`
 # when your host uid differs.
-RUN groupadd -g 1000 siril && useradd -u 1000 -g 1000 -m -s /bin/bash siril
+#
+# Siril keeps all its state under $HOME via the XDG dirs (~/.config/siril,
+# ~/.local/share/siril, ~/.local/share/siril-scripts, the SPCC database, …).
+# Pin HOME and make it world-writable so the image still works when run with
+# `--user <arbitrary-uid>`: such a uid has no /etc/passwd entry, so Docker
+# would otherwise leave HOME=/ and Siril could not create ~/.config.  The
+# cache is redirected to /tmp so it never bloats a persisted home volume.
+# Mount a volume at /home/siril (or set XDG_*_HOME) to persist state across runs.
+ENV HOME=/home/siril \
+    XDG_CACHE_HOME=/tmp/siril-cache
+RUN groupadd -g 1000 siril && useradd -u 1000 -g 1000 -m -s /bin/bash siril \
+    && chmod 0777 /home/siril
 USER siril
 WORKDIR /data
 
