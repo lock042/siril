@@ -16,6 +16,30 @@
 # Run:
 #   docker run --rm -v "$PWD:/data" --user "$(id -u):$(id -g)" \
 #       siril-cli -s /data/script.ssf
+#
+# Formal release procedure (publishing to Docker Hub)
+# ---------------------------------------------------
+# CI never pushes to a registry; release images are published by hand from the
+# artifact of the release-tag pipeline.  To cut a release:
+#
+#   1. Push the release tag (e.g. 1.4.4).  This runs the `docker-cli-image` CI
+#      job, which builds + smoke-tests the image and uploads it as the artifact
+#      `siril-cli-image.tar.gz` (the image inside is tagged `siril-cli:<tag>`).
+#   2. Download that artifact from the tagged pipeline, then load, retag and
+#      push it (replace `siril` with the actual Docker Hub namespace):
+#
+#        VER=1.4.4                       # the release tag
+#        REPO=siril/siril                # Docker Hub <namespace>/<repo>
+#        docker load -i siril-cli-image.tar.gz          # -> siril-cli:$VER
+#        docker tag siril-cli:$VER $REPO:$VER
+#        docker tag siril-cli:$VER $REPO:${VER%.*}       # e.g. 1.4
+#        docker tag siril-cli:$VER $REPO:latest
+#        docker login -u <dockerhub-user>
+#        docker push $REPO:$VER
+#        docker push $REPO:${VER%.*}
+#        docker push $REPO:latest
+#
+#   Only move `latest` for a stable release, not for pre-releases/RCs.
 ###############################################################################
 
 ###############################################################################
