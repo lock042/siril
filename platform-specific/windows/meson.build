@@ -23,5 +23,5 @@ win_res += winm.compile_resources(
     include_directories: [
       rootInclude, srcInclude,
     ],
-		depend_files: ['siril.ico', 'text-x-seq.ico']
+		depend_files: ['siril.ico', 'text-x-seq.ico', 'siril.manifest']
 	)

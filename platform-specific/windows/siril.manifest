@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <!-- The assemblyIdentity version is cosmetic for a private (non side-by-side)
+       assembly; the loader does not match against it. -->
+  <assemblyIdentity type="win32" name="org.siril.Siril" version="1.0.0.0" processorArchitecture="*"/>
+
+  <!-- activeCodePage=UTF-8 (below) is only honoured when the application
+       declares Windows 10+ awareness, so this compatibility block is required. -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/> <!-- Windows 10 / 11 -->
+    </application>
+  </compatibility>
+
+  <!-- Make the process-wide ANSI code page UTF-8 (Windows 10 1903+). This makes
+       the legacy *A Win32 APIs and the CRT char-based functions interpret/emit
+       char* strings as UTF-8, so components that do not use the wide APIs can
+       still handle non-ASCII (e.g. accented Windows account names) file paths.
+       Siril's own code routes path handling through GLib/wide APIs already;
+       this is a belt-and-braces backstop for any remaining *A consumers. -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+    </windowsSettings>
+  </application>
+</assembly>

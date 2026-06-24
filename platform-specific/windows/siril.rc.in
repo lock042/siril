@@ -20,8 +20,12 @@
 
 #define VER_LEGALCOPYRIGHT_STR      "Copyright © 2012-" SIRIL_GIT_LAST_COMMIT_YEAR
 
-1 ICON QUOTE(TOP_SRCDIR) "/platform-specific/windows/siril.ico" 
+1 ICON QUOTE(TOP_SRCDIR) "/platform-specific/windows/siril.ico"
 2 ICON QUOTE(TOP_SRCDIR) "/platform-specific/windows/text-x-seq.ico"
+
+/* Application manifest: 1 = CREATEPROCESS_MANIFEST_RESOURCE_ID, 24 = RT_MANIFEST.
+   Sets the process active code page to UTF-8 (see siril.manifest). */
+1 24 QUOTE(TOP_SRCDIR) "/platform-specific/windows/siril.manifest"
 
 1 VERSIONINFO
 FILEVERSION     VER_FILEVERSION
