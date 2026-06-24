@@ -61,19 +61,42 @@ typedef enum {
 	HTTP_POST
 } HttpRequestType;
 
+// Apply the options common to every Siril curl transfer: identification, redirect
+// following, and timeouts/signal-safety so a dead or stalled server cannot hang
+// the calling thread (NOSIGNAL is also required when called from worker threads).
+// The optional CA bundle from $CURL_CA_BUNDLE is applied here too, so every
+// transfer (GET, range and the liveness probe) picks it up consistently.
+static CURLcode apply_common_curl_opts(CURL *curl) {
+	CURLcode retval = CURLE_OK;
+	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
+	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+	// Abort a transfer stuck below 1 byte/s for 30s (stalled/blackholed server)
+	// without capping the total time of a legitimately large catalogue download.
+	retval |= curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 30L);
+	const gchar *ca_bundle = g_getenv("CURL_CA_BUNDLE");
+	if (ca_bundle) {
+		// Non-fatal: some TLS backends (e.g. Schannel) ignore/reject CAINFO.
+		if (curl_easy_setopt(curl, CURLOPT_CAINFO, ca_bundle) != CURLE_OK)
+			siril_debug_print("Could not set CURLOPT_CAINFO from CURL_CA_BUNDLE\n");
+	}
+	return retval;
+}
+
 static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpRequestType request_type, const gchar *post_data) {
 	CURL *curl = curl_easy_init();
 	if (!curl) {
 		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
 		return NULL;
 	}
-	CURLcode retval;
-	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
-	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	CURLcode retval = CURLE_OK;
+	retval |= curl_easy_setopt(curl, CURLOPT_URL, url);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
-	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	retval |= apply_common_curl_opts(curl);
 	if (request_type == HTTP_POST) {
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
@@ -82,11 +105,6 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 		siril_debug_print("Error in curl_easy_setopt()\n");
 		curl_easy_cleanup(curl);
 		return NULL;
-	}
-	if (g_getenv("CURL_CA_BUNDLE")) {
-		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"))) {
-			siril_log_color_message(_("Error configuring CURL with CA bundle. https functionality unavailable.\n"), "red");
-		}
 	}
 	return curl;
 }
@@ -198,14 +216,12 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 	// Construct the range header
 	gchar *range_header = g_strdup_printf("%zu-%zu", start, start + length - 1);
 
-	CURLcode retval;
-	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
-	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	CURLcode retval = CURLE_OK;
+	retval |= curl_easy_setopt(curl, CURLOPT_URL, url);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
-	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
+	retval |= apply_common_curl_opts(curl);
 
 	g_free(range_header);
 
@@ -213,26 +229,25 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 		if (!quiet) {
 			siril_log_color_message(_("Error in curl_easy_setopt() for range request\n"), "red");
 		}
+		// leave the caller's reused handle in a clean state
+		curl_easy_setopt(curl, CURLOPT_RANGE, NULL);
 		*error = 1;
 		return NULL;
-	}
-
-	if (g_getenv("CURL_CA_BUNDLE")) {
-		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"))) {
-			if (!quiet) {
-				siril_log_color_message(_("Error configuring CURL with CA bundle.\n"), "red");
-			}
-		}
 	}
 
 	content.data = calloc(1, 1);
 	if (content.data == NULL) {
 		PRINT_ALLOC_ERR;
+		curl_easy_setopt(curl, CURLOPT_RANGE, NULL);
 		*error = 1;
 		return NULL;
 	}
 
 	CURLcode res = curl_easy_perform(curl);
+	// The caller owns and reuses this handle (e.g. healpix issues many range
+	// requests on one handle). Clear CURLOPT_RANGE so a later non-range request
+	// on the same handle cannot inherit a stale range.
+	curl_easy_setopt(curl, CURLOPT_RANGE, NULL);
 	char *result = NULL;
 
 	if (res == CURLE_OK) {
@@ -335,15 +350,12 @@ int http_check(const gchar *url) {
 	curl = curl_easy_init();
 	if (!curl) return -1;
 
-	CURLcode retval;
-	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
-	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	CURLcode retval = CURLE_OK;
+	retval |= curl_easy_setopt(curl, CURLOPT_URL, url);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_abort);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
-	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	retval |= curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
-	retval |= curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);  // quick liveness probe
+	retval |= apply_common_curl_opts(curl);  // user-agent, follow, NOSIGNAL, CA bundle
 
 	if (retval) {
 		siril_debug_print("Error in curl_easy_setopt()\n");
@@ -446,6 +458,17 @@ int http_check(const gchar *url) {
 }
 
 #endif
+
+// Percent-encode a value for safe inclusion in a URL query component: all
+// URI-reserved characters and non-ASCII bytes are escaped (libcurl does NOT
+// escape CURLOPT_URL, so callers must do this for any variable data -- object
+// names, search terms, etc.). Returns a newly allocated string (free with
+// g_free), or NULL if value is NULL.
+gchar *siril_url_escape(const gchar *value) {
+	if (!value)
+		return NULL;
+	return g_uri_escape_string(value, NULL, FALSE);
+}
 
 gboolean is_online() {
 	return (siril_compiled_with_networking() && online_status);

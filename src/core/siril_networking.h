@@ -30,6 +30,8 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 int http_check(const gchar *url);
 
+gchar *siril_url_escape(const gchar *value);
+
 gboolean siril_compiled_with_networking();
 gboolean is_online();
 gboolean set_online_status(gboolean status);

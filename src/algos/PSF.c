@@ -31,6 +31,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/siril_networking.h"
 #include "core/siril_world_cs.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
@@ -924,21 +925,26 @@ static gchar *build_wcs_url(gchar *ra, gchar *dec) {
 
 	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
 
+	// Percent-encode the coordinate strings: they contain degree signs, quotes,
+	// '+'/'-' signs and spaces that must be escaped to form a valid URL.
+	gchar *escaped_ra = siril_url_escape(ra);
+	gchar *escaped_dec = siril_url_escape(dec);
+
 	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
-	url = g_string_append(url, ra);
-	url = g_string_append(url, dec);
+	url = g_string_append(url, escaped_ra);
+	url = g_string_append(url, escaped_dec);
 	url = g_string_append(url, "&Radius=");
 	url = g_string_append(url, tol);
 	url = g_string_append(url, "&Radius.unit=arcsec");
 	url = g_string_append(url, "#lab_basic");
 
 	gchar *simbad_url = g_string_free(url, FALSE);
-	gchar *cleaned_url = url_cleanup(simbad_url);
 
+	g_free(escaped_ra);
+	g_free(escaped_dec);
 	g_free(tol);
-	g_free(simbad_url);
 
-	return cleaned_url;
+	return simbad_url;
 }
 
 static const char *SNR_quality(double SNR) {
