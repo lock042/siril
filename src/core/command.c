@@ -516,63 +516,6 @@ gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	return result;  /* caller must g_free() */
 }
 
-gpointer run_nlbayes_on_fit(gpointer p) {
-	gui_iface.lock_roi_mutex();
-	gui_iface.copy_backup_to_gfit();
-	denoise_args *args = (denoise_args *) p;
-
-	if (args->suppress_artefacts)
-		siril_log_message(_("Colour artefact suppression active.\n"));
-
-	int retval = 0;
-
-	// Carry out cosmetic correction at the start, if selected
-	if (args->do_cosme)
-		denoise_hook_cosmetic(args->fit);
-
-	// Apply NR to each channel independently
-	if (args->fit == gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
-		fits *loop = NULL;
-		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
-			retval = 1;
-		}
-		loop->naxis = 2;
-		loop->naxes[2] = 1;
-		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
-		if (retval == 0) {
-			if (args->fit->type == DATA_FLOAT) {
-				for (size_t i = 0; i < 3; i++) {
-					float *loop_fdata = (float*) calloc(npixels, sizeof(float));
-					free(loop->fdata);
-					loop->fdata = loop_fdata;
-					memcpy(loop_fdata, args->fit->fpdata[i], npixels * sizeof(float));
-					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					memcpy(args->fit->fpdata[i], loop->fdata, npixels * sizeof(float));
-				}
-				free(loop->fdata);
-				loop->fdata = NULL;
-			} else {
-				for (size_t i = 0; i < 3; i++) {
-					WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
-					free(loop->data);
-					loop->data = loop_data;
-					memcpy(loop_data, args->fit->pdata[i], npixels * sizeof(WORD));
-					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					memcpy(args->fit->pdata[i], loop->data, npixels * sizeof(WORD));
-				}
-				free(loop->data);
-				loop->data = NULL;
-			}
-		clearfits(loop);
-		}
-	} else {
-		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-	}
-	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-	gui_iface.unlock_roi_mutex();
-	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
-}
-
 /*****************************************************************************
  *      D E N O I S E   A L L O C A T O R   A N D   D E S T R U C T O R     *
  ****************************************************************************/
@@ -631,11 +574,45 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 		                  params->suppress_artefacts ? _("enabled") : _("disabled"));
 	}
 
-	// Call the actual denoising function
-	// Note: do_nlbayes doesn't take cosmetic or suppress_artefacts parameters
-	// These might need to be applied separately or the function signature needs updating
-	int retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
-	                        params->rho, params->do_anscombe);
+	int retval = 0;
+
+	/* Cosmetic correction runs first, in place on the work buffer. */
+	if (params->do_cosme)
+		denoise_hook_cosmetic(fit);
+
+	/* Artefact suppression: denoise each colour channel independently (as a
+	 * mono image) so NL-Bayes cannot introduce cross-channel colour artefacts.
+	 * Operates on `fit` — the worker's private buffer on the swap path — so it
+	 * must be gated on the channel count, never on the legacy `fit == gfit`
+	 * guard, which is always false here and silently disabled the feature. */
+	if (params->suppress_artefacts && fit->naxes[2] == 3) {
+		fits *loop = NULL;
+		if (new_fit_image(&loop, fit->rx, fit->ry, 1, fit->type)) {
+			retval = 1;
+		} else {
+			const size_t npixels = fit->naxes[0] * fit->naxes[1];
+			if (fit->type == DATA_FLOAT) {
+				for (size_t i = 0; i < 3 && retval == 0; i++) {
+					memcpy(loop->fdata, fit->fpdata[i], npixels * sizeof(float));
+					retval = do_nlbayes(loop, params->modulation, params->sos,
+					                    params->da3d, params->rho, params->do_anscombe);
+					memcpy(fit->fpdata[i], loop->fdata, npixels * sizeof(float));
+				}
+			} else {
+				for (size_t i = 0; i < 3 && retval == 0; i++) {
+					memcpy(loop->data, fit->pdata[i], npixels * sizeof(WORD));
+					retval = do_nlbayes(loop, params->modulation, params->sos,
+					                    params->da3d, params->rho, params->do_anscombe);
+					memcpy(fit->pdata[i], loop->data, npixels * sizeof(WORD));
+				}
+			}
+			clearfits(loop);
+			free(loop);   /* clearfits frees the buffers; the struct is heap-allocated */
+		}
+	} else {
+		retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
+		                    params->rho, params->do_anscombe);
+	}
 
 	if (retval != 0 && args->verbose) {
 		siril_log_error(_("NL-Bayes denoising failed.\n"));
