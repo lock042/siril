@@ -450,7 +450,15 @@ endif
 
 ffms2_dep = no_dep
 if enable_ffms2
-  ffms2_dep = dependency('ffms2', required : true)
+  if platform_windows
+    # On Windows, FFMS2 before 2.40 treats the filenames passed to it as the
+    # local ANSI code page, so a non-ASCII (UTF-8) path fails. 2.40 made UTF-8
+    # path handling the unconditional default (the opt-in UseUTF8Paths argument
+    # to FFMS_Init was dropped), which is what film_open_file() relies on.
+    ffms2_dep = dependency('ffms2', required : true, version : '>= 2.40')
+  else
+    ffms2_dep = dependency('ffms2', required : true)
+  endif
 endif
 
 ffmpeg = []
@@ -458,6 +466,9 @@ if enable_ffmpeg
   ffmpeg = [
     dependency('libavformat', required : true),
     dependency('libavcodec', required : true),
+    # >= 55.20 is already well above the libavutil version (~52.x) that added the
+    # UTF-8 -> UTF-16 file-open wrapper used on Windows, so non-ASCII paths handed
+    # to the demuxer are opened correctly.
     dependency('libavutil', version : '>= 55.20', required : true),
     dependency('libswscale', required : true),
     dependency('libswresample', required : true)
