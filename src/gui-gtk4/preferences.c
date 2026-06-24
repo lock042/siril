@@ -461,15 +461,8 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkWidget *swap_dir = lookup_widget("filechooser_swap");
-	GtkWidget *graxpert_exe = lookup_widget("filechooser_graxpert");
 
 	com.pref.swap_dir = siril_file_chooser_get_filename(swap_dir);
-
-	com.pref.graxpert_path = siril_file_chooser_get_filename(graxpert_exe);
-#ifdef OS_OSX
-	if (g_str_has_suffix(com.pref.graxpert_path, ".app"))
-		str_append(&com.pref.graxpert_path, "/Contents/MacOS/GraXpert");
-#endif
 
 	com.pref.gui.silent_quit = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscAskQuit"))));
 	com.pref.gui.silent_linear = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscAskSave"))));
@@ -495,24 +488,6 @@ void initialize_path_directory(const gchar *path) {
 		siril_file_chooser_set_filename (swap_dir, path);
 	} else {
 		siril_file_chooser_set_filename (swap_dir, g_get_tmp_dir());
-	}
-}
-
-void initialize_graxpert_executable(gchar *path) {
-	GtkWidget *graxpert_exe = lookup_widget("filechooser_graxpert");
-#ifdef OS_OSX
-	const gchar *suffix = "/Contents/MacOS/GraXpert";
-	if (path && g_str_has_suffix(path, suffix)) {
-		gsize len = strlen(path) - strlen(suffix);
-		gchar *new_path = g_strndup(path, len);
-		siril_file_chooser_set_filename(graxpert_exe, new_path);
-		g_free(new_path);
-		return;
-	}
-#endif
-
-	if (path && path[0] != '\0') {
-		siril_file_chooser_set_filename (graxpert_exe, path);
 	}
 }
 
@@ -848,7 +823,6 @@ void update_preferences_from_model() {
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
-	initialize_graxpert_executable(pref->graxpert_path);
 	initialize_asnet_directory(pref->asnet_dir);
 
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscHideInfoROI"))), pref->gui.enable_roi_warning ? FALSE : TRUE);
@@ -927,8 +901,6 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	                       _("Select monitor profile"), "icc_filter", FALSE);
 	siril_path_button_init(lookup_widget("pref_soft_proofing_profile"),
 	                       _("Select soft-proofing profile"), "icc_filter", FALSE);
-	siril_path_button_init(lookup_widget("filechooser_graxpert"),
-	                       _("Select GraXpert executable"), NULL, FALSE);
 	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
 	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 

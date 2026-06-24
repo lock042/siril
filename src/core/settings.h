@@ -428,7 +428,6 @@ struct pref_struct {
 	gchar *copyright;	// User copyright when saving image as TIFF
 
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
-	gchar *graxpert_path; // Location of GraXpert executable
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;

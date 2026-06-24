@@ -4564,50 +4564,6 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkFrame">
-                                <property name="child">
-                                  <object class="GtkGrid">
-                                    <property name="column-spacing">6</property>
-                                    <property name="margin-start">6</property>
-                                    <property name="row-spacing">6</property>
-                                    <child>
-                                      <object class="GtkButton" id="filechooser_graxpert">
-                                        <property name="label">(None)</property>
-                                        <property name="visible">True</property>
-                                        <layout>
-                                          <property name="column">0</property>
-                                          <property name="row">0</property>
-                                        </layout>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Must point to a valid GraXpert executable.</property>
-                                        <attributes>
-                                          <attribute name="style" value="italic"/>
-                                        </attributes>
-                                        <layout>
-                                          <property name="column">1</property>
-                                          <property name="row">0</property>
-                                        </layout>
-                                      </object>
-                                    </child>
-                                  </object>
-                                </property>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="label" translatable="yes">Software Location</property>
-                                    <property name="margin-bottom">10</property>
-                                    <property name="margin-top">10</property>
-                                    <attributes>
-                                      <attribute name="weight" value="bold"/>
-                                    </attributes>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
-                            <child>
                               <object class="GtkFrame" id="frame23">
                                 <property name="child">
                                   <object class="GtkEntry" id="miscCopyright">
