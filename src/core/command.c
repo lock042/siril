@@ -2813,7 +2813,7 @@ int process_ls(int nb){
 				siril_log_color_message(_("Image: %s\n"), "plum", list[i]->d_name);
 			else
 				siril_log_color_message(_("Image: %s\n"), "red", list[i]->d_name);
-		} else if (!strncmp(ext, "seq", 3))
+		} else if (!g_ascii_strncasecmp(ext, "seq", 3))
 			siril_log_color_message(_("Sequence: %s\n"), "blue", list[i]->d_name);
 	}
 	for (int i = 0; i < n; i++)
@@ -2860,7 +2860,7 @@ int process_ls(int nb){
 						siril_log_color_message(_("Image: %s\n"), "plum", filename);
 					else
 						siril_log_color_message(_("Image: %s\n"), "red", filename);
-				} else if (!strncmp(ext, "seq", 3))
+				} else if (!g_ascii_strncasecmp(ext, "seq", 3))
 					siril_log_color_message(_("Sequence: %s\n"), "blue", filename);
 
 			}

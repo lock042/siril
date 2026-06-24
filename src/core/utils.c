@@ -782,16 +782,15 @@ int siril_change_dir(const char *dir, gchar **err) {
 			* press the check seq button to display the list, and this is also done there. */
 			/* check_seq();
 			update_sequence_list();*/
-			// Don't follow symbolic links
-			if (g_path_is_absolute(dir)) {
-				new_dir = g_memdup(dir, strlen(dir) + 1);
-				g_free(com.wd);
-				com.wd = new_dir;
-			} else {
-				new_dir = siril_canonicalize_filename(dir, com.wd);
-				g_free(com.wd);
-				com.wd = new_dir;
-			}
+			// Always canonicalise so com.wd has a consistent form (native
+			// separators, no trailing slash, resolved '.'/'..'); this keeps later
+			// byte-wise comparisons of com.wd against other paths reliable. For a
+			// relative dir, com.wd is the base it is resolved against. Note
+			// g_canonicalize_filename does no I/O and does not resolve symbolic
+			// links, so the "don't follow symbolic links" intent is preserved.
+			new_dir = siril_canonicalize_filename(dir, com.wd);
+			g_free(com.wd);
+			com.wd = new_dir;
 
 		siril_log_message(_("Setting CWD (Current Working Directory) to '%s'\n"), com.wd);
 		retval = 0;

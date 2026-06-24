@@ -69,7 +69,16 @@ static gboolean verbose = TRUE;
  * the working directory contains non-ASCII characters (e.g. a national-character
  * Windows account name). Siril keeps using the original long paths (its own TIFF
  * I/O is UTF-16-safe) and, as the short path is just an alias for the same
- * directory, the files line up either way. Returns NULL on failure. */
+ * directory, the files line up either way.
+ *
+ * Scope/limitations:
+ *  - Only the DIRECTORY is shortened, so a non-ASCII *base name* is not addressed
+ *    (here the base names are Siril-generated "starnet_"/"starless_" prefixes, so
+ *    that is fine).
+ *  - Returns NULL if 8.3 short-name generation is disabled on the volume
+ *    (fsutil 8dot3name) or the directory does not exist; the caller then falls
+ *    back to the original long path. On such systems the fix silently no-ops and
+ *    the UTF-8 active-code-page manifest is the remaining backstop. */
 static gchar *starnet_short_dir_path(const gchar *path) {
 	gchar *dir = g_path_get_dirname(path);
 	gchar *base = g_path_get_basename(path);
@@ -92,6 +101,9 @@ static gchar *starnet_short_dir_path(const gchar *path) {
 	}
 	g_free(dir);
 	g_free(base);
+	if (!result)
+		siril_debug_print("Could not derive a short path for '%s' (8.3 names disabled?); "
+				"using the long path\n", path);
 	return result;
 }
 #endif

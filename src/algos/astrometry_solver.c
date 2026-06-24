@@ -1650,9 +1650,15 @@ gboolean asnet_is_available() {
  * This lets the cygwin build of solve-field read the file even when the working
  * directory contains non-ASCII characters (e.g. a national-character Windows
  * account name), while leaving the base name untouched so the .wcs/.solved
- * outputs solve-field derives from it keep their expected names. Returns NULL
- * on failure (e.g. 8.3 generation disabled), in which case the caller should
- * fall back to the original path. */
+ * outputs solve-field derives from it keep their expected names.
+ *
+ * Scope/limitations:
+ *  - Only the DIRECTORY is shortened, so a non-ASCII *base name* (possible via a
+ *    non-ASCII image/sequence root in args->filename) is not addressed.
+ *  - Returns NULL if 8.3 short-name generation is disabled on the volume
+ *    (fsutil 8dot3name) or the directory does not exist; the caller then falls
+ *    back to the original long path. On such systems the fix silently no-ops and
+ *    the UTF-8 active-code-page manifest is the remaining backstop. */
 static gchar *asnet_short_dir_path(const gchar *path) {
 	gchar *dir = g_path_get_dirname(path);
 	gchar *base = g_path_get_basename(path);
@@ -1675,6 +1681,9 @@ static gchar *asnet_short_dir_path(const gchar *path) {
 	}
 	g_free(dir);
 	g_free(base);
+	if (!result)
+		siril_debug_print("Could not derive a short path for '%s' (8.3 names disabled?); "
+				"using the long path\n", path);
 	return result;
 }
 

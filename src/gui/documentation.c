@@ -60,7 +60,14 @@ void siril_get_documentation(const gchar *page_path) {
 #else
 	version = "stable";
 #endif
-	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, page_path, NULL);
+	// Build the URL with literal '/' separators: g_build_path(G_DIR_SEPARATOR_S, ...)
+	// would use '\' on Windows and produce a malformed URL. page_path may be NULL
+	// (open the documentation root), in which case it is omitted.
+	gchar *url;
+	if (page_path)
+		url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, page_path);
+	else
+		url = g_strdup_printf("%s/%s/%s", GET_DOCUMENTATION_URL, lang, version);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Siril documentation URL: %s\n"), url);
 

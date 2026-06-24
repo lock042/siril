@@ -1068,16 +1068,25 @@ static int find_file_commit_by_modifications(git_repository *repo,
 	const char *workdir = git_repository_workdir(repo);
 	char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
 	if (tmpworkdir && g_path_is_absolute(filepath)) {
-		size_t workdir_len = strlen(tmpworkdir);
-		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
-			const char *rel_start = filepath + workdir_len;
+		// Normalise separators on both sides before the prefix test: tmpworkdir
+		// is canonicalised (native '\' on Windows) but filepath may use '/', so a
+		// raw strncmp would wrongly treat an in-repo file as out-of-repo.
+		gchar *posix_workdir = posix_path_separators(tmpworkdir);
+		gchar *posix_filepath = posix_path_separators(filepath);
+		size_t workdir_len = strlen(posix_workdir);
+		if (strncmp(posix_filepath, posix_workdir, workdir_len) == 0) {
+			const char *rel_start = posix_filepath + workdir_len;
 			while (*rel_start == '/' || *rel_start == '\\')
 				rel_start++;
-			relative_path = posix_path_separators(rel_start);
+			relative_path = g_strdup(rel_start);
 		} else {
+			g_free(posix_workdir);
+			g_free(posix_filepath);
 			g_free(tmpworkdir);
 			return -1;
 		}
+		g_free(posix_workdir);
+		g_free(posix_filepath);
 	} else {
 		relative_path = g_strdup(filepath);
 	}

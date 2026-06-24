@@ -466,7 +466,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
 		const char *ext = get_filename_ext(path);
-		if (ext && !strncmp(ext, "seq", 4)) {
+		if (ext && !g_ascii_strncasecmp(ext, "seq", 4)) {
 			gchar *sequence_dir = g_path_get_dirname(path);
 			if (!siril_change_dir(sequence_dir, NULL)) {
 				if (check_seq()) {

@@ -1030,9 +1030,23 @@ char* siril_real_path(const char *source) {
 		return NULL;
 	}
 
-	GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
+	DWORD ret = GetFinalPathNameByHandleW(hFile, wFilePath, maxchar, 0);
 
-	gchar *gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL); // +4 = enleve les 4 caracteres du prefixe "//?/"
+	// GetFinalPathNameByHandleW returns the path prefixed with "\\?\" (4 chars),
+	// or "\\?\UNC\" (8 chars) for a UNC target, where "\\?\UNC\" must be rewritten
+	// to "\\" (so \\?\UNC\server\share -> \\server\share). Blindly skipping 4
+	// characters would mangle UNC paths into "UNC\server\share".
+	gchar *gFilePath = NULL;
+	if (ret > 0 && ret <= maxchar) {
+		if (wcsncmp(wFilePath, L"\\\\?\\UNC\\", 8) == 0) {
+			wFilePath[6] = L'\\';                  // wFilePath+6 now reads "\\server\share"
+			gFilePath = g_utf16_to_utf8(wFilePath + 6, -1, NULL, NULL, NULL);
+		} else if (wcsncmp(wFilePath, L"\\\\?\\", 4) == 0) {
+			gFilePath = g_utf16_to_utf8(wFilePath + 4, -1, NULL, NULL, NULL);
+		} else {
+			gFilePath = g_utf16_to_utf8(wFilePath, -1, NULL, NULL, NULL);
+		}
+	}
 	g_free(wsource);
 	g_free(wFilePath);
 	CloseHandle(hFile);

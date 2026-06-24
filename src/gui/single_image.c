@@ -69,13 +69,13 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 		gchar *filename = g_filename_from_uri(uris[0], NULL, &error);
 		const char *src_ext = get_filename_ext(filename);
 		if (src_ext) {
-			if ((!strncmp(src_ext, "seq", 4)) || (get_type_for_extension(src_ext) != TYPEUNDEF)) {
+			if ((!g_ascii_strncasecmp(src_ext, "seq", 4)) || (get_type_for_extension(src_ext) != TYPEUNDEF)) {
 				if (single_image_is_loaded() || sequence_is_loaded()) {
 					confirm = siril_confirm_dialog(_("An image (or sequence) is already loaded"),
 							_("Are you sure you want to close everything and open the new image?"), _("Open"));
 				}
 				if (confirm) {
-					if (!strncmp(src_ext, "seq", 4)) {
+					if (!g_ascii_strncasecmp(src_ext, "seq", 4)) {
 						gchar *sequence_dir = g_path_get_dirname(filename);
 						if (!siril_change_dir(sequence_dir, NULL)) {
 							if (check_seq()) {
