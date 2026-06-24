@@ -188,6 +188,21 @@ void copy_gfit_to_backup() {
 
 int copy_backup_to_gfit() {
 	int retval = 0;
+	/* Serialise this copy against gfit's pixel readers via the writer lock.
+	 *
+	 * In lazy-tile display mode the materialise pool (image_display.c,
+	 * materialise_worker) reads gfit's pixel buffers on background threads
+	 * holding gfit->rwlock as a reader, while the swap-path
+	 * generic_image_worker mutates gfit under the writer lock.  This function
+	 * is the one remaining gfit pixel mutator that ran lock-free: without
+	 * joining that rwlock discipline the copyfits() below races an in-flight
+	 * tile fill, producing torn tiles on screen (an intermittent preview
+	 * "glitch", typically while dragging a stretch slider).
+	 *
+	 * Deadlock-free: no caller holds gfit->rwlock or gui.cairo_mutex here, and
+	 * none of the helpers below re-acquire gfit->rwlock, so this non-recursive
+	 * lock is taken exactly once on the path. */
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
 	else {
@@ -209,6 +224,7 @@ int copy_backup_to_gfit() {
 			retval = 1;
 		}
 	}
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 	return retval;
 }
 
