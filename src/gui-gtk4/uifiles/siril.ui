@@ -277,17 +277,17 @@
           </object>
         </child>
         <child>
-          <object class="GtkBox">
+          <object class="GtkBox" id="autostretch_controls_box">
             <property name="orientation">horizontal</property>
             <property name="margin-start">18</property>
             <property name="spacing">2</property>
             <property name="visible">True</property>
+            <property name="sensitive">0</property>
             <child>
               <object class="GtkToggleButton" id="autohd_item">
                 <property name="label" translatable="yes">HD</property>
                 <property name="tooltip-text" translatable="yes">Use a high definition LUT for the autostretch display</property>
                 <property name="visible">True</property>
-                <property name="sensitive">0</property>
                 <signal name="toggled" handler="on_autohd_item_toggled"/>
                 <style>
                   <class name="as-ctl"/>
@@ -300,7 +300,6 @@
                 <property name="active">1</property>
                 <property name="tooltip-text" translatable="yes">Auto-refresh: recompute the autostretch on every image change. When off, the current stretch is kept.</property>
                 <property name="visible">True</property>
-                <property name="sensitive">0</property>
                 <signal name="toggled" handler="on_autostretch_autorefresh_toggled"/>
                 <style>
                   <class name="as-ctl"/>
@@ -333,7 +332,6 @@ Current state: linked.</property>
                 <property name="popover">autostretch_param_popover</property>
                 <property name="tooltip-text" translatable="yes">Adjust the autostretch target background</property>
                 <property name="visible">True</property>
-                <property name="sensitive">0</property>
                 <style>
                   <class name="as-ctl"/>
                 </style>

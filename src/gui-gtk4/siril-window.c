@@ -305,19 +305,10 @@ void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean stf
 		NULL
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, stf && is_rgb);
-	/* The other autostretch controls stay visible at all times and are only
-	 * sensitive while in autostretch (STF) display mode. */
-	static const gchar *stf_widgets[] = {
-		"autohd_item",
-		"autostretch_refresh_button",
-		"autostretch_param_button",
-		NULL
-	};
-	for (int i = 0; stf_widgets[i]; i++) {
-		GtkWidget *w = lookup_widget(stf_widgets[i]);
-		if (w)
-			gtk_widget_set_sensitive(w, stf);
-	}
+	
+	GtkWidget *box = lookup_widget("autostretch_controls_box");
+	if (box && gtk_widget_get_sensitive(box) != stf)
+		gtk_widget_set_sensitive(box, stf);
 }
 
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
