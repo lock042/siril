@@ -849,10 +849,6 @@ void unpurple_activate(GSimpleAction *action, GVariant *parameter, gpointer user
         siril_open_dialog("unpurple_dialog");
 }
 
-void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("starnet_dialog");
-}
-
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("bdeconv_dialog");
 }
@@ -950,7 +946,7 @@ void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 		close_single_image();
 	}
 	close_sequence(FALSE);
-	toggle_remixer_window_visibility(CALL_FROM_MENU, NULL, NULL);
+	toggle_remixer_window_visibility();
 }
 
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

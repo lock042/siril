@@ -85,14 +85,6 @@ typedef enum {
 } starprofile;
 
 typedef enum {
-	NIL = 0,
-	V2 = 1,
-	V1MONO = 2,
-	V1RGB = 4,
-	TORCH = 8
-} starnet_version;
-
-typedef enum {
 	MMB_ZOOM_FIT,
 	MMB_ZOOM_100,
 	MMB_ZOOM_TOGGLE
@@ -435,10 +427,7 @@ struct pref_struct {
 	gboolean use_checksum;  // Verify checksum in FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
-	gchar *starnet_exe;	// Location of starnet++ executable
-	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
-	gchar *graxpert_path; // Location of GraXpert executable
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;

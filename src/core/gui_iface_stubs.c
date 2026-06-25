@@ -286,11 +286,6 @@ static void stub_show_or_hide_mask_tab(void) {}
 static void stub_show_or_hide_mask_tab_async(void) {}
 static int  stub_number_of_dialogs(void) { return 0; }
 static void stub_clear_previews(void) {}
-static int  stub_toggle_remixer_window_visibility(int invocation,
-                                                   gpointer fit_left,
-                                                   gpointer fit_right) {
-	(void)invocation; (void)fit_left; (void)fit_right; return 0;
-}
 static gboolean stub_heif_dialog(gpointer heif, uint32_t *selected_image) {
 	(void)heif; (void)selected_image; return FALSE;
 }
@@ -506,6 +501,5 @@ SirilGuiInterface gui_iface = {
 	.show_or_hide_mask_tab_async     = stub_show_or_hide_mask_tab_async,
 	.number_of_dialogs               = stub_number_of_dialogs,
 	.clear_previews                  = stub_clear_previews,
-	.toggle_remixer_window_visibility = stub_toggle_remixer_window_visibility,
 	.heif_dialog                     = stub_heif_dialog,
 };

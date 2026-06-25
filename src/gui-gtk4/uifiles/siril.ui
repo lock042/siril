@@ -1309,13 +1309,6 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkButton" id="proc_extract_starnet">
-                    <property name="action-name">win.starnet-processing</property>
-                    <property name="label" translatable="yes">StarNet Star Removal...</property>
-                    <property name="tooltip-text" translatable="yes">Run Starnet++</property>
-                  </object>
-                </child>
-                <child>
                   <object class="GtkButton" id="proc_star_recomp">
                     <property name="action-name">win.star-remix-processing</property>
                     <property name="label" translatable="yes">Star Recomposition...</property>
