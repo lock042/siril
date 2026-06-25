@@ -90,7 +90,7 @@ static GtkCheckButton *tri_cut_toggle = NULL;
 static GtkSpinButton *tri_cut_spin_step = NULL;
 
 static GtkApplicationWindow *imgdisp_app_win = NULL;
-static GtkCheckButton *imgdisp_autohd_item = NULL;
+static GtkWidget *imgdisp_autohd_item = NULL;
 static GtkWidget *imgdisp_drawing_rgb = NULL;
 static GtkWidget *imgdisp_drawing_r = NULL;
 
@@ -101,7 +101,9 @@ GtkDropDown *comboboxregmethod = NULL;
 static void image_display_init_statics(void) {
 	if (imgdisp_app_win) return;
 	imgdisp_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
-	imgdisp_autohd_item = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "autohd_item"));
+	imgdisp_autohd_item = GTK_WIDGET(gtk_builder_get_object(gui.builder, "autohd_item"));
+	gui.autostretch_target_bg = AS_DEFAULT_TARGET_BACKGROUND;
+	gui.autostretch_auto_refresh = TRUE;
 	imgdisp_drawing_rgb = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareargb"));
 	imgdisp_drawing_r = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingarear"));
 	seqcombo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
@@ -1552,7 +1554,7 @@ void allocate_hd_remap_indices() {
 			siril_log_error(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"));
 			gui.use_hd_remap = FALSE;
 			image_display_init_statics();
-			siril_toggle_set_active(GTK_WIDGET(imgdisp_autohd_item), FALSE);
+			siril_toggle_set_active(imgdisp_autohd_item, FALSE);
 			hd_remap_indices_cleanup();
 			return;
 		}
@@ -1760,8 +1762,8 @@ static void remap(int vport) {
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance_default(gfit, stf);
-			else find_linked_midtones_balance_default(gfit, stf);
+				find_unlinked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
+			else find_linked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
 			stf_computed = TRUE;
 		}
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
@@ -4687,8 +4689,18 @@ void copy_roi_into_gfit() {
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 }
 
-void remap_all() {
+/* Drop the cached autostretch parameters so the next STF remap recomputes the
+ * midtones balance from the current image and target background. */
+void invalidate_autostretch_cache(void) {
 	stf_computed = FALSE;
+}
+
+void remap_all() {
+	/* When auto-refresh is on (default) the autostretch follows every image
+	 * change. When off, keep the previously computed parameters so the stretch
+	 * stays frozen as the pixels change. */
+	if (gui.autostretch_auto_refresh)
+		stf_computed = FALSE;
 	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
 		for (int i = 0; i < gfit->naxes[2]; i++) {
 			remap(i);
