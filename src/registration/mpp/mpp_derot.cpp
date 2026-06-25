@@ -23,7 +23,7 @@
 #include "mpp_derot.h"
 #include "mpp_derot_geom.h"
 
-#define DEG (M_PI / 180.0)
+#define DEG (G_PI / 180.0)
 
 /* disk fit of `d` placed into a canvas whose pixel (0,0) is original-frame
  * coordinate (org_x, org_y), scaled by `scale`. */
