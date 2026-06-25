@@ -95,6 +95,32 @@ if criterion_dep.found()
 
      test('siril_spawn_test', siril_spawn_test_exec)
 
+     # MPP unit tests — synthetic / generated data only. Tests that compared
+     # against the PSS Python reference oracle (which lives outside this
+     # repo) have been removed; everything still here either builds its own
+     # fixture in-process or asserts pure-math invariants. No env vars
+     # required.
+     foreach t : ['mpp_rank_test', 'mpp_align_test', 'mpp_ap_test',
+                  'mpp_shift_test', 'mpp_stack_test',
+                  'mpp_pipeline_test']
+         mpp_exec = executable(t,
+                               t + '.cpp',
+                               dependencies : [siril_dep, criterion_dep],
+                               link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                               c_args : siril_c_flag,
+                               cpp_args : siril_cpp_flag)
+         test(t, mpp_exec, suite: 'mpp')
+     endforeach
+
+     mpp_sidecar_exec = executable('mpp_sidecar_test',
+                                   'mpp_sidecar_test.c',
+                                   dependencies : [siril_dep, criterion_dep],
+                                   link_args : [siril_link_arg, '-Wl,--unresolved-symbols=ignore-all'],
+                                   c_args : siril_c_flag,
+                                   cpp_args : siril_cpp_flag)
+
+     test('mpp_sidecar_test', mpp_sidecar_exec, suite: 'mpp')
+
      gps_exec = executable('qhy_gps_test',
                            'qhy_gps_test.c',
                            dependencies : [siril_dep, criterion_dep],

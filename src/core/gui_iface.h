@@ -141,6 +141,12 @@ typedef struct {
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
 	                           const char *button_accept);
+	/* Same, but embeds a Bayer-pattern combo. On Accept, fills
+	 * *avi_bayer_pattern with the chosen `enum mpp_avi_bayer` value
+	 * (0..5; 0 = Auto). Headless stub auto-accepts with AUTO. */
+	gboolean (*confirm_dialog_with_avi_bayer)(const char *title, const char *msg,
+	                                          const char *button_accept,
+	                                          int *avi_bayer_pattern);
 	/* id is the GtkBuilder identifier of the dialog widget. */
 	void     (*open_dialog)(const char *id);
 	void     (*close_dialog)(const char *id);
@@ -582,12 +588,6 @@ typedef struct {
 	int      (*number_of_dialogs)(void);
 	/* Clear all registration-preview windows. */
 	void     (*clear_previews)(void);
-	/* Toggle the StarNet remixer window visibility.
-	 * invocation: CALL_FROM_STARNET (1) or other; fit_left/fit_right are
-	 * cast from fits*. Returns 0 on success. */
-	int      (*toggle_remixer_window_visibility)(int invocation,
-	                                              gpointer fit_left,
-	                                              gpointer fit_right);
 	/* Show the HEIF multi-image selector dialog.
 	 * heif is cast from struct heif_context*; returns TRUE if user selected
 	 * an image, FALSE if cancelled. Stub returns FALSE. */

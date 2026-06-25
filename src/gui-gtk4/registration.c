@@ -41,8 +41,14 @@
 #include "gui-gtk4/stacking.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "algos/statistics.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_align.h"
+#include "registration/mpp/mpp_config.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
 #include "registration/3stars.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
@@ -79,7 +85,10 @@ static char *tooltip_text[] = {
 		"apply previously computed registration data stored in the sequence file. The "
 		"interpolation method or drizzling can be selected in the Output "
 		"Registration section and it can be applied on selected/filtered images only, to avoid saving "
-		"unnecessary images.")
+		"unnecessary images."),
+	N_("<b>Multipoint Registration (planetary)</b>: For planetary imaging. Ranks frames by "
+		"Laplacian-σ quality, globally aligns them, lays a grid of alignment points and computes "
+		"per-AP local shifts. Writes a sidecar (.mpp) consumed by the matching stack method.")
 };
 
 static char *reg_frame_registration[] = {
@@ -125,6 +134,16 @@ static GtkImage *framing_image = NULL;
 static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL, *estimate_label = NULL;
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
+static GtkSpinButton *spin_mpp_half_box = NULL, *spin_mpp_search_width = NULL, *spin_mpp_search_global = NULL, *spin_mpp_ref_percent = NULL, *spin_mpp_min_brightness = NULL, *spin_mpp_min_contrast = NULL, *spin_mpp_min_structure = NULL;
+/* Register-time per-AP frame cap (the upper bound baked into the per-AP
+ * shift compute). Independent of the Stack-tab's stack percent/frames. */
+static GtkSpinButton *spin_mpp_reg_stack_percent = NULL;
+/* GTK4: GtkCheckButton no longer derives from GtkToggleButton, so these are
+ * GtkWidget* and read via siril_toggle_get_active. */
+static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
+static GtkDropDown *combo_mpp_avi_bayer = NULL;
+static GtkWidget *label_mpp_avi_bayer = NULL;
+static GtkDropDown *combo_mpp_align_mode = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 
@@ -150,6 +169,7 @@ static GtkImage *image_3stars[3] = { NULL };
 
 /* Forward declaration of static initializer used by 3-star helpers */
 static void registration_init_statics(void);
+static void mpp_update_action_button_highlight(void);
 
 /****************************************************************/
 /* 3-star GUI helpers                                           */
@@ -256,6 +276,22 @@ static void registration_init_statics() {
 		spin_driz_dropsize = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_driz_dropsize"));
 		spinbut_shiftx = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shiftx"));
 		spinbut_shifty = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shifty"));
+		// REG_MPP widgets
+		spin_mpp_half_box          = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_half_box"));
+		spin_mpp_search_width      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_search_width"));
+		spin_mpp_search_global     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_search_global"));
+		spin_mpp_ref_percent       = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ref_percent"));
+		spin_mpp_min_brightness    = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_brightness"));
+		spin_mpp_min_contrast      = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_contrast"));
+		spin_mpp_min_structure     = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_min_structure"));
+		spin_mpp_reg_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_reg_stack_percent"));
+		check_mpp_dewarp           = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_dewarp"));
+		check_mpp_normalize        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_normalize"));
+		check_mpp_seed             = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_seed"));
+		check_mpp_fast_changing    = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_fast_changing"));
+		combo_mpp_avi_bayer        = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
+		label_mpp_avi_bayer        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
+		combo_mpp_align_mode       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -333,6 +369,8 @@ void initialize_registration_methods() {
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[REG_APPLY] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
+	reg_methods[REG_MPP] = new_reg_method(_("Multipoint Registration (planetary)"),
+			&register_mpp, REQUIRES_NO_SELECTION, REGTYPE_PLANETARY);
 	// we register 2-pass but we won't add it to the combo/tooltip
 	reg_methods[REG_2PASS] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
 			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
@@ -349,10 +387,12 @@ void initialize_registration_methods() {
 	g_free(ctip);
 
 	/* fill comboboxregmethod */
-	siril_drop_down_clear_strings(comboboxregmethod);
+	block_all_signals(comboboxregmethod);
 	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		siril_drop_down_append_text(comboboxregmethod, reg_methods[j]->name);
 	}
+	unblock_all_signals(comboboxregmethod);
+
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(comboboxregmethod), com.pref.gui.reg_settings);
 
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(ComboBoxRegInter), com.pref.gui.reg_interpolation);
@@ -395,6 +435,7 @@ void on_comboboxregmethod_changed(GObject *obj, GParamSpec *pspec, gpointer user
 	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_toggle_reg_clamp_toggled(GtkCheckButton *button, gpointer user_data) {
@@ -931,6 +972,35 @@ struct registration_method *get_selected_registration_method(int *index) {
 	return reg_methods[ind];
 }
 
+/* Pick the default global alignment mode when the multipoint method is
+ * selected: analyse the first frame of the sequence and default to
+ * Planet (disc) if it shows a disc-like object surrounded by sky,
+ * Surface otherwise. Runs once per loaded sequence so it never
+ * overrides a choice the user has made since. */
+static void mpp_autoselect_align_mode() {
+	static gchar *analysed_seqname = NULL;
+
+	if (!combo_mpp_align_mode || !sequence_is_loaded())
+		return;
+	if (!g_strcmp0(analysed_seqname, com.seq.seqname))
+		return;
+	g_free(analysed_seqname);
+	analysed_seqname = g_strdup(com.seq.seqname);
+
+	fits first = { 0 };
+	if (seq_read_frame(&com.seq, 0, &first, FALSE, -1)) {
+		siril_log_debug("could not read the first frame for disc detection\n");
+		return;
+	}
+	gboolean disc = mpp_frame_has_disc(&first);
+	clearfits(&first);
+	gtk_drop_down_set_selected(combo_mpp_align_mode,
+			disc ? MPP_ALIGN_PLANET : MPP_ALIGN_SURFACE);
+	siril_log_message(disc ?
+			_("Disc-like object detected in the first frame: defaulting global alignment to Planet (disc)\n") :
+			_("No disc detected in the first frame: defaulting global alignment to Surface\n"));
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -973,8 +1043,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		expander_clear_stuck_insensitive(GTK_WIDGET(manualreg_expander));
 	}
 
-	if (!seqloaded) // no need to go further, hide all and return
-		return;
+	if (!seqloaded) {
+		/* Hide MPP-AVI picker so it doesn't linger from a previous sequence. */
+		if (combo_mpp_avi_bayer && label_mpp_avi_bayer) {
+			gtk_widget_set_visible(GTK_WIDGET(combo_mpp_avi_bayer), FALSE);
+			gtk_widget_set_visible(label_mpp_avi_bayer, FALSE);
+		}
+		return; // no need to go further, hide all and return
+	}
 
 	if (!dont_change_reg_radio) {
 		if (com.seq.selnum < com.seq.number) {
@@ -1094,6 +1170,19 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_3_STARS);
 	} else if (regindex == REG_KOMBAT) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
+	} else if (regindex == REG_MPP) {
+		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_MPP);
+		mpp_autoselect_align_mode();
+	}
+
+	/* AVI Bayer-pattern picker: only meaningful for SEQ_AVI sequences
+	 * (AVI containers carry no Bayer marker — see mpp_config.h). For
+	 * SER / FITS / FITSEQ the pattern is read from the file header
+	 * (SER ColorID / BAYERPAT card), so the combo would be confusing. */
+	if (combo_mpp_avi_bayer && label_mpp_avi_bayer) {
+		const gboolean is_avi = (com.seq.type == SEQ_AVI);
+		gtk_widget_set_visible(GTK_WIDGET(combo_mpp_avi_bayer), is_avi);
+		gtk_widget_set_visible(label_mpp_avi_bayer, is_avi);
 	}
 
 	// if not debayered, check that the bayer pattern is known
@@ -1147,6 +1236,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_label_set_text(estimate_label, "");
 	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
 	gtk_widget_set_sensitive(GTK_WIDGET(proj_estimate), ready);
+	mpp_update_action_button_highlight();
 }
 
 // Functions to collect GUI data
@@ -1276,6 +1366,39 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	if (regindex == REG_KOMBAT) {
 		regargs->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;
 	}
+	if (regindex == REG_MPP) {
+		/* Populate an mpp_config_t snapshot from the page widgets. The
+		 * registration thread frees this after register_mpp returns
+		 * (see register_thread_func). */
+		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
+		mpp_config_defaults(cfg);
+		cfg->alignment_points_half_box_width      = gtk_spin_button_get_value_as_int(spin_mpp_half_box);
+		cfg->alignment_points_search_width        = gtk_spin_button_get_value_as_int(spin_mpp_search_width);
+		cfg->align_frames_search_width            = gtk_spin_button_get_value_as_int(spin_mpp_search_global);
+		cfg->align_frames_average_frame_percent   = gtk_spin_button_get_value_as_int(spin_mpp_ref_percent);
+		cfg->align_frames_fast_changing_object    = siril_toggle_get_active(check_mpp_fast_changing);
+		cfg->alignment_points_brightness_threshold = gtk_spin_button_get_value_as_int(spin_mpp_min_brightness);
+		cfg->alignment_points_contrast_threshold   = gtk_spin_button_get_value_as_int(spin_mpp_min_contrast);
+		cfg->alignment_points_structure_threshold  = gtk_spin_button_get_value(spin_mpp_min_structure);
+		cfg->alignment_points_frame_percent        = gtk_spin_button_get_value_as_int(spin_mpp_reg_stack_percent);
+		/* Register is percent-only; leave alignment_points_frame_number at
+		 * its -1 default (set by mpp_config_defaults above). */
+		cfg->alignment_points_de_warp              = siril_toggle_get_active(check_mpp_dewarp);
+		cfg->frames_normalization                  = siril_toggle_get_active(check_mpp_normalize);
+		cfg->align_frames_seed_from_regdata        = siril_toggle_get_active(check_mpp_seed);
+		{
+			const int ab = combo_mpp_avi_bayer ? (int) gtk_drop_down_get_selected(combo_mpp_avi_bayer) : 0;
+			cfg->avi_bayer_pattern = (ab >= MPP_AVI_BAYER_AUTO && ab <= MPP_AVI_BAYER_GRBG)
+			                       ? ab : MPP_AVI_BAYER_AUTO;
+		}
+		{
+			/* Combo item indices match the enum: 0 = Surface, 1 = Planet. */
+			const int am = combo_mpp_align_mode ? (int) gtk_drop_down_get_selected(combo_mpp_align_mode) : 0;
+			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
+			                                                  : MPP_ALIGN_SURFACE;
+		}
+		regargs->mpp_cfg = cfg;
+	}
 	if (regindex == REG_COMET) {
 		regargs->velocity = velocity;
 		regargs->prefix = g_strdup(gtk_editable_get_text(GTK_EDITABLE(cometseqname_entry))); //to create the .seq file
@@ -1368,6 +1491,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	char *msg;
 	if (fill_registration_structure_from_GUI(regargs)) {
+		free(regargs->mpp_cfg);
 		free(regargs);
 		unreserve_thread();
 		return;
@@ -1376,6 +1500,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
 	if (ret) {
 		siril_log_message(_("Error: unable to read reference frame metadata\n"));
+		free(regargs->mpp_cfg);
 		free(regargs);
 		unreserve_thread();
 		return;
@@ -1398,9 +1523,218 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	if (!start_in_reserved_thread(register_thread_func, regargs)) {
+		free(regargs->mpp_cfg);
 		free(regargs);
 		unreserve_thread();
 	}
+}
+
+/* Callback for the MPP-tab "Analyze" button: runs Stage A only (rank +
+ * global align + AP placement, no per-AP shift compute, no sidecar).
+ * Shares the register infrastructure via regargs->mpp_stage_a_only — the
+ * function pointer dispatched by register_thread_func is still register_mpp,
+ * which branches on the flag. */
+void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	if (!sequence_is_loaded()) {
+		siril_log_error(_("Analyze: load a sequence first.\n"));
+		return;
+	}
+	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
+
+	/* fill_registration_structure_from_GUI sets regargs->func to whatever
+	 * the active method's function pointer is. If MPP isn't currently the
+	 * active method, switch to it temporarily so the GUI populates the
+	 * mpp_cfg from our widgets and dispatches to register_mpp. */
+	if (com.pref.gui.reg_settings != REG_MPP) {
+		siril_log_error(_("Analyze: select \"Multipoint Registration\" "
+		                          "in the method combo first.\n"));
+		free(regargs);
+		return;
+	}
+
+	if (fill_registration_structure_from_GUI(regargs)) {
+		free(regargs->mpp_cfg);
+		free(regargs);
+		unreserve_thread();
+		return;
+	}
+	regargs->mpp_stage_a_only = TRUE;
+
+	siril_log_status(_("Analyze: running Stage A on %d frames\n"),
+	                        regargs->seq->number);
+	set_progress_bar_data(_("Analyze: ranking frames"), PROGRESS_RESET);
+
+	if (!start_in_reserved_thread(register_thread_func, regargs)) {
+		free(regargs->mpp_cfg);
+		free(regargs);
+		unreserve_thread();
+	}
+}
+
+/* Toggle "Edit APs..." button sensitivity from com.mpp_run state. Called
+ * from end_register_idle (Analyze success) and from close_sequence_idle
+ * via gui_iface_impl. The button widget is fetched lazily on first call. */
+void mpp_update_edit_button_sensitivity(void) {
+	static GtkWidget *btn = NULL;
+	if (!btn) {
+		btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_mpp_edit_aps"));
+		if (!btn) return;
+	}
+	gtk_widget_set_sensitive(btn, mpp_get_cached_run() != NULL);
+}
+
+/* See registration.h. Push the AP-placement settings the loaded run was built
+ * with into the spin buttons so (a) the user sees the real settings behind the
+ * loaded grid, and (b) register_mpp's "settings changed since analysis" check
+ * doesn't spuriously regenerate the grid on a no-change Register after load.
+ * Only the placement-relevant widgets are touched; the user's other choices
+ * (alignment mode, dewarp, percentages…) are left as set. These spins have no
+ * "changed" handlers, so no signal blocking is needed. */
+void mpp_sync_widgets_from_cached_run(void) {
+	registration_init_statics();
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->cfg)
+		return;
+	const mpp_config_t *cfg = run->cfg;
+	gtk_spin_button_set_value(spin_mpp_half_box,       cfg->alignment_points_half_box_width);
+	gtk_spin_button_set_value(spin_mpp_search_width,   cfg->alignment_points_search_width);
+	gtk_spin_button_set_value(spin_mpp_min_brightness, cfg->alignment_points_brightness_threshold);
+	gtk_spin_button_set_value(spin_mpp_min_contrast,   cfg->alignment_points_contrast_threshold);
+	gtk_spin_button_set_value(spin_mpp_min_structure,  cfg->alignment_points_structure_threshold);
+}
+
+/* Move the "suggested-action" highlight between the registration tab's
+ * Analyze and Register buttons so only one is emphasised at a time. The
+ * cached run is the single source of truth: it is what the AP overlay draws
+ * from, and it is populated either by Analyze or by the sidecar auto-load on
+ * sequence open (seq_open_image). No cached run → no APs are drawn → Analyze
+ * is the natural next step; a cached run present → APs are shown → Register
+ * is. (A sidecar that fails to load leaves no cached run, so Analyze stays
+ * suggested — consistent with the empty overlay.) For non-MPP methods the
+ * generic Register button keeps the highlight. Called from
+ * update_reg_interface (method/sequence changes) and end_register_idle. */
+static void mpp_update_action_button_highlight(void) {
+	static GtkWidget *analyze_btn = NULL, *register_btn = NULL;
+	if (!analyze_btn) {
+		analyze_btn  = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_mpp_analyze"));
+		register_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "goregister_button"));
+		if (!analyze_btn || !register_btn) { analyze_btn = NULL; return; }
+	}
+	const gboolean have_analysis = (mpp_get_cached_run() != NULL);
+	const gboolean analyze_suggested =
+	    (com.pref.gui.reg_settings == REG_MPP) && !have_analysis;
+	if (analyze_suggested) {
+		gtk_widget_add_css_class(analyze_btn, "suggested-action");
+		gtk_widget_remove_css_class(register_btn, "suggested-action");
+	} else {
+		gtk_widget_remove_css_class(analyze_btn, "suggested-action");
+		gtk_widget_add_css_class(register_btn, "suggested-action");
+	}
+}
+
+/* Paint the analysis-built mean reference frame into gfit so the user sees
+ * the image that AP placement was performed against. Single-channel,
+ * 16-bit; values clamped from the int32 source. Same fresh-fits + writer-
+ * lock + clearfits + memcpy pattern stack_function_handler uses for stack
+ * results — partial clearing leaves cairo/ICC/histogram caches keyed to the
+ * old dimensions and breaks subsequent display-mode/slider updates. */
+static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols) {
+	if (!src || rows <= 0 || cols <= 0) return;
+	const size_t npix = (size_t) rows * (size_t) cols;
+
+	fits ref_fits;
+	memset(&ref_fits, 0, sizeof(fits));   /* don't touch the rwlock — we won't copy that field */
+	ref_fits.data = malloc(npix * sizeof(WORD));
+	if (!ref_fits.data) {
+		siril_log_error(_("Analyze: out of memory allocating "
+		                          "display buffer for ref frame\n"));
+		return;
+	}
+	for (size_t i = 0; i < npix; ++i) {
+		const int32_t v = src[i];
+		ref_fits.data[i] = (WORD) (v < 0 ? 0 : (v > 65535 ? 65535 : v));
+	}
+	ref_fits.pdata[0] = ref_fits.pdata[1] = ref_fits.pdata[2] = ref_fits.data;
+	ref_fits.rx = (unsigned int) cols;
+	ref_fits.ry = (unsigned int) rows;
+	ref_fits.naxes[0] = cols;
+	ref_fits.naxes[1] = rows;
+	ref_fits.naxes[2] = 1;
+	ref_fits.naxis = 2;
+	/* orig_bitpix drives set_cutoff_sliders_max_values's choice of
+	 * 255-vs-65535 — must be USHORT_IMG so an 8-bit source SER doesn't
+	 * cap the slider at 255 and burn the up-scaled ref frame out. */
+	ref_fits.bitpix = USHORT_IMG;
+	ref_fits.orig_bitpix = USHORT_IMG;
+	ref_fits.type = DATA_USHORT;
+
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	clearfits(gfit);
+	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+
+	/* A selection drawn on the previous (possibly RGB) frame must not
+	 * survive onto the ref frame: selection-update/FWHM feedback would run
+	 * against the new mono gfit with a stale colour gui.cvport and abort in
+	 * statistics' layer < naxes[2] assertion. Other gfit-replacing result
+	 * paths clear it too. */
+	delete_selected_area();
+
+	/* Replace com.uniq so display_filename surfaces "REFERENCE IMAGE"
+	 * rather than the original sequence frame name. */
+	if (com.uniq) {
+		free(com.uniq->filename);
+		free(com.uniq->comment);
+		free(com.uniq);
+		com.uniq = NULL;
+	}
+	com.uniq = calloc(1, sizeof(single));
+	if (com.uniq) {
+		com.uniq->filename  = strdup(_("REFERENCE IMAGE"));
+		com.uniq->comment   = strdup(_("Multipoint analysis reference frame (mono luminance)"));
+		com.uniq->fileexist = FALSE;
+		com.uniq->nb_layers = 1;
+		com.uniq->fit       = gfit;
+	}
+	siril_log_info(_("Displaying reference image (mono luminance from analysis frames). "
+	                          "The original sequence is still loaded for the next step.\n"));
+
+	/* Canonical "key aspects of gfit have changed (channels, bitpix)"
+	 * refresh — runs slider mode/max/values, set_precision_switch, close_tab
+	 * + init_right_tab (mono-vs-RGB viewport visibility), remap_all_vports,
+	 * update_histogram, redraw. */
+	update_single_image_from_gfit(NULL);
+
+	/* update_single_image_from_gfit refreshes the image and sliders but not
+	 * the filename label, so without this the visible label keeps showing the
+	 * last sequence frame name even though com.uniq now says "REFERENCE
+	 * IMAGE". Refresh it explicitly. */
+	display_filename();
+}
+
+/* Show the multipoint reference frame when entering the Registration or
+ * Stacking tab, if one is available. The mean (reference) frame lives on the
+ * cached run — built by Analyze/Register or reloaded from the .mpp sidecar
+ * when the sequence was opened — so this surfaces it for a sequence opened
+ * with an existing sidecar (where a normal sequence frame is shown first).
+ * Guards: only when a sequence is loaded, the cached run matches it and
+ * carries a mean frame, and a sequence frame (not already the reference
+ * frame or another single image) is currently displayed — so switching
+ * between these tabs, or doing so while the reference is already shown,
+ * doesn't repaint. Navigating to a frame clears com.uniq (see
+ * seq_load_image), so re-entering the tab paints the reference again. */
+void mpp_show_reference_frame_for_tab(void) {
+	if (!sequence_is_loaded() || single_image_is_loaded())
+		return;
+	const mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->mean_frame_data
+	         || run->mean_frame_rows <= 0 || run->mean_frame_cols <= 0
+	         || run->num_frames != com.seq.number)
+		return;
+	paint_mpp_ref_frame_into_gfit(run->mean_frame_data,
+	                              run->mean_frame_rows,
+	                              run->mean_frame_cols);
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in
@@ -1415,7 +1749,32 @@ gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
-			seq_load_image(args->seq, args->seq->reference_image, TRUE);
+			/* For multipoint Analyze and Register, show the analysis-built
+			 * reference frame rather than a raw sequence frame, and leave it
+			 * on screen after Register. The mean (reference) frame is carried
+			 * on the cached run — built by Analyze, reused through Register,
+			 * and persisted in / reloaded from the .mpp sidecar — so it is
+			 * available whether the run came from a fresh Analyze, an
+			 * Analyze→Register in the same session, or a sidecar loaded on
+			 * sequence open. Painting it skips seq_load_image, which would
+			 * replace the smooth reference with whatever the sequence's
+			 * reference_image happens to be (a raw, possibly still-mosaiced
+			 * frame). Stepping through frames in the browser reloads normally;
+			 * the final stack later replaces it in turn. */
+			const mpp_run_t *mpp_run = (args->func == &register_mpp)
+			                           ? mpp_get_cached_run() : NULL;
+			if (mpp_run && mpp_run->mean_frame_data
+			            && mpp_run->mean_frame_rows > 0
+			            && mpp_run->mean_frame_cols > 0) {
+				paint_mpp_ref_frame_into_gfit(mpp_run->mean_frame_data,
+				                              mpp_run->mean_frame_rows,
+				                              mpp_run->mean_frame_cols);
+			} else {
+				seq_load_image(args->seq, args->seq->reference_image, TRUE);
+			}
+			mpp_update_edit_button_sensitivity();
+			mpp_update_action_button_highlight();   /* Analyze done → move highlight to Register */
+			mpp_shift_viewer_update_button_sensitivity();
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {
@@ -1423,7 +1782,9 @@ gboolean end_register_idle(gpointer p) {
 			update_sequences_list(args->new_seq_name);
 		}
 	}
-	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+	set_progress_bar_data(args->mpp_stage_a_only
+	                      ? _("Analysis complete.")
+	                      : _("Registration complete."), PROGRESS_DONE);
 	args->seq->reg_invalidated = FALSE;
 	drawPlot();
 	update_stack_interface(TRUE);
@@ -1440,6 +1801,25 @@ gboolean end_register_idle(gpointer p) {
 		g_free(scalemsg);
 		if (!args->retval)
 			control_window_switch_to_tab(REGISTRATION); // if there are some warnings we stay on the Console tab
+	}
+
+	/* MPP Analyze and Register: return to the Registration tab on success
+	 * so the user can see where to continue the workflow. */
+	if (args->func == &register_mpp && !args->retval) {
+		control_window_switch_to_tab(REGISTRATION);
+		/* Re-evaluate the Register button so the user can re-run after
+		 * editing APs (Register recomputes per-AP qualities for the grid). */
+		update_reg_interface(TRUE);
+		/* Full Register (not Analyze-only) has just written the .mpp sidecar.
+		 * Select STACK_MPP explicitly so the user can proceed straight to a
+		 * Multipoint stack (the auto-select-on-sidecar default does not fire
+		 * on this dont_change_stack_type=TRUE path). */
+		if (!args->mpp_stage_a_only) {
+			GtkDropDown *stack_method_combo = GTK_DROP_DOWN(
+			    gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
+			if (stack_method_combo)
+				gtk_drop_down_set_selected(stack_method_combo, STACK_MPP);
+		}
 	}
 
 	free(args->new_seq_name);

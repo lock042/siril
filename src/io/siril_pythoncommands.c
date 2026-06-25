@@ -1365,8 +1365,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Update the imgparam rx and ry
 				com.seq.imgparam[index].rx = fit->rx;
 				com.seq.imgparam[index].ry = fit->ry;
-				// Clean the sequence registration data, stats and selection as they will no longer be valid
-				clean_sequence(&com.seq, TRUE, TRUE, TRUE);
+				// Clean the sequence registration data, stats, selection and mpp sidecar as they will no longer be valid
+				clean_sequence(&com.seq, TRUE, TRUE, TRUE, TRUE);
 			}
 			clearfits(fit);
 			free(fit);
@@ -3709,9 +3709,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							break;
 						case SPLIT_CFA_DIALOG:
 							action_name="split-cfa-processing";
-							break;
-						case STARNET_DIALOG:
-							action_name="starnet-processing";
 							break;
 						case STARS_LIST_WINDOW:
 							action_name="dyn-psf";

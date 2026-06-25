@@ -79,7 +79,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+#define RADCONV (((3600.0 * 180.0) / G_PI) / 1.0E3)
 
 // Used for sanity checking reported sizes from image files.
 // Not a guarantee that the file will fit in memory
@@ -371,9 +371,7 @@ typedef enum {
 
 typedef enum {
 	EXT_NONE,
-	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT,
 	EXT_PYTHON,
 	INT_PROC_THREAD
 } external_program;
@@ -794,7 +792,7 @@ typedef struct cut_struct {
 // Used in a GSList so we can choose what to stop if multiple children are running
 typedef struct _child_info {
 	GPid childpid; // Platform-agnostic way to store the child PID
-	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	external_program program; // type of program, eg EXT_ASNET, EXT_PYTHON etc
 	gchar *name; // argv[0], i.e. the executable name
 	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;
@@ -928,6 +926,14 @@ struct cominf {
 
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
+
+	/* Multipoint planetary registration (REG_MPP) cached run. Lives from
+	 * Analyze success until close_sequence (or app exit). Forward-declared
+	 * as void* to avoid pulling registration/mpp.h into siril.h; access via
+	 * mpp_get_cached_run() / mpp_set_cached_run() / mpp_clear_cached_run()
+	 * declared in registration/mpp.h. The pointer's actual type is
+	 * struct mpp_run *. */
+	void *mpp_run;
 
 	GSList *found_object;		// list of objects found in the image from catalogues
 

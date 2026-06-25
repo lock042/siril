@@ -105,6 +105,16 @@ struct _SirilFileBrowser {
 	gboolean                directory_only;  /* folder picker: files greyed + unselectable */
 	gboolean                in_recent_mode;
 
+	/* Our own monitor on the current folder, run alongside dir_list's
+	 * built-in one purely to catch the G_FILE_MONITOR_EVENT_CHANGED /
+	 * CHANGES_DONE_HINT events that GtkDirectoryList deliberately ignores
+	 * (it only re-queries on CREATED / DELETED / ATTRIBUTE_CHANGED).  Without
+	 * this, a file still being written when we first list it (its CREATED
+	 * event fires while it is 0 bytes) keeps a stale size forever. */
+	GFileMonitor           *folder_monitor;       /* +1 ref, NULL when none */
+	guint                   size_refresh_id;      /* debounce timeout (0 = none) */
+	GHashTable             *size_refresh_pending;  /* set of GFile* to re-query */
+
 	/* Sibling demosaic toggle (Convert tab) — kept in sync with our local
 	 * `debayer_check` so the user sees consistent state in both places. */
 	GtkCheckButton         *external_demosaic_btn;
@@ -421,6 +431,122 @@ static void set_breadcrumb_deepest(SirilFileBrowser *fb, GFile *newpath) {
 	fb->breadcrumb_deepest = g_object_ref(newpath);
 }
 
+/* GtkDirectoryList's built-in monitor only re-queries a file's GFileInfo on
+ * CREATED / DELETED / ATTRIBUTE_CHANGED — it explicitly drops the generic
+ * G_FILE_MONITOR_EVENT_CHANGED and CHANGES_DONE_HINT (see GTK's
+ * gtkdirectorylist.c).  So a file that is still being written when we first
+ * enumerate it (CREATED fires while it is 0 bytes) keeps its stale size in the
+ * listing forever; the content writes that follow arrive only as CHANGED /
+ * CHANGES_DONE_HINT and never refresh the model.  We run a second monitor just
+ * to catch those two events and patch the affected GFileInfo in place. */
+static gboolean do_size_refresh(gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	fb->size_refresh_id = 0;
+	if (!fb->size_refresh_pending || !fb->dir_list)
+		return G_SOURCE_REMOVE;
+
+	GListModel *model = G_LIST_MODEL(fb->dir_list);
+	guint n = g_list_model_get_n_items(model);
+	gboolean any = FALSE;
+
+	GHashTableIter it;
+	gpointer key;
+	g_hash_table_iter_init(&it, fb->size_refresh_pending);
+	while (g_hash_table_iter_next(&it, &key, NULL)) {
+		GFile *changed = key;
+		gchar *base = g_file_get_basename(changed);
+		if (!base) continue;
+		/* One stat for the live size + mtime of this file. */
+		GFileInfo *fresh = g_file_query_info(changed,
+			G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
+			G_FILE_QUERY_INFO_NONE, NULL, NULL);
+		if (fresh) {
+			for (guint i = 0; i < n; i++) {
+				GFileInfo *info = g_list_model_get_item(model, i);
+				const char *name = g_file_info_get_name(info);
+				if (name && g_strcmp0(name, base) == 0) {
+					goffset newsize = g_file_info_get_size(fresh);
+					if (g_file_info_get_size(info) != newsize) {
+						g_file_info_set_size(info, newsize);
+						GDateTime *mt =
+							g_file_info_get_modification_date_time(fresh);
+						if (mt) {
+							g_file_info_set_modification_date_time(info, mt);
+							g_date_time_unref(mt);
+						}
+						any = TRUE;
+					}
+					g_object_unref(info);
+					break;
+				}
+				g_object_unref(info);
+			}
+			g_object_unref(fresh);
+		}
+		g_free(base);
+	}
+	g_hash_table_remove_all(fb->size_refresh_pending);
+
+	/* Editing the GFileInfo attributes in place does not make the column view
+	 * re-bind those rows (the base model emits no items-changed for an
+	 * in-place edit).  Poking the sort model's sorter forces a re-sort +
+	 * items-changed sweep that re-binds every visible row, repainting the
+	 * refreshed sizes — and, if the user is sorting by Size, also reorders. */
+	if (any && fb->combined_sorter)
+		gtk_sorter_changed(fb->combined_sorter, GTK_SORTER_CHANGE_DIFFERENT);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void cancel_size_refresh(SirilFileBrowser *fb) {
+	if (fb->size_refresh_id) {
+		g_source_remove(fb->size_refresh_id);
+		fb->size_refresh_id = 0;
+	}
+	if (fb->size_refresh_pending)
+		g_hash_table_remove_all(fb->size_refresh_pending);
+}
+
+static void on_folder_monitor_changed(GFileMonitor *mon, GFile *file,
+		GFile *other, GFileMonitorEvent event, gpointer ud) {
+	(void)mon; (void)other;
+	SirilFileBrowser *fb = ud;
+	/* Only the events dir_list ignores; CREATED / DELETED / ATTRIBUTE_CHANGED
+	 * / RENAMED are already handled by its own monitor. */
+	if (event != G_FILE_MONITOR_EVENT_CHANGED &&
+	    event != G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
+		return;
+	if (!file || fb->in_recent_mode)
+		return;
+	if (!fb->size_refresh_pending)
+		fb->size_refresh_pending = g_hash_table_new_full(
+			g_file_hash, (GEqualFunc) g_file_equal, g_object_unref, NULL);
+	g_hash_table_add(fb->size_refresh_pending, g_object_ref(file));
+	/* Debounce: a single save fires a burst of CHANGED then a trailing
+	 * CHANGES_DONE_HINT.  Coalesce so we re-query once, after the writer is
+	 * (probably) done. */
+	if (fb->size_refresh_id)
+		g_source_remove(fb->size_refresh_id);
+	fb->size_refresh_id = g_timeout_add(400, do_size_refresh, fb);
+}
+
+static void install_folder_monitor(SirilFileBrowser *fb, GFile *folder) {
+	cancel_size_refresh(fb);
+	if (fb->folder_monitor) {
+		g_signal_handlers_disconnect_by_data(fb->folder_monitor, fb);
+		g_clear_object(&fb->folder_monitor);
+	}
+	if (!folder)
+		return;
+	/* Non-native locations (trash:///, network:///) may not be monitorable;
+	 * a NULL return just means no live size refresh there, which is fine. */
+	fb->folder_monitor = g_file_monitor_directory(folder,
+		G_FILE_MONITOR_NONE, NULL, NULL);
+	if (fb->folder_monitor)
+		g_signal_connect(fb->folder_monitor, "changed",
+			G_CALLBACK(on_folder_monitor_changed), fb);
+}
+
 static void apply_current_folder(SirilFileBrowser *fb, GFile *folder) {
 	if (!folder) return;
 	exit_recent_mode(fb);  /* any folder navigation cancels Recent view */
@@ -439,6 +565,7 @@ static void apply_current_folder(SirilFileBrowser *fb, GFile *folder) {
 	if (fb->window)
 		gtk_window_set_focus(fb->window, NULL);
 	gtk_directory_list_set_file(fb->dir_list, folder);
+	install_folder_monitor(fb, folder);
 	update_path_label(fb);
 	update_nav_sensitivity(fb);
 }
@@ -2880,6 +3007,10 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 		fb->pending_breadcrumb_idle = 0;
 	}
 
+	/* Drop the folder monitor + any pending size refresh from the previous
+	 * run; the next navigation reinstalls a monitor on its own folder. */
+	install_folder_monitor(fb, NULL);
+
 	/* Drop the per-open external-demosaic toggle wiring.  The Convert tab
 	 * button is owned by the main UI builder so we just disconnect our
 	 * handler; the next caller that wants it will rewire via
@@ -3133,6 +3264,9 @@ gint siril_file_browser_run(SirilFileBrowser *fb) {
 			writeinitfile();
 	}
 	gtk_widget_set_visible(GTK_WIDGET(fb->window), FALSE);
+	/* Stop monitoring while the dialog is hidden between runs; the next open
+	 * reinstalls a monitor when it navigates to its starting folder. */
+	install_folder_monitor(fb, NULL);
 	/* Re-enable the parent we disabled in _new (Plan C: substitute for
 	 * the modal flag).  Done after hiding so the visual transition is
 	 * "dialog disappears → parent regains input".  parent is cleared so
