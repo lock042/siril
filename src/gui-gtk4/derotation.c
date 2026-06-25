@@ -91,6 +91,9 @@ static gchar *computed_for = NULL;
  * when the sequence/body/system/fps change; NaN when unavailable. The pixel
  * drift is derived from these and the live disk radius. */
 static double g_drift_cm_deg = NAN, g_drift_span_min = NAN;
+/* TRUE when the cached drift spans a multi-sequence session (the union of every
+ * sequence's capture), so the label can word itself accordingly. */
+static gboolean g_drift_multi = FALSE;
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -119,6 +122,7 @@ static void update_guidance(void);
 static void populate_from_sequence(gboolean autofit);
 static void update_drift_estimate(void);
 static void refresh_drift_label(void);
+static gboolean current_seq_span(double *first, double *last);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -161,38 +165,102 @@ static void refresh_drift_label(void) {
 		return;
 	}
 	const double r_eq = gtk_spin_button_get_value(spin_radius);
-	const double drift_px = 2.0 * r_eq * sin(0.5 * g_drift_cm_deg * M_PI / 180.0);
+	/* The chord 2·r·sin(ΔCM/2) saturates at the diameter once the planet has
+	 * turned half a rotation; across a long multi-sequence span it can turn
+	 * further, so clamp the swing to 180° for the pixel figure (a full
+	 * limb-to-limb sweep) while still reporting the true total rotation. */
+	const double swing = MIN(g_drift_cm_deg, 180.0);
+	const double drift_px = 2.0 * r_eq * sin(0.5 * swing * M_PI / 180.0);
 	gchar *s = g_strdup_printf(
-	    _("Equatorial drift across the sequence: %.1f px "
-	      "(%.2f° rotation over %.1f min). Derotation is worth it once "
-	      "this exceeds a pixel or two."),
+	    g_drift_multi
+	    ? _("Equatorial drift across all sequences: %.1f px "
+	        "(%.2f° rotation over %.1f min). Derotation is worth it once "
+	        "this exceeds a pixel or two.")
+	    : _("Equatorial drift across the sequence: %.1f px "
+	        "(%.2f° rotation over %.1f min). Derotation is worth it once "
+	        "this exceeds a pixel or two."),
 	    drift_px, g_drift_cm_deg, g_drift_span_min);
 	gtk_label_set_text(drift_label, s);
 	g_free(s);
 }
 
-/* Resolve the apparent rotation (central-meridian swing) between the first and
- * last frame from the built-in ephemeris, for the current body and rotation
- * system, and refresh the drift label. Only the two span endpoints are
- * evaluated, so this is cheap enough to run on the GTK thread. */
+/* Capture span (UTC JD) the drift estimate should cover. In a multi-sequence
+ * session this is the union of every added sequence's span — so the drift
+ * reflects the whole combined capture, not one segment — folded together with
+ * the loaded sequence's own span (which may not be added yet). In simple mode,
+ * or before any sequence is added, it is just the loaded sequence. Sets *multi
+ * when the span came from a populated session. Returns FALSE if no span. */
+static gboolean drift_span(double *first, double *last, gboolean *multi) {
+	gboolean have = FALSE, from_session = FALSE;
+	double gmin = 0.0, gmax = 0.0;
+	if (multi_mode && session && session->count > 0) {
+		for (int i = 0; i < session->count; i++) {
+			const double f = session->seqs[i].first_jd, l = session->seqs[i].last_jd;
+			if (!have || f < gmin) gmin = f;
+			if (!have || l > gmax) gmax = l;
+			have = TRUE;
+		}
+		from_session = TRUE;
+	}
+	double f, l;
+	if (sequence_is_loaded() && com.seq.number > 0 && current_seq_span(&f, &l)) {
+		if (!have || f < gmin) gmin = f;
+		if (!have || l > gmax) gmax = l;
+		have = TRUE;
+	}
+	if (!have) return FALSE;
+	*first = gmin; *last = gmax;
+	if (multi) *multi = from_session;
+	return TRUE;
+}
+
+/* Total apparent rotation (central-meridian swing, degrees) of `body` in
+ * rotation system `sys` between two epochs. Planetary rotation is monotonic, so
+ * the swing is accumulated through intermediate samples small enough never to
+ * wrap: a single short sequence reduces to one step, but a long union span (the
+ * planet may turn more than half a rotation between the first and last sequence)
+ * is not wrapped away into an underestimate. Returns FALSE on ephemeris error. */
+static gboolean apparent_rotation(planet_body_t body, int sys,
+                                  double first_jd, double last_jd, double *out_deg) {
+	if (last_jd <= first_jd) { *out_deg = 0.0; return TRUE; }
+	const double step_days = 15.0 / (24.0 * 60.0);   /* << half a turn for any body */
+	int steps = (int) ceil((last_jd - first_jd) / step_days);
+	if (steps < 1) steps = 1;
+	if (steps > 4096) steps = 4096;                  /* cap a pathological span */
+	planet_geom_t g;
+	if (planet_ephemeris(body, first_jd, NAN, NAN, NAN, &g) != 0) return FALSE;
+	double prev = g.cm[sys], total = 0.0;
+	for (int i = 1; i <= steps; i++) {
+		const double jd = first_jd + (last_jd - first_jd) * (double) i / (double) steps;
+		if (planet_ephemeris(body, jd, NAN, NAN, NAN, &g) != 0) return FALSE;
+		double d = g.cm[sys] - prev;
+		while (d >  180.0) d -= 360.0;   /* unwrap each small step across the seam */
+		while (d < -180.0) d += 360.0;
+		total += d;
+		prev = g.cm[sys];
+	}
+	*out_deg = fabs(total);
+	return TRUE;
+}
+
+/* Resolve the apparent rotation (central-meridian swing) across the drift span
+ * from the built-in ephemeris, for the current body and rotation system, and
+ * refresh the drift label. A handful of ephemeris evaluations, cheap enough to
+ * run on the GTK thread. */
 static void update_drift_estimate(void) {
 	g_drift_cm_deg = NAN;
 	g_drift_span_min = NAN;
-	if (sequence_is_loaded() && com.seq.number > 0 && dd_body && dd_system) {
-		const double fps = spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0;
-		double first_jd, last_jd;
-		if (mpp_derot_sequence_span(&com.seq, fps, NAN, &first_jd, &last_jd)) {
-			const planet_body_t body = (planet_body_t) gtk_drop_down_get_selected(dd_body);
-			const int sys = (int) gtk_drop_down_get_selected(dd_system);   /* 0..2 */
-			planet_geom_t g0, g1;
-			if (planet_ephemeris(body, first_jd, NAN, NAN, NAN, &g0) == 0
-			 && planet_ephemeris(body, last_jd, NAN, NAN, NAN, &g1) == 0) {
-				double dcm = g1.cm[sys] - g0.cm[sys];
-				while (dcm >  180.0) dcm -= 360.0;   /* unwrap across the 360° seam */
-				while (dcm < -180.0) dcm += 360.0;
-				g_drift_cm_deg = fabs(dcm);
-				g_drift_span_min = (last_jd - first_jd) * 24.0 * 60.0;
-			}
+	g_drift_multi = FALSE;
+	double first_jd, last_jd;
+	gboolean multi = FALSE;
+	if (dd_body && dd_system && drift_span(&first_jd, &last_jd, &multi)) {
+		const planet_body_t body = (planet_body_t) gtk_drop_down_get_selected(dd_body);
+		const int sys = (int) gtk_drop_down_get_selected(dd_system);   /* 0..2 */
+		double swing;
+		if (apparent_rotation(body, sys, first_jd, last_jd, &swing)) {
+			g_drift_cm_deg = swing;
+			g_drift_span_min = (last_jd - first_jd) * 24.0 * 60.0;
+			g_drift_multi = multi;
 		}
 	}
 	refresh_drift_label();
@@ -484,6 +552,7 @@ void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
 	                    spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0);
 	set_model_locked(TRUE);     /* the body is now fixed by the session */
 	update_session_epoch();     /* show the shared epoch */
+	update_drift_estimate();    /* drift now spans the whole session */
 	refresh_seqlist();
 	update_guidance();
 	set_status(_("Sequence added. Load and fit the next, or combine."));
@@ -514,6 +583,7 @@ void on_derotation_remove_clicked(GtkButton *button, gpointer user_data) {
 		set_model_locked(FALSE);   /* empty session: planet selectable again */
 	else
 		update_session_epoch();
+	update_drift_estimate();       /* the session span just shrank */
 	refresh_seqlist();
 	update_guidance();
 }
