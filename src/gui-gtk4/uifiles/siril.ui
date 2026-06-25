@@ -287,6 +287,7 @@
                 <property name="label" translatable="yes">HD</property>
                 <property name="tooltip-text" translatable="yes">Use a high definition LUT for the autostretch display</property>
                 <property name="visible">True</property>
+                <property name="sensitive">0</property>
                 <signal name="toggled" handler="on_autohd_item_toggled"/>
                 <style>
                   <class name="as-ctl"/>
@@ -299,6 +300,7 @@
                 <property name="active">1</property>
                 <property name="tooltip-text" translatable="yes">Auto-refresh: recompute the autostretch on every image change. When off, the current stretch is kept.</property>
                 <property name="visible">True</property>
+                <property name="sensitive">0</property>
                 <signal name="toggled" handler="on_autostretch_autorefresh_toggled"/>
                 <style>
                   <class name="as-ctl"/>
@@ -310,7 +312,7 @@
                 <property name="name">linked_autostretch_button</property>
                 <property name="action-name">win.chain-chan</property>
                 <property name="active">1</property>
-                <property name="visible">0</property>
+                <property name="visible">1</property>
                 <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
 Current state: linked.</property>
                 <child>
@@ -331,6 +333,7 @@ Current state: linked.</property>
                 <property name="popover">autostretch_param_popover</property>
                 <property name="tooltip-text" translatable="yes">Adjust the autostretch target background</property>
                 <property name="visible">True</property>
+                <property name="sensitive">0</property>
                 <style>
                   <class name="as-ctl"/>
                 </style>

@@ -684,7 +684,7 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 		gtk_label_set_text(label_display_menu, gtk_check_button_get_label(GTK_CHECK_BUTTON(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
 
@@ -1201,7 +1201,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	siril_window_enable_image_actions(app_win, any_image_is_loaded);
 
 	/* auto-stretch actions */
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
