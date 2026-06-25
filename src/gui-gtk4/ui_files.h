@@ -102,7 +102,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/mpp_shift_viewer_dialog.ui",
 	"/org/siril/ui/spcc_details.ui",
 	"/org/siril/ui/split_cfa_dialog.ui",
-	"/org/siril/ui/starnet_dialog.ui",
 	"/org/siril/ui/stars_list_window.ui",
 	"/org/siril/ui/StatWindow.ui",
 	"/org/siril/ui/unpurple_dialog.ui",

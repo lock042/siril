@@ -247,6 +247,9 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		hist_sat_backup = NULL;
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
+			/* Remap the Cairo display buffers from the restored gfit.
+			 * Without this the display continues to show the preview
+			 * because gfit_modified_update_gui() only queues a redraw. */
 			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}

@@ -62,9 +62,6 @@ preferences pref_init = {
 	.rgb_aladin = FALSE,
 	.use_checksum = FALSE,
 	.copyright = NULL,
-	.starnet_exe = NULL,
-	.starnet_weights = NULL,
-	.graxpert_path = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.startup_scripts = NULL,
@@ -305,12 +302,6 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
-	g_free(pref->starnet_exe);
-	pref->starnet_exe = NULL;
-	g_free(pref->graxpert_path);
-	pref->graxpert_path = NULL;
-	g_free(pref->starnet_weights);
-	pref->starnet_weights = NULL;
 	g_free(pref->asnet_dir);
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
@@ -383,9 +374,6 @@ struct settings_access all_settings[] = {
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "use_checksum", STYPE_BOOL, N_("Verify file checksums if they exist"), &com.pref.use_checksum },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
-	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
-	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
-	{ "core", "graxpert_path", STYPE_STR, N_("location of the GraXpert executable"), &com.pref.graxpert_path },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else

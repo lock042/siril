@@ -371,9 +371,7 @@ typedef enum {
 
 typedef enum {
 	EXT_NONE,
-	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT,
 	EXT_PYTHON,
 	INT_PROC_THREAD
 } external_program;
@@ -663,7 +661,7 @@ struct ffit {
 	int x_offset, y_offset;	// x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
-	GSList *history;	// Former HISTORY comments of FITS file
+	GSList *history;	// HISTORY comments of FITS file, list of gchar *
 
 	/* ICC Color Management data */
 	gboolean color_managed;	// Whether color management applies to this FITS
@@ -794,7 +792,7 @@ typedef struct cut_struct {
 // Used in a GSList so we can choose what to stop if multiple children are running
 typedef struct _child_info {
 	GPid childpid; // Platform-agnostic way to store the child PID
-	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	external_program program; // type of program, eg EXT_ASNET, EXT_PYTHON etc
 	gchar *name; // argv[0], i.e. the executable name
 	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;

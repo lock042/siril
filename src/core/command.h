@@ -44,8 +44,6 @@ int	process_bgnoise(int nb);
 int	process_binxy(int nb);
 int	process_blur_mask(int nb);
 int	process_denoise(int nb);
-gpointer run_nlbayes_on_fit(gpointer p);
-gpointer run_bm3d_on_fit(gpointer p);
 
 int	process_boxselect(int nb);
 
@@ -196,7 +194,6 @@ int	process_savepng(int nb);
 int	process_savepnm(int nb);
 #ifdef HAVE_LIBTIFF
 int	process_savetif(int nb);
-int	process_starnet(int nb);
 #endif
 int	process_sb(int nb);
 int	process_scnr(int nb);
@@ -226,7 +223,6 @@ int	process_seq_resample(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
-int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
 int	process_seq_update_key(int nb);

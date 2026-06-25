@@ -87,7 +87,6 @@
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
 #include "filters/scnr.h"
-#include "filters/starnet.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
 #include "filters/wavelets.h"
@@ -523,63 +522,6 @@ gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	return result;  /* caller must g_free() */
 }
 
-gpointer run_nlbayes_on_fit(gpointer p) {
-	gui_iface.lock_roi_mutex();
-	gui_iface.copy_backup_to_gfit();
-	denoise_args *args = (denoise_args *) p;
-
-	if (args->suppress_artefacts)
-		siril_log_message(_("Colour artefact suppression active.\n"));
-
-	int retval = 0;
-
-	// Carry out cosmetic correction at the start, if selected
-	if (args->do_cosme)
-		denoise_hook_cosmetic(args->fit);
-
-	// Apply NR to each channel independently
-	if (args->fit == gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
-		fits *loop = NULL;
-		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
-			retval = 1;
-		}
-		loop->naxis = 2;
-		loop->naxes[2] = 1;
-		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
-		if (retval == 0) {
-			if (args->fit->type == DATA_FLOAT) {
-				for (size_t i = 0; i < 3; i++) {
-					float *loop_fdata = (float*) calloc(npixels, sizeof(float));
-					free(loop->fdata);
-					loop->fdata = loop_fdata;
-					memcpy(loop_fdata, args->fit->fpdata[i], npixels * sizeof(float));
-					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					memcpy(args->fit->fpdata[i], loop->fdata, npixels * sizeof(float));
-				}
-				free(loop->fdata);
-				loop->fdata = NULL;
-			} else {
-				for (size_t i = 0; i < 3; i++) {
-					WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
-					free(loop->data);
-					loop->data = loop_data;
-					memcpy(loop_data, args->fit->pdata[i], npixels * sizeof(WORD));
-					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					memcpy(args->fit->pdata[i], loop->data, npixels * sizeof(WORD));
-				}
-				free(loop->data);
-				loop->data = NULL;
-			}
-		clearfits(loop);
-		}
-	} else {
-		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-	}
-	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-	gui_iface.unlock_roi_mutex();
-	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
-}
-
 /*****************************************************************************
  *      D E N O I S E   A L L O C A T O R   A N D   D E S T R U C T O R     *
  ****************************************************************************/
@@ -638,11 +580,45 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 		                  params->suppress_artefacts ? _("enabled") : _("disabled"));
 	}
 
-	// Call the actual denoising function
-	// Note: do_nlbayes doesn't take cosmetic or suppress_artefacts parameters
-	// These might need to be applied separately or the function signature needs updating
-	int retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
-	                        params->rho, params->do_anscombe);
+	int retval = 0;
+
+	/* Cosmetic correction runs first, in place on the work buffer. */
+	if (params->do_cosme)
+		denoise_hook_cosmetic(fit);
+
+	/* Artefact suppression: denoise each colour channel independently (as a
+	 * mono image) so NL-Bayes cannot introduce cross-channel colour artefacts.
+	 * Operates on `fit` — the worker's private buffer on the swap path — so it
+	 * must be gated on the channel count, never on the legacy `fit == gfit`
+	 * guard, which is always false here and silently disabled the feature. */
+	if (params->suppress_artefacts && fit->naxes[2] == 3) {
+		fits *loop = NULL;
+		if (new_fit_image(&loop, fit->rx, fit->ry, 1, fit->type)) {
+			retval = 1;
+		} else {
+			const size_t npixels = fit->naxes[0] * fit->naxes[1];
+			if (fit->type == DATA_FLOAT) {
+				for (size_t i = 0; i < 3 && retval == 0; i++) {
+					memcpy(loop->fdata, fit->fpdata[i], npixels * sizeof(float));
+					retval = do_nlbayes(loop, params->modulation, params->sos,
+					                    params->da3d, params->rho, params->do_anscombe);
+					memcpy(fit->fpdata[i], loop->fdata, npixels * sizeof(float));
+				}
+			} else {
+				for (size_t i = 0; i < 3 && retval == 0; i++) {
+					memcpy(loop->data, fit->pdata[i], npixels * sizeof(WORD));
+					retval = do_nlbayes(loop, params->modulation, params->sos,
+					                    params->da3d, params->rho, params->do_anscombe);
+					memcpy(fit->pdata[i], loop->data, npixels * sizeof(WORD));
+				}
+			}
+			clearfits(loop);
+			free(loop);   /* clearfits frees the buffers; the struct is heap-allocated */
+		}
+	} else {
+		retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
+		                    params->rho, params->do_anscombe);
+	}
 
 	if (retval != 0 && args->verbose) {
 		siril_log_error(_("NL-Bayes denoising failed.\n"));
@@ -789,210 +765,6 @@ int process_denoise(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK;
-}
-
-int process_starnet(int nb) {
-#ifdef HAVE_LIBTIFF
-	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
-		siril_log_error(_("Error: no StarNet executable set.\n"));
-		return CMD_FILE_NOT_FOUND;
-	}
-	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
-		siril_log_error(_("Error: StarNet executable (%s) is not valid.\n"), com.pref.starnet_exe);
-		return CMD_GENERIC_ERROR;
-	}
-
-	// Allocate StarNet parameters
-	starnet_data *starnet_params = new_starnet_args();
-	if (!starnet_params) {
-		PRINT_ALLOC_ERR;
-		return CMD_ALLOC_ERROR;
-	}
-
-	// Set defaults
-	starnet_params->linear = FALSE;
-	starnet_params->customstride = FALSE;
-	starnet_params->upscale = FALSE;
-	starnet_params->starmask = TRUE;
-	starnet_params->follow_on = FALSE;
-	starnet_params->starnet_fit = gfit;
-
-	/* Scan arguments (order-independent for -mask) */
-	gboolean mask_aware = FALSE;
-	for (int i = 1; i < nb; i++) {
-		char *arg = word[i];
-		char *end;
-
-		if (!arg) continue;
-
-		if (!g_strcmp0(arg, "-mask")) {
-			mask_aware = TRUE;
-		} else if (g_str_has_prefix(arg, "-stretch")) {
-			starnet_params->linear = TRUE;
-		} else if (g_str_has_prefix(arg, "-upscale")) {
-			starnet_params->upscale = TRUE;
-		} else if (g_str_has_prefix(arg, "-nostarmask")) {
-			starnet_params->starmask = FALSE;
-		} else if (g_str_has_prefix(arg, "-stride=")) {
-			arg += 8;
-			int stride = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) {
-				siril_log_error(_("Error parsing stride argument, aborting.\n"));
-				free_starnet_args(starnet_params);
-				return CMD_ARG_ERROR;
-			} else if ((stride < 2) || (stride > 512) || (stride % 2)) {
-				siril_log_error(_("Stride must be an even integer in [2, 512], aborting.\n"));
-				free_starnet_args(starnet_params);
-				return CMD_ARG_ERROR;
-			}
-			starnet_params->stride = g_strdup_printf("%d", stride);
-			starnet_params->customstride = TRUE;
-		} else {
-			siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);
-			free_starnet_args(starnet_params);
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	image_cfa_warning_check();
-
-	// Save backup for undo before processing
-	gui_iface.copy_gfit_to_backup();
-
-	// Allocate generic_img_args
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		free_starnet_args(starnet_params);
-		return CMD_ALLOC_ERROR;
-	}
-
-	// Set up generic_img_args
-	args->fit = gfit;
-	args->mem_ratio = 3.0f;
-	args->image_hook = starnet_single_image_hook;
-	args->idle_function = NULL;
-	args->description = _("StarNet");
-	args->verbose = TRUE;
-	args->user = starnet_params;
-	args->max_threads = com.max_thread;
-	args->for_preview = FALSE;
-	args->for_roi = FALSE;
-	args->mask_aware = mask_aware;
-	args->command_updates_gfit = TRUE;
-	args->command = TRUE;
-
-	gui_iface.set_busy(TRUE);
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
-		return CMD_GENERIC_ERROR;
-	}
-
-	return CMD_OK;
-#else
-	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
-	return CMD_NOT_FOR_THIS_OS;
-#endif
-}
-
-int process_seq_starnet(int nb){
-#ifdef HAVE_LIBTIFF
-	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
-		siril_log_error(_("Error: no StarNet executable set.\n"));
-		return CMD_FILE_NOT_FOUND;
-	}
-	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
-		siril_log_error(_("Error: StarNet executable (%s) is not valid.\n"), com.pref.starnet_exe);
-		return CMD_GENERIC_ERROR;
-	}
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq)
-		return CMD_SEQUENCE_NOT_FOUND;
-	if (check_seq_is_comseq(seq)) {
-		free_sequence(seq, TRUE);
-		seq = &com.seq;
-	}
-	struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
-	if (!multi_args)
-		return CMD_ALLOC_ERROR;
-	starnet_data *starnet_args = new_starnet_args();
-	if (!starnet_args)
-		return CMD_ALLOC_ERROR;
-	starnet_args->linear = FALSE;
-	starnet_args->customstride = FALSE;
-	starnet_args->upscale = FALSE;
-	starnet_args->starmask = TRUE;
-	starnet_args->follow_on = FALSE;
-	starnet_args->multi_args = multi_args;
-	gboolean error = FALSE;
-	multi_args->seq = seq;
-	if (!multi_args->seq) {
-		siril_log_error(_("Error: cannot open sequence\n"));
-		free_starnet_args(starnet_args);
-		free(multi_args);
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-
-	for (int i = 2; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-stretch")) {
-			starnet_args->linear = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-upscale")) {
-			starnet_args->upscale = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-nostarmask")) {
-			starnet_args->starmask = FALSE;
-		}
-		else if (g_str_has_prefix(arg, "-stride=")) {
-			arg += 8;
-			int stride = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
-				siril_log_error(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
-				if (!check_seq_is_comseq(multi_args->seq))
-					free_sequence(multi_args->seq, TRUE);
-				free_starnet_args(starnet_args);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				starnet_args->stride = g_strdup_printf("%d", stride);
-				starnet_args->customstride = TRUE;
-			}
-		}
-		else {
-			siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);
-				if (!check_seq_is_comseq(multi_args->seq))
-					free_sequence(multi_args->seq, TRUE);
-				free_starnet_args(starnet_args);
-			return CMD_ARG_ERROR;
-		}
-		if (error) {
-			siril_log_error(_("Error parsing arguments, aborting.\n"));
-			if (!check_seq_is_comseq(multi_args->seq))
-				free_sequence(multi_args->seq, TRUE);
-			free_starnet_args(starnet_args);
-			return CMD_ARG_ERROR;
-		}
-	}
-	multi_args->user_data = (gpointer) starnet_args;
-	multi_args->n = starnet_args->starmask ? 2 : 1;
-	multi_args->prefixes = calloc(multi_args->n, sizeof(gchar*));
-	multi_args->prefixes[0] = g_strdup("starless_");
-	if (starnet_args->starmask) {
-		multi_args->prefixes[1] = g_strdup("starmask_");
-	}
-	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
-	sequence_cfa_warning_check(multi_args->seq);
-	gui_iface.set_busy(TRUE);
-	apply_starnet_to_sequence(multi_args);
-
-#else
-	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
-#endif
 	return CMD_OK;
 }
 

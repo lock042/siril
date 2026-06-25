@@ -1,5 +1,0 @@
-if PLATFORM_UNIX
-LINUX = linux
-endif
-
-SUBDIRS = $(LINUX)

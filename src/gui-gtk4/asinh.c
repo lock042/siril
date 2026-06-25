@@ -133,6 +133,9 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
+			/* Remap the Cairo display buffers from the restored gfit.
+			 * Without this the display continues to show the preview
+			 * because gfit_modified_update_gui() only queues a redraw. */
 			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
