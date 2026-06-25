@@ -990,7 +990,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
+				if (child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else

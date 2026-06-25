@@ -241,8 +241,6 @@ siril_core_sources = \
 	filters/saturation.h \
 	filters/scnr.c \
 	filters/scnr.h \
-	filters/starnet.c \
-	filters/starnet.h \
 	filters/synthstar.c \
 	filters/synthstar.h \
 	filters/unpurple.c \
@@ -553,8 +551,6 @@ siril_gui_sources = \
 	gui-gtk4/stacking.c \
 	gui-gtk4/stacking.h \
 	gui-gtk4/star_finder.c \
-	gui-gtk4/starnetgui.c \
-	gui-gtk4/starnetgui.h \
 	gui-gtk4/statistics.c \
 	gui-gtk4/statistics_list.c \
 	gui-gtk4/ui_files.h \

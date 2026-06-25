@@ -1201,13 +1201,6 @@ static void impl_clear_previews(void) {
 	clear_previews();
 }
 
-static int impl_toggle_remixer_window_visibility(int invocation,
-                                                   gpointer fit_left,
-                                                   gpointer fit_right) {
-	return toggle_remixer_window_visibility(invocation, (fits *)fit_left,
-	                                        (fits *)fit_right);
-}
-
 static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
 #ifdef HAVE_LIBHEIF
 	return heif_dialog((struct heif_context *)heif, selected_image);
@@ -1411,7 +1404,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.show_or_hide_mask_tab_async     = impl_show_or_hide_mask_tab_async;
 	gui_iface.number_of_dialogs               = impl_number_of_dialogs;
 	gui_iface.clear_previews                  = impl_clear_previews;
-	gui_iface.toggle_remixer_window_visibility = impl_toggle_remixer_window_visibility;
 	gui_iface.heif_dialog                     = impl_heif_dialog;
 
 	/* Display / plot notifications */
