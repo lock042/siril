@@ -55,9 +55,16 @@ static GtkEntry *entry_epoch = NULL;
 static GtkSpinButton *spin_cx = NULL, *spin_cy = NULL, *spin_radius = NULL,
                      *spin_rpol = NULL, *spin_pa = NULL, *spin_fps = NULL;
 static GtkCheckButton *chk_parity = NULL, *chk_epoch_lock = NULL;
-static GtkLabel *status = NULL;
+static GtkLabel *status = NULL, *drift_label = NULL;
 static gboolean window_open = FALSE;
 static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
+
+/* Cached apparent rotation across the loaded sequence: the central-meridian
+ * longitude swing (degrees) between the first and last frame for the current
+ * body/system, plus the capture span (minutes). Recomputed from the ephemeris
+ * when the sequence/body/system/fps change; NaN when unavailable. The pixel
+ * drift is derived from these and the live disk radius. */
+static double g_drift_cm_deg = NAN, g_drift_span_min = NAN;
 
 /* Known geometric flattening per body, used to default the polar radius. */
 static double body_flattening(int body) {
@@ -77,6 +84,8 @@ static void set_polar_default(void) {
 }
 
 static gboolean apply_autodetect(void);
+static void update_drift_estimate(void);
+static void refresh_drift_label(void);
 
 /* Default rotation system per body (matches the command): Jupiter -> II,
  * Saturn -> III, Mars -> I. Also refresh the polar-radius default. */
@@ -91,7 +100,69 @@ static void on_derot_body_changed(GObject *obj, GParamSpec *pspec, gpointer u) {
 	 * window show) re-runs the auto-fit so the centre, size and orientation suit
 	 * the new body — Saturn uses the ring sizing, Jupiter the minor axis, etc. */
 	if (obj && window_open) apply_autodetect();
-	if (window_open) redraw(REDRAW_OVERLAY);
+	if (window_open) { update_drift_estimate(); redraw(REDRAW_OVERLAY); }
+}
+
+/* The rotation system and frame rate both change the apparent rotation across
+ * the span, so refresh the drift estimate when either is touched. */
+static void on_derot_system_changed(GObject *obj, GParamSpec *pspec, gpointer u) {
+	(void) obj; (void) pspec; (void) u;
+	if (window_open) update_drift_estimate();
+}
+
+static void on_derot_fps_changed(GtkSpinButton *spin, gpointer u) {
+	(void) spin; (void) u;
+	if (window_open) update_drift_estimate();
+}
+
+/* Recompute the equatorial-feature drift label from the live disk radius and
+ * the cached central-meridian swing. The worst case at the equator is a feature
+ * crossing the central meridian: its apparent position is u = r_eq·sin(lon-CM),
+ * so between the first and last frame it moves 2·r_eq·sin(ΔCM/2) pixels (the
+ * chord). Foreshortening only shrinks the drift of off-meridian and off-equator
+ * features, so this is the true worst case across the disk. */
+static void refresh_drift_label(void) {
+	if (!drift_label) return;
+	if (isnan(g_drift_cm_deg) || !spin_radius) {
+		gtk_label_set_text(drift_label, "");
+		return;
+	}
+	const double r_eq = gtk_spin_button_get_value(spin_radius);
+	const double drift_px = 2.0 * r_eq * sin(0.5 * g_drift_cm_deg * M_PI / 180.0);
+	gchar *s = g_strdup_printf(
+	    _("Equatorial drift across the sequence: %.1f px "
+	      "(%.2f° rotation over %.1f min). Derotation is worth it once "
+	      "this exceeds a pixel or two."),
+	    drift_px, g_drift_cm_deg, g_drift_span_min);
+	gtk_label_set_text(drift_label, s);
+	g_free(s);
+}
+
+/* Resolve the apparent rotation (central-meridian swing) between the first and
+ * last frame from the built-in ephemeris, for the current body and rotation
+ * system, and refresh the drift label. Only the two span endpoints are
+ * evaluated, so this is cheap enough to run on the GTK thread. */
+static void update_drift_estimate(void) {
+	g_drift_cm_deg = NAN;
+	g_drift_span_min = NAN;
+	if (sequence_is_loaded() && com.seq.number > 0 && dd_body && dd_system) {
+		const double fps = spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0;
+		double first_jd, last_jd;
+		if (mpp_derot_sequence_span(&com.seq, fps, NAN, &first_jd, &last_jd)) {
+			const planet_body_t body = (planet_body_t) gtk_drop_down_get_selected(dd_body);
+			const int sys = (int) gtk_drop_down_get_selected(dd_system);   /* 0..2 */
+			planet_geom_t g0, g1;
+			if (planet_ephemeris(body, first_jd, NAN, NAN, NAN, &g0) == 0
+			 && planet_ephemeris(body, last_jd, NAN, NAN, NAN, &g1) == 0) {
+				double dcm = g1.cm[sys] - g0.cm[sys];
+				while (dcm >  180.0) dcm -= 360.0;   /* unwrap across the 360° seam */
+				while (dcm < -180.0) dcm += 360.0;
+				g_drift_cm_deg = fabs(dcm);
+				g_drift_span_min = (last_jd - first_jd) * 24.0 * 60.0;
+			}
+		}
+	}
+	refresh_drift_label();
 }
 
 static void init_statics(void) {
@@ -109,12 +180,19 @@ static void init_statics(void) {
 	chk_parity  = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_parity"));
 	chk_epoch_lock = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "derot_epoch_lock"));
 	status      = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_status"));
+	drift_label = GTK_LABEL       (gtk_builder_get_object(gui.builder, "derot_drift"));
 	/* Restore the remembered mirror state when the window is first created. */
 	if (chk_parity)
 		gtk_check_button_set_active(chk_parity, com.pref.gui.derot_mirror);
 	if (dd_body)
 		g_signal_connect(dd_body, "notify::selected",
 		                 G_CALLBACK(on_derot_body_changed), NULL);
+	if (dd_system)
+		g_signal_connect(dd_system, "notify::selected",
+		                 G_CALLBACK(on_derot_system_changed), NULL);
+	if (spin_fps)
+		g_signal_connect(spin_fps, "value-changed",
+		                 G_CALLBACK(on_derot_fps_changed), NULL);
 }
 
 static void set_status(const char *msg) {
@@ -183,6 +261,7 @@ static void populate_from_sequence(void) {
 	free(jd);
 
 	apply_autodetect();
+	update_drift_estimate();
 }
 
 void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data) {
@@ -244,7 +323,10 @@ void on_derotation_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_derotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	(void) spin; (void) user_data;
-	if (window_open) redraw(REDRAW_OVERLAY);
+	if (window_open) {
+		refresh_drift_label();   /* radius drives the pixel figure; cheap to redo */
+		redraw(REDRAW_OVERLAY);
+	}
 }
 
 /* Mirror toggle: remember the state in preferences (persisted to the initfile)

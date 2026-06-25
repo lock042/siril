@@ -137,6 +137,10 @@
           </object>
         </child>
         <child>
+          <object class="GtkLabel" id="derot_drift"><property name="wrap">1</property><property name="xalign">0</property>
+            <property name="tooltip-text" translatable="yes">How far a feature on the planet's equator drifts across the disk between the first and last frame, at the current disk size. This is the smear derotation removes; below a pixel or two it is rarely worth the extra processing.</property></object>
+        </child>
+        <child>
           <object class="GtkLabel" id="derot_status"><property name="wrap">1</property><property name="xalign">0</property>
             <property name="label" translatable="yes">Fit the disk to the planet, then compute.</property></object>
         </child>
