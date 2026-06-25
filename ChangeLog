@@ -31,6 +31,7 @@ siril-1.5.0
 * Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
 * Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
 * Added displaying velocity vectors for SSO annotations (!1045)
+* Removed autotools build support (!1056)
 * Added multipoint registration (for planetary, lunar and solar use) (!1034)
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 
