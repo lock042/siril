@@ -82,6 +82,7 @@ extern "C" {
 #include "registration/mpp/mpp_rank_priv.hpp"
 #include "registration/mpp/mpp_shift_priv.hpp"
 #include "registration/mpp/mpp_stack_priv.hpp"
+#include "registration/mpp/mpp_multistack.hpp"
 
 /* mpp_run_alloc / mpp_run_free live in mpp_run.c (no Siril runtime deps). */
 
@@ -1772,6 +1773,161 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 		return mpp_stack_apply_impl(seq, cfg, run, derot, out);
 	} catch (const std::exception &e) {
 		siril_log_error(_("Stack (mpp): failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+/* -------------------- Multi-source derotation stack (Option B) --------------
+ *
+ * Combine several sequences — each with its own <seqname>.derot referencing a
+ * common epoch — into one stack in the reference sequence's epoch canvas. Wraps
+ * mpp::multistack_channel with real-sequence frame readers (the same
+ * read_analysis_frame / read_full_frame the single-sequence pipeline uses) and
+ * packs the result into the caller's fits. `seqs[ref]` defines the output
+ * geometry and channel count. */
+static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
+                                        int n, const mpp_derot_t *out_derot,
+                                        sequence *ref_seq, const mpp_config_t *cfg,
+                                        fits *out) {
+	if (!seqs || !derots || n <= 0 || !out_derot || !ref_seq || !cfg || !out)
+		return MPP_EINVAL;
+	for (int i = 0; i < n; ++i)
+		if (!seqs[i] || !derots[i]) return MPP_EINVAL;
+
+	/* The caller built cfg from defaults, which assume 16-bit; the analysis
+	 * reader stores frames at cfg.bitdepth, so an 8-bit source read as 16-bit is
+	 * near-black and finds no structure. Derive the real bit depth from the
+	 * sources (all share it — the GUI checks compatibility). */
+	mpp_config_t lcfg = *cfg;
+	lcfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seqs[0]->bitpix);
+
+	/* Pin CFA SER sources to raw-mosaic reads for the analysis passes, like the
+	 * single-sequence pipeline, so read_analysis_frame demosaics deterministically
+	 * regardless of the debayer-on-open preference. Restored on return. */
+	std::vector<SerAnalysisRawGuard> raw_guards(n);
+	for (int i = 0; i < n; ++i)
+		maybe_engage_ser_raw_for_analysis(raw_guards[i], seqs[i]);
+
+	std::vector<mpp::MsSource> srcs(n);
+	for (int i = 0; i < n; ++i) {
+		sequence *s = seqs[i];
+		const int avi = lcfg.avi_bayer_pattern;
+		const int bd  = lcfg.bitdepth;
+		srcs[i].derot = derots[i];
+		srcs[i].num_frames = s->number;
+		srcs[i].analysis_read = [s, avi, bd](int l) -> cv::Mat {
+			return mpp::read_analysis_frame(s, l, avi, bd);
+		};
+		srcs[i].full_read = [s, avi](int l) -> cv::Mat {
+			return mpp::read_full_frame(s, l, avi);
+		};
+	}
+
+	/* output channel count from the channel's own sequences (CFA decodes to 3).
+	 * The reference sequence supplies only the canvas geometry — it may belong
+	 * to a different channel — so the layer count is taken from the sources. */
+	const bool avi_cfa = (seqs[0]->type == SEQ_AVI
+	                      && lcfg.avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && lcfg.avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	const bool is_cfa = (mpp_classify_sequence_input(seqs[0]) == MPP_INPUT_CFA)
+	                  || avi_cfa;
+	const int num_layers = is_cfa ? 3
+	                      : (seqs[0]->nb_layers > 0 ? seqs[0]->nb_layers : 1);
+
+#ifdef _OPENMP
+	const int nt = std::max(1, com.max_thread);
+#else
+	const int nt = 1;
+#endif
+
+	/* Parallelise the streamed passes only when every source's reads are
+	 * reentrant — SER (serialises just the fread) or reentrant-built FITS — the
+	 * same predicate the single-sequence pipeline uses. Otherwise the frame
+	 * loops stay serial (the multi-source throughput limiter). */
+	bool provider_thread_safe = true;
+	for (int i = 0; i < n; ++i) {
+		const sequence *s = seqs[i];
+		const bool safe = (s->type == SEQ_SER)
+		    || ((s->type == SEQ_REGULAR || s->type == SEQ_FITSEQ
+		         || s->type == SEQ_INTERNAL) && fits_is_reentrant());
+		if (!safe) { provider_thread_safe = false; break; }
+	}
+
+	siril_log_message(_("Derotation stack: combining %d sequence(s), reference "
+	                    "canvas '%s', %d output channel(s), %s reads\n"),
+	                  n, ref_seq->seqname, num_layers,
+	                  provider_thread_safe ? _("parallel") : _("serial"));
+
+	const mpp::MultiStackResult res =
+	    mpp::multistack_channel(srcs, out_derot, num_layers, lcfg, nt,
+	                            provider_thread_safe);
+	if (res.error) return MPP_EINVAL;
+	if (res.oom) return MPP_ENOMEM;
+	if (res.cancelled || res.image.empty()) return MPP_EINTR;
+
+	siril_log_message(_("Derotation stack: %d frames combined over %d alignment "
+	                    "points\n"), res.num_frames, res.num_aps);
+
+	/* Pack into the caller's fits (mirrors mpp_stack_apply_impl). */
+	const cv::Mat &stacked = res.image;
+	clearfits(out);
+	const int Hh = stacked.rows, Ww = stacked.cols, C = stacked.channels();
+	const size_t plane = (size_t) Hh * Ww;
+	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
+	if (!out->data) return MPP_ENOMEM;
+	if (C == 1) {
+		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
+	} else {
+		std::vector<cv::Mat> planes;
+		cv::split(stacked, planes);
+		for (int c = 0; c < C; ++c)
+			std::memcpy(out->data + c * plane, planes[c].data, plane * sizeof(WORD));
+	}
+	out->rx = Ww; out->ry = Hh;
+	out->naxes[0] = Ww; out->naxes[1] = Hh; out->naxes[2] = C;
+	out->naxis = (C == 1) ? 2 : 3;
+	out->bitpix = USHORT_IMG; out->orig_bitpix = USHORT_IMG;
+	out->type = DATA_USHORT;
+	out->pdata[0] = out->data;
+	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
+	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
+
+	if (cfg->output_32bit) {
+		float *fbuf = ushort_buffer_to_float(out->data, plane * C);
+		if (!fbuf) return MPP_ENOMEM;
+		fit_replace_buffer(out, fbuf, DATA_FLOAT);
+	}
+	return MPP_OK;
+}
+
+extern "C" mpp_status_t mpp_multistack(sequence **seqs, mpp_derot_t **derots,
+                                       int n, int ref, const mpp_config_t *cfg,
+                                       fits *out) {
+	if (ref < 0 || ref >= n || !derots) return MPP_EINVAL;
+	try {
+		/* CLI/single-channel: the reference is one of the sources and supplies
+		 * both the canvas and its own frames. */
+		return mpp_multistack_impl(seqs, derots, n, derots[ref], seqs[ref], cfg, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+/* Multi-channel entry: the output canvas is `out_derot` / `ref_seq` (the
+ * user-designated reference sequence's plan and geometry), while `seqs`/`derots`
+ * are one channel's own sources. The reference need not be among them, so every
+ * channel stacks into the same canvas and the results compose to RGB. */
+extern "C" mpp_status_t mpp_multistack_to(sequence **seqs, mpp_derot_t **derots,
+                                          int n, sequence *ref_seq,
+                                          const mpp_derot_t *out_derot,
+                                          const mpp_config_t *cfg, fits *out) {
+	try {
+		return mpp_multistack_impl(seqs, derots, n, out_derot, ref_seq, cfg, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
 		                  "reduce the memory ratio in Preferences.\n"), e.what());
 		return MPP_ENOMEM;
 	}

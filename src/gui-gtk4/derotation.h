@@ -30,6 +30,12 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data);
 /* Overlay support: true while the window is open, and the current disk fit
  * (full-frame pixels) so the image canvas can draw a live outline. */
 gboolean derotation_is_open(void);
+
+/* Called when a sequence is loaded/displayed: if the derotation tool is open,
+ * refresh its per-sequence metadata (reference epoch, frame rate) and re-fit the
+ * disk for the newly loaded sequence. No-op when the tool is closed. */
+void derotation_sequence_changed(void);
+
 gboolean derotation_get_disk(double *cx, double *cy, double *radius, double *rpol,
                              double *pa_deg, gboolean *mirrored);
 /* Selected target body (0 = Jupiter, 1 = Saturn, 2 = Mars), or -1 if unknown.

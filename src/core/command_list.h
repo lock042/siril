@@ -44,6 +44,7 @@ static command commands[] = {
 	{"ddp", 3, "ddp level coef sigma [-mask]", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep] [-mask]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"derotate", 1, "derotate seqname -body={jupiter|saturn|mars} -center=x,y -radius=R [-system={1|2|3}] [-epoch=YYYY-MM-DDTHH:MM:SS] [-epoch-from=seq1,seq2,...] [-pa=deg] [-parity={1|-1}] [-fps=F] [-start=YYYY-MM-DDTHH:MM:SS] [-obs-lat=D] [-obs-lon=D] [-obs-elev=M] [-out=file]", process_derotate, STR_DEROTATE, TRUE, REQ_CMD_NO_THREAD},
+	{"derotate_stack", 1, "derotate_stack seq1 [seq2 ...] [-ref=N] [-drizzle=S] [-out=file] [-32b]", process_derotate_stack, STR_DEROTATE_STACK, TRUE, REQ_CMD_NO_THREAD},
 	{"ser_fix_timestamps", 1, "ser_fix_timestamps seqname -fps=F [-start=YYYY-MM-DDTHH:MM:SS]", process_ser_fix_timestamps, STR_SER_FIX_TIMESTAMPS, TRUE, REQ_CMD_NO_THREAD},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},

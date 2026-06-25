@@ -88,4 +88,29 @@ void derot_build_map(int out_w, int out_h,
                      cv::Mat &mapx, cv::Mat &mapy,
                      cv::Mat &valid, cv::Mat &mu);
 
+/* Multi-source generalisation: the output (epoch) globe and the source (frame)
+ * globe may sit at different places. `out_disk` (the reference sequence's globe
+ * in the output canvas) drives the epoch unprojection; `src_disk` (this
+ * sequence's own fitted globe, in its source frame) drives the reprojection.
+ * The single resample therefore both derotates the globe to the epoch AND
+ * relocates/rescales/re-orients it from this sequence's frame into the common
+ * reference canvas. With out_disk == src_disk this is identical to the
+ * single-disk derot_build_map above. The flattening (same body) is taken from
+ * out_disk.
+ *
+ * `mask_outside` governs pixels that fall outside the output globe. false
+ * (single-source default): they pass through as identity so rings/sky of the
+ * one frame stack normally. true (multi-source): they are masked (mu=0) — when
+ * the source globe sits elsewhere in its own frame, identity passthrough would
+ * sample that displaced globe where the reference expects sky, ghosting it; only
+ * the globe co-registers across sources, so everything off it is dropped. */
+void derot_build_map_ms(int out_w, int out_h,
+                        const derot_diskfit_t &out_disk,
+                        const derot_diskfit_t &src_disk,
+                        const derot_geom_t &epoch,
+                        const derot_geom_t &frame,
+                        cv::Mat &mapx, cv::Mat &mapy,
+                        cv::Mat &valid, cv::Mat &mu,
+                        bool mask_outside = false);
+
 #endif /* SRC_REGISTRATION_MPP_MPP_DEROT_GEOM_H_ */

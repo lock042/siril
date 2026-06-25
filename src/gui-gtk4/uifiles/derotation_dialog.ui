@@ -34,12 +34,17 @@
     <signal name="show" handler="on_derotation_dialog_show" swapped="no"/>
     <property name="child">
       <object class="GtkBox">
-        <property name="orientation">vertical</property>
-        <property name="spacing">8</property>
+        <property name="orientation">horizontal</property>
+        <property name="spacing">12</property>
         <property name="margin-start">12</property>
         <property name="margin-end">12</property>
         <property name="margin-top">12</property>
         <property name="margin-bottom">12</property>
+        <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
+        <property name="valign">start</property>
         <child>
           <object class="GtkGrid">
             <property name="row-spacing">6</property>
@@ -73,12 +78,8 @@
                 <layout><property name="column">0</property><property name="row">2</property></layout></object>
             </child>
             <child>
-              <object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">2</property>
-                <child><object class="GtkEntry" id="derot_epoch">
-                  <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS — defaults to the capture midpoint</property></object></child>
-                <child><object class="GtkCheckButton" id="derot_epoch_lock">
-                  <property name="label" translatable="yes">Shared epoch (keep for other sequences)</property>
-                  <property name="tooltip-text" translatable="yes">Keep this reference epoch when you load another sequence, so several channels (e.g. R/G/B shot minutes apart) all derotate to the same instant and can then be combined in the Compositing tool (use its Planetary alignment). For the best result set the epoch to the midpoint of the whole session; the "derotate" command's -epoch-from option computes that automatically from a list of sequences.</property></object></child>
+              <object class="GtkEntry" id="derot_epoch">
+                <property name="tooltip-text" translatable="yes">YYYY-MM-DDTHH:MM:SS. For a single sequence this defaults to the capture midpoint; once you build a combine session it shows the shared epoch (the midpoint across all the listed sequences), updated automatically as you add them. Edit it to override.</property>
                 <layout><property name="column">1</property><property name="row">2</property></layout></object>
             </child>
             <child>
@@ -141,8 +142,63 @@
             <property name="tooltip-text" translatable="yes">How far a feature on the planet's equator drifts across the disk between the first and last frame, at the current disk size. This is the smear derotation removes; below a pixel or two it is rarely worth the extra processing.</property></object>
         </child>
         <child>
-          <object class="GtkLabel" id="derot_status"><property name="wrap">1</property><property name="xalign">0</property>
+          <object class="GtkLabel" id="derot_status"><property name="wrap">1</property><property name="xalign">0</property><property name="max-width-chars">64</property>
             <property name="label" translatable="yes">Fit the disk to the planet, then compute.</property></object>
+        </child>
+        <child>
+          <object class="GtkFrame" id="derot_combine_frame">
+            <property name="label" translatable="yes">Combine several sequences</property>
+            <property name="margin-top">6</property>
+            <child>
+              <object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">4</property>
+                <property name="margin-start">6</property><property name="margin-end">6</property>
+                <property name="margin-top">6</property><property name="margin-bottom">6</property>
+                <child>
+                  <object class="GtkLabel"><property name="wrap">1</property><property name="xalign">0</property><property name="max-width-chars">64</property>
+                    <property name="label" translatable="yes">Fit each sequence's disk, tag its channel and add it. Pick one as the reference (★) — it defines the shared frame all channels are stacked into. Then combine.</property></object>
+                </child>
+                <child>
+                  <object class="GtkBox"><property name="spacing">6</property>
+                    <child><object class="GtkDropDown" id="derot_channel">
+                      <property name="tooltip-text" translatable="yes">Colour channel to tag the sequence being added. Use OSC for a one-shot-colour (CFA) camera — it stacks straight to colour. Mono sequences shot through R, G and B filters each get their own stack, ready to assemble into colour; use Mono for a single mono result.</property>
+                      <property name="model"><object class="GtkStringList"><items>
+                        <item translatable="yes">Mono</item>
+                        <item translatable="yes">Red</item>
+                        <item translatable="yes">Green</item>
+                        <item translatable="yes">Blue</item>
+                        <item translatable="yes">Luminance</item>
+                        <item translatable="yes">OSC (one-shot color)</item>
+                      </items></object></property></object></child>
+                    <child><object class="GtkButton" id="derot_add"><property name="label" translatable="yes">Add current sequence</property>
+                      <property name="hexpand">1</property><property name="halign">start</property>
+                      <property name="tooltip-text" translatable="yes">Snapshot the loaded sequence into the session: its current disk fit, the chosen channel, and the frame rate and capture span shown above (which set its timing). Load a sequence, fit its disk, then Add — repeat for each. Adding a sequence already in the list updates it.</property>
+                      <signal name="clicked" handler="on_derotation_add_clicked" swapped="no"/></object></child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow"><property name="min-content-height">96</property>
+                    <property name="has-frame">1</property><property name="vexpand">1</property>
+                    <child><object class="GtkListBox" id="derot_seqlist">
+                      <property name="selection-mode">single</property></object></child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox"><property name="spacing">6</property>
+                    <child><object class="GtkButton" id="derot_setref"><property name="label" translatable="yes">Set as reference</property>
+                      <property name="tooltip-text" translatable="yes">Make the selected sequence the reference. Its disk fit defines the common output frame every channel is stacked into, so the channels stay aligned for colour assembly.</property>
+                      <signal name="clicked" handler="on_derotation_setref_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_remove"><property name="label" translatable="yes">Remove</property>
+                      <property name="tooltip-text" translatable="yes">Remove the selected sequence from the session.</property>
+                      <signal name="clicked" handler="on_derotation_remove_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_combine"><property name="label" translatable="yes">Combine sequences</property>
+                      <property name="hexpand">1</property><property name="halign">end</property>
+                      <property name="tooltip-text" translatable="yes">Build each sequence's derotation at the shared epoch and stack every channel into the reference frame, removing planetary rotation. Saves one image per channel; when Red, Green and Blue are all present they are assembled into a colour image automatically.</property>
+                      <signal name="clicked" handler="on_derotation_combine_clicked" swapped="no"/></object></child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
         </child>
         <child>
           <object class="GtkBox"><property name="spacing">6</property><property name="halign">end</property>
@@ -158,6 +214,88 @@
             <child><object class="GtkButton" id="derot_compute"><property name="label" translatable="yes">Compute &amp; save</property>
               <property name="tooltip-text" translatable="yes">Compute the per-frame derotation from the ephemeris and the fitted disk and save it next to the sequence. Then register and stack as usual; the result is picked up automatically.</property>
               <signal name="clicked" handler="on_derotation_compute_clicked" swapped="no"/></object></child>
+          </object>
+        </child>
+      </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="derot_params_col">
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <property name="width-request">300</property>
+            <child>
+              <object class="GtkLabel"><property name="xalign">0</property><property name="wrap">1</property><property name="max-width-chars">40</property>
+                <property name="label" translatable="yes">Registration and stacking parameters used by Combine. They mirror the Registration and Stacking tabs; set them here for the whole session.</property></object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="vexpand">1</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
+                <property name="propagate-natural-height">0</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="valign">start</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="label" translatable="yes">Registration parameters</property>
+                <property name="expanded">0</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="row-spacing">4</property><property name="column-spacing">8</property>
+                    <property name="margin-top">4</property><property name="margin-start">6</property>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">AP half-box (px)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">0</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_half_box"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">4</property><property name="upper">128</property><property name="value">24</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">0</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">AP search width (px)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">1</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_search_width"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">2</property><property name="upper">64</property><property name="value">14</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">1</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Global search width (px)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">2</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_search_global"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">4</property><property name="upper">128</property><property name="value">34</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">2</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Reference frames (%)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">3</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_ref_percent"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">1</property><property name="upper">100</property><property name="value">5</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">3</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Register frames (%)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">4</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_reg_percent"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">1</property><property name="upper">100</property><property name="value">100</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">4</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Min brightness</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">5</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_min_brightness"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">0</property><property name="upper">255</property><property name="value">10</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">5</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Min contrast</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">6</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_min_contrast"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">0</property><property name="upper">255</property><property name="value">0</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">6</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Min structure</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">7</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_min_structure"><property name="digits">3</property><property name="adjustment"><object class="GtkAdjustment"><property name="lower">0</property><property name="upper">1</property><property name="value">0.04</property><property name="step-increment">0.01</property></object></property><layout><property name="column">1</property><property name="row">7</property></layout></object></child>
+                    <child><object class="GtkCheckButton" id="mdp_normalize"><property name="label" translatable="yes">Normalise frames</property><layout><property name="column">0</property><property name="row">8</property><property name="column-span">2</property></layout></object></child>
+                    <child><object class="GtkCheckButton" id="mdp_dewarp"><property name="label" translatable="yes">De-warp alignment points</property><layout><property name="column">0</property><property name="row">9</property><property name="column-span">2</property></layout></object></child>
+                    <child><object class="GtkCheckButton" id="mdp_seed"><property name="label" translatable="yes">Seed from existing registration</property><layout><property name="column">0</property><property name="row">10</property><property name="column-span">2</property></layout></object></child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander">
+                <property name="label" translatable="yes">Stacking parameters</property>
+                <property name="expanded">0</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="row-spacing">4</property><property name="column-spacing">8</property>
+                    <property name="margin-top">4</property><property name="margin-start">6</property>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Stack frames (%)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">0</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_stack_percent"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">1</property><property name="upper">100</property><property name="value">100</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">0</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Stack frames (count, -1=off)</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">1</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_stack_frames"><property name="adjustment"><object class="GtkAdjustment"><property name="lower">-1</property><property name="upper">1000000</property><property name="value">-1</property><property name="step-increment">1</property></object></property><layout><property name="column">1</property><property name="row">1</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Background fraction</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">2</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_bg_fraction"><property name="digits">2</property><property name="adjustment"><object class="GtkAdjustment"><property name="lower">0</property><property name="upper">1</property><property name="value">0.3</property><property name="step-increment">0.05</property></object></property><layout><property name="column">1</property><property name="row">2</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Background blend</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">3</property></layout></object></child>
+                    <child><object class="GtkSpinButton" id="mdp_bg_blend"><property name="digits">2</property><property name="adjustment"><object class="GtkAdjustment"><property name="lower">0</property><property name="upper">1</property><property name="value">0.2</property><property name="step-increment">0.05</property></object></property><layout><property name="column">1</property><property name="row">3</property></layout></object></child>
+                    <child><object class="GtkLabel"><property name="label" translatable="yes">Scale</property><property name="halign">start</property><layout><property name="column">0</property><property name="row">4</property></layout></object></child>
+                    <child><object class="GtkDropDown" id="mdp_scale"><property name="tooltip-text" translatable="yes">Output scale factor. Scaling is done by interpolation when the stack is built.</property><property name="model"><object class="GtkStringList"><items><item translatable="yes">1×</item><item translatable="yes">1.5×</item><item translatable="yes">2×</item><item translatable="yes">3×</item></items></object></property><layout><property name="column">1</property><property name="row">4</property></layout></object></child>
+                    <child><object class="GtkCheckButton" id="mdp_skip_failed"><property name="label" translatable="yes">Skip failed alignment points</property><layout><property name="column">0</property><property name="row">5</property><property name="column-span">2</property></layout></object></child>
+                  </object>
+                </child>
+              </object>
+            </child>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
