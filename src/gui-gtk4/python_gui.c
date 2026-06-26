@@ -2365,6 +2365,27 @@ static void editor_open_in_tab(void) {
 		editor_new_tab();
 }
 
+/* If `file` is already open in some tab, switch to that tab and return TRUE so
+ * callers can avoid opening a duplicate copy.  Each document tracks its own
+ * GFile; the active doc's is synced from the statics first since it is only
+ * written back on a tab switch. */
+static gboolean editor_focus_existing_doc(GFile *file) {
+	if (!file || !editor_docs)
+		return FALSE;
+	if (active_doc)
+		doc_save_statics(active_doc);
+	for (guint i = 0; i < editor_docs->len; i++) {
+		EditorDoc *d = g_ptr_array_index(editor_docs, i);
+		if (d->current_file && g_file_equal(d->current_file, file)) {
+			int idx = gtk_notebook_page_num(editor_notebook, d->page);
+			if (idx >= 0)
+				gtk_notebook_set_current_page(editor_notebook, idx);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /* Switch to the most-recently-active other tab (MRU toggle).  Pressing it
  * again toggles back, because the switch updates prev_doc to the tab we left. */
 static void editor_toggle_recent_tab(void) {
@@ -2717,11 +2738,13 @@ static void on_file_open_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	GError *error = NULL;
 	GFile *file = gtk_file_dialog_open_finish(fd, res, &error);
 	if (file) {
-		editor_open_in_tab();      /* fresh tab, or reuse a blank scratch tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		current_file = g_object_ref(file);
-		load_file(file);
-		update_title(current_file);
+		if (!editor_focus_existing_doc(file)) {
+			editor_open_in_tab();      /* fresh tab, or reuse a blank scratch tab */
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			current_file = g_object_ref(file);
+			load_file(file);
+			update_title(current_file);
+		}
 		g_object_unref(file);
 	}
 	if (error)
@@ -2747,11 +2770,13 @@ static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gp
 		return;
 	}
 	GFile *file = g_file_new_for_path(path);
-	editor_open_in_tab();         /* fresh tab, or reuse a blank scratch tab */
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	current_file = g_object_ref(file);
-	load_file(file);
-	update_title(current_file);
+	if (!editor_focus_existing_doc(file)) {
+		editor_open_in_tab();         /* fresh tab, or reuse a blank scratch tab */
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		current_file = g_object_ref(file);
+		load_file(file);
+		update_title(current_file);
+	}
 	g_object_unref(file);
 }
 
