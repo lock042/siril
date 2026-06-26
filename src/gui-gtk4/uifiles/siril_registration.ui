@@ -3,6 +3,26 @@
 <interface>
   <!-- interface-name siril_registration.ui -->
   <requires lib="gtk" version="4.0"/>
+  <!-- Shared factory: sizes the image-selection metric dropdowns to their widest
+       entry ("weighted FWHM") from creation so they don't grow when selected. -->
+  <object class="GtkBuilderListItemFactory" id="filter_metric_factory">
+    <property name="bytes"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtkListItem">
+    <property name="child">
+      <object class="GtkLabel">
+        <property name="xalign">0</property>
+        <property name="width-chars">14</property>
+        <binding name="label">
+          <lookup name="string" type="GtkStringObject">
+            <lookup name="item">GtkListItem</lookup>
+          </lookup>
+        </binding>
+      </object>
+    </property>
+  </template>
+</interface>]]></property>
+  </object>
   <object class="GtkAdjustment" id="adj_mpp_half_box">
     <property name="lower">4</property>
     <property name="upper">96</property>
@@ -1286,10 +1306,16 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkBox">
-                                    <property name="spacing">5</property>
+                                  <object class="GtkGrid">
+                                    <property name="column-spacing">5</property>
+                                    <property name="row-spacing">5</property>
                                     <child>
                                       <object class="GtkDropDown" id="combofilter4">
+                                        <property name="factory">filter_metric_factory</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1327,6 +1353,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin4">
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <property name="adjustment">adjustment4</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
@@ -1347,6 +1377,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkDropDown" id="filter_type4">
+                                        <layout>
+                                          <property name="column">2</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1363,11 +1397,19 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkLabel" id="labelfilter4">
+                                        <layout>
+                                          <property name="column">3</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <property name="width-chars">10</property>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_add4">
+                                        <layout>
+                                          <property name="column">4</property>
+                                          <property name="row">0</property>
+                                        </layout>
                                         <property name="focusable">1</property>
                                         <property name="halign">end</property>
                                         <property name="receives-default">1</property>
@@ -1380,13 +1422,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         </child>
                                       </object>
                                     </child>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkBox">
-                                    <property name="spacing">5</property>
-                                    <child>
+                                  <child>
                                       <object class="GtkDropDown" id="combofilter5">
+                                        <property name="factory">filter_metric_factory</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1425,6 +1467,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin5">
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="adjustment">adjustment5</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
@@ -1446,6 +1492,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkDropDown" id="filter_type5">
+                                        <layout>
+                                          <property name="column">2</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1462,11 +1512,19 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkLabel" id="labelfilter5">
+                                        <layout>
+                                          <property name="column">3</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="width-chars">10</property>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_add5">
+                                        <layout>
+                                          <property name="column">4</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="focusable">1</property>
                                         <property name="halign">end</property>
                                         <property name="receives-default">1</property>
@@ -1482,6 +1540,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_rem5">
+                                        <layout>
+                                          <property name="column">5</property>
+                                          <property name="row">1</property>
+                                        </layout>
                                         <property name="focusable">1</property>
                                         <property name="halign">end</property>
                                         <property name="receives-default">1</property>
@@ -1495,13 +1557,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                         </child>
                                       </object>
                                     </child>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkBox">
-                                    <property name="spacing">5</property>
-                                    <child>
+                                  <child>
                                       <object class="GtkDropDown" id="combofilter6">
+                                        <property name="factory">filter_metric_factory</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">2</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1540,6 +1602,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkSpinButton" id="stackspin6">
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">2</property>
+                                        </layout>
                                         <property name="adjustment">adjustment6</property>
                                         <property name="climb-rate">1</property>
                                         <property name="digits">2</property>
@@ -1561,6 +1627,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkDropDown" id="filter_type6">
+                                        <layout>
+                                          <property name="column">2</property>
+                                          <property name="row">2</property>
+                                        </layout>
                                         <property name="model">
                                           <object class="GtkStringList">
                                             <items>
@@ -1577,11 +1647,19 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                     </child>
                                     <child>
                                       <object class="GtkLabel" id="labelfilter6">
+                                        <layout>
+                                          <property name="column">3</property>
+                                          <property name="row">2</property>
+                                        </layout>
                                         <property name="width-chars">10</property>
                                       </object>
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="filter_rem6">
+                                        <layout>
+                                          <property name="column">5</property>
+                                          <property name="row">2</property>
+                                        </layout>
                                         <property name="focusable">1</property>
                                         <property name="halign">end</property>
                                         <property name="receives-default">1</property>
