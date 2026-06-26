@@ -251,6 +251,12 @@ static void impl_set_suppress_redraws(gboolean suppress) {
 		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
 	} else {
 		g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+		/* Symmetrically re-enable the display-mode menu: the matching
+		 * re-enable in end_gfit_operation() does not run for every op
+		 * that suppressed redraws (e.g. a command with argfit == gfit but
+		 * command_updates_gfit == FALSE completes via end_generic_image()),
+		 * which would otherwise leave the menu permanently insensitive. */
+		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(TRUE));
 	}
 }
 
