@@ -2539,6 +2539,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean incl = (gboolean)incl_encoded;
 			
 			// Process each index
+			gboolean index_error = FALSE;
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t index;
 				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
@@ -2546,20 +2547,26 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					index_error = TRUE;
 					break;
 				}
 				com.seq.imgparam[index].incl = incl;
 			}
-			fix_selnum(&com.seq, FALSE);
-			if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
-				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			// On an out-of-range index we already replied STATUS_ERROR; don't then
+			// finalise and send a second STATUS_OK (which also discarded the error
+			// result of the send_response above).
+			if (!index_error) {
+				fix_selnum(&com.seq, FALSE);
+				if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
+					com.seq.reference_image = sequence_find_refimage(&com.seq);
+				}
+				// Update GUI
+				if (!com.headless) {
+					gui_iface.update_sequence_overlay_async();
+					gui_iface.redraw_image_sync(REDRAW_OVERLAY);
+				}
+				success = send_response(conn, STATUS_OK, NULL, 0);
 			}
-			// Update GUI
-			if (!com.headless) {
-				gui_iface.update_sequence_overlay_async();
-				gui_iface.redraw_image_sync(REDRAW_OVERLAY);
-			}
-			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
