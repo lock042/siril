@@ -949,10 +949,11 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	// We do however need to reset psftype if it was modified for the loop.
 	if (args) args->psftype = args->oldpsftype;
 
-	if (data->from_command && data->deconv_data)
-		data->deconv_data->destroy_fn(data->deconv_data);
-	// If it wasn't from command, it was allocated in GUI, but we likely own it now in seqargs->user
-	else if (data && data->deconv_data)
+	// Whether allocated for a command or by the GUI, we own deconv_data here
+	// (data itself is always valid - it's dereferenced above). The previous
+	// 'else if (data && ...)' tested data for NULL after already dereferencing
+	// it, and both branches did the same thing.
+	if (data->deconv_data)
 		data->deconv_data->destroy_fn(data->deconv_data);
 
 	free(data);
