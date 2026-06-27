@@ -566,6 +566,9 @@ static void open_script_in_editor(const gchar *path) {
 		siril_log_error(msg);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_free(msg);
+		/* g_file_get_contents() can succeed with length == 0, allocating an
+		 * empty buffer that lands here unused; free it (NULL on real error). */
+		g_free(contents);
 		if (error) g_error_free(error);
 	}
 }
