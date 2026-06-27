@@ -2013,7 +2013,7 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			/* Ignore errors from the move: we don't want to mask the
 			* original deletion error.
 			*/
-			g_file_move(root,
+			(void) g_file_move(root,
 						quarantine,
 						G_FILE_COPY_NOFOLLOW_SYMLINKS,
 						NULL, NULL, NULL, NULL);
