@@ -59,13 +59,14 @@
 static void swap_mark_delete_on_close(int fd, const gchar *path) {
 #ifndef _WIN32
 	(void)fd;
-	g_unlink(path);
+	/* Best-effort: if the entry is already gone the swap simply persists. */
+	(void) g_unlink(path);
 #else
 	(void)path;
 	HANDLE h = (HANDLE)_get_osfhandle(fd);
 	if (h != INVALID_HANDLE_VALUE) {
 		FILE_DISPOSITION_INFO fdi = { .DeleteFile = TRUE };
-		SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
+		(void) SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
 	}
 #endif
 }
