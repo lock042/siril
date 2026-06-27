@@ -229,10 +229,21 @@ snapshot must free it. Commit `c75a21dcf`.
   non-NULL but empty array (first `duplicate_psf` OOM → `copy` allocated, `*nb_out == 0`), which
   enters the `nb_stars < 1` branch and overwrites `stars` without freeing the snapshot. The
   early-return frees in `c75a21dcf` did not cover this; added a free of the snapshot before the
-  `peaker()` reassignment. Pending commit.
+  `peaker()` reassignment. Commit `8e3eb6eac`.
 - **647139 / 647138 / 647140** (masks.c / synthstar.c / siril_pythoncommands.c) — the flagged
   `sf_data`-alloc-failure exits sit in the "no com.stars" branch where `stars` is NULL in practice,
   but the owned-resource contract should hold on every path; free it there too (NULL-safe).
+
+#### Audit follow-up — same overwrite leak in the other three snapshot callers (not Coverity CIDs)
+Triggered by the 647137 dip-check: the same non-NULL-empty return (`snapshot_com_stars` first
+`duplicate_psf` OOM) reaches `findstar_worker`, whose `*args->stars = stars` (star_finder.c:1455)
+overwrites the borrowed pointer **without freeing it**. The three callers that pass `&stars` into
+`findstar_worker` (`generate_synthstar` synthstar.c, `mask_create_from_stars` masks.c, the
+`CMD_GET_PSFSTARS` handler in siril_pythoncommands.c) therefore leak the snapshot array on that
+OOM edge. Fixed at the call sites (free the snapshot at the top of the `nb_stars < 1` branch,
+mirroring the unpurple fix) rather than in `findstar_worker` — it's an output-param producer whose
+other callers pass uninitialised/borrowed pointers. Coverity did not flag these (it never traced
+the non-NULL-empty return into them). Commit `b8fb84e72`.
 
 ### Genuine leaks wrongly dismissed — now fixed (commit `c63c7bd3b`, `862dea01d`)
 - **509293 / 509291** (extraction.c) — `extractHaOIII_image_hook` / `split_cfa_image_hook` freed

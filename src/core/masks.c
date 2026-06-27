@@ -732,6 +732,13 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		stars_needs_freeing = TRUE;
 
 	if (comstar_count_masks < 1) {
+		// snapshot_com_stars() can return a non-NULL but empty array (first
+		// duplicate_psf OOM); free it before findstar_worker overwrites stars.
+		if (stars_needs_freeing) {
+			free_fitted_stars(stars);
+			stars = NULL;
+			stars_needs_freeing = FALSE;
+		}
 		// Need to detect stars
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
