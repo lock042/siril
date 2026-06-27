@@ -369,7 +369,9 @@ where my "fix" addressed a different defect than the trace flagged. Several trac
 describe a *different* defect than my earlier log attributed to that CID number (Coverity appears to
 have re-pointed some CIDs between scans), so each was re-derived from source.
 
-**One real bug found and fixed; the other 13 confirmed genuinely FP / intentional / residual.**
+**Two real bugs found and fixed (647087 leak, 647059 null-deref); the other 12 confirmed genuinely
+FP / intentional / residual.** (647059 was initially mis-called an FP here and corrected after the
+user supplied its full transitive trace — see its entry below.)
 
 ## Real leak the earlier fix missed — now fixed
 
@@ -392,9 +394,16 @@ have re-pointed some CIDs between scans), so each was re-derived from source.
   (3255) and `cleanup` (3256); `script_name` is freed at 3533; the async path hands `cleanup` to the
   child-watch. Nothing leaks at the flagged points — Coverity can't trace the callee frees / async
   ownership handoff. FP (residual after `862dea01d`).
-- **647059** (mpp_stack_apply_impl) — `mpp_classify_sequence_input` (mpp.cpp:1365) and its helper
-  `fits_seq_is_cfa` never dereference `seq->imgparam` (only `type`/`ser_file`/`nb_layers`), so the
-  "null imgparam deref" path doesn't exist. FP. *(Earlier log cited the wrong field — corrected.)*
+- **647059** (mpp_stack_apply_impl) — **REAL null-deref, not an FP** (corrected after the user supplied
+  the full trace). `mpp_classify_sequence_input(seq)` at mpp.cpp:1485 dereferences `seq->imgparam`
+  *transitively*, three calls deep: → `fits_seq_is_cfa` → `mpp_seq_read_frame` (SEQ_REGULAR) →
+  `fit_sequence_get_image_filename_checkext`, which reads `seq->imgparam[index].filenum`
+  (catalogues path, line 1375). The function itself treats `seq->imgparam` as possibly-NULL at line
+  1397, so the null state is reachable; the classify call would then crash. Every downstream consumer
+  needs `imgparam` (all read frames by filename), so a NULL can't yield a valid stack — added
+  `!seq->imgparam` to the precondition guard (fail fast with `MPP_EINVAL`) and dropped the now-redundant
+  `seq->imgparam &&` at 1397. My earlier "classify never derefs imgparam" was wrong — I stopped at
+  `fits_seq_is_cfa`/`mpp_seq_read_frame` and didn't follow into the filename helper. Commit `<pending>`.
 - **647076** (process_seq_ghs) — the trace flags the **success** path, but `apply_ght_to_sequence`
   transfers `seqdata` to the async worker via `args->user`, freed in `ght_finalize_hook` (frees `data`
   + `params`). Ownership handoff Coverity can't see. FP. (My `c2dcf18c5` COL_SAT error-path fix stands.)
