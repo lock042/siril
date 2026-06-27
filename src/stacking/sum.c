@@ -155,13 +155,17 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		shifty = round_to_int(dy);
 		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
-	if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
-		shiftx += 1;
-	}
-	if (shifty == INT_MIN) { // mainly to avoid static checker warning
-		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
-		shifty += 1;
+	if (shiftx == INT_MIN || shifty == INT_MIN) {
+		/* round_to_int() returns INT_MIN for an out-of-range shift; x - shiftx
+		 * would then overflow, and a frame that far off cannot overlap the
+		 * output, so skip it. The previous '+= 1' nudge did not prevent the
+		 * x - (INT_MIN+1) overflow for x >= 1. */
+		siril_log_debug("Error: image #%d has a wrong shift value, skipping\n", o + 1);
+		if (is_drizzle) {
+			free(dweights);
+			free(weights);
+		}
+		return ST_OK;
 	}
 
 	for (y = 0; y < ssdata->output_size[1]; ++y) {
