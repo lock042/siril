@@ -329,13 +329,12 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	g_rw_lock_reader_lock(&com.stars_lock);
-	int comstar_count = starcount(com.stars);
-	if (comstar_count >= 1) {
-		stars = com.stars;
-		nb_stars = comstar_count;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Private, reader-locked copy of com.stars: the star-rendering loop below
+	// runs on a worker thread and must not deref a list another thread may free.
+	stars = snapshot_com_stars(&nb_stars);
+	int comstar_count = nb_stars;
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	if (comstar_count < 1) {
 		// Set up starfinder_data structure

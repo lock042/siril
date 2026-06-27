@@ -1124,27 +1124,27 @@ void free_psf(psf_star *psf) {
 /* ── Stars list management (moved from gui/PSF_list.c) ──────────────────── */
 
 void clear_stars_list(gboolean refresh_GUI) {
+	/* Detach the list and snapshot star_is_seqdata under the writer lock (both
+	 * are guarded by com.stars_lock). After com.stars is NULL'd no other thread
+	 * can reach 'stars', so it is freed safely outside the lock. */
 	g_rw_lock_writer_lock(&com.stars_lock);
 	psf_star **stars = com.stars;
-	if (stars) {
-		com.stars = NULL;
-		g_rw_lock_writer_unlock(&com.stars_lock);
-
-		if (stars[0]) {
-			/* Do not free when the only star is the seq data pointer —
-			 * it will be reused.  Free all other cases. */
-			if (stars[1] || !com.star_is_seqdata) {
-				int i = 0;
-				while (i < MAX_STARS && stars[i])
-					free_psf(stars[i++]);
-			}
-			free(stars);
-		}
-	} else {
-		g_rw_lock_writer_unlock(&com.stars_lock);
-	}
-
+	gboolean was_seqdata = com.star_is_seqdata;
+	com.stars = NULL;
 	com.star_is_seqdata = FALSE;
+	g_rw_lock_writer_unlock(&com.stars_lock);
+
+	if (stars && stars[0]) {
+		/* Do not free when the only star is the seq data pointer —
+		 * it will be reused.  Free all other cases. */
+		if (stars[1] || !was_seqdata) {
+			int i = 0;
+			while (i < MAX_STARS && stars[i])
+				free_psf(stars[i++]);
+		}
+	}
+	free(stars);
+
 	if (refresh_GUI && !com.headless)
 		gui_iface.clear_star_list();
 }
@@ -1153,4 +1153,36 @@ gboolean clear_stars_list_as_idle(gpointer user_data) {
 	gboolean refresh = (gboolean)GPOINTER_TO_INT(user_data);
 	clear_stars_list(refresh);
 	return FALSE;
+}
+
+/* Returns a private, fully-owned deep copy of com.stars (NULL-terminated), or
+ * NULL if the list is empty. The copy is taken while holding the reader lock so
+ * a worker thread can then read the stars without racing a concurrent
+ * clear/replace of com.stars (snapshotting only the pointer would still leave
+ * the pointee exposed to a concurrent free). Free the result with
+ * free_fitted_stars(). *nb_out (if non-NULL) receives the star count. */
+psf_star **snapshot_com_stars(int *nb_out) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int n = 0;
+	if (com.stars)
+		while (n < MAX_STARS && com.stars[n])
+			n++;
+	psf_star **copy = NULL;
+	if (n >= 1) {
+		copy = malloc((size_t)(n + 1) * sizeof(psf_star *));
+		if (copy) {
+			int i;
+			for (i = 0; i < n; i++) {
+				copy[i] = duplicate_psf(com.stars[i]);
+				if (!copy[i])
+					break;
+			}
+			copy[i] = NULL;   /* NULL-terminate (also handles partial failure) */
+			n = i;
+		}
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	if (nb_out)
+		*nb_out = copy ? n : 0;
+	return copy;
 }

@@ -72,13 +72,11 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	int channel = 1;
 	int nb_stars = 0;
 
-	g_rw_lock_reader_lock(&com.stars_lock);
-	nb_stars = starcount(com.stars);
-	if (nb_stars >= 1) {
-		stars = com.stars;
-		stars_needs_freeing = FALSE;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Private, reader-locked copy of com.stars so the starmask loop below can
+	// run off the main thread without racing a concurrent free/replace.
+	stars = snapshot_com_stars(&nb_stars);
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];

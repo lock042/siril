@@ -724,14 +724,12 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	int nb_stars = 0;
 	gboolean stars_needs_freeing = FALSE;
 
-	// Check if we already have stars in com.stars
-	g_rw_lock_reader_lock(&com.stars_lock);
-	int comstar_count_masks = starcount(com.stars);
-	if (comstar_count_masks >= 1) {
-		stars = com.stars;
-		nb_stars = comstar_count_masks;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Take a private, reader-locked copy of com.stars so the long mask-fill
+	// loop below doesn't dereference a list another thread may free/replace.
+	stars = snapshot_com_stars(&nb_stars);
+	int comstar_count_masks = nb_stars;
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	if (comstar_count_masks < 1) {
 		// Need to detect stars

@@ -1978,14 +1978,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			// Check if we need to find stars or use existing ones
-			g_rw_lock_reader_lock(&com.stars_lock);
-			int py_comstar_count = starcount(com.stars);
-			if (py_comstar_count >= 1) {
-				stars = com.stars;
-				nb_stars = py_comstar_count;
-			}
-			g_rw_lock_reader_unlock(&com.stars_lock);
+			// Check if we need to find stars or use existing ones. Take a
+			// private, reader-locked copy so the serialization loop below runs
+			// on the python thread without racing a concurrent free/replace.
+			stars = snapshot_com_stars(&nb_stars);
+			int py_comstar_count = nb_stars;
+			if (stars)
+				stars_needs_freeing = TRUE;
 
 			if (py_comstar_count < 1) {
 				// Set up starfinder_data structure
