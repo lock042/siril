@@ -2192,7 +2192,8 @@ static gboolean validate_python_version(const gchar *python_exe, GError **error)
 		return FALSE;
 	}
 
-	g_strstrip(stdout_data);
+	if (stdout_data)
+		g_strstrip(stdout_data);
 
 	// Validate we got some output
 	if (!stdout_data || strlen(stdout_data) == 0) {
