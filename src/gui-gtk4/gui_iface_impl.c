@@ -708,6 +708,10 @@ static void impl_remap_all_vports(void) {
 	remap_all();
 }
 
+static void impl_drop_lazy_tile_textures(void) {
+	drop_lazy_tile_textures();
+}
+
 static void impl_quit_application(void) {
 	/* GTK4: gtk_main_quit removed.  Quit via the application instance. */
 	GApplication *app = g_application_get_default();
@@ -1337,6 +1341,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.check_gaia_status           = impl_check_gaia_status;
 	gui_iface.trigger_gaia_check          = impl_trigger_gaia_check;
 	gui_iface.remap_all_vports            = impl_remap_all_vports;
+	gui_iface.drop_lazy_tile_textures     = impl_drop_lazy_tile_textures;
 	gui_iface.quit_application            = impl_quit_application;
 	gui_iface.refresh_script_menu         = impl_refresh_script_menu;
 	gui_iface.clear_backup                = impl_clear_backup;
