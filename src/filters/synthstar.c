@@ -342,6 +342,8 @@ int generate_synthstars(fits *fit) {
 		if (!sf_data) {
 			siril_log_error(_("Memory allocation failed\n"));
 			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+			if (stars_needs_freeing)
+				free_fitted_stars(stars);
 			return -1;
 		}
 

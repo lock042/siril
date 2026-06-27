@@ -97,11 +97,15 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 
 	if (starcount(stars) < 1) {
 		siril_log_error(_("No stars detected in the image.\n"));
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
 		return -1;
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
 	if (new_fit_image(star_mask, dimx, dimy, 1, DATA_USHORT)) {
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
 		return -1;
 	}
 

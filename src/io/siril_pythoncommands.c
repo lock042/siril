@@ -1993,6 +1993,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Memory allocation failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (stars_needs_freeing)
+						free_fitted_stars(stars);
 					break;
 				}
 
