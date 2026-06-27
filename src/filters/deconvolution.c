@@ -546,16 +546,14 @@ gpointer estimate_only(gpointer p) {
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
-		g_rw_lock_writer_lock(&com.stars_lock);
-		com.stars = detected;
-		g_rw_lock_writer_unlock(&com.stars_lock);
 		if (!detected || nb_stars == 0) {
 			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
+			free_fitted_stars(detected);   // no-op on NULL; frees an empty array
 			retval = 1;
 			goto ENDEST;
-		} else {
-			args->stars_need_clearing = TRUE;
 		}
+		replace_com_stars(detected);       // installs + frees any prior list, atomically
+		args->stars_need_clearing = TRUE;
 		siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
 
 		// Calculate parameters for struct
@@ -706,14 +704,13 @@ gpointer deconvolve(gpointer p) {
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
-		g_rw_lock_writer_lock(&com.stars_lock);
-		com.stars = detected;
-		g_rw_lock_writer_unlock(&com.stars_lock);
-		if (retval || nb_stars == 0) {
+		if (!detected || nb_stars == 0) {
 			siril_log_error(_("No suitable stars detectable in this image. Aborting..."));
+			free_fitted_stars(detected);   // no-op on NULL; frees an empty array
 			goto ENDDECONV;
-		} else
-			stars_need_clearing = TRUE;
+		}
+		replace_com_stars(detected);       // installs + frees any prior list, atomically
+		stars_need_clearing = TRUE;
 	}
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 

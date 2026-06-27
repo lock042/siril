@@ -1186,3 +1186,27 @@ psf_star **snapshot_com_stars(int *nb_out) {
 		*nb_out = copy ? n : 0;
 	return copy;
 }
+
+/* Replace com.stars with a new owned list, taking ownership of 'stars'. The
+ * swap (and star_is_seqdata reset) happen atomically under the writer lock; the
+ * previous list is detached there and freed afterwards (unless it was borrowed
+ * seq data). This avoids the leak + TOCTOU of a bare 'com.stars = new' that
+ * overwrote the old pointer without freeing it and split the check from the
+ * assignment across two lock acquisitions. */
+void replace_com_stars(psf_star **stars) {
+	g_rw_lock_writer_lock(&com.stars_lock);
+	psf_star **old = com.stars;
+	gboolean old_was_seqdata = com.star_is_seqdata;
+	com.stars = stars;
+	com.star_is_seqdata = FALSE;
+	g_rw_lock_writer_unlock(&com.stars_lock);
+
+	/* 'old' is detached: no other thread can reach it now, so free outside the
+	 * lock. Don't free borrowed seq data (the sequence still owns it). */
+	if (old && !old_was_seqdata) {
+		int i = 0;
+		while (i < MAX_STARS && old[i])
+			free_psf(old[i++]);
+		free(old);
+	}
+}

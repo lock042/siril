@@ -112,5 +112,8 @@ gboolean clear_stars_list_as_idle(gpointer user_data);
 /* Reader-locked deep copy of com.stars for use on worker threads. Free with
  * free_fitted_stars(); *nb_out receives the count. Returns NULL if empty. */
 psf_star **snapshot_com_stars(int *nb_out);
+/* Atomically replace com.stars with a new owned list under the writer lock,
+ * freeing the previous one. Takes ownership of 'stars'. */
+void replace_com_stars(psf_star **stars);
 
 #endif
