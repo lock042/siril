@@ -52,8 +52,12 @@ static GtkCheckButton *bkg_seq_btn = NULL;
 static GtkEntry *bkg_seq_entry = NULL;
 static GtkNotebook *bkg_notebook = NULL;
 
-static gboolean on_bkg_show_original_event(GtkEventControllerLegacy *controller,
-		GdkEvent *event, gpointer user_data);
+static void on_bkg_show_original_pressed(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data);
+static void on_bkg_show_original_released(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data);
+static void on_bkg_show_original_cancel(GtkGesture *gesture,
+		GdkEventSequence *sequence, gpointer user_data);
 
 static void background_extraction_init_statics(void) {
 	if (bkg_poly_order_combo) return;
@@ -74,12 +78,20 @@ static void background_extraction_init_statics(void) {
 	bkg_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBkgSeq"));
 	bkg_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "bkg_notebook_inter"));
 
-	/* GTK4 removed button-press/release-event; deliver the press-and-hold
-	 * "Show original image" events through a legacy event controller instead. */
+	/* GTK4 removed button-press/release-event; drive the press-and-hold "Show
+	 * original image" button with a click gesture. It tracks the whole
+	 * press->release sequence (so the release still fires after showing the
+	 * original redraws the view and breaks the implicit pointer grab), and the
+	 * capture phase makes sure we see the events before the button consumes
+	 * them. "cancel" restores the preview if the gesture is interrupted. */
 	if (bkg_show_original) {
-		GtkEventController *legacy = gtk_event_controller_legacy_new();
-		g_signal_connect(legacy, "event", G_CALLBACK(on_bkg_show_original_event), NULL);
-		gtk_widget_add_controller(bkg_show_original, legacy);
+		GtkGesture *click = gtk_gesture_click_new();
+		gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+		gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+		g_signal_connect(click, "pressed", G_CALLBACK(on_bkg_show_original_pressed), NULL);
+		g_signal_connect(click, "released", G_CALLBACK(on_bkg_show_original_released), NULL);
+		g_signal_connect(click, "cancel", G_CALLBACK(on_bkg_show_original_cancel), NULL);
+		gtk_widget_add_controller(bkg_show_original, GTK_EVENT_CONTROLLER(click));
 	}
 }
 
@@ -439,23 +451,22 @@ static void bkg_show_original_release(void) {
 	gfit_modified_update_gui();
 }
 
-static gboolean on_bkg_show_original_event(GtkEventControllerLegacy *controller,
-		GdkEvent *event, gpointer user_data) {
-	(void)controller; (void)user_data;
-	switch (gdk_event_get_event_type(event)) {
-		case GDK_BUTTON_PRESS:
-			if (gdk_button_event_get_button(event) == GDK_BUTTON_PRIMARY)
-				bkg_show_original_press();
-			break;
-		case GDK_BUTTON_RELEASE:
-			bkg_show_original_release();
-			break;
-		default:
-			break;
-	}
-	/* Don't consume the event: the GtkButton still handles its own
-	 * prelight/active visual feedback. */
-	return GDK_EVENT_PROPAGATE;
+static void on_bkg_show_original_pressed(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data) {
+	(void)gesture; (void)n_press; (void)x; (void)y; (void)user_data;
+	bkg_show_original_press();
+}
+
+static void on_bkg_show_original_released(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data) {
+	(void)gesture; (void)n_press; (void)x; (void)y; (void)user_data;
+	bkg_show_original_release();
+}
+
+static void on_bkg_show_original_cancel(GtkGesture *gesture,
+		GdkEventSequence *sequence, gpointer user_data) {
+	(void)gesture; (void)sequence; (void)user_data;
+	bkg_show_original_release();
 }
 
 void on_checkBkgSeq_toggled(GtkCheckButton *button, gpointer user_data) {
