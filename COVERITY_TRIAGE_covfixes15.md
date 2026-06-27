@@ -243,7 +243,7 @@ overwrites the borrowed pointer **without freeing it**. The three callers that p
 OOM edge. Fixed at the call sites (free the snapshot at the top of the `nb_stars < 1` branch,
 mirroring the unpurple fix) rather than in `findstar_worker` — it's an output-param producer whose
 other callers pass uninitialised/borrowed pointers. Coverity did not flag these (it never traced
-the non-NULL-empty return into them). Commit `b8fb84e72`.
+the non-NULL-empty return into them). Commit `db0daa1c7`.
 
 ### Genuine leaks wrongly dismissed — now fixed (commit `c63c7bd3b`, `862dea01d`)
 - **509293 / 509291** (extraction.c) — `extractHaOIII_image_hook` / `split_cfa_image_hook` freed
