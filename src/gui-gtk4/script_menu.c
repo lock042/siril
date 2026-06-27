@@ -585,8 +585,10 @@ static GMenu *get_py_submenu(const gchar *script_path,
                              GHashTable *py_submenus, const gchar *label_suffix) {
 	gchar *dir_path = g_path_get_dirname(script_path);
 	gchar *dir_name = g_path_get_basename(dir_path);
+	/* g_path_get_basename()/g_strdup() never return NULL here, so capitalized
+	 * is always a valid (possibly empty) string. */
 	gchar *capitalized = g_strdup(dir_name);
-	if (capitalized && capitalized[0])
+	if (capitalized[0])
 		capitalized[0] = g_ascii_toupper(capitalized[0]);
 	gchar *display_label = label_suffix ? g_strconcat(capitalized, label_suffix, NULL)
 	                                    : g_strdup(capitalized);
