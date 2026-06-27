@@ -275,6 +275,10 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	 * (corrupted file) and absurdly large ones that would overflow size_t
 	 * in the multiplications below. */
 	if (run->num_frames < 1 || run->num_frames > MPP_SIDECAR_MAX_FRAMES
+	 || run->frame_rows < 1 || run->frame_rows > MPP_SIDECAR_MAX_DIM
+	 || run->frame_cols < 1 || run->frame_cols > MPP_SIDECAR_MAX_DIM
+	 || run->num_layers < 1 || run->num_layers > 3
+	 || (run->bitdepth != 8 && run->bitdepth != 16 && run->bitdepth != 32)
 	 || run->mean_frame_rows < 1 || run->mean_frame_rows > MPP_SIDECAR_MAX_DIM
 	 || run->mean_frame_cols < 1 || run->mean_frame_cols > MPP_SIDECAR_MAX_DIM
 	 || aps_count < 0 || aps_count > MPP_SIDECAR_MAX_APS
