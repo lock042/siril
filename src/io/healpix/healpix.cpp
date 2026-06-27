@@ -244,7 +244,8 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
     // Read the header
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
     if (!file) {
-        *error_status = READ_ERROR;
+        if (error_status)
+            *error_status = READ_ERROR;
         return {};
     }
 
