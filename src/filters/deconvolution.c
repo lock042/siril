@@ -480,6 +480,7 @@ gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
 									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("total variation") :
 											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"),
 									  ss_string);
+				g_free(ss_string);
 				break;
 			case DECONV_WIENER:;
 				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f"),
@@ -1067,6 +1068,7 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 		seqargs->deconv_data = alloc_estk_data();
 		if (!seqargs->deconv_data) {
 			PRINT_ALLOC_ERR;
+			free(seqargs->seqEntry);
 			free(seqargs);
 			return GINT_TO_POINTER(1);
 		}
