@@ -1661,15 +1661,16 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* output = NULL;
 	gint status;
 
-	g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	gboolean ok = g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
 				NULL, NULL, &output, NULL, &status, NULL);
 
 	g_free(python_path);
 
-	if (output) {
+	if (ok && output) {
 		g_strchomp(output);  // Remove trailing newline
 		return output;
 	}
+	g_free(output);
 	return NULL;
 }
 
@@ -2347,7 +2348,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 						G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 						NULL, NULL,
 						NULL, NULL,
-						&exit_status, NULL)) {
+						&exit_status, &spawn_error)) {
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 					"Failed to check for module '%s': %s",
 					modules[i],
@@ -2386,7 +2387,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 					G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 					NULL, NULL,
 					NULL, NULL,
-					&exit_status, NULL)) {
+					&exit_status, &spawn_error)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to execute pip: %s",
 				spawn_error ? spawn_error->message : "unknown error");
@@ -3019,10 +3020,10 @@ cleanup:
 		sys_python_exe = NULL;
 	}
 
-	if (python_exe) {
-		success = TRUE;  /* venv already existed */
-		g_free(python_exe);
-	}
+	/* The 'venv already existed and is healthy' case returns TRUE early above,
+	 * and the unhealthy / not-found paths set python_exe to NULL before
+	 * reaching here, so python_exe is always NULL at this point. The former
+	 * 'if (python_exe) success = TRUE' cleanup branch was dead code. */
 
 	g_free(venv_path);
 	return success;
