@@ -199,9 +199,23 @@ int copy_backup_to_gfit() {
 	 * tile fill, producing torn tiles on screen (an intermittent preview
 	 * "glitch", typically while dragging a stretch slider).
 	 *
+	 * GRWLock has no writer preference, so taking the writer lock here from the
+	 * GUI thread while that pool is busy can starve indefinitely: after a
+	 * stretch dirties every tile the pool churns reader-locked fills back to
+	 * back and the GUI-thread writer never gets in — a hard freeze on large
+	 * images (reported after a GHS stretch of a big mono frame).  Quiesce the
+	 * pool first, exactly as generic_image_worker does before it mutates gfit:
+	 * the workers honour gui.suppress_drawarea_redraw at the top of their loop
+	 * (image_display.c, materialise_worker), so no new fills start, the
+	 * in-flight ones drain, and the writer lock is then acquired in bounded
+	 * time.  The flag is a plain boolean (not a counter), so save and restore
+	 * it rather than forcing it off.
+	 *
 	 * Deadlock-free: no caller holds gfit->rwlock or gui.cairo_mutex here, and
 	 * none of the helpers below re-acquire gfit->rwlock, so this non-recursive
 	 * lock is taken exactly once on the path. */
+	const gint prev_suppress = g_atomic_int_get(&gui.suppress_drawarea_redraw);
+	g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
 	g_rw_lock_writer_lock(&gfit->rwlock);
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
@@ -225,6 +239,7 @@ int copy_backup_to_gfit() {
 		}
 	}
 	g_rw_lock_writer_unlock(&gfit->rwlock);
+	g_atomic_int_set(&gui.suppress_drawarea_redraw, prev_suppress);
 	return retval;
 }
 
