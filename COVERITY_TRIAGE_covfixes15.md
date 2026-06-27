@@ -403,7 +403,7 @@ user supplied its full transitive trace — see its entry below.)
   needs `imgparam` (all read frames by filename), so a NULL can't yield a valid stack — added
   `!seq->imgparam` to the precondition guard (fail fast with `MPP_EINVAL`) and dropped the now-redundant
   `seq->imgparam &&` at 1397. My earlier "classify never derefs imgparam" was wrong — I stopped at
-  `fits_seq_is_cfa`/`mpp_seq_read_frame` and didn't follow into the filename helper. Commit `<pending>`.
+  `fits_seq_is_cfa`/`mpp_seq_read_frame` and didn't follow into the filename helper. Commit `6612143e6`.
 - **647076** (process_seq_ghs) — the trace flags the **success** path, but `apply_ght_to_sequence`
   transfers `seqdata` to the async worker via `args->user`, freed in `ght_finalize_hook` (frees `data`
   + `params`). Ownership handoff Coverity can't see. FP. (My `c2dcf18c5` COL_SAT error-path fix stands.)
