@@ -1530,8 +1530,11 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * the background blend even though they're skipped from the AP buffers. */
 	std::vector<int> sorted_idx;
 	sorted_idx.reserve(run->num_frames);
+	/* run->included is optional (it is null-checked at the inclusion-refresh
+	 * step above); a NULL pointer means no per-frame inclusion info, i.e. all
+	 * frames participate. */
 	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) sorted_idx.push_back(i);
+		if (!run->included || run->included[i]) sorted_idx.push_back(i);
 	std::sort(sorted_idx.begin(), sorted_idx.end(),
 	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
 
