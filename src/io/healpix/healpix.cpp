@@ -369,6 +369,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 
         if (error || !buffer || response_length != INDEX_SIZE) {
             siril_log_error(_("Failed to download index via HTTP\n"));
+            free(buffer);
             return std::nullopt;
         }
 
@@ -440,6 +441,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 
             if (data_error || !data_buffer) {
                 siril_log_error(_("Failed to read data entries via HTTP\n"));
+                free(data_buffer);
                 results.clear();
                 return std::nullopt;
             }
