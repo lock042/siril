@@ -1153,7 +1153,11 @@ std::vector<cv::Scalar> stack_solve_ap_dc_offsets(const mpp::StackState &state) 
 				acc += (delta[e.b] - e.d) * e.n;
 				nsum += e.n;
 			}
-			delta[a] = acc * (1.0 / nsum);
+			/* nbrs[a] is non-empty here and every edge weight e.n is a positive
+			 * overlap area (>= 1), so nsum > 0; guard anyway to keep the
+			 * division provably safe. */
+			if (nsum > 0.0)
+				delta[a] = acc * (1.0 / nsum);
 		}
 	}
 
