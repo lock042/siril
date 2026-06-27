@@ -198,7 +198,7 @@ int load_kernel(gchar* filename, estk_data *args) {
 		args->nchans = gfit->naxes[2]; // Fallback if fit not yet set
 
 	fits load_fit = { 0 };
-	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE))) {
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE, FALSE))) {
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}

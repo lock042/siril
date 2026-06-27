@@ -2846,7 +2846,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
-			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
+			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE, FALSE)) {
 				free(fit);
 				g_free(filepath);
 				const char* error_msg = _("Failed to read image file");
@@ -3013,14 +3013,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
-			g_rw_lock_writer_lock(&com.pref_rwlock);
-			gboolean debayer_pref = com.pref.debayer.open_debayer;
-			com.pref.debayer.open_debayer = FALSE; // disable debayering
-			g_rw_lock_writer_unlock(&com.pref_rwlock);
-			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
-			g_rw_lock_writer_lock(&com.pref_rwlock);
-			com.pref.debayer.open_debayer = debayer_pref;
-			g_rw_lock_writer_unlock(&com.pref_rwlock);
+			// Disable debayering via the no_debayer argument rather than racily
+			// toggling the global com.pref.debayer.open_debayer.
+			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE, TRUE);
 			if (retval) {
 				free(fit);
 				g_free(filepath);

@@ -107,7 +107,7 @@ static gboolean end_read_single_image(gpointer p) {
  */
 int read_single_image(const char *filename, fits *dest, char **realname_out,
 		gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs,
-		gboolean force_float) {
+		gboolean force_float, gboolean no_debayer) {
 	int retval;
 	image_type imagetype;
 	char *realname = NULL;
@@ -131,9 +131,11 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		}
 	} else {
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
-		if (!retval)
+		/* no_debayer lets a caller (e.g. the Python module) suppress debayering
+		 * without mutating the global com.pref.debayer.open_debayer. */
+		if (!retval && !no_debayer)
 			debayer_if_needed(imagetype, dest, FALSE);
-		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+		if ((com.pref.debayer.open_debayer && !no_debayer) || imagetype != TYPEFITS)
 			update_fits_header(dest);
 	}
 	if (is_sequence) {
@@ -198,7 +200,7 @@ int open_single_image(const char* filename) {
 		close_single_image();	// close the previous image and free resources
 
 		/* open the new file */
-		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE, FALSE);
 	}
 	if (retval) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
