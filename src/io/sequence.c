@@ -727,6 +727,14 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		gui_iface.init_right_tab();
 		if (do_refresh_annotations)
 			refresh_found_objects();
+		/* gfit now holds this frame's pixels.  In lazy-tile display mode the
+		 * resident tiles still carry the PREVIOUS frame's textures, which the
+		 * remap below only marks dirty (not freed) — so without this the screen
+		 * keeps showing the old frame until the materialise pool slowly re-fills
+		 * it top-to-bottom (the "only the top of the image updates on a frame
+		 * swap" bug for images larger than the lazy budget).  Drop them so the
+		 * snapshot shows the new-frame proxy at once and sharpens from there. */
+		gui_iface.drop_lazy_tile_textures();
 		gui_iface.remap_all_vports();
 		gui_iface.redraw_image(REDRAW_ALL);
 		if (seq->is_variable)

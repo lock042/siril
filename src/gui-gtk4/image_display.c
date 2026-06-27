@@ -367,6 +367,32 @@ static void view_refresh_tile_textures(struct image_view *view) {
 		view_refresh_tile_textures_eager(view);
 }
 
+/* Drop the resident lazy tile textures for every viewport, then mark the grid
+ * dirty.  The next snapshot then has no stale texture to show: a visible tile
+ * reads as "missing", so the snapshot falls back to the (freshly rebuilt)
+ * full-image proxy while the materialise pool re-fills the visible tiles from
+ * the new pixels.
+ *
+ * Call this when gfit's PIXELS are replaced (e.g. switching the displayed
+ * sequence frame) — NOT for a LUT/zoom change, where the existing textures hold
+ * the right pixels and keeping them (view_invalidate_tiles_lazy alone) shows a
+ * sharp image rather than a momentary blurry proxy.  Without it a frame swap
+ * keeps each tile's previous-frame texture (any_missing stays false in the
+ * snapshot, so the proxy is suppressed) and the screen shows the OLD frame until
+ * the pool slowly re-fills it top-to-bottom — the "only the top of the image
+ * updates" bug on images larger than the lazy-tile budget. */
+void drop_lazy_tile_textures(void) {
+	g_mutex_lock(&gui.cairo_mutex);
+	for (int v = 0; v <= RGB_VPORT; v++) {
+		struct image_view *view = &gui.view[v];
+		if (view->lazy && view->tiles) {
+			view_drop_all_tile_textures(view);
+			view_invalidate_tiles_lazy(view);
+		}
+	}
+	g_mutex_unlock(&gui.cairo_mutex);
+}
+
 
 /* Allocate (or reallocate) the per-viewport tile grid for the current
  * gfit dimensions.  Images that fit in a single tile (≤ SIRIL_TILE_DIM
