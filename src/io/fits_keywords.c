@@ -1223,7 +1223,7 @@ int read_fits_keywords(fits *fit) {
 			unquoted = g_shell_unquote(value, NULL);
 			if (!unquoted) break;
 			str_value = g_strstrip(unquoted);
-			g_strlcpy((char*) current_key->data, str_value, FLEN_VALUE);
+			(void) g_strlcpy((char*) current_key->data, str_value, FLEN_VALUE);
 			g_free(unquoted);
 			current_key->used = TRUE;
 			break;
