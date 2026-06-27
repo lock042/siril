@@ -123,7 +123,15 @@ guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
 	ima_data = malloc(sz * n_channels * sizeof(float));
 	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
 
-	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
+	if (ser_read_frame(&ser, 0, &fit, FALSE, FALSE)) {
+		/* Without a frame, fit.pdata is NULL and the copy loops below would
+		 * dereference it. Bail out cleanly. */
+		ser_close_file(&ser);
+		free(ima_data);
+		free(pixbuf_data);
+		free(pix);
+		return NULL;
+	}
 
 	if (n_channels == 1) {
 		for (i = 0; i < sz; i++) {
@@ -222,6 +230,11 @@ guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
 			if (++M >= h)
 				break;
 		}
+		/* m counts the rows actually accumulated above; if the inner loop
+		 * broke on its first iteration (M reached h) the m++ never ran, so
+		 * guard the division. */
+		if (m == 0.f)
+			m = 1.f;
 		if (n_channels == 1) {
 			ptr = &ima_data[i * Ws];
 			for (l = 0; l < Ws; l++)
