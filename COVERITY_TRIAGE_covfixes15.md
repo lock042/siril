@@ -380,7 +380,7 @@ have re-pointed some CIDs between scans), so each was re-derived from source.
   `livestacking_gui.c` logs and `return`s without freeing when `com.headless`, and the
   `headless_stubs.c` stub ignored `str` entirely. Every `TRUE` caller (livestacking.c:224, 774, 806)
   therefore leaks in headless mode. Fixed at the source — both implementations now `g_free(str)` when
-  `free_after_display`. Compiles clean (gui + headless stub objects). Commit `<pending>`.
+  `free_after_display`. Compiles clean (gui + headless stub objects). Commit `46d9724a2`.
 
 ## Confirmed false positives (verified against current source)
 
