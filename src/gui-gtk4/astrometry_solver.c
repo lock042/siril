@@ -643,6 +643,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			parse_resolver_buffer(result, &obj);
 			if (!has_nonzero_coords()) {
 				free(result);
+				free_sky_object_query(args);
 				set_cursor_waiting(FALSE);
 				// the list is empty, it will just write "No object found" as the first entry
 				g_signal_handlers_block_by_func(selection_model, on_IPS_selection_changed, NULL);

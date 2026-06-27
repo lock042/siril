@@ -662,7 +662,7 @@ void siril_check_updates(gboolean verbose) {
 		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-update", fetch_url_async, args);
+	g_thread_unref(g_thread_new("siril-update", fetch_url_async, args));
 }
 
 void siril_check_notifications(gboolean verbose) {
@@ -682,7 +682,7 @@ void siril_check_notifications(gboolean verbose) {
 		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-notifications", fetch_url_async, args);
+	g_thread_unref(g_thread_new("siril-notifications", fetch_url_async, args));
 }
 
 // Parse SPCC mirrors JSON and populate the global string vector
