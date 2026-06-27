@@ -1037,7 +1037,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 				}
 				if (p != BAYER_FILTER_NONE) {
 					adjust_Bayer_pattern_orientation(&p, fit->ry, TRUE);
-					g_strlcpy(fit->keywords.bayer_pattern,
+					(void) g_strlcpy(fit->keywords.bayer_pattern,
 					          filter_pattern[p],
 					          sizeof(fit->keywords.bayer_pattern));
 				}
