@@ -3519,6 +3519,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Create cleanup info structure for either synchronous or async operation
 	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));
 	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
+	/* execute_python_script() owns script_name (all error paths g_free it). On
+	 * the success path it was only borrowed by python_argv (freed with
+	 * free_segment=FALSE) and copied into cleanup->temp_filename, so the
+	 * original must be freed here; the temp file itself is unlinked later by
+	 * python_process_cleanup via temp_filename. */
+	g_free(script_name);
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;
 	cleanup->python_conn = commstate.python_conn;
@@ -3582,9 +3588,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		(GThreadFunc)monitor_stream_stderr,
 		g_object_ref(stderr_data));
 
-	// Clean up references
+	// Clean up references. The monitor threads each hold their own g_object_ref
+	// on the data stream and unref it when they finish, so we must drop our
+	// creation ref here too (the thread keeps the object alive meanwhile);
+	// otherwise the GDataInputStream and its underlying fd leak.
 	g_object_unref(stdout_stream);
 	g_object_unref(stderr_stream);
+	g_object_unref(stdout_data);
+	g_object_unref(stderr_data);
 	g_thread_unref(stdout_thread);
 	g_thread_unref(stderr_thread);
 
