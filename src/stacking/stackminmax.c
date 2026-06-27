@@ -126,13 +126,13 @@ static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int 
 		shifty = round_to_int(dy);
 		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
-	if (shiftx == INT_MIN) {
-		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
-		shiftx += 1;
-	}
-	if (shifty == INT_MIN) {
-		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
-		shifty += 1;
+	if (shiftx == INT_MIN || shifty == INT_MIN) {
+		/* round_to_int() returns INT_MIN for an out-of-range (invalid) shift.
+		 * Computing x - shiftx / y - shifty would then overflow (x - INT_MIN),
+		 * and a frame that far off can't overlap the output, so skip it
+		 * entirely - it contributes nothing to the min/max accumulation. */
+		siril_log_debug("Error: image #%d has a wrong shift value, skipping\n", o + 1);
+		return ST_OK;
 	}
 
 	/* collapse(2) distributes all output pixels evenly across threads, giving
