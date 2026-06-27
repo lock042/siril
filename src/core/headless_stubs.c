@@ -284,7 +284,8 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 
 /* Livestacking display */
 void livestacking_display(gchar *str, gboolean free_after_display) {
-	(void)str; (void)free_after_display;
+	if (free_after_display)
+		g_free(str);
 }
 gboolean livestacking_first_result_idle(gpointer p) { (void)p; return FALSE; }
 void livestacking_update_number_of_images(int nb, double total_exposure, double noise, const char *process_time) {

@@ -358,3 +358,69 @@ buffer NULL → NULL deref. Added an up-front compatibility check to both hooks 
 Verified: the offending sequence now aborts cleanly ("Image #4 … is incompatible …"), a valid
 homogeneous sequence still stacks. Commit `98e4ab09e`. (Pre-existing bug, independent of the
 Coverity work; my 530672/647071 changes only touched the unrelated INT_MIN branch.)
+
+---
+
+# Third pass — verification against saved Coverity traces (`123456.txt` in project root)
+
+The user exported the detailed trace for each issue still showing open. Cross-checking the **actual
+current code** against each trace (not trusting the earlier log) — prompted by the 647137 miss,
+where my "fix" addressed a different defect than the trace flagged. Several traces here likewise
+describe a *different* defect than my earlier log attributed to that CID number (Coverity appears to
+have re-pointed some CIDs between scans), so each was re-derived from source.
+
+**One real bug found and fixed; the other 13 confirmed genuinely FP / intentional / residual.**
+
+## Real leak the earlier fix missed — now fixed
+
+- **647087** (livestacking) — the trace flags `str` at livestacking.c:223 (`livestacking_display(str,
+  TRUE)` then `return`), **not** the `replace_ext` path my `6427b757e` touched. `livestacking_display`'s
+  second arg `free_after_display=TRUE` means the callee owns `str`, and the interactive GUI path frees
+  it (via `set_label` → `label_update_idle`). But **both headless paths break the contract**:
+  `livestacking_gui.c` logs and `return`s without freeing when `com.headless`, and the
+  `headless_stubs.c` stub ignored `str` entirely. Every `TRUE` caller (livestacking.c:224, 774, 806)
+  therefore leaks in headless mode. Fixed at the source — both implementations now `g_free(str)` when
+  `free_after_display`. Compiles clean (gui + headless stub objects). Commit `<pending>`.
+
+## Confirmed false positives (verified against current source)
+
+- **530766** (compstars_worker, `query_args->item`) & **641698** (process_catsearch, `query_args->name`)
+  — `free_sky_object_query` (siril_catalogues.c:1636) **does** free `->name`, `->item` (and the item's
+  contents). Coverity doesn't model the field frees. FP. (My separate 530766 `var_stars_cat` fix is a
+  different leak and stands.)
+- **530799 / 637631** (execute_python_script) — `python_process_cleanup` frees `cleanup->temp_filename`
+  (3255) and `cleanup` (3256); `script_name` is freed at 3533; the async path hands `cleanup` to the
+  child-watch. Nothing leaks at the flagged points — Coverity can't trace the callee frees / async
+  ownership handoff. FP (residual after `862dea01d`).
+- **647059** (mpp_stack_apply_impl) — `mpp_classify_sequence_input` (mpp.cpp:1365) and its helper
+  `fits_seq_is_cfa` never dereference `seq->imgparam` (only `type`/`ser_file`/`nb_layers`), so the
+  "null imgparam deref" path doesn't exist. FP. *(Earlier log cited the wrong field — corrected.)*
+- **647076** (process_seq_ghs) — the trace flags the **success** path, but `apply_ght_to_sequence`
+  transfers `seqdata` to the async worker via `args->user`, freed in `ght_finalize_hook` (frees `data`
+  + `params`). Ownership handoff Coverity can't see. FP. (My `c2dcf18c5` COL_SAT error-path fix stands.)
+- **647080** (on_new_folder_create) — `name` is freed on all three returns (file_browser.c:960/968/986). FP.
+- **647082 / 647099** (reset_browser_state → update_nav_sensitivity) — `back_history`/`forward_history`
+  are allocated **unconditionally** in the constructor (file_browser.c:2497-2498) and never nulled;
+  `update_nav_sensitivity` derefs them safely. The defensive `if (fb->…history)` guards in
+  reset_browser_state are what mislead Coverity. FP. *(Earlier "null-test-in-callee" reasoning was
+  imprecise — corrected.)*
+- **647109** (generate_samples_random) — `tmp` is built mono (1 channel, bg_extraction.c:701), and
+  `find_unlinked_midtones_balance` only writes `results[0..naxes[2]-1]` = `results[0]`, so the singleton
+  `&params` is correct. FP (ARRAY_VS_SINGLETON heuristic). *(Unrelated to the bbox-clamp `13252648b`,
+  which the CID number formerly pointed at.)*
+
+## Confirmed intentional / residual (no change)
+
+- **647064** (processing_system_shutdown) & **647067** (rotation_image_hook) — LOCK_EVASION. 647064's
+  unlocked `worker_running` read is required (queue_mutex is initialised after `system_initialized`).
+  647067's unlocked `com.selection.w` check-then-write is benign: parallel per-frame rotate hooks all
+  expand the (idempotent) global selection to the full image under `com.mutex`; worst case is a
+  redundant identical write. *(647067's earlier "workers only read rotation_args" reasoning was wrong —
+  the flagged field is the global `com.selection`; corrected.)*
+- **647065** (ComputeRegressionPlane) — the `std::fabs(det) < epsilon` guard from `96979b302` is
+  present; the `/det` in the `else` runs only when `|det| ≥ epsilon`, so it can't divide by zero.
+  Residual DIVIDE_BY_ZERO FP.
+- **647121** (mpp_sidecar_read) — the range checks from `5e962088d` are present; the shifts-section
+  `snf`/`sna` are rejected unless they equal the already-validated `num_frames`/`aps_count`, so
+  `success_count = snf*sna` is bounded. Residual TAINTED_SCALAR FP (Coverity doesn't propagate the
+  equality). Could add an explicit cap purely to silence it, but no real defect.
