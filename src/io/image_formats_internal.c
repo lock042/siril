@@ -523,6 +523,17 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	buf[j] = '\0';
 	fit->ry = fit->naxes[1] = g_ascii_strtoull(buf + i, NULL, 10);
 
+	/* Dimensions come from the (untrusted) file header. Reject zero and cap to a
+	 * value far beyond any real PNM (100000 x 100000 = 1e10 px) so the
+	 * stride * height * sizeof products below cannot overflow size_t and drive an
+	 * undersized allocation followed by an oversized fread. */
+	if (fit->rx == 0 || fit->ry == 0 || fit->rx > 100000 || fit->ry > 100000) {
+		siril_log_message(_("Unsupported or invalid PNM image dimensions (%u x %u)\n"),
+				fit->rx, fit->ry);
+		fclose(file);
+		return -1;
+	}
+
 	do {
 		if (fgets(buf, 256, file) == NULL) {
 			fclose(file);
