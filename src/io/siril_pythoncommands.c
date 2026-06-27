@@ -514,39 +514,61 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	if (!plot_data)
 		return NULL;
 
-	// We don't need to use the siril_plot_set_X functions here as we
-	// know the plot_data is newly allocated and initialized
+	/* The buffer is an untrusted, attacker-sized shared-memory region, so every
+	 * read is bounds-checked against buffer_size. NEED(n) guarantees n bytes
+	 * remain at offset (overflow-safe); READ_STR copies a NUL-terminated string
+	 * that must terminate inside the buffer. Any violation jumps to unpack_fail,
+	 * which frees everything built so far. Loop-local buffers are declared up
+	 * front so that path can free a partially-built series. */
+	gchar *series_label = NULL;
+	double *xdata = NULL, *ydata = NULL, *nerror = NULL, *perror = NULL;
 
-	// Unpack title (null-terminated string)
-	plot_data->title = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->title) + 1;
+#define NEED(n) do { \
+		size_t needbytes = (size_t)(n); \
+		if (needbytes > buffer_size || offset > buffer_size - needbytes) \
+			goto unpack_fail; \
+	} while (0)
+#define READ_STR(dst) do { \
+		if (offset >= buffer_size) goto unpack_fail; \
+		const void *nulp = memchr(buffer + offset, '\0', buffer_size - offset); \
+		if (!nulp) goto unpack_fail; \
+		size_t slen = (const uint8_t*)nulp - (buffer + offset); \
+		(dst) = g_strndup((const char*)buffer + offset, slen); \
+		offset += slen + 1; \
+	} while (0)
 
-	// Unpack x and y axis labels
-	plot_data->xlabel = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->xlabel) + 1;
+	if (!buffer)
+		goto unpack_fail;
 
-	plot_data->ylabel = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->ylabel) + 1;
-
-	// Unpack savename
-	plot_data->savename = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->savename) + 1;
+	// Unpack title, axis labels and savename (null-terminated strings)
+	READ_STR(plot_data->title);
+	READ_STR(plot_data->xlabel);
+	READ_STR(plot_data->ylabel);
+	READ_STR(plot_data->savename);
 
 	// Unpack show_legend (as a single byte)
+	NEED(sizeof(uint8_t));
 	plot_data->show_legend = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 
 	// Unpack number of series (network byte-order)
+	NEED(sizeof(uint32_t));
 	uint32_t num_series;
 	memcpy(&num_series, buffer + offset, sizeof(uint32_t));
 	num_series = GUINT32_FROM_BE(num_series);
 	offset += sizeof(uint32_t);
+	// Lenient sanity bound: each series consumes several bytes, so there cannot
+	// be more series than bytes in the buffer (also caps the loop count).
+	if (num_series > buffer_size)
+		goto unpack_fail;
 
+	NEED(sizeof(uint8_t));
 	gboolean datamin_set = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 	if (datamin_set) {
 		point datamin;
 		double x_BE, y_BE;
+		NEED(2 * sizeof(double));
 		memcpy(&x_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
 		FROM_BE64_INTO(datamin.x, x_BE, double);
@@ -556,11 +578,13 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		memcpy(&plot_data->datamin, &datamin, sizeof(point));
 	}
 
+	NEED(sizeof(uint8_t));
 	gboolean datamax_set = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 	if (datamax_set) {
 		point datamax;
 		double x_BE, y_BE;
+		NEED(2 * sizeof(double));
 		memcpy(&x_BE, buffer + offset, sizeof(double));
 		offset += sizeof(double);
 		FROM_BE64_INTO(datamax.x, x_BE, double);
@@ -573,83 +597,93 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
-		gchar* series_label = g_strdup((const char*)buffer + offset);
-		offset += strlen(series_label) + 1;
+		READ_STR(series_label);
 
-		// Unpack with_errors (as a single byte)
-		// This indicates if there are errorbar series or not
+		// Unpack with_errors (as a single byte) - errorbar series or not
+		NEED(sizeof(uint8_t));
 		gboolean with_errors = BOOL_FROM_BYTE(buffer[offset]);
 		offset += sizeof(uint8_t);
 
 		// Read number of points (network byte-order)
+		NEED(sizeof(uint32_t));
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
 		num_points = GUINT32_FROM_BE(num_points);
-		if (num_points > get_available_memory() / 64) {
-			// Error if the unpacked data would use more than half the available memory
-			free_siril_plot_data(plot_data);
-			g_free(series_label);
-			return NULL;
-		}
-
+		if (num_points > get_available_memory() / 64)
+			goto unpack_fail;   // would use more than ~half the available memory
 		offset += sizeof(uint32_t);
 
 		// Read plot type (network byte-order)
+		NEED(sizeof(uint32_t));
 		uint32_t plot_type;
 		memcpy(&plot_type, buffer + offset, sizeof(uint32_t));
 		plot_type = GUINT32_FROM_BE(plot_type);
 		offset += sizeof(uint32_t);
 
+		// Ensure all point bytes are present before allocating/reading them.
+		// num_points is bounded above, so this product cannot overflow size_t.
+		size_t doubles_per_point = with_errors ? 4 : 2;
+		NEED((size_t)num_points * doubles_per_point * sizeof(double));
+
 		// Create a new dataseries and add it to plot_data
-		double *xdata = malloc(num_points * sizeof(double));
-		double *ydata = malloc(num_points * sizeof(double));
-		double *nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		double *perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		// Read coordinates (network byte-order)
+		xdata = malloc(num_points * sizeof(double));
+		ydata = malloc(num_points * sizeof(double));
+		nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		if (num_points > 0 && (!xdata || !ydata || (with_errors && (!nerror || !perror))))
+			goto unpack_fail;
+
+		// Read coordinates (network byte-order). All bytes are guaranteed
+		// present by the NEED() above.
 		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
 			double x, y, x_BE, y_BE, ne, pe, ne_BE, pe_BE;
 
-			// Read raw bytes for x
 			memcpy(&x_BE, buffer + offset, sizeof(double));
 			offset += sizeof(double);
 			FROM_BE64_INTO(x, x_BE, double);
 			xdata[point_idx] = x;
 
-			// Read raw bytes for y
 			memcpy(&y_BE, buffer + offset, sizeof(double));
 			offset += sizeof(double);
 			FROM_BE64_INTO(y, y_BE, double);
 			ydata[point_idx] = y;
 
 			if (with_errors) {
-				// Read raw bytes for negative error
 				memcpy(&ne_BE, buffer + offset, sizeof(double));
 				offset += sizeof(double);
 				FROM_BE64_INTO(ne, ne_BE, double);
 				nerror[point_idx] = ne;
 
-				// Read raw bytes for positive error
 				memcpy(&pe_BE, buffer + offset, sizeof(double));
 				offset += sizeof(double);
 				FROM_BE64_INTO(pe, pe_BE, double);
 				perror[point_idx] = pe;
 			}
-
 		}
 
 		// Add to plot list (assuming simple xy plot)
 		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, perror, nerror);
 		siril_plot_set_nth_plot_type(plot_data, series_idx+1, (enum kplottype) plot_type);
-		g_free(series_label);
-		free(xdata);
-		free(ydata);
-		free(nerror);
-		free(perror);
+		g_free(series_label); series_label = NULL;
+		free(xdata);  xdata  = NULL;
+		free(ydata);  ydata  = NULL;
+		free(nerror); nerror = NULL;
+		free(perror); perror = NULL;
 	}
 
 	plot_data->plottype = KPLOT_LINES;  // Default plot type
-
 	return plot_data;
+
+unpack_fail:
+	g_free(series_label);
+	free(xdata);
+	free(ydata);
+	free(nerror);
+	free(perror);
+	free_siril_plot_data(plot_data);
+	return NULL;
+#undef NEED
+#undef READ_STR
 }
 
 /**
