@@ -321,7 +321,7 @@ gpointer streak_detection_worker(gpointer ptr) {
 			center_date = get_timestamp_for_pixel(arg->fit->keywords.gps_data, EXP_MIDDLE, 0, mid_y);
 			date_is_gps = center_date != NULL;
 		}
-		/* general case: use DATE-OBS + EXPOSURE / 2 */
+		/* general case: use DATE-OBS + EXPOSURE / 2, compute exposure in any case */
 		double exposure;
 		if (arg->fit->keywords.expstart > 0.0 && arg->fit->keywords.expend > 0.0) {
 			// warning: this is precise to 0.1 seconds at best
@@ -330,7 +330,8 @@ gpointer streak_detection_worker(gpointer ptr) {
 		}
 		else {
 			exposure = arg->fit->keywords.exposure;
-			date_is_gps = arg->fit->keywords.date_and_exp_from_gps;
+			if (!date_is_gps)
+				date_is_gps = arg->fit->keywords.date_and_exp_from_gps;
 		}
 		if (!center_date)
 			center_date = g_date_time_add_seconds(arg->fit->keywords.date_obs, exposure * 0.5);

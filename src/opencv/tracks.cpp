@@ -299,12 +299,12 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 						if (!kept[i]) {
 							kept[i] = true;
 							kept[j] = false;
+							//siril_log_debug("  segment %zd was merged in %zd, reincluding it\n", j, i);
+						} else {
+							kept[j] = false; // it was merged, it's useless
+							//if (!kept[j])
+							//	siril_debug_print("  merged and removed %zd\n", j);
 						}
-						/*else if (overlapping_too_much(segments[i], segments[j])) {
-							// if they are overlapping each other more than 50% we ignore one
-							kept[j] = false;
-							//siril_log_debug("  removing segments %zd (overlapping %zd)\n", j, i);
-						}*/
 					}
 				}
 			}
