@@ -390,10 +390,13 @@ user supplied its full transitive trace — see its entry below.)
   — `free_sky_object_query` (siril_catalogues.c:1636) **does** free `->name`, `->item` (and the item's
   contents). Coverity doesn't model the field frees. FP. (My separate 530766 `var_stars_cat` fix is a
   different leak and stands.)
-- **530799 / 637631** (execute_python_script) — `python_process_cleanup` frees `cleanup->temp_filename`
-  (3255) and `cleanup` (3256); `script_name` is freed at 3533; the async path hands `cleanup` to the
-  child-watch. Nothing leaks at the flagged points — Coverity can't trace the callee frees / async
-  ownership handoff. FP (residual after `862dea01d`).
+- **530799 / 637631** (execute_python_script) — **re-verified to the leaf.** `cleanup` is `g_malloc0`'d
+  (3526, never NULL), so `python_process_cleanup`'s `if (cleanup)` block always runs and, with **no
+  early return**, frees `cleanup->temp_filename` (3255) and `cleanup` (3256) unconditionally. `script_name`
+  is freed at 3533. **637631** (sync, line 3558) passes `cleanup` straight into that function → both freed
+  → FP. **530799** (async, function end 3612) hands `cleanup` to `g_child_watch_add` (3564); the watch
+  fires `python_process_cleanup` on child exit, which frees it → FP (GLib-callback ownership handoff
+  Coverity can't model). Residual after `862dea01d`.
 - **647059** (mpp_stack_apply_impl) — **REAL null-deref, not an FP** (corrected after the user supplied
   the full trace). `mpp_classify_sequence_input(seq)` at mpp.cpp:1485 dereferences `seq->imgparam`
   *transitively*, three calls deep: → `fits_seq_is_cfa` → `mpp_seq_read_frame` (SEQ_REGULAR) →
@@ -404,9 +407,18 @@ user supplied its full transitive trace — see its entry below.)
   `!seq->imgparam` to the precondition guard (fail fast with `MPP_EINVAL`) and dropped the now-redundant
   `seq->imgparam &&` at 1397. My earlier "classify never derefs imgparam" was wrong — I stopped at
   `fits_seq_is_cfa`/`mpp_seq_read_frame` and didn't follow into the filename helper. Commit `6612143e6`.
-- **647076** (process_seq_ghs) — the trace flags the **success** path, but `apply_ght_to_sequence`
-  transfers `seqdata` to the async worker via `args->user`, freed in `ght_finalize_hook` (frees `data`
-  + `params`). Ownership handoff Coverity can't see. FP. (My `c2dcf18c5` COL_SAT error-path fix stands.)
+- **647076** (process_seq_ghs) — the trace flags the **success** path (`noescape` on
+  `apply_ght_to_sequence`). **Traced to the leaf:** `apply_ght_to_sequence` sets `args->user = seqdata`
+  and `args->finalize_hook = ght_finalize_hook`, then `start_in_new_thread(generic_sequence_worker,
+  args)`. On start **failure** the else-branch frees `seqdata->seqEntry` + `seqdata` (and
+  `free_generic_seq_args`, which does **not** touch `args->user`, so no double-free). On **success**,
+  `generic_sequence_worker` calls `finalize_hook` **exactly once on every path**: `have_seqwriter` is
+  `FALSE`-initialised (processing.c:88) and only set at line 193, *after* all early `goto the_end` sites,
+  so an early error hits the `!have_seqwriter` finalize at line 411, while a full run hits the
+  `have_seqwriter` finalize at line 378 (no `goto the_end` exists after 193) — never both, never neither.
+  `ght_finalize_hook` frees `data` (=`seqdata`) + `params`. So `seqdata` is always freed; the success-path
+  flag is FP — Coverity can't follow ownership through `args->user` → thread → function-pointer finalize
+  hook → free. (My `c2dcf18c5` COL_SAT error-path fix stands.)
 - **647080** (on_new_folder_create) — `name` is freed on all three returns (file_browser.c:960/968/986). FP.
 - **647082 / 647099** (reset_browser_state → update_nav_sensitivity) — `back_history`/`forward_history`
   are allocated **unconditionally** in the constructor (file_browser.c:2497-2498) and never nulled;
