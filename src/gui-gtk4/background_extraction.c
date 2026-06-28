@@ -52,6 +52,13 @@ static GtkCheckButton *bkg_seq_btn = NULL;
 static GtkEntry *bkg_seq_entry = NULL;
 static GtkNotebook *bkg_notebook = NULL;
 
+static void on_bkg_show_original_pressed(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data);
+static void on_bkg_show_original_released(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data);
+static void on_bkg_show_original_cancel(GtkGesture *gesture,
+		GdkEventSequence *sequence, gpointer user_data);
+
 static void background_extraction_init_statics(void) {
 	if (bkg_poly_order_combo) return;
 	bkg_poly_order_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "box_background_order"));
@@ -70,6 +77,22 @@ static void background_extraction_init_statics(void) {
 	bkg_seq_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBkgSeq"));
 	bkg_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBkgSeq"));
 	bkg_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "bkg_notebook_inter"));
+
+	/* GTK4 removed button-press/release-event; drive the press-and-hold "Show
+	 * original image" button with a click gesture. It tracks the whole
+	 * press->release sequence (so the release still fires after showing the
+	 * original redraws the view and breaks the implicit pointer grab), and the
+	 * capture phase makes sure we see the events before the button consumes
+	 * them. "cancel" restores the preview if the gesture is interrupted. */
+	if (bkg_show_original) {
+		GtkGesture *click = gtk_gesture_click_new();
+		gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+		gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+		g_signal_connect(click, "pressed", G_CALLBACK(on_bkg_show_original_pressed), NULL);
+		g_signal_connect(click, "released", G_CALLBACK(on_bkg_show_original_released), NULL);
+		g_signal_connect(click, "cancel", G_CALLBACK(on_bkg_show_original_cancel), NULL);
+		gtk_widget_add_controller(bkg_show_original, GTK_EVENT_CONTROLLER(click));
+	}
 }
 
 static poly_order get_poly_order() {
@@ -400,53 +423,50 @@ void on_background_extraction_combo_changed(GObject *obj, GParamSpec *pspec, gpo
 	gtk_notebook_set_current_page(bkg_notebook, gtk_drop_down_get_selected(combo));
 }
 
-static gboolean pressed = FALSE;
+/* "Show original" is a press-and-hold button: while held it swaps the processed
+ * preview for the original image, and restores the preview on release. GTK4
+ * removed the button-press/release-event signals this used to rely on, so the
+ * press/release are now delivered through a GtkEventControllerLegacy added in
+ * background_extraction_init_statics(). showing_original tracks the swap so a
+ * stray release (or a gesture cancel) can't clear the backup twice. */
+static gboolean showing_original = FALSE;
 
-void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-	new_state |= GTK_STATE_FLAG_ACTIVE;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = TRUE;
-
-	copy_gfit_to_bkg_backup();
-	copy_backup_to_gfit();
+static void bkg_show_original_press(void) {
+	if (showing_original)
+		return;
+	showing_original = TRUE;
+	copy_gfit_to_bkg_backup();   // stash the processed preview
+	copy_backup_to_gfit();       // show the original
 	notify_gfit_data_modified();
 	gfit_modified_update_gui();
 }
 
-void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = FALSE;
-
-	copy_bkg_backup_to_gfit();
+static void bkg_show_original_release(void) {
+	if (!showing_original)
+		return;
+	showing_original = FALSE;
+	copy_bkg_backup_to_gfit();   // restore the processed preview
 	clearfits(&background_backup);
 	notify_gfit_data_modified();
 	gfit_modified_update_gui();
 }
 
-gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
+static void on_bkg_show_original_pressed(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data) {
+	(void)gesture; (void)n_press; (void)x; (void)y; (void)user_data;
+	bkg_show_original_press();
+}
 
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-	if (pressed) {
-		new_state |= GTK_STATE_FLAG_ACTIVE;
+static void on_bkg_show_original_released(GtkGestureClick *gesture, int n_press,
+		double x, double y, gpointer user_data) {
+	(void)gesture; (void)n_press; (void)x; (void)y; (void)user_data;
+	bkg_show_original_release();
+}
 
-	}
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	return TRUE;
+static void on_bkg_show_original_cancel(GtkGesture *gesture,
+		GdkEventSequence *sequence, gpointer user_data) {
+	(void)gesture; (void)sequence; (void)user_data;
+	bkg_show_original_release();
 }
 
 void on_checkBkgSeq_toggled(GtkCheckButton *button, gpointer user_data) {

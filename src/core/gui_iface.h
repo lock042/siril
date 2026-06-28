@@ -175,6 +175,9 @@ typedef struct {
 	void     (*redraw_previews)(void);
 	/* Remap all display viewports (recalculate display LUT/buffers). */
 	void     (*remap_all_vports)(void);
+	/* Drop stale lazy-tile textures when gfit's pixels are replaced (e.g. a
+	 * sequence frame swap) so the display shows the new content, not the old. */
+	void     (*drop_lazy_tile_textures)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */

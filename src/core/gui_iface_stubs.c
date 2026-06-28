@@ -168,6 +168,7 @@ static void stub_trigger_gaia_check(void) {}
 
 /* Steps 5.11–5.15 */
 static void stub_remap_all_vports(void) {}
+static void stub_drop_lazy_tile_textures(void) {}
 static void stub_quit_application(void) { exit(0); }
 static void stub_refresh_script_menu(void) {}
 static void stub_clear_backup(void) {}
@@ -387,6 +388,7 @@ SirilGuiInterface gui_iface = {
 	.check_gaia_status           = stub_check_gaia_status,
 	.trigger_gaia_check          = stub_trigger_gaia_check,
 	.remap_all_vports            = stub_remap_all_vports,
+	.drop_lazy_tile_textures     = stub_drop_lazy_tile_textures,
 	.quit_application            = stub_quit_application,
 	.refresh_script_menu         = stub_refresh_script_menu,
 	.clear_backup                = stub_clear_backup,
