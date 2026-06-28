@@ -693,6 +693,11 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 		spcc_mirrors = NULL;
 	}
 
+	if (spcc_mirrors_desc) {
+		g_strfreev(spcc_mirrors_desc);
+		spcc_mirrors_desc= NULL;
+	}
+
 	// Parse JSON from string using yyjson
 	yyjson_doc *doc = yyjson_read(jsonString, strlen(jsonString), YYJSON_READ_NOFLAG);
 	if (!doc) {
@@ -716,6 +721,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 
 	// Allocate string vector (NULL-terminated)
 	spcc_mirrors = g_new0(gchar *, length + 1);
+	spcc_mirrors_desc = g_new0(gchar *, length + 1);
 
 	// Iterate over mirror entries
 	size_t valid_count = 0;
@@ -735,8 +741,9 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 			continue;
 		}
 
-		// Store the URL in the string vector
+		// Store the URL in parallel string vectors
 		spcc_mirrors[valid_count] = g_strdup(url);
+		spcc_mirrors_desc[valid_count] = g_strdup(description);
 		valid_count++;
 
 		siril_log_debug("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
@@ -748,6 +755,8 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	if (valid_count == 0) {
 		g_strfreev(spcc_mirrors);
 		spcc_mirrors = NULL;
+		g_strfreev(spcc_mirrors_desc);
+                spcc_mirrors_desc = NULL;
 		siril_log_error(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"));
 		return 1;
 	}
