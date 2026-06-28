@@ -83,7 +83,9 @@ gchar *get_interface_language(void) {
 	if (gtk_drop_down_get_selected(GTK_DROP_DOWN(lang_combo)) == 0)
 		return g_strdup("");
 	gchar *str = siril_drop_down_get_active_text(lang_combo);
-	return extract_locale_from_string(str);
+	gchar *locale = extract_locale_from_string(str);
+	g_free(str);
+	return locale;
 }
 
 #ifndef W_OK
@@ -130,35 +132,19 @@ static void update_astrometry_preferences() {
 
 	com.pref.gui.position_compass = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("wcs_formalism_combobox")));
-	gchar *newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path1"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[0]);
-		com.pref.catalogue_paths[0] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path2"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[1]);
-		com.pref.catalogue_paths[1] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path3"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[2]);
-		com.pref.catalogue_paths[2] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path4"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[3]);
-		com.pref.catalogue_paths[3] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path5"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[4]);
-		com.pref.catalogue_paths[4] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path6"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[5]);
-		com.pref.catalogue_paths[5] = newpath;
+	/* siril_file_chooser_get_filename() returns an owned string; when the
+	 * chooser is empty (NULL or "") we keep the existing path and must free
+	 * the unused result rather than leak it by overwriting newpath. */
+	for (int i = 0; i < 6; i++) {
+		gchar *widget = g_strdup_printf("localcatalogue_path%d", i + 1);
+		gchar *newpath = siril_file_chooser_get_filename(lookup_widget(widget));
+		g_free(widget);
+		if (newpath && newpath[0] != '\0') {
+			g_free(com.pref.catalogue_paths[i]);
+			com.pref.catalogue_paths[i] = newpath;
+		} else {
+			g_free(newpath);
+		}
 	}
 
 	com.pref.astrometry.gaia_cache_duration = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")));
@@ -561,12 +547,14 @@ void on_filechooser_swap_file_set(GtkWidget *fileChooser, gpointer user_data) {
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		siril_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
 		g_rw_lock_reader_unlock(&com.pref_rwlock);
+		g_free(dir);
 		return;
 	}
 	if (sw_dir) {
 		g_free(sw_dir);
 		sw_dir = siril_file_chooser_get_filename(swap_dir);
 	}
+	g_free(dir);
 }
 
 void on_show_preview_button_toggled(GtkCheckButton *togglebutton, gpointer user_data) {

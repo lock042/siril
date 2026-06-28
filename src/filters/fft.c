@@ -513,7 +513,7 @@ int fft_compute_core(struct fft_data *args, fits *fit) {
 			goto end;
 		}
 		new_fit_image(&tmp2, width, height, tmp->naxes[2], type);
-		for (chan = 0; chan < fit->naxes[2]; chan++)
+		for (chan = 0; chan < tmp->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
 		/* Copy inverse transform result into fit for display */
 		if (copyfits(tmp2, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {

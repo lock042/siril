@@ -227,7 +227,8 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	ActionIdleData *data = (ActionIdleData*) user_data;
 	if (!data || !data->action_name) {
 		siril_log_error(_("activate_action_if_enabled(): incorrect or NULL data\n"));
-		data->result = ACTION_NULL_DATA;
+		if (data)
+			data->result = ACTION_NULL_DATA;
 		return FALSE;
 	}
 

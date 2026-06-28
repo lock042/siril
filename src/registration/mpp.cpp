@@ -1381,7 +1381,12 @@ extern "C" mpp_input_type mpp_classify_sequence_input(const sequence *seq) {
 
 static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
                                          mpp_run_t *run, fits *out) {
-	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
+	/* seq->imgparam is required: every downstream consumer reads frames by
+	 * filename through it (the classify probe below via mpp_seq_read_frame ->
+	 * fit_sequence_get_image_filename_checkext, and the streamed stacker), so a
+	 * NULL imgparam can't produce a valid stack — fail fast instead of crashing
+	 * deep in the frame read. */
+	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out || !seq->imgparam)
 		return MPP_EINVAL;
 
 	/* Refresh inclusion from the live frame selector: the user may have
@@ -1394,7 +1399,8 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * are NOT replaced by the next-best (Stage B computed no shifts for
 	 * them) — a large post-registration selection change is best followed
 	 * by re-running Register. */
-	if (seq->imgparam && run->included && run->num_frames == seq->number) {
+	/* seq->imgparam is guaranteed non-NULL by the precondition above. */
+	if (run->included && run->num_frames == seq->number) {
 		int dropped = 0;
 		for (int i = 0; i < run->num_frames; ++i) {
 			const int live = seq->imgparam[i].incl ? 1 : 0;
@@ -1530,8 +1536,11 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * the background blend even though they're skipped from the AP buffers. */
 	std::vector<int> sorted_idx;
 	sorted_idx.reserve(run->num_frames);
+	/* run->included is optional (it is null-checked at the inclusion-refresh
+	 * step above); a NULL pointer means no per-frame inclusion info, i.e. all
+	 * frames participate. */
 	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) sorted_idx.push_back(i);
+		if (!run->included || run->included[i]) sorted_idx.push_back(i);
 	std::sort(sorted_idx.begin(), sorted_idx.end(),
 	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
 

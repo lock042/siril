@@ -262,20 +262,23 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	const int aps_dropped_dim     = h[i++];
 	const int aps_dropped_structure = h[i++];
 
-	if (ver >= 6u) {
+	/* Only MPP_SIDECAR_VERSION (>= 6) is accepted (see the version check above),
+	 * so the h6 block is always present. */
+	{
 		int32_t h6[2];
 		if (read_all(f, h6, sizeof(h6)) != 0) { mpp_run_free(run); goto err; }
 		run->taper           = h6[0];
 		run->selected_per_ap = h6[1];
-	} else {
-		run->taper           = 0;
-		run->selected_per_ap = run->stack_size;
 	}
 
 	/* Bounds-check sizes before any allocation. Reject negative values
 	 * (corrupted file) and absurdly large ones that would overflow size_t
 	 * in the multiplications below. */
 	if (run->num_frames < 1 || run->num_frames > MPP_SIDECAR_MAX_FRAMES
+	 || run->frame_rows < 1 || run->frame_rows > MPP_SIDECAR_MAX_DIM
+	 || run->frame_cols < 1 || run->frame_cols > MPP_SIDECAR_MAX_DIM
+	 || run->num_layers < 1 || run->num_layers > 3
+	 || (run->bitdepth != 8 && run->bitdepth != 16 && run->bitdepth != 32)
 	 || run->mean_frame_rows < 1 || run->mean_frame_rows > MPP_SIDECAR_MAX_DIM
 	 || run->mean_frame_cols < 1 || run->mean_frame_cols > MPP_SIDECAR_MAX_DIM
 	 || aps_count < 0 || aps_count > MPP_SIDECAR_MAX_APS
@@ -306,20 +309,10 @@ mpp_status_t mpp_sidecar_read(const char *path, mpp_run_t **run_out) {
 	 || read_all(f, run->included,         N * sizeof(int32_t)) != 0) {
 		mpp_run_free(run); goto err;
 	}
-	if (ver == 3u) {
-		/* Promote: read int32 pairs, widen to double. */
-		int32_t *tmp = (int32_t *) malloc(2 * N * sizeof(int32_t));
-		if (!tmp) { mpp_run_free(run); goto err; }
-		if (read_all(f, tmp, 2 * N * sizeof(int32_t)) != 0) {
-			free(tmp); mpp_run_free(run); goto err;
-		}
-		for (int i = 0; i < 2 * N; ++i)
-			run->global_shifts[i] = (double) tmp[i];
-		free(tmp);
-	} else {
-		if (read_all(f, run->global_shifts, 2 * N * sizeof(double)) != 0) {
-			mpp_run_free(run); goto err;
-		}
+	/* v3 stored global_shifts as int32 pairs; v3 is rejected by the version
+	 * check above, so global_shifts is always read as doubles. */
+	if (read_all(f, run->global_shifts, 2 * N * sizeof(double)) != 0) {
+		mpp_run_free(run); goto err;
 	}
 
 	const size_t mean_count = (size_t) run->mean_frame_rows * run->mean_frame_cols;

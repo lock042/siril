@@ -830,10 +830,12 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	}
 
 	if (ret) {
-		for (int i = 0 ; i < 2 ; i++) {
+		for (int i = 0 ; i < 3 ; i++) {
 			clearfits(multi_data->images[i]);
 			free(multi_data->images[i]);
 		}
+		free(multi_data->images);
+		free(multi_data);
 	} else {
 #ifdef _OPENMP
 		omp_set_lock(&args->lock);
@@ -1031,6 +1033,8 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 			clearfits(multi_data->images[i]);
 			free(multi_data->images[i]);
 		}
+		free(multi_data->images);
+		free(multi_data);
 	} else {
 #ifdef _OPENMP
 		omp_set_lock(&args->lock);

@@ -917,7 +917,7 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 	}
 
 	if ((retval = read_single_image(filename, &layers[layer]->the_fit,
-	                                NULL, FALSE, NULL, FALSE, TRUE))) {
+	                                NULL, FALSE, NULL, FALSE, TRUE, FALSE))) {
 		gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
 		gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label),
 		                            _("Cannot load the file, See the log for more information."));
