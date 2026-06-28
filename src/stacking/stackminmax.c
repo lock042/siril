@@ -22,6 +22,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
@@ -105,6 +106,21 @@ static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int 
 	int shiftx = 0, shifty = 0;
 	gboolean ismax = mmdata->ismax;
 
+	/* The loop below reads fit->fpdata[layer] when input_32bits and
+	 * fit->pdata[layer] otherwise, for every output layer. A frame whose bit
+	 * depth doesn't match the accumulator, or which has fewer channels than the
+	 * output, leaves those buffers NULL and would crash (this happens with a
+	 * heterogeneous/unregistered sequence). Reject such a frame up front. */
+	if ((mmdata->input_32bits ? fit->type != DATA_FLOAT : fit->type != DATA_USHORT)
+			|| (int)fit->naxes[2] < args->seq->nb_layers) {
+		siril_log_error(_("Image #%d (%d channel(s), %d-bit) is incompatible with "
+				"the stack (%d channel(s), %d-bit); aborting. All images in the "
+				"sequence must have the same channel count and bit depth.\n"),
+				o + 1, (int)fit->naxes[2], fit->type == DATA_FLOAT ? 32 : 16,
+				args->seq->nb_layers, mmdata->input_32bits ? 32 : 16);
+		return ST_SEQUENCE_ERROR;
+	}
+
 	mmdata->livetime += fit->keywords.exposure;
 
 	if (fit->keywords.date_obs) {
@@ -126,13 +142,13 @@ static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int 
 		shifty = round_to_int(dy);
 		siril_log_debug("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
-	if (shiftx == INT_MIN) {
-		siril_log_debug("Error: image #%d has a wrong shiftx value\n", o + 1);
-		shiftx += 1;
-	}
-	if (shifty == INT_MIN) {
-		siril_log_debug("Error: image #%d has a wrong shifty value\n", o + 1);
-		shifty += 1;
+	if (shiftx == INT_MIN || shifty == INT_MIN) {
+		/* round_to_int() returns INT_MIN for an out-of-range (invalid) shift.
+		 * Computing x - shiftx / y - shifty would then overflow (x - INT_MIN),
+		 * and a frame that far off can't overlap the output, so skip it
+		 * entirely - it contributes nothing to the min/max accumulation. */
+		siril_log_debug("Error: image #%d has a wrong shift value, skipping\n", o + 1);
+		return ST_OK;
 	}
 
 	/* collapse(2) distributes all output pixels evenly across threads, giving

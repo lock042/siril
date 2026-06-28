@@ -263,6 +263,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	g_free(dirname);
 	if (!has_wcs(gfit)) {	// Is the current image properly plate solved
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
+		g_free(nina_file);
 		return;
 	}
 	purge_user_catalogue(CAT_AN_USER_TEMP);
@@ -313,7 +314,6 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		free(args);
-		g_free(nina_file);
 		return;
 	}
 	// Update of the UI

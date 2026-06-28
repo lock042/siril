@@ -724,20 +724,26 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	int nb_stars = 0;
 	gboolean stars_needs_freeing = FALSE;
 
-	// Check if we already have stars in com.stars
-	g_rw_lock_reader_lock(&com.stars_lock);
-	int comstar_count_masks = starcount(com.stars);
-	if (comstar_count_masks >= 1) {
-		stars = com.stars;
-		nb_stars = comstar_count_masks;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Take a private, reader-locked copy of com.stars so the long mask-fill
+	// loop below doesn't dereference a list another thread may free/replace.
+	stars = snapshot_com_stars(&nb_stars);
+	int comstar_count_masks = nb_stars;
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	if (comstar_count_masks < 1) {
+		// snapshot_com_stars() can return a non-NULL but empty array (first
+		// duplicate_psf OOM); free it before findstar_worker overwrites stars.
+		if (stars_needs_freeing) {
+			free_fitted_stars(stars);
+			stars = NULL;
+			stars_needs_freeing = FALSE;
+		}
 		// Need to detect stars
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
 			siril_log_error(_("Memory allocation failed\n"));
+			// snapshot already freed above; stars_needs_freeing is FALSE here.
 			return 1;
 		}
 
@@ -970,6 +976,12 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 8-bit, expanded to 16-bit */
 		case BYTE_IMG: {
+			/* orig_bitpix is independent of the populated buffer (type): an
+			 * 8/16-bit file loaded as float has data == NULL. Guard before use. */
+			if (!mfit->data) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 8;
 			mask->data = malloc(npixels * sizeof(uint8_t));
 			if (!mask->data) {
@@ -988,6 +1000,10 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 16-bit */
 		case USHORT_IMG: {
+			if (!mfit->data) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 16;
 			mask->data = malloc(npixels * sizeof(uint16_t));
 			if (!mask->data) {
@@ -1001,6 +1017,10 @@ mask_t *fits_to_mask(fits *mfit) {
 
 		/* Was originally 32-bit float */
 		case FLOAT_IMG: {
+			if (!mfit->fdata) {
+				free(mask);
+				return NULL;
+			}
 			mask->bitpix = 32;
 			mask->data = malloc(npixels * sizeof(float));
 			if (!mask->data) {
@@ -1495,7 +1515,10 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 			struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
 			if (!gi_args) {
 				PRINT_ALLOC_ERR;
-				destroy_mtf_data(data);
+				/* gi_data (an mtf_data) is the thing to destroy here; 'data' is
+				 * the hook's mask_from_lum_data, owned by the caller. Destroying
+				 * 'data' was both a type-confused free and a leak of gi_data. */
+				destroy_mtf_data(gi_data);
 				clearfits(ffit);
 				free(ffit);
 				return 1;

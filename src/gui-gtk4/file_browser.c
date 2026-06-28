@@ -1200,23 +1200,29 @@ static gint type_column_compare(gconstpointer a, gconstpointer b, gpointer ud) {
 
 /* ── selection / activation ────────────────────────────────────────── */
 
-/* Returns the first selected item (or NULL).  Works for both
- * GtkSingleSelection and GtkMultiSelection. */
+/* Returns the first selected item (or NULL), as a new reference the caller
+ * must release with g_object_unref().  Works for both GtkSingleSelection and
+ * GtkMultiSelection. */
 static GFileInfo *first_selected_info(SirilFileBrowser *fb) {
 	if (!fb->selection) return NULL;
 	if (!fb->select_multiple) {
 		GObject *item = gtk_single_selection_get_selected_item(
 			GTK_SINGLE_SELECTION(fb->selection));
-		return (item && G_IS_FILE_INFO(item)) ? G_FILE_INFO(item) : NULL;
+		return (item && G_IS_FILE_INFO(item)) ? g_object_ref(G_FILE_INFO(item)) : NULL;
 	}
 	GtkBitset *sel = gtk_selection_model_get_selection(fb->selection);
 	if (!sel) return NULL;
 	GFileInfo *out = NULL;
 	if (!gtk_bitset_is_empty(sel)) {
 		guint idx = gtk_bitset_get_minimum(sel);
+		/* g_list_model_get_item() returns a full reference; hand it to the
+		 * caller rather than dropping it here and returning a dangling
+		 * pointer (the previous code unref'd before returning out). */
 		GObject *item = g_list_model_get_item(G_LIST_MODEL(fb->selection), idx);
-		if (item && G_IS_FILE_INFO(item)) out = G_FILE_INFO(item);
-		if (item) g_object_unref(item);
+		if (item && G_IS_FILE_INFO(item))
+			out = G_FILE_INFO(item);
+		else if (item)
+			g_object_unref(item);
 	}
 	gtk_bitset_unref(sel);
 	return out;
@@ -1253,13 +1259,18 @@ static gchar *path_from_info(SirilFileBrowser *fb, GFileInfo *info) {
 }
 
 static gchar *current_selected_path(SirilFileBrowser *fb) {
-	return path_from_info(fb, first_selected_info(fb));
+	GFileInfo *info = first_selected_info(fb);
+	gchar *path = path_from_info(fb, info);
+	if (info) g_object_unref(info);
+	return path;
 }
 
 static gboolean current_is_directory(SirilFileBrowser *fb) {
 	GFileInfo *info = first_selected_info(fb);
 	if (!info) return FALSE;
-	return g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
+	gboolean is_dir = g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY;
+	g_object_unref(info);
+	return is_dir;
 }
 
 static gboolean any_selected(SirilFileBrowser *fb) {
@@ -1296,8 +1307,10 @@ static void on_selection_changed(GtkSelectionModel *m, guint pos, guint n, gpoin
 		if (info && g_file_info_get_file_type(info) != G_FILE_TYPE_DIRECTORY) {
 			gtk_single_selection_set_selected(
 				GTK_SINGLE_SELECTION(fb->selection), GTK_INVALID_LIST_POSITION);
+			g_object_unref(info);
 			return;
 		}
+		if (info) g_object_unref(info);
 	}
 	update_preview_for_selection(fb);
 	/* In folder mode the Open button targets the current (or highlighted)
@@ -1313,18 +1326,21 @@ static void on_row_activated(GtkColumnView *cv, guint position, gpointer ud) {
 	if (!info) return;
 	if (g_file_info_get_file_type(info) == G_FILE_TYPE_DIRECTORY) {
 		const char *name = g_file_info_get_name(info);
-		if (!name || !fb->current_folder) return;
-		GFile *target = g_file_get_child(fb->current_folder, name);
-		navigate_to(fb, target);
-		g_object_unref(target);
+		if (name && fb->current_folder) {
+			GFile *target = g_file_get_child(fb->current_folder, name);
+			navigate_to(fb, target);
+			g_object_unref(target);
+		}
 	} else {
 		gchar *p = path_from_info(fb, info);
-		if (!p) return;
-		g_free(fb->result_path);
-		fb->result_path = p;
-		fb->response = GTK_RESPONSE_ACCEPT;
-		if (fb->loop) g_main_loop_quit(fb->loop);
+		if (p) {
+			g_free(fb->result_path);
+			fb->result_path = p;
+			fb->response = GTK_RESPONSE_ACCEPT;
+			if (fb->loop) g_main_loop_quit(fb->loop);
+		}
 	}
+	g_object_unref(info);
 }
 
 /* ── search bar ───────────────────────────────────────────────────── */

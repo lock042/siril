@@ -3270,8 +3270,10 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			g_free(text);
 			break;
 		case LANG_SSF:;
-			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
-			g_free(text);
+			/* The stream does not copy 'text'; hand it ownership (g_free on
+			 * destroy) instead of freeing it here - execute_script reads it on
+			 * another thread, so an immediate g_free was a use-after-free. */
+			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), g_free);
 			if (processing_is_job_active()) {
 				PRINT_ANOTHER_THREAD_RUNNING;
 				g_object_unref(input_stream);

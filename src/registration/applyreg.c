@@ -1286,7 +1286,8 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		if (regargs->use_external_ref) { // we fetch its model to undistort its stars
 			fits ext_fit = { 0 };
-			read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit); // we don't check the status here as we have loded it before
+			// status intentionally ignored: the external ref was already loaded successfully before
+			(void) read_fits_metadata_from_path_first_HDU(regargs->seq->ext_ref_path, &ext_fit);
 			regargs->disto_ext = init_disto_data_ext(&regargs->distoparam, &ext_fit, &status2);
 		}
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array

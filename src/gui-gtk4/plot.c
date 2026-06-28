@@ -1431,12 +1431,16 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);
 		return;
 	}
 
 	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);
 		return;
 	}
@@ -1452,6 +1456,12 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	reactivate_parent(plot_aavso_dialog);
 
 	set_cursor_waiting(FALSE);
+	/* obstype/filter are g_strdup'd by siril_drop_down_get_active_text(); the
+	 * remaining fields are borrowed from their widgets. export_AAVSO does not
+	 * take ownership, so release the owned strings and the struct here. */
+	g_free((gchar*) aavso_ptr->obstype);
+	g_free((gchar*) aavso_ptr->filter);
+	free(aavso_ptr);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {

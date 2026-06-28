@@ -126,15 +126,11 @@ static void defer_message_dialog(GtkMessageType type, const char *title,
 }
 
 gchar *strip_last_ret_char(gchar *str) {
-	char *pch;
-	int len;
-
-	pch = strrchr(str, '\0');
-	len = pch - str;
-
-	if (str[len - 1] == '\n') {
+	if (!str)
+		return NULL;
+	size_t len = strlen(str);
+	if (len > 0 && str[len - 1] == '\n')
 		str[len - 1] = '\0';
-	}
 	return str;
 }
 

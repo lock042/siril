@@ -858,6 +858,8 @@ void on_cut_sequence_apply_from_gui() {
 	// Check args are cromulent
 	if (cut_struct_is_valid(arg))
 		apply_cut_to_sequence(arg);
+	else
+		free_cut_args(arg);
 }
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
