@@ -743,8 +743,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
 			siril_log_error(_("Memory allocation failed\n"));
-			if (stars_needs_freeing)
-				free_fitted_stars(stars);
+			// snapshot already freed above; stars_needs_freeing is FALSE here.
 			return 1;
 		}
 

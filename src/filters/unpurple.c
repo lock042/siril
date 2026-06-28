@@ -86,11 +86,9 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	if (nb_stars < 1) {
 		// snapshot_com_stars() can return a non-NULL (but empty) array if the
 		// first duplicate_psf failed; free it before peaker() overwrites stars.
-		if (stars_needs_freeing) {
+		// (stars / stars_needs_freeing are unconditionally reassigned just below.)
+		if (stars_needs_freeing)
 			free_fitted_stars(stars);
-			stars = NULL;
-			stars_needs_freeing = FALSE;
-		}
 		image *input_image = NULL;
 		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;

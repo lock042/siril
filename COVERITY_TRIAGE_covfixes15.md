@@ -445,3 +445,21 @@ user supplied its full transitive trace — see its entry below.)
   `snf`/`sna` are rejected unless they equal the already-validated `num_frames`/`aps_count`, so
   `success_count = snf*sna` is bounded. Residual TAINTED_SCALAR FP (Coverity doesn't propagate the
   equality). Could add an explicit cap purely to silence it, but no real defect.
+
+## Fourth pass — minor issues introduced by the snapshot-free fixes (06/28/26)
+
+These five New CIDs are real (low-severity) and were all caused by the empty-snapshot free I added in the
+`nb_stars < 1` branches. The defensive cleanup left genuinely dead code/stores. All cleaned up; logic unchanged.
+
+- **647180 / 647182** (unpurple.c `generate_binary_starmask`, lines 91/92 — Unused value) — after freeing
+  the empty snapshot, `stars = NULL;` and `stars_needs_freeing = FALSE;` are dead stores: `peaker()`
+  reassigns `stars` and sets the flag `TRUE` on the immediately following lines. Removed both; the free is
+  now an un-braced single statement.
+- **647184** (synthstar.c `generate_synthstars`, line 353 — Logically dead code), **647181** (masks.c
+  `mask_create_from_stars`, line 747), **647183** (siril_pythoncommands.c `process_connection`, line 2039)
+  — the `if (stars_needs_freeing) free_fitted_stars(stars);` inside each `!sf_data` alloc-failure branch is
+  provably dead: `stars_needs_freeing` is set `FALSE` at the top of the same `< 1` block and nothing sets it
+  `TRUE` before the calloc. Removed the dead cleanup; replaced with a one-line comment. The snapshot is
+  already freed above, so the error path leaks nothing.
+
+  All four files recompile clean in mppbuild.
