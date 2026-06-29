@@ -19,6 +19,7 @@ void initialize_image_display();
 void copy_roi_into_gfit();
 
 void remap_all();
+void invalidate_autostretch_cache(void);
 void drop_lazy_tile_textures(void);	// drop stale lazy tiles when gfit pixels are replaced
 /* Invalidate gfit stats/histogram and, if on the GTK main thread, also remap
  * the Cairo buffers.  Safe to call from any thread; non-main-thread callers

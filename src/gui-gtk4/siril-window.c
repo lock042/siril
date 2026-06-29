@@ -297,17 +297,19 @@ void siril_window_enable_wcs_disto_proc_actions(GtkApplicationWindow *window, gb
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_disto_processing_actions, enable);
 }
 
-void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
+void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean stf, gboolean is_rgb) {
+	/* The link/unlink button only applies to a colour image in autostretch
+	 * mode. It is driven by the chain-chan action, so disabling that action
+	 * greys the button out automatically (it stays visible). */
 	static const gchar *image_actions[] = {
 		"chain-chan",
 		NULL
 	};
-	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
-	/* The link/unlink button is only meaningful in autostretch mode, so
-	 * hide it entirely outside of it rather than just greying it out. */
-	GtkWidget *button = lookup_widget("linked_autostretch_button");
-	if (button)
-		gtk_widget_set_visible(button, enable);
+	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, stf && is_rgb);
+	
+	GtkWidget *box = lookup_widget("autostretch_controls_box");
+	if (box && gtk_widget_get_sensitive(box) != stf)
+		gtk_widget_set_sensitive(box, stf);
 }
 
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {

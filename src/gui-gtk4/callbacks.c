@@ -68,6 +68,7 @@ void update_export_crop_label();
 #include "callbacks.h"
 
 #include "algos/astrometry_solver.h"
+#include "filters/mtf.h"
 #include "utils.h"
 #include "plot.h"
 #include "message_dialog.h"
@@ -683,7 +684,7 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 		gtk_label_set_text(label_display_menu, gtk_check_button_get_label(GTK_CHECK_BUTTON(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
 
@@ -878,8 +879,8 @@ static void initialize_mask_tab_label() {
 	g_signal_connect(clear_button, "clicked", G_CALLBACK(on_mask_clear_clicked), NULL);
 }
 
-void on_autohd_item_toggled(GtkCheckButton *menuitem, gpointer user_data) {
-	gui.use_hd_remap = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(menuitem)));
+void on_autohd_item_toggled(GtkWidget *menuitem, gpointer user_data) {
+	gui.use_hd_remap = siril_toggle_get_active(menuitem);
 	if (gui.rendering_mode == STF_DISPLAY) {
 		if (gui.use_hd_remap) {
 			if (gfit->type == DATA_FLOAT)
@@ -893,6 +894,52 @@ void on_autohd_item_toggled(GtkCheckButton *menuitem, gpointer user_data) {
 		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
+}
+
+/* Invalidate the cached autostretch parameters and repaint. remap_all()
+ * (reached via notify_gfit_data_modified) clears the STF cache, so the
+ * midtones balance is recomputed from the current image and target background. */
+static void refresh_autostretch_display() {
+	if (gui.rendering_mode != STF_DISPLAY)
+		return;
+	notify_gfit_data_modified();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+}
+
+/* Auto-refresh toggle: ON (default) recomputes the autostretch on every image
+ * change; OFF keeps the current stretch frozen. Turning it back on resyncs the
+ * stretch with the current image. */
+void on_autostretch_autorefresh_toggled(GtkWidget *button, gpointer user_data) {
+	gui.autostretch_auto_refresh = siril_toggle_get_active(button);
+	if (gui.autostretch_auto_refresh) {
+		invalidate_autostretch_cache();
+		refresh_autostretch_display();
+	}
+}
+
+static int autostretch_target_bg_update_preview(void) {
+	/* Moving the target-background slider does NOT change pixels, so we must
+	 * avoid notify_gfit_data_modified() here: it invalidates gfit's cached
+	 * statistics and histogram, forcing find_linked_midtones_balance() to
+	 * re-scan the whole image on every tick — the actual source of the lag.
+	 * Instead we just drop the STF cache and rebuild the display LUT, reusing
+	 * the still-valid image stats. Works regardless of the auto-refresh state. */
+	if (gui.rendering_mode != STF_DISPLAY)
+		return 0;
+	invalidate_autostretch_cache();
+	remap_all();
+	redraw(REDRAW_IMAGE);
+	gui_function(redraw_previews, NULL);
+	return 0;
+}
+
+void on_autostretch_target_bg_changed(GtkRange *range, gpointer user_data) {
+	gui.autostretch_target_bg = (float) gtk_range_get_value(range);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = autostretch_target_bg_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
 }
 
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
@@ -1154,7 +1201,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	siril_window_enable_image_actions(app_win, any_image_is_loaded);
 
 	/* auto-stretch actions */
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
@@ -2462,6 +2509,43 @@ static void guard_headerbar_insensitive_double_click(void) {
 	gtk_widget_add_controller(headerbar, GTK_EVENT_CONTROLLER(click));
 }
 
+/* Double-click the autostretch target-background slider to restore its default
+ * value (setting the value triggers value-changed, which refreshes the view).
+ *
+ * GtkScale claims the press for its own jump/drag handling, which makes
+ * GtkGestureClick reset n_press to 1 on every click — so relying on n_press==2
+ * does not work here. We detect the double-click ourselves by timing two quick
+ * consecutive presses, which fires regardless of the scale claiming. */
+static void on_autostretch_target_bg_reset(GtkGestureClick *gesture, int n_press,
+                                           double x, double y, gpointer user_data) {
+	static gint64 last_press_us = 0;
+	gint64 now = g_get_monotonic_time();
+	gint dc_ms = 400;
+	g_object_get(gtk_settings_get_default(), "gtk-double-click-time", &dc_ms, NULL);
+
+	gboolean is_double = (n_press >= 2) ||
+	                     (last_press_us != 0 && now - last_press_us <= (gint64) dc_ms * 1000);
+	last_press_us = is_double ? 0 : now;
+	if (!is_double)
+		return;
+
+	GtkWidget *scale = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+	gtk_range_set_value(GTK_RANGE(scale), AS_DEFAULT_TARGET_BACKGROUND);
+}
+
+static void attach_autostretch_target_bg_reset(void) {
+	GtkWidget *scale = lookup_widget("autostretch_target_bg_scale");
+	if (!scale)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	/* CAPTURE phase: receive the press before GtkScale's own gesture acts on
+	 * it, so we can claim the double-click and suppress the jump-to-position. */
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed", G_CALLBACK(on_autostretch_target_bg_reset), NULL);
+	gtk_widget_add_controller(scale, GTK_EVENT_CONTROLLER(click));
+}
+
 /* GTK4: GtkEventBox and button-press-event no longer exist, so the "click the
  * sequence/image field to copy its name to the clipboard" behaviour lost its
  * wiring during the port. Re-create it with a GtkGestureClick on press_field
@@ -2568,6 +2652,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * end-of-drag REDRAW_ALL redraw fires (Phase 18 stripped the
 	 * button-release-event binding from the .ui). */
 	attach_display_scale_release_handlers();
+
+	/* Double-click the autostretch target-background slider to reset it. */
+	attach_autostretch_target_bg_reset();
 
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("comboboxstack_methods")), 0);
