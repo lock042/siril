@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-05-18 21:10+0000\n"
+"PO-Revision-Date: 2026-06-29 09:05+0000\n"
 "Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -23905,7 +23905,7 @@ msgstr "type d'interpolation"
 
 #: src/core/settings.c:393
 msgid "row-order preference"
-msgstr "préférences de row-order"
+msgstr "préférence d'ordre des lignes"
 
 #: src/core/settings.c:394
 msgid "Bayer matrix offset X"
