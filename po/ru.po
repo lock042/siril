@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-02 11:27+0200\n"
-"PO-Revision-Date: 2026-05-28 10:56+0000\n"
+"PO-Revision-Date: 2026-06-29 08:28+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -5072,7 +5072,7 @@ msgstr "По краю"
 
 #: src/gui/uifiles/mask_fmul_dialog.ui:14
 msgid "Multiply Image Mask"
-msgstr ""
+msgstr "Умножить маску изображения"
 
 #: src/gui/uifiles/mask_fmul_dialog.ui:90
 #, fuzzy
@@ -5089,7 +5089,7 @@ msgstr "Создать цветную маску"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:119
 msgid "Bit Depth"
-msgstr ""
+msgstr "Разрядность"
 
 #: src/gui/uifiles/mask_from_chromaticity.ui:132
 #: src/gui/uifiles/mask_from_image.ui:231
@@ -5202,6 +5202,9 @@ msgid ""
 "remove isolated noise and small holes in the mask. This is slower to compute "
 "but may give a nicer mask"
 msgstr ""
+"Если этот флажок установлен, будут применены морфологические операции для "
+"очистки маски, чтобы удалить отдельные шумы и небольшие пробелы в маске. Это "
+"потребует больше времени для вычисления, но может улучшить качество маски"
 
 #: src/gui/uifiles/mask_from_image.ui:58
 msgid "Create a mask from the current image"
@@ -5304,7 +5307,7 @@ msgstr "Радиус звезды (FWHM):"
 
 #: src/gui/uifiles/mask_from_stars.ui:107
 msgid "Star radius as a multiple of FWHM"
-msgstr ""
+msgstr "Радиус звезды, как кратное FWHM"
 
 #: src/gui/uifiles/mask_from_stars.ui:122
 msgid "Output bit depth:"
@@ -8945,9 +8948,8 @@ msgid "Type"
 msgstr "Тип"
 
 #: src/gui/uifiles/settings_window.ui:5424
-#, fuzzy
 msgid "Startup"
-msgstr "Начало"
+msgstr "Запуск"
 
 #: src/gui/uifiles/settings_window.ui:5475
 msgid "<b>Siril Scripts Repository</b>"
@@ -9611,7 +9613,7 @@ msgstr "Применить пороги к маске"
 
 #: src/gui/uifiles/siril.ui:1222
 msgid "Blur Mask"
-msgstr "Размыть маску"
+msgstr "Размыть Маску"
 
 #: src/gui/uifiles/siril.ui:1230
 msgid "Feather Mask"
@@ -14083,14 +14085,14 @@ msgid "polynomial"
 msgstr "Полином"
 
 #: src/algos/background_extraction.c:1433
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction (%s, CFA)"
-msgstr "извлечение фона"
+msgstr "Извлечение фона (%s, CFA)"
 
 #: src/algos/background_extraction.c:1434
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction (%s)"
-msgstr "извлечение фона"
+msgstr "Извлечение фона (%s)"
 
 #: src/algos/background_extraction.c:1651
 #: src/algos/background_extraction.c:1784
@@ -14642,18 +14644,16 @@ msgid "Error resizing mask\n"
 msgstr "Ошибка чередования изображения\n"
 
 #: src/algos/geometry.c:838 src/algos/geometry.c:879
-#, fuzzy
 msgid "Error rotating mask\n"
-msgstr "Ошибка при загрузке файлов!\n"
+msgstr "Ошибка вращения маски\n"
 
 #: src/algos/geometry.c:905 src/algos/geometry.c:939
 msgid "Horizontal mirror: processing...\n"
 msgstr "Отражение по горизонтали: выполняется…\n"
 
 #: src/algos/geometry.c:980 src/algos/geometry.c:1026
-#, fuzzy
 msgid "Error mirroring mask\n"
-msgstr "Ошибка чередования изображения\n"
+msgstr "Ошибка отражения маски\n"
 
 #: src/algos/geometry.c:1015
 msgid "Vertical mirror: processing...\n"
@@ -14664,9 +14664,8 @@ msgid "Rounding selection to match CFA pattern\n"
 msgstr ""
 
 #: src/algos/geometry.c:1241
-#, fuzzy
 msgid "Error cropping mask\n"
-msgstr "Ошибка при открытии BMP.\n"
+msgstr "Ошибка обрезания маски\n"
 
 #: src/algos/geometry.c:1281 src/algos/geometry.c:1372
 #: src/algos/geometry.c:1592
@@ -14734,11 +14733,11 @@ msgstr "Вращение (%.1f°, кадрирование=%s, фиксация=
 
 #: src/algos/geometry.c:1619
 msgid "TRUE"
-msgstr ""
+msgstr "TRUE"
 
 #: src/algos/geometry.c:1619
 msgid "FALSE"
-msgstr ""
+msgstr "FALSE"
 
 #: src/algos/noise.c:56
 msgid "Noise standard deviation: calculating...\n"
@@ -15691,7 +15690,7 @@ msgstr "Неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:285
 msgid "Missing saturation coefficient\n"
-msgstr ""
+msgstr "Отсутствует коэффициент насыщенности\n"
 
 #: src/core/command.c:300
 msgid "Background factor must be positive\n"
@@ -15792,14 +15791,12 @@ msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
 msgstr "Ошибка в параметре ρ: обязательно должен быть >0 и <1, прерывание.\n"
 
 #: src/core/command.c:693
-#, fuzzy
 msgid "Error parsing SOS iterations.\n"
-msgstr "Ошибка разбора JSON из URL: %s\n"
+msgstr "Ошибка разбора повторов SOS.\n"
 
 #: src/core/command.c:698
-#, fuzzy
 msgid "Note: SOS iterations < 1. Defaulting to 1.\n"
-msgstr "Ошибка: Кол-во повторов SOS должно быть >=1. Сбрасываем к 1.\n"
+msgstr "Замечания: Кол-во повторов SOS <1. Сбрасываем к 1.\n"
 
 #: src/core/command.c:701
 msgid ""
@@ -15809,9 +15806,9 @@ msgstr "Замечание: много повторов SOS. Обработка 
 #: src/core/command.c:706 src/core/command.c:1447 src/core/command.c:1556
 #: src/core/command.c:1907 src/core/command.c:7605 src/core/command.c:8310
 #: src/core/command.c:8399
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown argument %s\n"
-msgstr "Неизвестный аргумент %s, прерывание.\n"
+msgstr "Неизвестный аргумент %s\n"
 
 #: src/core/command.c:715
 #, fuzzy
@@ -15856,11 +15853,10 @@ msgid "Error parsing stride argument, aborting.\n"
 msgstr "Ошибка при разборе аргументов, прерывание.\n"
 
 #: src/core/command.c:820
-#, fuzzy
 msgid "Stride must be an even integer in [2, 512], aborting.\n"
 msgstr ""
-"Ошибка в параметре шага: должен быть положительным чётным целым числом, "
-"максимум 512, прерывание.\n"
+"Шаг должен быть положительным чётным целым числом в диапазоне [2, 512], "
+"прерывание.\n"
 
 #: src/core/command.c:851 src/filters/starnet.c:945 src/gui/starnetgui.c:231
 msgid "StarNet"
@@ -15902,9 +15898,8 @@ msgid "Error loading files!\n"
 msgstr "Ошибка при загрузке файлов!\n"
 
 #: src/core/command.c:1164 src/gui/merge_cfa.c:428
-#, fuzzy
 msgid "Merge CFA failed.\n"
-msgstr "Совместить каналы CFA"
+msgstr "Не удалось совместить каналы CFA.\n"
 
 #: src/core/command.c:1183 src/gui/merge_cfa.c:447
 msgid "Unsaved Bayer pattern merge"
@@ -15965,14 +15960,14 @@ msgid "Image division"
 msgstr "Деление изображений"
 
 #: src/core/command.c:1294
-#, fuzzy, c-format
+#, c-format, fuzzy
 msgid "Image addition of %s"
-msgstr "Инструменты проверки изображений"
+msgstr "Сложение изображений %s"
 
 #: src/core/command.c:1297
-#, fuzzy, c-format
+#, c-format, fuzzy
 msgid "Image subtraction of %s"
-msgstr "Калибровка изображений"
+msgstr "Вычитание изображений %s"
 
 #: src/core/command.c:1300
 #, fuzzy, c-format
@@ -15986,9 +15981,9 @@ msgstr "Изображение %d, %s = %s\n"
 
 #: src/core/command.c:1321 src/core/command.c:7170 src/core/command.c:7432
 #: src/core/command.c:8097 src/core/command.c:8474
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s\n"
-msgstr "Неверный аргумент: %s\n"
+msgstr "Неверный аргумент %s\n"
 
 #: src/core/command.c:1327
 #, fuzzy
@@ -16009,9 +16004,8 @@ msgid "Missing operand filename\n"
 msgstr ""
 
 #: src/core/command.c:1453
-#, fuzzy
 msgid "Operand filename not specified\n"
-msgstr "Ошибка: не указано название файла, прерывание.\n"
+msgstr "Не указано название файла операнда\n"
 
 #: src/core/command.c:1492
 msgid "Add max"
@@ -16023,9 +16017,8 @@ msgid "Image division with normalization: %.6f"
 msgstr ""
 
 #: src/core/command.c:1539
-#, fuzzy
 msgid "Missing arguments: <operand> <norm>\n"
-msgstr "Отсутствующий аргумент для команды\n"
+msgstr "Отсутствующие аргументы: <operand> <norm>\n"
 
 #: src/core/command.c:1562
 msgid "Missing operand filename or normalization factor.\n"
@@ -16048,7 +16041,7 @@ msgstr "Умножение на скаляр"
 #: src/core/command.c:1738
 #, c-format
 msgid "Gaussian blur: sigma = %f"
-msgstr ""
+msgstr "Гауссово размытие: σ = %f"
 
 #. Use default
 #: src/core/command.c:1777
@@ -16413,14 +16406,12 @@ msgstr "Неверный аргумент %s, прерывание.\n"
 
 #. No idle in command mode
 #: src/core/command.c:3640
-#, fuzzy
 msgid "Inverse Midtones Transfer Function"
-msgstr "Передаточная функция полутонов"
+msgstr "Обратная передаточная функция полутонов"
 
 #: src/core/command.c:3640
-#, fuzzy
 msgid "Midtones Transfer Function"
-msgstr "Передаточная функция полутонов"
+msgstr "Передаточная Функция Полутонов"
 
 #: src/core/command.c:3658
 #, c-format
@@ -16450,9 +16441,8 @@ msgstr "Точка симметрии SP=%f\n"
 
 #. No idle in command mode
 #: src/core/command.c:3951
-#, fuzzy
 msgid "AutoGHS"
-msgstr "Авто"
+msgstr "Авто GHS"
 
 #: src/core/command.c:3989
 #, fuzzy
@@ -17311,9 +17301,8 @@ msgid "Find Hot/Cold Pixels"
 msgstr "Найти горячие/холодные пиксели"
 
 #: src/core/command.c:7955
-#, fuzzy
 msgid "Fix X-Trans artefacts"
-msgstr "Исправление артефактов автофокуса X-Trans"
+msgstr "Исправить артефакты автофокуса X-Trans"
 
 #: src/core/command.c:7976 src/core/command.c:8045
 #, c-format
@@ -17392,12 +17381,11 @@ msgid "Offset"
 msgstr "Смещение по X:"
 
 #: src/core/command.c:8488
-#, fuzzy
 msgid ""
 "Type can either be 0 (average neutral), 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
 msgstr ""
-"Способ может быть 0 (средний нейтральный), 1 (максимальный нейтральный), 3 "
+"Способ может быть 0 (средний нейтральный), 1 (максимальный нейтральный), 2 "
 "(максимальная маска) или 3 (аддитивная маска)\n"
 
 #: src/core/command.c:8497
@@ -17410,9 +17398,8 @@ msgstr "Количество может быть [0, 1]\n"
 
 #. Too many numeric arguments
 #: src/core/command.c:8509
-#, fuzzy
 msgid "Too many arguments\n"
-msgstr "Неверные аргументы команды"
+msgstr "Слишком много аргументов\n"
 
 #: src/core/command.c:8538
 msgid "SCNR"
@@ -17445,9 +17432,8 @@ msgid "Error, no existing samples available\n"
 msgstr "Ошибка, отсутствуют доступные образцы\n"
 
 #: src/core/command.c:8928 src/gui/background_extraction.c:288
-#, fuzzy
 msgid "Background extraction"
-msgstr "извлечение фона"
+msgstr "Извлечение фона"
 
 #: src/core/command.c:8938
 msgid "Error generating background samples\n"
@@ -18896,27 +18882,24 @@ msgid "Invalid argument %s, green weight must be 0-1, aborting.\n"
 msgstr "Неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:15008
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, blue weight must be 0-1, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный аргумент %s, вес синего должен быть 0-1, прерывание.\n"
 
 #: src/core/command.c:15027
-#, fuzzy
 msgid "Cannot specify both -human and -even options, aborting.\n"
-msgstr ""
-"Нельзя использовать сверхразрешение с сенсорами без шаблона Байера, "
-"прерывание.\n"
+msgstr "Нельзя одновременно передать опции -human и -even, прерывание.\n"
 
 #: src/core/command.c:15032
 #, fuzzy
 msgid "Cannot specify custom weights with -human or -even options, aborting.\n"
 msgstr ""
-"Прежде чем включать эту опцию, укажите темновой мастер-кадр с помощью "
-"-dark=, прерывание.\n"
+"Нельзя передать пользовательские веса с опциями -human или -even, "
+"прерывание.\n"
 
 #: src/core/command.c:15038
 msgid "All three weights (-rw, -gw, -bw) must be specified, aborting.\n"
-msgstr ""
+msgstr "Необходимо указать все веса (-rw, -gw, -bw), прерывание.\n"
 
 #: src/core/command.c:15076 src/gui/masks_gui.c:356 src/gui/masks_gui.c:412
 #, fuzzy
@@ -18926,19 +18909,16 @@ msgstr "Использовать светимость"
 #: src/core/command.c:15110 src/core/command.c:15221 src/core/command.c:15285
 #: src/core/command.c:15322 src/core/command.c:15348 src/core/command.c:15370
 #: src/core/command.c:15403
-#, fuzzy
 msgid "No mask present, aborting.\n"
-msgstr "Ошибка при разборе аргументов, прерывание.\n"
+msgstr "Маска отсутствует, прерывание.\n"
 
 #: src/core/command.c:15125
-#, fuzzy
 msgid "Unknown mask bit depth, aborting.\n"
-msgstr "Неизвестный метод кадрирования, прерывание\n"
+msgstr "Неизвестная разрядность маски, прерывание.\n"
 
 #: src/core/command.c:15161
-#, fuzzy
 msgid "Low value must be less than high value, aborting.\n"
-msgstr "Ошибка: масштаб не может быть менее 0.01, прерывание.\n"
+msgstr "Меньшее значение должно быть меньше большего, прерывание.\n"
 
 #: src/core/command.c:15165
 msgid "Feathering range is outside mask value range, aborting.\n"
@@ -18959,9 +18939,8 @@ msgid "Radius parameter (-radius=) is required, aborting.\n"
 msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
 
 #: src/core/command.c:15235 src/gui/masks_gui.c:600
-#, fuzzy
 msgid "Blur mask"
-msgstr "Маска звёзд"
+msgstr "Размыть маску"
 
 #: src/core/command.c:15256
 #, fuzzy, c-format
@@ -19158,6 +19137,8 @@ msgid ""
 "Applies a midtone transfer function autostretch to the image mask, if one "
 "exists"
 msgstr ""
+"Применяет передаточную функцию полутонов к маске изображения, если таковая "
+"существует"
 
 #: src/core/command_def.h:12
 msgid "Returns the background level of the loaded image"
