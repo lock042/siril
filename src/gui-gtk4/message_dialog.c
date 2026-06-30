@@ -153,8 +153,23 @@ static void alert_sync_choose_cb(GObject *src, GAsyncResult *res, gpointer ud) {
 		g_main_loop_quit(st->loop);
 }
 
+/* If a modal dialog's parent toplevel is mapped but not the active window —
+ * e.g. the user switched to another application while a dialog was queued
+ * during startup — raise it so the modal appears in front of the user.  A
+ * modal anchored to a background window can otherwise hold input focus behind
+ * an unrelated window, which on KDE reads as a frozen desktop (the same class
+ * as a leaked grab).  No-op when parent is NULL, unmapped, or already active,
+ * so it never steals focus during normal foreground use. */
+static void raise_parent_if_backgrounded(GtkWindow *parent) {
+	if (parent && GTK_IS_WINDOW(parent)
+			&& gtk_widget_get_mapped(GTK_WIDGET(parent))
+			&& !gtk_window_is_active(parent))
+		gtk_window_present(parent);
+}
+
 static int alert_choose_sync(GtkAlertDialog *ad, GtkWindow *parent) {
 	struct alert_sync_state st = { g_main_loop_new(NULL, FALSE), -1 };
+	raise_parent_if_backgrounded(parent);
 	gtk_alert_dialog_choose(ad, parent, NULL, alert_sync_choose_cb, &st);
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
@@ -279,6 +294,7 @@ static int run_custom_message_window(GtkWindow *parent,
 
 	g_signal_connect(win, "close-request", G_CALLBACK(custom_dlg_close_request_cb), &st);
 
+	raise_parent_if_backgrounded(parent);
 	gtk_window_present(GTK_WINDOW(win));
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
@@ -576,6 +592,7 @@ gboolean siril_confirm_dialog_with_avi_bayer(gchar *title, gchar *msg,
 
 	g_signal_connect(win, "close-request", G_CALLBACK(custom_dlg_close_request_cb), &st);
 
+	raise_parent_if_backgrounded(parent);
 	gtk_window_present(GTK_WINDOW(win));
 	g_main_loop_run(st.loop);
 	g_main_loop_unref(st.loop);
