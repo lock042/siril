@@ -1932,6 +1932,16 @@ static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
 	                  mpp_cfg_half_patch_width(cfg), frame_rows, frame_cols);
 }
 
+/* Current half-box of an AP, recovered as the largest centre-to-edge
+ * distance — the box is clamped at the frame border for edge APs, so the
+ * unclamped side gives the true value. Boxes produced by mpp_ap_set_half_box
+ * are symmetric (the new half-box is capped below the border), so this is
+ * exact for any AP the editor has touched. */
+static int ap_current_half_box(const mpp_ap_record_t *r) {
+	return std::max(std::max(r->x - r->box_x_low, r->box_x_high - r->x),
+	                std::max(r->y - r->box_y_low, r->box_y_high - r->y));
+}
+
 extern "C" mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y) {
 	if (!run || !run->cfg) return MPP_EINVAL;
 	if (!run->aps) {
@@ -1970,20 +1980,14 @@ extern "C" mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y) {
 	if (!run || !run->aps || !run->cfg || i < 0 || i >= run->aps->count)
 		return MPP_EINVAL;
 	mpp_ap_record_t *r = &run->aps->records[i];
-	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
+	/* Preserve the AP's own box size across a move — the user may have
+	 * resized it independently of the config half-box; a drag only relocates
+	 * the centre, it must not snap the box back to the config default. */
+	const int hb = ap_current_half_box(r);
+	fill_ap_bounds_hb(r, x, y, hb, (hb * 3) / 2, run->frame_rows, run->frame_cols);
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;
-}
-
-/* Current half-box of an AP, recovered as the largest centre-to-edge
- * distance — the box is clamped at the frame border for edge APs, so the
- * unclamped side gives the true value. Boxes produced by mpp_ap_set_half_box
- * are symmetric (the new half-box is capped below the border), so this is
- * exact for any AP the editor has touched. */
-static int ap_current_half_box(const mpp_ap_record_t *r) {
-	return std::max(std::max(r->x - r->box_x_low, r->box_x_high - r->x),
-	                std::max(r->y - r->box_y_low, r->box_y_high - r->y));
 }
 
 extern "C" int mpp_ap_get_half_box(const mpp_run_t *run, int i) {

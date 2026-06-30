@@ -205,6 +205,22 @@ void mpp_ap_editor_refresh_count_label(void) {
 	editor_refresh_count_label();
 }
 
+/* Half-box width (px) the user has dialled into the editor's AP-size
+ * spinner — the size a freshly-added AP should take. Returns -1 if the
+ * spinner hasn't been cached yet (dialog never opened), in which case the
+ * caller falls back to the run's config default. Lazily resolves the
+ * widget so it works even if the overlay/mouse path runs before the
+ * dialog's first show. */
+int mpp_ap_editor_half_box(void) {
+	if (!spin_half_box) {
+		if (!gui.builder) return -1;
+		spin_half_box = GTK_SPIN_BUTTON(
+		    gtk_builder_get_object(gui.builder, "spin_mpp_ap_editor_half_box"));
+		if (!spin_half_box) return -1;
+	}
+	return gtk_spin_button_get_value_as_int(spin_half_box);
+}
+
 int  mpp_ap_editor_get_drag_idx(void)      { return g_ap_drag_idx; }
 void mpp_ap_editor_set_drag_idx(int idx)   { g_ap_drag_idx = idx; }
 
