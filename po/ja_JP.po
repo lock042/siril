@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-06-29 09:05+0000\n"
-"Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
+"PO-Revision-Date: 2026-06-30 11:17+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -1380,7 +1380,7 @@ msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
 msgid "Degree order: "
-msgstr "多項式の次数: "
+msgstr "次数: "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
 msgid ""
