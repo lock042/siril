@@ -23,6 +23,12 @@ struct mpp_aps {
 	int count;
 	int dropped_dim;          /* APs rejected by brightness/contrast filter */
 	int dropped_structure;    /* APs rejected by structure threshold */
+	/* Set by the AP editor's manual mutations (add/move/remove/resize). Once
+	 * true, Register must not auto-regenerate the grid when the placement
+	 * spinners differ from the analysis-time cfg — the manual grid (which may
+	 * mix AP sizes) takes precedence. Cleared by a full auto-placement
+	 * (mpp_ap_replace), which produces a uniform grid that matches cfg. */
+	int user_edited;
 	mpp_ap_record_t *records; /* malloc'd, length = count */
 };
 
