@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-29 11:08+0200\n"
-"PO-Revision-Date: 2026-06-28 11:11+0000\n"
+"PO-Revision-Date: 2026-06-30 11:18+0000\n"
 "Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
@@ -17820,7 +17820,7 @@ msgstr "Arguments de commande incorrects"
 
 #: src/core/command.c:8334
 msgid "SCNR"
-msgstr ""
+msgstr "SCNR"
 
 #: src/core/command.c:8383 src/core/command.c:8470
 msgid "Amount value must be in the [0, 4] range.\n"
