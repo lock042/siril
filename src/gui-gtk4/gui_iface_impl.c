@@ -61,6 +61,7 @@
 #include "io/sequence.h"
 #include "livestacking/gui.h"
 #include "gui-gtk4/registration.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
 #include "gui-gtk4/script_menu.h"
 #include "gui-gtk4/siril_actions.h"
 #include "gui-gtk4/siril-window.h"
@@ -109,6 +110,12 @@ static gboolean impl_confirm_dialog(const char *title, const char *msg,
 	                            (gchar *)button_accept);
 }
 
+static gboolean impl_confirm_dialog_with_avi_bayer(const char *title,
+		const char *msg, const char *button_accept, int *avi_bayer_pattern) {
+	return siril_confirm_dialog_with_avi_bayer((gchar *)title, (gchar *)msg,
+			(gchar *)button_accept, avi_bayer_pattern);
+}
+
 static void impl_open_dialog(const char *id) {
 	siril_open_dialog((gchar *)id);
 }
@@ -152,19 +159,45 @@ static void impl_on_stack_complete(void) {
 	clear_stars_list(TRUE);
 	initialize_display_mode();
 	sliders_mode_set_state(gui.sliders);
-	/* Reader lock guards set_cutoff_sliders_max_values() which reads
-	 * gfit->type/orig_bitpix.  The hi/lo assignment writes keyword fields
-	 * that were set on the worker thread by notify_gfit_data_modified(). */
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	/* Writer lock: this section reads gfit (set_cutoff_sliders_max_values()
+	 * reads gfit->type/orig_bitpix) and also writes it (the hi/lo assignment).
+	 * The lock must be acquired and released as a writer on both counts -
+	 * mixing reader_lock with writer_unlock corrupts the lock on platforms
+	 * where the two unlock primitives differ (e.g. Windows SRWLOCK). */
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	display_filename();
 	gui_function(set_precision_switch, NULL);
 	set_cutoff_sliders_max_values();
+	/* Derive the display range from the result image rather than persisting
+	 * the previous image's gui.hi/gui.lo. After an 8-bit -> 16-bit stack the
+	 * old values are stale (e.g. hi=255 on a 0-65535 result, so the image
+	 * shows white). Passing a non-USER mode forces init_layers_hi_and_lo_values
+	 * to recompute even when the sliders were left in USER mode by a manual
+	 * stretch: MIPSLOHI uses the result's hi/lo keywords, falling back to
+	 * MINMAX when they are absent. The recomputed gui.hi/gui.lo are then
+	 * persisted to the result's keywords. */
+	init_layers_hi_and_lo_values(MIPSLOHI);
 	gfit->keywords.hi = gui.hi;
 	gfit->keywords.lo = gui.lo;
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 	gfit_modified_update_gui();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
+	/* Refresh notebook tab visibility for the result's channel count —
+	 * a Bayer-drizzle stack turns a mono Bayer SER sequence into a
+	 * 3-channel result, so the R/G/B/RGB tabs need to be re-shown
+	 * (otherwise the RGB result keeps displaying through the mono viewport). */
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
+	/* The worker's notify_gfit_data_modified() remapped the Cairo buffers
+	 * while gui.hi was still the previous image's (stale) value, and
+	 * REDRAW_ALL no longer remaps (post REMAP_ALL->REDRAW_ALL rename). Re-remap
+	 * now that init_layers_hi_and_lo_values() has set the correct range,
+	 * otherwise the first paint shows white until the user nudges a slider. */
+	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
+		remap_all();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	redraw(REDRAW_ALL);
 	gui_function(redraw_previews, NULL);
 	sequence_list_change_current();
@@ -217,6 +250,12 @@ static void impl_set_suppress_redraws(gboolean suppress) {
 		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
 	} else {
 		g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+		/* Symmetrically re-enable the display-mode menu: the matching
+		 * re-enable in end_gfit_operation() does not run for every op
+		 * that suppressed redraws (e.g. a command with argfit == gfit but
+		 * command_updates_gfit == FALSE completes via end_generic_image()),
+		 * which would otherwise leave the menu permanently insensitive. */
+		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(TRUE));
 	}
 }
 
@@ -326,6 +365,9 @@ static gboolean set_seq_gui(gpointer user_data) {
 	fillSeqAviExport();
 	update_MenuItem(NULL);
 	set_GUI_CAMERA();
+	mpp_update_edit_button_sensitivity();         /* sidecar auto-load may have populated com.mpp_run */
+	mpp_sync_widgets_from_cached_run();           /* reflect a loaded sidecar's AP-placement settings */
+	mpp_shift_viewer_update_button_sensitivity();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
 	notify_gfit_data_modified();
@@ -347,6 +389,8 @@ static gboolean close_sequence_idle(gpointer data) {
 	update_seqlist(-1);
 	initialize_cut_struct(&gui.cut);
 	reset_cut_gui(NULL);
+	mpp_update_edit_button_sensitivity();   /* MPP run was cleared in close_sequence */
+	mpp_shift_viewer_update_button_sensitivity();
 	if (!data) {
 		GtkDropDown *seqcombo = GTK_DROP_DOWN(GTK_WIDGET(
 			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
@@ -662,6 +706,10 @@ static void impl_trigger_gaia_check(void) {
 
 static void impl_remap_all_vports(void) {
 	remap_all();
+}
+
+static void impl_drop_lazy_tile_textures(void) {
+	drop_lazy_tile_textures();
 }
 
 static void impl_quit_application(void) {
@@ -1163,13 +1211,6 @@ static void impl_clear_previews(void) {
 	clear_previews();
 }
 
-static int impl_toggle_remixer_window_visibility(int invocation,
-                                                   gpointer fit_left,
-                                                   gpointer fit_right) {
-	return toggle_remixer_window_visibility(invocation, (fits *)fit_left,
-	                                        (fits *)fit_right);
-}
-
 static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
 #ifdef HAVE_LIBHEIF
 	return heif_dialog((struct heif_context *)heif, selected_image);
@@ -1225,6 +1266,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.log_message           = impl_log_message;
 	gui_iface.message_dialog        = impl_message_dialog;
 	gui_iface.confirm_dialog        = impl_confirm_dialog;
+	gui_iface.confirm_dialog_with_avi_bayer = impl_confirm_dialog_with_avi_bayer;
 	gui_iface.open_dialog            = impl_open_dialog;
 	gui_iface.close_dialog           = impl_close_dialog;
 	gui_iface.is_dialog_open         = impl_is_dialog_open;
@@ -1299,6 +1341,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.check_gaia_status           = impl_check_gaia_status;
 	gui_iface.trigger_gaia_check          = impl_trigger_gaia_check;
 	gui_iface.remap_all_vports            = impl_remap_all_vports;
+	gui_iface.drop_lazy_tile_textures     = impl_drop_lazy_tile_textures;
 	gui_iface.quit_application            = impl_quit_application;
 	gui_iface.refresh_script_menu         = impl_refresh_script_menu;
 	gui_iface.clear_backup                = impl_clear_backup;
@@ -1372,7 +1415,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.show_or_hide_mask_tab_async     = impl_show_or_hide_mask_tab_async;
 	gui_iface.number_of_dialogs               = impl_number_of_dialogs;
 	gui_iface.clear_previews                  = impl_clear_previews;
-	gui_iface.toggle_remixer_window_visibility = impl_toggle_remixer_window_visibility;
 	gui_iface.heif_dialog                     = impl_heif_dialog;
 
 	/* Display / plot notifications */

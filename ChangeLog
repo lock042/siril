@@ -1,6 +1,12 @@
 siril-1.5.0
 --/--/--
 
+**Platform update**
+* Drop support for Intel architecture on macOS. (!1054)
+
+**Fixes**
+* Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
+
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
@@ -18,6 +24,7 @@ siril-1.5.0
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
+* Improved latency of live previews (!1011)
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
 * Adding TIFF support in Pixelmath (#1726)
@@ -27,11 +34,21 @@ siril-1.5.0
 * Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
 * Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
 * Added displaying velocity vectors for SSO annotations (!1045)
+* Removed autotools build support (!1056)
+* Added multipoint registration (for planetary, lunar and solar use) (!1034)
+* Removed original Starnet C interface (now covered by the new python script) (!tbc)
+* Added static autostretch mode to keep display stretch parameters fixed across images
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
 * Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
 * Fixed command help popover being too tall on low-resolution screens
+
+siril-1.4.5
+xx/xx/xx
+
+**Fixes**
+* Fixed constellation names in annotations (#1055)
 
 siril-1.4.4
 06/17/26

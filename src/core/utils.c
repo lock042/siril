@@ -916,8 +916,6 @@ float compute_slope(WORD *lo, WORD *hi) {
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
-/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
-
 /**
 * Truncate a string str to not exceed an length of size
 * @param str the string to be truncated
@@ -2013,7 +2011,7 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			/* Ignore errors from the move: we don't want to mask the
 			* original deletion error.
 			*/
-			g_file_move(root,
+			(void) g_file_move(root,
 						quarantine,
 						G_FILE_COPY_NOFOLLOW_SYMLINKS,
 						NULL, NULL, NULL, NULL);

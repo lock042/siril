@@ -61,6 +61,8 @@ static void set_label(GtkLabel *label, gchar *text, gboolean free_after_display)
 void livestacking_display(gchar *str, gboolean free_after_display) {
 	if (com.headless) {
 		siril_log_message("%s\n", str);
+		if (free_after_display)
+			g_free(str);
 		return;
 	}
 	static GtkLabel *label = NULL;

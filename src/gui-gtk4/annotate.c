@@ -103,7 +103,7 @@ void annotate_dialog_init_statics() {
 
 static siril_cat_index get_cat_index_from_combo() {
 	siril_cat_index cat = CAT_AUTO;
-	const gchar *cat_char = siril_drop_down_get_active_text(conesearch_combo);
+	gchar *cat_char = siril_drop_down_get_active_text(conesearch_combo);
 	if (g_str_has_prefix(cat_char, "tycho2"))
 		cat = CAT_TYCHO2;
 	else if (g_str_has_prefix(cat_char, "nomad"))
@@ -134,6 +134,7 @@ static siril_cat_index get_cat_index_from_combo() {
 		cat = CAT_IMCCE;
 		if (!gfit->keywords.date_obs) {
 			siril_log_error(_("This option only works on images that have observation date information\n"));
+			g_free(cat_char);
 			return CAT_AUTO;
 		}
 	} else {
@@ -145,6 +146,7 @@ static siril_cat_index get_cat_index_from_combo() {
 		cat = (local_cat) ? get_local_catalogue_index() : CAT_NOMAD;
 	}
 
+	g_free(cat_char);
 	return cat;
 }
 

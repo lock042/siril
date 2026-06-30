@@ -168,6 +168,40 @@ popover:not(#popover_catalogs) separator {
    margin: 4px 4px;
 }
 
+/* Compact stateful controls on the AutoStretch row of the display popover.
+ * The generic popover rule above strips button chrome so each row reads as a
+ * menu item; these controls must instead look like real toggle buttons with a
+ * clearly visible checked state, and stay small and uniform in size. */
+popover:not(#popover_catalogs) button.as-ctl,
+popover:not(#popover_catalogs) menubutton.as-ctl > button {
+   min-width: 22px;
+   min-height: 22px;
+   padding: 1px 4px;
+   margin: 0;
+   border: 1px solid alpha(@theme_fg_color, 0.20);
+   border-radius: 5px;
+   background-color: alpha(@theme_fg_color, 0.04);
+}
+/* Slightly smaller symbolic icons inside these compact controls. The chain
+ * link image sets its own pixel-size in the .ui, so it is unaffected here. */
+popover:not(#popover_catalogs) .as-ctl image {
+   -gtk-icon-size: 14px;
+}
+popover:not(#popover_catalogs) button.as-ctl:hover,
+popover:not(#popover_catalogs) menubutton.as-ctl > button:hover {
+   background-color: alpha(@theme_fg_color, 0.12);
+}
+/* Active state of the toggles (GtkToggleButton uses the `button` CSS node in
+ * GTK4, so :checked must be matched on `button`, not `togglebutton`). */
+popover:not(#popover_catalogs) button.as-ctl:checked {
+   background-color: @theme_selected_bg_color;
+   color: @theme_selected_fg_color;
+   border-color: @theme_selected_bg_color;
+}
+popover:not(#popover_catalogs) button.as-ctl:checked:hover {
+   background-color: shade(@theme_selected_bg_color, 1.1);
+}
+
 /* GTK4 ports the bottom toolbar from the GTK3 single-row design but the
  * default Adwaita scale + entry have larger min-heights, which combined
  * with the stacked max/min scales doubles the toolbar height.  Constrain
@@ -507,18 +541,6 @@ columnview.siril-dense-rows listview > row > cell {
 
 #GtkToolMainBar #display_button_arrow {
    -gtk-icon-size: 16px;
-}
-
-#GtkToolMainBar #autostretch_linked_icon {
-   -gtk-icon-size: 16px;
-}
-
-/* Keep the link/unlink toggle square: equal min size and uniform padding
- * around the 16px icon. */
-#GtkToolMainBar #linked_autostretch_button {
-   min-width: 16px;
-   min-height: 16px;
-   padding: 4px;
 }
 
 /* Script-status traffic light: image_log is a GtkLabel showing the

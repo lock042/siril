@@ -69,7 +69,6 @@ src/gui-gtk4/uifiles/siril_sequence.ui
 src/gui-gtk4/uifiles/siril_stacking.ui
 src/gui-gtk4/uifiles/spcc_details.ui
 src/gui-gtk4/uifiles/split_cfa_dialog.ui
-src/gui-gtk4/uifiles/starnet_dialog.ui
 src/gui-gtk4/uifiles/stars_list_window.ui
 src/gui-gtk4/uifiles/unpurple_dialog.ui
 src/gui-gtk4/uifiles/wavelets_dialog.ui
@@ -141,7 +140,6 @@ src/filters/nlbayes/call_nlbayes.cpp
 src/filters/rgradient.c
 src/filters/saturation.c
 src/filters/scnr.c
-src/filters/starnet.c
 src/filters/synthstar.c
 src/filters/unpurple.c
 src/filters/wavelets.c
@@ -217,7 +215,6 @@ src/gui-gtk4/siril_preview.c
 src/gui-gtk4/split_cfa.c
 src/gui-gtk4/stacking.c
 src/gui-gtk4/star_finder.c
-src/gui-gtk4/starnetgui.c
 src/gui-gtk4/statistics_list.c
 src/gui-gtk4/undo_gui.c
 src/gui-gtk4/unpurple.c
@@ -264,6 +261,7 @@ src/registration/astrometric.c
 src/registration/comet.c
 src/registration/distorsion.c
 src/registration/global.c
+src/registration/mpp.cpp
 src/registration/registration.c
 src/registration/shift_methods.c
 src/stacking/blending.c

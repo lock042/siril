@@ -57,8 +57,14 @@ gpointer noise_worker(gpointer p) {
 		gettimeofday(&args->t_start, NULL);
 	}
 
+	/* Only acquire the reader lock when the caller has explicitly requested
+	 * it (i.e. bgnoise_async, which launches a background thread that races
+	 * with other gfit consumers).  The bgnoise_image_hook() path runs under
+	 * generic_image_worker's writer lock — acquiring a reader lock on the
+	 * same rwlock from the same thread is undefined behaviour and would
+	 * self-deadlock or corrupt the lock state. */
 	gboolean rwlocked = FALSE;
-	if (args->fit == gfit) {
+	if (args->lock_gfit) {
 		g_rw_lock_reader_lock(&gfit->rwlock);
 		rwlocked = TRUE;
 	}
@@ -135,6 +141,7 @@ void bgnoise_async(fits *fit, gboolean display_values) {
 	args->use_idle = FALSE;
 	args->display_start_end = FALSE;
 	args->display_results = display_values;
+	args->lock_gfit = (fit == gfit);
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
 
 	thread = g_thread_new("bgnoise", noise_worker, args);

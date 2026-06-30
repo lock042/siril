@@ -797,6 +797,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	gboolean do_sum = is_cumulate_checked();
 	float min_val = get_min_rescale_value();
 	float max_val = get_max_rescale_value();
+	/* Declared up front so the free_expressions epilogue can release them on
+	 * every error path. handed_off becomes TRUE only once the worker thread has
+	 * taken ownership of args (and, through it, var_fit / fit). */
+	struct pixel_math_data *args = NULL;
+	fits *fit = NULL;
+	gboolean handed_off = FALSE;
 
 	int max_images = pm_get_max_images();
 
@@ -847,7 +853,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	channel = single_rgb ? channel : 3;
 
-	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
+	args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
@@ -881,7 +887,6 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		goto free_expressions;
 	}
 
-	fits *fit = NULL;
 	if (args->has_gfit) {
 		width   = gfit->rx;
 		height  = gfit->ry;
@@ -909,14 +914,33 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	args->fit = fit;
 
-	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
-		g_free(args->expression1);
-		g_free(args->expression2);
-		g_free(args->expression3);
-		free(args);
-	}
+	if (start_in_new_thread(apply_pixel_math_operation, args))
+		handed_off = TRUE;   // worker now owns args, var_fit and fit
+	/* On thread-start failure we fall through to free_expressions, which frees
+	 * everything because handed_off stayed FALSE. */
 
 free_expressions:
+	/* On every error path (and on thread-start failure) the worker never ran,
+	 * so release the resources it would otherwise have freed: the loaded
+	 * var_fit images, the args struct and its strings, and the output fit. */
+	if (!handed_off) {
+		free_pm_var(nb_rows);
+		if (args) {
+			if (args->varname) {
+				for (int i = 0; i < nb_rows; i++)
+					g_free(args->varname[i]);
+				free(args->varname);
+			}
+			g_free(args->expression1);
+			g_free(args->expression2);
+			g_free(args->expression3);
+			free(args);
+		}
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
+	}
 	g_free(expression1);
 	g_free(expression2);
 	g_free(expression3);

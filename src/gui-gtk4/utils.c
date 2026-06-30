@@ -1165,3 +1165,20 @@ void siril_toggle_set_active(GtkWidget *w, gboolean active) {
 	if (GTK_IS_CHECK_BUTTON(w)) gtk_check_button_set_active(GTK_CHECK_BUTTON(w), active);
 	else if (GTK_IS_TOGGLE_BUTTON(w)) gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), active);
 }
+
+/* Map a `<Primary>`-based accelerator string to the platform's primary
+ * modifier.  On macOS GTK4 parses `<Primary>` as Ctrl, but Siril registers
+ * its shortcuts with `<Meta>` so they fire on Cmd (GDK_META_MASK) — see
+ * set_accel_map() in callbacks.c and siril_macos_fix_keyboard_shortcuts().
+ * On other platforms the string is returned unchanged.  Accelerators with
+ * no `<Primary>` token (e.g. "F5") pass through.  Caller owns the result. */
+gchar *siril_remap_accel(const gchar *accel) {
+#ifdef OS_OSX
+	gchar **parts = g_strsplit(accel, "<Primary>", -1);
+	gchar  *result = g_strjoinv("<Meta>", parts);
+	g_strfreev(parts);
+	return result;
+#else
+	return g_strdup(accel);
+#endif
+}

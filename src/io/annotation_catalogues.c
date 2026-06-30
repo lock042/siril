@@ -221,12 +221,18 @@ static GSList *find_catalogue_by_index(siril_cat_index cat_index) {
 }
 
 void set_annotation_visibility(siril_cat_index cat_index, gboolean visible) {
-	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_TEMP)
+	// com.pref.gui.catalog[] only holds the persisted catalogues MESSIER..SSO_VECTORS
+	// (indices 0..10). CAT_AN_USER_TEMP would map to index 11, out of bounds.
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_SSO_VECTORS)
 		return;
 	com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET] = visible;
 }
 
 gboolean get_annotation_visibility(siril_cat_index cat_index) {
+	// Temporary/user catalogues outside the persisted set (e.g. CAT_AN_USER_TEMP)
+	// are always shown; avoid the out-of-bounds array access for them.
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_SSO_VECTORS)
+		return TRUE;
 	return com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET];
 }
 
@@ -341,6 +347,15 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
 	if (!object->pretty_code) {
 		if (!object->code)
 			return NULL;
+		/* only the named stars catalogue uses the Greek letter
+		 * conversion; it must not be applied to other catalogues, otherwise it
+		 * corrupts names that happen to contain a Latin spelling of a Greek
+		 * letter (e.g. constellations "Cen-tau-rus", "O-phi-uchus", or the
+		 * asteroid "Am-phi-trite" in the solar system objects catalogue). */
+		if (object->catalogue != CAT_AN_STARS) {
+			object->pretty_code = g_strdup(object->code);
+			return object->pretty_code;
+		}
 		/* in case of stars we want to convert to Greek letter */
 		while (convert_to_greek[i].latin) {
 			gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
