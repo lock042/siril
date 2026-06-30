@@ -26,39 +26,33 @@
 #include "io/image_format_fits.h"
 #include "core/command.h"
 #include "algos/streaks.h"
+#include "core/processing.h"
 #include "download_files.h"
 
 cominfo com;	// the core data struct
 fits *gfit;	// currently loaded image
 
 void test_streak_detection_gps() {
+	initialize_default_settings();
+	processing_system_init();
 	fits fit = {0};
 	gchar *file_path = check_or_download_test_file("streaks/streak1.fit");
 	cr_assert(file_path);
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 
-	float fwhm = 3.0f;
-	simple_star_removal(&fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf);
+	gchar *result_basename = g_strdup("/tmp/result");
+	gchar *result_file = g_strdup_printf("%s.streaks", result_basename);
+	g_unlink(result_file);
 
-	// TODO: refactor the main function
-	/*int expected_length = 250;
-	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
-	arg->fit = &fit;
-	arg->free_fit = FALSE;
-	arg->im_idx = com.uniq ? 0 : com.seq.current;
-	arg->filename = g_strdup("streak1");
-	arg->layer = 0;
-	arg->initial_segment_length = expected_length;
-	arg->minimum_segment_length = round_to_int(expected_length * 0.7);
-	arg->bright_target = FALSE;
-	arg->display_streaks = FALSE;
-	arg->use_idle = TRUE;
-	arg->nb_threads = com.max_thread;
-	arg->results = alloc_results(1);
-	arg->fwhm = fwhm;
-	int retval = GPOINTER_TO_INT(streak_detection_worker(arg));
-	cr_assert(!retval);
-	cr_assert(is_readable_file("streak1.streaks"));
-	*/
+	detect_streaks_async(&fit, 200, FALSE, 0, result_basename);
+
+	waiting_for_thread();
+	siril_log_debug("wait over\n");
+	cr_assert(g_file_test(result_file, G_FILE_TEST_EXISTS));
+
+	// TODO read content or return the date struct from the processing function
 }
+
+TestSuite(streaks, .init = init_download);
+Test(streaks, detect) { test_streak_detection_gps(); }

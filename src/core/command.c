@@ -15741,60 +15741,9 @@ int process_detect_streaks(int nb) {
 	}
 
 	clear_stars_list(FALSE);
-	fits *fit = calloc(1, sizeof(fits));
-	int layer = (gfit->naxes[2] == 3) ? 1 : 0;
-	extract_fits(gfit, fit, layer, FALSE);	// also makes a copy we can alter
-	copy_fits_metadata(gfit, fit);
-
-	float fwhm = 3.0f;
-	simple_star_removal(fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf);
-
-	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
-	arg->fit = fit;
-	arg->free_fit = TRUE;
-	arg->im_idx = com.uniq ? 0 : com.seq.current;
-	arg->filename = get_image_filename_no_ext(NULL, -1);
-	arg->layer = 0;
-	arg->initial_segment_length = initial_segment_length;
-	arg->minimum_segment_length = initial_segment_length / 2;
-	arg->bright_target = bright_target;
-	arg->display_streaks = !com.script;
-	arg->use_idle = TRUE;
-	arg->nb_threads = com.max_thread;
-	arg->results = alloc_results(1);
-	arg->fwhm = fwhm;
-	start_in_new_thread(streak_detection_worker, arg);
+	detect_streaks_async(gfit, initial_segment_length, bright_target, com.uniq ? 0 : com.seq.current,
+			get_image_filename_no_ext(NULL, -1));
 	return CMD_OK;
-}
-
-void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
-	imstats *stats = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, MULTI_THREADED);
-	double median = stats->median;
-	double bgnoise = stats->bgnoise;
-	double pixvalue = stats->median + knoise * stats->bgnoise;
-	//double alpha = stats->bgnoise;// * 0.1;
-	free_stats(stats);
-	siril_log_debug("Star pixel replacement value will be %f\n", pixvalue);
-
-	int nb_stars = 0;
-	image im = { .from_seq = NULL, .index_in_seq = -1, .fit = fit };
-	psf_star **stars = peaker(&im, layer, sf, &nb_stars, NULL, FALSE, FALSE, -1, sf->profile, com.max_thread);
-
-	if (!stars || nb_stars <= 0) {
-		siril_log_warning(_("No star found\n"));
-		return;
-	}
-
-	ssr_internal(fit, layer, median, bgnoise, pixvalue, stars, nb_stars);
-
-	if (fwhm) {
-		double sum = 0.0;
-		for (int i = 0; i < nb_stars; i++)
-			sum += stars[i]->fwhmx;
-		*fwhm = sum / nb_stars;
-	}
-	free_fitted_stars(stars);
-	invalidate_stats_from_fit(fit);
 }
 
 int process_ssr(int nb) {

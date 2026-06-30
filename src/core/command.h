@@ -245,7 +245,6 @@ int	process_spcc(int nb);
 int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
-void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf);
 int	process_ssr(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);

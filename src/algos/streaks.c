@@ -21,8 +21,7 @@
 // side of the square in which sampling will be done for magnitde estimation
 #define MAG_SAMPLE_SIZE 7
 
-// move somewhere else
-void ssr_internal(fits *fit, int layer, double median, double bgnoise, double pixvalue, psf_star **stars, int nb_stars) {
+static void ssr_internal(fits *fit, int layer, double median, double bgnoise, double pixvalue, psf_star **stars, int nb_stars) {
 	double alpha = bgnoise;// * 0.1;
 	size_t pixels_written = 0;
 	if (fit->type == DATA_FLOAT) {
@@ -78,6 +77,36 @@ void ssr_internal(fits *fit, int layer, double median, double bgnoise, double pi
 		free(rows);
 	}
 	siril_log_message("Erased %d stars (%zd pixels written).\n", nb_stars, pixels_written);
+}
+
+void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
+	imstats *stats = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC, MULTI_THREADED);
+	double median = stats->median;
+	double bgnoise = stats->bgnoise;
+	double pixvalue = stats->median + knoise * stats->bgnoise;
+	//double alpha = stats->bgnoise;// * 0.1;
+	free_stats(stats);
+	siril_log_debug("Star pixel replacement value will be %f\n", pixvalue);
+
+	int nb_stars = 0;
+	image im = { .from_seq = NULL, .index_in_seq = -1, .fit = fit };
+	psf_star **stars = peaker(&im, layer, sf, &nb_stars, NULL, FALSE, FALSE, -1, sf->profile, com.max_thread);
+
+	if (!stars || nb_stars <= 0) {
+		siril_log_warning(_("No star found\n"));
+		return;
+	}
+
+	ssr_internal(fit, layer, median, bgnoise, pixvalue, stars, nb_stars);
+
+	if (fwhm) {
+		double sum = 0.0;
+		for (int i = 0; i < nb_stars; i++)
+			sum += stars[i]->fwhmx;
+		*fwhm = sum / nb_stars;
+	}
+	free_fitted_stars(stars);
+	invalidate_stats_from_fit(fit);
 }
 
 // size is the number of frames in the sequence. Indices between 0 and size-1 are assumed.
@@ -241,7 +270,6 @@ void dump_results(struct result_set *set, const char *filename) {
 
 gpointer streak_detection_worker(gpointer ptr) {
 	struct streak_detection_conf *arg = (struct streak_detection_conf *)ptr;
-	struct results *lines;
 	int initial_length = arg->initial_segment_length > 0 ? arg->initial_segment_length : 60;
 	struct streak_detector conf = {
 		.min_allowed_length = arg->minimum_segment_length,
@@ -255,7 +283,8 @@ gpointer streak_detection_worker(gpointer ptr) {
 		.fwhm = arg->fwhm,
 	};
 
-	lines = detect_streaks(arg->fit, arg->layer, &conf, arg->nb_threads);
+	siril_log_debug("starting detection\n");
+	struct results *lines = detect_streaks(arg->fit, arg->layer, &conf, arg->nb_threads);
 	if (!lines || lines->nb_tracks == 0) {
 		siril_log_message("No satellite detected for image %d\n", arg->im_idx);
 		if (arg->use_idle)
@@ -407,4 +436,33 @@ gboolean has_streaks(fits *fit, int layer, int nb_threads) {
 		display_tracks(lines->tracks, lines->nb_tracks);
 	clear_results(lines);
 	return retval;
+}
+
+/* the entry point for the feature */
+int detect_streaks_async(fits *image, int length, gboolean bright, int image_index, gchar *basename) {
+	fits *fit = calloc(1, sizeof(fits));
+	int layer = (image->naxes[2] == 3) ? 1 : 0;
+	if (extract_fits(image, fit, layer, FALSE))	// also makes a copy we can alter
+		return -1;
+	copy_fits_metadata(image, fit);
+
+	float fwhm = 3.0f;
+	simple_star_removal(fit, 0, -0.1, &fwhm, &com.pref.starfinder_conf);
+
+	struct streak_detection_conf *arg = calloc(1, sizeof(struct streak_detection_conf));
+	arg->fit = fit;
+	arg->free_fit = TRUE;
+	arg->im_idx = image_index;
+	arg->filename = basename;
+	arg->layer = 0;
+	arg->initial_segment_length = length;
+	arg->minimum_segment_length = length / 2;
+	arg->bright_target = bright;
+	arg->display_streaks = !com.script;
+	arg->use_idle = TRUE;
+	arg->nb_threads = com.max_thread;
+	arg->results = alloc_results(1);
+	arg->fwhm = fwhm;
+	siril_log_debug("running detection\n");
+	return !start_in_new_thread(streak_detection_worker, arg);
 }

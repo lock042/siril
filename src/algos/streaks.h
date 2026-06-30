@@ -65,7 +65,9 @@ void display_streaks(struct track *tracks, int nblines);
 
 gboolean has_streaks(fits *fit, int layer, int nb_threads);
 
-void ssr_internal(fits *fit, int layer, double median, double bgnoise, double pixvalue, psf_star **stars, int nb_stars);
+void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf);
+
+int detect_streaks_async(fits *image, int length, gboolean bright, int image_index, gchar *basename);
 
 #endif
 
