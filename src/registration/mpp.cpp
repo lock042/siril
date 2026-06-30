@@ -1459,7 +1459,12 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
                                          mpp_run_t *run,
                                          const struct mpp_derot *derot,
                                          fits *out) {
-	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out)
+	/* seq->imgparam is required: every downstream consumer reads frames by
+	 * filename through it (the classify probe below via mpp_seq_read_frame ->
+	 * fit_sequence_get_image_filename_checkext, and the streamed stacker), so a
+	 * NULL imgparam can't produce a valid stack — fail fast instead of crashing
+	 * deep in the frame read. */
+	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out || !seq->imgparam)
 		return MPP_EINVAL;
 
 	/* Refresh inclusion from the live frame selector: the user may have
@@ -1472,7 +1477,8 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * are NOT replaced by the next-best (Stage B computed no shifts for
 	 * them) — a large post-registration selection change is best followed
 	 * by re-running Register. */
-	if (seq->imgparam && run->included && run->num_frames == seq->number) {
+	/* seq->imgparam is guaranteed non-NULL by the precondition above. */
+	if (run->included && run->num_frames == seq->number) {
 		int dropped = 0;
 		for (int i = 0; i < run->num_frames; ++i) {
 			const int live = seq->imgparam[i].incl ? 1 : 0;
@@ -1608,8 +1614,11 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * the background blend even though they're skipped from the AP buffers. */
 	std::vector<int> sorted_idx;
 	sorted_idx.reserve(run->num_frames);
+	/* run->included is optional (it is null-checked at the inclusion-refresh
+	 * step above); a NULL pointer means no per-frame inclusion info, i.e. all
+	 * frames participate. */
 	for (int i = 0; i < run->num_frames; ++i)
-		if (run->included[i]) sorted_idx.push_back(i);
+		if (!run->included || run->included[i]) sorted_idx.push_back(i);
 	std::sort(sorted_idx.begin(), sorted_idx.end(),
 	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
 
@@ -2169,6 +2178,7 @@ extern "C" mpp_status_t mpp_ap_replace(mpp_run_t *run, const mpp_config_t *cfg) 
 	}
 	mpp_ap_free(run->aps);
 	run->aps = new_aps;
+	new_aps->user_edited = 0;   /* fresh uniform grid — matches cfg again */
 	if (run->cfg) *run->cfg = *cfg;
 	/* Per-AP qualities are now stale (different AP set). Clear so
 	 * register_mpp can detect at Stage B time and refuse / recompute. */
@@ -2183,6 +2193,7 @@ extern "C" void mpp_ap_clear_all(mpp_run_t *run) {
 		std::free(run->aps->records);
 		run->aps->records = nullptr;
 		run->aps->count = 0;
+		run->aps->user_edited = 1;   /* manual edit — don't auto-regenerate */
 	}
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
@@ -2214,6 +2225,16 @@ static void fill_ap_bounds(mpp_ap_record_t *r, int x, int y,
 	                  mpp_cfg_half_patch_width(cfg), frame_rows, frame_cols);
 }
 
+/* Current half-box of an AP, recovered as the largest centre-to-edge
+ * distance — the box is clamped at the frame border for edge APs, so the
+ * unclamped side gives the true value. Boxes produced by mpp_ap_set_half_box
+ * are symmetric (the new half-box is capped below the border), so this is
+ * exact for any AP the editor has touched. */
+static int ap_current_half_box(const mpp_ap_record_t *r) {
+	return std::max(std::max(r->x - r->box_x_low, r->box_x_high - r->x),
+	                std::max(r->y - r->box_y_low, r->box_y_high - r->y));
+}
+
 extern "C" mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y) {
 	if (!run || !run->cfg) return MPP_EINVAL;
 	if (!run->aps) {
@@ -2230,6 +2251,7 @@ extern "C" mpp_status_t mpp_ap_add(mpp_run_t *run, int x, int y) {
 	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
 	r->structure = 1.0;   /* user-added APs bypass the structure threshold */
 	run->aps->count = new_count;
+	run->aps->user_edited = 1;
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;
@@ -2243,6 +2265,7 @@ extern "C" mpp_status_t mpp_ap_remove(mpp_run_t *run, int i) {
 		             (size_t)(last - i) * sizeof(mpp_ap_record_t));
 	}
 	run->aps->count = last;
+	run->aps->user_edited = 1;
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;
@@ -2252,20 +2275,15 @@ extern "C" mpp_status_t mpp_ap_move(mpp_run_t *run, int i, int x, int y) {
 	if (!run || !run->aps || !run->cfg || i < 0 || i >= run->aps->count)
 		return MPP_EINVAL;
 	mpp_ap_record_t *r = &run->aps->records[i];
-	fill_ap_bounds(r, x, y, run->cfg, run->frame_rows, run->frame_cols);
+	/* Preserve the AP's own box size across a move — the user may have
+	 * resized it independently of the config half-box; a drag only relocates
+	 * the centre, it must not snap the box back to the config default. */
+	const int hb = ap_current_half_box(r);
+	fill_ap_bounds_hb(r, x, y, hb, (hb * 3) / 2, run->frame_rows, run->frame_cols);
+	run->aps->user_edited = 1;
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;
-}
-
-/* Current half-box of an AP, recovered as the largest centre-to-edge
- * distance — the box is clamped at the frame border for edge APs, so the
- * unclamped side gives the true value. Boxes produced by mpp_ap_set_half_box
- * are symmetric (the new half-box is capped below the border), so this is
- * exact for any AP the editor has touched. */
-static int ap_current_half_box(const mpp_ap_record_t *r) {
-	return std::max(std::max(r->x - r->box_x_low, r->box_x_high - r->x),
-	                std::max(r->y - r->box_y_low, r->box_y_high - r->y));
 }
 
 extern "C" int mpp_ap_get_half_box(const mpp_run_t *run, int i) {
@@ -2296,6 +2314,7 @@ extern "C" mpp_status_t mpp_ap_set_half_box(mpp_run_t *run, int i, int hb) {
 	if (new_hb > max_hb) new_hb = max_hb;
 	if (new_hb == ap_current_half_box(r)) return MPP_OK;   /* no change */
 	fill_ap_bounds_hb(r, x, y, new_hb, (new_hb * 3) / 2, rows, cols);
+	run->aps->user_edited = 1;
 	std::free(run->best_frame_indices);
 	run->best_frame_indices = nullptr;
 	return MPP_OK;
@@ -2358,6 +2377,7 @@ extern "C" mpp_aps_t *mpp_aps_snapshot(const mpp_aps_t *src) {
 	out->count            = src->count;
 	out->dropped_dim      = src->dropped_dim;
 	out->dropped_structure = src->dropped_structure;
+	out->user_edited      = src->user_edited;
 	if (src->count > 0 && src->records) {
 		const size_t bytes = (size_t) src->count * sizeof(mpp_ap_record_t);
 		out->records = (mpp_ap_record_t *) std::malloc(bytes);
@@ -2544,8 +2564,17 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	 * manual AP-editor edits, which is the expected outcome of a global
 	 * placement change. A fresh Analyze run has run->cfg == cfg, so this is a
 	 * no-op there; it only fires for a reused cache or a sidecar-loaded run
-	 * whose baked settings differ from the current widgets. */
-	if (run->cfg && ap_placement_cfg_differs(run->cfg, &cfg)) {
+	 * whose baked settings differ from the current widgets.
+	 *
+	 * Exception: once the user has manually edited the AP grid in the editor
+	 * (run->aps->user_edited), the hand-built grid — which may deliberately
+	 * mix AP sizes — takes precedence and is never auto-regenerated. The
+	 * editor's AP-size spinner shares its adjustment with this sub-panel, so
+	 * adding larger APs necessarily moves the spinner; without this guard
+	 * Register would wipe the edited grid back to a uniform grid at that
+	 * size. The editor's Auto-place button is the explicit way to rebuild. */
+	if (run->cfg && ap_placement_cfg_differs(run->cfg, &cfg)
+	    && !(run->aps && run->aps->user_edited)) {
 		siril_log_message(_("mpp: alignment-point settings changed since "
 		                    "analysis — regenerating the AP grid (any manual "
 		                    "AP edits are discarded)\n"));

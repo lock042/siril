@@ -72,13 +72,11 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	int channel = 1;
 	int nb_stars = 0;
 
-	g_rw_lock_reader_lock(&com.stars_lock);
-	nb_stars = starcount(com.stars);
-	if (nb_stars >= 1) {
-		stars = com.stars;
-		stars_needs_freeing = FALSE;
-	}
-	g_rw_lock_reader_unlock(&com.stars_lock);
+	// Private, reader-locked copy of com.stars so the starmask loop below can
+	// run off the main thread without racing a concurrent free/replace.
+	stars = snapshot_com_stars(&nb_stars);
+	if (stars)
+		stars_needs_freeing = TRUE;
 
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
@@ -86,6 +84,11 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 
 	// Do we have stars from Dynamic PSF or not?
 	if (nb_stars < 1) {
+		// snapshot_com_stars() can return a non-NULL (but empty) array if the
+		// first duplicate_psf failed; free it before peaker() overwrites stars.
+		// (stars / stars_needs_freeing are unconditionally reassigned just below.)
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
 		image *input_image = NULL;
 		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
@@ -99,11 +102,15 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 
 	if (starcount(stars) < 1) {
 		siril_log_error(_("No stars detected in the image.\n"));
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
 		return -1;
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
 	if (new_fit_image(star_mask, dimx, dimy, 1, DATA_USHORT)) {
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
 		return -1;
 	}
 

@@ -3,6 +3,26 @@
 <interface>
   <!-- interface-name siril_stacking.ui -->
   <requires lib="gtk" version="4.0"/>
+  <!-- Shared factory: sizes the image-rejection metric dropdowns to their widest
+       entry ("weighted FWHM") from creation so they don't grow when selected. -->
+  <object class="GtkBuilderListItemFactory" id="filter_metric_factory">
+    <property name="bytes"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtkListItem">
+    <property name="child">
+      <object class="GtkLabel">
+        <property name="xalign">0</property>
+        <property name="width-chars">14</property>
+        <binding name="label">
+          <lookup name="string" type="GtkStringObject">
+            <lookup name="item">GtkListItem</lookup>
+          </lookup>
+        </binding>
+      </object>
+    </property>
+  </template>
+</interface>]]></property>
+  </object>
   <object class="GtkAdjustment" id="adj_mpp_bg_blend">
     <property name="upper">1</property>
     <property name="value">0.20</property>
@@ -719,10 +739,16 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                               </object>
                             </child>
                             <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter1">
+                              <object class="GtkGrid">
+                                    <property name="column-spacing">5</property>
+                                    <property name="row-spacing">5</property>
+                                    <child>
+                                      <object class="GtkDropDown" id="combofilter1">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -760,6 +786,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin1">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="adjustment">adjustment1</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -780,6 +810,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type1">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -796,11 +830,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter1">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_add1">
+                                    <layout>
+                                      <property name="column">4</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -813,13 +855,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                     </child>
                                   </object>
                                 </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter2">
+                              <child>
+                                      <object class="GtkDropDown" id="combofilter2">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -858,6 +900,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin2">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="adjustment">adjustment2</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -879,6 +925,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type2">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -895,11 +945,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter2">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_add2">
+                                    <layout>
+                                      <property name="column">4</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -915,6 +973,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_rem2">
+                                    <layout>
+                                      <property name="column">5</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -928,13 +990,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                     </child>
                                   </object>
                                 </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter3">
+                              <child>
+                                      <object class="GtkDropDown" id="combofilter3">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -973,6 +1035,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin3">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="adjustment">adjustment3</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -994,6 +1060,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type3">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -1010,11 +1080,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter3">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_rem3">
+                                    <layout>
+                                      <property name="column">5</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>

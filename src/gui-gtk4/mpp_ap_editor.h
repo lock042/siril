@@ -7,6 +7,11 @@
  * handlers in mouse_action_functions.c to gate edit-mode behaviour. */
 gboolean mpp_ap_editor_is_open(void);
 
+/* Half-box width (px) set in the editor's AP-size spinner — the size a
+ * newly-added AP takes. -1 if the spinner isn't available yet (caller then
+ * falls back to the run config default). */
+int mpp_ap_editor_half_box(void);
+
 /* Index of the AP currently being dragged; -1 when not dragging.
  * Mouse handlers set this on click, motion reads, release callback clears. */
 int  mpp_ap_editor_get_drag_idx(void);

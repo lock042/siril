@@ -3340,6 +3340,8 @@ int process_seq_ghs(int nb, int stretchtype) {
 		free(params);
 		free(seqdata->seqEntry);
 		free(seqdata);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	if (!seqdata->seqEntry)
@@ -15574,6 +15576,8 @@ int process_eqcrop(int nb) {
         arg_idx += 2;
         if (!coords1 || !coords2) {
                 siril_log_message(_("Could not parse the coordinates\n"));
+                if (coords1) siril_world_cs_unref(coords1);
+                if (coords2) siril_world_cs_unref(coords2);
                 return CMD_ARG_ERROR;
         }
 

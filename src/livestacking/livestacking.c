@@ -205,9 +205,11 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			if (!wait_for_file_to_be_written(filename)) {
 				fits dest = { 0 };
 				gchar *new = replace_ext(filename, com.pref.ext);
-				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit);
-				savefits(new, &dest);
+				if (any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit) ||
+						savefits(new, &dest))
+					siril_log_message(_("Failed to convert %s for live stacking\n"), filename);
 				clearfits(&dest);
+				g_free(new);
 			}
 		}  else {
 			siril_log_message(_("File not supported for live stacking: %s\n"), filename);

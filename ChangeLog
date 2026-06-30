@@ -1,6 +1,9 @@
 siril-1.5.0
 --/--/--
 
+**Platform update**
+* Drop support for Intel architecture on macOS. (!1054)
+
 **Fixes**
 * Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
 
@@ -34,6 +37,7 @@ siril-1.5.0
 * Removed autotools build support (!1056)
 * Added multipoint registration (for planetary, lunar and solar use) (!1034)
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
+* Added static autostretch mode to keep display stretch parameters fixed across images
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit

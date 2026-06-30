@@ -221,12 +221,18 @@ static GSList *find_catalogue_by_index(siril_cat_index cat_index) {
 }
 
 void set_annotation_visibility(siril_cat_index cat_index, gboolean visible) {
-	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_TEMP)
+	// com.pref.gui.catalog[] only holds the persisted catalogues MESSIER..SSO_VECTORS
+	// (indices 0..10). CAT_AN_USER_TEMP would map to index 11, out of bounds.
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_SSO_VECTORS)
 		return;
 	com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET] = visible;
 }
 
 gboolean get_annotation_visibility(siril_cat_index cat_index) {
+	// Temporary/user catalogues outside the persisted set (e.g. CAT_AN_USER_TEMP)
+	// are always shown; avoid the out-of-bounds array access for them.
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_SSO_VECTORS)
+		return TRUE;
 	return com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET];
 }
 
