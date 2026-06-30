@@ -372,6 +372,42 @@ appimage:
   allow_failure: true
 
 ################################################################################
+# Headless CLI Docker image
+#
+# Builds a small, GTK-free `siril-cli` image (meson -Dgtk=false, all optional
+# deps, no criterion), smoke-tests that it runs headlessly, and saves it as a
+# downloadable CI artifact (siril-cli-image.tar.gz).  Nothing is pushed to a
+# registry: load it locally with `docker load -i siril-cli-image.tar.gz`.  For
+# a formal release the saved image is pushed to Docker Hub (or elsewhere) by
+# hand.  Uses docker-in-docker, like the build-paper job below.
+docker-cli-image:
+  stage: packaging
+  image: docker:latest
+  services:
+    - docker:dind
+  cache: {}
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - when: manual
+      allow_failure: true
+  script:
+    - docker build -f build/docker/Dockerfile -t "siril-cli:$CI_COMMIT_REF_SLUG" .
+    # Smoke test: confirm it runs headlessly and executes a script from stdin.
+    - docker run --rm "siril-cli:$CI_COMMIT_REF_SLUG" --version
+    - printf 'requires 1.0.0\n' | docker run -i --rm "siril-cli:$CI_COMMIT_REF_SLUG" -s -
+    # Save the (only-on-success) image as a compressed, downloadable artifact.
+    - docker save "siril-cli:$CI_COMMIT_REF_SLUG" | gzip > siril-cli-image.tar.gz
+  artifacts:
+    name: "siril-cli-image-$CI_COMMIT_REF_SLUG"
+    paths:
+      - siril-cli-image.tar.gz
+    expire_in: 1 week
+  needs: []
+
+################################################################################
 # Analysis
 
 cppcheck:
