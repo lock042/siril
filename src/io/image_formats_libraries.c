@@ -1632,7 +1632,7 @@ int readpng(const char *name, fits* fit) {
 
 	const int width = png_get_image_width(png, info);
 	const int height = png_get_image_height(png, info);
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	png_byte color_type = png_get_color_type(png, info);
 	png_byte bit_depth = png_get_bit_depth(png, info);
 
@@ -2657,7 +2657,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int width = heif_image_get_width(img, heif_channel_interleaved);
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	gboolean mono = TRUE;
 	WORD *data = NULL;
 	unsigned int nchannels = has_alpha ? 4 : 3;
