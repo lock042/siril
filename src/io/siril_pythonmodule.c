@@ -1530,9 +1530,13 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
-	// Unpack the FITS header string
-	char *header = (char*) shm_ptr;
-	if (fits_parse_header_str(gfit, header)) {
+	// Unpack the FITS header string. The shared memory is not guaranteed to
+	// contain a NUL within info->size bytes, so make a bounded, NUL-terminated
+	// copy rather than scanning shm_ptr directly (which could over-read).
+	char *header = g_strndup((const char*) shm_ptr, info->size);
+	int header_parse_failed = fits_parse_header_str(gfit, header);
+	g_free(header);
+	if (header_parse_failed) {
 		const char* error_msg = _("Error: could not parse FITS header string");
 		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_debug("Error in send_response()\n");
