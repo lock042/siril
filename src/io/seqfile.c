@@ -620,7 +620,7 @@ sequence * readseqfile(const char *name){
 			case 'E': { // External reference: "E path rx ry"
 				char buf0[256];
 				unsigned int ref_rx, ref_ry, active;
-				nb_tokens = sscanf(line + 2, "%s %u %u %u\n",
+				nb_tokens = sscanf(line + 2, "%255s %u %u %u\n",
 							buf0, &active, &ref_rx, &ref_ry);
 				if (nb_tokens != 4) {
 					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
