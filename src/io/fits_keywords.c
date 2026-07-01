@@ -968,8 +968,12 @@ void read_fits_date_obs_header(fits *fit) {
 		char time_obs[FLEN_VALUE] = { 0 };
 		fits_read_key(fit->fptr, TSTRING, "TIME-OBS", &time_obs, NULL, &status);
 		if (!status) {
-			strcat(date_obs, "T");
-			strcat(date_obs, time_obs);
+			/* DATE-OBS and TIME-OBS are each up to FLEN_VALUE-1 chars, so the
+			 * naive strcat() could overflow the FLEN_VALUE date_obs buffer.
+			 * Build the "<date>T<time>" string with a bounded copy instead. */
+			char combined[2 * FLEN_VALUE];
+			g_snprintf(combined, sizeof(combined), "%sT%s", date_obs, time_obs);
+			g_strlcpy(date_obs, combined, sizeof(date_obs));
 		}
 	}
 
