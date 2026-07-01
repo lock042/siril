@@ -811,17 +811,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32 image_rx = gfit->rx;
 					guint32 image_ry = gfit->ry;
 					g_rw_lock_reader_unlock(&gfit->rwlock);
-					if (selection.x < 0 || selection.x + selection.w > image_rx ||
-								selection.y < 0 || selection.y + selection.h > image_ry) {
+					/* selection fields are unsigned; compare with subtraction
+					 * (no addition) to avoid uint32 overflow, and only commit
+					 * the selection when it is fully inside the image. */
+					if (selection.x >= image_rx || selection.y >= image_ry ||
+								selection.w > image_rx - selection.x ||
+								selection.h > image_ry - selection.y) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
 							siril_log_debug("Error in send_response\n");
+					} else {
+						memcpy(&com.selection, &selection, sizeof(rectangle));
+						if (!com.headless)
+							gui_iface.new_selection_zone();
+						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
-					memcpy(&com.selection, &selection, sizeof(rectangle));
-					if (!com.headless)
-						gui_iface.new_selection_zone();
-					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
 				// Handle error retrieving dimensions
