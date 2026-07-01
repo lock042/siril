@@ -45,13 +45,19 @@ void test_streak_detection_gps() {
 	gchar *result_file = g_strdup_printf("%s.streaks", result_basename);
 	g_unlink(result_file);
 
-	detect_streaks_async(&fit, 200, FALSE, 0, result_basename);
+	cr_assert(detect_streaks_async(&fit, 200, FALSE, 0, result_basename) == 0);
 
-	waiting_for_thread();
+	claim_thread_for_python(); // a waiting function, with side effects
 	siril_log_debug("wait over\n");
 	cr_assert(g_file_test(result_file, G_FILE_TEST_EXISTS));
 
-	// TODO read content or return the date struct from the processing function
+	gchar *buf = NULL;
+	gsize bufsz = 0;
+	cr_assert(g_file_get_contents(result_file, &buf, &bufsz, NULL));
+	gchar *line = g_strstr_len(buf, bufsz, "\n") + 1;
+	//siril_log_debug("obtained line: %s\n", line);
+	//siril_log_debug("expected line: T,0,0,48.012787,289.939718,50.185384,2025-08-04T00:49:39.934000Z,289.902784,50.214291,2025-08-04T00:49:39.422137Z,289.865802,50.243189,2025-08-04T00:49:40.237637Z,289.898707,50.340351,2231,850,2474,1120,-12.413072,0.002356,1,0,26.634783,1\n");
+	cr_assert(!g_strcmp0(line, "T,0,0,48.012787,289.939718,50.185384,2025-08-04T00:49:39.934000Z,289.902784,50.214291,2025-08-04T00:49:39.422137Z,289.865802,50.243189,2025-08-04T00:49:40.237637Z,289.898707,50.340351,2231,850,2474,1120,-12.413072,0.002356,1,0,26.634783,1\n"));
 }
 
 TestSuite(streaks, .init = init_download);

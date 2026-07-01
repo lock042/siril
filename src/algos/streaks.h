@@ -26,9 +26,9 @@ struct streak_result {
 };
 
 /* the final results, with equatorial coordinates for each frame and target */
-struct result_set {
+struct streak_result_set {
 	int size;	// the allocation size of data
-	GSList **data;
+	GSList **data;	// list of streak_result
 	gboolean has_data;	// some was added in the set
 };
 
@@ -51,15 +51,13 @@ struct streak_detection_conf {
 	gboolean use_idle;	// not a sequence operation, GUI operation
 	int nb_threads;
 
-	struct result_set *results;
 	float fwhm;
 };
 
 gpointer streak_detection_worker(gpointer ptr);
 
-struct result_set *alloc_results(int size);
-void dump_results(struct result_set *set, const char *filename);
-void free_results(struct result_set *set);
+struct streak_result_set *alloc_results(int size);
+//void free_results(struct streak_result_set *set);
 
 void display_streaks(struct track *tracks, int nblines);
 

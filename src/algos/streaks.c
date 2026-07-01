@@ -76,7 +76,7 @@ static void ssr_internal(fits *fit, int layer, double median, double bgnoise, do
 		}
 		free(rows);
 	}
-	siril_log_message("Erased %d stars (%zd pixels written).\n", nb_stars, pixels_written);
+	siril_log_message(_("Erased %d stars (%zd pixels written).\n"), nb_stars, pixels_written);
 }
 
 void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf) {
@@ -110,8 +110,8 @@ void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_
 }
 
 // size is the number of frames in the sequence. Indices between 0 and size-1 are assumed.
-struct result_set *alloc_results(int size) {
-	struct result_set *set = malloc(sizeof(struct result_set));
+struct streak_result_set *alloc_results(int size) {
+	struct streak_result_set *set = malloc(sizeof(struct streak_result_set));
 	if (!set) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -127,19 +127,20 @@ struct result_set *alloc_results(int size) {
 	return set;
 }
 
-void free_results(struct result_set *set) {
+/* already done in dump_results
+void free_results(struct streak_result_set *set) {
 	for (int i = 0; i < set->size; i++) {
 		g_slist_free_full(set->data[i], free);
 	}
 	free(set->data);
 	free(set);
-}
+}*/
 
 /* do we want to store the ends of the streaks or the middle?
  * in most cases the middle is more accurate and does not need to know the direction of travel.
  * But when the dataset is very small, it can be useful to also have the ends.
  */
-static void add_result_middle_and_ends(struct result_set *set, int image_idx, int filenum,
+static void add_result_middle_and_ends(struct streak_result_set *set, int image_idx, int filenum,
 		int target_idx, float angle, double start_ra, double start_dec, GDateTime *start_date,
 		double middle_ra, double middle_dec, GDateTime *middle_date, double end_ra, double
 		end_dec, GDateTime *end_date, double image_center_ra, double image_center_dec,
@@ -182,27 +183,16 @@ static void add_result_middle_and_ends(struct result_set *set, int image_idx, in
 	set->has_data = TRUE;
 }
 
-/*static void add_result_middle(struct result_set *set, int image_idx, int filenum,
-		int target_idx, float angle, double middle_ra,
-		double middle_dec, GDateTime *middle_date,
-		double image_center_ra, double image_center_dec,
-		int streak_1x, int streak_1y, int streak_2x, int streak_2y,
-		gboolean date_is_gps) {
-	add_result_middle_and_ends(set, image_idx, filenum, target_idx, angle,
-			0.0, 0.0, NULL, middle_ra, middle_dec, middle_date, 0.0, 0.0, NULL,
-			image_center_ra, image_center_dec,
-			streak_1x, streak_1y, streak_2x, streak_2y,
-			99.9f, 0.0f, FALSE, FALSE, 0.0f, date_is_gps);
-}*/
-
-// also frees the result_set
-void dump_results(struct result_set *set, const char *filename) {
+// also frees the streak_result_set
+static int dump_results(struct streak_result_set *set, const char *filename) {
+	int retval = 0;
 	FILE *fd = fopen(filename, "w");
 	if (!fd) {
 		siril_log_error(_("Could not save the result CSV file %s\n"), filename);
 		fd = stdout;
+		retval = 1;
 	}
-	else siril_log_message("Saving results to %s\n", filename);
+	else siril_log_message(_("Saving results to %s\n"), filename);
 
 	fprintf(fd, "# T,image,target,angle (deg),start_ra (deg),start_dec (deg),start_date,mid_ra (deg),mid_dec (deg),mid_date,end_ra (deg),end_dec (deg),end_date,image center ra (deg),image center dec (deg),streak start x (px),streak start y (px),streak end x (px),streak end y (px),magnitude,mag_error,mag_is_reliable,mag_is_absolute,snr,mid_time is GPS\n");
 	for (int i = 0; i < set->size; i++) {
@@ -266,7 +256,10 @@ void dump_results(struct result_set *set, const char *filename) {
 	free(set->data);
 	free(set);
 	fclose(fd);
+	return retval;
 }
+
+static int save_streak_results_to_file(struct results *lines, int nblines, int image_index, int filenum, fits *fit, gchar *basename);
 
 gpointer streak_detection_worker(gpointer ptr) {
 	struct streak_detection_conf *arg = (struct streak_detection_conf *)ptr;
@@ -283,10 +276,9 @@ gpointer streak_detection_worker(gpointer ptr) {
 		.fwhm = arg->fwhm,
 	};
 
-	siril_log_debug("starting detection\n");
 	struct results *lines = detect_streaks(arg->fit, arg->layer, &conf, arg->nb_threads);
 	if (!lines || lines->nb_tracks == 0) {
-		siril_log_message("No satellite detected for image %d\n", arg->im_idx);
+		siril_log_message(_("No satellite detected for image %d\n"), arg->im_idx);
 		if (arg->use_idle)
 			siril_add_idle(end_generic, NULL);
 		if (arg->free_fit) {
@@ -322,53 +314,75 @@ gpointer streak_detection_worker(gpointer ptr) {
 		gui_iface.update_star_list(stars, FALSE, FALSE);
 	}
 
-	//TODO: check before calling the function that has_wcs(arg->fit)
-	double image_center_ra = arg->fit->keywords.wcsdata.ra, image_center_dec = arg->fit->keywords.wcsdata.dec;
+	save_streak_results_to_file(lines, nblines, arg->im_idx, arg->filenum, arg->fit, arg->filename);
+
+	clear_results(lines);
+	if (arg->use_idle) {
+		/* from using the single-file command in the GUI */
+		siril_add_idle(end_generic, NULL);
+	}
+	if (arg->free_fit) {
+		clearfits(arg->fit);
+		free(arg->fit);
+	}
+	free(arg);
+	return GINT_TO_POINTER(0);
+}
+
+static int save_streak_results_to_file(struct results *lines, int nblines, int image_index, int filenum, fits *fit, gchar *basename) {
+	if (nblines <= 0) return 0;
+	if (!has_wcs(fit)) {
+		siril_log_warning(_("The image was not plate solved, the results will not be saved\n"));
+		return 1;
+	}
+	struct streak_result_set *results = alloc_results(1);
+	double image_center_ra = fit->keywords.wcsdata.ra, image_center_dec = fit->keywords.wcsdata.dec;
+	// transform the streaks to a more easily manipulable result data structure
 	for (int i = 0; i < nblines; i++) {
 		double start_ra, start_dec, end_ra, end_dec, middle_ra, middle_dec;
 		double fx, fy;
-		display_to_siril(lines->tracks[i].start.x, lines->tracks[i].start.y, &fx, &fy, arg->fit->ry);
-		pix2wcs(arg->fit, fx, fy, &start_ra, &start_dec);
+		display_to_siril(lines->tracks[i].start.x, lines->tracks[i].start.y, &fx, &fy, fit->ry);
+		pix2wcs(fit, fx, fy, &start_ra, &start_dec);
 
-		display_to_siril(lines->tracks[i].end.x, lines->tracks[i].end.y, &fx, &fy, arg->fit->ry);
-		pix2wcs(arg->fit, fx, fy, &end_ra, &end_dec);
+		display_to_siril(lines->tracks[i].end.x, lines->tracks[i].end.y, &fx, &fy, fit->ry);
+		pix2wcs(fit, fx, fy, &end_ra, &end_dec);
 
 		double middle_x = (lines->tracks[i].start.x + lines->tracks[i].end.x) * 0.5;
 		double middle_y = (lines->tracks[i].start.y + lines->tracks[i].end.y) * 0.5;
-		display_to_siril(middle_x, middle_y, &fx, &fy, arg->fit->ry);
-		pix2wcs(arg->fit, fx, fy, &middle_ra, &middle_dec);
+		display_to_siril(middle_x, middle_y, &fx, &fy, fit->ry);
+		pix2wcs(fit, fx, fy, &middle_ra, &middle_dec);
 		if ((start_ra == 0.0 && start_dec == 0.0) || (middle_ra == 0.0 && middle_dec == 0.0) ||
 				(end_ra == 0.0 && end_dec == 0.0))
 			continue;
 
 		GDateTime *center_date = NULL;	// the one that matters, that has a GPS timestamp is available
 		gboolean date_is_gps = FALSE;
-		if (arg->fit->keywords.gps_data) {
+		if (fit->keywords.gps_data) {
 			// check for rolling shutter QHY GPS camera data
 			int mid_y = round_to_int(middle_y);
 			siril_log_debug("getting GPS timestamp for middle exposure of row %d\n", mid_y);
-			center_date = get_timestamp_for_pixel(arg->fit->keywords.gps_data, EXP_MIDDLE, 0, mid_y);
+			center_date = get_timestamp_for_pixel(fit->keywords.gps_data, EXP_MIDDLE, 0, mid_y);
 			date_is_gps = center_date != NULL;
 		}
 		/* general case: use DATE-OBS + EXPOSURE / 2, compute exposure in any case */
 		double exposure;
-		if (arg->fit->keywords.expstart > 0.0 && arg->fit->keywords.expend > 0.0) {
+		if (fit->keywords.expstart > 0.0 && fit->keywords.expend > 0.0) {
 			// warning: this is precise to 0.1 seconds at best
-			exposure = julian_date_difference_sec(arg->fit->keywords.expend, arg->fit->keywords.expstart);
+			exposure = julian_date_difference_sec(fit->keywords.expend, fit->keywords.expstart);
 			siril_log_debug("using EXPSTART and EXPEND %f as exposure\n", exposure);
 		}
 		else {
-			exposure = arg->fit->keywords.exposure;
+			exposure = fit->keywords.exposure;
 			if (!date_is_gps)
-				date_is_gps = arg->fit->keywords.date_and_exp_from_gps;
+				date_is_gps = fit->keywords.date_and_exp_from_gps;
 		}
 		if (!center_date)
-			center_date = g_date_time_add_seconds(arg->fit->keywords.date_obs, exposure * 0.5);
+			center_date = g_date_time_add_seconds(fit->keywords.date_obs, exposure * 0.5);
 
-		GDateTime *start_date = g_date_time_ref(arg->fit->keywords.date_obs);
-		GDateTime *end_date = g_date_time_add_seconds(arg->fit->keywords.date_obs, exposure);
+		GDateTime *start_date = g_date_time_ref(fit->keywords.date_obs);
+		GDateTime *end_date = g_date_time_add_seconds(fit->keywords.date_obs, exposure);
 
-		add_result_middle_and_ends(arg->results, arg->im_idx, arg->filenum, i,
+		add_result_middle_and_ends(results, image_index, filenum, i,
 				lines->tracks[i].angle, start_ra, start_dec, start_date,
 				middle_ra, middle_dec, center_date, end_ra, end_dec, end_date,
 				image_center_ra, image_center_dec,
@@ -379,22 +393,10 @@ gpointer streak_detection_worker(gpointer ptr) {
 				lines->tracks[i].snr, date_is_gps);
 	} // end of streak loop
 
-	clear_results(lines);
-	if (arg->use_idle) {
-		/* from using the single-file command in the GUI */
-		if (arg->results->has_data) {
-			gchar *filename = replace_ext(arg->filename, ".streaks");
-			dump_results(arg->results, filename);
-			g_free(filename);
-		}
-		siril_add_idle(end_generic, NULL);
-	}
-	if (arg->free_fit) {
-		clearfits(arg->fit);
-		free(arg->fit);
-	}
-	free(arg);
-	return GINT_TO_POINTER(0);
+	gchar *filename = replace_ext(basename, ".streaks");
+	int retval = dump_results(results, filename);
+	g_free(filename);
+	return retval;
 }
 
 void display_tracks(struct track *tracks, int nblines) {
@@ -459,10 +461,9 @@ int detect_streaks_async(fits *image, int length, gboolean bright, int image_ind
 	arg->minimum_segment_length = length / 2;
 	arg->bright_target = bright;
 	arg->display_streaks = !com.script;
-	arg->use_idle = TRUE;
+	arg->use_idle = TRUE; // for single image async
 	arg->nb_threads = com.max_thread;
-	arg->results = alloc_results(1);
 	arg->fwhm = fwhm;
-	siril_log_debug("running detection\n");
 	return !start_in_new_thread(streak_detection_worker, arg);
+	// TODO can we return the data struct from the processing function?
 }
