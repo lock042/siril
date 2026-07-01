@@ -1632,6 +1632,12 @@ int readpng(const char *name, fits* fit) {
 
 	const int width = png_get_image_width(png, info);
 	const int height = png_get_image_height(png, info);
+	if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_error(_("PNG image has invalid dimensions (%d x %d)\n"), width, height);
+		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
+		return OPEN_IMAGE_ERROR;
+	}
 	size_t npixels = (size_t)width * height;
 	png_byte color_type = png_get_color_type(png, info);
 	png_byte bit_depth = png_get_bit_depth(png, info);
@@ -1667,8 +1673,25 @@ int readpng(const char *name, fits* fit) {
 	png_read_update_info(png, info);
 
 	png_bytep *row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
+	if (!row_pointers) {
+		PRINT_ALLOC_ERR;
+		free(data);
+		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
+		return OPEN_IMAGE_ERROR;
+	}
 	for (int y = 0; y < height; y++) {
 		row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png, info));
+		if (!row_pointers[y]) {
+			PRINT_ALLOC_ERR;
+			for (int k = 0; k < y; k++)
+				free(row_pointers[k]);
+			free(row_pointers);
+			free(data);
+			fclose(f);
+			png_destroy_read_struct(&png, &info, &end_info);
+			return OPEN_IMAGE_ERROR;
+		}
 	}
 
 	cmsUInt8Number *embed = NULL;
