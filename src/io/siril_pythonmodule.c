@@ -339,8 +339,22 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
-	if (region.h > 0 && region.w > 0)
-		region.y = fit->ry - region.y - region.h; // Flip vertically 
+	/* The region is supplied by the (possibly untrusted) script. Validate it
+	 * against the image bounds before it is used to compute memcpy offsets,
+	 * otherwise a crafted x/y/w/h reads arbitrary heap into shared memory that
+	 * the script can read back. Comparisons use subtraction to avoid int
+	 * overflow. */
+	if (region.w <= 0 || region.h <= 0 ||
+			region.x < 0 || region.y < 0 ||
+			region.w > (int)fit->rx || region.h > (int)fit->ry ||
+			region.x > (int)fit->rx - region.w ||
+			region.y > (int)fit->ry - region.h) {
+		const char* error_msg = _("Failed to retrieve pixel data - region exceeds image bounds");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return NULL;
+	}
+	region.y = fit->ry - region.y - region.h; // Flip vertically
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
