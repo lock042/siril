@@ -2745,25 +2745,15 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	if (needs_install) {
 		siril_log_message(_("Installing / updating python module in the background. This may take a few seconds...\n"));
 
-		// ATOMIC INSTALLATION: Create temporary installation directory
-		gchar *temp_install_path = g_strdup_printf("%s.tmp.%d", user_module_path, getpid());
-
-		// Ensure temp directory doesn't exist from a previous failed attempt
-		if (g_file_test(temp_install_path, G_FILE_TEST_EXISTS)) {
-			GError *cleanup_error = NULL;
-			if (!delete_directory(temp_install_path, &cleanup_error)) {
-				siril_log_debug("Warning: failed to clean up existing temp directory: %s\n",
-								cleanup_error ? cleanup_error->message : "unknown error");
-				g_clear_error(&cleanup_error);
-			}
-		}
-
-		// Create temporary directory
-		int mkdir_result = siril_mkdir_with_parents(temp_install_path, 0755);
-		if (mkdir_result != 0) {
-		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
-					"Failed to create temporary directory %s: %s",
-					temp_install_path, g_strerror(errno));
+		// ATOMIC INSTALLATION: Create a uniquely-named temporary installation
+		// directory. g_mkdtemp() creates it atomically with a random suffix and
+		// 0700 permissions, avoiding the predictable "<path>.tmp.<pid>" name and
+		// its check-then-create race with a pre-existing/symlinked directory.
+		gchar *temp_install_path = g_strdup_printf("%s.tmp.XXXXXX", user_module_path);
+		if (!g_mkdtemp(temp_install_path)) {
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+						"Failed to create temporary directory %s: %s",
+						temp_install_path, g_strerror(errno));
 			g_free(temp_install_path);
 			g_free(python_path);
 			return FALSE;
