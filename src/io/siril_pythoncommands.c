@@ -2574,7 +2574,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			memcpy(&count, payload, sizeof(uint32_t));
 			count = GUINT32_FROM_BE(count);
 
-			if (payload_length != 4 + (4 * count) + 4) {
+			/* Compute the expected length in 64-bit to avoid a 32-bit overflow
+			 * of (4 * count), which would let a tiny payload pass validation and
+			 * then drive the read loop far past the received buffer. */
+			if ((uint64_t)payload_length != 8ULL + 4ULL * (uint64_t)count) {
 				const char* error_msg = _("Incorrect payload length: count mismatch");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
