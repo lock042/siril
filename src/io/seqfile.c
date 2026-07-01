@@ -241,13 +241,13 @@ sequence * readseqfile(const char *name){
 				break;
 			case 'D': // Distortion data - from version 5 onwards
 				current_layer = line[1] - '0';
-				if (current_layer < 0 || current_layer > seq->nb_layers) {
+				if (current_layer < 0 || current_layer >= seq->nb_layers) {
 					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
 					goto error;
 				}
 				int index;
 				char buf0[256], buf1[256], buf2[256];
-				nb_tokens = sscanf(line + 3, "%d %s %s %s\n",
+				nb_tokens = sscanf(line + 3, "%d %255s %255s %255s\n",
 							&index,
 							buf0, buf1, buf2);
 				if (nb_tokens < 1 || nb_tokens > 4) {
