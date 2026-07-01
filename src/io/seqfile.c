@@ -193,6 +193,10 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file format error, missing S line\n");
 					goto error;
 				}
+				if (i >= seq->number) {
+					fprintf(stderr, "readseqfile: sequence file has more image lines than declared\n");
+					goto error;
+				}
 
 				if (version <= 3) {
 					allocate_stats(&stats);
