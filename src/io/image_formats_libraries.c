@@ -96,7 +96,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -179,7 +179,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -262,7 +262,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -340,7 +340,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	int retval = nsamples;
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -436,6 +436,16 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
+	/* Reject absurd dimensions before they are used to size allocations.
+	 * libtiff does not cap width*height, and the per-reader npixels product
+	 * would otherwise overflow, leading to an undersized buffer and a heap
+	 * overflow while copying strips. */
+	if (width == 0 || height == 0 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_error(_("TIFF image has invalid dimensions (%u x %u)\n"), width, height);
+		TIFFClose(tif);
+		return OPEN_IMAGE_ERROR;
+	}
+
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
 	int year = 1, month = 1, day = 1, h = 0, m = 0, s = 0;
@@ -470,7 +480,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		description = g_strdup(desc);
 	}
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 
 	switch(nbits){
 		case 8:
