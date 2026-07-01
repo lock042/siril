@@ -1425,6 +1425,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_plot_request(conn, info);
 			}
@@ -1438,6 +1439,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				info->data_type = GUINT32_FROM_BE(info->data_type);
 				info->channels = GUINT32_FROM_BE(info->channels);
@@ -2666,6 +2668,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
@@ -2682,6 +2685,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_add_user_polygon_request(conn, info);
 			}
@@ -3183,6 +3187,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
@@ -3549,6 +3554,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
@@ -3618,6 +3624,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_mask_update_polygon_request(conn, info);
 			}

@@ -581,6 +581,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
+	info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 	info->width = GUINT32_FROM_BE(info->width);
 	info->height = GUINT32_FROM_BE(info->height);
 	info->channels = GUINT32_FROM_BE(info->channels);
@@ -948,6 +949,9 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	}
 
 	save_image_info_t* info = (save_image_info_t*)payload;
+	info->image_shm_name[sizeof(info->image_shm_name) - 1] = '\0';
+	info->header_shm_name[sizeof(info->header_shm_name) - 1] = '\0';
+	info->filename[sizeof(info->filename) - 1] = '\0';
 
 	// Convert from network byte order
 	info->width = GUINT32_FROM_BE(info->width);
