@@ -426,30 +426,35 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 #else
 	GString *string_url = NULL;
 	gchar *name = args->name;
+	/* The object name is user/file supplied and gets inserted into query URLs
+	 * (and, for SIMBAD, into an ADQL string literal). Percent-encode it so
+	 * metacharacters (& # ? ' space ...) cannot alter the URL structure, and
+	 * additionally double single quotes for the ADQL case so the name cannot
+	 * break out of the '...' literal. This also lets legitimate names that
+	 * contain quotes/plus/spaces (e.g. "Barnard's Star", "BD+30 3639") work. */
+	gchar *encoded_name = g_uri_escape_string(name, NULL, FALSE);
+	GString *adql = g_string_new(name);
+	g_string_replace(adql, "'", "''", 0);
+	gchar *encoded_adql_name = g_uri_escape_string(adql->str, NULL, FALSE);
+	g_string_free(adql, TRUE);
 	switch(args->server) {
 	case QUERY_SERVER_CDS:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, "/-oI/A?");
-		string_url = g_string_prepend(string_url, CDSSESAME);
+		string_url = g_string_new(CDSSESAME);
+		g_string_append(string_url, "/-oI/A?");
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case QUERY_SERVER_VIZIER:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, "/-oI/A?");
-		string_url = g_string_prepend(string_url, VIZIERSESAME);
+		string_url = g_string_new(VIZIERSESAME);
+		g_string_append(string_url, "/-oI/A?");
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case QUERY_SERVER_SIMBAD:
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, SIMBADSESAME);
-		string_url = g_string_append(string_url, "';");
+		string_url = g_string_new(SIMBADSESAME);
+		g_string_append(string_url, encoded_adql_name);
+		g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
 	case QUERY_SERVER_EPHEMCC:
@@ -457,10 +462,12 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		if (!args->fit->keywords.date_obs) {
 			siril_log_error(_("This command only works on images that have observation date information\n"));
 			g_string_free(string_url, TRUE);
+			g_free(encoded_name);
+			g_free(encoded_adql_name);
 			return NULL;
 		}
 		string_url = g_string_new(EPHEMCC);
-		g_string_append_printf(string_url, "&-name=%s:%s", args->prefix, name);
+		g_string_append_printf(string_url, "&-name=%s:%s", args->prefix, encoded_name);
 		gchar *formatted_date = date_time_to_FITS_date(args->fit->keywords.date_obs);
 		g_string_append_printf(string_url, "&-ep=%s", formatted_date);
 		gchar *formatted_site = retrieve_site_coord(args->fit);
@@ -479,13 +486,13 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		break;
 	case QUERY_SERVER_SIMBAD_PHOTO:
 		// SIMBAD request to get the magnitudes (BVRIJ) in addition to coordinates for a particular star/object
-		string_url = g_string_new(name);
-		g_string_replace(string_url, "+", "%2B", 0);
-		g_string_replace(string_url, "-", "%2D", 0);
-		string_url = g_string_prepend(string_url, SIMBAD);
+		string_url = g_string_new(SIMBAD);
+		g_string_append(string_url, encoded_name);
 		siril_log_message(_("Searching %s in SIMBAD\n"), name);
 		break;
 	}
+	g_free(encoded_name);
+	g_free(encoded_adql_name);
 
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
