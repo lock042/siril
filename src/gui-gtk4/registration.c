@@ -1180,7 +1180,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	 * SER / FITS / FITSEQ the pattern is read from the file header
 	 * (SER ColorID / BAYERPAT card), so the combo would be confusing. */
 	if (combo_mpp_avi_bayer && label_mpp_avi_bayer) {
+#ifdef HAVE_FFMS2
 		const gboolean is_avi = (com.seq.type == SEQ_AVI);
+#else
+		const gboolean is_avi = FALSE;
+#endif
 		gtk_widget_set_visible(GTK_WIDGET(combo_mpp_avi_bayer), is_avi);
 		gtk_widget_set_visible(label_mpp_avi_bayer, is_avi);
 	}
