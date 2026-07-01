@@ -599,6 +599,14 @@ sequence * readseqfile(const char *name){
 						&(stats->normValue),
 						&(stats->bgnoise));
 				if (nb_tokens == 15) {
+					int max_layer = to_backup ? 3 : seq->nb_layers;
+					if (current_layer >= max_layer || image < 0 || image >= seq->number) {
+						/* stats we cannot store (e.g. CFA opened as mono, or
+						 * a bogus layer/image index): drop the line rather than
+						 * writing out of bounds */
+						free_stats(stats);
+						break;
+					}
 					if (to_backup)
 						add_stats_to_seq_backup(seq, image, current_layer, stats);
 					else add_stats_to_seq(seq, image, current_layer, stats);
