@@ -1135,8 +1135,22 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 int readxisf(const char* name, fits *fit, gboolean force_float) {
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
-	siril_get_xisf_buffer(name, xdata);
-	size_t npixels = xdata->width * xdata->height;
+	/* siril_get_xisf_buffer can fail after partially populating the geometry
+	 * (e.g. data allocation failure), leaving xdata->data NULL while width/
+	 * height are set. Proceeding would dereference a NULL buffer. Also validate
+	 * the dimensions before they are used to size allocations. */
+	if (siril_get_xisf_buffer(name, xdata) || !xdata->data ||
+			xdata->width == 0 || xdata->height == 0 ||
+			xdata->width > MAX_IMAGE_DIM || xdata->height > MAX_IMAGE_DIM ||
+			xdata->channelCount == 0 || xdata->channelCount > 3) {
+		siril_log_error(_("Failed to read XISF file %s\n"), name);
+		free(xdata->fitsHeader);
+		free(xdata->icc_buffer);
+		free(xdata->data);
+		free(xdata);
+		return OPEN_IMAGE_ERROR;
+	}
+	size_t npixels = (size_t)xdata->width * xdata->height;
 
 	clearfits(fit);
 
