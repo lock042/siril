@@ -665,6 +665,12 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file format error: %s\n",line);
 					goto error;
 				}
+				if (current_layer < 0 || current_layer >= seq->nb_layers ||
+						ostat.i < 0 || ostat.j < 0 ||
+						ostat.i >= ostat.j || ostat.j >= seq->number) {
+					fprintf(stderr, "readseqfile: sequence file bad overlap stats: %s\n", line);
+					goto error;
+				}
 				ostat.areaj.w = ostat.areai.w;
 				ostat.areaj.h = ostat.areai.h;
 				int ijth = get_ijth_pair_index(seq->number, ostat.i, ostat.j);
