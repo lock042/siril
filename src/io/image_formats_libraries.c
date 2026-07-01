@@ -1321,7 +1321,7 @@ int readjpg(const char* name, fits *fit){
 	(void) jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
-	size_t npixels = cinfo.output_width * cinfo.output_height;
+	size_t npixels = (size_t)cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -1335,9 +1335,18 @@ int readjpg(const char* name, fits *fit){
 	while (cinfo.output_scanline < cinfo.output_height) {
 		jpeg_read_scanlines(&cinfo, pJpegBuffer, 1);
 		for (int i = 0; i < cinfo.output_width; i++) {
-			*buf[RLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 0];
-			*buf[GLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 1];
-			*buf[BLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 2];
+			/* A grayscale JPEG decodes to output_components == 1; reading
+			 * offsets +1/+2 would over-read the scanline. Replicate the single
+			 * channel into R/G/B instead. */
+			WORD r = pJpegBuffer[0][cinfo.output_components * i + 0];
+			*buf[RLAYER]++ = r;
+			if (cinfo.output_components >= 3) {
+				*buf[GLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 1];
+				*buf[BLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 2];
+			} else {
+				*buf[GLAYER]++ = r;
+				*buf[BLAYER]++ = r;
+			}
 		}
 	}
 	// TODO: this doesn't work despite being the same as the reference djpeg.c
