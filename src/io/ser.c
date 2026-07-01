@@ -1044,7 +1044,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	gint64 offset, frame_size;
 	int retval = SER_OK;
 	WORD *read_buffer;
-	size_t read_size = ser_file->image_width * area->h * ser_file->byte_pixel_depth;
+	size_t read_size = (size_t)ser_file->image_width * area->h * ser_file->byte_pixel_depth;
 	if (layer != -1) read_size *= 3;
 	if (layer != -1 || area->w != ser_file->image_width) {
 		// allocated space is probably not enough to
@@ -1151,7 +1151,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		get_debayer_area(area, &debayer_area, &image_area, &xoffset, &yoffset);
 
 		// allocating a buffer for WORD because it's going to be converted in-place
-		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
+		rawbuf = malloc((size_t)debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
