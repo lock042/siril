@@ -2630,7 +2630,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				chan = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 4 || chan < 0 || chan >= com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
