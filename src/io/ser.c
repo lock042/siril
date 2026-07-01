@@ -339,6 +339,17 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	else
 		ser_file->number_of_planes = 1;
 
+	/* Validate the header dimensions read from the (untrusted) file before
+	 * they are used to size allocations and compute file offsets. Negative or
+	 * absurd values would otherwise wrap size computations. */
+	if (ser_file->image_width <= 0 || ser_file->image_height <= 0 ||
+			ser_file->bit_pixel_depth <= 0 || ser_file->bit_pixel_depth > 16) {
+		siril_log_error(_("Invalid SER header dimensions (%dx%d, %d-bit)\n"),
+				ser_file->image_width, ser_file->image_height,
+				ser_file->bit_pixel_depth);
+		return SER_GENERIC_ERROR;
+	}
+
 	/* In some cases, oacapture, firecapture, ... crash before writing
 	 * frame_count data. Here we try to get the calculated frame count
 	 * which has not been written in the header. Then we fix the SER file
