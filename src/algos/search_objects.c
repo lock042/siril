@@ -70,6 +70,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			if (g_str_has_prefix(token[rank], "Coordinates(ICRS")) {
 				gchar **fields = g_strsplit(token[rank], " ", -1);
 				double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
+				if (g_strv_length(fields) < 8) { g_strfreev(fields); rank++; continue; }
 				// RA
 				sscanf(fields[1], "%lf", &hours);
 				sscanf(fields[2], "%lf", &min);
@@ -93,19 +94,19 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			// Finally, retrieve the B and V magnitudes
 			else if (g_str_has_prefix(token[rank], "Flux B")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[3][0] != '~')
+				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
 					sscanf(fields[3], "%lf", &Bmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Flux V")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[3][0] != '~')
+				if (g_strv_length(fields) > 3 && fields[3][0] != '~')
 					sscanf(fields[3], "%lf", &Vmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Proper motions")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				if (fields[2][0] != '~') {
+				if (g_strv_length(fields) > 3 && fields[2][0] != '~') {
 					sscanf(fields[2], "%lf", &pmra);
 					sscanf(fields[3], "%lf", &pmdec);
 				}
