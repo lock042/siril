@@ -83,6 +83,26 @@ int planet_ephemeris(planet_body_t body, double jd_utc,
  * tests and callers that want the time-scale offset. */
 double planet_ephem_delta_t(double jd_utc);
 
+/* Targets for RA/Dec-only queries (field-rotation correction needs the
+ * target's position but no rotation model). Planet values match
+ * planet_body_t so the two enums can share code. */
+typedef enum {
+	EPHEM_TARGET_JUPITER = 0,
+	EPHEM_TARGET_SATURN  = 1,
+	EPHEM_TARGET_MARS    = 2,
+	EPHEM_TARGET_SUN     = 3,
+	EPHEM_TARGET_MOON    = 4,
+	EPHEM_TARGET_COUNT
+} ephem_target_t;
+
+/* Geocentric astrometric (J2000-frame) RA/Dec of `target` at jd_utc,
+ * degrees. Planets go through the full VSOP + light-time path; the Sun is
+ * the (negated) VSOP Earth vector; the Moon uses a truncated ELP series
+ * (~0.1 deg — ample for the parallactic angle, whose use here tolerates
+ * position errors orders of magnitude larger). Returns 0 on success. */
+int ephem_target_radec(ephem_target_t target, double jd_utc,
+                       double *ra_deg, double *dec_deg);
+
 /* Parallactic angle q of a target at (ra_deg, dec_deg) [J2000, degrees] seen
  * from geodetic latitude obs_lat_deg / EAST longitude obs_lon_east_deg at UTC
  * Julian date jd_utc, in degrees:

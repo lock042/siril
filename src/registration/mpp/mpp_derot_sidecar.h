@@ -42,8 +42,16 @@ extern "C" {
  * radians). A frame's in-image pole angle is pole_angle_epoch + (pole_pa[i] -
  * epoch_pole_pa) — the ephemeris pole PA drifts only slowly across a derotation
  * span. */
+/* `body` value marking a synthesised field-rotation-only plan (no planetary
+ * geometry: B/CM zero everywhere, the per-frame pole angles carry the
+ * in-image field rotation, and the whole map is a rigid similarity). Such
+ * plans are owned by the registration option that writes them — it also
+ * deletes them when the option is turned off. `rot_system` then stores the
+ * ephem_target_t the parallactic angle was computed for (provenance). */
+#define MPP_DEROT_BODY_FIELDROT (-2)
+
 typedef struct mpp_derot {
-	int32_t body;            /* planet_body_t */
+	int32_t body;            /* planet_body_t, or MPP_DEROT_BODY_FIELDROT */
 	int32_t rot_system;      /* rot_system_t: which CM column drives derotation */
 	int32_t ephem_version;   /* ephemeris model version, for provenance */
 	int32_t num_frames;

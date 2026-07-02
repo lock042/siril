@@ -86,6 +86,84 @@ static const double DELTAT[] = {
 	68.50, 68.40                                                          /*2031*/
 };
 
+/* Ecliptic (of-date treated as J2000-frame — fine at our precision) lon/lat
+ * in degrees -> equatorial RA/Dec in degrees. */
+static void ecl_to_radec(double lam_deg, double bet_deg,
+                         double *ra_deg, double *dec_deg) {
+	const double eps = EPS0_DEG * DEG, ce = cos(eps), se = sin(eps);
+	const double l = lam_deg * DEG, b = bet_deg * DEG;
+	const double x = cos(b) * cos(l);
+	const double y = cos(b) * sin(l) * ce - sin(b) * se;
+	const double z = cos(b) * sin(l) * se + sin(b) * ce;
+	*ra_deg = wrap360(atan2(y, x) / DEG);
+	*dec_deg = asin(z) / DEG;
+}
+
+/* Truncated lunar series (Meeus ch. 47, leading terms): geocentric ecliptic
+ * longitude/latitude to ~0.05 deg. The parallactic angle this feeds is
+ * insensitive to position errors well beyond that. */
+static void moon_ecliptic(double jd_tdb, double *lam, double *bet) {
+	const double T = (jd_tdb - 2451545.0) / 36525.0;
+	const double Lp = 218.3164477 + 481267.88123421 * T;   /* mean longitude */
+	const double D  = 297.8501921 + 445267.1114034  * T;   /* mean elongation */
+	const double M  = 357.5291092 + 35999.0502909   * T;   /* sun mean anomaly */
+	const double Mp = 134.9633964 + 477198.8675055  * T;   /* moon mean anomaly */
+	const double F  = 93.2720950  + 483202.0175233  * T;   /* argument of latitude */
+	const double d = D * DEG, m = M * DEG, mp = Mp * DEG, f = F * DEG;
+	*lam = wrap360(Lp
+	    + 6.288774 * sin(mp)
+	    + 1.274027 * sin(2*d - mp)
+	    + 0.658314 * sin(2*d)
+	    + 0.213618 * sin(2*mp)
+	    - 0.185116 * sin(m)
+	    - 0.114332 * sin(2*f)
+	    + 0.058793 * sin(2*d - 2*mp)
+	    + 0.057066 * sin(2*d - m - mp)
+	    + 0.053322 * sin(2*d + mp)
+	    + 0.045758 * sin(2*d - m));
+	*bet = 5.128122 * sin(f)
+	     + 0.280602 * sin(mp + f)
+	     + 0.277693 * sin(mp - f)
+	     + 0.173237 * sin(2*d - f)
+	     + 0.055413 * sin(2*d + f - mp)
+	     + 0.046271 * sin(2*d - f - mp);
+}
+
+int ephem_target_radec(ephem_target_t target, double jd_utc,
+                       double *ra_deg, double *dec_deg) {
+	if (!ra_deg || !dec_deg)
+		return 1;
+	if (target >= EPHEM_TARGET_JUPITER && target <= EPHEM_TARGET_MARS) {
+		planet_geom_t g;
+		if (planet_ephemeris((planet_body_t) target, jd_utc, NAN, NAN, NAN, &g))
+			return 1;
+		*ra_deg = g.ra;
+		*dec_deg = g.dec;
+		return 0;
+	}
+	if (!(jd_utc >= 2378497.0 && jd_utc <= 2524595.0))
+		return 1;
+	const double jd_tdb = jd_utc + planet_ephem_delta_t(jd_utc) / 86400.0;
+	if (target == EPHEM_TARGET_SUN) {
+		/* Geocentric sun = minus the heliocentric Earth (VSOP87A). Light
+		 * time (~8 min) shifts the apparent RA by ~0.007 deg — irrelevant
+		 * to the parallactic angle. */
+		double e[3];
+		vsop_xyz(&VSOP_EARTH, jd_tdb, e);
+		const double lam = wrap360(atan2(-e[1], -e[0]) / DEG);
+		const double bet = asin(-e[2] / sqrt(e[0]*e[0] + e[1]*e[1] + e[2]*e[2])) / DEG;
+		ecl_to_radec(lam, bet, ra_deg, dec_deg);
+		return 0;
+	}
+	if (target == EPHEM_TARGET_MOON) {
+		double lam, bet;
+		moon_ecliptic(jd_tdb, &lam, &bet);
+		ecl_to_radec(lam, bet, ra_deg, dec_deg);
+		return 0;
+	}
+	return 1;
+}
+
 double planet_parallactic_angle(double jd_utc, double ra_deg, double dec_deg,
                                 double obs_lat_deg, double obs_lon_east_deg) {
 	/* Greenwich mean sidereal time (Meeus 12.4), degrees. ~0.1 s accuracy —

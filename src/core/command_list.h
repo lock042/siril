@@ -169,7 +169,8 @@ static command commands[] = {
 	{"register_mpp", 1, "register_mpp seqname [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N]\n"
 					"register_mpp seqname ... [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N]\n"
 					"register_mpp seqname ... [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed]\n"
-					"register_mpp seqname ... [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
+					"register_mpp seqname ... [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]\n"
+				"register_mpp seqname ... [-field-rotation={none|altaz} -target={sun|moon|jupiter|saturn|mars} -obs-lat=D -obs-lon=D]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= | -maxdim= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},

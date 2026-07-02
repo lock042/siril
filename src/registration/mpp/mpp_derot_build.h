@@ -79,6 +79,28 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              double obs_lat, double obs_lon, double obs_elev,
                              mpp_field_rot_t field_rot);
 
+/* Build a field-rotation-only plan (body = MPP_DEROT_BODY_FIELDROT): no
+ * planetary geometry, just the alt-az parallactic-angle drift folded into
+ * the per-frame pole angles, so the warp engine removes the field rotation
+ * of ANY target (Sun, Moon, planets) in its single resample. `target` is
+ * the ephem_target_t whose position drives q. Rotation centre is the frame
+ * centre — the residual translation of rotating about the true tracked
+ * point is absorbed by the global alignment. */
+mpp_derot_t *mpp_derot_build_field_rotation(int target, const double *jd,
+                                            int num_frames,
+                                            int frame_rows, int frame_cols,
+                                            double obs_lat, double obs_lon);
+
+/* Make <seqname>.derot agree with the registration-side field-rotation
+ * option. enable=TRUE: synthesise and write a rotation-only plan (errors if
+ * a real planetary plan already exists — fold field rotation into THAT via
+ * `derotate -field-rotation=altaz` instead, and errors without usable
+ * per-frame timestamps). enable=FALSE: delete a previously synthesised
+ * rotation-only plan (a planetary plan is left untouched). Idempotent. */
+mpp_status_t mpp_derot_sync_field_rotation_plan(sequence *seq, gboolean enable,
+                                                int target,
+                                                double obs_lat, double obs_lon);
+
 /* Rough planet-disk detector. Thresholds the bright region (half-max above a
  * border-estimated sky background) and takes its flux centroid and the minor
  * axis of the brightness distribution; the equatorial radius is recovered from

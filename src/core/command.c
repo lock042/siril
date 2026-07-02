@@ -14736,15 +14736,54 @@ int process_register_mpp(int nb) {
 	mpp_config_defaults(&cfg);
 	cfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seq->bitpix);
 
+	int fr_state = -1;   /* -1 = flag absent, 0 = none, 1 = altaz */
+	int fr_target = EPHEM_TARGET_SUN;
+	double fr_lat = NAN, fr_lon = NAN;
 	gchar *out_path = NULL;  /* unused by register; kept for shared parser */
 	for (int i = 2; i < nb; i++) {
-		mpp_flag_status fs = apply_mpp_flag(word[i], &cfg, &out_path,
+		const char *w = word[i];
+		if (g_str_has_prefix(w, "-field-rotation=")) {
+			const char *v = w + 16;
+			if (!g_ascii_strcasecmp(v, "none")) fr_state = 0;
+			else if (!g_ascii_strcasecmp(v, "altaz")) fr_state = 1;
+			else {
+				siril_log_error(_("register_mpp: -field-rotation must be none or altaz\n"));
+				return CMD_ARG_ERROR;
+			}
+			continue;
+		}
+		if (g_str_has_prefix(w, "-target=")) {
+			const char *v = w + 8;
+			if      (!g_ascii_strcasecmp(v, "sun"))     fr_target = EPHEM_TARGET_SUN;
+			else if (!g_ascii_strcasecmp(v, "moon"))    fr_target = EPHEM_TARGET_MOON;
+			else if (!g_ascii_strcasecmp(v, "jupiter")) fr_target = EPHEM_TARGET_JUPITER;
+			else if (!g_ascii_strcasecmp(v, "saturn"))  fr_target = EPHEM_TARGET_SATURN;
+			else if (!g_ascii_strcasecmp(v, "mars"))    fr_target = EPHEM_TARGET_MARS;
+			else {
+				siril_log_error(_("register_mpp: -target must be sun, moon, "
+				                  "jupiter, saturn or mars\n"));
+				return CMD_ARG_ERROR;
+			}
+			continue;
+		}
+		if (g_str_has_prefix(w, "-obs-lat=")) { fr_lat = g_ascii_strtod(w + 9, NULL); continue; }
+		if (g_str_has_prefix(w, "-obs-lon=")) { fr_lon = g_ascii_strtod(w + 9, NULL); continue; }
+		mpp_flag_status fs = apply_mpp_flag(w, &cfg, &out_path,
 		                                    TRUE, FALSE);
 		if (fs == MPP_FLAG_OK) continue;
 		const char *err = (fs == MPP_FLAG_INVALID_VALUE) ? "invalid value for" : "unknown argument";
 		siril_log_error(_("register_mpp: %s '%s'\n"), err, word[i]);
 		return CMD_ARG_ERROR;
 	}
+
+	/* Universal alt-az field-rotation option: synthesise (or remove) a
+	 * rotation-only derotation plan before registration reads it. Only an
+	 * explicit -field-rotation flag touches the plan state, so plain
+	 * register runs never disturb an existing setup. */
+	if (fr_state >= 0
+	    && mpp_derot_sync_field_rotation_plan(seq, fr_state == 1, fr_target,
+	                                          fr_lat, fr_lon) != MPP_OK)
+		return CMD_ARG_ERROR;
 
 	siril_log_message(_("register_mpp: %d frames, %dx%d, bitdepth=%d\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth);

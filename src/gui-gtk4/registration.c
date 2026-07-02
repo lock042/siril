@@ -39,6 +39,9 @@
 #include "gui-gtk4/registration.h"
 #include "gui-gtk4/sequence_list.h"
 #include "gui-gtk4/stacking.h"
+#include "core/siril_networking.h"
+#include "algos/planet_ephem.h"
+#include "registration/mpp/mpp_derot_build.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -144,6 +147,10 @@ static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_m
 static GtkDropDown *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkDropDown *combo_mpp_align_mode = NULL;
+static GtkCheckButton *check_mpp_altaz = NULL;
+static GtkWidget *box_mpp_altaz_site = NULL;
+static GtkDropDown *drop_mpp_altaz_target = NULL;
+static GtkEntry *entry_mpp_altaz_lat = NULL, *entry_mpp_altaz_lon = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 
@@ -292,6 +299,11 @@ static void registration_init_statics() {
 		combo_mpp_avi_bayer        = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
 		combo_mpp_align_mode       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
+		check_mpp_altaz            = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_mpp_altaz"));
+		box_mpp_altaz_site         = GTK_WIDGET(gtk_builder_get_object(gui.builder, "box_mpp_altaz_site"));
+		drop_mpp_altaz_target      = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "drop_mpp_altaz_target"));
+		entry_mpp_altaz_lat        = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_mpp_altaz_lat"));
+		entry_mpp_altaz_lon        = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_mpp_altaz_lon"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -1397,6 +1409,41 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
 			                                                  : MPP_ALIGN_SURFACE;
 		}
+		/* Universal alt-az field rotation: keep the synthesised rotation-only
+		 * derotation plan in sync with the checkbox before registration reads
+		 * it (a real planetary plan is never touched — enabling on top of one
+		 * is refused with a pointer at `derotate -field-rotation`). */
+		{
+			const gboolean altaz = check_mpp_altaz
+			    && gtk_check_button_get_active(check_mpp_altaz);
+			double lat = NAN, lon = NAN;
+			int target = EPHEM_TARGET_SUN;
+			if (altaz) {
+				/* Dropdown item order matches ephem_target_t. */
+				if (drop_mpp_altaz_target)
+					target = (int) gtk_drop_down_get_selected(drop_mpp_altaz_target);
+				const char *slat = entry_mpp_altaz_lat
+				    ? gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lat)) : "";
+				const char *slon = entry_mpp_altaz_lon
+				    ? gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lon)) : "";
+				char *e1 = NULL, *e2 = NULL;
+				lat = g_ascii_strtod(slat, &e1);
+				lon = g_ascii_strtod(slon, &e2);
+				if (!*slat || !*slon || (e1 && *e1) || (e2 && *e2)
+				    || lat < -90.0 || lat > 90.0) {
+					siril_log_error(_("Alt-az field rotation: enter the "
+					                  "observer latitude and east longitude "
+					                  "in degrees.\n"));
+					free(cfg);
+					return 1;
+				}
+			}
+			if (mpp_derot_sync_field_rotation_plan(&com.seq, altaz, target,
+			                                       lat, lon) != MPP_OK) {
+				free(cfg);
+				return 1;
+			}
+		}
 		regargs->mpp_cfg = cfg;
 	}
 	if (regindex == REG_COMET) {
@@ -1534,6 +1581,93 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
  * Shares the register infrastructure via regargs->mpp_stage_a_only — the
  * function pointer dispatched by register_thread_func is still register_mpp,
  * which branches on the flag. */
+/* ---- Alt-az field rotation: site row + IAU obscode prefill -------------- */
+
+struct altaz_obscode_result {
+	double lat, lon;
+	gboolean found;
+};
+
+static gboolean altaz_obscode_idle(gpointer p) {
+	struct altaz_obscode_result *r = p;
+	/* Fill only if the user hasn't typed anything meanwhile and the option
+	 * is still on. Entries stay editable — this is a convenience prefill. */
+	if (r->found && check_mpp_altaz
+	    && gtk_check_button_get_active(check_mpp_altaz)
+	    && entry_mpp_altaz_lat && entry_mpp_altaz_lon
+	    && !*gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lat))
+	    && !*gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lon))) {
+		gchar buf[32];
+		g_snprintf(buf, sizeof(buf), "%.4f", r->lat);
+		gtk_editable_set_text(GTK_EDITABLE(entry_mpp_altaz_lat), buf);
+		g_snprintf(buf, sizeof(buf), "%.4f", r->lon);
+		gtk_editable_set_text(GTK_EDITABLE(entry_mpp_altaz_lon), buf);
+		siril_log_message(_("Alt-az field rotation: observer site filled from "
+		                    "IAU observatory code (%.4f, %.4f)\n"),
+		                  r->lat, r->lon);
+	}
+	free(r);
+	return FALSE;
+}
+
+/* Resolve an IAU/MPC observatory code to geodetic lat / east lon using the
+ * MPC ObsCodes list (longitude + parallax constants rho cos/sin phi'). */
+static gpointer altaz_obscode_worker(gpointer p) {
+	gchar *code = p;
+	struct altaz_obscode_result *r = calloc(1, sizeof(*r));
+	gsize len = 0;
+	int err = 0;
+	char *body = fetch_url(
+	    "https://www.minorplanetcenter.net/iau/lists/ObsCodes.html",
+	    &len, &err, TRUE);
+	if (body && !err) {
+		const size_t codelen = strlen(code);
+		for (char *line = body; line && *line; ) {
+			char *nl = strchr(line, '\n');
+			if (strncmp(line, code, codelen) == 0
+			    && (line[codelen] == ' ' || line[codelen] == '\t')) {
+				double lon, c, s;
+				if (sscanf(line + codelen, "%lf %lf %lf", &lon, &c, &s) == 3
+				    && (c != 0.0 || s != 0.0)) {
+					/* geocentric -> geodetic latitude */
+					const double f = 1.0 / 298.257223563;
+					r->lat = atan2(s, c * (1.0 - f) * (1.0 - f)) * 180.0 / G_PI;
+					r->lon = lon > 180.0 ? lon - 360.0 : lon;
+					r->found = TRUE;
+				}
+				break;
+			}
+			line = nl ? nl + 1 : NULL;
+		}
+		free(body);
+	}
+	if (!r->found)
+		siril_log_message(_("Alt-az field rotation: could not resolve IAU "
+		                    "observatory code '%s' — enter the site "
+		                    "coordinates manually\n"), code);
+	g_free(code);
+	siril_add_idle(altaz_obscode_idle, r);
+	return NULL;
+}
+
+void on_check_mpp_altaz_toggled(GtkCheckButton *btn, gpointer user_data) {
+	(void) user_data;
+	registration_init_statics();
+	const gboolean on = gtk_check_button_get_active(btn);
+	if (box_mpp_altaz_site)
+		gtk_widget_set_visible(box_mpp_altaz_site, on);
+	if (on && entry_mpp_altaz_lat && entry_mpp_altaz_lon
+	    && !*gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lat))
+	    && !*gtk_editable_get_text(GTK_EDITABLE(entry_mpp_altaz_lon))
+	    && com.pref.astrometry.default_obscode
+	    && *com.pref.astrometry.default_obscode
+	    && is_online()) {
+		GThread *t = g_thread_new("mpp-obscode", altaz_obscode_worker,
+		                          g_strdup(com.pref.astrometry.default_obscode));
+		g_thread_unref(t);
+	}
+}
+
 void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!sequence_is_loaded()) {

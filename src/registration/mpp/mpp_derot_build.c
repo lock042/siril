@@ -20,6 +20,8 @@
 
 #include <math.h>
 
+#include <glib/gstdio.h>
+
 #include "core/siril.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
@@ -223,6 +225,127 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 		                           obs_lat, obs_lon)),
 		                  q0);
 	return d;
+}
+
+mpp_derot_t *mpp_derot_build_field_rotation(int target, const double *jd,
+                                            int num_frames,
+                                            int frame_rows, int frame_cols,
+                                            double obs_lat, double obs_lon) {
+	if (!jd || num_frames <= 0) return NULL;
+	if (isnan(obs_lat) || isnan(obs_lon)) {
+		siril_log_error(_("field rotation: the observer site is required — "
+		                  "supply latitude and east longitude\n"));
+		return NULL;
+	}
+
+	const double epoch = mpp_derot_midpoint_epoch(jd, num_frames);
+	double ra0, dec0;
+	if (ephem_target_radec((ephem_target_t) target, epoch, &ra0, &dec0) != 0) {
+		siril_log_error(_("field rotation: cannot compute the target position "
+		                  "(bad timestamps?)\n"));
+		return NULL;
+	}
+	const double q0 = planet_parallactic_angle(epoch, ra0, dec0,
+	                                           obs_lat, obs_lon);
+
+	mpp_derot_t *d = mpp_derot_alloc(num_frames);
+	if (!d) return NULL;
+	d->body = MPP_DEROT_BODY_FIELDROT;
+	d->rot_system = target;          /* provenance: which target drove q */
+	d->ephem_version = 1;
+	d->frame_rows = frame_rows;
+	d->frame_cols = frame_cols;
+	d->epoch_jd = epoch;
+	d->obs_lat = obs_lat; d->obs_lon = obs_lon; d->obs_elev = NAN;
+	/* Rotation-only geometry: with B/CM equal on both sides of the map and
+	 * flattening 0, every pixel — on or off the nominal disk — maps through
+	 * the same rigid similarity, so the disk parameters only pick the
+	 * rotation centre. */
+	d->cx = frame_cols / 2.0;
+	d->cy = frame_rows / 2.0;
+	d->r_eq = (frame_rows < frame_cols ? frame_rows : frame_cols) / 4.0;
+	d->flattening = 0.0;
+	d->parity = 1.0;
+	d->pole_angle_epoch = 0.0;
+	d->epoch_sub_obs_lat = 0.0;
+	d->epoch_cm = 0.0;
+	d->epoch_pole_pa = 0.0;
+
+	for (int i = 0; i < num_frames; i++) {
+		double ra, dec;
+		if (ephem_target_radec((ephem_target_t) target, jd[i], &ra, &dec) != 0) {
+			siril_log_error(_("field rotation: frame %d has an unusable "
+			                  "timestamp (JD %.6f)\n"), i, jd[i]);
+			mpp_derot_free(d);
+			return NULL;
+		}
+		const double qi = planet_parallactic_angle(jd[i], ra, dec,
+		                                           obs_lat, obs_lon);
+		d->jd[i] = jd[i];
+		d->sub_obs_lat[i] = 0.0;
+		d->cm[i] = 0.0;
+		/* Same sign convention as the planetary fold: in-image sky
+		 * orientation drifts by −Δq on an alt-az mount. */
+		d->pole_pa[i] = -(qi - q0);
+	}
+	siril_log_message(_("field rotation: alt-az plan built — %.2f° across the "
+	                    "span (parallactic angle %.2f° at the epoch)\n"),
+	                  fabs(d->pole_pa[num_frames - 1] - d->pole_pa[0]), q0);
+	return d;
+}
+
+mpp_status_t mpp_derot_sync_field_rotation_plan(sequence *seq, gboolean enable,
+                                                int target,
+                                                double obs_lat, double obs_lon) {
+	if (!seq || !seq->seqname) return MPP_EINVAL;
+	gchar *path = g_strdup_printf("%s.derot", seq->seqname);
+
+	mpp_derot_t *existing = NULL;
+	const gboolean have = (mpp_derot_read(path, &existing) == MPP_OK && existing);
+	const gboolean have_fieldrot = have
+	    && existing->body == MPP_DEROT_BODY_FIELDROT;
+	if (existing) mpp_derot_free(existing);
+
+	if (!enable) {
+		/* Only remove what this option created; a planetary plan is the
+		 * user's. */
+		if (have_fieldrot) {
+			g_unlink(path);
+			siril_log_message(_("field rotation: removed the synthesised "
+			                    "%s\n"), path);
+		}
+		g_free(path);
+		return MPP_OK;
+	}
+
+	if (have && !have_fieldrot) {
+		siril_log_error(_("field rotation: %s already holds a derotation "
+		                  "plan — fold field rotation into it with "
+		                  "`derotate ... -field-rotation=altaz` instead\n"),
+		                path);
+		g_free(path);
+		return MPP_EINVAL;
+	}
+
+	double *jd = malloc((size_t) seq->number * sizeof(double));
+	if (!jd) { g_free(path); return MPP_ENOMEM; }
+	if (!mpp_derot_frame_times(seq, 0.0, NAN, jd)) {
+		siril_log_error(_("field rotation: no usable per-frame timestamps — "
+		                  "write them first (`ser_fix_timestamps ... -fps=F`)\n"));
+		free(jd); g_free(path);
+		return MPP_EINVAL;
+	}
+	mpp_derot_t *d = mpp_derot_build_field_rotation(target, jd, seq->number,
+	                                                (int) seq->ry, (int) seq->rx,
+	                                                obs_lat, obs_lon);
+	free(jd);
+	if (!d) { g_free(path); return MPP_EINVAL; }
+	const mpp_status_t wr = mpp_derot_write(path, d);
+	mpp_derot_free(d);
+	if (wr != MPP_OK)
+		siril_log_error(_("field rotation: failed to write %s\n"), path);
+	g_free(path);
+	return wr;
 }
 
 gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,

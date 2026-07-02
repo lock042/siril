@@ -1161,6 +1161,75 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                               </object>
                                                                             </child>
                                                                             <child>
+                                                            <object class="GtkCheckButton" id="check_mpp_altaz">
+                                                              <property name="label" translatable="1">Alt-az field rotation</property>
+                                                              <property name="focusable">1</property>
+                                                              <property name="tooltip-text" translatable="1">Remove alt-az field rotation analytically (from the observer site, the frame timestamps and the target's position) as part of the stack's single resample. Only useful for planets transiting near the zenith or for lunar / solar work: at ordinary rotation rates the multipoint alignment already absorbs field rotation by itself. Needs trustworthy frame timestamps.</property>
+                                                              <property name="halign">start</property>
+                                                              <signal name="toggled" handler="on_check_mpp_altaz_toggled"/>
+                                                              <layout>
+                                                                <property name="column">0</property>
+                                                                <property name="row">7</property>
+                                                                <property name="column-span">4</property>
+                                                              </layout>
+                                                            </object>
+                                                          </child>
+                                                          <child>
+                                                            <object class="GtkBox" id="box_mpp_altaz_site">
+                                                              <property name="visible">0</property>
+                                                              <property name="spacing">6</property>
+                                                              <child>
+                                                                <object class="GtkLabel">
+                                                                  <property name="label" translatable="1">Target:</property>
+                                                                </object>
+                                                              </child>
+                                                              <child>
+                                                                <object class="GtkDropDown" id="drop_mpp_altaz_target">
+                                                                  <property name="tooltip-text" translatable="1">The tracked target; its sky position sets the field-rotation rate.</property>
+                                                                  <property name="model">
+                                                                    <object class="GtkStringList">
+                                                                      <items>
+                                                                        <item translatable="yes">Jupiter</item>
+                                                                        <item translatable="yes">Saturn</item>
+                                                                        <item translatable="yes">Mars</item>
+                                                                        <item translatable="yes">Sun</item>
+                                                                        <item translatable="yes">Moon</item>
+                                                                      </items>
+                                                                    </object>
+                                                                  </property>
+                                                                  <property name="selected">3</property>
+                                                                </object>
+                                                              </child>
+                                                              <child>
+                                                                <object class="GtkLabel">
+                                                                  <property name="label" translatable="1">Lat:</property>
+                                                                </object>
+                                                              </child>
+                                                              <child>
+                                                                <object class="GtkEntry" id="entry_mpp_altaz_lat">
+                                                                  <property name="tooltip-text" translatable="1">Observer geodetic latitude, degrees (south negative).</property>
+                                                                  <property name="width-chars">9</property>
+                                                                </object>
+                                                              </child>
+                                                              <child>
+                                                                <object class="GtkLabel">
+                                                                  <property name="label" translatable="1">Lon (E):</property>
+                                                                </object>
+                                                              </child>
+                                                              <child>
+                                                                <object class="GtkEntry" id="entry_mpp_altaz_lon">
+                                                                  <property name="tooltip-text" translatable="1">Observer longitude, degrees EAST (west negative).</property>
+                                                                  <property name="width-chars">9</property>
+                                                                </object>
+                                                              </child>
+                                                              <layout>
+                                                                <property name="column">0</property>
+                                                                <property name="row">8</property>
+                                                                <property name="column-span">4</property>
+                                                              </layout>
+                                                            </object>
+                                                          </child>
+                                                          <child>
                                                                               <object class="GtkCheckButton" id="check_mpp_seed">
                                                                                 <property name="label" translatable="1">Seed from existing registration</property>
                                                                                 <property name="focusable">1</property>
@@ -1169,7 +1238,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <property name="active">1</property>
                                                                                 <layout>
                                                                                   <property name="column">0</property>
-                                                                                  <property name="row">7</property>
+                                                                                  <property name="row">9</property>
                                                                                   <property name="column-span">4</property>
                                                                                 </layout>
                                                                               </object>
@@ -1184,7 +1253,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <signal name="clicked" handler="on_seqmpp_analyze_button_clicked" swapped="no"/>
                                                                                 <layout>
                                                                                   <property name="column">1</property>
-                                                                                  <property name="row">8</property>
+                                                                                  <property name="row">10</property>
                                                                                 </layout>
                                                                               </object>
                                                                             </child>
@@ -1199,7 +1268,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <signal name="clicked" handler="on_seqmpp_edit_aps_button_clicked" swapped="no"/>
                                                                                 <layout>
                                                                                   <property name="column">2</property>
-                                                                                  <property name="row">8</property>
+                                                                                  <property name="row">10</property>
                                                                                 </layout>
                                                                               </object>
                                                                             </child>
@@ -1214,7 +1283,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <signal name="clicked" handler="on_seqmpp_view_shifts_button_clicked" swapped="no"/>
                                                                                 <layout>
                                                                                   <property name="column">3</property>
-                                                                                  <property name="row">8</property>
+                                                                                  <property name="row">10</property>
                                                                                   <property name="column-span">2</property>
                                                                                 </layout>
                                                                               </object>
@@ -1229,7 +1298,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <signal name="clicked" handler="on_seqmpp_derotation_button_clicked" swapped="no"/>
                                                                                 <layout>
                                                                                   <property name="column">0</property>
-                                                                                  <property name="row">8</property>
+                                                                                  <property name="row">10</property>
                                                                                 </layout>
                                                                               </object>
                                                                             </child>

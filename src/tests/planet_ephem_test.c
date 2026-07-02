@@ -130,3 +130,31 @@ Test(planet_ephem, miriade_live) {
 	cr_assert_float_eq(g.dec,  dec,  0.005, "Dec mine=%.5f miriade=%.5f", g.dec, dec);
 	cr_assert_float_eq(g.dist_au, dist, 1e-4, "dist mine=%.7f miriade=%.7f", g.dist_au, dist);
 }
+
+/* Target RA/Dec: the Sun at the June solstice epoch sits at RA ~90, dec ~
+ * +23.44; the Moon stays within the ecliptic-latitude band and moves ~0.5
+ * deg/hour. */
+Test(planet_ephem, target_radec_sun_moon) {
+	double ra, dec;
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_SUN, JD_REF, &ra, &dec), 0);
+	cr_assert(ra > 89.0 && ra < 91.0, "sun RA=%.3f", ra);
+	cr_assert(dec > 23.3 && dec < 23.5, "sun dec=%.3f", dec);
+
+	double ra1, dec1, ra2, dec2;
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_MOON, JD_REF, &ra1, &dec1), 0);
+	cr_assert(dec1 > -29.5 && dec1 < 29.5, "moon dec=%.3f", dec1);
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_MOON, JD_REF + 1.0 / 24.0,
+	                                &ra2, &dec2), 0);
+	double d = fabs(ra2 - ra1);
+	if (d > 180.0) d = 360.0 - d;
+	const double motion = hypot(d * cos(dec1 * M_PI / 180.0), dec2 - dec1);
+	cr_assert(motion > 0.3 && motion < 0.8,
+	          "moon moved %.3f deg in 1 h", motion);
+
+	/* Planet passthrough matches planet_ephemeris. */
+	planet_geom_t g;
+	planet_ephemeris(PLANET_JUPITER, JD_REF, NAN, NAN, NAN, &g);
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_JUPITER, JD_REF, &ra, &dec), 0);
+	cr_assert_float_eq(ra, g.ra, 1e-9);
+	cr_assert_float_eq(dec, g.dec, 1e-9);
+}

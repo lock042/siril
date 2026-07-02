@@ -148,3 +148,42 @@ Test(mpp_derot_build, altaz_field_rotation_fold) {
 	mpp_derot_free(base);
 	mpp_derot_free(rot);
 }
+
+/* Rotation-only (field-rotation) plan: body sentinel, zero planetary
+ * geometry, and per-frame pole angles equal to -(q_i - q_epoch) computed
+ * directly for the same target/site/times. */
+Test(mpp_derot_build, field_rotation_only_plan) {
+	const int N = 4;
+	double jd[4];
+	const double jd0 = 2461212.5;
+	for (int i = 0; i < N; i++)
+		jd[i] = jd0 + i * (3.0 / 1440.0);
+	const double lat = -37.81, lon = 144.96;
+
+	mpp_derot_t *d = mpp_derot_build_field_rotation(EPHEM_TARGET_SUN, jd, N,
+	                                                480, 640, lat, lon);
+	cr_assert_not_null(d);
+	cr_assert_eq(d->body, MPP_DEROT_BODY_FIELDROT);
+	cr_assert_eq(d->rot_system, EPHEM_TARGET_SUN);
+	cr_assert_float_eq(d->flattening, 0.0, 1e-12);
+	cr_assert_float_eq(d->parity, 1.0, 1e-12);
+
+	const double epoch = 0.5 * (jd[0] + jd[N - 1]);
+	double ra0, dec0;
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_SUN, epoch, &ra0, &dec0), 0);
+	const double q0 = planet_parallactic_angle(epoch, ra0, dec0, lat, lon);
+	for (int i = 0; i < N; i++) {
+		double ra, dec;
+		cr_assert_eq(ephem_target_radec(EPHEM_TARGET_SUN, jd[i], &ra, &dec), 0);
+		const double qi = planet_parallactic_angle(jd[i], ra, dec, lat, lon);
+		cr_assert_float_eq(d->pole_pa[i], -(qi - q0), 1e-9,
+		                   "frame %d: %.9f vs %.9f", i, d->pole_pa[i], -(qi - q0));
+		cr_assert_float_eq(d->sub_obs_lat[i], 0.0, 1e-12);
+		cr_assert_float_eq(d->cm[i], 0.0, 1e-12);
+	}
+	mpp_derot_free(d);
+
+	/* Missing site fails cleanly. */
+	cr_assert_null(mpp_derot_build_field_rotation(EPHEM_TARGET_SUN, jd, N,
+	                                              480, 640, NAN, lon));
+}
