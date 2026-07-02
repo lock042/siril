@@ -50,9 +50,16 @@ extern "C" {
  * ephem_target_t the parallactic angle was computed for (provenance). */
 #define MPP_DEROT_BODY_FIELDROT (-2)
 
+/* flags: alt-az field rotation has been folded into the per-frame pole
+ * angles (the observer site it was computed from is stored in obs_lat /
+ * obs_lon, so the fold is reversible and can be re-based to a new site).
+ * Uses the sidecar's reserved flags word — old files read as 0. */
+#define MPP_DEROT_FLAG_FIELDROT 1u
+
 typedef struct mpp_derot {
 	int32_t body;            /* planet_body_t, or MPP_DEROT_BODY_FIELDROT */
 	int32_t rot_system;      /* rot_system_t: which CM column drives derotation */
+	uint32_t flags;          /* MPP_DEROT_FLAG_* */
 	int32_t ephem_version;   /* ephemeris model version, for provenance */
 	int32_t num_frames;
 	int32_t frame_rows;      /* sequence frame height the disk fit is in */

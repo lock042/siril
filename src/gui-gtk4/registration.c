@@ -39,7 +39,10 @@
 #include "gui-gtk4/registration.h"
 #include "gui-gtk4/sequence_list.h"
 #include "gui-gtk4/stacking.h"
+#include <time.h>
+#include <glib/gstdio.h>
 #include "core/siril_networking.h"
+#include "core/siril_app_dirs.h"
 #include "algos/planet_ephem.h"
 #include "registration/mpp/mpp_derot_build.h"
 #include "io/path_parse.h"
@@ -1610,17 +1613,61 @@ static gboolean altaz_obscode_idle(gpointer p) {
 	return FALSE;
 }
 
+/* The MPC ObsCodes list, cached under the user data dir and refreshed at
+ * most once a month (observatory sites are essentially static; the list is
+ * ~300 kB and there is no reason to refetch it per toggle). Returns a
+ * heap buffer (g_free) or NULL. */
+static char *altaz_obscodes_read_file(const gchar *path) {
+	/* plain stdio + malloc so every altaz_obscodes_get() result is freed
+	 * with free(), like fetch_url's buffer */
+	FILE *f = g_fopen(path, "rb");
+	if (!f) return NULL;
+	fseek(f, 0, SEEK_END);
+	const long sz = ftell(f);
+	if (sz <= 0) { fclose(f); return NULL; }
+	fseek(f, 0, SEEK_SET);
+	char *buf = malloc((size_t) sz + 1);
+	if (!buf) { fclose(f); return NULL; }
+	const size_t got = fread(buf, 1, (size_t) sz, f);
+	fclose(f);
+	if (got != (size_t) sz) { free(buf); return NULL; }
+	buf[sz] = '\0';
+	return buf;
+}
+
+static char *altaz_obscodes_get(void) {
+	gchar *cache = g_build_filename(siril_get_user_data_dir(),
+	                                "mpc_obscodes.txt", NULL);
+	GStatBuf st;
+	char *body = NULL;
+	if (g_stat(cache, &st) == 0
+	    && time(NULL) - st.st_mtime < 30 * 24 * 3600)
+		body = altaz_obscodes_read_file(cache);
+	if (!body) {
+		gsize len = 0;
+		int err = 0;
+		body = fetch_url(
+		    "https://www.minorplanetcenter.net/iau/lists/ObsCodes.html",
+		    &len, &err, TRUE);
+		if (body && !err && len > 0) {
+			g_file_set_contents(cache, body, (gssize) len, NULL);
+		} else {
+			/* Offline: a stale cache beats nothing. */
+			free(body);
+			body = altaz_obscodes_read_file(cache);
+		}
+	}
+	g_free(cache);
+	return body;
+}
+
 /* Resolve an IAU/MPC observatory code to geodetic lat / east lon using the
  * MPC ObsCodes list (longitude + parallax constants rho cos/sin phi'). */
 static gpointer altaz_obscode_worker(gpointer p) {
 	gchar *code = p;
 	struct altaz_obscode_result *r = calloc(1, sizeof(*r));
-	gsize len = 0;
-	int err = 0;
-	char *body = fetch_url(
-	    "https://www.minorplanetcenter.net/iau/lists/ObsCodes.html",
-	    &len, &err, TRUE);
-	if (body && !err) {
+	char *body = altaz_obscodes_get();
+	if (body) {
 		const size_t codelen = strlen(code);
 		for (char *line = body; line && *line; ) {
 			char *nl = strchr(line, '\n');

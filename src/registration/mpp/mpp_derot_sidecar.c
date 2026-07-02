@@ -25,7 +25,7 @@
  *
  *   8 bytes : magic "SIRILDRT"
  *   uint32  : version (current = 1)
- *   uint32  : flags (reserved; 0)
+ *   uint32  : flags (MPP_DEROT_FLAG_*)
  *   int32[6]: body, rot_system, ephem_version, num_frames, frame_rows, frame_cols
  *   double[14]: epoch_jd, obs_lat, obs_lon, obs_elev,
  *               cx, cy, r_eq, flattening, parity, pole_angle_epoch,
@@ -131,7 +131,7 @@ mpp_status_t mpp_derot_write(const char *path, const mpp_derot_t *d) {
 	FILE *f = fopen(tmp_path, "wb");
 	if (!f) { g_free(tmp_path); return MPP_EIO; }
 
-	const uint32_t ver = DEROT_VERSION, flags = 0;
+	const uint32_t ver = DEROT_VERSION, flags = d->flags;
 	const int32_t hdr[6] = { d->body, d->rot_system, d->ephem_version,
 	                         d->num_frames, d->frame_rows, d->frame_cols };
 	const double dbl[14] = {
@@ -193,6 +193,7 @@ mpp_status_t mpp_derot_read(const char *path, mpp_derot_t **out) {
 	mpp_derot_t *d = mpp_derot_alloc(hdr[3]);
 	if (!d) { fclose(f); return MPP_ENOMEM; }
 	d->body = hdr[0]; d->rot_system = hdr[1]; d->ephem_version = hdr[2];
+	d->flags = flags;
 	d->frame_rows = hdr[4]; d->frame_cols = hdr[5];
 	d->epoch_jd = dbl[0]; d->obs_lat = dbl[1]; d->obs_lon = dbl[2]; d->obs_elev = dbl[3];
 	d->cx = dbl[4]; d->cy = dbl[5]; d->r_eq = dbl[6]; d->flattening = dbl[7];

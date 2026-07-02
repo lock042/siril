@@ -187,3 +187,76 @@ Test(mpp_derot_build, field_rotation_only_plan) {
 	cr_assert_null(mpp_derot_build_field_rotation(EPHEM_TARGET_SUN, jd, N,
 	                                              480, 640, NAN, lon));
 }
+
+/* Registration-side sync against an existing PLANETARY plan: enabling folds
+ * the alt-az drift into the plan's pole angles (derotation + field rotation
+ * compose), re-enabling with the same site is a no-op, and disabling
+ * restores the original angles exactly. */
+Test(mpp_derot_build, sync_folds_into_planetary_plan) {
+	const int N = 4;
+	double jd[4];
+	for (int i = 0; i < N; i++)
+		jd[i] = 2461212.5 + i * (3.0 / 1440.0);
+	const double epoch = 0.5 * (jd[0] + jd[N - 1]);
+	const double lat = -37.81, lon = 144.96;
+
+	mpp_derot_t *plan = mpp_derot_build(PLANET_JUPITER, 2, epoch, jd, N,
+	                                    600, 600, 300, 300, 180, 10.0, 1.0,
+	                                    NAN, NAN, NAN, MPP_FIELD_ROT_NONE);
+	cr_assert_not_null(plan);
+	double orig[4];
+	for (int i = 0; i < N; i++) orig[i] = plan->pole_pa[i];
+
+	gchar *base = g_build_filename(g_get_tmp_dir(), "siril_fold_test", NULL);
+	gchar *path = g_strdup_printf("%s.derot", base);
+	cr_assert_eq(mpp_derot_write(path, plan), MPP_OK);
+	mpp_derot_free(plan);
+
+	sequence seq;
+	memset(&seq, 0, sizeof(seq));
+	seq.seqname = base;
+	seq.number = N;
+
+	/* enable: fold */
+	cr_assert_eq(mpp_derot_sync_field_rotation_plan(&seq, TRUE,
+	             EPHEM_TARGET_SUN /* ignored for planetary plans */,
+	             lat, lon), MPP_OK);
+	mpp_derot_t *folded = NULL;
+	cr_assert_eq(mpp_derot_read(path, &folded), MPP_OK);
+	cr_assert(folded->flags & MPP_DEROT_FLAG_FIELDROT);
+	cr_assert_eq(folded->body, PLANET_JUPITER);
+	cr_assert_float_eq(folded->obs_lat, lat, 1e-12);
+	double ra, dec;
+	cr_assert_eq(ephem_target_radec(EPHEM_TARGET_JUPITER, epoch, &ra, &dec), 0);
+	const double q0 = planet_parallactic_angle(epoch, ra, dec, lat, lon);
+	for (int i = 0; i < N; i++) {
+		cr_assert_eq(ephem_target_radec(EPHEM_TARGET_JUPITER, jd[i], &ra, &dec), 0);
+		const double qi = planet_parallactic_angle(jd[i], ra, dec, lat, lon);
+		cr_assert_float_eq(folded->pole_pa[i], orig[i] - (qi - q0), 1e-9,
+		                   "frame %d fold mismatch", i);
+	}
+	mpp_derot_free(folded);
+
+	/* enable again, same site: idempotent */
+	cr_assert_eq(mpp_derot_sync_field_rotation_plan(&seq, TRUE,
+	             EPHEM_TARGET_SUN, lat, lon), MPP_OK);
+	mpp_derot_t *again = NULL;
+	cr_assert_eq(mpp_derot_read(path, &again), MPP_OK);
+	cr_assert(again->flags & MPP_DEROT_FLAG_FIELDROT);
+	mpp_derot_free(again);
+
+	/* disable: unfold restores the original angles, keeps the plan */
+	cr_assert_eq(mpp_derot_sync_field_rotation_plan(&seq, FALSE, 0,
+	             NAN, NAN), MPP_OK);
+	mpp_derot_t *restored = NULL;
+	cr_assert_eq(mpp_derot_read(path, &restored), MPP_OK);
+	cr_assert_not(restored->flags & MPP_DEROT_FLAG_FIELDROT);
+	for (int i = 0; i < N; i++)
+		cr_assert_float_eq(restored->pole_pa[i], orig[i], 1e-9,
+		                   "frame %d unfold mismatch", i);
+	mpp_derot_free(restored);
+
+	g_unlink(path);
+	g_free(path);
+	g_free(base);
+}

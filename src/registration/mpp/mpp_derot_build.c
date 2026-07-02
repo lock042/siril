@@ -215,7 +215,11 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 			d->pole_pa[i] -= qi - q0;
 		}
 	}
-	if (field_rot == MPP_FIELD_ROT_ALTAZ)
+	if (field_rot == MPP_FIELD_ROT_ALTAZ) {
+		/* Mark the fold (and the site it used, already stored in obs_lat /
+		 * obs_lon) so the registration-side option recognises it, keeps it
+		 * idempotent, and can unfold or re-base it. */
+		d->flags |= MPP_DEROT_FLAG_FIELDROT;
 		siril_log_message(_("derotate: alt-az field rotation folded in — "
 		                    "%.2f° across the span (parallactic angle %.2f° "
 		                    "at the epoch)\n"),
@@ -224,7 +228,37 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 		                       - planet_parallactic_angle(jd[0], ge.ra, ge.dec,
 		                           obs_lat, obs_lon)),
 		                  q0);
+	}
 	return d;
+}
+
+/* The ephemeris target whose sky position drives a plan's parallactic
+ * angle: the planet itself for a planetary plan (planet body ids match
+ * ephem_target_t), the stored target for a rotation-only plan. */
+static int derot_q_target(const mpp_derot_t *d) {
+	return d->body == MPP_DEROT_BODY_FIELDROT ? d->rot_system : d->body;
+}
+
+/* Fold (direction +1) or unfold (direction -1) the alt-az parallactic
+ * drift -(q_i - q_epoch) into the plan's per-frame pole angles, with q
+ * evaluated for the plan's own target and timestamps at the given site.
+ * Because q is recomputable exactly from what the plan stores, a fold done
+ * with the site recorded in obs_lat/obs_lon is exactly reversible. */
+static mpp_status_t derot_apply_field_rotation(mpp_derot_t *d, int direction,
+                                               double lat, double lon) {
+	if (!d || isnan(lat) || isnan(lon)) return MPP_EINVAL;
+	double ra, dec;
+	const int target = derot_q_target(d);
+	if (ephem_target_radec((ephem_target_t) target, d->epoch_jd, &ra, &dec) != 0)
+		return MPP_EINVAL;
+	const double q0 = planet_parallactic_angle(d->epoch_jd, ra, dec, lat, lon);
+	for (int i = 0; i < d->num_frames; i++) {
+		if (ephem_target_radec((ephem_target_t) target, d->jd[i], &ra, &dec) != 0)
+			return MPP_EINVAL;
+		const double qi = planet_parallactic_angle(d->jd[i], ra, dec, lat, lon);
+		d->pole_pa[i] -= direction * (qi - q0);
+	}
+	return MPP_OK;
 }
 
 mpp_derot_t *mpp_derot_build_field_rotation(int target, const double *jd,
@@ -272,22 +306,20 @@ mpp_derot_t *mpp_derot_build_field_rotation(int target, const double *jd,
 	d->epoch_pole_pa = 0.0;
 
 	for (int i = 0; i < num_frames; i++) {
-		double ra, dec;
-		if (ephem_target_radec((ephem_target_t) target, jd[i], &ra, &dec) != 0) {
-			siril_log_error(_("field rotation: frame %d has an unusable "
-			                  "timestamp (JD %.6f)\n"), i, jd[i]);
-			mpp_derot_free(d);
-			return NULL;
-		}
-		const double qi = planet_parallactic_angle(jd[i], ra, dec,
-		                                           obs_lat, obs_lon);
 		d->jd[i] = jd[i];
 		d->sub_obs_lat[i] = 0.0;
 		d->cm[i] = 0.0;
-		/* Same sign convention as the planetary fold: in-image sky
-		 * orientation drifts by −Δq on an alt-az mount. */
-		d->pole_pa[i] = -(qi - q0);
+		d->pole_pa[i] = 0.0;
 	}
+	/* Same sign convention as the planetary fold: in-image sky orientation
+	 * drifts by −Δq on an alt-az mount. */
+	if (derot_apply_field_rotation(d, +1, obs_lat, obs_lon) != MPP_OK) {
+		siril_log_error(_("field rotation: unusable timestamps in the "
+		                  "sequence\n"));
+		mpp_derot_free(d);
+		return NULL;
+	}
+	d->flags |= MPP_DEROT_FLAG_FIELDROT;
 	siril_log_message(_("field rotation: alt-az plan built — %.2f° across the "
 	                    "span (parallactic angle %.2f° at the epoch)\n"),
 	                  fabs(d->pole_pa[num_frames - 1] - d->pole_pa[0]), q0);
@@ -302,50 +334,114 @@ mpp_status_t mpp_derot_sync_field_rotation_plan(sequence *seq, gboolean enable,
 
 	mpp_derot_t *existing = NULL;
 	const gboolean have = (mpp_derot_read(path, &existing) == MPP_OK && existing);
-	const gboolean have_fieldrot = have
+	const gboolean is_synth = have
 	    && existing->body == MPP_DEROT_BODY_FIELDROT;
-	if (existing) mpp_derot_free(existing);
+	const gboolean is_folded = have
+	    && (existing->flags & MPP_DEROT_FLAG_FIELDROT);
+	mpp_status_t rc = MPP_OK;
 
 	if (!enable) {
-		/* Only remove what this option created; a planetary plan is the
-		 * user's. */
-		if (have_fieldrot) {
+		if (is_synth) {
+			/* Remove what this option created. */
 			g_unlink(path);
 			siril_log_message(_("field rotation: removed the synthesised "
 			                    "%s\n"), path);
+		} else if (is_folded) {
+			/* Planetary plan with a folded correction: unfold with the
+			 * site it was folded for (recorded in the plan) and rewrite. */
+			rc = derot_apply_field_rotation(existing, -1,
+			                                existing->obs_lat,
+			                                existing->obs_lon);
+			if (rc == MPP_OK) {
+				existing->flags &= ~MPP_DEROT_FLAG_FIELDROT;
+				rc = mpp_derot_write(path, existing);
+				if (rc == MPP_OK)
+					siril_log_message(_("field rotation: removed the alt-az "
+					                    "correction from %s\n"), path);
+			}
 		}
-		g_free(path);
-		return MPP_OK;
+		goto out;
 	}
 
-	if (have && !have_fieldrot) {
-		siril_log_error(_("field rotation: %s already holds a derotation "
-		                  "plan — fold field rotation into it with "
-		                  "`derotate ... -field-rotation=altaz` instead\n"),
-		                path);
-		g_free(path);
-		return MPP_EINVAL;
+	if (isnan(obs_lat) || isnan(obs_lon)) {
+		siril_log_error(_("field rotation: the observer site is required — "
+		                  "supply latitude and east longitude\n"));
+		rc = MPP_EINVAL;
+		goto out;
 	}
 
-	double *jd = malloc((size_t) seq->number * sizeof(double));
-	if (!jd) { g_free(path); return MPP_ENOMEM; }
-	if (!mpp_derot_frame_times(seq, 0.0, NAN, jd)) {
-		siril_log_error(_("field rotation: no usable per-frame timestamps — "
-		                  "write them first (`ser_fix_timestamps ... -fps=F`)\n"));
-		free(jd); g_free(path);
-		return MPP_EINVAL;
+	if (have && !is_synth) {
+		/* A real planetary derotation plan: fold the alt-az correction into
+		 * it — derotation and field rotation compose (the near-zenith
+		 * planet case). The plan's own body drives the parallactic angle;
+		 * the requested target is ignored. Re-basing to a new site unfolds
+		 * the recorded one first. */
+		if (is_folded) {
+			if (fabs(existing->obs_lat - obs_lat) < 1e-9
+			    && fabs(existing->obs_lon - obs_lon) < 1e-9)
+				goto out;   /* already folded for this site */
+			rc = derot_apply_field_rotation(existing, -1,
+			                                existing->obs_lat,
+			                                existing->obs_lon);
+			if (rc != MPP_OK) goto out;
+		}
+		rc = derot_apply_field_rotation(existing, +1, obs_lat, obs_lon);
+		if (rc != MPP_OK) goto out;
+		existing->obs_lat = obs_lat;
+		existing->obs_lon = obs_lon;
+		existing->flags |= MPP_DEROT_FLAG_FIELDROT;
+		rc = mpp_derot_write(path, existing);
+		if (rc == MPP_OK) {
+			siril_log_message(_("field rotation: alt-az correction folded "
+			                    "into the existing derotation plan %s\n"),
+			                  path);
+			if (target != existing->body)
+				siril_log_message(_("field rotation: the plan's body drives "
+				                    "the parallactic angle; the Target "
+				                    "selection is ignored\n"));
+		}
+		goto out;
 	}
-	mpp_derot_t *d = mpp_derot_build_field_rotation(target, jd, seq->number,
-	                                                (int) seq->ry, (int) seq->rx,
-	                                                obs_lat, obs_lon);
-	free(jd);
-	if (!d) { g_free(path); return MPP_EINVAL; }
-	const mpp_status_t wr = mpp_derot_write(path, d);
-	mpp_derot_free(d);
-	if (wr != MPP_OK)
-		siril_log_error(_("field rotation: failed to write %s\n"), path);
+
+	if (is_synth && existing->num_frames == seq->number) {
+		/* Rebuild the rotation-only plan from its own stored timestamps
+		 * (target or site may have changed) — no sequence re-read. */
+		mpp_derot_t *d = mpp_derot_build_field_rotation(target, existing->jd,
+		                                                existing->num_frames,
+		                                                existing->frame_rows,
+		                                                existing->frame_cols,
+		                                                obs_lat, obs_lon);
+		rc = d ? mpp_derot_write(path, d) : MPP_EINVAL;
+		mpp_derot_free(d);
+		goto out;
+	}
+
+	{
+		double *jd = malloc((size_t) seq->number * sizeof(double));
+		if (!jd) { rc = MPP_ENOMEM; goto out; }
+		if (!mpp_derot_frame_times(seq, 0.0, NAN, jd)) {
+			siril_log_error(_("field rotation: no usable per-frame timestamps "
+			                  "— write them first (`ser_fix_timestamps ... "
+			                  "-fps=F`)\n"));
+			free(jd);
+			rc = MPP_EINVAL;
+			goto out;
+		}
+		mpp_derot_t *d = mpp_derot_build_field_rotation(target, jd, seq->number,
+		                                                (int) seq->ry,
+		                                                (int) seq->rx,
+		                                                obs_lat, obs_lon);
+		free(jd);
+		rc = d ? mpp_derot_write(path, d) : MPP_EINVAL;
+		mpp_derot_free(d);
+	}
+
+out:
+	if (rc != MPP_OK && rc != MPP_EINVAL)
+		siril_log_error(_("field rotation: failed to update %s\n"), path);
+	if (existing) mpp_derot_free(existing);
 	g_free(path);
-	return wr;
+	return rc;
 }
 
 gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
