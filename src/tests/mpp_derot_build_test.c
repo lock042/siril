@@ -99,3 +99,52 @@ Test(mpp_derot_build, union_epoch_midpoint) {
 	cr_assert_float_eq(mpp_derot_union_epoch(&f1, &l1, 1), 50.5, 1e-12);
 	cr_assert_float_eq(mpp_derot_union_epoch(&f1, &l1, 0), 0.0, 1e-12);
 }
+
+/* Alt-az field rotation folded into the plan: relative to a plan built with
+ * field rotation off, pole_pa[i] must differ by exactly −(q_i − q_epoch),
+ * with q evaluated from the same site/time/target the builder used. */
+Test(mpp_derot_build, altaz_field_rotation_fold) {
+	const int N = 5;
+	double jd[5];
+	const double jd0 = 2461212.5;              /* 2026-06-21T00:00:00 UTC */
+	for (int i = 0; i < N; i++)
+		jd[i] = jd0 + i * (2.0 / 1440.0);      /* 2-minute cadence */
+	const double epoch = 0.5 * (jd[0] + jd[N - 1]);
+	const double lat = 52.0, lon = -2.0;
+
+	mpp_derot_t *base = mpp_derot_build(PLANET_JUPITER, 2, epoch, jd, N,
+	                                    600, 600, 300, 300, 180, 0.0, 1.0,
+	                                    lat, lon, NAN, MPP_FIELD_ROT_NONE);
+	mpp_derot_t *rot  = mpp_derot_build(PLANET_JUPITER, 2, epoch, jd, N,
+	                                    600, 600, 300, 300, 180, 0.0, 1.0,
+	                                    lat, lon, NAN, MPP_FIELD_ROT_ALTAZ);
+	cr_assert_not_null(base);
+	cr_assert_not_null(rot);
+
+	planet_geom_t ge;
+	cr_assert_eq(planet_ephemeris(PLANET_JUPITER, epoch, lat, lon, NAN, &ge), 0);
+	const double q0 = planet_parallactic_angle(epoch, ge.ra, ge.dec, lat, lon);
+
+	double span = 0.0;
+	for (int i = 0; i < N; i++) {
+		planet_geom_t g;
+		cr_assert_eq(planet_ephemeris(PLANET_JUPITER, jd[i], lat, lon, NAN, &g), 0);
+		const double qi = planet_parallactic_angle(jd[i], g.ra, g.dec, lat, lon);
+		const double expect = base->pole_pa[i] - (qi - q0);
+		cr_assert_float_eq(rot->pole_pa[i], expect, 1e-9,
+		                   "frame %d: pole_pa %.9f expected %.9f",
+		                   i, rot->pole_pa[i], expect);
+		span = qi - q0;
+	}
+	/* And the fold is non-trivial: 8 minutes of hour angle moves q. */
+	cr_assert(fabs(span) > 1e-3, "q span %.6f unexpectedly tiny", span);
+
+	/* Requiring the site: ALTAZ without lat/lon must fail cleanly. */
+	mpp_derot_t *bad = mpp_derot_build(PLANET_JUPITER, 2, epoch, jd, N,
+	                                   600, 600, 300, 300, 180, 0.0, 1.0,
+	                                   NAN, NAN, NAN, MPP_FIELD_ROT_ALTAZ);
+	cr_assert_null(bad);
+
+	mpp_derot_free(base);
+	mpp_derot_free(rot);
+}

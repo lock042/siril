@@ -73,6 +73,26 @@ Test(planet_ephem, cm_rotation_rate) {
 	}
 }
 
+/* Parallactic angle: zero on the meridian, negative east of it (northern
+ * observer, dec < lat), plus one independently computed reference value. */
+Test(planet_ephem, parallactic_angle) {
+	/* Longitude placing RA=120 deg exactly on the meridian at JD_REF. */
+	const double lon_mer = -149.206559155602;
+	cr_assert_float_eq(planet_parallactic_angle(JD_REF, 120.0, 21.0, 52.0, lon_mer),
+	                   0.0, 1e-6);
+	/* One hour east of the meridian: q < 0. */
+	const double q_east = planet_parallactic_angle(JD_REF, 120.0, 21.0, 52.0,
+	                                               lon_mer - 15.0);
+	cr_assert_float_eq(q_east, -16.958229, 1e-4, "q_east=%.6f", q_east);
+	/* Independently computed reference (UK site, lon east convention). */
+	const double qa = planet_parallactic_angle(JD_REF, 120.0, 21.0, 52.0, -2.0);
+	cr_assert_float_eq(qa, 19.900046, 1e-4, "qa=%.6f", qa);
+	/* Antisymmetry about the meridian. */
+	const double q_west = planet_parallactic_angle(JD_REF, 120.0, 21.0, 52.0,
+	                                               lon_mer + 15.0);
+	cr_assert_float_eq(q_west, -q_east, 1e-6);
+}
+
 Test(planet_ephem, delta_t_contemporary) {
 	double dt = planet_ephem_delta_t(JD_REF);
 	cr_assert(dt > 67.0 && dt < 71.0, "delta-T(2026)=%.2f s", dt);

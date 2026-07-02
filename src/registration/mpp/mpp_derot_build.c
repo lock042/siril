@@ -141,13 +141,20 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              int frame_rows, int frame_cols,
                              double cx, double cy, double radius,
                              double pa_deg, double parity,
-                             double obs_lat, double obs_lon, double obs_elev) {
+                             double obs_lat, double obs_lon, double obs_elev,
+                             mpp_field_rot_t field_rot) {
 	if (!jd || num_frames <= 0 || system < 1 || system > 3) return NULL;
+	if (field_rot == MPP_FIELD_ROT_ALTAZ && (isnan(obs_lat) || isnan(obs_lon))) {
+		siril_log_error(_("derotate: alt-az field rotation needs the observer "
+		                  "site — supply -obs-lat and -obs-lon\n"));
+		return NULL;
+	}
 
-	/* Observer coordinates ride along in the plan for provenance; the
-	 * built-in ephemeris is geocentric (the sub-observer geometry differs
-	 * by well under 0.001 deg for these bodies). */
-	if (!isnan(obs_lat) || !isnan(obs_lon) || !isnan(obs_elev))
+	if (field_rot == MPP_FIELD_ROT_NONE
+	    && (!isnan(obs_lat) || !isnan(obs_lon) || !isnan(obs_elev)))
+		/* Without field rotation the observer coordinates only ride along
+		 * for provenance; the ephemeris itself is geocentric (the
+		 * sub-observer geometry differs by well under 0.001 deg). */
 		siril_log_message(_("derotate: observer coordinates are recorded for "
 		                    "provenance only — the ephemeris is geocentric "
 		                    "(difference < 0.001° for these bodies)\n"));
@@ -155,6 +162,9 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 	planet_geom_t ge;
 	if (planet_ephemeris(body, epoch_jd, obs_lat, obs_lon, obs_elev, &ge) != 0)
 		return NULL;
+	const double q0 = (field_rot == MPP_FIELD_ROT_ALTAZ)
+	    ? planet_parallactic_angle(epoch_jd, ge.ra, ge.dec, obs_lat, obs_lon)
+	    : 0.0;
 
 	mpp_derot_t *d = mpp_derot_alloc(num_frames);
 	if (!d) return NULL;
@@ -187,7 +197,31 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 		d->sub_obs_lat[i] = g.sub_obs_lat;
 		d->cm[i] = g.cm[system - 1];
 		d->pole_pa[i] = g.pole_pa;
+		if (field_rot == MPP_FIELD_ROT_ALTAZ) {
+			/* Alt-az field rotation, folded into the per-frame pole angle.
+			 * The map builder turns the ON-SKY drift (pole_pa[i] −
+			 * epoch_pole_pa) into the in-image angle (with parity), so any
+			 * additional on-sky-frame rotation of the IMAGE belongs in the
+			 * same slot. With the camera fixed to the horizon frame, the
+			 * in-image direction of the zenith is constant while sky north
+			 * sits at −q from it (q = PA of the zenith, N→E positive):
+			 * the in-image orientation of everything on the sky drifts by
+			 * −Δq. Hence subtract (q_i − q_epoch). Per-frame RA/Dec keeps
+			 * long -epoch-from spans honest. */
+			const double qi = planet_parallactic_angle(jd[i], g.ra, g.dec,
+			                                           obs_lat, obs_lon);
+			d->pole_pa[i] -= qi - q0;
+		}
 	}
+	if (field_rot == MPP_FIELD_ROT_ALTAZ)
+		siril_log_message(_("derotate: alt-az field rotation folded in — "
+		                    "%.2f° across the span (parallactic angle %.2f° "
+		                    "at the epoch)\n"),
+		                  fabs(planet_parallactic_angle(jd[num_frames - 1],
+		                           ge.ra, ge.dec, obs_lat, obs_lon)
+		                       - planet_parallactic_angle(jd[0], ge.ra, ge.dec,
+		                           obs_lat, obs_lon)),
+		                  q0);
 	return d;
 }
 

@@ -86,6 +86,21 @@ static const double DELTAT[] = {
 	68.50, 68.40                                                          /*2031*/
 };
 
+double planet_parallactic_angle(double jd_utc, double ra_deg, double dec_deg,
+                                double obs_lat_deg, double obs_lon_east_deg) {
+	/* Greenwich mean sidereal time (Meeus 12.4), degrees. ~0.1 s accuracy —
+	 * far beyond what q needs. */
+	const double d = jd_utc - 2451545.0;
+	const double T = d / 36525.0;
+	const double gmst = wrap360(280.46061837 + 360.98564736629 * d
+	                            + 0.000387933 * T * T - T * T * T / 38710000.0);
+	const double lst = gmst + obs_lon_east_deg;
+	double H = wrap360(lst - ra_deg);          /* hour angle, degrees */
+	if (H > 180.0) H -= 360.0;                 /* (-180, 180]: negative = east */
+	const double Hr = H * DEG, phi = obs_lat_deg * DEG, del = dec_deg * DEG;
+	return atan2(sin(Hr), tan(phi) * cos(del) - sin(del) * cos(Hr)) / DEG;
+}
+
 double planet_ephem_delta_t(double jd_utc) {
 	const int n = (int) (sizeof(DELTAT) / sizeof(DELTAT[0]));
 	const double year = 2000.0 + (jd_utc - 2451545.0) / 365.25;

@@ -923,9 +923,12 @@ static gpointer derot_compute_worker(gpointer p) {
 	if (ep) { epoch_jd = date_time_to_Julian(ep); g_date_time_unref(ep); }
 	else      epoch_jd = mpp_derot_midpoint_epoch(jd, a->N);
 
+	/* Field rotation not yet surfaced in the GUI (site widgets pending);
+	 * the CLI derotate command exposes -field-rotation=altaz. */
 	mpp_derot_t *d = mpp_derot_build(a->body, a->system, epoch_jd, jd, a->N,
 	                                 a->ry, a->rx, a->cx, a->cy, a->radius,
-	                                 a->pa, a->parity, NAN, NAN, NAN);
+	                                 a->pa, a->parity, NAN, NAN, NAN,
+	                                 MPP_FIELD_ROT_NONE);
 	free(jd);
 	if (!d) {
 		a->err = _("Ephemeris/plan build failed.");
@@ -1325,7 +1328,7 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 		a->derots[i] = mpp_derot_build(session->body, session->system, epoch_jd,
 		                               jd, e->num_frames, e->frame_rows, e->frame_cols,
 		                               e->cx, e->cy, e->r_eq, e->pa_deg, e->parity,
-		                               NAN, NAN, NAN);
+		                               NAN, NAN, NAN, MPP_FIELD_ROT_NONE);
 		g_free(jd);
 		if (!a->derots[i]) {
 			siril_log_error(_("Derotation combine: plan build failed for '%s'\n"),

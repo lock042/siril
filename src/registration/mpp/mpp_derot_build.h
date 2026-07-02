@@ -55,16 +55,29 @@ gboolean mpp_derot_sequence_span(sequence *seq, double fps, double start_jd,
  * all the sequences is derotated through. Returns 0 for n <= 0. */
 double mpp_derot_union_epoch(const double *first_jd, const double *last_jd, int n);
 
+/* Analytic field-rotation correction folded into the plan's per-frame
+ * angles. NONE: the camera tracks the sky (equatorial mount / rotator).
+ * ALTAZ: the camera is fixed to the horizon frame, so the sky rotates in
+ * the image at the parallactic-angle rate; requires observer latitude and
+ * longitude (and trustworthy frame timestamps). */
+typedef enum {
+	MPP_FIELD_ROT_NONE  = 0,
+	MPP_FIELD_ROT_ALTAZ = 1,
+} mpp_field_rot_t;
+
 /* Build a fully-populated plan (per-frame + epoch geometry) from the built-in
  * ephemeris. `system` is 1..3. Disk fit is in original full-frame pixels;
  * pa_deg is the in-image pole position angle, parity ±1. obs_* may be NaN for
- * geocentric. Returns a heap plan (free with mpp_derot_free) or NULL. */
+ * geocentric — unless field_rot is ALTAZ, which needs obs_lat/obs_lon to
+ * evaluate the parallactic angle. Returns a heap plan (free with
+ * mpp_derot_free) or NULL. */
 mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              const double *jd, int num_frames,
                              int frame_rows, int frame_cols,
                              double cx, double cy, double radius,
                              double pa_deg, double parity,
-                             double obs_lat, double obs_lon, double obs_elev);
+                             double obs_lat, double obs_lon, double obs_elev,
+                             mpp_field_rot_t field_rot);
 
 /* Rough planet-disk detector. Thresholds the bright region (half-max above a
  * border-estimated sky background) and takes its flux centroid and the minor

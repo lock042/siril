@@ -83,6 +83,23 @@ int planet_ephemeris(planet_body_t body, double jd_utc,
  * tests and callers that want the time-scale offset. */
 double planet_ephem_delta_t(double jd_utc);
 
+/* Parallactic angle q of a target at (ra_deg, dec_deg) [J2000, degrees] seen
+ * from geodetic latitude obs_lat_deg / EAST longitude obs_lon_east_deg at UTC
+ * Julian date jd_utc, in degrees:
+ *
+ *   q = atan2(sin H, tan(lat)·cos(dec) − sin(dec)·cos H),   H = LST − RA
+ *
+ * q is the position angle of the zenith at the target, measured from
+ * celestial north through east; 0 on the meridian, negative east of it,
+ * positive west (northern-hemisphere convention). On an alt-az mount the
+ * camera is fixed to the horizon frame, so the sky rotates in the image at
+ * −dq/dt — the basis of the analytic field-rotation correction. Uses the
+ * J2000 RA directly (of-date precession shifts q by well under the model's
+ * needs except within ~1 deg of the zenith, where q is intrinsically
+ * ill-conditioned). */
+double planet_parallactic_angle(double jd_utc, double ra_deg, double dec_deg,
+                                double obs_lat_deg, double obs_lon_east_deg);
+
 #ifdef __cplusplus
 }
 #endif

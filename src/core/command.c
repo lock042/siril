@@ -14938,6 +14938,7 @@ int process_derotate(int nb) {
 	double cx = 0, cy = 0, radius = 0, pa_deg = 0.0, parity = 1.0, fps = 0.0;
 	gboolean has_center = FALSE, has_radius = FALSE;
 	double obs_lat = NAN, obs_lon = NAN, obs_elev = NAN;
+	mpp_field_rot_t field_rot = MPP_FIELD_ROT_NONE;
 	GDateTime *epoch_dt = NULL, *start_dt = NULL;
 	gchar *out_path = NULL;
 	gchar *epoch_from = NULL;
@@ -14980,6 +14981,14 @@ int process_derotate(int nb) {
 			obs_lon = g_ascii_strtod(w + 9, NULL);
 		} else if (g_str_has_prefix(w, "-obs-elev=")) {
 			obs_elev = g_ascii_strtod(w + 10, NULL);
+		} else if (g_str_has_prefix(w, "-field-rotation=")) {
+			const char *v = w + 16;
+			if (!g_ascii_strcasecmp(v, "none")) field_rot = MPP_FIELD_ROT_NONE;
+			else if (!g_ascii_strcasecmp(v, "altaz")) field_rot = MPP_FIELD_ROT_ALTAZ;
+			else {
+				siril_log_error(_("derotate: -field-rotation must be none or altaz\n"));
+				ret = CMD_ARG_ERROR; goto done;
+			}
 		} else if (g_str_has_prefix(w, "-out=")) {
 			g_free(out_path); out_path = g_strdup(w + 5);
 		} else {
@@ -15075,7 +15084,7 @@ int process_derotate(int nb) {
 	mpp_derot_t *d = mpp_derot_build(body, system, epoch_jd, jd, N,
 	                                 (int) seq->ry, (int) seq->rx,
 	                                 cx, cy, radius, pa_deg, parity,
-	                                 obs_lat, obs_lon, obs_elev);
+	                                 obs_lat, obs_lon, obs_elev, field_rot);
 	if (!d) {
 		siril_log_error(_("derotate: ephemeris/plan build failed\n"));
 		free(jd); ret = CMD_GENERIC_ERROR; goto done;
