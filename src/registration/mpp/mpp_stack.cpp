@@ -475,9 +475,90 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		return out;
 	}
 
+	/* Selection harmonisation for weak-structure APs. At APs whose box
+	 * holds little rankable structure (solar limb, prominence fringes,
+	 * near-sky patches) the per-frame Laplace σ is noise, so adjacent APs
+	 * pick gratuitously different frame subsets; each subset carries its
+	 * own seeing mix, the aureole each AP stacks differs in blur profile,
+	 * and the blend imprints AP-pitch scallops along the limb — a shape
+	 * difference no level matching can remove. Blend such APs' quality
+	 * vectors toward a structure-weighted consensus of their neighbours:
+	 * α = clamp(1 − 2·s/median(s), 0, 1) is zero for anything at or above
+	 * half the grid's median structure (object selection untouched) and
+	 * approaches full consensus for structure-free APs, whose ranking
+	 * then follows the regional seeing measured by the nearest APs that
+	 * can measure it — and converges across the ring. The published
+	 * qualities stay raw (diagnostic contract); only the ranking below
+	 * uses the harmonised copy. */
+	const std::vector<std::vector<double>> *rank_q = &out.qualities;
+	std::vector<std::vector<double>> harmonised;
+	{
+		std::vector<double> sv(M);
+		for (int a = 0; a < M; ++a) sv[a] = aps.records[a].structure;
+		std::vector<double> tmp(sv);
+		std::nth_element(tmp.begin(), tmp.begin() + M / 2, tmp.end());
+		const double med = tmp[M / 2];
+		const int thr = (mpp_cfg_step_size(&cfg) * 5) / 2;
+		bool any = false;
+		if (med > 0.0) {
+			harmonised = out.qualities;
+			for (int a = 0; a < M; ++a) {
+				const auto &ra = aps.records[a];
+				/* Structure-weighted consensus of the neighbourhood
+				 * (~2 grid rings). */
+				std::vector<double> cons(N, 0.0);
+				double wsum = 0.0;
+				for (int b = 0; b < M; ++b) {
+					if (b == a) continue;
+					const auto &rb = aps.records[b];
+					if (std::abs(ra.y - rb.y) > thr
+					 || std::abs(ra.x - rb.x) > thr)
+						continue;
+					const double w = sv[b] + 1e-6;
+					for (int f = 0; f < N; ++f)
+						cons[f] += w * out.qualities[b][f];
+					wsum += w;
+				}
+				if (wsum <= 0.0) continue;
+				for (int f = 0; f < N; ++f) cons[f] /= wsum;
+				/* Rank coherence: Pearson correlation of this AP's
+				 * quality vector against the consensus over included
+				 * frames. Seeing is regional at grid-step scale, so a
+				 * measurable AP tracks its neighbours closely; a low
+				 * correlation means the ranking is noise (limb-edge
+				 * boxes score high structure yet rank incoherently). */
+				double sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+				int n = 0;
+				for (int f = 0; f < N; ++f) {
+					if (!is_included(f)) continue;
+					const double x = out.qualities[a][f], y = cons[f];
+					sx += x; sy += y; sxx += x * x; syy += y * y;
+					sxy += x * y; ++n;
+				}
+				if (n < 8) continue;
+				const double vx = sxx - sx * sx / n, vy = syy - sy * sy / n;
+				const double cov = sxy - sx * sy / n;
+				const double r = (vx > 0 && vy > 0)
+				    ? cov / std::sqrt(vx * vy) : 1.0;
+				const double alpha_corr =
+				    std::min(1.0, std::max(0.0, (0.9 - r) / 0.5));
+				const double alpha_struct =
+				    std::min(1.0, std::max(0.0, 1.0 - 2.0 * sv[a] / med));
+				const double alpha = std::max(alpha_corr, alpha_struct);
+				if (alpha <= 0.0) continue;
+				auto &dst = harmonised[a];
+				for (int f = 0; f < N; ++f)
+					dst[f] = (1.0 - alpha) * out.qualities[a][f]
+					       + alpha * cons[f];
+				any = true;
+			}
+		}
+		if (any) rank_q = &harmonised;
+	}
+
 	/* Soft-selection taper (0 in explicit frame-number mode and whenever
 	 * there is no room above the cut — e.g. the default 100%). */
-	out.taper = stack_compute_selection_taper(out.qualities, aps, N,
+	out.taper = stack_compute_selection_taper(*rank_q, aps, N,
 	                                          out.stack_size, cfg);
 	const int selected = std::min(n_included, out.stack_size + out.taper);
 
@@ -489,7 +570,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 	for (int a = 0; a < M; ++a) {
 		std::vector<int> indices(N);
 		std::iota(indices.begin(), indices.end(), 0);
-		const auto &q = out.qualities[a];
+		const auto &q = (*rank_q)[a];
 		std::partial_sort(indices.begin(), indices.begin() + selected,
 		                  indices.end(),
 		                  [&q](int x, int y) {
@@ -555,22 +636,89 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 
 	const float stack_size_f = (float) stack_size;
 
+	/* Boundary-patch extension. The AP grid stops where the reference
+	 * frame has structure, so along an object's rim (e.g. the solar limb)
+	 * the coverage boundary — where the merge hands over to the softer,
+	 * global-aligned averaged_background — runs right across the faint
+	 * structure just outside it (spicule layer, prominence fringes), and
+	 * the hand-off band follows the scalloped outer window contours,
+	 * imprinting AP-pitch arcs under sharpening. Push that boundary one
+	 * grid step outward wherever no other AP's patch covers the space
+	 * beyond an edge: the extended area stacks the AP's own frames at its
+	 * own measured shifts (locally aligned, unlike the background), and
+	 * the hand-off moves into empty sky where it is invisible. Interior
+	 * edges (fully covered by a neighbour's patch) are left untouched, so
+	 * the mosaic's overlap topology on the object is unchanged. */
+	const int ext_step = mpp_cfg_step_size(&cfg);
+	std::vector<cv::Vec4i> patch(M), ext(M);
 	for (int a = 0; a < M; ++a) {
 		const auto &ap = aps.records[a];
-		const int py_lo = scl(ap.patch_y_low);
-		const int py_hi = scl(ap.patch_y_high);
-		const int px_lo = scl(ap.patch_x_low);
-		const int px_hi = scl(ap.patch_x_high);
+		patch[a] = cv::Vec4i(ap.patch_y_low, ap.patch_y_high,
+		                     ap.patch_x_low, ap.patch_x_high);
+		ext[a] = patch[a];
+	}
+	/* Is the 1-px strip beyond `edge` (a row for horiz_strip, else a
+	 * column), across [lo, hi) of the perpendicular axis, ≥98 % covered
+	 * by the union of the OTHER patches? */
+	auto covered = [&](int a, int lo, int hi, int edge, bool horiz_strip) {
+		std::vector<std::pair<int, int>> iv;
+		for (int b = 0; b < M; ++b) {
+			if (b == a) continue;
+			const auto &p = patch[b];
+			const int b_lo  = horiz_strip ? p[2] : p[0];
+			const int b_hi  = horiz_strip ? p[3] : p[1];
+			const int b_plo = horiz_strip ? p[0] : p[2];
+			const int b_phi = horiz_strip ? p[1] : p[3];
+			if (b_plo > edge || b_phi < edge + 1) continue;
+			const int s0 = std::max(lo, b_lo), s1 = std::min(hi, b_hi);
+			if (s1 > s0) iv.emplace_back(s0, s1);
+		}
+		std::sort(iv.begin(), iv.end());
+		long len = 0;
+		int cur = lo;
+		for (const auto &v : iv) {
+			if (v.second <= cur) continue;
+			len += v.second - std::max(cur, v.first);
+			cur = std::max(cur, v.second);
+		}
+		return (double) len >= 0.98 * (double) (hi - lo);
+	};
+	for (int a = 0; a < M; ++a) {
+		const auto &p = patch[a];
+		if (p[0] > 0       && !covered(a, p[2], p[3], p[0] - 1, true))
+			ext[a][0] = std::max(0, p[0] - ext_step);
+		if (p[1] < s.dim_y && !covered(a, p[2], p[3], p[1], true))
+			ext[a][1] = std::min(s.dim_y, p[1] + ext_step);
+		if (p[2] > 0       && !covered(a, p[0], p[1], p[2] - 1, false))
+			ext[a][2] = std::max(0, p[2] - ext_step);
+		if (p[3] < s.dim_x && !covered(a, p[0], p[1], p[3], false))
+			ext[a][3] = std::min(s.dim_x, p[3] + ext_step);
+	}
+
+	for (int a = 0; a < M; ++a) {
+		const auto &ap = aps.records[a];
+		const int py_lo = scl(ext[a][0]);
+		const int py_hi = scl(ext[a][1]);
+		const int px_lo = scl(ext[a][2]);
+		const int px_hi = scl(ext[a][3]);
 		const int yc    = scl(ap.y);
 		const int xc    = scl(ap.x);
 
 		s.patch_drizzled.push_back(cv::Vec4i(py_lo, py_hi, px_lo, px_hi));
+		s.patch_extension.push_back(cv::Vec4i(
+		    scl(patch[a][0]) - py_lo, py_hi - scl(patch[a][1]),
+		    scl(patch[a][2]) - px_lo, px_hi - scl(patch[a][3])));
 		s.ap_drizzled.push_back(cv::Vec2i(yc, xc));
 
-		const bool extend_y_low  = (py_lo == 0);
-		const bool extend_y_high = (py_hi == s.dim_y_drizzled);
-		const bool extend_x_low  = (px_lo == 0);
-		const bool extend_x_high = (px_hi == s.dim_x_drizzled);
+		/* Edge-extension (flat) window flags follow the REGISTERED patch
+		 * bounds: a patch that only reaches the canvas edge through the
+		 * boundary extension keeps its Hann taper there, so best-effort
+		 * extension content fades out instead of carrying full weight
+		 * into rows some frames cannot supply. */
+		const bool extend_y_low  = (scl(patch[a][0]) == 0);
+		const bool extend_y_high = (scl(patch[a][1]) == s.dim_y_drizzled);
+		const bool extend_x_low  = (scl(patch[a][2]) == 0);
+		const bool extend_x_high = (scl(patch[a][3]) == s.dim_x_drizzled);
 		const auto wy = stack_one_dim_weight(py_lo, py_hi, yc, extend_y_low,  extend_y_high);
 		const auto wx = stack_one_dim_weight(px_lo, px_hi, xc, extend_x_low,  extend_x_high);
 
@@ -670,8 +818,18 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 	}
 
 	const cv::Mat weight_matrix = stack_build_first_phase_weight_matrix(cfg);
+	/* Escalation retry for failed local searches. A failure means the
+	 * correlation peak railed at the search border — usually because the
+	 * true local shift exceeds the window (large radial limb excursions
+	 * in poor solar frames rail phase 1, whose {0,0} fallback then stacks
+	 * the patch at global-only alignment and imprints AP-pitch beads
+	 * along the limb). Re-measure just the failed pairs with a wider
+	 * phase-1 window; only they pay the extra cost. +8 raises the
+	 * phase-1 reach from ±(search_width−4) to ±(search_width+4) px. */
+	mpp_config_t cfg_retry = cfg;
+	cfg_retry.alignment_points_search_width = cfg.alignment_points_search_width + 8;
+	const cv::Mat weight_matrix_retry = stack_build_first_phase_weight_matrix(cfg_retry);
 	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
-
 	int n_included = 0;
 	if (included) {
 		for (int f = 0; f < N; ++f) if (included[f]) ++n_included;
@@ -698,6 +856,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 	const int cv_saved_threads = cv::getNumThreads();
 	if (nt > 1) cv::setNumThreads(1);
 	gint cancelled = 0, failures = 0, cur_nb = 0;
+	gint retried = 0, recovered = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nt) schedule(dynamic) if (nt > 1)
 #endif
@@ -739,13 +898,32 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 				for (const auto &u : apq.used_alignment_points[f]) {
 					const int a = u.ap;
 					const auto &ap = aps.records[a];
-					const MultilevelShiftResult r = multilevel_correlation(
+					MultilevelShiftResult r = multilevel_correlation(
 					    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
 					    frame,
 					    ap.box_y_low + dy, ap.box_y_high + dy,
 					    ap.box_x_low + dx, ap.box_x_high + dx,
 					    cfg.frames_gauss_width, cfg.alignment_points_search_width,
 					    use_subpixel, weight_matrix);
+					if (!r.success) {
+						const MultilevelShiftResult r2 = multilevel_correlation(
+						    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
+						    frame,
+						    ap.box_y_low + dy, ap.box_y_high + dy,
+						    ap.box_x_low + dx, ap.box_x_high + dx,
+						    cfg.frames_gauss_width,
+						    cfg_retry.alignment_points_search_width,
+						    use_subpixel, weight_matrix_retry);
+						/* Keep the original coarse estimate over a retry
+						 * that produced none (railed again / window
+						 * off-frame). */
+						const bool r2_useless = !r2.success
+						    && r2.dy == 0.0 && r2.dx == 0.0
+						    && (r.dy != 0.0 || r.dx != 0.0);
+						if (!r2_useless) r = r2;
+						g_atomic_int_inc(&retried);
+						if (r.success) g_atomic_int_inc(&recovered);
+					}
 					const size_t off = (size_t) (f * M + a) * 2;
 					out->shifts[off + 0] = r.dy + sub_y;
 					out->shifts[off + 1] = r.dx + sub_x;
@@ -768,6 +946,12 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 		return out;
 	}
 	out->failure_counter = (int) g_atomic_int_get(&failures);
+	if (retried > 0)
+		siril_log_message(_("Register: %d failed local searches retried at "
+		                    "width %d, %d recovered\n"),
+		                  g_atomic_int_get(&retried),
+		                  cfg_retry.alignment_points_search_width,
+		                  g_atomic_int_get(&recovered));
 	return out;
 }
 
@@ -872,6 +1056,53 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			                    "successful shifts — stacking them "
 			                    "unfiltered\n"), saturated_aps);
 	}
+
+	/* Neighbour-interpolated fallback for failed shift measurements that
+	 * carry NO estimate at all — phase-1 border rails store {0,0}, i.e.
+	 * global-only alignment, several px off at a warping limb, and each
+	 * such patch imprints an AP-pitch bead along it. Atmospheric warp is
+	 * smooth at grid-step scale, so the per-component median of the SAME
+	 * frame's successful measurements at neighbouring APs is the best
+	 * available estimate — the same policy as the warp engine's
+	 * neighbour-interpolated warp field. Failed pairs that DO carry a
+	 * coarse phase-1 estimate keep it: it tracks local limb excursions
+	 * that disc-ward neighbours cannot see (measured: interpolating those
+	 * as well leaves limb beading in place). Pairs with no successful
+	 * neighbour keep their stored value, and skip mode drops failed pairs
+	 * before any of this matters. */
+	std::vector<std::vector<int>> ap_nbrs;
+	if (shifts && shifts->failure_counter > 0) {
+		const int thr = (mpp_cfg_step_size(&cfg) * 3) / 2;
+		ap_nbrs.resize(M);
+		for (int a = 0; a < M; ++a) {
+			const auto &ra = aps.records[a];
+			for (int b = a + 1; b < M; ++b) {
+				const auto &rb = aps.records[b];
+				if (std::abs(ra.y - rb.y) <= thr && std::abs(ra.x - rb.x) <= thr) {
+					ap_nbrs[a].push_back(b);
+					ap_nbrs[b].push_back(a);
+				}
+			}
+		}
+	}
+	auto interpolated_shift = [&](int f, int a, double *sy, double *sx) {
+		if (ap_nbrs.empty()) return;
+		std::vector<double> ys, xs;
+		for (int b : ap_nbrs[a]) {
+			if (!shifts->success[(size_t) f * M + b]) continue;
+			const size_t o = (size_t) (f * M + b) * 2;
+			ys.push_back(shifts->shifts[o + 0]);
+			xs.push_back(shifts->shifts[o + 1]);
+		}
+		if (ys.empty()) return;
+		auto med = [](std::vector<double> &v) {
+			const size_t h = v.size() / 2;
+			std::nth_element(v.begin(), v.begin() + h, v.end());
+			return v[h];
+		};
+		*sy = med(ys);
+		*sx = med(xs);
+	};
 
 	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
 	                                       S, num_layers, cfg,
@@ -1026,13 +1257,33 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				    && !shifts->success[(size_t) f * M + a])
 					continue;
 				const size_t soff = (size_t) (f * M + a) * 2;
-				const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
-				const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
+				double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
+				double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
+				/* A failed pair whose stored shift is exactly the frame's
+				 * sub-pixel global residual carries no local estimate at
+				 * all (Stage B stores r.dy + sub_y with r == {0,0} on a
+				 * phase-1 rail; real phase-1 estimates sit on an even
+				 * integer grid, so only phase1 == 0 collides — and for
+				 * those the neighbour median is a no-op-safe refinement). */
+				if (shifts && !shifts->success[(size_t) f * M + a]
+				    && shift_y == offsets[f].dy - (double) dy
+				    && shift_x == offsets[f].dx - (double) dx)
+					interpolated_shift(f, a, &shift_y, &shift_x);
 				const auto &p = out.state.patch_drizzled[a];
+				/* Per-call border, folded with the AP's boundary-patch
+				 * extension discounted: clipping that stays inside the
+				 * extension is best-effort loss in empty margin, not
+				 * grounds for trimming rows off the output. */
+				RemapBorder pb;
 				stack_remap_subpixel(frame_drizzled, lbuf[a],
 				                     (offsets[f].dy - shift_y) * S,
 				                     (offsets[f].dx - shift_x) * S,
-				                     p[0], p[1], p[2], p[3], lb, u.weight);
+				                     p[0], p[1], p[2], p[3], pb, u.weight);
+				const auto &e = out.state.patch_extension[a];
+				lb.y_low  = std::max(lb.y_low,  pb.y_low  - e[0]);
+				lb.y_high = std::max(lb.y_high, pb.y_high - e[1]);
+				lb.x_low  = std::max(lb.x_low,  pb.x_low  - e[2]);
+				lb.x_high = std::max(lb.x_high, pb.x_high - e[3]);
 			}
 
 			if (holes && top_for_bg.find(f) != top_for_bg.end()) {
@@ -1160,6 +1411,62 @@ cv::Mat broadcast_channels(const cv::Mat &single, int n) {
 	return out;
 }
 
+/* Single-channel mean across channels (identity for mono) — the
+ * luminance proxy the DC equalisation's signal ramp is evaluated on. */
+cv::Mat dc_gray(const cv::Mat &m) {
+	if (m.channels() == 1) return m;
+	std::vector<cv::Mat> ch;
+	cv::split(m, ch);
+	cv::Mat g = ch[0] + ch[1];
+	for (int c = 2; c < (int) ch.size(); ++c) g += ch[c];
+	return g * (1.0 / (double) ch.size());
+}
+
+/* Signal ramp for the DC equalisation: s = clamp((v − lo) / lo, 0, 1),
+ * i.e. 0 at/below the background line `lo`, full weight from 2·lo up.
+ * `v` is a single-channel CV_32F luminance; returns CV_32F. */
+cv::Mat dc_signal_ramp(const cv::Mat &v_gray, double lo) {
+	cv::Mat s;
+	v_gray.convertTo(s, CV_32F, 1.0 / lo, -1.0);
+	cv::min(s, 1.0f, s);
+	cv::max(s, 0.0f, s);
+	return s;
+}
+
+/* Two-band level masks for the DC equalisation. The mismatch between AP
+ * buffers has two distinct regimes: on the object it tracks transparency
+ * (∝ signal), while in the aureole / faint fringe band just outside a
+ * bright rim it is seeing-driven (blur-width differences between the
+ * per-AP frame subsets) and NOT proportional to the local level — a
+ * single per-AP constant cannot serve both. Split by level into a HIGH
+ * band s_hi = clamp((v − 3lo)/(3lo)) and a MID band
+ * s_mid = clamp((v − lo)/(lo/2)) · (1 − s_hi), each with its own offset
+ * graph. The two sum to exactly 1 for v ≥ 1.5·lo (a partition, so where
+ * both graphs agree the result equals the single-band correction) and to
+ * 0 at/below `lo`, keeping the empty background at its natural level. */
+void dc_band_masks(const cv::Mat &v_gray, double lo,
+                   cv::Mat &s_mid, cv::Mat &s_hi) {
+	cv::Mat hi;
+	v_gray.convertTo(hi, CV_32F, 1.0 / (3.0 * lo), -1.0);
+	cv::min(hi, 1.0f, hi);
+	cv::max(hi, 0.0f, hi);
+	cv::Mat rise;
+	v_gray.convertTo(rise, CV_32F, 2.0 / lo, -2.0);
+	cv::min(rise, 1.0f, rise);
+	cv::max(rise, 0.0f, rise);
+	s_mid = rise.mul(1.0f - hi);
+	s_hi = hi;
+}
+
+/* Background line for the DC equalisation's signal ramp, in pixel units.
+ * Reuses the AP-placement brightness threshold — the existing "background
+ * vs structure" knob — so ≤ 0 disables the ramp (uniform legacy
+ * behaviour). */
+double dc_signal_floor(const mpp_config_t &cfg) {
+	return (double) cfg.alignment_points_brightness_threshold
+	     * mpp_cfg_threshold_scale(&cfg);
+}
+
 /* Per-AP DC equalisation offsets (Siril enhancement; PSS has no
  * equivalent). Each AP buffer is a mean over its own top-N frame subset,
  * so neighbouring APs settle at slightly different local levels
@@ -1170,20 +1477,139 @@ cv::Mat broadcast_channels(const cv::Mat &single, int n) {
  *   d_ab = mean_overlap(B_a / c_a − B_b / c_b)   (per channel).
  * Solve the least-squares offsets δ minimising
  *   Σ_pairs n_ab (δ_a − δ_b + d_ab)²
- * (n_ab = overlap area) by Gauss-Seidel — the normal equations are
+ * (n_ab = overlap weight) by Gauss-Seidel — the normal equations are
  *   δ_a = Σ_b n_ab (δ_b − d_ab) / Σ_b n_ab,
  * a strictly diagonally dominant relaxation that converges in a few
  * dozen sweeps for any AP graph. The system is invariant under a global
  * constant, so pin the mean δ of connected APs to zero (preserves the
- * overall brightness). APs with no overlapping neighbour keep δ = 0. */
-std::vector<cv::Scalar> stack_solve_ap_dc_offsets(const mpp::StackState &state) {
-	const int M = (int) state.stacking_buffers.size();
-	std::vector<cv::Scalar> delta(M, cv::Scalar::all(0.0));
-	if (M < 2 || (int) state.ap_frame_counts.size() != M)
-		return delta;
+ * overall brightness). APs with no overlapping neighbour keep δ = 0.
+ *
+ * The mismatch the offsets model (transparency drift, disjoint frame
+ * picks) scales with local signal, while over the empty background the
+ * true inter-subset difference is ~0 — frames are brightness-equalised
+ * before accumulation. So both the overlap mean and the overlap weight
+ * are taken under the dc_signal_ramp of the local level: offsets are
+ * measured on object pixels instead of being diluted by sky, and edges
+ * whose overlap holds no signal are dropped. The merge applies δ under
+ * the same ramp, so the background keeps its natural level (blocky
+ * level steps around e.g. solar prominences otherwise appear where a
+ * patch's disc-driven offset is painted across the sky it also covers,
+ * stepping against neighbours and the averaged-background blend). */
+struct DCEdge { int b; double n; cv::Scalar d; };
 
-	struct Edge { int b; double n; cv::Scalar d; };
-	std::vector<std::vector<Edge>> nbrs(M);
+/* Weighted Gauss-Seidel solve of one offset graph, with MAD outlier
+ * suppression and zero-mean pinning — see stack_solve_ap_dc_offsets for
+ * the model. Consumes (mutates) the edge lists. */
+std::vector<cv::Scalar> dc_solve_graph(std::vector<std::vector<DCEdge>> &nbrs,
+                                       int M, int C) {
+	std::vector<cv::Scalar> delta(M, cv::Scalar::all(0.0));
+
+	auto gauss_seidel = [&]() {
+		for (int it = 0; it < 32; ++it) {
+			for (int a = 0; a < M; ++a) {
+				if (nbrs[a].empty()) continue;
+				cv::Scalar acc = cv::Scalar::all(0.0);
+				double nsum = 0.0;
+				for (const auto &e : nbrs[a]) {
+					acc += (delta[e.b] - e.d) * e.n;
+					nsum += e.n;
+				}
+				/* nbrs[a] is non-empty here and every edge weight e.n is a
+				 * positive overlap weight, so nsum > 0; guard anyway to keep
+				 * the division provably safe. */
+				if (nsum > 0.0)
+					delta[a] = acc * (1.0 / nsum);
+			}
+		}
+	};
+	gauss_seidel();
+
+	/* Outlier suppression. Genuine level steps between AP subsets are tens
+	 * of ADU; APs whose solved offset sits far outside the graph's own
+	 * distribution (frame-boundary patches over prominences / empty sky,
+	 * where there is no flat signal and the intercept extrapolation is
+	 * unstable) are measurement failures, not corrections — applied, they
+	 * paint block-shaped level steps that a nonlinear stretch makes
+	 * glaring. Flag |δ − median| > 6·MAD per channel, null the MEASUREMENT
+	 * on the flagged APs' incident edges (keeping the edges themselves so
+	 * the smoothness term survives) and re-solve: a flagged AP takes the
+	 * smooth interpolation of its neighbours' offsets instead of its own
+	 * broken estimate. Two rounds with cumulative flags. */
+	std::vector<char> flagged(M, 0);
+	bool enough = true;
+	for (int round = 0; enough && round < 2; ++round) {
+		std::vector<double> med(C, 0.0), mad(C, 0.0);
+		std::vector<double> vals;
+		for (int c = 0; c < C; ++c) {
+			vals.clear();
+			for (int a = 0; a < M; ++a)
+				if (!nbrs[a].empty()) vals.push_back(delta[a][c]);
+			if (vals.size() < 4) { enough = false; break; }
+			auto midpoint = [&vals]() {
+				const size_t h = vals.size() / 2;
+				std::nth_element(vals.begin(), vals.begin() + h, vals.end());
+				return vals[h];
+			};
+			med[c] = midpoint();
+			for (auto &v : vals) v = std::abs(v - med[c]);
+			mad[c] = midpoint();
+		}
+		if (!enough) break;
+		int newly = 0;
+		for (int a = 0; a < M; ++a) {
+			if (flagged[a] || nbrs[a].empty()) continue;
+			for (int c = 0; c < C; ++c) {
+				if (mad[c] > 1e-9
+				    && std::abs(delta[a][c] - med[c]) > 6.0 * mad[c]) {
+					flagged[a] = 1;
+					++newly;
+					break;
+				}
+			}
+		}
+		if (!newly) break;
+		for (int a = 0; a < M; ++a)
+			for (auto &e : nbrs[a])
+				if (flagged[a] || flagged[e.b]) e.d = cv::Scalar::all(0.0);
+		gauss_seidel();
+	}
+
+	cv::Scalar mean = cv::Scalar::all(0.0);
+	int connected = 0;
+	for (int a = 0; a < M; ++a) {
+		if (nbrs[a].empty()) continue;
+		mean += delta[a];
+		++connected;
+	}
+	if (connected > 0) {
+		mean *= 1.0 / connected;
+		for (int a = 0; a < M; ++a)
+			if (!nbrs[a].empty()) delta[a] -= mean;
+	}
+	return delta;
+}
+
+/* Per-band offset sets: `hi` for object-level content, `mid` for the
+ * aureole / faint-fringe band (see dc_band_masks). With the signal ramp
+ * disabled (threshold ≤ 0) only `hi` is populated, from unweighted
+ * overlap means (legacy uniform behaviour). */
+struct APDCOffsets {
+	std::vector<cv::Scalar> hi;
+	std::vector<cv::Scalar> mid;
+};
+
+APDCOffsets stack_solve_ap_dc_offsets(const mpp::StackState &state,
+                                      const mpp_config_t &cfg) {
+	const int M = (int) state.stacking_buffers.size();
+	APDCOffsets out;
+	out.hi.assign(M, cv::Scalar::all(0.0));
+	out.mid.assign(M, cv::Scalar::all(0.0));
+	if (M < 2 || (int) state.ap_frame_counts.size() != M)
+		return out;
+	const double lo = dc_signal_floor(cfg);
+	const int C = state.num_layers;
+
+	std::vector<std::vector<DCEdge>> nbrs_hi(M), nbrs_mid(M);
 	for (int a = 0; a < M; ++a) {
 		const auto &pa = state.patch_drizzled[a];
 		const double ca = state.ap_frame_counts[a];
@@ -1201,44 +1627,76 @@ std::vector<cv::Scalar> stack_solve_ap_dc_offsets(const mpp::StackState &state) 
 			const cv::Mat sb = state.stacking_buffers[b](
 			    cv::Range(y0 - pb[0], y1 - pb[0]),
 			    cv::Range(x0 - pb[2], x1 - pb[2]));
-			const double n = (double) (y1 - y0) * (double) (x1 - x0);
-			const cv::Scalar d = cv::sum(sa) * (1.0 / (ca * n))
-			                   - cv::sum(sb) * (1.0 / (cb * n));
-			nbrs[a].push_back({b, n, d});
-			nbrs[b].push_back({a, n, -d});
-		}
-	}
-
-	for (int it = 0; it < 32; ++it) {
-		for (int a = 0; a < M; ++a) {
-			if (nbrs[a].empty()) continue;
-			cv::Scalar acc = cv::Scalar::all(0.0);
-			double nsum = 0.0;
-			for (const auto &e : nbrs[a]) {
-				acc += (delta[e.b] - e.d) * e.n;
-				nsum += e.n;
+			if (lo <= 0.0) {
+				const double n = (double) (y1 - y0) * (double) (x1 - x0);
+				const cv::Scalar d = cv::sum(sa) * (1.0 / (ca * n))
+				                   - cv::sum(sb) * (1.0 / (cb * n));
+				nbrs_hi[a].push_back({b, n, d});
+				nbrs_hi[b].push_back({a, n, -d});
+				continue;
 			}
-			/* nbrs[a] is non-empty here and every edge weight e.n is a positive
-			 * overlap area (>= 1), so nsum > 0; guard anyway to keep the
-			 * division provably safe. */
-			if (nsum > 0.0)
-				delta[a] = acc * (1.0 / nsum);
+			/* Normalised buffers; band-weighted DC of their difference
+			 * over the overlap. The two buffers can be slightly
+			 * misregistered against each other (per-AP shifts are
+			 * measured independently and can fail near featureless
+			 * limbs), which over a steep gradient makes the plain mean
+			 * difference gradient × shift — orders of magnitude above
+			 * any genuine level step. Two defences: the per-pixel weight
+			 * carries a flatness factor τ²/(τ² + |∇|²) — a DC step is
+			 * only measurable on flat content, and this keeps steep-limb
+			 * pixels from voting — and the DC is taken as the intercept
+			 * c of the weighted regression
+			 *   diff ≈ c + β·gx + γ·gy
+			 * (gx, gy = local gradient of the overlap content),
+			 * projecting first-order misregistration out of whatever
+			 * moderate-gradient pixels still carry weight. Over flat
+			 * content this reduces to the weighted mean difference. */
+			cv::Mat va, vb;
+			sa.convertTo(va, CV_32F, 1.0 / ca);
+			sb.convertTo(vb, CV_32F, 1.0 / cb);
+			const cv::Mat vm = 0.5 * (dc_gray(va) + dc_gray(vb));
+			cv::Mat s_mid, s_hi;
+			dc_band_masks(vm, lo, s_mid, s_hi);
+			cv::Mat gx, gy;
+			cv::Sobel(vm, gx, CV_32F, 1, 0, 3, 1.0 / 8.0);
+			cv::Sobel(vm, gy, CV_32F, 0, 1, 3, 1.0 / 8.0);
+			const double tau = 0.5 * mpp_cfg_threshold_scale(&cfg);
+			cv::Mat flat = gx.mul(gx) + gy.mul(gy) + (float) (tau * tau);
+			cv::divide((float) (tau * tau), flat, flat);
+			cv::Mat diff = va - vb;
+			std::vector<cv::Mat> dch;
+			cv::split(diff, dch);
+			auto band_edge = [&](const cv::Mat &mask,
+			                     std::vector<std::vector<DCEdge>> &nbrs) {
+				const cv::Mat s = mask.mul(flat);
+				const double n = cv::sum(s)[0];
+				if (n < 1.0) return;   /* no flat band signal here */
+				cv::Mat sgx, sgy;
+				cv::multiply(s, gx, sgx);
+				cv::multiply(s, gy, sgy);
+				cv::Matx33d A(n,               cv::sum(sgx)[0],         cv::sum(sgy)[0],
+				              cv::sum(sgx)[0], cv::sum(sgx.mul(gx))[0], cv::sum(sgx.mul(gy))[0],
+				              cv::sum(sgy)[0], cv::sum(sgx.mul(gy))[0], cv::sum(sgy.mul(gy))[0]);
+				cv::Scalar d;
+				for (int c = 0; c < C; ++c) {
+					const cv::Vec3d rhs(cv::sum(s.mul(dch[c]))[0],
+					                    cv::sum(sgx.mul(dch[c]))[0],
+					                    cv::sum(sgy.mul(dch[c]))[0]);
+					cv::Vec3d sol;
+					cv::solve(A, rhs, sol, cv::DECOMP_SVD);
+					d[c] = sol[0];
+				}
+				nbrs[a].push_back({b, n, d});
+				nbrs[b].push_back({a, n, -d});
+			};
+			band_edge(s_hi, nbrs_hi);
+			band_edge(s_mid, nbrs_mid);
 		}
 	}
 
-	cv::Scalar mean = cv::Scalar::all(0.0);
-	int connected = 0;
-	for (int a = 0; a < M; ++a) {
-		if (nbrs[a].empty()) continue;
-		mean += delta[a];
-		++connected;
-	}
-	if (connected > 0) {
-		mean *= 1.0 / connected;
-		for (int a = 0; a < M; ++a)
-			if (!nbrs[a].empty()) delta[a] -= mean;
-	}
-	return delta;
+	out.hi = dc_solve_graph(nbrs_hi, M, C);
+	out.mid = dc_solve_graph(nbrs_mid, M, C);
+	return out;
 }
 }  // namespace
 
@@ -1253,21 +1711,30 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 	cv::Mat buf = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
 
 	/* DC equalisation offsets — see stack_solve_ap_dc_offsets. */
-	const std::vector<cv::Scalar> dc = stack_solve_ap_dc_offsets(state);
-	{
-		double max_dc = 0.0;
-		for (const auto &d : dc)
-			for (int c = 0; c < C; ++c)
-				max_dc = std::max(max_dc, std::abs(d[c]));
-		if (max_dc >= 0.005)
-			siril_log_debug("Stack (mpp): AP DC equalisation, max "
-			                "correction %.2f ADU (16-bit)\n", max_dc);
-	}
+	const APDCOffsets dc = stack_solve_ap_dc_offsets(state, cfg);
+	double max_hi = 0.0, max_mid = 0.0;
+	for (int a = 0; a < (int) dc.hi.size(); ++a)
+		for (int c = 0; c < C; ++c) {
+			max_hi = std::max(max_hi, std::abs(dc.hi[a][c]));
+			max_mid = std::max(max_mid, std::abs(dc.mid[a][c]));
+		}
+	if (std::max(max_hi, max_mid) >= 0.005)
+		siril_log_debug("Stack (mpp): AP DC equalisation, max "
+		                "correction %.2f ADU object / %.2f ADU fringe "
+		                "(16-bit)\n", max_hi, max_mid);
 
-	/* For each AP: buf[patch] += (stacking_buffer + c_a·δ_a) * weights_yx.
-	 * The δ term rides under the same window, so after the division by
-	 * sum_single_frame_weights it contributes exactly +δ_a wherever the
-	 * AP carries weight. */
+	/* For each AP: buf[patch] += stacking_buffer * weights_yx, with the
+	 * per-band DC terms c_a·δ_a accumulated under the same window into
+	 * separate correction buffers — after the division by
+	 * sum_single_frame_weights each contributes exactly +δ_a wherever the
+	 * AP carries weight. They are kept separate so each can be applied
+	 * under its band mask below instead of shifting the background the
+	 * patch also covers. */
+	cv::Mat corr_hi, corr_mid;
+	if (max_hi > 0.0)
+		corr_hi = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
+	if (max_mid > 0.0)
+		corr_mid = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
 	for (int a = 0; a < aps.count; ++a) {
 		const auto &p = state.patch_drizzled[a];
 		cv::Mat dst = buf(cv::Range(p[0], p[1]), cv::Range(p[2], p[3]));
@@ -1275,20 +1742,44 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		const cv::Mat w = broadcast_channels(state.weights_yx[a], C);
 		cv::multiply(state.stacking_buffers[a], w, weighted);
 		dst += weighted;
-		if (a < (int) state.ap_frame_counts.size()) {
-			const cv::Scalar term = dc[a] * (double) state.ap_frame_counts[a];
-			if (std::abs(term[0]) + std::abs(term[1]) + std::abs(term[2]) > 0.0) {
-				cv::Mat corr(w.rows, w.cols, buf_type, term);
-				cv::multiply(corr, w, corr);
-				dst += corr;
-			}
-		}
+		if (a >= (int) state.ap_frame_counts.size()) continue;
+		auto accumulate_corr = [&](cv::Mat &corr, const cv::Scalar &delta) {
+			if (corr.empty()) return;
+			const cv::Scalar term = delta * (double) state.ap_frame_counts[a];
+			if (std::abs(term[0]) + std::abs(term[1]) + std::abs(term[2]) <= 0.0)
+				return;
+			cv::Mat cpatch(w.rows, w.cols, buf_type, term);
+			cv::multiply(cpatch, w, cpatch);
+			corr(cv::Range(p[0], p[1]), cv::Range(p[2], p[3])) += cpatch;
+		};
+		accumulate_corr(corr_hi, dc.hi[a]);
+		accumulate_corr(corr_mid, dc.mid[a]);
 	}
 
 	/* buf /= sum_single_frame_weights. sum_weights was initialised to
 	 * 1e-30, so we never divide by zero. */
 	const cv::Mat sw = broadcast_channels(state.sum_single_frame_weights, C);
 	cv::divide(buf, sw, buf);
+
+	/* Apply the DC corrections under their band masks evaluated on the
+	 * (uncorrected) merged level, so each band of the object is equalised
+	 * with offsets measured from its own pixels and the background keeps
+	 * its natural level. */
+	if (!corr_hi.empty() || !corr_mid.empty()) {
+		const double lo = dc_signal_floor(cfg);
+		cv::Mat s_mid, s_hi;
+		if (lo > 0.0)
+			dc_band_masks(dc_gray(buf), lo, s_mid, s_hi);
+		auto apply_corr = [&](cv::Mat &corr, const cv::Mat &mask) {
+			if (corr.empty()) return;
+			cv::divide(corr, sw, corr);
+			if (!mask.empty())
+				cv::multiply(corr, broadcast_channels(mask, C), corr);
+			buf += corr;
+		};
+		apply_corr(corr_hi, s_hi);
+		apply_corr(corr_mid, s_mid);
+	}
 
 	/* Background blend: compute a foreground_weight ramp and lerp. */
 	if (state.number_stacking_holes > 0) {
@@ -1298,6 +1789,31 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 		state.sum_single_frame_weights.convertTo(fg_weight, CV_32F, 1.0 / denom);
 		cv::min(fg_weight, 1.0f, fg_weight);
 		cv::max(fg_weight, 0.0f, fg_weight);
+		/* Brightness-aware boost. The coverage ramp above dilutes the AP
+		 * mosaic with the (global-aligned, locally softer) background
+		 * across the outer window tapers of the last AP row — and that
+		 * band follows the circular window contours, so wherever bright
+		 * content sits in it (the crescent and spicule layer just above a
+		 * solar limb) the varying mixture imprints AP-pitch semicircular
+		 * arcs. The mosaic content itself is fine there: in single-AP
+		 * regions the window weight cancels in buf/sw, so the patch holds
+		 * the AP's full stacked mean out to its edge. So keep bright
+		 * pixels on AP content whenever they have any real coverage —
+		 * fg = max(fg, min(signal_ramp, inner_coverage)) — and let the
+		 * background take over only in genuinely dark sky, where the
+		 * hand-off is invisible. inner_coverage saturates at a tenth of
+		 * the blend denominator so pixels beyond all patches (true holes,
+		 * where buf is empty) never take the boost. */
+		const double lo = dc_signal_floor(cfg);
+		if (lo > 0.0) {
+			cv::Mat cov;
+			state.sum_single_frame_weights.convertTo(cov, CV_32F,
+			                                         10.0 / denom);
+			cv::min(cov, 1.0f, cov);
+			cv::Mat s = dc_signal_ramp(dc_gray(buf), lo);
+			cv::min(s, cov, s);
+			cv::max(fg_weight, s, fg_weight);
+		}
 		const cv::Mat fgw = broadcast_channels(fg_weight, C);
 		cv::Mat diff;
 		cv::subtract(buf, state.averaged_background, diff);
