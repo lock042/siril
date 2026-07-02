@@ -14432,11 +14432,13 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		cfg->stack_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
 	}
 	if (accept_stack && !strcmp(arg, "-skip-failed-aps")) {
-		/* Drop (frame, AP) contributions whose Stage B shift measurement
-		 * failed instead of stacking them at the coarse phase-1 estimate.
-		 * Per-AP weight sums are reduced to match, so brightness is
-		 * unaffected. */
-		cfg->stack_skip_failed_aps = TRUE; return MPP_FLAG_OK;
+		/* Patch-engine relic: the warp engine gives failed (frame, AP)
+		 * measurements the neighbour-interpolated displacement instead of
+		 * dropping them, so there is nothing to skip. Accepted (and
+		 * ignored) so existing scripts keep running. */
+		siril_log_message(_("-skip-failed-aps is obsolete with the warp "
+		                    "engine and was ignored\n"));
+		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-bg-fraction=")) {
 		cfg->stack_frames_background_fraction = atof(arg + 13); return MPP_FLAG_OK;
@@ -14450,17 +14452,6 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		 * saved result is packed down to 16-bit integer or kept as float
 		 * (same effect as the stacking tab's "Force 32b output" checkbutton). */
 		cfg->output_32bit = TRUE; return MPP_FLAG_OK;
-	}
-	if (accept_stack && g_str_has_prefix(arg, "-engine=")) {
-		/* Stage C engine. `warp` interpolates the per-AP shifts into a
-		 * dense displacement field and warps each frame once (the
-		 * derotation engine, here without a derotation plan); `patch` is
-		 * the PSS per-AP patch-blend architecture. A .derot plan still
-		 * forces warp regardless of this flag. */
-		const char *v = arg + 8;
-		if (!strcmp(v, "warp")) { cfg->stack_method = MPP_STACK_WARP; return MPP_FLAG_OK; }
-		if (!strcmp(v, "patch")) { cfg->stack_method = MPP_STACK_PATCH; return MPP_FLAG_OK; }
-		return MPP_FLAG_INVALID_VALUE;
 	}
 
 	/* register-time */

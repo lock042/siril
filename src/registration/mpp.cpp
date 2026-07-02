@@ -1546,10 +1546,15 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	mpp_run_t *cached = mpp_get_cached_run();
 	if (cached && cached != run) mpp_run_drop_cache(cached);
 
-	/* Dispatch: all stacking goes through the classical engine
-	 * (stack_apply_shifts_streamed) — sub-pixel rigid-shift per-AP patch
-	 * accumulation + Hann-weight mosaic, parallelised over frames, with
-	 * cv::resize interpolation for scale > 1.
+	/* Dispatch: all stacking goes through the warp-field engine
+	 * (stack_warp_apply_streamed) — per frame the per-AP shifts are
+	 * interpolated into a dense displacement field, the frame is warped
+	 * once (folding in any derotation base) and accumulated under the
+	 * dense selection-weight field, with cv::resize interpolation for
+	 * scale > 1. The per-AP patch-blend engine ("impulse engine", the PSS
+	 * architecture) was retired once the warp engine matched or beat it
+	 * on solar, lunar and planetary test data — one Stage C, one artefact
+	 * surface.
 	 *
 	 * The STScI / Bayer dobox drizzle backends were removed: both produced
 	 * sampling / mosaic-phase artefacts on planetary data. (The code is
@@ -1558,7 +1563,7 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 *
 	 * CFA input is debayered first (read_full_frame forces ser_read_frame
 	 * to debayer regardless of the user's debayer-on-open pref), then
-	 * stacked classically like any RGB sequence. */
+	 * stacked like any RGB sequence. */
 	/* AVI Bayer routing: an AVI marked as a raw mosaic (cfg->avi_bayer_pattern
 	 * RGGB/BGGR/GBRG/GRBG) is the AVI analogue of MPP_INPUT_CFA. The
 	 * classifier can't see this (sequence-only signature) so it's
@@ -1652,12 +1657,12 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	    (seq->type == SEQ_SER
 	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
 	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
-	siril_log_message(_("Stack (mpp): classical accumulation, %d thread(s), "
+	siril_log_message(_("Stack (mpp): warp-field accumulation, %d thread(s), "
 	                    "%s frame reads\n"),
 	                  stack_threads,
 	                  stack_provider_safe ? _("parallel") : _("serial"));
 	/* Memory budget for the per-thread private accumulators: 80% of the
-	 * lesser of free RAM and the configured cap. stack_apply_shifts_streamed
+	 * lesser of free RAM and the configured cap. stack_warp_apply_streamed
 	 * clamps its thread count to what fits. */
 	size_t stack_mem_budget = 0;
 	{
@@ -1669,14 +1674,13 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		}
 		stack_mem_budget = (size_t) ((long double) budget_b * 0.8L);
 	}
-	/* Stage C engine: the warp-field engine (forced when derotation is
-	 * active, see stack_mpp.c) warps each frame once through a dense
-	 * displacement field; otherwise the PSS per-AP patch-blend engine. */
+	/* Per-frame derotation maps in the drizzled intersection canvas: pixel
+	 * (0,0) is original-frame coord (intersection x_low, y_low), scaled by
+	 * the drizzle factor. Only built when a valid .derot plan is present;
+	 * with no plan the warp engine runs on its identity base (pure
+	 * de-warp). */
 	cv::Mat stacked;
-	if (cfg->stack_method == MPP_STACK_WARP) {
-		/* Per-frame derotation maps in the drizzled intersection canvas: pixel
-		 * (0,0) is original-frame coord (intersection x_low, y_low), scaled by
-		 * the drizzle factor. Only built when a valid .derot plan is present. */
+	{
 		const double S = std::max(1.0, cfg->drizzle_scale);
 		mpp::DerotMapProvider derot_provider =
 		    [derot, &intersection, S](int f, int DY, int DX,
@@ -1705,20 +1709,6 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		}
 		if (wr.cancelled || wr.image.empty()) return MPP_EINTR;
 		stacked = wr.image;
-	} else {
-		const auto loop = mpp::stack_apply_shifts_streamed(
-		    provider, run->num_frames, num_layers, *run->aps, apq,
-		    run->shifts, offsets, frame_brightness, sorted_idx,
-		    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
-		    stack_mem_budget);
-		if (loop.oom) {
-			siril_log_error(_("Stack (mpp): out of memory while accumulating "
-			                  "frames — reduce the memory ratio in Preferences.\n"));
-			return MPP_ENOMEM;
-		}
-		if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
-		stacked = mpp::stack_merge_alignment_point_buffers(
-		    loop.state, loop.border, *run->aps, *cfg);
 	}
 
 	/* Pack stacked into the caller-supplied fits. The caller allocates the
