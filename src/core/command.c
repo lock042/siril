@@ -15132,6 +15132,8 @@ int process_derotate_stack(int nb) {
 	gboolean out32 = FALSE;
 	double drizzle = 1.0;
 	int ref = 0;
+	int stack_percent = 0;   /* 0 = keep the default (100) */
+	int stack_frames = 0;
 	int ret = CMD_OK;
 
 	for (int i = 1; i < nb; i++) {
@@ -15145,6 +15147,18 @@ int process_derotate_stack(int nb) {
 			if (drizzle < 1.0) drizzle = 1.0;
 		} else if (g_str_has_prefix(w, "-ref=")) {
 			ref = atoi(w + 5);
+		} else if (g_str_has_prefix(w, "-stack-percent=")) {
+			stack_percent = atoi(w + 15);
+			if (stack_percent < 1 || stack_percent > 100) {
+				siril_log_error(_("derotate_stack: -stack-percent must be 1..100\n"));
+				ret = CMD_ARG_ERROR; goto done;
+			}
+		} else if (g_str_has_prefix(w, "-stack-frames=")) {
+			stack_frames = atoi(w + 14);
+			if (stack_frames < 1) {
+				siril_log_error(_("derotate_stack: -stack-frames must be >= 1\n"));
+				ret = CMD_ARG_ERROR; goto done;
+			}
 		} else if (w[0] == '-') {
 			siril_log_error(_("derotate_stack: unknown argument '%s'\n"), w);
 			ret = CMD_ARG_ERROR; goto done;
@@ -15238,6 +15252,16 @@ int process_derotate_stack(int nb) {
 	cfg.stack_method = MPP_STACK_WARP;   /* derotation requires the warp engine */
 	cfg.drizzle_scale = drizzle;
 	cfg.output_32bit = out32;
+	/* Per-AP lucky-imaging selection, like stack_mpp. The multistack path
+	 * registers and stacks in one pass, so the register-side cap follows
+	 * the requested stack selection. */
+	if (stack_frames > 0) {
+		cfg.alignment_points_frame_number = stack_frames;
+		cfg.stack_frame_number = stack_frames;
+	} else if (stack_percent > 0) {
+		cfg.alignment_points_frame_percent = stack_percent;
+		cfg.stack_frame_percent = stack_percent;
+	}
 
 	fits out = { 0 };
 	const mpp_status_t st = mpp_multistack(seqs, derots, n, ref, &cfg, &out);

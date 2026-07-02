@@ -50,12 +50,26 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 	}
 
 	if (seq->type == SEQ_SER && seq->ser_file) {
+		int disorder = 0;
 		for (int i = 0; i < N; i++) {
 			GDateTime *t = ser_read_frame_date(seq->ser_file, i);
 			if (!t) return FALSE;
 			jd_out[i] = date_time_to_Julian(t);
 			g_date_time_unref(t);
+			if (i > 0 && jd_out[i] < jd_out[i - 1])
+				disorder++;
 		}
+		/* Derotation itself is fine with unordered stamps (each frame's own
+		 * JD drives its map), but they usually mean the capture software
+		 * wrote a broken trailer, and anything downstream that assumes
+		 * chronological order (span estimates, the midpoint epoch) is
+		 * quietly degraded. Tell the user how to repair it. */
+		if (disorder > 0)
+			siril_log_message(_("derotate: %d of %d frame timestamps are out "
+			                    "of order — derotation uses each frame's own "
+			                    "timestamp, but the capture trailer looks "
+			                    "unreliable; `ser_fix_timestamps` can rewrite "
+			                    "a uniform cadence\n"), disorder, N);
 		return TRUE;
 	}
 	return FALSE;
@@ -63,7 +77,14 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 
 double mpp_derot_midpoint_epoch(const double *jd, int n) {
 	if (!jd || n <= 0) return 0.0;
-	return 0.5 * (jd[0] + jd[n - 1]);
+	/* min/max rather than first/last: real SER trailers are sometimes out
+	 * of chronological order, and the epoch should sit mid-span anyway. */
+	double lo = jd[0], hi = jd[0];
+	for (int i = 1; i < n; i++) {
+		if (jd[i] < lo) lo = jd[i];
+		if (jd[i] > hi) hi = jd[i];
+	}
+	return 0.5 * (lo + hi);
 }
 
 gboolean mpp_derot_sequence_span(sequence *seq, double fps, double start_jd,
