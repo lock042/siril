@@ -34,6 +34,22 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
  * Centre is 1.0; off-centre values get a quadratic penalty. */
 cv::Mat stack_build_first_phase_weight_matrix(const mpp_config_t &cfg);
 
+/* Per-AP patch bounds extended one grid step beyond every edge that no
+ * other AP's patch covers (ORIGINAL frame coordinates), so Stage C
+ * coverage — and with it the hand-off to the background blend — moves
+ * off the faint structure hugging an object's rim into empty sky.
+ * Shared by both Stage C engines. */
+std::vector<cv::Vec4i> stack_extended_patch_bounds(const mpp_aps_t &aps,
+                                                   int dim_y, int dim_x,
+                                                   const mpp_config_t &cfg);
+
+/* Signal ramp clamp((v − lo)/lo, 0, 1) on a CV_32F luminance, and the
+ * background line `lo` it is anchored to (AP brightness threshold in
+ * pixel units; ≤ 0 disables ramped behaviours). Used by the DC
+ * equalisation and by both engines' brightness-aware background blend. */
+cv::Mat dc_signal_ramp(const cv::Mat &v_gray, double lo);
+double dc_signal_floor(const mpp_config_t &cfg);
+
 /* Adds frame[y_low+shift_y:y_high+shift_y,
  * x_low+shift_x:x_high+shift_x] into buffer[..]. Out-of-frame portions are
  * clipped and the four border_* counters are updated to track the maximum

@@ -14451,6 +14451,17 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		 * (same effect as the stacking tab's "Force 32b output" checkbutton). */
 		cfg->output_32bit = TRUE; return MPP_FLAG_OK;
 	}
+	if (accept_stack && g_str_has_prefix(arg, "-engine=")) {
+		/* Stage C engine. `warp` interpolates the per-AP shifts into a
+		 * dense displacement field and warps each frame once (the
+		 * derotation engine, here without a derotation plan); `patch` is
+		 * the PSS per-AP patch-blend architecture. A .derot plan still
+		 * forces warp regardless of this flag. */
+		const char *v = arg + 8;
+		if (!strcmp(v, "warp")) { cfg->stack_method = MPP_STACK_WARP; return MPP_FLAG_OK; }
+		if (!strcmp(v, "patch")) { cfg->stack_method = MPP_STACK_PATCH; return MPP_FLAG_OK; }
+		return MPP_FLAG_INVALID_VALUE;
+	}
 
 	/* register-time */
 	if (accept_register && g_str_has_prefix(arg, "-half-box=")) {

@@ -129,17 +129,25 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	};
 
 	/* Per-AP scatter weight = the AP's own Hann blend window over its patch
-	 * bounds (frame-edge extensions included): at an AP centre every other AP
+	 * bounds — extended one grid step beyond uncovered edges
+	 * (stack_extended_patch_bounds) so W coverage, like the patch
+	 * engine's, reaches past the faint structure hugging an object's rim
+	 * and the background hand-off lands in empty sky. The flat frame-edge
+	 * window flags follow the REGISTERED bounds, so extension content
+	 * Hann-fades at the canvas edge (out-of-frame samples self-zero via
+	 * the validity mask below regardless). At an AP centre every other AP
 	 * is outside its own window, so the interpolated displacement there is
-	 * exactly that AP's measured shift, and overlap zones blend displacements
-	 * with the patch engine's spatial profile. */
+	 * exactly that AP's measured shift, and overlap zones blend
+	 * displacements with the patch engine's spatial profile. */
+	const std::vector<cv::Vec4i> pext =
+	    stack_extended_patch_bounds(aps, dim_y, dim_x, cfg);
 	std::vector<std::vector<float>> ap_wy(M), ap_wx(M);
 	for (int a = 0; a < M; ++a) {
 		const auto &r = aps.records[a];
-		ap_wy[a] = stack_one_dim_weight(r.patch_y_low, r.patch_y_high, r.y,
+		ap_wy[a] = stack_one_dim_weight(pext[a][0], pext[a][1], r.y,
 		                                r.patch_y_low == 0,
 		                                r.patch_y_high == dim_y);
-		ap_wx[a] = stack_one_dim_weight(r.patch_x_low, r.patch_x_high, r.x,
+		ap_wx[a] = stack_one_dim_weight(pext[a][2], pext[a][3], r.x,
 		                                r.patch_x_low == 0,
 		                                r.patch_x_high == dim_x);
 	}
@@ -153,12 +161,11 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			auto &list = node_aps[(size_t) gy * Gx + gx];
 			double lsum = 0.0;
 			for (int a = 0; a < M; ++a) {
-				const auto &r = aps.records[a];
-				if (ny < r.patch_y_low || ny >= r.patch_y_high
-				 || nx < r.patch_x_low || nx >= r.patch_x_high)
+				const auto &p = pext[a];
+				if (ny < p[0] || ny >= p[1] || nx < p[2] || nx >= p[3])
 					continue;
-				const double l = (double) ap_wy[a][ny - r.patch_y_low]
-				               * (double) ap_wx[a][nx - r.patch_x_low];
+				const double l = (double) ap_wy[a][ny - p[0]]
+				               * (double) ap_wx[a][nx - p[2]];
 				if (l <= 0.0) continue;
 				list.push_back({a, (float) l});
 				lsum += l;
@@ -305,7 +312,19 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			const int Hd = frame_drizzled.rows;
 			const int Wd_f = frame_drizzled.cols;
 
-			/* Per-frame AP weights and shifts. */
+			/* Per-frame AP weights and shifts. A failed pair whose stored
+			 * shift differs from the frame's sub-pixel global residual
+			 * carries a coarse phase-1 estimate — post-retry those come
+			 * from the widened search and track limb-local excursions
+			 * that disc-ward neighbours cannot see, so let them vote in
+			 * the displacement field (the robust neighbour-median clamp
+			 * below still snaps any wild value). Pairs with NO estimate
+			 * (stored shift == the bare residual) stay excluded and take
+			 * the interpolated field. */
+			const double sub_y = offsets[f].dy
+			                   - (double) std::lround(offsets[f].dy);
+			const double sub_x = offsets[f].dx
+			                   - (double) std::lround(offsets[f].dx);
 			const auto &used = apq.used_alignment_points[f];
 			for (const auto &u : used) {
 				wA[u.ap] = u.weight;
@@ -313,7 +332,11 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 					const size_t soff = (size_t) (f * M + u.ap) * 2;
 					syA[u.ap] = (float) shifts->shifts[soff + 0];
 					sxA[u.ap] = (float) shifts->shifts[soff + 1];
-					okA[u.ap] = shifts->success[(size_t) f * M + u.ap];
+					uint8_t ok = shifts->success[(size_t) f * M + u.ap];
+					if (!ok && (shifts->shifts[soff + 0] != sub_y
+					         || shifts->shifts[soff + 1] != sub_x))
+						ok = 1;
+					okA[u.ap] = ok;
 				} else {
 					syA[u.ap] = 0.0f;
 					sxA[u.ap] = 0.0f;
@@ -492,6 +515,24 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		wsum.convertTo(fg, CV_32F, 1.0 / blend_denom);
 		cv::min(fg, 1.0f, fg);
 		cv::max(fg, 0.0f, fg);
+		/* Brightness-aware boost (parity with the patch-engine merge):
+		 * bright content with any real W coverage stays on the warped
+		 * accumulation instead of being diluted toward the background
+		 * along the coverage contours; the background takes over only in
+		 * genuinely dark sky. inner coverage saturates at a tenth of the
+		 * blend denominator so true holes never take the boost. */
+		const double lo = dc_signal_floor(cfg);
+		if (lo > 0.0) {
+			cv::Mat gray = mean_ch[0].clone();
+			for (int c = 1; c < C; ++c) gray += mean_ch[c];
+			if (C > 1) gray *= 1.0 / (double) C;
+			cv::Mat cov;
+			wsum.convertTo(cov, CV_32F, 10.0 / blend_denom);
+			cv::min(cov, 1.0f, cov);
+			cv::Mat s = dc_signal_ramp(gray, lo);
+			cv::min(s, cov, s);
+			cv::max(fg, s, fg);
+		}
 		for (int c = 0; c < C; ++c) {
 			cv::Mat bgm, diff;
 			bg[c].convertTo(bgm, CV_32F, 1.0 / (double) apq.stack_size);

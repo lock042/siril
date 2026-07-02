@@ -603,52 +603,24 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 	    frame_rows, frame_cols, cfg, progress, progress_user, included);
 }
 
-StackState stack_prepare_for_blending(const mpp_aps_t &aps,
-                                      const cv::Vec4i &intersection,
-                                      int stack_size,
-                                      double drizzle_scale,
-                                      int num_layers,
-                                      const mpp_config_t &cfg,
-                                      const std::vector<float> *ap_effective_counts) {
-	StackState s;
-	s.drizzle_scale  = drizzle_scale;
-	s.stack_size     = stack_size;
-	s.num_layers     = num_layers;
-	s.dim_y = intersection[1] - intersection[0];
-	s.dim_x = intersection[3] - intersection[2];
-	/* Output (drizzled) dimensions. drizzle_scale may be fractional (e.g.
-	 * 1.5); every coordinate below is the original × scale rounded to the
-	 * nearest pixel. lround is monotonic so patch bounds never exceed the
-	 * canvas. */
-	auto scl = [drizzle_scale](int v) { return (int) std::lround((double) v * drizzle_scale); };
-	s.dim_y_drizzled = scl(s.dim_y);
-	s.dim_x_drizzled = scl(s.dim_x);
-	const int buf_type = (num_layers == 3) ? CV_32FC3 : CV_32F;
-
+/* Boundary-patch extension. The AP grid stops where the reference frame
+ * has structure, so along an object's rim (e.g. the solar limb) the
+ * coverage boundary — where Stage C hands over to the softer,
+ * global-aligned background — runs right across the faint structure just
+ * outside it (spicule layer, prominence fringes), and the hand-off band
+ * follows the scalloped outer window contours, imprinting AP-pitch arcs
+ * under sharpening. Push that boundary one grid step outward wherever no
+ * other AP's patch covers the space beyond an edge: the extended area
+ * stacks the AP's own frames at its own measured shifts (locally
+ * aligned, unlike the background), and the hand-off moves into empty sky
+ * where it is invisible. Interior edges (fully covered by a neighbour's
+ * patch) are left untouched, so the mosaic's overlap topology on the
+ * object is unchanged. Returns per-AP extended bounds in ORIGINAL frame
+ * coordinates; shared by both Stage C engines. */
+std::vector<cv::Vec4i> stack_extended_patch_bounds(const mpp_aps_t &aps,
+                                                   int dim_y, int dim_x,
+                                                   const mpp_config_t &cfg) {
 	const int M = aps.count;
-	s.patch_drizzled.reserve(M);
-	s.ap_drizzled.reserve(M);
-	s.weights_yx.reserve(M);
-	s.stacking_buffers.reserve(M);
-	s.ap_frame_counts.reserve(M);
-	s.sum_single_frame_weights.create(s.dim_y_drizzled, s.dim_x_drizzled, CV_32F);
-	s.sum_single_frame_weights.setTo(cv::Scalar(1e-30f));
-
-	const float stack_size_f = (float) stack_size;
-
-	/* Boundary-patch extension. The AP grid stops where the reference
-	 * frame has structure, so along an object's rim (e.g. the solar limb)
-	 * the coverage boundary — where the merge hands over to the softer,
-	 * global-aligned averaged_background — runs right across the faint
-	 * structure just outside it (spicule layer, prominence fringes), and
-	 * the hand-off band follows the scalloped outer window contours,
-	 * imprinting AP-pitch arcs under sharpening. Push that boundary one
-	 * grid step outward wherever no other AP's patch covers the space
-	 * beyond an edge: the extended area stacks the AP's own frames at its
-	 * own measured shifts (locally aligned, unlike the background), and
-	 * the hand-off moves into empty sky where it is invisible. Interior
-	 * edges (fully covered by a neighbour's patch) are left untouched, so
-	 * the mosaic's overlap topology on the object is unchanged. */
 	const int ext_step = mpp_cfg_step_size(&cfg);
 	std::vector<cv::Vec4i> patch(M), ext(M);
 	for (int a = 0; a < M; ++a) {
@@ -685,15 +657,59 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	};
 	for (int a = 0; a < M; ++a) {
 		const auto &p = patch[a];
-		if (p[0] > 0       && !covered(a, p[2], p[3], p[0] - 1, true))
+		if (p[0] > 0     && !covered(a, p[2], p[3], p[0] - 1, true))
 			ext[a][0] = std::max(0, p[0] - ext_step);
-		if (p[1] < s.dim_y && !covered(a, p[2], p[3], p[1], true))
-			ext[a][1] = std::min(s.dim_y, p[1] + ext_step);
-		if (p[2] > 0       && !covered(a, p[0], p[1], p[2] - 1, false))
+		if (p[1] < dim_y && !covered(a, p[2], p[3], p[1], true))
+			ext[a][1] = std::min(dim_y, p[1] + ext_step);
+		if (p[2] > 0     && !covered(a, p[0], p[1], p[2] - 1, false))
 			ext[a][2] = std::max(0, p[2] - ext_step);
-		if (p[3] < s.dim_x && !covered(a, p[0], p[1], p[3], false))
-			ext[a][3] = std::min(s.dim_x, p[3] + ext_step);
+		if (p[3] < dim_x && !covered(a, p[0], p[1], p[3], false))
+			ext[a][3] = std::min(dim_x, p[3] + ext_step);
 	}
+	return ext;
+}
+
+StackState stack_prepare_for_blending(const mpp_aps_t &aps,
+                                      const cv::Vec4i &intersection,
+                                      int stack_size,
+                                      double drizzle_scale,
+                                      int num_layers,
+                                      const mpp_config_t &cfg,
+                                      const std::vector<float> *ap_effective_counts) {
+	StackState s;
+	s.drizzle_scale  = drizzle_scale;
+	s.stack_size     = stack_size;
+	s.num_layers     = num_layers;
+	s.dim_y = intersection[1] - intersection[0];
+	s.dim_x = intersection[3] - intersection[2];
+	/* Output (drizzled) dimensions. drizzle_scale may be fractional (e.g.
+	 * 1.5); every coordinate below is the original × scale rounded to the
+	 * nearest pixel. lround is monotonic so patch bounds never exceed the
+	 * canvas. */
+	auto scl = [drizzle_scale](int v) { return (int) std::lround((double) v * drizzle_scale); };
+	s.dim_y_drizzled = scl(s.dim_y);
+	s.dim_x_drizzled = scl(s.dim_x);
+	const int buf_type = (num_layers == 3) ? CV_32FC3 : CV_32F;
+
+	const int M = aps.count;
+	s.patch_drizzled.reserve(M);
+	s.ap_drizzled.reserve(M);
+	s.weights_yx.reserve(M);
+	s.stacking_buffers.reserve(M);
+	s.ap_frame_counts.reserve(M);
+	s.sum_single_frame_weights.create(s.dim_y_drizzled, s.dim_x_drizzled, CV_32F);
+	s.sum_single_frame_weights.setTo(cv::Scalar(1e-30f));
+
+	const float stack_size_f = (float) stack_size;
+
+	std::vector<cv::Vec4i> patch(M);
+	for (int a = 0; a < M; ++a) {
+		const auto &ap = aps.records[a];
+		patch[a] = cv::Vec4i(ap.patch_y_low, ap.patch_y_high,
+		                     ap.patch_x_low, ap.patch_x_high);
+	}
+	const std::vector<cv::Vec4i> ext =
+	    stack_extended_patch_bounds(aps, s.dim_y, s.dim_x, cfg);
 
 	for (int a = 0; a < M; ++a) {
 		const auto &ap = aps.records[a];
@@ -1399,6 +1415,27 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 	return out;
 }
 
+/* Signal ramp for the DC equalisation and brightness-aware background
+ * blend: s = clamp((v − lo) / lo, 0, 1), i.e. 0 at/below the background
+ * line `lo`, full weight from 2·lo up. `v` is a single-channel CV_32F
+ * luminance; returns CV_32F. Shared with the warp engine. */
+cv::Mat dc_signal_ramp(const cv::Mat &v_gray, double lo) {
+	cv::Mat s;
+	v_gray.convertTo(s, CV_32F, 1.0 / lo, -1.0);
+	cv::min(s, 1.0f, s);
+	cv::max(s, 0.0f, s);
+	return s;
+}
+
+/* Background line for the DC equalisation's signal ramp, in pixel units.
+ * Reuses the AP-placement brightness threshold — the existing "background
+ * vs structure" knob — so ≤ 0 disables the ramp (uniform legacy
+ * behaviour). Shared with the warp engine. */
+double dc_signal_floor(const mpp_config_t &cfg) {
+	return (double) cfg.alignment_points_brightness_threshold
+	     * mpp_cfg_threshold_scale(&cfg);
+}
+
 namespace {
 /* Replicate a single-channel matrix into a multi-channel one of the same
  * spatial size, so cv::multiply / cv::divide can be used against a
@@ -1420,17 +1457,6 @@ cv::Mat dc_gray(const cv::Mat &m) {
 	cv::Mat g = ch[0] + ch[1];
 	for (int c = 2; c < (int) ch.size(); ++c) g += ch[c];
 	return g * (1.0 / (double) ch.size());
-}
-
-/* Signal ramp for the DC equalisation: s = clamp((v − lo) / lo, 0, 1),
- * i.e. 0 at/below the background line `lo`, full weight from 2·lo up.
- * `v` is a single-channel CV_32F luminance; returns CV_32F. */
-cv::Mat dc_signal_ramp(const cv::Mat &v_gray, double lo) {
-	cv::Mat s;
-	v_gray.convertTo(s, CV_32F, 1.0 / lo, -1.0);
-	cv::min(s, 1.0f, s);
-	cv::max(s, 0.0f, s);
-	return s;
 }
 
 /* Two-band level masks for the DC equalisation. The mismatch between AP
@@ -1456,15 +1482,6 @@ void dc_band_masks(const cv::Mat &v_gray, double lo,
 	cv::max(rise, 0.0f, rise);
 	s_mid = rise.mul(1.0f - hi);
 	s_hi = hi;
-}
-
-/* Background line for the DC equalisation's signal ramp, in pixel units.
- * Reuses the AP-placement brightness threshold — the existing "background
- * vs structure" knob — so ≤ 0 disables the ramp (uniform legacy
- * behaviour). */
-double dc_signal_floor(const mpp_config_t &cfg) {
-	return (double) cfg.alignment_points_brightness_threshold
-	     * mpp_cfg_threshold_scale(&cfg);
 }
 
 /* Per-AP DC equalisation offsets (Siril enhancement; PSS has no
