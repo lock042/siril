@@ -167,6 +167,11 @@ struct StackState {
 
 	/* Per-AP — all length = aps->count. */
 	std::vector<cv::Vec4i> patch_drizzled;  /* (y_low, y_high, x_low, x_high) */
+	/* Drizzled px added beyond the REGISTERED patch bounds at each edge
+	 * (y_low, y_high, x_low, x_high) by the boundary-patch extension —
+	 * see stack_prepare_for_blending. Frame clipping inside an extension
+	 * is best-effort loss, not grounds for trimming the output border. */
+	std::vector<cv::Vec4i> patch_extension;
 	std::vector<cv::Vec2i> ap_drizzled;     /* (y, x) */
 	std::vector<cv::Mat> weights_yx;        /* CV_32F, patch-sized */
 	std::vector<cv::Mat> stacking_buffers;  /* CV_32F, patch-sized, zero-init */
