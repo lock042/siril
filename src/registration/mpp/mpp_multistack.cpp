@@ -120,7 +120,29 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	 * — and the engines below — is the main multi-source throughput limiter. */
 	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: reading and ranking frames"));
 	std::vector<double> quality(N, 0.0), brightness(N, 0.0);
+
+	/* Frame-selector state, folded into the global index space. Excluded
+	 * frames are never read: they stay out of the ranking, the reference,
+	 * the AP selection and the stack — the single-sequence contract. */
 	std::vector<int> included(N, 1);
+	int n_excluded = 0;
+	for (int s = 0; s < (int) srcs.size(); ++s) {
+		if (srcs[s].included.empty()) continue;
+		for (int l = 0; l < srcs[s].num_frames
+		             && l < (int) srcs[s].included.size(); ++l)
+			if (!srcs[s].included[l]) {
+				included[layout.base_of(s) + l] = 0;
+				++n_excluded;
+			}
+	}
+	if (n_excluded > 0)
+		siril_log_message(_("Derotation stack: %d frame(s) excluded by the "
+		                    "frame selector\n"), n_excluded);
+	if (n_excluded >= N) {
+		siril_log_error(_("Derotation stack: every frame is excluded.\n"));
+		res.error = true; return res;
+	}
+
 	std::atomic<bool> p1_fail{false};
 	std::atomic<int> p1_done{0};
 #ifdef _OPENMP
@@ -128,7 +150,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
     if (provider_thread_safe && nt > 1)
 #endif
 	for (int g = 0; g < N; ++g) {
-		if (p1_fail.load()) continue;
+		if (p1_fail.load() || !included[g]) continue;
 		const cv::Mat m = raw_provider(g);
 		if (m.empty()) { p1_fail.store(true); continue; }
 		quality[g]    = mpp::rank_score_normalized(m, cfg);
@@ -142,11 +164,19 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		res.error = true; return res;
 	}
 
+	/* Masked quality for selection: excluded frames sit below the lowest
+	 * real score (>= 0) so they can never be picked as the global reference
+	 * or averaged into the mean frame. */
+	std::vector<double> q_sel = quality;
+	if (n_excluded > 0)
+		for (int g = 0; g < N; ++g)
+			if (!included[g]) q_sel[g] = -1.0;
+
 	/* Global alignment of the relocated frames (small residuals — derotation
 	 * already co-registers the disks). */
 	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: aligning frames"));
 	const auto align = mpp::align_global_from_provider(
-	    blurred_provider, N, quality, cfg, ms_progress, nullptr,
+	    blurred_provider, N, q_sel, cfg, ms_progress, nullptr,
 	    provider_thread_safe);
 	if (align.oom) { res.oom = true; return res; }
 	if (align.best_frame_idx < 0) { res.cancelled = true; return res; }
@@ -154,7 +184,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	/* Averaged reference + frame intersection, in the reference canvas. */
 	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: building reference"));
 	const auto avg = mpp::align_average_frame_streamed(
-	    raw_provider, N, out_h, out_w, quality, align.shifts, cfg,
+	    raw_provider, N, out_h, out_w, q_sel, align.shifts, cfg,
 	    ms_progress, nullptr, included);
 	if (avg.mean_frame.empty()) { res.cancelled = true; return res; }
 

@@ -56,12 +56,17 @@ void mpp_derot_frame_map_ms(const mpp_derot_t *out_d, const mpp_derot_t *src_d,
 	epoch.pole_angle = out_d->pole_angle_epoch;
 
 	/* frame (source) orientation from this sequence: its fitted in-image pole
-	 * angle plus its own slow ephemeris pole-PA drift to the frame time */
+	 * angle plus its own slow ephemeris pole-PA drift to the frame time. The
+	 * drift is an on-sky angle; on a mirrored image (parity −1) a positive
+	 * sky rotation appears as a negative in-image rotation, so the parity
+	 * folds into the drift term. Sub-pixel within one session, but it keeps
+	 * long multi-session combines honest. */
 	derot_geom_t fr;
 	fr.sub_obs_lat = src_d->sub_obs_lat[frame] * DEG;
 	fr.cm = src_d->cm[frame] * DEG;
 	fr.pole_angle = src_d->pole_angle_epoch
-	              + (src_d->pole_pa[frame] - src_d->epoch_pole_pa) * DEG;
+	              + src_d->parity
+	                * (src_d->pole_pa[frame] - src_d->epoch_pole_pa) * DEG;
 
 	cv::Mat valid;   /* mu already encodes validity (0 off-disk) */
 	derot_build_map_ms(out_w, out_h, out_disk, src_disk, epoch, fr,

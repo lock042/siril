@@ -63,6 +63,10 @@ struct MsSource {
 	int num_frames = 0;
 	std::function<cv::Mat(int local)> analysis_read;
 	std::function<cv::Mat(int local)> full_read;
+	/* Frame-selector state: empty = all frames included; otherwise length
+	 * num_frames, 0 = excluded (kept out of the reference, ranking and the
+	 * stack — same contract as the single-sequence pipeline). */
+	std::vector<int> included;
 };
 
 struct MultiStackResult {

@@ -36,15 +36,23 @@
  *   double[num_frames] : pole_pa
  */
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <glib.h>
+#include <glib/gstdio.h>
+
 #include "mpp_derot_sidecar.h"
 
 #define DEROT_MAGIC   "SIRILDRT"
 #define DEROT_VERSION 2u   /* v2 added frame_rows/frame_cols */
+
+/* Sanity cap on num_frames when reading: far above any real capture, far
+ * below what a corrupt header could use to demand tens of GB. */
+#define DEROT_MAX_FRAMES 10000000
 
 static int write_all(FILE *f, const void *p, size_t n) {
 	return fwrite(p, 1, n, f) == n ? 0 : -1;
@@ -117,8 +125,11 @@ mpp_status_t mpp_derot_write(const char *path, const mpp_derot_t *d) {
 	if (d->num_frames > 0 && (!d->jd || !d->sub_obs_lat || !d->cm || !d->pole_pa))
 		return MPP_EINVAL;
 
-	FILE *f = fopen(path, "wb");
-	if (!f) return MPP_EIO;
+	/* Write to a temp file and rename over the target, so a crash or a full
+	 * disk mid-write cannot leave a truncated plan behind. */
+	gchar *tmp_path = g_strdup_printf("%s.tmp", path);
+	FILE *f = fopen(tmp_path, "wb");
+	if (!f) { g_free(tmp_path); return MPP_EIO; }
 
 	const uint32_t ver = DEROT_VERSION, flags = 0;
 	const int32_t hdr[6] = { d->body, d->rot_system, d->ephem_version,
@@ -141,10 +152,15 @@ mpp_status_t mpp_derot_write(const char *path, const mpp_derot_t *d) {
 		if (write_all(f, d->cm, nb) != 0) goto err;
 		if (write_all(f, d->pole_pa, nb) != 0) goto err;
 	}
-	if (fclose(f) != 0) return MPP_EIO;
+	if (fclose(f) != 0) goto err_closed;
+	if (g_rename(tmp_path, path) != 0) goto err_closed;
+	g_free(tmp_path);
 	return MPP_OK;
 err:
 	fclose(f);
+err_closed:
+	g_unlink(tmp_path);
+	g_free(tmp_path);
 	return MPP_EIO;
 }
 
@@ -164,7 +180,15 @@ mpp_status_t mpp_derot_read(const char *path, mpp_derot_t **out) {
 	if (read_all(f, &flags, 4) != 0) goto eio;
 	if (read_all(f, hdr, sizeof(hdr)) != 0) goto eio;
 	if (read_all(f, dbl, sizeof(dbl)) != 0) goto eio;
-	if (hdr[3] < 0) goto eio;   /* num_frames */
+	if (hdr[3] < 0 || hdr[3] > DEROT_MAX_FRAMES) goto eio;   /* num_frames */
+	/* Semantic validation — a plan with a degenerate disk fit or nonsense
+	 * mirror/flattening would only produce garbage maps downstream (r_eq
+	 * divides pixel coordinates; parity must be exactly a mirror flag). */
+	if (!(dbl[6] > 0.0))                        goto eio;   /* r_eq */
+	if (!(dbl[7] >= 0.0 && dbl[7] < 1.0))       goto eio;   /* flattening */
+	if (!(dbl[8] == 1.0 || dbl[8] == -1.0))     goto eio;   /* parity */
+	if (!isfinite(dbl[4]) || !isfinite(dbl[5])) goto eio;   /* cx, cy */
+	if (!isfinite(dbl[9]))                      goto eio;   /* pole_angle_epoch */
 
 	mpp_derot_t *d = mpp_derot_alloc(hdr[3]);
 	if (!d) { fclose(f); return MPP_ENOMEM; }

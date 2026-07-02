@@ -27,9 +27,12 @@
  *      — this yields the astrometric J2000 direction Miriade reports.
  *   3. Rotate ecliptic->equatorial by the J2000 mean obliquity for RA/Dec and
  *      the IAU pole frame.
- *   4. IAU/WGCCRE pole (alpha0, delta0) and prime-meridian W(t) -> sub-observer
- *      latitude B, central-meridian longitude CM (per rotation system) and
- *      pole position angle P.
+ *   4. IAU/WGCCRE 2015 pole (alpha0, delta0) and prime-meridian W(t) ->
+ *      sub-observer latitude B, central-meridian longitude CM (per rotation
+ *      system) and pole position angle P. Jupiter and Mars include the 2015
+ *      report's periodic terms (Mars per Kuchynka et al. 2014, with trig
+ *      terms in W as well as the pole); coefficients cross-checked against
+ *      NAIF pck00011.tpc.
  */
 
 #include <math.h>
@@ -100,31 +103,36 @@ double planet_ephem_delta_t(double jd_utc) {
 
 /* ---- body physical data ------------------------------------------------ */
 
+/* Periodic-term model applied on top of the secular pole / prime meridian. */
+enum { PERIODIC_NONE = 0, PERIODIC_JUPITER, PERIODIC_MARS };
+
 typedef struct {
 	const vsop_body *vsop;
 	double req_km, flattening;
 	double a0, a0_dot;   /* pole RA: deg and deg/century */
 	double d0, d0_dot;   /* pole Dec: deg and deg/century */
-	int jupiter_periodic;
+	int periodic;        /* PERIODIC_* trig refinement */
 	double w0[3], wdot[3];  /* prime meridian per system: deg, deg/day */
 } body_phys_t;
 
 static const body_phys_t BODIES[PLANET_BODY_COUNT] = {
 	[PLANET_JUPITER] = {
 		&VSOP_JUPITER, 71492.0, 0.06487439,
-		268.056595, -0.006499, 64.495303, 0.002413, 1,
+		268.056595, -0.006499, 64.495303, 0.002413, PERIODIC_JUPITER,
 		{ 67.1, 43.3, 284.95 }, { 877.900, 870.270, 870.5360000 }
 	},
 	[PLANET_SATURN] = {
 		&VSOP_SATURN, 60268.0, 0.09796243,
-		40.589, -0.036, 83.537, -0.004, 0,
+		40.589, -0.036, 83.537, -0.004, PERIODIC_NONE,
 		{ 38.90, 38.90, 38.90 }, { 810.7939024, 810.7939024, 810.7939024 }
 	},
 	[PLANET_MARS] = {
+		/* IAU 2015 (Kuchynka et al. 2014): secular terms here, trig terms in
+		 * mars_periodic(). Values verified against NAIF pck00011.tpc. */
 		&VSOP_MARS, 3396.19, 0.005886007,
-		317.68143, -0.1061, 52.88650, -0.0609, 0,
-		{ 176.630, 176.630, 176.630 },
-		{ 350.89198226, 350.89198226, 350.89198226 }
+		317.269202, -0.10927547, 54.432516, -0.05827105, PERIODIC_MARS,
+		{ 176.049863, 176.049863, 176.049863 },
+		{ 350.891982443297, 350.891982443297, 350.891982443297 }
 	},
 };
 
@@ -140,6 +148,31 @@ static void jupiter_pole_periodic(double T, double *da0, double *dd0) {
 	     + 0.000030 * sin(Jd) + 0.002150 * sin(Je);
 	*dd0 = 0.000050 * cos(Ja) + 0.000404 * cos(Jb) + 0.000617 * cos(Jc)
 	     - 0.000013 * cos(Jd) + 0.000926 * cos(Je);
+}
+
+/* Mars periodic terms (IAU 2015, Kuchynka et al. 2014): the dominant
+ * long-period terms (arguments with rate 0.5042615 deg/cy) carry ~0.42 deg
+ * in alpha0, ~1.59 deg in delta0 and ~0.58 deg in W — the 2015 update
+ * moved that content out of the 2009 constants into these terms, so both
+ * models agree closely at J2000 and diverge slowly. Unlike Jupiter, W has
+ * trig terms too. Coefficients verified against NAIF pck00011.tpc. */
+static void mars_periodic(double T, double *da0, double *dd0, double *dw) {
+	*da0 = 0.000068 * sin((198.991226 + 19139.4819985 * T) * DEG)
+	     + 0.000238 * sin((226.292679 + 38280.8511281 * T) * DEG)
+	     + 0.000052 * sin((249.663391 + 57420.7251593 * T) * DEG)
+	     + 0.000009 * sin((266.183510 + 76560.6367950 * T) * DEG)
+	     + 0.419057 * sin((79.398797  +     0.5042615 * T) * DEG);
+	*dd0 = 0.000051 * cos((122.433576 + 19139.9407476 * T) * DEG)
+	     + 0.000141 * cos((43.058401  + 38280.8753272 * T) * DEG)
+	     + 0.000031 * cos((57.663379  + 57420.7517205 * T) * DEG)
+	     + 0.000005 * cos((79.476401  + 76560.6495004 * T) * DEG)
+	     + 1.591274 * cos((166.325722 +     0.5042615 * T) * DEG);
+	*dw  = 0.000145 * sin((129.071773 + 19140.0328244 * T) * DEG)
+	     + 0.000157 * sin((36.352167  + 38281.0473591 * T) * DEG)
+	     + 0.000040 * sin((56.668646  + 57420.9295360 * T) * DEG)
+	     + 0.000001 * sin((67.364003  + 76560.2552215 * T) * DEG)
+	     + 0.000001 * sin((104.792680 + 95700.4387578 * T) * DEG)
+	     + 0.584542 * sin((95.391654  +     0.5042615 * T) * DEG);
 }
 
 /* ---- main ephemeris ---------------------------------------------------- */
@@ -189,9 +222,14 @@ int planet_ephemeris(planet_body_t body, double jd_utc,
 	const double Tcen = (jd_emit - 2451545.0) / 36525.0;
 	double a0 = bp->a0 + bp->a0_dot * Tcen;
 	double d0 = bp->d0 + bp->d0_dot * Tcen;
-	if (bp->jupiter_periodic) {
+	double dW = 0.0;
+	if (bp->periodic == PERIODIC_JUPITER) {
 		double da0, dd0;
 		jupiter_pole_periodic(Tcen, &da0, &dd0);
+		a0 += da0; d0 += dd0;
+	} else if (bp->periodic == PERIODIC_MARS) {
+		double da0, dd0;
+		mars_periodic(Tcen, &da0, &dd0, &dW);
 		a0 += da0; d0 += dd0;
 	}
 	a0 *= DEG; d0 *= DEG;
@@ -223,7 +261,7 @@ int planet_ephemeris(planet_body_t body, double jd_utc,
 
 	const double d_days = jd_emit - 2451545.0;
 	for (int s = 0; s < 3; ++s) {
-		const double W = bp->w0[s] + bp->wdot[s] * d_days;
+		const double W = bp->w0[s] + bp->wdot[s] * d_days + dW;
 		out->cm[s] = wrap360(W - lon);
 	}
 

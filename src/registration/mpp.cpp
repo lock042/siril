@@ -1835,6 +1835,13 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 		srcs[i].full_read = [s, avi](int l) -> cv::Mat {
 			return mpp::read_full_frame(s, l, avi);
 		};
+		/* Honour each sequence's frame-selector state, like the
+		 * single-sequence pipeline. */
+		if (s->imgparam) {
+			srcs[i].included.assign(s->number, 1);
+			for (int l = 0; l < s->number; ++l)
+				srcs[i].included[l] = s->imgparam[l].incl ? 1 : 0;
+		}
 	}
 
 	/* output channel count from the channel's own sequences (CFA decodes to 3).

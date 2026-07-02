@@ -15037,10 +15037,28 @@ int process_derotate(int nb) {
 			if (!s) { siril_log_error(_("derotate: -epoch-from: cannot load '%s'\n"), nm); ok = FALSE; break; }
 			gboolean is_com = check_seq_is_comseq(s);
 			if (is_com) { free_sequence(s, TRUE); s = &com.seq; }
+			/* Each listed sequence spans on its OWN timestamps — mono
+			 * channels are routinely captured at different frame rates
+			 * (fps tuned per filter to centre the histogram), so the main
+			 * sequence's -fps/-start must not be projected onto the
+			 * others. They apply only when the listed sequence IS the one
+			 * being derotated. */
+			const gboolean is_self = g_strcmp0(nm, seq->seqname) == 0
+			                      || g_strcmp0(nm, word[1]) == 0;
 			double f, l;
-			gboolean got = mpp_derot_sequence_span(s, fps, start_jd, &f, &l);
+			gboolean got = mpp_derot_sequence_span(s,
+			                                       is_self ? fps : 0.0,
+			                                       is_self ? start_jd : NAN,
+			                                       &f, &l);
 			if (!is_com) free_sequence(s, TRUE);
-			if (!got) { siril_log_error(_("derotate: -epoch-from: no timestamps in '%s'\n"), nm); ok = FALSE; break; }
+			if (!got) {
+				siril_log_error(_("derotate: -epoch-from: '%s' has no usable "
+				                  "timestamps — write them first (e.g. "
+				                  "`ser_fix_timestamps %s -fps=F`), since -fps/"
+				                  "-start apply only to the sequence being "
+				                  "derotated\n"), nm, nm);
+				ok = FALSE; break;
+			}
 			firsts[valid] = f; lasts[valid] = l; valid++;
 		}
 		g_strfreev(names);
