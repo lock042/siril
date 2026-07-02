@@ -61,20 +61,70 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 			if (i > 0 && jd_out[i] < jd_out[i - 1])
 				disorder++;
 		}
-		/* Derotation itself is fine with unordered stamps (each frame's own
-		 * JD drives its map), but they usually mean the capture software
-		 * wrote a broken trailer, and anything downstream that assumes
-		 * chronological order (span estimates, the midpoint epoch) is
-		 * quietly degraded. Tell the user how to repair it. */
 		if (disorder > 0)
-			siril_log_message(_("derotate: %d of %d frame timestamps are out "
-			                    "of order — derotation uses each frame's own "
-			                    "timestamp, but the capture trailer looks "
-			                    "unreliable; `ser_fix_timestamps` can rewrite "
-			                    "a uniform cadence\n"), disorder, N);
+			mpp_derot_report_timestamp_order(jd_out, N, disorder);
 		return TRUE;
 	}
 	return FALSE;
+}
+
+static int cmp_double(const void *a, const void *b) {
+	const double x = *(const double *) a, y = *(const double *) b;
+	return (x > y) - (x < y);
+}
+
+/* Non-chronological frame order comes in two very different flavours.
+ * Quality-sorted output (PIPP, capture tools writing best-frames-first) and
+ * multi-threaded writers permute the FRAMES while each keeps its correct
+ * timestamp — derotation is exact and "repairing" the stamps with a uniform
+ * cadence would overwrite correct data with wrong data. A genuinely broken
+ * trailer, by contrast, has stamps that do not even form a coherent capture
+ * timeline. Distinguish by examining the SORTED stamps: a healthy capture
+ * has a plausible total span and cadence, few duplicates, and no single gap
+ * dominating the span. */
+gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder) {
+	double *s = malloc((size_t) N * sizeof(double));
+	if (!s) return FALSE;
+	memcpy(s, jd, (size_t) N * sizeof(double));
+	qsort(s, (size_t) N, sizeof(double), cmp_double);
+
+	const double span_d = s[N - 1] - s[0];          /* days */
+	int dups = 0;
+	double max_gap = 0.0;
+	for (int i = 1; i < N; i++) {
+		const double g = s[i] - s[i - 1];
+		if (g == 0.0) dups++;
+		if (g > max_gap) max_gap = g;
+	}
+	free(s);
+	const double cadence_s = N > 1 ? span_d * 86400.0 / (N - 1) : 0.0;
+
+	const gboolean timeline_ok =
+	       span_d > 0.0
+	    && span_d < 1.0                              /* under a day */
+	    && cadence_s >= 1e-4 && cadence_s <= 60.0    /* 10 kfps .. 1 fpm */
+	    && dups < N / 5                              /* stamp resolution only */
+	    && max_gap < 0.5 * span_d;                   /* no dominating hole */
+
+	if (timeline_ok)
+		siril_log_message(_("derotate: frames are not in chronological order "
+		                    "(%d of %d), but their timestamps form a "
+		                    "consistent capture timeline (span %.1f s, mean "
+		                    "cadence %.1f ms) — typical of quality-sorted or "
+		                    "multi-threaded capture output. Each frame's own "
+		                    "timestamp is used; no action is needed, and "
+		                    "`ser_fix_timestamps` would overwrite the correct "
+		                    "timestamps\n"),
+		                  disorder, N, span_d * 86400.0, cadence_s * 1000.0);
+	else
+		siril_log_message(_("derotate: the frame timestamps are out of order "
+		                    "AND do not form a plausible capture timeline "
+		                    "(span %.1f s, %d duplicate stamps, largest gap "
+		                    "%.1f s) — the trailer looks broken; "
+		                    "`ser_fix_timestamps` can rewrite a uniform "
+		                    "cadence\n"),
+		                  span_d * 86400.0, dups, max_gap * 86400.0);
+	return timeline_ok;
 }
 
 double mpp_derot_midpoint_epoch(const double *jd, int n) {

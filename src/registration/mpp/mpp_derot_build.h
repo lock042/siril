@@ -43,6 +43,14 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 /* Midpoint of a per-frame Julian-date array (the default reference epoch). */
 double mpp_derot_midpoint_epoch(const double *jd, int n);
 
+/* Classify and report non-chronological frame timestamps: an informational
+ * note when the sorted stamps still form a coherent capture timeline
+ * (quality-sorted / multi-threaded writer output — the per-frame stamps are
+ * correct and must NOT be "repaired"), a broken-trailer warning otherwise.
+ * `disorder` is the count of adjacent descending pairs the caller found.
+ * Returns TRUE when the timeline is coherent (benign permutation). */
+gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder);
+
 /* First/last frame UTC Julian dates of a sequence, without reading every frame
  * (the endpoints are all the span needs). Same timing sources as
  * mpp_derot_frame_times. Returns FALSE if no timing source is available. */
@@ -92,11 +100,14 @@ mpp_derot_t *mpp_derot_build_field_rotation(int target, const double *jd,
                                             double obs_lat, double obs_lon);
 
 /* Make <seqname>.derot agree with the registration-side field-rotation
- * option. enable=TRUE: synthesise and write a rotation-only plan (errors if
- * a real planetary plan already exists — fold field rotation into THAT via
- * `derotate -field-rotation=altaz` instead, and errors without usable
- * per-frame timestamps). enable=FALSE: delete a previously synthesised
- * rotation-only plan (a planetary plan is left untouched). Idempotent. */
+ * option. enable=TRUE: synthesise and write a rotation-only plan, or — when
+ * a real planetary plan exists — fold the correction into that plan's
+ * per-frame angles (derotation and field rotation compose; the plan's body
+ * drives the parallactic angle and `target` is ignored). Idempotent for an
+ * unchanged site; re-bases via unfold+fold when the site changes. Errors
+ * without usable per-frame timestamps or site. enable=FALSE: delete a
+ * previously synthesised rotation-only plan, or unfold the correction from
+ * a planetary plan (the plan itself is kept). */
 mpp_status_t mpp_derot_sync_field_rotation_plan(sequence *seq, gboolean enable,
                                                 int target,
                                                 double obs_lat, double obs_lon);

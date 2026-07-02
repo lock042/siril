@@ -260,3 +260,30 @@ Test(mpp_derot_build, sync_folds_into_planetary_plan) {
 	g_free(path);
 	g_free(base);
 }
+
+/* Timestamp-order classifier: a permuted-but-coherent capture timeline
+ * (quality-sorted output) is benign; garbage trailers are not. */
+Test(mpp_derot_build, timestamp_order_classifier) {
+	const int N = 1000;
+	double jd[1000];
+	const double jd0 = 2461212.5, dt = 0.02 / 86400.0;   /* 50 fps */
+	/* Deterministic large-scale permutation of a perfect cadence (stride
+	 * walk over the whole span — like a quality sort). */
+	for (int i = 0; i < N; i++)
+		jd[i] = jd0 + ((i * 617) % N) * dt;
+	cr_assert(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	          "coherent permuted timeline must classify as benign");
+
+	/* Broken: half the stamps collapsed to one value (dup run). */
+	for (int i = 0; i < N; i++)
+		jd[i] = (i % 2) ? jd0 : jd0 + ((i * 617) % N) * dt;
+	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	              "duplicate-run trailer must classify as broken");
+
+	/* Broken: one stamp light-years away dominates the span. */
+	for (int i = 0; i < N; i++)
+		jd[i] = jd0 + ((i * 617) % N) * dt;
+	jd[500] = jd0 + 300.0;   /* +300 days */
+	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	              "dominating gap must classify as broken");
+}

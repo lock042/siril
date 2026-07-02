@@ -15139,8 +15139,15 @@ int process_derotate(int nb) {
 		siril_log_error(_("derotate: failed to write %s (code %d)\n"), derot_path, wr);
 		ret = CMD_GENERIC_ERROR;
 	} else {
-		const double span_min = (jd[N - 1] - jd[0]) * 24.0 * 60.0;
-		const double total_rot = fabs(d->cm[N - 1] - d->cm[0]);
+		/* Chronological extremes, not file positions — quality-sorted SERs
+		 * store frames out of time order with correct per-frame stamps. */
+		int i_first = 0, i_last = 0;
+		for (int i = 1; i < N; i++) {
+			if (jd[i] < jd[i_first]) i_first = i;
+			if (jd[i] > jd[i_last])  i_last = i;
+		}
+		const double span_min = (jd[i_last] - jd[i_first]) * 24.0 * 60.0;
+		const double total_rot = fabs(d->cm[i_last] - d->cm[i_first]);
 		siril_log_message(_("derotate: wrote %s — %d frames, span %.2f min, "
 		                    "System %d rotation %.2f deg, app. diam %.2f\"\n"),
 		                  derot_path, N, span_min, system,
