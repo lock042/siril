@@ -271,19 +271,30 @@ Test(mpp_derot_build, timestamp_order_classifier) {
 	 * walk over the whole span — like a quality sort). */
 	for (int i = 0; i < N; i++)
 		jd[i] = jd0 + ((i * 617) % N) * dt;
-	cr_assert(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	cr_assert(mpp_derot_report_timestamp_order(jd, N, N / 2, NAN),
 	          "coherent permuted timeline must classify as benign");
 
 	/* Broken: half the stamps collapsed to one value (dup run). */
 	for (int i = 0; i < N; i++)
 		jd[i] = (i % 2) ? jd0 : jd0 + ((i * 617) % N) * dt;
-	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2, NAN),
 	              "duplicate-run trailer must classify as broken");
 
 	/* Broken: one stamp light-years away dominates the span. */
 	for (int i = 0; i < N; i++)
 		jd[i] = jd0 + ((i * 617) % N) * dt;
 	jd[500] = jd0 + 300.0;   /* +300 days */
-	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2),
+	cr_assert_not(mpp_derot_report_timestamp_order(jd, N, N / 2, NAN),
 	              "dominating gap must classify as broken");
+
+	/* Header cross-check: internally coherent stamps that sit a day away
+	 * from the header capture date are broken; within tolerance they are
+	 * fine (the tolerance is generous to survive local-time-in-UTC-slot
+	 * capture bugs). */
+	for (int i = 0; i < N; i++)
+		jd[i] = jd0 + ((i * 617) % N) * dt;
+	cr_assert(mpp_derot_timestamps_coherent(jd, N, jd0 + 0.2, NULL, NULL, NULL),
+	          "header within tolerance must stay coherent");
+	cr_assert_not(mpp_derot_timestamps_coherent(jd, N, jd0 - 2.0, NULL, NULL, NULL),
+	              "header two days away must classify as broken");
 }

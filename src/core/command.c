@@ -15371,6 +15371,7 @@ int process_ser_fix_timestamps(int nb) {
 		ret = CMD_INVALID_IMAGE; goto done;
 	}
 
+	gboolean force = FALSE;
 	for (int i = 2; i < nb; i++) {
 		const char *w = word[i];
 		if (g_str_has_prefix(w, "-fps=")) {
@@ -15378,6 +15379,8 @@ int process_ser_fix_timestamps(int nb) {
 		} else if (g_str_has_prefix(w, "-start=")) {
 			start_dt = FITS_date_to_date_time((gchar *) (w + 7));
 			if (!start_dt) { siril_log_error(_("ser_fix_timestamps: bad -start (use YYYY-MM-DDTHH:MM:SS)\n")); ret = CMD_ARG_ERROR; goto done; }
+		} else if (!strcmp(w, "-force")) {
+			force = TRUE;
 		} else {
 			siril_log_error(_("ser_fix_timestamps: unknown argument '%s'\n"), w);
 			ret = CMD_ARG_ERROR; goto done;
@@ -15386,6 +15389,46 @@ int process_ser_fix_timestamps(int nb) {
 	if (fps <= 0.0) {
 		siril_log_error(_("ser_fix_timestamps: -fps=F (frames per second) is required\n"));
 		ret = CMD_ARG_ERROR; goto done;
+	}
+
+	/* Guard against destroying CORRECT timestamps. Quality-sorted SERs and
+	 * multi-threaded capture writers store frames out of chronological
+	 * order deliberately, each with its correct stamp — the repair this
+	 * command performs (uniform cadence in file order) would replace good
+	 * data with wrong data. Refuse when the existing trailer forms a
+	 * coherent capture timeline; -force overrides. A missing trailer or
+	 * incoherent stamps proceed as before. */
+	if (!force && seq->ser_file->ts && seq->number > 1) {
+		const int N = seq->number;
+		double *jd = malloc((size_t) N * sizeof(double));
+		if (jd) {
+			gboolean have_all = TRUE;
+			for (int i = 0; i < N && have_all; i++) {
+				GDateTime *t = ser_read_frame_date(seq->ser_file, i);
+				if (!t) { have_all = FALSE; break; }
+				jd[i] = date_time_to_Julian(t);
+				g_date_time_unref(t);
+			}
+			double header_jd = NAN;
+			if (seq->ser_file->date_utc != 0) {
+				GDateTime *hd = ser_timestamp_to_date_time(seq->ser_file->date_utc);
+				if (hd) { header_jd = date_time_to_Julian(hd); g_date_time_unref(hd); }
+			}
+			const gboolean coherent = have_all
+			    && mpp_derot_timestamps_coherent(jd, N, header_jd,
+			                                     NULL, NULL, NULL);
+			free(jd);
+			if (coherent) {
+				siril_log_error(_("ser_fix_timestamps: the existing timestamps "
+				                  "form a coherent capture timeline — they look "
+				                  "correct even if the frames are not stored in "
+				                  "chronological order (quality-sorted or "
+				                  "multi-threaded capture output), and rewriting "
+				                  "them would destroy real timing data. Use "
+				                  "-force to overwrite anyway\n"));
+				ret = CMD_GENERIC_ERROR; goto done;
+			}
+		}
 	}
 
 	/* Start instant: explicit -start, else the SER header UTC, else the file's

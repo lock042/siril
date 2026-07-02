@@ -48,8 +48,21 @@ double mpp_derot_midpoint_epoch(const double *jd, int n);
  * (quality-sorted / multi-threaded writer output — the per-frame stamps are
  * correct and must NOT be "repaired"), a broken-trailer warning otherwise.
  * `disorder` is the count of adjacent descending pairs the caller found.
+ * `header_jd_utc` (NaN = unavailable) is the SER header capture date, an
+ * independent cross-check the trailer must sit near.
  * Returns TRUE when the timeline is coherent (benign permutation). */
-gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder);
+gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder,
+                                          double header_jd_utc);
+
+/* The pure classifier behind the report: TRUE when the SORTED stamps form
+ * a coherent capture timeline (positive sub-day span, cadence between
+ * 10 kfps and one frame per minute, few duplicates, no dominating gap,
+ * and — when available — consistency with the header capture date).
+ * Optionally returns the statistics. */
+gboolean mpp_derot_timestamps_coherent(const double *jd, int N,
+                                       double header_jd_utc,
+                                       double *span_out, int *dups_out,
+                                       double *max_gap_out);
 
 /* First/last frame UTC Julian dates of a sequence, without reading every frame
  * (the endpoints are all the span needs). Same timing sources as

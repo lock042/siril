@@ -61,8 +61,17 @@ gboolean mpp_derot_frame_times(sequence *seq, double fps, double start_jd,
 			if (i > 0 && jd_out[i] < jd_out[i - 1])
 				disorder++;
 		}
-		if (disorder > 0)
-			mpp_derot_report_timestamp_order(jd_out, N, disorder);
+		if (disorder > 0) {
+			double header_jd = NAN;
+			if (seq->ser_file->date_utc != 0) {
+				GDateTime *hd = ser_timestamp_to_date_time(seq->ser_file->date_utc);
+				if (hd) {
+					header_jd = date_time_to_Julian(hd);
+					g_date_time_unref(hd);
+				}
+			}
+			mpp_derot_report_timestamp_order(jd_out, N, disorder, header_jd);
+		}
 		return TRUE;
 	}
 	return FALSE;
@@ -82,7 +91,11 @@ static int cmp_double(const void *a, const void *b) {
  * timeline. Distinguish by examining the SORTED stamps: a healthy capture
  * has a plausible total span and cadence, few duplicates, and no single gap
  * dominating the span. */
-gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder) {
+gboolean mpp_derot_timestamps_coherent(const double *jd, int N,
+                                        double header_jd_utc,
+                                        double *span_out, int *dups_out,
+                                        double *max_gap_out) {
+	if (!jd || N < 2) return FALSE;
 	double *s = malloc((size_t) N * sizeof(double));
 	if (!s) return FALSE;
 	memcpy(s, jd, (size_t) N * sizeof(double));
@@ -96,15 +109,39 @@ gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder)
 		if (g == 0.0) dups++;
 		if (g > max_gap) max_gap = g;
 	}
+	const double t_min = s[0];
 	free(s);
-	const double cadence_s = N > 1 ? span_d * 86400.0 / (N - 1) : 0.0;
+	const double cadence_s = span_d * 86400.0 / (N - 1);
+	if (span_out) *span_out = span_d;
+	if (dups_out) *dups_out = dups;
+	if (max_gap_out) *max_gap_out = max_gap;
 
-	const gboolean timeline_ok =
+	gboolean ok =
 	       span_d > 0.0
 	    && span_d < 1.0                              /* under a day */
 	    && cadence_s >= 1e-4 && cadence_s <= 60.0    /* 10 kfps .. 1 fpm */
 	    && dups < N / 5                              /* stamp resolution only */
 	    && max_gap < 0.5 * span_d;                   /* no dominating hole */
+
+	/* Independent cross-check against the SER header's capture date (a
+	 * separate field from the per-frame trailer): a garbage trailer lands
+	 * nowhere near it. The tolerance is generous — capture software has
+	 * been known to write local time into the UTC slot — so this only
+	 * catches stamps that are wildly wrong, exactly the corrupt-values
+	 * case. */
+	if (ok && !isnan(header_jd_utc) && header_jd_utc > 0.0
+	    && fabs(t_min - header_jd_utc) > 15.0 / 24.0)
+		ok = FALSE;
+	return ok;
+}
+
+gboolean mpp_derot_report_timestamp_order(const double *jd, int N, int disorder,
+                                          double header_jd_utc) {
+	double span_d = 0.0, max_gap = 0.0;
+	int dups = 0;
+	const gboolean timeline_ok = mpp_derot_timestamps_coherent(
+	    jd, N, header_jd_utc, &span_d, &dups, &max_gap);
+	const double cadence_s = N > 1 ? span_d * 86400.0 / (N - 1) : 0.0;
 
 	if (timeline_ok)
 		siril_log_message(_("derotate: frames are not in chronological order "
