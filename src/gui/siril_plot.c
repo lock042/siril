@@ -149,9 +149,32 @@ static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfile
 	return savefilename;
 }
 
+gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height);
+
+struct plot_clipboard_args {
+	siril_plot_data *spl_data;
+	int width, height;
+	gboolean result;
+};
+
+static gboolean save_siril_plot_to_clipboard_idle(gpointer p) {
+	struct plot_clipboard_args *args = p;
+	args->result = save_siril_plot_to_clipboard(args->spl_data, args->width,
+			args->height);
+	return FALSE;
+}
+
 gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
 	if (!spl_data)
 		return TRUE;
+
+	/* the python bridge requests clipboard snapshots from the connection
+	 * worker thread; the clipboard must be used from the GTK main thread */
+	if (!com.headless && !g_main_context_is_owner(g_main_context_default())) {
+		struct plot_clipboard_args args = { spl_data, width, height, TRUE };
+		execute_idle_and_wait_for_it(save_siril_plot_to_clipboard_idle, &args);
+		return args.result;
+	}
 
 	cairo_surface_t *surface = siril_plot_draw_to_image_surface(spl_data, width, height);
 	if (!surface)

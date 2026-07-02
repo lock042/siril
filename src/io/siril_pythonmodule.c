@@ -1366,7 +1366,9 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		int id = get_unused_polygon_id();
 		polygon->id = id;
 		gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
-		redraw(REDRAW_OVERLAY);
+		// this runs on the python connection worker thread: redraw() is
+		// main-thread-only, use the queued variant (as CMD_SET_USER_POLYGON does)
+		queue_redraw(REDRAW_OVERLAY);
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);
 	} else {

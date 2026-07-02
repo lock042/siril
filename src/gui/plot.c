@@ -1174,7 +1174,7 @@ static void sort_photometry_dataset(pldata *plot) {
 	}
 }
 
-void drawPlot() {
+static void drawPlot_now() {
 	int ref_image;
 	sequence *seq;
 
@@ -1246,6 +1246,18 @@ void drawPlot() {
 	}
 	gtk_widget_set_sensitive(julianw, julian0);
 	gtk_widget_queue_draw(drawingPlot);
+}
+
+static gboolean drawPlot_idle(gpointer p) {
+	drawPlot_now();
+	return FALSE;
+}
+
+/* Callable from any thread: several commands redraw the plot (set_ref,
+ * seq_clean, set_mag_seq...) and run on the script / python connection worker
+ * thread when scripted, while GTK is main-thread-only. */
+void drawPlot() {
+	gui_function(drawPlot_idle, NULL);
 }
 
 static void set_filter(GtkFileChooser *dialog, const gchar *format) {
@@ -1385,13 +1397,24 @@ void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	drawPlot();
 }
 
-void clear_all_photometry_and_plot() {
+static gboolean clear_all_photometry_and_plot_idle(gpointer p) {
 	for (int i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 		free_photometry_set(&com.seq, i);
 	}
 	reset_plot();
 	clear_stars_list(TRUE);
 	drawPlot();
+	return FALSE;
+}
+
+/* Callable from any thread (light_curve command runs on the script / python
+ * connection worker); synchronous because callers set up new photometry right
+ * after and rely on the old sets being freed. */
+void clear_all_photometry_and_plot() {
+	if (com.headless || g_main_context_is_owner(g_main_context_default()))
+		clear_all_photometry_and_plot_idle(NULL);
+	else
+		execute_idle_and_wait_for_it(clear_all_photometry_and_plot_idle, NULL);
 }
 
 void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
