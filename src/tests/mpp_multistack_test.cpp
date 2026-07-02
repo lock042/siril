@@ -149,6 +149,7 @@ Test(mpp_multistack, combines_two_sources_into_reference_canvas) {
 	srcs[0].derot = d0; srcs[0].num_frames = N;
 	srcs[0].analysis_read = [&](int l) { return f0[l]; };
 	srcs[0].full_read     = [&](int l) { return f0[l]; };
+	srcs[0].shares_output_disk = true;   /* d0 IS the output canvas plan */
 	srcs[1].derot = d1; srcs[1].num_frames = N;
 	srcs[1].analysis_read = [&](int l) { return f1[l]; };
 	srcs[1].full_read     = [&](int l) { return f1[l]; };
@@ -231,6 +232,7 @@ Test(mpp_multistack, drift_cropped_intersection_recovers) {
 	srcs[0].derot = d; srcs[0].num_frames = N;
 	srcs[0].analysis_read = [&](int l) { return frames[l]; };
 	srcs[0].full_read     = [&](int l) { return frames[l]; };
+	srcs[0].shares_output_disk = true;   /* single source = the output plan */
 
 	const auto res = mpp::multistack_channel(srcs, d, 1, cfg, 1);
 	cr_assert(!res.error && !res.oom && !res.cancelled && !res.image.empty());

@@ -67,6 +67,13 @@ struct MsSource {
 	 * num_frames, 0 = excluded (kept out of the reference, ranking and the
 	 * stack — same contract as the single-sequence pipeline). */
 	std::vector<int> included;
+	/* Off-globe policy. true: this source's disk fit IS the output canvas
+	 * disk (same fingerprint), so pixels off the globe — rings, moons, sky
+	 * — line up with the reference canvas and pass through to stack
+	 * normally. false: only the globe co-registers across sources;
+	 * identity passthrough would ghost a displaced source globe into the
+	 * reference sky, so everything off the globe is masked. */
+	bool shares_output_disk = false;
 };
 
 struct MultiStackResult {

@@ -76,13 +76,14 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 
 	const int nt = std::max(1, max_threads);
 
-	/* Mask everything off the globe only for sources whose disk differs from the
-	 * reference (a displaced/other sequence) — there, identity passthrough would
-	 * ghost their globe into the reference sky. The reference's OWN frames keep
-	 * the single-sequence behaviour: rings and sky pass through and stack
-	 * normally. (A single-sequence combine is then identical to the ordinary
-	 * derotation stack.) */
-	auto src_masks = [&](int s) -> bool { return srcs[s].derot != refd; };
+	/* Mask everything off the globe only for sources that do not share the
+	 * output canvas disk (MsSource.shares_output_disk, decided by the
+	 * caller from plan CONTENT, not pointer identity) — there, identity
+	 * passthrough would ghost their globe into the reference sky. Sources
+	 * sharing the output disk keep the single-sequence behaviour: rings
+	 * and sky pass through and stack normally. (A single-sequence combine
+	 * is then identical to the ordinary derotation stack.) */
+	auto src_masks = [&](int s) -> bool { return !srcs[s].shares_output_disk; };
 
 	/* Relocate+derotate a source frame into the reference epoch canvas: the C3
 	 * ms map sends each reference-canvas pixel back to this source's frame

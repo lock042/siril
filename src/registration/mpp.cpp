@@ -1842,6 +1842,12 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 			for (int l = 0; l < s->number; ++l)
 				srcs[i].included[l] = s->imgparam[l].incl ? 1 : 0;
 		}
+		/* Off-globe passthrough for sources whose plan is content-identical
+		 * to the output canvas plan (fingerprint, not pointer identity —
+		 * a re-read copy of the reference plan behaves the same as the
+		 * reference itself). */
+		srcs[i].shares_output_disk =
+		    mpp_derot_fingerprint(derots[i]) == mpp_derot_fingerprint(out_derot);
 	}
 
 	/* output channel count from the channel's own sequences (CFA decodes to 3).
