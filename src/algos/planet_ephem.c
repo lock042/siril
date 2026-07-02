@@ -147,8 +147,17 @@ static void jupiter_pole_periodic(double T, double *da0, double *dd0) {
 int planet_ephemeris(planet_body_t body, double jd_utc,
                      double obs_lat, double obs_lon, double obs_elev,
                      planet_geom_t *out) {
-	(void) obs_lat; (void) obs_lon; (void) obs_elev; /* topocentric: TODO refinement */
+	/* Observer coordinates are accepted for provenance only: the geometry is
+	 * geocentric. The sub-observer point shifts by at most the angle Earth's
+	 * radius subtends from the planet (< 0.001 deg for Mars and beyond), far
+	 * below what derotation can resolve. */
+	(void) obs_lat; (void) obs_lon; (void) obs_elev;
 	if (!out || body < 0 || body >= PLANET_BODY_COUNT)
+		return 1;
+	/* Reject nonsense dates (unset timestamps, corrupt SER headers) instead
+	 * of silently evaluating the VSOP series far outside its useful range.
+	 * JD 2378497..2524595 = years 1800..2200. */
+	if (!(jd_utc >= 2378497.0 && jd_utc <= 2524595.0))
 		return 1;
 	const body_phys_t *bp = &BODIES[body];
 

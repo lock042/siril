@@ -547,7 +547,19 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		buf = mean_ch[0];
 	else
 		cv::merge(mean_ch, buf);
-	out.image = stack_float_to_uint16(buf, C, cfg.bitdepth);
+	if (cfg.output_32bit) {
+		/* Keep the accumulation's full precision: normalise to [0, 1]
+		 * float without the uint16 quantisation round-trip (the whole
+		 * point of the 32-bit output option). */
+		const double in_max = (cfg.bitdepth == 8) ? 255.0 : 65535.0;
+		cv::Mat norm;
+		buf.convertTo(norm, (C == 3) ? CV_32FC3 : CV_32F, 1.0 / in_max);
+		cv::min(norm, 1.0f, norm);
+		cv::max(norm, 0.0f, norm);
+		out.image = norm;
+	} else {
+		out.image = stack_float_to_uint16(buf, C, cfg.bitdepth);
+	}
 	return out;
 }
 

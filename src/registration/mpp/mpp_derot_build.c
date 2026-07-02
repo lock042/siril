@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "io/ser.h"
 
 #include "registration/mpp/mpp_derot_build.h"
@@ -122,6 +123,14 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
                              double obs_lat, double obs_lon, double obs_elev) {
 	if (!jd || num_frames <= 0 || system < 1 || system > 3) return NULL;
 
+	/* Observer coordinates ride along in the plan for provenance; the
+	 * built-in ephemeris is geocentric (the sub-observer geometry differs
+	 * by well under 0.001 deg for these bodies). */
+	if (!isnan(obs_lat) || !isnan(obs_lon) || !isnan(obs_elev))
+		siril_log_message(_("derotate: observer coordinates are recorded for "
+		                    "provenance only — the ephemeris is geocentric "
+		                    "(difference < 0.001° for these bodies)\n"));
+
 	planet_geom_t ge;
 	if (planet_ephemeris(body, epoch_jd, obs_lat, obs_lon, obs_elev, &ge) != 0)
 		return NULL;
@@ -144,7 +153,15 @@ mpp_derot_t *mpp_derot_build(planet_body_t body, int system, double epoch_jd,
 
 	for (int i = 0; i < num_frames; i++) {
 		planet_geom_t g;
-		planet_ephemeris(body, jd[i], obs_lat, obs_lon, obs_elev, &g);
+		if (planet_ephemeris(body, jd[i], obs_lat, obs_lon, obs_elev, &g) != 0) {
+			/* A frame with a nonsense timestamp (unset / corrupt) must not
+			 * bake garbage geometry into the plan. */
+			siril_log_error(_("derotate: frame %d has an unusable timestamp "
+			                  "(JD %.6f) — fix the timestamps or supply "
+			                  "-fps/-start\n"), i, jd[i]);
+			mpp_derot_free(d);
+			return NULL;
+		}
 		d->jd[i] = jd[i];
 		d->sub_obs_lat[i] = g.sub_obs_lat;
 		d->cm[i] = g.cm[system - 1];
@@ -159,6 +176,10 @@ gboolean mpp_derot_autodetect_disk(const fits *fit, double flattening,
                                    double *major_axis_deg) {
 	if (!fit || !cx || !cy || !radius || fit->rx <= 0 || fit->ry <= 0)
 		return FALSE;
+	/* Every failure exit below must leave *radius deterministic — the ring
+	 * path returns (*radius > 1.0) and previously read the caller's
+	 * uninitialised variable when the tip estimate never landed. */
+	*radius = 0.0;
 	const int rx = (int) fit->rx, ry = (int) fit->ry;
 	const gboolean is_float = (fit->type == DATA_FLOAT);
 	const float *fp = is_float ? fit->fdata : NULL;

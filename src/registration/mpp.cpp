@@ -858,6 +858,68 @@ cv::Mat guarded_frame(Fn &&fn) {
  * dimensions its disk fit was measured in both match — otherwise the disk would
  * be mis-placed (e.g. a plan from a different-resolution capture with the same
  * frame count). */
+/* Pack a stacked canvas (CV_16U / CV_16UC3 for 16-bit output, CV_32F /
+ * CV_32FC3 normalised [0,1] for 32-bit float output) into the caller's
+ * fits. The caller supplies an empty shell (`fits out = {0};`); we fill
+ * its members and own the pixel buffer. Siril expects PLANAR layout
+ * (R plane, G plane, B plane); cv::Mat stores interleaved, so multi-
+ * channel input is split + repacked. Mono convention: pdata[1]/pdata[2]
+ * (and fpdata) alias plane 0, not NULL — remap_all_vports's per-vport
+ * memcpy loops c=0..2 unconditionally, so a NULL plane pointer crashes
+ * the GUI refresh that runs right after the stack swaps gfit. */
+static mpp_status_t mpp_pack_stacked(const cv::Mat &stacked, fits *out) {
+	clearfits(out);
+	const int H = stacked.rows;
+	const int W = stacked.cols;
+	const int C = stacked.channels();
+	const size_t plane = (size_t) H * W;
+	out->rx = W;
+	out->ry = H;
+	out->naxes[0] = W;
+	out->naxes[1] = H;
+	out->naxes[2] = C;
+	out->naxis = (C == 1) ? 2 : 3;
+
+	if (stacked.depth() == CV_32F) {
+		/* 32-bit float output: the accumulation's precision, no uint16
+		 * quantisation round-trip. fit_replace_buffer wires fdata/fpdata
+		 * from the dims set above. */
+		float *fbuf = (float *) std::malloc(plane * C * sizeof(float));
+		if (!fbuf) return MPP_ENOMEM;
+		if (C == 1) {
+			std::memcpy(fbuf, stacked.data, plane * sizeof(float));
+		} else {
+			std::vector<cv::Mat> planes;
+			cv::split(stacked, planes);
+			for (int c = 0; c < C; ++c)
+				std::memcpy(fbuf + c * plane, planes[c].data,
+				            plane * sizeof(float));
+		}
+		fit_replace_buffer(out, fbuf, DATA_FLOAT);
+		siril_log_message(_("Stacking result will be stored as a 32-bit image\n"));
+		return MPP_OK;
+	}
+
+	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
+	if (!out->data) return MPP_ENOMEM;
+	if (C == 1) {
+		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
+	} else {
+		std::vector<cv::Mat> planes;
+		cv::split(stacked, planes);
+		for (int c = 0; c < C; ++c)
+			std::memcpy(out->data + c * plane, planes[c].data,
+			            plane * sizeof(WORD));
+	}
+	out->bitpix = USHORT_IMG;
+	out->orig_bitpix = USHORT_IMG;
+	out->type = DATA_USHORT;
+	out->pdata[0] = out->data;
+	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
+	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
+	return MPP_OK;
+}
+
 static bool mpp_derot_applies(const struct mpp_derot *d, int num_frames,
                               int rows, int cols) {
 	return d && d->num_frames == num_frames
@@ -1711,56 +1773,8 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		stacked = wr.image;
 	}
 
-	/* Pack stacked into the caller-supplied fits. The caller allocates the
-	 * shell (`fits out = {0};`); we fill its members and own `data`. For
-	 * multi-channel stacked (CV_16UC3), Siril expects PLANAR layout in
-	 * `data` (R plane then G plane then B plane), with pdata[0..2]
-	 * pointing into the contiguous buffer. cv::Mat stores interleaved
-	 * BGRBGR... — we split + repack. */
-	clearfits(out);
-	const int H = stacked.rows;
-	const int W = stacked.cols;
-	const int C = stacked.channels();
-	const size_t plane = (size_t) H * W;
-	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
-	if (!out->data) return MPP_ENOMEM;
-	if (C == 1) {
-		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
-	} else {
-		std::vector<cv::Mat> planes;
-		cv::split(stacked, planes);
-		for (int c = 0; c < C; ++c)
-			std::memcpy(out->data + c * plane, planes[c].data, plane * sizeof(WORD));
-	}
-	out->rx = W;
-	out->ry = H;
-	out->naxes[0] = W;
-	out->naxes[1] = H;
-	out->naxes[2] = C;
-	out->naxis = (C == 1) ? 2 : 3;
-	out->bitpix = USHORT_IMG;
-	out->orig_bitpix = USHORT_IMG;
-	out->type = DATA_USHORT;
-	out->pdata[0] = out->data;
-	/* Siril's mono convention: pdata[1]/pdata[2] alias pdata[0] (not
-	 * NULL). remap_all_vports's per-vport memcpy loops c=0..2
-	 * unconditionally, so a NULL plane pointer crashes the GUI
-	 * refresh that runs immediately after stack_function_handler
-	 * swaps gfit. */
-	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
-	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
-
-	/* Optional 32-bit float output. The merge above runs in 16-bit; when
-	 * requested (`-32b` / "Force 32b output") convert the packed USHORT
-	 * buffer to normalised float in place. fit_replace_buffer frees the
-	 * old WORD buffer and rewires pdata/fpdata. */
-	if (cfg->output_32bit) {
-		float *fbuf = ushort_buffer_to_float(out->data, plane * C);
-		if (!fbuf) return MPP_ENOMEM;
-		fit_replace_buffer(out, fbuf, DATA_FLOAT);
-		siril_log_message(_("Stacking result will be stored as a 32-bit image\n"));
-	}
-	return MPP_OK;
+	/* Pack stacked into the caller-supplied fits. */
+	return mpp_pack_stacked(stacked, out);
 }
 
 /* Exception boundary — see mpp_analyze. */
@@ -1868,36 +1882,9 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	siril_log_message(_("Derotation stack: %d frames combined over %d alignment "
 	                    "points\n"), res.num_frames, res.num_aps);
 
-	/* Pack into the caller's fits (mirrors mpp_stack_apply_impl). */
-	const cv::Mat &stacked = res.image;
-	clearfits(out);
-	const int Hh = stacked.rows, Ww = stacked.cols, C = stacked.channels();
-	const size_t plane = (size_t) Hh * Ww;
-	out->data = (WORD *) std::calloc(plane * C, sizeof(WORD));
-	if (!out->data) return MPP_ENOMEM;
-	if (C == 1) {
-		std::memcpy(out->data, stacked.data, plane * sizeof(WORD));
-	} else {
-		std::vector<cv::Mat> planes;
-		cv::split(stacked, planes);
-		for (int c = 0; c < C; ++c)
-			std::memcpy(out->data + c * plane, planes[c].data, plane * sizeof(WORD));
-	}
-	out->rx = Ww; out->ry = Hh;
-	out->naxes[0] = Ww; out->naxes[1] = Hh; out->naxes[2] = C;
-	out->naxis = (C == 1) ? 2 : 3;
-	out->bitpix = USHORT_IMG; out->orig_bitpix = USHORT_IMG;
-	out->type = DATA_USHORT;
-	out->pdata[0] = out->data;
-	out->pdata[1] = (C >= 2) ? out->data + plane     : out->data;
-	out->pdata[2] = (C >= 3) ? out->data + plane * 2 : out->data;
-
-	if (cfg->output_32bit) {
-		float *fbuf = ushort_buffer_to_float(out->data, plane * C);
-		if (!fbuf) return MPP_ENOMEM;
-		fit_replace_buffer(out, fbuf, DATA_FLOAT);
-	}
-	return MPP_OK;
+	/* Pack into the caller's fits (shared with mpp_stack_apply_impl; the
+	 * warp engine already emitted float when output_32bit is set). */
+	return mpp_pack_stacked(res.image, out);
 }
 
 extern "C" mpp_status_t mpp_multistack(sequence **seqs, mpp_derot_t **derots,

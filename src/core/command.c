@@ -14926,7 +14926,8 @@ int process_derotate(int nb) {
 	}
 	sequence *seq = load_sequence_force_debayer(word[1]);
 	if (!seq) return CMD_SEQUENCE_NOT_FOUND;
-	if (check_seq_is_comseq(seq)) {
+	gboolean seq_is_com = check_seq_is_comseq(seq);
+	if (seq_is_com) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -15062,7 +15063,8 @@ int process_derotate(int nb) {
 		free(jd); ret = CMD_GENERIC_ERROR; goto done;
 	}
 	planet_geom_t ge;
-	planet_ephemeris(body, epoch_jd, obs_lat, obs_lon, obs_elev, &ge);
+	const gboolean have_ge =
+	    planet_ephemeris(body, epoch_jd, obs_lat, obs_lon, obs_elev, &ge) == 0;
 
 	gchar *derot_path = out_path ? g_strdup(out_path)
 	                             : g_strdup_printf("%s.derot", seq->seqname);
@@ -15077,13 +15079,14 @@ int process_derotate(int nb) {
 		                    "System %d rotation %.2f deg, app. diam %.2f\"\n"),
 		                  derot_path, N, span_min, system,
 		                  total_rot > 180.0 ? 360.0 - total_rot : total_rot,
-		                  ge.ang_diam_eq);
+		                  have_ge ? ge.ang_diam_eq : 0.0);
 	}
 	g_free(derot_path);
 	mpp_derot_free(d);
 	free(jd);
 
 done:
+	if (seq && !seq_is_com) free_sequence(seq, TRUE);
 	g_free(out_path);
 	g_free(epoch_from);
 	if (epoch_dt) g_date_time_unref(epoch_dt);
@@ -15177,6 +15180,38 @@ int process_derotate_stack(int nb) {
 			                derots[i]->num_frames, derots[i]->frame_cols,
 			                derots[i]->frame_rows);
 			ret = CMD_INVALID_IMAGE; goto stack_cleanup;
+		}
+
+		/* Cross-source compatibility. Every plan must target the same epoch
+		 * (else each sequence derotates to a different planet face and the
+		 * combine is rotationally misregistered — build the plans with
+		 * -epoch-from), the same body/system, and the sequences must share a
+		 * bit depth and layer count (the analysis reader is configured once
+		 * from the first source). Half a second of epoch slack is far below
+		 * anything the rotation can resolve. */
+		if (i > 0) {
+			if (derots[i]->body != derots[0]->body
+			    || derots[i]->rot_system != derots[0]->rot_system) {
+				siril_log_error(_("derotate_stack: '%s' was derotated for a "
+				                  "different body/system than '%s'\n"),
+				                seqname, (char *) g_ptr_array_index(names, 0));
+				ret = CMD_ARG_ERROR; goto stack_cleanup;
+			}
+			if (fabs(derots[i]->epoch_jd - derots[0]->epoch_jd) > 0.5 / 86400.0) {
+				siril_log_error(_("derotate_stack: '%s' targets a different "
+				                  "reference epoch than '%s' — re-run `derotate` "
+				                  "on every sequence with the same -epoch-from "
+				                  "list\n"),
+				                seqname, (char *) g_ptr_array_index(names, 0));
+				ret = CMD_ARG_ERROR; goto stack_cleanup;
+			}
+			if (seqs[i]->bitpix != seqs[0]->bitpix
+			    || seqs[i]->nb_layers != seqs[0]->nb_layers) {
+				siril_log_error(_("derotate_stack: '%s' does not match '%s' in "
+				                  "bit depth or channel count\n"),
+				                seqname, (char *) g_ptr_array_index(names, 0));
+				ret = CMD_ARG_ERROR; goto stack_cleanup;
+			}
 		}
 	}
 
