@@ -229,6 +229,8 @@ struct guiinf {
 	BYTE             *hd_remap_index[3];             /* high-precision LUT */
 	guint             hd_remap_max;
 	gboolean          use_hd_remap;
+	float             autostretch_target_bg; /* target background for the autostretch viewer */
+	gboolean          autostretch_auto_refresh; /* recompute the autostretch on every image change */
 
 	/*** selection / drawing state ***/
 	gboolean          drawing;

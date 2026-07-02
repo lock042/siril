@@ -334,15 +334,12 @@ int is_readable_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
 		return 0;
-	if (S_ISREG (sts.st_mode)
+	return S_ISREG (sts.st_mode) ||
 #ifndef _WIN32
-			|| S_ISLNK(sts.st_mode)
+		S_ISLNK(sts.st_mode);
 #else
-		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+		(GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT );
 #endif
-	)
-		return 1;
-	return 0;
 }
 
 /**
@@ -919,8 +916,6 @@ float compute_slope(WORD *lo, WORD *hi) {
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
-/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
-
 /**
 * Truncate a string str to not exceed an length of size
 * @param str the string to be truncated
@@ -1344,8 +1339,8 @@ We have 4 conventions to handle:
 
 /* converts Siril coordinates to display coordinates */
 int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
-	if (sx < 0.0 || sy < 0.0 || sy > ry)
-			return 1;
+	// if (sx < 0.0 || sy < 0.0 || sy > ry)
+	// 		return 1;
 	*dx = sx;
 	*dy = ry - sy;
 	return 0;
@@ -1353,8 +1348,8 @@ int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
 
 /* converts display coordinates to Siril */
 int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
-	if (dx < 0.0 || dy < 0.0 || dy > ry)
-			return 1;
+	// if (dx < 0.0 || dy < 0.0 || dy > ry)
+	// 		return 1;
 	*sx = dx;
 	*sy = ry - dy;
 	return 0;
@@ -2016,7 +2011,7 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			/* Ignore errors from the move: we don't want to mask the
 			* original deletion error.
 			*/
-			g_file_move(root,
+			(void) g_file_move(root,
 						quarantine,
 						G_FILE_COPY_NOFOLLOW_SYMLINKS,
 						NULL, NULL, NULL, NULL);

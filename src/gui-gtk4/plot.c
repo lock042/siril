@@ -402,16 +402,16 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 	switch (marker_t) {
 		default:
 		case MARKER_X_MIN:
-			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_X_MAX:
-			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[1], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[1], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_Y_MIN:
-			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 		case MARKER_Y_MAX:
-			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * G_PI);
 			break;
 	}
 	cairo_fill(cr);
@@ -1407,6 +1407,7 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 }
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -1430,12 +1431,16 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);
 		return;
 	}
 
 	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
+		g_free((gchar*) aavso_ptr->obstype);
+		g_free((gchar*) aavso_ptr->filter);
 		free(aavso_ptr);
 		return;
 	}
@@ -1448,8 +1453,15 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	gtk_widget_set_visible(plot_aavso_dialog, FALSE);
+	reactivate_parent(plot_aavso_dialog);
 
 	set_cursor_waiting(FALSE);
+	/* obstype/filter are g_strdup'd by siril_drop_down_get_active_text(); the
+	 * remaining fields are borrowed from their widgets. export_AAVSO does not
+	 * take ownership, so release the owned strings and the struct here. */
+	g_free((gchar*) aavso_ptr->obstype);
+	g_free((gchar*) aavso_ptr->filter);
+	free(aavso_ptr);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
@@ -1537,7 +1549,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	cfgplot.xaxislabel = xlabel == NULL ? _("Frames") : xlabel;
 	cfgplot.xtics = 5;
 	cfgplot.yaxislabel = ylabel;
-	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	cfgplot.yaxislabelrot = G_PI_2 * 3.0;
 	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
 	cfgplot.xticlabelfmt = formatX;
 	cfgplot.yticlabelfmt = formatY;

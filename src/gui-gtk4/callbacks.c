@@ -42,6 +42,10 @@
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/keywords_tree.h"
 #include "gui-gtk4/registration.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
+#include "registration/mpp.h"
+#include "registration/registration.h"
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/stacking.h"
 #include "gui-gtk4/python_gui.h"
@@ -64,6 +68,7 @@ void update_export_crop_label();
 #include "callbacks.h"
 
 #include "algos/astrometry_solver.h"
+#include "filters/mtf.h"
 #include "utils.h"
 #include "plot.h"
 #include "message_dialog.h"
@@ -679,7 +684,7 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 		gtk_label_set_text(label_display_menu, gtk_check_button_get_label(GTK_CHECK_BUTTON(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
 
@@ -874,8 +879,8 @@ static void initialize_mask_tab_label() {
 	g_signal_connect(clear_button, "clicked", G_CALLBACK(on_mask_clear_clicked), NULL);
 }
 
-void on_autohd_item_toggled(GtkCheckButton *menuitem, gpointer user_data) {
-	gui.use_hd_remap = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(menuitem)));
+void on_autohd_item_toggled(GtkWidget *menuitem, gpointer user_data) {
+	gui.use_hd_remap = siril_toggle_get_active(menuitem);
 	if (gui.rendering_mode == STF_DISPLAY) {
 		if (gui.use_hd_remap) {
 			if (gfit->type == DATA_FLOAT)
@@ -889,6 +894,52 @@ void on_autohd_item_toggled(GtkCheckButton *menuitem, gpointer user_data) {
 		redraw(REDRAW_ALL);
 		gui_function(redraw_previews, NULL);
 	}
+}
+
+/* Invalidate the cached autostretch parameters and repaint. remap_all()
+ * (reached via notify_gfit_data_modified) clears the STF cache, so the
+ * midtones balance is recomputed from the current image and target background. */
+static void refresh_autostretch_display() {
+	if (gui.rendering_mode != STF_DISPLAY)
+		return;
+	notify_gfit_data_modified();
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+}
+
+/* Auto-refresh toggle: ON (default) recomputes the autostretch on every image
+ * change; OFF keeps the current stretch frozen. Turning it back on resyncs the
+ * stretch with the current image. */
+void on_autostretch_autorefresh_toggled(GtkWidget *button, gpointer user_data) {
+	gui.autostretch_auto_refresh = siril_toggle_get_active(button);
+	if (gui.autostretch_auto_refresh) {
+		invalidate_autostretch_cache();
+		refresh_autostretch_display();
+	}
+}
+
+static int autostretch_target_bg_update_preview(void) {
+	/* Moving the target-background slider does NOT change pixels, so we must
+	 * avoid notify_gfit_data_modified() here: it invalidates gfit's cached
+	 * statistics and histogram, forcing find_linked_midtones_balance() to
+	 * re-scan the whole image on every tick — the actual source of the lag.
+	 * Instead we just drop the STF cache and rebuild the display LUT, reusing
+	 * the still-valid image stats. Works regardless of the auto-refresh state. */
+	if (gui.rendering_mode != STF_DISPLAY)
+		return 0;
+	invalidate_autostretch_cache();
+	remap_all();
+	redraw(REDRAW_IMAGE);
+	gui_function(redraw_previews, NULL);
+	return 0;
+}
+
+void on_autostretch_target_bg_changed(GtkRange *range, gpointer user_data) {
+	gui.autostretch_target_bg = (float) gtk_range_get_value(range);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = autostretch_target_bg_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
 }
 
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
@@ -1069,11 +1120,24 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* undo and redo */
 	GAction *action_undo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "undo");
 	GAction *action_redo = g_action_map_lookup_action(G_ACTION_MAP(app_win), "redo");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
-	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	/* While the AP editor is open the Undo/Redo actions are diverted to the
+	 * AP grid, so drive their enabled-state from the AP stacks; otherwise
+	 * from the image-processing history. */
+	if (mpp_ap_editor_is_open()) {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), mpp_ap_editor_can_undo());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), mpp_ap_editor_can_redo());
+	} else {
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
+		g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
+	}
 
 	/* update undo/redo button tooltips */
-	if (is_undo_available()) {
+	if (mpp_ap_editor_is_open()) {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"),
+		    mpp_ap_editor_can_undo() ? _("Undo alignment-point edit") : _("Nothing to undo"));
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"),
+		    mpp_ap_editor_can_redo() ? _("Redo alignment-point edit") : _("Nothing to redo"));
+	} else if (is_undo_available()) {
 		historic *h = (historic *) com.undo_stack->data;
 		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
@@ -1081,13 +1145,15 @@ gboolean update_MenuItem(gpointer user_data) {
 	} else {
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
-	if (is_redo_available()) {
-		historic *h = (historic *) com.redo_stack->data;
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
-		g_free(str);
-	} else {
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+	if (!mpp_ap_editor_is_open()) {
+		if (is_redo_available()) {
+			historic *h = (historic *) com.redo_stack->data;
+			gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+			g_free(str);
+		} else {
+			gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+		}
 	}
 
 	/* save and save as */
@@ -1135,7 +1201,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	siril_window_enable_image_actions(app_win, any_image_is_loaded);
 
 	/* auto-stretch actions */
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY, gfit->naxes[2] == 3);
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
@@ -1386,7 +1452,13 @@ void update_display_fwhm() {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		g_sprintf(fwhm_buffer, " ");
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
+		/* gui.cvport can transiently point at a colour viewport while gfit is
+		 * already mono: close_tab()'s page-hiding fires switch-page handlers
+		 * (and so this function) mid-teardown when an RGB image is replaced
+		 * by a single-channel one. Fitting a PSF on that stale layer would
+		 * abort in statistics' layer < naxes[2] assertion. */
+		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5
+				&& select_vport(gui.cvport) < (int)gfit->naxes[2]) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
@@ -1537,7 +1609,21 @@ int set_layers_for_registration() {
 		const gchar *layer_name = layer_name_for_gfit(i);
 		layer = g_strdup_printf("%d: %s", i, layer_name);
 		if (com.seq.regparam && com.seq.regparam[i]) {
-			str_append(&layer,  " (*)");
+			/* The (*) means "registered". For most methods that is simply
+			 * "regparam exists" (they store per-frame transforms in H).
+			 * MPP is different: Analyze (Stage A) writes only per-frame
+			 * quality into regdata and leaves H null — the actual
+			 * registration lives in the .mpp sidecar's per-AP shifts,
+			 * computed by Register (Stage B). So for a quality-only layer
+			 * (no usable H) only show (*) once Stage B shifts exist;
+			 * otherwise the sequence is analysed but not yet registered. */
+			gboolean registered = layer_has_usable_registration(&com.seq, i);
+			if (!registered) {
+				const mpp_run_t *run = mpp_get_cached_run();
+				registered = (run && run->shifts != NULL);
+			}
+			if (registered)
+				str_append(&layer,  " (*)");
 			if (reminder == -1 || ((reminder >= 0) && !(com.seq.regparam[reminder]))) // set as default selection
 				reminder = i;
 		}
@@ -1592,8 +1678,14 @@ GtkWindow *siril_get_active_window() {
 	GList *list = gtk_window_list_toplevels();
 
 	for (GList *l = list; l; l = l->next) {
-		if (gtk_window_is_active((GtkWindow *) l->data)) {
-			win = (GtkWindow *) l->data;
+		GtkWindow *cand = (GtkWindow *) l->data;
+		/* Never hand back the splash as a transient parent: it is the active
+		 * toplevel during startup but is about to be destroyed, and anchoring
+		 * a modal nested-loop dialog to it can wedge the session. */
+		if (gtk_widget_has_css_class(GTK_WIDGET(cand), "splash-screen"))
+			continue;
+		if (gtk_window_is_active(cand)) {
+			win = cand;
 			break;
 		}
 	}
@@ -1726,7 +1818,25 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
+	/* When a single image is loaded (incl. the stacking result), the
+	 * displayed image is gfit, which may have a different channel count
+	 * than com.seq — Bayer-drizzle/multipoint in particular produces a
+	 * 3-channel result from a mono Bayer SER sequence. Otherwise (sequence
+	 * load before gfit is updated to a frame), com.seq.nb_layers is the
+	 * authoritative count. Keying off com.seq.nb_layers here would force the
+	 * mono viewport for an RGB result whose source sequence is mono. */
+	const int displayed_layers = single_image_is_loaded()
+		? (int) gfit->naxes[2]
+		: com.seq.nb_layers;
+	if (displayed_layers == 1) {
+		/* Leave the colour pages BEFORE hiding them: hiding the current page
+		 * makes GtkNotebook pick an adjacent visible page itself, which can
+		 * transiently land on another colour viewport — its switch-page
+		 * handler would then run FWHM/selection feedback with gui.cvport
+		 * pointing at a layer the now-mono gfit doesn't have. */
+		const int cur = gtk_notebook_get_current_page(Color_Layers);
+		if (cur == GREEN_VPORT || cur == BLUE_VPORT || cur == RGB_VPORT)
+			activate_tab(RED_VPORT);
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_set_visible(page, FALSE);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
@@ -1980,29 +2090,17 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
-#ifdef OS_OSX
-/* On macOS, GTK4 maps <Primary> to GDK_CONTROL_MASK (Ctrl), but the Command
- * key generates GDK_META_MASK.  Replace <Primary> with <Meta> in every accel
- * string so that Cmd+key shortcuts match what the user actually presses. */
-static gchar *macos_remap_accel(const gchar *accel) {
-	if (!strstr(accel, "<Primary>"))
-		return g_strdup(accel);
-	gchar **parts = g_strsplit(accel, "<Primary>", -1);
-	gchar  *result = g_strjoinv("<Meta>", parts);
-	g_strfreev(parts);
-	return result;
-}
-#endif
-
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
 
 	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
 #ifdef OS_OSX
+		/* siril_remap_accel() swaps <Primary> for <Meta> so Cmd+key
+		 * shortcuts match what the user actually presses on macOS. */
 		int n = g_strv_length((gchar **)(it + 1));
 		gchar **remapped = g_new0(gchar *, n + 1);
 		for (int i = 0; i < n; i++)
-			remapped[i] = macos_remap_accel(it[1 + i]);
+			remapped[i] = siril_remap_accel(it[1 + i]);
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0],
 		                                      (const gchar * const *) remapped);
 		g_strfreev(remapped);
@@ -2354,6 +2452,8 @@ static void reassemble_center_notebook(void) {
 		g_warning("reassemble_center_notebook: notebook_center_box not found");
 		return;
 	}
+	// blocks the switch tab callback so that the overlay is not redrawn while the notebook is being assembled
+	block_all_signals(nb);
 	const struct { const char *content; const char *tab; } pages[] = {
 		{ "conversion_tab",   "label22"  },  /* 0 Conversion  */
 		{ "sequence_tab",     "label20"  },  /* 1 Sequence    */
@@ -2372,6 +2472,7 @@ static void reassemble_center_notebook(void) {
 		}
 		gtk_notebook_insert_page(nb, content, tab, i);
 	}
+	unblock_all_signals(nb);
 }
 
 /* GtkHeaderBar wraps its contents in a GtkWindowHandle that maximizes /
@@ -2406,6 +2507,43 @@ static void guard_headerbar_insensitive_double_click(void) {
 	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
 	g_signal_connect(click, "pressed", G_CALLBACK(on_headerbar_pressed), NULL);
 	gtk_widget_add_controller(headerbar, GTK_EVENT_CONTROLLER(click));
+}
+
+/* Double-click the autostretch target-background slider to restore its default
+ * value (setting the value triggers value-changed, which refreshes the view).
+ *
+ * GtkScale claims the press for its own jump/drag handling, which makes
+ * GtkGestureClick reset n_press to 1 on every click — so relying on n_press==2
+ * does not work here. We detect the double-click ourselves by timing two quick
+ * consecutive presses, which fires regardless of the scale claiming. */
+static void on_autostretch_target_bg_reset(GtkGestureClick *gesture, int n_press,
+                                           double x, double y, gpointer user_data) {
+	static gint64 last_press_us = 0;
+	gint64 now = g_get_monotonic_time();
+	gint dc_ms = 400;
+	g_object_get(gtk_settings_get_default(), "gtk-double-click-time", &dc_ms, NULL);
+
+	gboolean is_double = (n_press >= 2) ||
+	                     (last_press_us != 0 && now - last_press_us <= (gint64) dc_ms * 1000);
+	last_press_us = is_double ? 0 : now;
+	if (!is_double)
+		return;
+
+	GtkWidget *scale = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+	gtk_range_set_value(GTK_RANGE(scale), AS_DEFAULT_TARGET_BACKGROUND);
+}
+
+static void attach_autostretch_target_bg_reset(void) {
+	GtkWidget *scale = lookup_widget("autostretch_target_bg_scale");
+	if (!scale)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	/* CAPTURE phase: receive the press before GtkScale's own gesture acts on
+	 * it, so we can claim the double-click and suppress the jump-to-position. */
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed", G_CALLBACK(on_autostretch_target_bg_reset), NULL);
+	gtk_widget_add_controller(scale, GTK_EVENT_CONTROLLER(click));
 }
 
 /* GTK4: GtkEventBox and button-press-event no longer exist, so the "click the
@@ -2514,6 +2652,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * end-of-drag REDRAW_ALL redraw fires (Phase 18 stripped the
 	 * button-release-event binding from the .ui). */
 	attach_display_scale_release_handlers();
+
+	/* Double-click the autostretch target-background slider to reset it. */
+	attach_autostretch_target_bg_reset();
 
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("comboboxstack_methods")), 0);
@@ -2709,6 +2850,28 @@ void on_maxscale_changed(GtkRange *range, gpointer user_data) {
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
 }
 
+/* Apply a display-slider change: a slider only alters the lo/hi display
+ * cutoffs, not gfit pixel content, so we remap the display LUT and repaint —
+ * we must NOT call gfit_modified_update_gui()/end_gfit_operation(), which
+ * would call stop_processing_thread() and cancel any running background job
+ * (e.g. an in-progress registration/analysis).  remap_all() rebuilds the
+ * Cairo buffers from gfit using the current gui.lo/gui.hi; the reader trylock
+ * mirrors try_remap_for_mode_change_idle() and lets the restretch work even
+ * while a job that only reads gfit is active. (REDRAW_ALL no longer remaps
+ * since the REMAP_ALL->REDRAW_ALL rename, so the explicit remap is required.) */
+static void apply_display_slider_change(void) {
+	if (gui.sliders != USER) {
+		gui.sliders = USER;
+		sliders_mode_set_state(gui.sliders);
+	}
+	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
+		remap_all();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
+	redraw(REDRAW_ALL);
+	gui_function(redraw_previews, NULL);
+}
+
 /* End-of-drag redraw for the display sliders.  Phase 18 stripped the
  * GTK3 <signal name="button-release-event"/> binding, so the user-visible
  * effect was "sliders don't do anything".  GtkScale internally claims
@@ -2721,12 +2884,7 @@ static gboolean on_display_scale_legacy_event(GtkEventControllerLegacy *ctrl,
 	(void) ctrl; (void) user_data;
 	if (gdk_event_get_event_type(event) != GDK_BUTTON_RELEASE)
 		return FALSE;   /* let the scale handle it normally */
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
@@ -2749,24 +2907,14 @@ void attach_display_scale_release_handlers(void) {
 gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	(void) widget; (void) event; (void) user_data;
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
 gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	(void) widget; (void) event; (void) user_data;
-	if (gui.sliders != USER) {
-		gui.sliders = USER;
-		sliders_mode_set_state(gui.sliders);
-	}
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	apply_display_slider_change();
 	return FALSE;
 }
 
@@ -3204,6 +3352,21 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 		update_display_fwhm();
 }
 
+/* Repaint the overlay when the centre notebook tab changes so the MPP AP
+ * overlay (which is gated on the Registration tab in draw_mpp_aps) appears
+ * or clears immediately rather than on the next unrelated redraw. */
+void on_notebook_center_box_switch_page(GtkNotebook *notebook, GtkWidget *page,
+		guint page_num, gpointer user_data) {
+	(void) notebook; (void) page; (void) user_data;
+	/* Entering the Registration or Stacking tab surfaces the multipoint
+	 * reference frame when one is available (e.g. a sequence opened with an
+	 * existing .mpp sidecar, which shows a normal frame first). No-op when
+	 * there's no cached reference frame or it's already shown. */
+	if (page_num == REGISTRATION || page_num == STACKING)
+		mpp_show_reference_frame_for_tab();
+	redraw(REDRAW_OVERLAY);
+}
+
 struct checkSeq_filter_data {
 	int retvalue;
 };
@@ -3246,7 +3409,9 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_data_ok_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_set_visible(lookup_widget("data_dialog"), FALSE);
+	GtkWidget *w = lookup_widget("data_dialog");
+	gtk_widget_set_visible(w, FALSE);
+	reactivate_parent(w);
 }
 
 void on_comboboxreglayer_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -3284,12 +3449,14 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 	gboolean cleanreg = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_reg"))));
 	gboolean cleanstat = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_stat"))));
 	gboolean cleansel = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_sel"))));
+	gboolean cleanmpp = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("seq_clean_mpp"))));
 
-	if ((cleanreg || cleanstat || cleansel) && sequence_is_loaded()) {
+	if ((cleanreg || cleanstat || cleansel || cleanmpp) && sequence_is_loaded()) {
 		GString *warning = g_string_new(_("This erases the following data, and there's no possible undo:\n"));
 		if (cleanreg) warning = g_string_append(warning, _("\n- Registration"));
 		if (cleanstat) warning = g_string_append(warning, _("\n- Statistics"));
 		if (cleansel) warning = g_string_append(warning, _("\n- Selection"));
+		if (cleanmpp) warning = g_string_append(warning, _("\n- Multipoint registration data (.mpp sidecar)"));
 
 		gchar *str = g_string_free(warning, FALSE);
 
@@ -3297,7 +3464,17 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		g_free(str);
 
 		if (clear) {
-			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
+			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel, cleanmpp);
+			if (cleanmpp) {
+				/* Forget any in-memory Stage-A run so the AP overlay and a
+				 * subsequent Multipoint stack don't use the deleted sidecar. */
+				mpp_clear_cached_run();
+				/* No cached run left → grey out the Edit-APs / View-shifts
+				 * buttons that depend on it. */
+				mpp_update_edit_button_sensitivity();
+				mpp_shift_viewer_update_button_sensitivity();
+				redraw(REDRAW_OVERLAY);
+			}
 			update_stack_interface(TRUE);
 			update_reg_interface(FALSE);
 			adjust_sellabel();
@@ -3526,6 +3703,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 	/* No g_object_unref(sel): gtk_column_view_new() is transfer-full
 	 * for the model, so cv consumed the ref. */
 	g_object_unref(store);
+	reactivate_parent(dialog);
 	gtk_window_destroy(GTK_WINDOW(dialog));
 
 	return selected_pid;
@@ -3573,4 +3751,24 @@ void ensure_seqlist_dialog_closed() {
 		ensure_seqlist_dialog_closed_idle(NULL);
 	else
 		execute_idle_and_wait_for_it(ensure_seqlist_dialog_closed_idle, NULL);
+}
+
+// Those 2 functions only block/unblock signals that do not have data 
+// (which is the case for many objects)
+void block_all_signals(gpointer instance) {
+	if (!instance) return;
+	g_signal_handlers_block_matched(
+		instance,
+		G_SIGNAL_MATCH_DATA,
+		0, 0, NULL, NULL, NULL
+	);
+}
+
+void unblock_all_signals(gpointer instance) {
+	if (!instance) return;
+	g_signal_handlers_unblock_matched(
+		instance,
+		G_SIGNAL_MATCH_DATA,
+		0, 0, NULL, NULL, NULL
+	);
 }

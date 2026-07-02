@@ -70,6 +70,14 @@ static gboolean stub_confirm_dialog(const char *title, const char *msg,
 	return TRUE;
 }
 
+static gboolean stub_confirm_dialog_with_avi_bayer(const char *title, const char *msg,
+                                                   const char *button_accept,
+                                                   int *avi_bayer_pattern) {
+	(void)title; (void)msg; (void)button_accept;
+	if (avi_bayer_pattern) *avi_bayer_pattern = 0;  /* MPP_AVI_BAYER_AUTO */
+	return TRUE;
+}
+
 static void stub_open_dialog(const char *id)  { (void)id; }
 static void stub_close_dialog(const char *id) { (void)id; }
 static gboolean stub_is_dialog_open(void) { return FALSE; }
@@ -160,6 +168,7 @@ static void stub_trigger_gaia_check(void) {}
 
 /* Steps 5.11–5.15 */
 static void stub_remap_all_vports(void) {}
+static void stub_drop_lazy_tile_textures(void) {}
 static void stub_quit_application(void) { exit(0); }
 static void stub_refresh_script_menu(void) {}
 static void stub_clear_backup(void) {}
@@ -278,11 +287,6 @@ static void stub_show_or_hide_mask_tab(void) {}
 static void stub_show_or_hide_mask_tab_async(void) {}
 static int  stub_number_of_dialogs(void) { return 0; }
 static void stub_clear_previews(void) {}
-static int  stub_toggle_remixer_window_visibility(int invocation,
-                                                   gpointer fit_left,
-                                                   gpointer fit_right) {
-	(void)invocation; (void)fit_left; (void)fit_right; return 0;
-}
 static gboolean stub_heif_dialog(gpointer heif, uint32_t *selected_image) {
 	(void)heif; (void)selected_image; return FALSE;
 }
@@ -323,6 +327,7 @@ SirilGuiInterface gui_iface = {
 	.log_message          = stub_log_message,
 	.message_dialog       = stub_message_dialog,
 	.confirm_dialog       = stub_confirm_dialog,
+	.confirm_dialog_with_avi_bayer = stub_confirm_dialog_with_avi_bayer,
 	.open_dialog            = stub_open_dialog,
 	.close_dialog           = stub_close_dialog,
 	.is_dialog_open         = stub_is_dialog_open,
@@ -383,6 +388,7 @@ SirilGuiInterface gui_iface = {
 	.check_gaia_status           = stub_check_gaia_status,
 	.trigger_gaia_check          = stub_trigger_gaia_check,
 	.remap_all_vports            = stub_remap_all_vports,
+	.drop_lazy_tile_textures     = stub_drop_lazy_tile_textures,
 	.quit_application            = stub_quit_application,
 	.refresh_script_menu         = stub_refresh_script_menu,
 	.clear_backup                = stub_clear_backup,
@@ -497,6 +503,5 @@ SirilGuiInterface gui_iface = {
 	.show_or_hide_mask_tab_async     = stub_show_or_hide_mask_tab_async,
 	.number_of_dialogs               = stub_number_of_dialogs,
 	.clear_previews                  = stub_clear_previews,
-	.toggle_remixer_window_visibility = stub_toggle_remixer_window_visibility,
 	.heif_dialog                     = stub_heif_dialog,
 };

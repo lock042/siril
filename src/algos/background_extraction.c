@@ -713,6 +713,20 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 	int sel_w  = use_bbox ? bbox->w : nx;
 	int sel_h  = use_bbox ? bbox->h : ny;
 
+	/* Clamp the selection to the image so all index arithmetic below stays
+	 * within the nx*ny luminance buffer: a bbox that overruns the image
+	 * (negative origin, or origin+extent past nx/ny) would otherwise drive
+	 * the threshold-sampling read image[ry * nx + rx] out of bounds. */
+	if (sel_x0 < 0) { sel_w += sel_x0; sel_x0 = 0; }
+	if (sel_y0 < 0) { sel_h += sel_y0; sel_y0 = 0; }
+	if (sel_x0 + sel_w > nx) sel_w = nx - sel_x0;
+	if (sel_y0 + sel_h > ny) sel_h = ny - sel_y0;
+	if (sel_w <= 0 || sel_h <= 0) {
+		free(image);
+		if (error) *error = "selection does not overlap the image";
+		return NULL;
+	}
+
 	/* minimum coordinate so get_sample() succeeds */
 	int margin = radius + 1;
 

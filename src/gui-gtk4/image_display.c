@@ -38,6 +38,12 @@
 #include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
+#include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"
+#include "registration/mpp/mpp_config.h"
+#include "registration/mpp/mpp_shift.h"
+#include "gui-gtk4/mpp_ap_editor.h"
+#include "gui-gtk4/mpp_shift_viewer.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui-gtk4/image_interactions.h"
@@ -84,14 +90,20 @@ static GtkCheckButton *tri_cut_toggle = NULL;
 static GtkSpinButton *tri_cut_spin_step = NULL;
 
 static GtkApplicationWindow *imgdisp_app_win = NULL;
-static GtkCheckButton *imgdisp_autohd_item = NULL;
+static GtkWidget *imgdisp_autohd_item = NULL;
 static GtkWidget *imgdisp_drawing_rgb = NULL;
 static GtkWidget *imgdisp_drawing_r = NULL;
+
+// objects for APs overlay
+static GtkNotebook *center_notebook = NULL;
+GtkDropDown *comboboxregmethod = NULL;
 
 static void image_display_init_statics(void) {
 	if (imgdisp_app_win) return;
 	imgdisp_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
-	imgdisp_autohd_item = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "autohd_item"));
+	imgdisp_autohd_item = GTK_WIDGET(gtk_builder_get_object(gui.builder, "autohd_item"));
+	gui.autostretch_target_bg = AS_DEFAULT_TARGET_BACKGROUND;
+	gui.autostretch_auto_refresh = TRUE;
 	imgdisp_drawing_rgb = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareargb"));
 	imgdisp_drawing_r = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingarear"));
 	seqcombo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
@@ -102,6 +114,8 @@ static void image_display_init_statics(void) {
 	cut_sdialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_spectroscopy_dialog"));
 	tri_cut_toggle = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "cut_tri_cut"));
 	tri_cut_spin_step = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "cut_tricut_step"));
+	center_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	comboboxregmethod = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 }
 
 static void invalidate_image_render_cache(int vport);
@@ -353,6 +367,32 @@ static void view_refresh_tile_textures(struct image_view *view) {
 		view_invalidate_tiles_lazy(view);
 	else
 		view_refresh_tile_textures_eager(view);
+}
+
+/* Drop the resident lazy tile textures for every viewport, then mark the grid
+ * dirty.  The next snapshot then has no stale texture to show: a visible tile
+ * reads as "missing", so the snapshot falls back to the (freshly rebuilt)
+ * full-image proxy while the materialise pool re-fills the visible tiles from
+ * the new pixels.
+ *
+ * Call this when gfit's PIXELS are replaced (e.g. switching the displayed
+ * sequence frame) — NOT for a LUT/zoom change, where the existing textures hold
+ * the right pixels and keeping them (view_invalidate_tiles_lazy alone) shows a
+ * sharp image rather than a momentary blurry proxy.  Without it a frame swap
+ * keeps each tile's previous-frame texture (any_missing stays false in the
+ * snapshot, so the proxy is suppressed) and the screen shows the OLD frame until
+ * the pool slowly re-fills it top-to-bottom — the "only the top of the image
+ * updates" bug on images larger than the lazy-tile budget. */
+void drop_lazy_tile_textures(void) {
+	g_mutex_lock(&gui.cairo_mutex);
+	for (int v = 0; v <= RGB_VPORT; v++) {
+		struct image_view *view = &gui.view[v];
+		if (view->lazy && view->tiles) {
+			view_drop_all_tile_textures(view);
+			view_invalidate_tiles_lazy(view);
+		}
+	}
+	g_mutex_unlock(&gui.cairo_mutex);
 }
 
 
@@ -1540,7 +1580,7 @@ void allocate_hd_remap_indices() {
 			siril_log_error(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"));
 			gui.use_hd_remap = FALSE;
 			image_display_init_statics();
-			siril_toggle_set_active(GTK_WIDGET(imgdisp_autohd_item), FALSE);
+			siril_toggle_set_active(imgdisp_autohd_item, FALSE);
 			hd_remap_indices_cleanup();
 			return;
 		}
@@ -1748,8 +1788,8 @@ static void remap(int vport) {
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance_default(gfit, stf);
-			else find_linked_midtones_balance_default(gfit, stf);
+				find_unlinked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
+			else find_linked_midtones_balance(gfit, AS_DEFAULT_SHADOWS_CLIPPING, gui.autostretch_target_bg, stf);
 			stf_computed = TRUE;
 		}
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
@@ -2445,6 +2485,7 @@ static void draw_analysis(const draw_data_t *dd);
 static void draw_brg_boxes(const draw_data_t* dd);
 static void draw_regframe(const draw_data_t* dd);
 static void draw_rgb_centers(const draw_data_t* dd);
+static void draw_mpp_aps(const draw_data_t* dd);
 
 /* ── SirilImageView: GTK4 snapshot-based image viewport ───────────────────
  *
@@ -2688,10 +2729,27 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		const double xx = gui.display_matrix.xx;
 		const double yy = gui.display_matrix.yy;
 
+		/* Device (logical -> physical) scale of the surface: 2.0 on a macOS
+		 * Retina display, a fractional value (e.g. 1.25) under Wayland
+		 * fractional scaling, 1.0 on a plain display.  We fold it into the
+		 * per-node rects below so the TextureScaleNode rasterises straight
+		 * at physical resolution; otherwise GSK applies this residual scale
+		 * with its default (linear) filter, softening the image at every
+		 * zoom - independently of the zoom-into-rect trick described next. */
+		double ds = 1.0;
+		GtkNative *native = gtk_widget_get_native(widget);
+		if (native) {
+			GdkSurface *surface = gtk_native_get_surface(native);
+			if (surface)
+				ds = gdk_surface_get_scale(surface);
+		}
+		if (!(ds > 0.0))
+			ds = 1.0;
+
 		/* We deliberately do NOT apply gtk_snapshot_scale(xx, yy) here and
 		 * pass image-space rects.  Doing so makes the TextureScaleNode's
 		 * rect equal to the mip-0 texture size (a no-op scale), so its
-		 * GskScalingFilter is ignored — GSK then upscales to widget-space
+		 * GskScalingFilter is ignored - GSK then upscales to widget-space
 		 * via the ambient transform with the renderer's default (linear)
 		 * filter, blurring pixel edges at zoom > 1.  Instead we push the
 		 * zoom into the per-tile rect dimensions, so the TextureScaleNode
@@ -2711,6 +2769,18 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				&GRAPHENE_POINT_INIT(0.0f, (float)(yy * img_h)));
 			gtk_snapshot_scale(snapshot, 1.0f, -1.0f);
 		}
+
+		/* Compensate the device scale on the snapshot transform, then fold
+		 * it into the rect dimensions (sx/sy below): the inverse scale keeps
+		 * on-screen geometry identical while the rects now express physical
+		 * pixels, so the TextureScaleNode does its rasterise-and-scale at the
+		 * true screen resolution and `filter` is honoured to the pixel.  Note
+		 * the livestacking y-flip translate above stays in logical space — it
+		 * is applied before this inverse scale. */
+		if (ds != 1.0)
+			gtk_snapshot_scale(snapshot, (float)(1.0 / ds), (float)(1.0 / ds));
+		const double sx = xx * ds;
+		const double sy = yy * ds;
 
 		const double zoom = get_zoom_val();
 		/* TRILINEAR for downscale: mipmap pre-filtering gives correct
@@ -2732,7 +2802,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		if (draw_proxy && proxy_ref) {
 			gtk_snapshot_append_scaled_texture(snapshot, proxy_ref, filter,
 				&GRAPHENE_RECT_INIT(0.0f, 0.0f,
-					(float)(img_w * xx), (float)(img_h * yy)));
+					(float)(img_w * sx), (float)(img_h * sy)));
 		}
 
 		for (int ty = 0; ty < tile_rows; ty++) {
@@ -2749,10 +2819,10 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 					&th_unused, &tex_w_img, &tex_h_img);
 				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
 					&GRAPHENE_RECT_INIT(
-						(float)(x0 * xx),
-						(float)(y0 * yy),
-						(float)(tex_w_img * xx),
-						(float)(tex_h_img * yy)));
+						(float)(x0 * sx),
+						(float)(y0 * sy),
+						(float)(tex_w_img * sx),
+						(float)(tex_h_img * sy)));
 			}
 		}
 
@@ -2809,6 +2879,8 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	draw_annotates(&dd);
 	draw_analysis(&dd);
 	draw_brg_boxes(&dd);
+	/* multipoint planetary alignment-point grid (active after Analyze) */
+	draw_mpp_aps(&dd);
 	draw_regframe(&dd);
 	draw_rgb_centers(&dd);
 	if (gui.draw_extra)
@@ -3192,7 +3264,7 @@ static void draw_selection(const draw_data_t* dd) {
 			// draw a circle at top left corner to visualize rots larger than 90
 			double size = 10. / dd->zoom;
 			cairo_set_dash(cr, NULL, 0, 0);
-			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * M_PI);
+			cairo_arc(cr, com.selection.x, com.selection.y, size * 0.5, 0., 2. * G_PI);
 			cairo_stroke_preserve(cr);
 			cairo_fill(cr);
 			cairo_set_dash(cr, dash_format, 2, 0);
@@ -3451,10 +3523,10 @@ static void draw_stars(const draw_data_t* dd) {
 			}
 			cairo_save(cr); // save the original transform
 			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
-			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
+			cairo_rotate(cr, G_PI * 0.5 + com.stars[i]->angle * G_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
-			cairo_arc(cr, 0., 0., size, 0., 2 * M_PI);
+			cairo_arc(cr, 0., 0., size, 0., 2 * G_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
 			/* to keep  for debugging boxes adjustements */
@@ -3482,7 +3554,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		/* fwhm * 2: first circle */
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * G_PI);
 		cairo_stroke(cr);
 
 		/* sky annulus */
@@ -3492,9 +3564,9 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 		}
 
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * G_PI);
 		cairo_stroke(cr);
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * G_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -3516,17 +3588,17 @@ static void draw_stars(const draw_data_t* dd) {
 						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * G_PI);
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0.,
-						2. * M_PI);
+						2. * G_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40.0 / dd->zoom);
@@ -3583,6 +3655,175 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_show_text(cr, text);
 				cairo_stroke(cr);
 				g_free(text);
+			}
+		}
+	}
+}
+
+/* Draw alignment-point boxes from the cached MPP run (com.mpp_run).
+ * Called from the snapshot overlay pass right after draw_brg_boxes so APs
+ * sit in the same overlay stratum as bgext samples.
+ *
+ * AP records hold mean-frame coordinates. When gfit shows the mean ref
+ * frame (== analyze just ran or user re-clicked it), no shift compensation
+ * is needed; otherwise, the user is viewing a source frame and we apply
+ * the per-frame offset (intersection - global_shift) so AP boxes track
+ * the same physical features as they slew through the sequence.
+ *
+ * Hovered AP (mpp_ap_editor_get_hover_idx) is drawn in orange with a
+ * thicker line so the user knows which AP a click would affect. */
+static void draw_mpp_aps(const draw_data_t* dd) {
+	/* Only paint the AP overlay while the user is on the Registration
+	 * tab and MPP is selected — the overlay is a registration-workflow tool, and once the
+	 * user has switched to Plot / Stacking / etc. the boxes are visual
+	 * clutter that confuses what they're looking at. */
+	if (gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
+		return;
+	if (gtk_drop_down_get_selected(comboboxregmethod) != REG_MPP)
+		return;
+
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
+	/* AP coordinates live in the run's mean-frame space. Show them
+	 * when gfit's dimensions match a known coordinate system in the
+	 * run — either the mean frame itself (the Analyse-painted ref
+	 * image, where ap.{x,y} maps directly), or a sequence frame at
+	 * the run's frame_cols/_rows (where per-frame shift compensates).
+	 * Hide otherwise (stacking result at non-mean-frame dims, an
+	 * unrelated single image the user has loaded, etc.). The check
+	 * is dim-based rather than com.seq.current-based so APs reappear
+	 * after re-Analyse even when com.seq.current is still RESULT_IMAGE
+	 * from a prior stack run. */
+	const gboolean showing_ref = (gfit
+	    && (int) gfit->rx == run->mean_frame_cols
+	    && (int) gfit->ry == run->mean_frame_rows);
+	const gboolean showing_seq_frame = (gfit
+	    && com.seq.current >= 0
+	    && com.seq.current < run->num_frames
+	    && (int) gfit->rx == run->frame_cols
+	    && (int) gfit->ry == run->frame_rows
+	    && run->global_shifts
+	    && sequence_is_loaded());
+	if (!showing_ref && !showing_seq_frame) return;
+
+	int dx = 0, dy = 0;
+	if (showing_seq_frame) {
+		const int i = com.seq.current;
+		/* mean_frame row r maps to frame row
+		 *   r + intersection[0] - global_shifts[i]
+		 * (matches mpp::offsets_from_run). Adding `dy` to ap->y
+		 * gives the AP's pdata-row position on frame i. The
+		 * global_shifts are now sub-pixel (for Bayer drizzle's
+		 * CFA-phase coverage); the overlay only needs integer
+		 * placement so round to nearest pixel. */
+		dy = (int) lround((double) run->intersection[0] - run->global_shifts[2 * i + 0]);
+		dx = (int) lround((double) run->intersection[2] - run->global_shifts[2 * i + 1]);
+	}
+
+	/* ap->y is a pdata-row index on the mean_frame (Siril's pdata
+	 * convention has row 0 at the bottom of the displayed scene for
+	 * both native FITS and SER-after-load-time-flip). The Cairo
+	 * overlay context has y=0 at the TOP of the surface, so the row
+	 * index has to be flipped to draw at the correct vertical position. */
+	const int H = (int) gfit->ry;
+	const int hover = mpp_ap_editor_get_hover_idx();
+	const int selected = mpp_ap_editor_get_selected_idx();
+
+	/* Optional patch overlay — gated by the persistent "Show stacking
+	 * patches" toggle in the AP editor dialog. Drawn underneath the
+	 * boxes so the box outlines stay on top. Dashed cyan emphasises
+	 * that adjacent patches overlap (~25 % per neighbour), which is
+	 * where Stage C's per-AP weighted shifts cross-fade. */
+	if (mpp_ap_editor_show_patches()) {
+		cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+		cairo_set_source_rgba(dd->cr, 0.2, 0.9, 1.0, 0.55);   /* cyan-ish */
+		const double dashes[2] = { 4.0 / dd->zoom, 3.0 / dd->zoom };
+		cairo_set_dash(dd->cr, dashes, 2, 0.0);
+		for (int i = 0; i < run->aps->count; ++i) {
+			const mpp_ap_record_t *ap = &run->aps->records[i];
+			const int pw = ap->patch_x_high - ap->patch_x_low;
+			const int ph = ap->patch_y_high - ap->patch_y_low;
+			if (pw <= 0 || ph <= 0) continue;
+			const int patch_y_top = (H - 1) - (ap->patch_y_low + dy) - (ph - 1);
+			cairo_rectangle(dd->cr, ap->patch_x_low + dx, patch_y_top, pw, ph);
+			cairo_stroke(dd->cr);
+		}
+		cairo_set_dash(dd->cr, NULL, 0, 0.0);   /* reset for subsequent strokes */
+	}
+
+	for (int i = 0; i < run->aps->count; ++i) {
+		const mpp_ap_record_t *ap = &run->aps->records[i];
+		if (i == selected) {
+			cairo_set_line_width(dd->cr, 2.5 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.2, 1.0, 1.0);   /* magenta — selected */
+		} else if (i == hover) {
+			cairo_set_line_width(dd->cr, 2.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 0.5, 0.0, 1.0);   /* orange — hover */
+		} else {
+			cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+			cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow */
+		}
+		/* Draw each AP's actual (per-AP, possibly resized/clamped) box,
+		 * not a fixed global size. Same pdata-row→display-y flip as the
+		 * patch overlay above. */
+		const int bw = ap->box_x_high - ap->box_x_low;
+		const int bh = ap->box_y_high - ap->box_y_low;
+		if (bw <= 0 || bh <= 0) continue;
+		const int box_y_top = (H - 1) - (ap->box_y_low + dy) - (bh - 1);
+		cairo_rectangle(dd->cr, ap->box_x_low + dx, box_y_top, bw, bh);
+		cairo_stroke(dd->cr);
+	}
+
+	/* Diagnostic: only when the shift viewer is open do we overlay
+	 * per-AP shift arrows. Green = Stage B converged, red = fell back
+	 * to zero shift. */
+	if (mpp_shift_viewer_is_open() && run->shifts && run->shifts->shifts) {
+		const int fv = mpp_shift_viewer_get_frame();
+		const double scale = mpp_shift_viewer_get_scale();
+		const int M = run->shifts->num_aps;
+		if (fv >= 0 && fv < run->shifts->num_frames && M == run->aps->count) {
+			cairo_set_line_width(dd->cr, 1.2 / dd->zoom);
+			const double dot_r = 1.8 / dd->zoom;
+			for (int a = 0; a < M; ++a) {
+				const mpp_ap_record_t *ap = &run->aps->records[a];
+				const size_t k = (size_t) fv * M + a;
+				const double sdy = run->shifts->shifts[2 * k + 0];
+				const double sdx = run->shifts->shifts[2 * k + 1];
+				const uint8_t ok = run->shifts->success[k];
+				if (ok)
+					cairo_set_source_rgba(dd->cr, 0.3, 1.0, 0.3, 0.9);
+				else
+					cairo_set_source_rgba(dd->cr, 1.0, 0.2, 0.2, 0.9);
+				const double x0 = ap->x + dx;
+				/* Same pdata-row→display-y flip as the box draw above;
+				 * sdy is a pdata-row delta so its display contribution
+				 * is also negated. */
+				const double y0 = (double)(H - 1) - (double)(ap->y + dy);
+				const double x1 = x0 + sdx * scale;
+				const double y1 = y0 - sdy * scale;
+				cairo_move_to(dd->cr, x0, y0);
+				cairo_line_to(dd->cr, x1, y1);
+				cairo_stroke(dd->cr);
+				/* Arrowhead: filled triangle at (x1, y1) pointing along
+				 * the arrow direction. Skip when shift is sub-pixel
+				 * tiny (would be a degenerate triangle anyway). */
+				const double mag = hypot(x1 - x0, y1 - y0);
+				if (mag > 1.5 / dd->zoom) {
+					const double ux = (x1 - x0) / mag;
+					const double uy = (y1 - y0) / mag;
+					const double head = 7.0 / dd->zoom;
+					cairo_move_to(dd->cr, x1, y1);
+					cairo_line_to(dd->cr, x1 - head * ux - 0.5 * head * uy,
+					                       y1 - head * uy + 0.5 * head * ux);
+					cairo_line_to(dd->cr, x1 - head * ux + 0.5 * head * uy,
+					                       y1 - head * uy - 0.5 * head * ux);
+					cairo_close_path(dd->cr);
+					cairo_fill(dd->cr);
+				}
+				/* Always paint a small filled dot at the AP centre so
+				 * zero/sub-pixel-shift APs are still visible. */
+				cairo_arc(dd->cr, x0, y0, dot_r, 0, 2 * G_PI);
+				cairo_fill(dd->cr);
 			}
 		}
 	}
@@ -3766,8 +4007,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	/* get ra and dec of center of the image */
 	center2wcs(fit, &ra0, &dec0);
 	if (ra0 == -1.) return;
-	dec0 *= (M_PI / 180.0);
-	ra0  *= (M_PI / 180.0);
+	dec0 *= (G_PI / 180.0);
+	ra0  *= (G_PI / 180.0);
 	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
@@ -3807,8 +4048,8 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (polesign) stepRA = 45.;
 
 	// round image centers
-	double centra = stepRA * round(ra0 * 180 / (M_PI * stepRA)); // rounded image centers
-	double centdec = step * round(dec0 * 180 / (M_PI * step));
+	double centra = stepRA * round(ra0 * 180 / (G_PI * stepRA)); // rounded image centers
+	double centdec = step * round(dec0 * 180 / (G_PI * step));
 
 	// plot DEC grid
 	cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
@@ -3922,10 +4163,10 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 				cairo_save(cr); // save the orginal transform
 				cairo_translate(cr, pt->x, pt->y);
 				// add pi for angles larger than +/- pi/2
-				if (pt->angle > M_PI_2)
-					pt->angle -= M_PI;
-				if (pt->angle < -M_PI_2)
-					pt->angle += M_PI;
+				if (pt->angle > G_PI_2)
+					pt->angle -= G_PI;
+				if (pt->angle < -G_PI_2)
+					pt->angle += G_PI;
 				double dx = 0., dy = 0.;
 				switch (pt->border) { // shift to get back in the image
 				case 0: // bottom
@@ -3994,7 +4235,7 @@ static void draw_wcs_disto(const draw_data_t* dd) {
 				double startX, startY, endX, endY;
 				fits_to_display(currX, currY, &startX, &startY, fit->ry);
 				fits_to_display(disX, disY, &endX, &endY, fit->ry);
-				cairo_arc(cr, startX, startY, radius,  0., 2. * M_PI);
+				cairo_arc(cr, startX, startY, radius,  0., 2. * G_PI);
 				cairo_fill(cr);
 				cairo_move_to(cr, startX, startY);
 				cairo_line_to(cr, endX, endY);
@@ -4014,6 +4255,39 @@ static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
 	return y + radius * sin(angle);
 }
 
+static void draw_arrow(cairo_t *cr, double x1, double y1, double x2, double y2, double ratio) {
+	double length = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+	if (length < 1e-6) return;  // Avoid division by zero
+	if (ratio > 1.0) ratio = 1.0;
+	if (ratio < 0.0) ratio = 0.0;
+	
+	// Draw the line
+	cairo_move_to(cr, x1, y1);
+	cairo_line_to(cr, x2, y2);
+	cairo_stroke(cr);
+	
+	// Draw the arrowhead
+	double arrowhead_length = length * ratio;
+	double dx = (x2 - x1) / length;  // normalized direction vector
+	double dy = (y2 - y1) / length;
+	double px = -dy;  // perpendicular vector
+	double py = dx;
+	
+	// Arrowhead base (perpendicular to trajectory)
+	double base_x1 = x2 - dx * arrowhead_length + px * arrowhead_length * 0.5;
+	double base_y1 = y2 - dy * arrowhead_length + py * arrowhead_length * 0.5;
+	double base_x2 = x2 - dx * arrowhead_length - px * arrowhead_length * 0.5;
+	double base_y2 = y2 - dy * arrowhead_length - py * arrowhead_length * 0.5;
+	
+	// Draw arrowhead lines
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x1, base_y1);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x2, y2);
+	cairo_line_to(cr, base_x2, base_y2);
+	cairo_stroke(cr);
+}
+
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	gdouble resolution = get_wcs_image_resolution(gfit);
@@ -4026,16 +4300,19 @@ static void draw_annotates(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
+	gboolean show_sso_vectors = get_annotation_visibility(CAT_AN_SSO_VECTORS);
 
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
-		gdouble radius = get_catalogue_object_radius(object);
-		gdouble x = get_catalogue_object_x(object);
-		gdouble y = get_catalogue_object_y(object);
-		gdouble x1 = get_catalogue_object_x1(object);
-		gdouble y1 = get_catalogue_object_y1(object);
+		gdouble radius = object->radius;
+		gdouble x = object->x;
+		gdouble y = object->y;
+		gdouble x1 = object->x1;
+		gdouble y1 = object->y1;
+		gdouble x2 = object->x2;
+		gdouble y2 = object->y2;
 		gchar *code = get_catalogue_object_code_pretty(object);
-		guint catalog = get_catalogue_object_cat(object);
+		guint catalog = object->catalogue;
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;
 		double addoffset = 0.;
@@ -4075,10 +4352,21 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_move_to(cr, x, y);
 			cairo_line_to(cr, x1, y1);
 			cairo_stroke(cr);
+		} else if ((catalog == CAT_AN_USER_TEMP || catalog == CAT_AN_USER_SSO) && (x1 != 0 || y1 != 0)) {
+			// Handle sso moving
+			if (show_sso_vectors) {
+				if (x2 != DBL_MAX && y2 != DBL_MAX) { // we have a trajectory over a sequence
+					draw_arrow(cr, x1, y1, x2, y2, 0.1);
+				} else {
+					draw_arrow(cr, x, y, x1, y1, 0.2);
+				}
+			}
+			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_stroke(cr);
 		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
-			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_arc(cr, x, y, radius, 0., 2. * G_PI);
 			cairo_stroke(cr);
 			if (code) {
 				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
@@ -4116,7 +4404,6 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_show_text(cr, name);
 			cairo_stroke(cr);
 		}
-
 	}
 }
 
@@ -4132,7 +4419,7 @@ static void draw_rgb_centers(const draw_data_t* dd) {
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 
 	double size = 10. / dd->zoom;
-	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 }
 
@@ -4259,7 +4546,7 @@ static void draw_regframe(const draw_data_t* dd) {
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
-	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, framing.pt[0].x, framing.pt[0].y, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke_preserve(cr);
 	cairo_fill(cr);
 	// reference frame
@@ -4271,7 +4558,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_stroke(cr);
 
 	// reference center
-	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * M_PI);
+	cairo_arc(cr, cogx, cogy, size * 0.5, 0., 2. * G_PI);
 	cairo_stroke(cr);
 	// current center
 	cairo_set_source_rgb(cr, 0., 1., 0.);
@@ -4428,8 +4715,18 @@ void copy_roi_into_gfit() {
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 }
 
-void remap_all() {
+/* Drop the cached autostretch parameters so the next STF remap recomputes the
+ * midtones balance from the current image and target background. */
+void invalidate_autostretch_cache(void) {
 	stf_computed = FALSE;
+}
+
+void remap_all() {
+	/* When auto-refresh is on (default) the autostretch follows every image
+	 * change. When off, keep the previously computed parameters so the stretch
+	 * stays frozen as the pixels change. */
+	if (gui.autostretch_auto_refresh)
+		stf_computed = FALSE;
 	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
 		for (int i = 0; i < gfit->naxes[2]; i++) {
 			remap(i);

@@ -24,6 +24,7 @@
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
@@ -243,73 +244,33 @@ void on_mask_from_image_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("mask_from_image_dialog");
 }
 
-/* Phase 14G.2: GtkFileChooserDialog → GtkFileDialog.  GtkFileDialog is
- * an async service object (no widget); the picked file arrives via the
- * finish callback rather than a synchronous gtk_dialog_run. */
-static void on_mask_file_chosen(GObject *source, GAsyncResult *res, gpointer ud) {
-	(void)ud;
-	GtkFileDialog *fd = GTK_FILE_DIALOG(source);
-	GError *error = NULL;
-	GFile *file = gtk_file_dialog_open_finish(fd, res, &error);
-	if (file) {
-		gchar *filename = g_file_get_path(file);
-		if (filename) {
-			if (selected_mask_filename)
-				g_free(selected_mask_filename);
-			selected_mask_filename = filename;
-			if (entry_mask_filename)
-				gtk_editable_set_text(GTK_EDITABLE(entry_mask_filename), filename);
-		}
-		g_object_unref(file);
-	}
-	if (error)
-		g_clear_error(&error);
-}
-
 /**
-* Handler for the file chooser button click event.
 * Opens a file chooser dialog to select an image file.
 */
 void on_mask_file_chooser_clicked(GtkButton *button, gpointer user_data) {
 	(void)button; (void)user_data;
 	masks_gui_init_statics();
 
-	GtkFileDialog *fd = gtk_file_dialog_new();
-	gtk_file_dialog_set_title(fd, "Select Mask Image File");
+	SirilFileBrowser *fb = siril_file_browser_new(masks_dialog_window,
+			_("Select Mask Image File"));
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	siril_file_browser_add_filter_pattern(fb,
+			_("Image files (*.fits, *.fit, *.fts, *.tif)"),
+			"*.fits;*.fit;*.fts;*.tif;*.FITS;*.FIT;*.FTS;*.TIF", TRUE);
+	siril_file_browser_add_filter_pattern(fb, _("All files"), "*", FALSE);
 
-	GListStore *store = g_list_store_new(GTK_TYPE_FILE_FILTER);
+	if (siril_file_browser_run(fb) != GTK_RESPONSE_ACCEPT)
+		return;
 
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, "Image files (*.fits, *.fit, *.fts, *.tif)");
-	gtk_file_filter_add_pattern(filter, "*.fits");
-	gtk_file_filter_add_pattern(filter, "*.fit");
-	gtk_file_filter_add_pattern(filter, "*.fts");
-	gtk_file_filter_add_pattern(filter, "*.tif");
-	gtk_file_filter_add_pattern(filter, "*.FITS");
-	gtk_file_filter_add_pattern(filter, "*.FIT");
-	gtk_file_filter_add_pattern(filter, "*.FTS");
-	gtk_file_filter_add_pattern(filter, "*.TIF");
-	g_list_store_append(store, filter);
-	gtk_file_dialog_set_default_filter(fd, filter);
-	g_object_unref(filter);
-
-	GtkFileFilter *any = gtk_file_filter_new();
-	gtk_file_filter_set_name(any, "All files");
-	gtk_file_filter_add_pattern(any, "*");
-	g_list_store_append(store, any);
-	g_object_unref(any);
-
-	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(store));
-	g_object_unref(store);
-
-	if (com.wd) {
-		GFile *initial = g_file_new_for_path(com.wd);
-		gtk_file_dialog_set_initial_folder(fd, initial);
-		g_object_unref(initial);
-	}
-
-	gtk_file_dialog_open(fd, masks_dialog_window, NULL, on_mask_file_chosen, NULL);
-	g_object_unref(fd);
+	gchar *filename = siril_file_browser_get_path(fb);
+	if (!filename)
+		return;
+	if (selected_mask_filename)
+		g_free(selected_mask_filename);
+	selected_mask_filename = filename;
+	if (entry_mask_filename)
+		gtk_editable_set_text(GTK_EDITABLE(entry_mask_filename), filename);
 }
 
 /**

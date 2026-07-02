@@ -577,9 +577,12 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		return FALSE;
 	}
 	info->data_type = GUINT32_FROM_BE(info->data_type);
-	// Validate image dimensions and format
+	// Validate image dimensions and format. The width/height cap is deliberately
+	// far larger than any real image (100000 x 100000 = 1e10 px) but bounds the
+	// untrusted dimensions so width*height*channels cannot overflow below.
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
-		info->channels > 3 || info->size == 0) {
+		info->channels > 3 || info->size == 0 ||
+		info->width > 100000 || info->height > 100000) {
 		gchar size_str[32];
 		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->size);
 		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"), info->width, info->height, info->channels, size_str);
@@ -589,8 +592,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		g_free(error_msg);
 		return FALSE;
 	}
-	// Compute and sanitize ncpixels
-	size_t ncpixels = info->width * info->height * info->channels;
+	// Compute in 64-bit: the bare uint32 product would wrap before reaching size_t.
+	size_t ncpixels = (size_t)info->width * info->height * info->channels;
 	siril_log_debug("received w x h x c: %d x %d x %d\n", info->width, info->height, info->channels);
 	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
 	if (info->size != expected_size) {
@@ -659,7 +662,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				fit->pdata[i] = fit->data + i * info->width * info->height;
+				fit->pdata[i] = fit->data + (size_t)i * info->width * info->height;
 			}
 		}
 	} else { // FLOAT data
@@ -668,7 +671,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				fit->fpdata[i] = fit->fdata + i * info->width * info->height;
+				fit->fpdata[i] = fit->fdata + (size_t)i * info->width * info->height;
 			}
 		}
 	}
@@ -897,9 +900,12 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	info->image_size = GUINT64_FROM_BE(info->image_size);
 	info->header_size = GUINT64_FROM_BE(info->header_size);
 
-	// Validate image dimensions and format
+	// Validate image dimensions and format. The width/height cap is far larger
+	// than any real image but bounds the untrusted dimensions so the pixel-count
+	// products below cannot overflow.
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
-		info->channels > 3 || info->image_size == 0) {
+		info->channels > 3 || info->image_size == 0 ||
+		info->width > 100000 || info->height > 100000) {
 		gchar size_str[32];
 		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->image_size);
 		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"),
@@ -910,8 +916,8 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 		return FALSE;
 	}
 
-	// Validate size
-	size_t ncpixels = info->width * info->height * info->channels;
+	// Validate size; compute in 64-bit (the bare uint32 product would wrap).
+	size_t ncpixels = (size_t)info->width * info->height * info->channels;
 	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
 
 	if (info->image_size != expected_size) {
@@ -1035,7 +1041,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0; i < info->channels; i++) {
-				fit.pdata[i] = fit.data + i * info->width * info->height;
+				fit.pdata[i] = fit.data + (size_t)i * info->width * info->height;
 			}
 		}
 	} else { // FLOAT data
@@ -1044,7 +1050,7 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0; i < info->channels; i++) {
-				fit.fpdata[i] = fit.fdata + i * info->width * info->height;
+				fit.fpdata[i] = fit.fdata + (size_t)i * info->width * info->height;
 			}
 		}
 	}
@@ -1661,15 +1667,16 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* output = NULL;
 	gint status;
 
-	g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	gboolean ok = g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
 				NULL, NULL, &output, NULL, &status, NULL);
 
 	g_free(python_path);
 
-	if (output) {
+	if (ok && output) {
 		g_strchomp(output);  // Remove trailing newline
 		return output;
 	}
+	g_free(output);
 	return NULL;
 }
 
@@ -2192,7 +2199,8 @@ static gboolean validate_python_version(const gchar *python_exe, GError **error)
 		return FALSE;
 	}
 
-	g_strstrip(stdout_data);
+	if (stdout_data)
+		g_strstrip(stdout_data);
 
 	// Validate we got some output
 	if (!stdout_data || strlen(stdout_data) == 0) {
@@ -2346,7 +2354,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 						G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 						NULL, NULL,
 						NULL, NULL,
-						&exit_status, NULL)) {
+						&exit_status, &spawn_error)) {
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 					"Failed to check for module '%s': %s",
 					modules[i],
@@ -2385,7 +2393,7 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 					G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 					NULL, NULL,
 					NULL, NULL,
-					&exit_status, NULL)) {
+					&exit_status, &spawn_error)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to execute pip: %s",
 				spawn_error ? spawn_error->message : "unknown error");
@@ -2413,7 +2421,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_return_val_if_fail(venv_path != NULL, FALSE);
 
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-	siril_log_debug("Python path: %s\n", python_path);
+	siril_log_debug("Python path: %s\n", python_path ? python_path : "null");
 	g_return_val_if_fail(python_path != NULL, FALSE);
 
 	// Verify the python executable is actually executable
@@ -3018,10 +3026,10 @@ cleanup:
 		sys_python_exe = NULL;
 	}
 
-	if (python_exe) {
-		success = TRUE;  /* venv already existed */
-		g_free(python_exe);
-	}
+	/* The 'venv already existed and is healthy' case returns TRUE early above,
+	 * and the unhealthy / not-found paths set python_exe to NULL before
+	 * reaching here, so python_exe is always NULL at this point. The former
+	 * 'if (python_exe) success = TRUE' cleanup branch was dead code. */
 
 	g_free(venv_path);
 	return success;
@@ -3517,6 +3525,12 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Create cleanup info structure for either synchronous or async operation
 	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));
 	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
+	/* execute_python_script() owns script_name (all error paths g_free it). On
+	 * the success path it was only borrowed by python_argv (freed with
+	 * free_segment=FALSE) and copied into cleanup->temp_filename, so the
+	 * original must be freed here; the temp file itself is unlinked later by
+	 * python_process_cleanup via temp_filename. */
+	g_free(script_name);
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;
 	cleanup->python_conn = commstate.python_conn;
@@ -3580,9 +3594,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		(GThreadFunc)monitor_stream_stderr,
 		g_object_ref(stderr_data));
 
-	// Clean up references
+	// Clean up references. The monitor threads each hold their own g_object_ref
+	// on the data stream and unref it when they finish, so we must drop our
+	// creation ref here too (the thread keeps the object alive meanwhile);
+	// otherwise the GDataInputStream and its underlying fd leak.
 	g_object_unref(stdout_stream);
 	g_object_unref(stderr_stream);
+	g_object_unref(stdout_data);
+	g_object_unref(stderr_data);
 	g_thread_unref(stdout_thread);
 	g_thread_unref(stderr_thread);
 

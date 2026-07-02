@@ -185,6 +185,44 @@
       </object>
     </property>
   </object>
+  <object class="GtkAdjustment" id="autostretch_target_bg_adjustment">
+    <property name="lower">0.0</property>
+    <property name="upper">1.0</property>
+    <property name="value">0.25</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.05</property>
+  </object>
+  <object class="GtkPopover" id="autostretch_param_popover">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">4</property>
+        <property name="margin-start">8</property>
+        <property name="margin-end">8</property>
+        <property name="margin-top">8</property>
+        <property name="margin-bottom">8</property>
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="label" translatable="yes">Target background</property>
+            <property name="xalign">0</property>
+            <property name="visible">True</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScale" id="autostretch_target_bg_scale">
+            <property name="adjustment">autostretch_target_bg_adjustment</property>
+            <property name="draw-value">1</property>
+            <property name="digits">2</property>
+            <property name="width-request">180</property>
+            <property name="hexpand">1</property>
+            <property name="visible">True</property>
+            <signal name="value-changed" handler="on_autostretch_target_bg_changed"/>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
   <object class="GtkPopover" id="menu_display">
     <property name="child">
       <object class="GtkBox">
@@ -239,11 +277,66 @@
           </object>
         </child>
         <child>
-          <object class="GtkCheckButton" id="autohd_item">
-            <property name="label" translatable="yes">High definition</property>
+          <object class="GtkBox" id="autostretch_controls_box">
+            <property name="orientation">horizontal</property>
             <property name="margin-start">18</property>
+            <property name="spacing">2</property>
             <property name="visible">True</property>
-            <signal name="toggled" handler="on_autohd_item_toggled"/>
+            <property name="sensitive">0</property>
+            <child>
+              <object class="GtkToggleButton" id="autohd_item">
+                <property name="label" translatable="yes">HD</property>
+                <property name="tooltip-text" translatable="yes">Use a high definition LUT for the autostretch display</property>
+                <property name="visible">True</property>
+                <signal name="toggled" handler="on_autohd_item_toggled"/>
+                <style>
+                  <class name="as-ctl"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="autostretch_refresh_button">
+                <property name="icon-name">view-refresh-symbolic</property>
+                <property name="active">1</property>
+                <property name="tooltip-text" translatable="yes">Auto-refresh: recompute the autostretch on every image change. When off, the current stretch is kept.</property>
+                <property name="visible">True</property>
+                <signal name="toggled" handler="on_autostretch_autorefresh_toggled"/>
+                <style>
+                  <class name="as-ctl"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="linked_autostretch_button">
+                <property name="name">linked_autostretch_button</property>
+                <property name="action-name">win.chain-chan</property>
+                <property name="active">1</property>
+                <property name="visible">1</property>
+                <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
+Current state: linked.</property>
+                <child>
+                  <object class="GtkImage" id="autostretch_linked_icon">
+                    <property name="name">autostretch_linked_icon</property>
+                    <property name="resource">/org/siril/ui/pixmaps/chain-linked.svg</property>
+                    <property name="pixel-size">19</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="as-ctl"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuButton" id="autostretch_param_button">
+                <property name="icon-name">display-brightness-symbolic</property>
+                <property name="popover">autostretch_param_popover</property>
+                <property name="tooltip-text" translatable="yes">Adjust the autostretch target background</property>
+                <property name="visible">True</property>
+                <style>
+                  <class name="as-ctl"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
         <child>
@@ -1309,13 +1402,6 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkButton" id="proc_extract_starnet">
-                    <property name="action-name">win.starnet-processing</property>
-                    <property name="label" translatable="yes">StarNet Star Removal...</property>
-                    <property name="tooltip-text" translatable="yes">Run Starnet++</property>
-                  </object>
-                </child>
-                <child>
                   <object class="GtkButton" id="proc_star_recomp">
                     <property name="action-name">win.star-remix-processing</property>
                     <property name="label" translatable="yes">Star Recomposition...</property>
@@ -2378,6 +2464,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="scrollable">1</property>
                                 <property name="show-border">0</property>
                                 <property name="vexpand">1</property>
+                                <signal name="switch-page" handler="on_notebook_center_box_switch_page"/>
                               </object>
                             </child>
                             <child>
@@ -3191,24 +3278,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                                 <property name="valign">center</property>
                               </object>
                             </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkToggleButton" id="linked_autostretch_button">
-                        <property name="name">linked_autostretch_button</property>
-                        <property name="action-name">win.chain-chan</property>
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="receives-default">1</property>
-                        <property name="visible">0</property>
-                        <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
-Current state: linked.</property>
-                        <child>
-                          <object class="GtkImage" id="autostretch_linked_icon">
-                            <property name="name">autostretch_linked_icon</property>
-                            <property name="resource">/org/siril/ui/pixmaps/chain-linked.svg</property>
                           </object>
                         </child>
                       </object>

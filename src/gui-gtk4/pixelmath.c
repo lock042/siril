@@ -37,6 +37,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/dialog_preview.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/open_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/gui_state.h"
@@ -796,6 +797,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	gboolean do_sum = is_cumulate_checked();
 	float min_val = get_min_rescale_value();
 	float max_val = get_max_rescale_value();
+	/* Declared up front so the free_expressions epilogue can release them on
+	 * every error path. handed_off becomes TRUE only once the worker thread has
+	 * taken ownership of args (and, through it, var_fit / fit). */
+	struct pixel_math_data *args = NULL;
+	fits *fit = NULL;
+	gboolean handed_off = FALSE;
 
 	int max_images = pm_get_max_images();
 
@@ -846,7 +853,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	channel = single_rgb ? channel : 3;
 
-	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
+	args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
@@ -880,7 +887,6 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		goto free_expressions;
 	}
 
-	fits *fit = NULL;
 	if (args->has_gfit) {
 		width   = gfit->rx;
 		height  = gfit->ry;
@@ -908,14 +914,33 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	args->fit = fit;
 
-	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
-		g_free(args->expression1);
-		g_free(args->expression2);
-		g_free(args->expression3);
-		free(args);
-	}
+	if (start_in_new_thread(apply_pixel_math_operation, args))
+		handed_off = TRUE;   // worker now owns args, var_fit and fit
+	/* On thread-start failure we fall through to free_expressions, which frees
+	 * everything because handed_off stayed FALSE. */
 
 free_expressions:
+	/* On every error path (and on thread-start failure) the worker never ran,
+	 * so release the resources it would otherwise have freed: the loaded
+	 * var_fit images, the args struct and its strings, and the output fit. */
+	if (!handed_off) {
+		free_pm_var(nb_rows);
+		if (args) {
+			if (args->varname) {
+				for (int i = 0; i < nb_rows; i++)
+					g_free(args->varname[i]);
+				free(args->varname);
+			}
+			g_free(args->expression1);
+			g_free(args->expression2);
+			g_free(args->expression3);
+			free(args);
+		}
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
+	}
 	g_free(expression1);
 	g_free(expression2);
 	g_free(expression3);
@@ -988,29 +1013,36 @@ static int search_for_free_index() {
 	return i + 1;
 }
 
-/* Phase 14G.2: GtkFileChooserDialog → GtkFileDialog (multi-select). */
-struct pm_select_image_ctx {
-	int starting_nb;
-};
+static void select_image(int nb) {
+	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder, "pixel_math_dialog"));
+	SirilFileBrowser *fb = siril_file_browser_new(parent, _("Open File"));
+	siril_file_browser_set_select_multiple(fb, TRUE);
+	if (com.wd && *com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
 
-static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
-	struct pm_select_image_ctx *ctx = (struct pm_select_image_ctx *)ud;
-	int pos = ctx->starting_nb;
-	g_free(ctx);
+	/* Image filter: FITS, plus TIFF when built with libtiff (the 4 case
+	 * variants the legacy GTK3 filter accepted). */
+	GString *pattern = g_string_new(FITS_EXTENSIONS);
+#ifdef HAVE_LIBTIFF
+	g_string_append(pattern, ";*.tif;*.TIF;*.tiff;*.TIFF");
+	siril_file_browser_add_filter_pattern(fb, _("Image Files (FITS, TIFF)"), pattern->str, TRUE);
+#else
+	siril_file_browser_add_filter_pattern(fb,
+		_("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+		pattern->str, TRUE);
+#endif
+	g_string_free(pattern, TRUE);
 
-	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
-	GError *error = NULL;
-	GListModel *files = gtk_file_dialog_open_multiple_finish(fd, res, &error);
-	if (!files) {
-		if (error) g_clear_error(&error);
+	GSList *paths = NULL;
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		paths = siril_file_browser_get_paths(fb);
+	if (!paths)
 		return;
-	}
-	guint n = g_list_model_get_n_items(files);
+
+	int pos = nb;
 	guint width = 0, height = 0, channel = 0;
-	for (guint i = 0; i < n; ++i) {
-		GFile *gf = G_FILE(g_list_model_get_item(files, i));
-		gchar *filename = gf ? g_file_get_path(gf) : NULL;
-		if (gf) g_object_unref(gf);
+	for (GSList *l = paths; l; l = l->next) {
+		const gchar *filename = l->data;
 		if (!filename) continue;
 
 		gchar filter_kw[FLEN_VALUE] = { 0 };
@@ -1052,66 +1084,20 @@ static void on_pm_files_chosen(GObject *src, GAsyncResult *res, gpointer ud) {
 				int idx = search_for_free_index();
 				if (idx >= pm_get_max_images()) {
 					siril_log_error(_("Error: maximum variable index exceeded - too many variables!\n"));
-					g_free(filename);
 					clearfits(&f);
 					break;
 				}
 				add_image_to_variable_list(filename, pm_get_variable_name(idx), filter_kw, f.naxes[2], f.naxes[0], f.naxes[1]);
 				pos++;
 				if (pos == pm_get_max_images()) {
-					g_free(filename);
 					clearfits(&f);
 					break;
 				}
 			}
 		}
-		g_free(filename);
 		clearfits(&f);
 	}
-	g_object_unref(files);
-}
-
-static void select_image(int nb) {
-	GtkFileDialog *fd = gtk_file_dialog_new();
-	gtk_file_dialog_set_title(fd, "Open File");
-	GFile *initial_folder = g_file_new_for_path(com.wd);
-	gtk_file_dialog_set_initial_folder(fd, initial_folder);
-	g_object_unref(initial_folder);
-
-	GtkFileFilter *fitsf = gtk_file_filter_new();
-#ifdef HAVE_LIBTIFF
-	gtk_file_filter_set_name(fitsf, _("Image Files (FITS, TIFF)"));
-#else
-	gtk_file_filter_set_name(fitsf, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"));
-#endif
-	{
-		gchar **patterns = g_strsplit(FITS_EXTENSIONS, ";", -1);
-		for (int i = 0; patterns[i]; ++i)
-			gtk_file_filter_add_pattern(fitsf, patterns[i]);
-		g_strfreev(patterns);
-	}
-#ifdef HAVE_LIBTIFF
-	/* TIFF: 4 case variants the legacy GTK3 filter accepted. */
-	gtk_file_filter_add_pattern(fitsf, "*.tif");
-	gtk_file_filter_add_pattern(fitsf, "*.TIF");
-	gtk_file_filter_add_pattern(fitsf, "*.tiff");
-	gtk_file_filter_add_pattern(fitsf, "*.TIFF");
-#endif
-	GListStore *fl = g_list_store_new(GTK_TYPE_FILE_FILTER);
-	g_list_store_append(fl, fitsf);
-	/* GTK3 commit defaults this filter on unconditionally now; mirror that. */
-	gtk_file_dialog_set_default_filter(fd, fitsf);
-	gtk_file_dialog_set_filters(fd, G_LIST_MODEL(fl));
-	g_object_unref(fitsf);
-	g_object_unref(fl);
-
-	struct pm_select_image_ctx *ctx = g_new0(struct pm_select_image_ctx, 1);
-	ctx->starting_nb = nb;
-
-	gtk_file_dialog_open_multiple(fd,
-		GTK_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_dialog"))),
-		NULL, on_pm_files_chosen, ctx);
-	g_object_unref(fd);
+	g_slist_free_full(paths, g_free);
 }
 
 /* ── apply_pixel_math (collects widget state → calls evaluate) ──────────── */

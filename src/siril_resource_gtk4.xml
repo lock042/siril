@@ -72,6 +72,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui-gtk4/uifiles/Median_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui-gtk4/uifiles/merge_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui-gtk4/uifiles/mouse_actions.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mpp_ap_editor_dialog.ui">gui-gtk4/uifiles/mpp_ap_editor_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mpp_shift_viewer_dialog.ui">gui-gtk4/uifiles/mpp_shift_viewer_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="pixelmath.ui">gui-gtk4/uifiles/pixelmath.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="python_scratchpad.ui">gui-gtk4/uifiles/python_scratchpad.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui-gtk4/uifiles/resample_dialog.ui</file>
@@ -93,7 +95,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="siril_console.ui">gui-gtk4/uifiles/siril_console.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="spcc_details.ui">gui-gtk4/uifiles/spcc_details.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="split_cfa_dialog.ui">gui-gtk4/uifiles/split_cfa_dialog.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="starnet_dialog.ui">gui-gtk4/uifiles/starnet_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="stars_list_window.ui">gui-gtk4/uifiles/stars_list_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="StatWindow.ui">gui-gtk4/uifiles/StatWindow.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="unpurple_dialog.ui">gui-gtk4/uifiles/unpurple_dialog.ui</file>
