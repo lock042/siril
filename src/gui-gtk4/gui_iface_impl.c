@@ -368,6 +368,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	set_GUI_CAMERA();
 	mpp_update_edit_button_sensitivity();         /* sidecar auto-load may have populated com.mpp_run */
 	mpp_sync_widgets_from_cached_run();           /* reflect a loaded sidecar's AP-placement settings */
+	mpp_sync_altaz_from_plan();                   /* reflect a .derot's field-rotation state */
 	mpp_shift_viewer_update_button_sensitivity();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);

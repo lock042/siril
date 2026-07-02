@@ -1715,6 +1715,48 @@ void on_check_mpp_altaz_toggled(GtkCheckButton *btn, gpointer user_data) {
 	}
 }
 
+/* Reflect the loaded sequence's field-rotation state in the checkbox and
+ * site row: checked (with target/site populated from the plan) when a
+ * synthesised rotation-only plan or a planetary plan with the fold flag is
+ * present; unchecked otherwise. The site entries are left as they are when
+ * unchecking — the observer's site is sticky across sequences. Called from
+ * the sequence-changed GUI refresh. */
+void mpp_sync_altaz_from_plan(void) {
+	registration_init_statics();
+	if (!check_mpp_altaz) return;
+	gboolean active = FALSE;
+	if (sequence_is_loaded() && com.seq.seqname) {
+		gchar *path = g_strdup_printf("%s.derot", com.seq.seqname);
+		mpp_derot_t *d = NULL;
+		if (mpp_derot_read(path, &d) == MPP_OK && d) {
+			const gboolean synth = d->body == MPP_DEROT_BODY_FIELDROT;
+			if (synth || (d->flags & MPP_DEROT_FLAG_FIELDROT)) {
+				active = TRUE;
+				if (entry_mpp_altaz_lat && entry_mpp_altaz_lon
+				    && !isnan(d->obs_lat) && !isnan(d->obs_lon)) {
+					gchar buf[32];
+					g_snprintf(buf, sizeof(buf), "%.4f", d->obs_lat);
+					gtk_editable_set_text(GTK_EDITABLE(entry_mpp_altaz_lat), buf);
+					g_snprintf(buf, sizeof(buf), "%.4f", d->obs_lon);
+					gtk_editable_set_text(GTK_EDITABLE(entry_mpp_altaz_lon), buf);
+				}
+				/* Dropdown order matches ephem_target_t; planetary body ids
+				 * are the same values for the planets. */
+				const int target = synth ? d->rot_system : d->body;
+				if (drop_mpp_altaz_target
+				    && target >= 0 && target < EPHEM_TARGET_COUNT)
+					gtk_drop_down_set_selected(drop_mpp_altaz_target, target);
+			}
+			mpp_derot_free(d);
+		}
+		g_free(path);
+	}
+	/* Setting the state runs on_check_mpp_altaz_toggled, which shows/hides
+	 * the site row; the entries are already populated, so no obscode
+	 * lookup fires. */
+	gtk_check_button_set_active(check_mpp_altaz, active);
+}
+
 void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	(void) button; (void) user_data;
 	if (!sequence_is_loaded()) {

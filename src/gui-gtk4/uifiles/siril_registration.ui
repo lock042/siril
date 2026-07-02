@@ -1207,7 +1207,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                               </child>
                                                               <child>
                                                                 <object class="GtkEntry" id="entry_mpp_altaz_lat">
-                                                                  <property name="tooltip-text" translatable="1">Observer geodetic latitude, degrees (south negative).</property>
+                                                                  <property name="tooltip-text" translatable="1">Observer geodetic latitude, degrees (south negative). The nearest degree is sufficient — city-level accuracy is ample even near the zenith.</property>
                                                                   <property name="width-chars">9</property>
                                                                 </object>
                                                               </child>
@@ -1218,7 +1218,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                               </child>
                                                               <child>
                                                                 <object class="GtkEntry" id="entry_mpp_altaz_lon">
-                                                                  <property name="tooltip-text" translatable="1">Observer longitude, degrees EAST (west negative).</property>
+                                                                  <property name="tooltip-text" translatable="1">Observer longitude, degrees EAST (west negative). The nearest degree is sufficient.</property>
                                                                   <property name="width-chars">9</property>
                                                                 </object>
                                                               </child>

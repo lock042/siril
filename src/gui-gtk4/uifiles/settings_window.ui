@@ -891,6 +891,17 @@
                                                   </object>
                                                 </child>
                                                 <child>
+                                                  <object class="GtkEntry" id="obscode_entry">
+                                                    <property name="focusable">1</property>
+                                                    <property name="halign">center</property>
+                                                    <property name="max-length">3</property>
+                                                    <property name="max-width-chars">5</property>
+                                                    <property name="tooltip-text" translatable="yes">Enter your nearest IAU observatory code to use by default to improve accuracy in solar system cone searches. A full list can be found at https://minorplanetcenter.net/iau/lists/ObsCodesF.html</property>
+                                                    <property name="valign">center</property>
+                                                    <property name="width-chars">5</property>
+                                                  </object>
+                                                </child>
+                                                <child>
                                                   <object class="GtkButton" id="purge_SSO_user_catalogue">
                                                     <property name="focusable">1</property>
                                                     <property name="label" translatable="yes">Purge Solar Sys
@@ -910,17 +921,7 @@
                                                     <signal name="clicked" handler="on_purge_user_catalogue_clicked"/>
                                                   </object>
                                                 </child>
-                                                <child>
-                                                  <object class="GtkEntry" id="obscode_entry">
-                                                    <property name="focusable">1</property>
-                                                    <property name="halign">center</property>
-                                                    <property name="max-length">3</property>
-                                                    <property name="max-width-chars">5</property>
-                                                    <property name="tooltip-text" translatable="yes">Enter your nearest IAU observatory code to use by default to improve accuracy in solar system cone searches. A full list can be found at https://minorplanetcenter.net/iau/lists/ObsCodesF.html</property>
-                                                    <property name="valign">center</property>
-                                                    <property name="width-chars">5</property>
-                                                  </object>
-                                                </child>
+                                                
                                               </object>
                                             </child>
                                           </object>

@@ -53,6 +53,11 @@ void mpp_update_edit_button_sensitivity(void);
  * no cached run. Defined in registration.c. */
 void mpp_sync_widgets_from_cached_run(void);
 
+/* Sync the alt-az field-rotation checkbox (and its target/site row) from
+ * the loaded sequence's .derot state. Called on sequence open. Defined in
+ * registration.c. */
+void mpp_sync_altaz_from_plan(void);
+
 /* Paint the multipoint reference frame when entering the Registration or
  * Stacking tab, if the cached run carries one and a sequence frame is
  * currently shown. Called from the main control-tab switch handler. */
