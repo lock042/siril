@@ -1103,8 +1103,22 @@ static void impl_update_zoom_label(void) {
 	execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
 }
 
+static gboolean get_zoom_value_idle(gpointer p) {
+	*((double *) p) = get_zoom_val();
+	return FALSE;
+}
+
 static double impl_get_zoom_value(void) {
-	return get_zoom_val();
+	/* explicit zoom is a plain read, but fit-to-window makes get_zoom_val()
+	 * read widget allocations; python zoom queries arrive on the connection
+	 * worker thread */
+	if (gui.zoom_value > 0.)
+		return gui.zoom_value;
+	if (in_main_thread())
+		return get_zoom_val();
+	double zoom = 1.0;
+	execute_idle_and_wait_for_it(get_zoom_value_idle, &zoom);
+	return zoom;
 }
 
 static int impl_activate_action(const char *name, gboolean appmap) {
