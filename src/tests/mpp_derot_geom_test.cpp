@@ -244,3 +244,45 @@ Test(mpp_derot_geom, rotate_off_limb) {
 	double u2, v2, mu2;
 	cr_assert_not(derot_project(lat, lon, 0, -40 * DEG, 0.0, &u2, &v2, &mu2));
 }
+
+/* Off-globe pixels follow the frame's rigid in-image orientation: with the
+ * frame pole angle offset by delta from the epoch (alt-az field rotation
+ * folded into the plan), a ring/sky pixel must map to its position rotated
+ * by the same similarity the globe path applies — and reduce exactly to the
+ * identity when the angles coincide. */
+Test(mpp_derot_geom, off_globe_follows_field_rotation) {
+	derot_diskfit_t disk = { 100.0, 100.0, 30.0, 0.0, 1.0 };
+	derot_geom_t epoch = { 0.0, 0.0, 0.2 };   /* B=0, CM=0, theta=0.2 rad */
+	derot_geom_t framee = epoch;
+
+	cv::Mat mx, my, valid, mu;
+
+	/* Equal angles: identity off the globe. */
+	derot_build_map(200, 200, disk, epoch, framee, mx, my, valid, mu);
+	/* (30, 170) is far off the 30px globe at (100,100). */
+	cr_assert_float_eq(mx.at<float>(30, 170), 170.0f, 1e-4);
+	cr_assert_float_eq(my.at<float>(30, 170), 30.0f, 1e-4);
+	cr_assert_eq(valid.at<uint8_t>(30, 170), 1);
+
+	/* Frame rotated by delta: the off-globe pixel maps to its position
+	 * rotated about the disk centre by delta, in the y-down pixel sense
+	 * the pixel<->norm helpers define. */
+	const double delta = 0.05;
+	framee.pole_angle = epoch.pole_angle + delta;
+	derot_build_map(200, 200, disk, epoch, framee, mx, my, valid, mu);
+	const double px = 170.0 - 100.0, py = 30.0 - 100.0;   /* about centre */
+	/* pixel_to_norm negates y (v up); rotation by +delta in norm space then
+	 * back to pixels = rotation by -delta in y-down pixel coords. */
+	const double c = cos(delta), s = sin(delta);
+	const double ex = 100.0 + (px * c - (-py) * s);
+	const double ey = 100.0 - ((-py) * c + px * s);
+	cr_assert_float_eq(mx.at<float>(30, 170), (float) ex, 1e-3,
+	                   "mx=%.4f expected %.4f", mx.at<float>(30, 170), ex);
+	cr_assert_float_eq(my.at<float>(30, 170), (float) ey, 1e-3,
+	                   "my=%.4f expected %.4f", my.at<float>(30, 170), ey);
+	/* Distance from the centre is preserved (pure rotation). */
+	const double r0 = hypot(px, py);
+	const double r1 = hypot(mx.at<float>(30, 170) - 100.0,
+	                        my.at<float>(30, 170) - 100.0);
+	cr_assert_float_eq(r1, r0, 1e-3);
+}

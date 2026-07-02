@@ -147,11 +147,21 @@ void derot_build_map_ms(int out_w, int out_h,
 					mp[x] = 0.0f;
 					continue;
 				}
-				/* Single-source: outside the fitted globe (rings, moons, sky)
-				 * pass the pixel through unchanged so it is aligned/stacked
-				 * normally — only the globe is derotated. */
-				mx[x] = (float) x;
-				my[x] = (float) y;
+				/* Single-source: outside the fitted globe (rings, moons,
+				 * sky) there is nothing to derotate, but the content must
+				 * still follow the frame's rigid in-image orientation —
+				 * with alt-az field rotation folded into the per-frame
+				 * pole angle, the rings rotate with the frame just like
+				 * the globe. Compose the same pixel↔norm transforms the
+				 * globe path uses, minus the globe projection: a pure
+				 * similarity about the disk centre that reduces exactly
+				 * to the identity when the epoch and frame angles (and
+				 * disks) coincide, and whose sign/parity handling is the
+				 * globe path's own. */
+				double sx, sy;
+				norm_to_pixel(u0, v0, src_disk, frame.pole_angle, &sx, &sy);
+				mx[x] = (float) sx;
+				my[x] = (float) sy;
 				vp[x] = 1;
 				mp[x] = 1.0f;
 				continue;
