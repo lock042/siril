@@ -23,6 +23,41 @@
     <property name="upper">100</property>
     <property name="value">20</property>
   </object>
+  <object class="GtkAdjustment" id="adj_ag_scale">
+    <property name="lower">1</property>
+    <property name="upper">10</property>
+    <property name="step-increment">0.5</property>
+    <property name="page-increment">1</property>
+    <property name="value">5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_ag_smoothness">
+    <property name="lower">0</property>
+    <property name="upper">3</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">0.5</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_ag_protect_threshold">
+    <property name="lower">0</property>
+    <property name="upper">1</property>
+    <property name="step-increment">0.005</property>
+    <property name="page-increment">0.05</property>
+    <property name="value">0.05</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_ag_protect_amount">
+    <property name="lower">0</property>
+    <property name="upper">1</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.1</property>
+    <property name="value">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_ag_degree">
+    <property name="lower">1</property>
+    <property name="upper">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+    <property name="value">2</property>
+  </object>
   <object class="GtkWindow" id="background_extraction_dialog">
     <property name="child">
       <object class="GtkBox">
@@ -36,7 +71,24 @@
             <property name="orientation">vertical</property>
             <property name="spacing">10</property>
             <child>
-              <object class="GtkExpander">
+              <object class="GtkDropDown" id="background_method_combo">
+                <property name="margin-top">5</property>
+                <property name="model">
+                  <object class="GtkStringList">
+                    <items>
+                      <item translatable="yes">Sample-based</item>
+                      <item translatable="yes">Automatic (sample-free)</item>
+                    </items>
+                  </object>
+                </property>
+                <property name="selected">0</property>
+                <property name="tooltip-text" translatable="yes">Choose how the background model is built: from placed samples (grid/manual), or automatically on every pixel that survives an iterative robust rejection of structures (no samples).</property>
+                <property name="valign">start</property>
+                <signal name="notify::selected" handler="on_background_method_combo_changed"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander" id="bkg_samples_expander">
                 <property name="expanded">1</property>
                 <property name="focusable">1</property>
                 <child>
@@ -312,6 +364,200 @@
               </object>
             </child>
             <child>
+              <object class="GtkExpander" id="bkg_auto_expander">
+                <property name="expanded">1</property>
+                <property name="focusable">1</property>
+                <property name="visible">0</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">5</property>
+                    <child>
+                      <object class="GtkBox">
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Scale</property>
+                            <property name="tooltip-text" translatable="yes">Relative scale of the multiscale model. Higher = smoother (large-scale only); lower follows more complex / local gradients.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_scale">
+                            <property name="adjustment">adj_ag_scale</property>
+                            <property name="digits">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="adjustment">adj_ag_scale</property>
+                        <property name="digits">1</property>
+                        <property name="focusable">1</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Smoothness</property>
+                            <property name="tooltip-text" translatable="yes">Extra smoothing of the final model. Higher gives a softer, more gradual background; 0 leaves the fitted model untouched.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_smoothness">
+                            <property name="adjustment">adj_ag_smoothness</property>
+                            <property name="digits">1</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="adjustment">adj_ag_smoothness</property>
+                        <property name="digits">1</property>
+                        <property name="focusable">1</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_ag_protect_check">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Structure protection</property>
+                        <property name="active">1</property>
+                        <property name="tooltip-text" translatable="yes">Mask extended bright structures (nebulae) so they are not absorbed into the model.</property>
+                        <signal name="toggled" handler="on_bkg_ag_protect_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="label_ag_protect_threshold">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">    Protection threshold</property>
+                            <property name="tooltip-text" translatable="yes">Brightness above the model at which a pixel is treated as a structure. Lower = protects more.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_protect_threshold">
+                            <property name="adjustment">adj_ag_protect_threshold</property>
+                            <property name="digits">3</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="label_ag_protect_amount">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">    Protection amount</property>
+                            <property name="tooltip-text" translatable="yes">How far the protection mask grows around detected structures.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_protect_amount">
+                            <property name="adjustment">adj_ag_protect_amount</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="bkg_ag_simplified_check">
+                        <property name="focusable">1</property>
+                        <property name="label" translatable="yes">Simplified model</property>
+                        <property name="tooltip-text" translatable="yes">Replace the multiscale model with a stiff polynomial. Use it when a nebula fills the frame and the default model hollows it out.</property>
+                        <signal name="toggled" handler="on_bkg_ag_simplified_toggled"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="label_ag_degree">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">    Model degree</property>
+                            <property name="tooltip-text" translatable="yes">Polynomial degree of the simplified model. Lower = stiffer (degree 1 = plane).</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_ag_degree">
+                            <property name="adjustment">adj_ag_degree</property>
+                            <property name="focusable">1</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="numeric">1</property>
+                            <property name="width-chars">6</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Downsample</property>
+                            <property name="tooltip-text" translatable="yes">Internal working scale factor. Higher = faster but coarser; the background scale itself is unaffected.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="bkg_ag_downsample_combo">
+                            <property name="halign">end</property>
+                            <property name="hexpand">1</property>
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item>8</item>
+                                  <item>4</item>
+                                  <item>2</item>
+                                  <item>1</item>
+                                </items>
+                              </object>
+                            </property>
+                            <property name="selected">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Automatic Model</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
               <object class="GtkExpander">
                 <property name="expanded">1</property>
                 <property name="focusable">1</property>
@@ -356,12 +602,32 @@
               </object>
             </child>
             <child>
-              <object class="GtkButton" id="bkg_show_original">
-                <property name="focusable">1</property>
-                <property name="label" translatable="yes">Show original image</property>
-                <property name="receives-default">1</property>
+              <object class="GtkBox" id="bkg_view_box">
+                <property name="spacing">6</property>
                 <property name="sensitive">0</property>
-                <property name="tooltip-text" translatable="yes">Keep pressing this button to see the original image.</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">View</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkDropDown" id="bkg_view_combo">
+                    <property name="hexpand">1</property>
+                    <property name="model">
+                      <object class="GtkStringList">
+                        <items>
+                          <item translatable="yes">Processed image</item>
+                          <item translatable="yes">Background model</item>
+                          <item translatable="yes">Original image</item>
+                        </items>
+                      </object>
+                    </property>
+                    <property name="selected">0</property>
+                    <property name="tooltip-text" translatable="yes">Choose what is shown in the main view after a background has been computed: the corrected image, the background model that was removed, or the original image.</property>
+                    <signal name="notify::selected" handler="on_bkg_view_changed"/>
+                  </object>
+                </child>
               </object>
             </child>
             <child>
