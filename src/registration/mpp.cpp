@@ -1799,11 +1799,24 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
  * read_analysis_frame / read_full_frame the single-sequence pipeline uses) and
  * packs the result into the caller's fits. `seqs[ref]` defines the output
  * geometry and channel count. */
-static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
-                                        int n, const mpp_derot_t *out_derot,
-                                        sequence *ref_seq, const mpp_config_t *cfg,
-                                        fits *out) {
-	if (!seqs || !derots || n <= 0 || !out_derot || !ref_seq || !cfg || !out)
+namespace {
+/* Shared setup for the multi-source bridge entries: cfg localisation, CFA
+ * raw-read guards (restored when the setup object goes out of scope), the
+ * MsSource list, output channel count and threading. */
+struct MsBridgeSetup {
+	mpp_config_t lcfg;
+	std::vector<SerAnalysisRawGuard> raw_guards;
+	std::vector<mpp::MsSource> srcs;
+	int num_layers = 1;
+	int nt = 1;
+	bool provider_thread_safe = false;
+};
+}  // namespace
+
+static mpp_status_t ms_bridge_setup(sequence **seqs, mpp_derot_t **derots, int n,
+                                    const mpp_derot_t *out_derot,
+                                    const mpp_config_t *cfg, MsBridgeSetup &su) {
+	if (!seqs || !derots || n <= 0 || !out_derot || !cfg)
 		return MPP_EINVAL;
 	for (int i = 0; i < n; ++i)
 		if (!seqs[i] || !derots[i]) return MPP_EINVAL;
@@ -1812,41 +1825,41 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	 * reader stores frames at cfg.bitdepth, so an 8-bit source read as 16-bit is
 	 * near-black and finds no structure. Derive the real bit depth from the
 	 * sources (all share it — the GUI checks compatibility). */
-	mpp_config_t lcfg = *cfg;
-	lcfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seqs[0]->bitpix);
+	su.lcfg = *cfg;
+	su.lcfg.bitdepth = mpp_bitdepth_from_fits_bitpix(seqs[0]->bitpix);
 
 	/* Pin CFA SER sources to raw-mosaic reads for the analysis passes, like the
 	 * single-sequence pipeline, so read_analysis_frame demosaics deterministically
-	 * regardless of the debayer-on-open preference. Restored on return. */
-	std::vector<SerAnalysisRawGuard> raw_guards(n);
+	 * regardless of the debayer-on-open preference. Restored when `su` dies. */
+	su.raw_guards.resize(n);
 	for (int i = 0; i < n; ++i)
-		maybe_engage_ser_raw_for_analysis(raw_guards[i], seqs[i]);
+		maybe_engage_ser_raw_for_analysis(su.raw_guards[i], seqs[i]);
 
-	std::vector<mpp::MsSource> srcs(n);
+	su.srcs.resize(n);
 	for (int i = 0; i < n; ++i) {
 		sequence *s = seqs[i];
-		const int avi = lcfg.avi_bayer_pattern;
-		const int bd  = lcfg.bitdepth;
-		srcs[i].derot = derots[i];
-		srcs[i].num_frames = s->number;
-		srcs[i].analysis_read = [s, avi, bd](int l) -> cv::Mat {
+		const int avi = su.lcfg.avi_bayer_pattern;
+		const int bd  = su.lcfg.bitdepth;
+		su.srcs[i].derot = derots[i];
+		su.srcs[i].num_frames = s->number;
+		su.srcs[i].analysis_read = [s, avi, bd](int l) -> cv::Mat {
 			return mpp::read_analysis_frame(s, l, avi, bd);
 		};
-		srcs[i].full_read = [s, avi](int l) -> cv::Mat {
+		su.srcs[i].full_read = [s, avi](int l) -> cv::Mat {
 			return mpp::read_full_frame(s, l, avi);
 		};
 		/* Honour each sequence's frame-selector state, like the
 		 * single-sequence pipeline. */
 		if (s->imgparam) {
-			srcs[i].included.assign(s->number, 1);
+			su.srcs[i].included.assign(s->number, 1);
 			for (int l = 0; l < s->number; ++l)
-				srcs[i].included[l] = s->imgparam[l].incl ? 1 : 0;
+				su.srcs[i].included[l] = s->imgparam[l].incl ? 1 : 0;
 		}
 		/* Off-globe passthrough for sources whose plan is content-identical
 		 * to the output canvas plan (fingerprint, not pointer identity —
 		 * a re-read copy of the reference plan behaves the same as the
 		 * reference itself). */
-		srcs[i].shares_output_disk =
+		su.srcs[i].shares_output_disk =
 		    mpp_derot_fingerprint(derots[i]) == mpp_derot_fingerprint(out_derot);
 	}
 
@@ -1854,40 +1867,52 @@ static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
 	 * The reference sequence supplies only the canvas geometry — it may belong
 	 * to a different channel — so the layer count is taken from the sources. */
 	const bool avi_cfa = (seqs[0]->type == SEQ_AVI
-	                      && lcfg.avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
-	                      && lcfg.avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
+	                      && su.lcfg.avi_bayer_pattern >= MPP_AVI_BAYER_RGGB
+	                      && su.lcfg.avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
 	const bool is_cfa = (mpp_classify_sequence_input(seqs[0]) == MPP_INPUT_CFA)
 	                  || avi_cfa;
-	const int num_layers = is_cfa ? 3
-	                      : (seqs[0]->nb_layers > 0 ? seqs[0]->nb_layers : 1);
+	su.num_layers = is_cfa ? 3
+	              : (seqs[0]->nb_layers > 0 ? seqs[0]->nb_layers : 1);
 
 #ifdef _OPENMP
-	const int nt = std::max(1, com.max_thread);
+	su.nt = std::max(1, com.max_thread);
 #else
-	const int nt = 1;
+	su.nt = 1;
 #endif
 
 	/* Parallelise the streamed passes only when every source's reads are
 	 * reentrant — SER (serialises just the fread) or reentrant-built FITS — the
 	 * same predicate the single-sequence pipeline uses. Otherwise the frame
 	 * loops stay serial (the multi-source throughput limiter). */
-	bool provider_thread_safe = true;
+	su.provider_thread_safe = true;
 	for (int i = 0; i < n; ++i) {
 		const sequence *s = seqs[i];
 		const bool safe = (s->type == SEQ_SER)
 		    || ((s->type == SEQ_REGULAR || s->type == SEQ_FITSEQ
 		         || s->type == SEQ_INTERNAL) && fits_is_reentrant());
-		if (!safe) { provider_thread_safe = false; break; }
+		if (!safe) { su.provider_thread_safe = false; break; }
 	}
+	return MPP_OK;
+}
+
+static mpp_status_t mpp_multistack_impl(sequence **seqs, mpp_derot_t **derots,
+                                        int n, const mpp_derot_t *out_derot,
+                                        sequence *ref_seq, const mpp_config_t *cfg,
+                                        fits *out) {
+	if (!ref_seq || !out)
+		return MPP_EINVAL;
+	MsBridgeSetup su;
+	const mpp_status_t rc = ms_bridge_setup(seqs, derots, n, out_derot, cfg, su);
+	if (rc != MPP_OK) return rc;
 
 	siril_log_message(_("Derotation stack: combining %d sequence(s), reference "
 	                    "canvas '%s', %d output channel(s), %s reads\n"),
-	                  n, ref_seq->seqname, num_layers,
-	                  provider_thread_safe ? _("parallel") : _("serial"));
+	                  n, ref_seq->seqname, su.num_layers,
+	                  su.provider_thread_safe ? _("parallel") : _("serial"));
 
 	const mpp::MultiStackResult res =
-	    mpp::multistack_channel(srcs, out_derot, num_layers, lcfg, nt,
-	                            provider_thread_safe);
+	    mpp::multistack_channel(su.srcs, out_derot, su.num_layers, su.lcfg, su.nt,
+	                            su.provider_thread_safe);
 	if (res.error) return MPP_EINVAL;
 	if (res.oom) return MPP_ENOMEM;
 	if (res.cancelled || res.image.empty()) return MPP_EINTR;
@@ -1930,6 +1955,152 @@ extern "C" mpp_status_t mpp_multistack_to(sequence **seqs, mpp_derot_t **derots,
 		                  "reduce the memory ratio in Preferences.\n"), e.what());
 		return MPP_ENOMEM;
 	}
+}
+
+/* -------------------- Two-phase multi-source combine --------------------
+ *
+ * The GUI's Analyze / Register-and-stack split: the analysis phase (rank +
+ * global align + combined reference + AP grid) runs first, its grid is
+ * exposed through a GUI-cached mpp_run_t so the standard AP editor and
+ * overlay work on the combined reference, and the stack phase then consumes
+ * the (possibly edited) grid. The opaque state carries the C++ analysis
+ * products between the two calls; it holds NO sequence pointers — both
+ * phases rebuild their frame providers from the caller's seqs/derots. */
+
+struct mpp_ms_analysis {
+	mpp::MultiStackAnalysis an;
+};
+
+/* Build a GUI-cache run from the analysis so the AP editor / overlay / mean
+ * display work exactly as after a single-sequence Analyze. Takes ownership
+ * of an.aps (nulled in `an`). */
+static mpp_run_t *ms_run_from_analysis(mpp::MultiStackAnalysis &an,
+                                       const mpp_config_t &lcfg,
+                                       const mpp_derot_t *out_derot) {
+	mpp_run_t *run = mpp_run_alloc();
+	if (!run) return nullptr;
+	const int N = an.num_frames;
+	run->cfg = (mpp_config_t *) malloc(sizeof(mpp_config_t));
+	run->quality = (double *) malloc((size_t) N * sizeof(double));
+	run->frame_brightness = (double *) malloc((size_t) N * sizeof(double));
+	run->included = (int *) malloc((size_t) N * sizeof(int));
+	run->global_shifts = (double *) malloc((size_t) N * 2 * sizeof(double));
+	const size_t npix = (size_t) an.mean_frame.rows * an.mean_frame.cols;
+	run->mean_frame_data = (int32_t *) malloc(npix * sizeof(int32_t));
+	if (!run->cfg || !run->quality || !run->frame_brightness || !run->included
+	    || !run->global_shifts || !run->mean_frame_data) {
+		mpp_run_free(run);
+		return nullptr;
+	}
+	*run->cfg = lcfg;
+	run->num_frames = N;
+	run->frame_rows = out_derot->frame_rows;
+	run->frame_cols = out_derot->frame_cols;
+	run->num_layers = 1;   /* analysis reference is mono luminance */
+	run->bitdepth = lcfg.bitdepth;
+	for (int i = 0; i < N; ++i) {
+		run->quality[i] = an.quality[i];
+		run->frame_brightness[i] = an.brightness[i];
+		run->included[i] = 1;
+		run->global_shifts[2 * i + 0] = an.shifts[i][0];
+		run->global_shifts[2 * i + 1] = an.shifts[i][1];
+	}
+	run->best_frame_idx = an.best_frame_idx;
+	for (int k = 0; k < 4; ++k)
+		run->intersection[k] = an.intersection[k];
+	CV_Assert(an.mean_frame.isContinuous() && an.mean_frame.type() == CV_32S);
+	memcpy(run->mean_frame_data, an.mean_frame.ptr<int32_t>(0),
+	       npix * sizeof(int32_t));
+	run->mean_frame_rows = an.mean_frame.rows;
+	run->mean_frame_cols = an.mean_frame.cols;
+	run->aps = an.aps;
+	an.aps = nullptr;
+	run->stack_size = mpp::register_stack_size_from_cfg(lcfg, N);
+	run->derot_fingerprint = mpp_derot_fingerprint(out_derot);
+	return run;
+}
+
+extern "C" mpp_status_t mpp_multistack_analyze_to(sequence **seqs,
+                                                  mpp_derot_t **derots, int n,
+                                                  sequence *ref_seq,
+                                                  const mpp_derot_t *out_derot,
+                                                  const mpp_config_t *cfg,
+                                                  mpp_ms_analysis_t **out_state,
+                                                  mpp_run_t **out_run) {
+	try {
+		if (!ref_seq || !out_state || !out_run)
+			return MPP_EINVAL;
+		*out_state = nullptr;
+		*out_run = nullptr;
+		MsBridgeSetup su;
+		const mpp_status_t rc = ms_bridge_setup(seqs, derots, n, out_derot, cfg, su);
+		if (rc != MPP_OK) return rc;
+
+		siril_log_message(_("Derotation analyze: %d sequence(s), reference "
+		                    "canvas '%s', %s reads\n"),
+		                  n, ref_seq->seqname,
+		                  su.provider_thread_safe ? _("parallel") : _("serial"));
+
+		mpp::MultiStackAnalysis an = mpp::multistack_analyze(
+		    su.srcs, out_derot, su.lcfg, su.nt, su.provider_thread_safe);
+		if (an.oom) return MPP_ENOMEM;
+		if (an.cancelled) return MPP_EINTR;
+		if (an.error || !an.aps) return MPP_EINVAL;
+
+		mpp_run_t *run = ms_run_from_analysis(an, su.lcfg, out_derot);
+		if (!run) {
+			if (an.aps) mpp_ap_free(an.aps);
+			return MPP_ENOMEM;
+		}
+		mpp_ms_analysis_t *st = new mpp_ms_analysis();
+		st->an = std::move(an);
+		*out_state = st;
+		*out_run = run;
+		return MPP_OK;
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation analyze: failed (%s) — likely out of "
+		                  "memory; reduce the memory ratio in Preferences.\n"),
+		                e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+extern "C" mpp_status_t mpp_multistack_apply_to(sequence **seqs,
+                                                mpp_derot_t **derots, int n,
+                                                sequence *ref_seq,
+                                                const mpp_derot_t *out_derot,
+                                                const mpp_config_t *cfg,
+                                                mpp_ms_analysis_t *state,
+                                                const mpp_aps_t *aps,
+                                                fits *out) {
+	try {
+		if (!ref_seq || !state || !aps || !out)
+			return MPP_EINVAL;
+		MsBridgeSetup su;
+		const mpp_status_t rc = ms_bridge_setup(seqs, derots, n, out_derot, cfg, su);
+		if (rc != MPP_OK) return rc;
+
+		const mpp::MultiStackResult res = mpp::multistack_stack(
+		    su.srcs, out_derot, su.num_layers, su.lcfg, state->an, *aps,
+		    su.nt, su.provider_thread_safe);
+		if (res.error) return MPP_EINVAL;
+		if (res.oom) return MPP_ENOMEM;
+		if (res.cancelled || res.image.empty()) return MPP_EINTR;
+
+		siril_log_message(_("Derotation stack: %d frames combined over %d "
+		                    "alignment points\n"), res.num_frames, res.num_aps);
+		return mpp_pack_stacked(res.image, out);
+	} catch (const std::exception &e) {
+		siril_log_error(_("Derotation stack: failed (%s) — likely out of memory; "
+		                  "reduce the memory ratio in Preferences.\n"), e.what());
+		return MPP_ENOMEM;
+	}
+}
+
+extern "C" void mpp_ms_analysis_free(mpp_ms_analysis_t *state) {
+	if (!state) return;
+	if (state->an.aps) mpp_ap_free(state->an.aps);
+	delete state;
 }
 
 /* -------------------- GUI cache for the current run --------------------

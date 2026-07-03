@@ -31,6 +31,16 @@ void on_seqmpp_derotation_button_clicked(GtkButton *button, gpointer user_data);
  * (full-frame pixels) so the image canvas can draw a live outline. */
 gboolean derotation_is_open(void);
 
+/* Disc-overlay + on-image fit interaction gate: like derotation_is_open, but
+ * FALSE while the displayed image no longer shows the fitted sequence (a
+ * combine Analyze / Register-and-stack replaced it). */
+gboolean derotation_overlay_visible(void);
+
+/* TRUE while a multi-sequence Analyze's run is installed in the mpp run
+ * cache, so the AP overlay draws over the combined reference regardless of
+ * the selected tab/method. */
+gboolean derotation_combine_run_active(void);
+
 /* Called when a sequence is loaded/displayed: if the derotation tool is open,
  * refresh its per-sequence metadata (reference epoch, frame rate) and re-fit the
  * disk for the newly loaded sequence. No-op when the tool is closed. */

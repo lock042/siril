@@ -49,6 +49,8 @@
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_derot_sidecar.h"   /* mpp_derot_t */
 
+typedef struct mpp_aps mpp_aps_t;   /* mpp_ap.h; fwd-declared to keep linkage out of this header */
+
 namespace mpp {
 
 /* One source sequence in a multi-source combine. `derot` is this sequence's
@@ -86,6 +88,47 @@ struct MultiStackResult {
 	int num_aps = 0;
 	int num_frames = 0;       /* union total actually combined */
 };
+
+/* Analysis-phase output (pass 1 + global align + averaged reference + AP
+ * grid), the point where the pipeline pauses so the user can review and edit
+ * the AP grid before stacking. `aps` is owned by the caller (mpp_ap_free) —
+ * multistack_stack takes the (possibly edited) grid as a separate argument. */
+struct MultiStackAnalysis {
+	int num_frames = 0;                 /* union total */
+	int best_frame_idx = -1;
+	std::vector<double> quality;        /* per union frame */
+	std::vector<double> brightness;
+	std::vector<cv::Vec2d> shifts;      /* global align, per union frame */
+	cv::Vec4i intersection;             /* (y_low, y_high, x_low, x_high) */
+	cv::Mat mean_frame;                 /* CV_32S, intersection-sized */
+	mpp_aps_t *aps = nullptr;           /* grid on the reference (caller frees) */
+	bool oom = false;
+	bool cancelled = false;
+	bool error = false;
+};
+
+/* Analysis phase only: rank + globally align + build the averaged reference
+ * and the AP grid in the epoch canvas defined by `out_derot`. The result
+ * feeds multistack_stack — immediately (multistack_channel) or after the
+ * user has edited the AP grid. */
+MultiStackAnalysis multistack_analyze(const std::vector<MsSource> &srcs,
+                                      const mpp_derot_t *out_derot,
+                                      const mpp_config_t &cfg,
+                                      int max_threads = 1,
+                                      bool provider_thread_safe = false);
+
+/* Stack phase: per-AP qualities + shifts + warp stack, driven by a prior
+ * analysis. `aps` is the AP grid to use (an.aps, or an edited copy) — its
+ * coordinates live in the analysis intersection canvas. The frame-selector
+ * state is re-read live from `srcs`, mirroring the single-sequence Stage C
+ * inclusion refresh. */
+MultiStackResult multistack_stack(const std::vector<MsSource> &srcs,
+                                  const mpp_derot_t *out_derot, int num_layers,
+                                  const mpp_config_t &cfg,
+                                  const MultiStackAnalysis &an,
+                                  const mpp_aps_t &aps,
+                                  int max_threads = 1,
+                                  bool provider_thread_safe = false);
 
 /* Combine the sources into one stack in the epoch canvas defined by `out_derot`
  * (its disk fit gives the output geometry, its frame_rows/cols the size). The

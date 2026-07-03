@@ -1870,7 +1870,7 @@ static void mpp_update_action_button_highlight(void) {
  * lock + clearfits + memcpy pattern stack_function_handler uses for stack
  * results — partial clearing leaves cairo/ICC/histogram caches keyed to the
  * old dimensions and breaks subsequent display-mode/slider updates. */
-static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols) {
+void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols) {
 	if (!src || rows <= 0 || cols <= 0) return;
 	const size_t npix = (size_t) rows * (size_t) cols;
 

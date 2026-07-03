@@ -50,6 +50,8 @@
 
 #include "algos/planet_ephem.h"
 #include "registration/mpp.h"
+#include "registration/mpp/mpp_ap.h"        /* mpp_ap_free */
+#include "gui-gtk4/registration.h"          /* paint_mpp_ref_frame_into_gfit */
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_derot_sidecar.h"
 #include "registration/mpp/mpp_derot_build.h"
@@ -64,6 +66,11 @@ static GtkCheckButton *chk_parity = NULL;
 static GtkLabel *status = NULL, *drift_label = NULL;
 static gboolean window_open = FALSE;
 static int g_drag_mode = 0;   /* 0 none, 1 move centre, 2 equatorial, 3 polar, 4 rotate */
+/* Disc overlay suppression: set when a combine Analyze / Register-and-stack
+ * starts (the fitted ellipse no longer matches what is displayed — the
+ * combined reference or the stack result) and cleared as soon as the user is
+ * back to fitting a sequence (populate / auto-detect / list double-click). */
+static gboolean overlay_hidden = FALSE;
 
 /* Multi-sequence session (Option B): the set of sequences to combine, each
  * tagged with a colour channel and its own disk fit, plus the designated
@@ -115,6 +122,11 @@ static void set_polar_default(void) {
 static gboolean apply_autodetect(void);
 static void set_status(const char *msg);
 static void on_derotation_seqlist_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer u);
+static void derot_pending_invalidate(void);
+/* Analyze-phase products (loaded sequences + plans + reference-channel
+ * analysis) waiting for Register-and-stack. Invalidated by any session
+ * mutation, a new Analyze, or closing the dialog. */
+static struct derot_combine_args *pending = NULL;
 static void mark_fit_valid(void);
 static void update_session_epoch(void);
 static void set_model_locked(gboolean locked);
@@ -393,6 +405,7 @@ static void mark_fit_valid(void) {
 	    ? g_strdup(com.seq.seqname) : NULL;
 	/* the fit changed: any previously saved .derot no longer matches it */
 	g_clear_pointer(&computed_for, g_free);
+	overlay_hidden = FALSE;   /* back to fitting: show the disc again */
 	update_guidance();   /* a fit just happened: advance the recommended step */
 }
 
@@ -411,7 +424,7 @@ static void set_model_locked(gboolean locked) {
  * Cleared while no sequence is loaded (the user must load one first) and reset
  * after a successful combine. */
 static const char *const GUIDE_IDS[] = {
-	"derot_autofit", "derot_add", "derot_combine", "derot_compute"
+	"derot_autofit", "derot_add", "derot_analyze", "derot_combine", "derot_compute"
 };
 
 static void guidance_set(const char *id) {
@@ -449,7 +462,10 @@ static void update_guidance(void) {
 	if (session_index_of(com.seq.seqname) < 0)
 	                         { guidance_set("derot_add"); return; }
 	if (session && session->count > 0)
-	                         { guidance_set("derot_combine"); return; }
+	                         /* Analyze first (optional AP editing), then stack;
+	                          * once an analysis is pending, suggest the stack. */
+	                         { guidance_set(pending ? "derot_combine"
+	                                                : "derot_analyze"); return; }
 	guidance_set(NULL);
 }
 
@@ -550,12 +566,13 @@ void on_derotation_add_clicked(GtkButton *button, gpointer user_data) {
 	                    gtk_check_button_get_active(chk_parity) ? -1.0 : 1.0,
 	                    (int) com.seq.ry, (int) com.seq.rx, bayer,
 	                    spin_fps ? gtk_spin_button_get_value(spin_fps) : 0.0);
+	derot_pending_invalidate(); /* the session changed: any analysis is stale */
 	set_model_locked(TRUE);     /* the body is now fixed by the session */
 	update_session_epoch();     /* show the shared epoch */
 	update_drift_estimate();    /* drift now spans the whole session */
 	refresh_seqlist();
 	update_guidance();
-	set_status(_("Sequence added. Load and fit the next, or combine."));
+	set_status(_("Sequence added. Load and fit the next, then Analyze."));
 }
 
 /* index of the currently selected session row, or -1 */
@@ -570,6 +587,7 @@ void on_derotation_setref_clicked(GtkButton *button, gpointer user_data) {
 	const int idx = selected_session_index();
 	if (!session || idx < 0) { set_status(_("Select a sequence in the list first.")); return; }
 	mpp_session_set_reference(session, idx);
+	derot_pending_invalidate();   /* the reference canvas changed */
 	refresh_seqlist();
 	set_status(_("Reference sequence set — it defines the common output frame."));
 }
@@ -579,6 +597,7 @@ void on_derotation_remove_clicked(GtkButton *button, gpointer user_data) {
 	const int idx = selected_session_index();
 	if (!session || idx < 0) { set_status(_("Select a sequence in the list first.")); return; }
 	mpp_session_remove(session, idx);
+	derot_pending_invalidate();   /* the session changed: any analysis is stale */
 	if (session->count == 0)
 		set_model_locked(FALSE);   /* empty session: planet selectable again */
 	else
@@ -616,6 +635,7 @@ static void on_derotation_seqlist_row_activated(GtkListBox *box, GtkListBoxRow *
 	/* the fit now matches the loaded sequence */
 	g_free(fitted_for);
 	fitted_for = g_strdup(e->seqname);
+	overlay_hidden = FALSE;   /* reviewing a fit: show the disc again */
 	if (window_open) redraw(REDRAW_OVERLAY);
 	set_status(_("Switched to the selected sequence; adjust and re-add if needed."));
 }
@@ -662,6 +682,7 @@ static void populate_from_sequence(gboolean autofit) {
 		update_guidance();   /* nothing to guide without a sequence */
 		return;
 	}
+	overlay_hidden = FALSE;   /* a sequence is being worked on: show the disc */
 	/* AVI has no per-frame timestamps; auto-fill the frame rate from the
 	 * container so the epoch can be computed. SER carries timestamps, so its
 	 * fps fallback is left at 0. */
@@ -739,6 +760,7 @@ static void present_dialog(gboolean multi) {
 	init_statics();
 	if (!dialog) return;
 	multi_mode = multi;
+	overlay_hidden = FALSE;   /* opening the tool re-enables the disc overlay */
 	apply_dialog_mode();
 	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 	if (parent)
@@ -791,6 +813,7 @@ static void leave_fit_mode(void) {
 static void hide_dialog(void) {
 	leave_fit_mode();
 	guidance_set(NULL);   /* drop the highlight while hidden */
+	derot_pending_invalidate();   /* closing ends the combine workflow */
 	if (dialog) gtk_widget_set_visible(dialog, FALSE);
 	redraw(REDRAW_OVERLAY);
 	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
@@ -999,6 +1022,15 @@ struct derot_combine_args {
 	int ref_index;
 	gchar *base;
 	mpp_config_t cfg;
+	/* two-phase flow (Analyze first): the reference channel's analysis
+	 * products. `run` is the GUI-cache run built from the analysis (mean
+	 * reference + AP grid) — owned by the mpp run cache, NOT freed here.
+	 * `ref_aps` is a snapshot of the (possibly edited) grid taken when
+	 * Register-and-stack starts; the stack phase reads it. */
+	mpp_ms_analysis_t *state;
+	mpp_run_t *run;
+	mpp_aps_t *ref_aps;
+	mpp_status_t analyze_status;
 	/* results */
 	int saved, failed;
 	gboolean cancelled;      /* user abort (Stop button) */
@@ -1020,7 +1052,27 @@ static void derot_combine_args_free(struct derot_combine_args *a) {
 	g_free(a->base);
 	g_free(a->rgb_name);
 	g_free(a->load_name);
+	if (a->state) mpp_ms_analysis_free(a->state);
+	if (a->ref_aps) mpp_ap_free(a->ref_aps);
+	/* a->run belongs to the mpp run cache */
 	free(a);
+}
+
+static void derot_pending_invalidate(void) {
+	if (!pending) return;
+	if (pending->run && mpp_get_cached_run() == pending->run)
+		mpp_clear_cached_run();
+	pending->run = NULL;
+	derot_combine_args_free(pending);
+	pending = NULL;
+	mpp_update_edit_button_sensitivity();
+}
+
+/* TRUE while a combine Analyze's run is installed in the mpp run cache —
+ * lets the AP overlay paint over the combined reference without requiring
+ * the Registration tab + MPP method to be selected. */
+gboolean derotation_combine_run_active(void) {
+	return pending && pending->run && mpp_get_cached_run() == pending->run;
 }
 
 static gboolean derot_combine_idle(gpointer p) {
@@ -1062,6 +1114,23 @@ static gboolean derot_combine_idle(gpointer p) {
 		set_status(_("Combine complete and reset — load and fit a sequence to "
 		             "start a new session."));
 		update_guidance();
+		/* Retire the Analyze run: the workflow is done, so the AP overlay
+		 * must not linger over the result. */
+		if (a->run && mpp_get_cached_run() == a->run)
+			mpp_clear_cached_run();
+		a->run = NULL;
+		mpp_update_edit_button_sensitivity();
+	} else if (a->state) {
+		/* Two-phase combine failed or was cancelled: keep the analysis (and
+		 * any AP edits, still in the cached run) so the user can retry
+		 * Register-and-stack without re-analysing. */
+		g_clear_pointer(&a->rgb_name, g_free);
+		g_clear_pointer(&a->load_name, g_free);
+		a->saved = a->failed = 0;
+		a->cancelled = a->composed = FALSE;
+		pending = a;
+		update_guidance();
+		return FALSE;
 	}
 	derot_combine_args_free(a);
 	return FALSE;
@@ -1133,8 +1202,17 @@ static gpointer derot_combine_worker(gpointer p) {
 		                  channel_label(ch), m);
 
 		fits out = { 0 };
-		const mpp_status_t st = mpp_multistack_to(
-		    cs, cd, m, a->seqs[a->ref_index], a->derots[a->ref_index], &a->cfg, &out);
+		/* Two-phase flow: the reference sequence's channel reuses the Analyze
+		 * products and the (possibly edited) AP grid; any other channel (an
+		 * R/G/B combine) runs the full automatic pipeline as before. */
+		const gboolean use_analysis = a->state && a->ref_aps
+		    && ch == a->channels[a->ref_index];
+		const mpp_status_t st = use_analysis
+		    ? mpp_multistack_apply_to(cs, cd, m, a->seqs[a->ref_index],
+		                              a->derots[a->ref_index], &a->cfg,
+		                              a->state, a->ref_aps, &out)
+		    : mpp_multistack_to(cs, cd, m, a->seqs[a->ref_index],
+		                        a->derots[a->ref_index], &a->cfg, &out);
 		if (st == MPP_OK) {
 			gchar *name = (ch == MPP_CHAN_MONO)
 			    ? g_strdup_printf("%s_derot_stack", a->base)
@@ -1265,21 +1343,41 @@ static void apply_gui_mpp_config(mpp_config_t *cfg) {
 	#undef MPP_TOGG
 }
 
-void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
-	(void) button; (void) user_data;
-	init_statics();
+/* Read the combine cfg from the dialog's parameter widgets. */
+static void derot_combine_read_cfg(mpp_config_t *cfg) {
+	mpp_config_defaults(cfg);
+	apply_gui_mpp_config(cfg);   /* use the user's register/stack settings */
+	cfg->stack_method = MPP_STACK_WARP;
+	/* The combine registers and stacks in one streamed pass, ranking every
+	 * frame, so the per-AP selection IS the stack selection. Drive it from the
+	 * Stacking-tab percent/number (the quality pass reads
+	 * alignment_points_frame_*); otherwise the register percent (often 100)
+	 * would stack every frame and average the detail away. */
+	cfg->alignment_points_frame_number  = cfg->stack_frame_number;
+	cfg->alignment_points_frame_percent = cfg->stack_frame_percent;
+}
+
+/* Validate the session and load everything a combine worker needs: every
+ * sequence, its derotation plan at the shared epoch, and the cfg snapshot.
+ * Runs on the GTK thread (the caller sets the busy cursor first — loading
+ * long SERs and evaluating the ephemeris per frame takes real time).
+ * `private_copies`: never alias com.seq — required by the two-phase flow,
+ * whose loaded sequences must survive whatever the user loads in the main
+ * view between Analyze and Register-and-stack. Returns NULL (with the
+ * status label set) on failure. */
+static struct derot_combine_args *derot_combine_build_args(gboolean private_copies) {
 	if (!session || session->count < 1) {
 		set_status(_("Add at least one fitted sequence to the session first."));
-		return;
+		return NULL;
 	}
 	for (int i = 0; i < session->count; i++)
 		if (!session->seqs[i].has_fit) {
 			set_status(_("Every sequence in the session must be fitted first."));
-			return;
+			return NULL;
 		}
 	if (session->reference < 0 || session->reference >= session->count) {
 		set_status(_("Select a reference sequence first."));
-		return;
+		return NULL;
 	}
 
 	/* Shared reference epoch: the user's text if given, else the union midpoint
@@ -1303,7 +1401,7 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	 * (cheap; the heavy stacking runs off-thread below). */
 	const int n = session->count;
 	struct derot_combine_args *a = calloc(1, sizeof(*a));
-	if (!a) { set_status(_("Out of memory.")); return; }
+	if (!a) { set_status(_("Out of memory.")); return NULL; }
 	a->n = n;
 	a->seqs     = g_new0(sequence *, n);
 	a->derots   = g_new0(mpp_derot_t *, n);
@@ -1311,16 +1409,7 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	a->channels = g_new0(mpp_channel_t, n);
 	a->ref_index = session->reference;
 	a->base = g_strdup(session->seqs[session->reference].seqname);
-	mpp_config_defaults(&a->cfg);
-	apply_gui_mpp_config(&a->cfg);   /* use the user's register/stack settings */
-	a->cfg.stack_method = MPP_STACK_WARP;
-	/* The combine registers and stacks in one streamed pass, ranking every
-	 * frame, so the per-AP selection IS the stack selection. Drive it from the
-	 * Stacking-tab percent/number (the quality pass reads
-	 * alignment_points_frame_*); otherwise the register percent (often 100)
-	 * would stack every frame and average the detail away. */
-	a->cfg.alignment_points_frame_number  = a->cfg.stack_frame_number;
-	a->cfg.alignment_points_frame_percent = a->cfg.stack_frame_percent;
+	derot_combine_read_cfg(&a->cfg);
 
 	gboolean ok = TRUE;
 	for (int i = 0; i < n && ok; i++) {
@@ -1331,7 +1420,7 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 			siril_log_error(_("Derotation combine: cannot load '%s'\n"), e->seqname);
 			ok = FALSE; break;
 		}
-		a->is_com[i] = check_seq_is_comseq(a->seqs[i]);
+		a->is_com[i] = !private_copies && check_seq_is_comseq(a->seqs[i]);
 		if (a->is_com[i]) { free_sequence(a->seqs[i], TRUE); a->seqs[i] = &com.seq; }
 
 		double *jd = g_new(double, e->num_frames);
@@ -1357,13 +1446,126 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 	if (!ok) {
 		derot_combine_args_free(a);
 		set_status(_("Combine setup failed — see the log."));
-		return;
+		return NULL;
 	}
+	return a;
+}
 
+/* ---- Analyze (two-phase combine, phase 1) ---- */
+
+static gboolean derot_analyze_idle(gpointer p);
+
+/* Runs in the processing thread: analysis of the reference sequence's
+ * channel (rank + global align + combined reference + AP grid). */
+static gpointer derot_analyze_worker(gpointer p) {
+	struct derot_combine_args *a = p;
+	const mpp_channel_t rch = a->channels[a->ref_index];
+	sequence **cs = g_new0(sequence *, a->n);
+	mpp_derot_t **cd = g_new0(mpp_derot_t *, a->n);
+	int m = 0;
+	for (int i = 0; i < a->n; i++)
+		if (a->channels[i] == rch) { cs[m] = a->seqs[i]; cd[m] = a->derots[i]; m++; }
+	a->analyze_status = mpp_multistack_analyze_to(
+	    cs, cd, m, a->seqs[a->ref_index], a->derots[a->ref_index], &a->cfg,
+	    &a->state, &a->run);
+	g_free(cs);
+	g_free(cd);
+	siril_add_idle(derot_analyze_idle, a);
+	return GINT_TO_POINTER(a->analyze_status == MPP_OK ? 0 : 1);
+}
+
+static gboolean derot_analyze_idle(gpointer p) {
+	struct derot_combine_args *a = p;
+	stop_processing_thread();
+	set_cursor_waiting(FALSE);
+	if (a->analyze_status == MPP_OK && a->run) {
+		pending = a;
+		/* Hand the run to the GUI cache so the standard AP editor and
+		 * overlay operate on the combined reference. */
+		mpp_set_cached_run(a->run);
+		paint_mpp_ref_frame_into_gfit(a->run->mean_frame_data,
+		                              a->run->mean_frame_rows,
+		                              a->run->mean_frame_cols);
+		mpp_update_edit_button_sensitivity();
+		redraw(REDRAW_OVERLAY);
+		set_progress_bar_data(_("Analysis complete"), PROGRESS_DONE);
+		siril_log_message(_("Derotation combine: analysis done — %d alignment "
+		                    "point(s) on the combined reference. Edit them if "
+		                    "needed, then Register and stack.\n"),
+		                  a->run->aps ? a->run->aps->count : 0);
+		set_status(_("Analysis done — edit APs if needed, then Register and stack."));
+		update_guidance();
+	} else {
+		if (a->analyze_status == MPP_EINTR) {
+			siril_log_message(_("Derotation combine: analysis cancelled by user.\n"));
+			set_progress_bar_data(_("Analysis cancelled"), PROGRESS_RESET);
+			set_status(_("Analysis cancelled."));
+		} else {
+			siril_log_error(_("Derotation combine: analysis failed (code %d)\n"),
+			                a->analyze_status);
+			set_progress_bar_data(_("Analysis failed"), PROGRESS_RESET);
+			set_status(_("Analysis failed — see the log."));
+		}
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		derot_combine_args_free(a);
+	}
+	return FALSE;
+}
+
+void on_derotation_analyze_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	init_statics();
+	set_cursor_waiting(TRUE);
+	struct derot_combine_args *a = derot_combine_build_args(TRUE);
+	if (!a) { set_cursor_waiting(FALSE); return; }
+	derot_pending_invalidate();   /* a fresh analysis supersedes any prior one */
+
+	overlay_hidden = TRUE;        /* the disc fit no longer matches the display */
+	redraw(REDRAW_OVERLAY);
+	set_status(_("Analyzing sequences…"));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	set_progress_bar_data(_("Analyzing sequences…"), PROGRESS_RESET);
+	if (!start_in_new_thread(derot_analyze_worker, a)) {
+		set_cursor_waiting(FALSE);
+		set_progress_bar_data(_("Ready."), PROGRESS_RESET);
+		derot_combine_args_free(a);
+		set_status(_("Could not start the analysis worker (another job running?)."));
+	}
+}
+
+/* ---- Register and stack (phase 2, or the one-shot automatic combine) ---- */
+
+void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	init_statics();
+	set_cursor_waiting(TRUE);
+
+	struct derot_combine_args *a = NULL;
+	if (pending && pending->state) {
+		/* Two-phase: reuse the Analyze products. Take the (possibly edited)
+		 * AP grid from the GUI cache; if the cache was cleared meanwhile
+		 * (e.g. the sequence was closed), fall back to the automatic path. */
+		mpp_run_t *crun = mpp_get_cached_run();
+		if (crun && crun == pending->run && crun->aps && crun->aps->count > 0) {
+			if (pending->ref_aps) mpp_ap_free(pending->ref_aps);
+			pending->ref_aps = mpp_aps_snapshot(crun->aps);
+			derot_combine_read_cfg(&pending->cfg);   /* honour setting tweaks */
+			a = pending;
+			pending = NULL;   /* the worker owns it now */
+		} else {
+			siril_log_message(_("Derotation combine: the analysis is no longer "
+			                    "available — running the full automatic combine.\n"));
+			derot_pending_invalidate();
+		}
+	}
+	if (!a) a = derot_combine_build_args(FALSE);
+	if (!a) { set_cursor_waiting(FALSE); return; }
+
+	overlay_hidden = TRUE;        /* the disc fit no longer matches the display */
+	redraw(REDRAW_OVERLAY);
 	set_status(_("Combining sequences…"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	set_progress_bar_data(_("Combining sequences…"), PROGRESS_RESET);
-	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(derot_combine_worker, a)) {
 		set_cursor_waiting(FALSE);
 		set_progress_bar_data(_("Ready."), PROGRESS_RESET);
@@ -1375,6 +1577,14 @@ void on_derotation_combine_clicked(GtkButton *button, gpointer user_data) {
 /* ---- overlay query ---- */
 
 gboolean derotation_is_open(void) { return window_open; }
+
+/* Disc-overlay + on-image fit interaction gate: like derotation_is_open, but
+ * FALSE while the display no longer shows the fitted sequence (a combine
+ * Analyze / Register-and-stack replaced it with the combined reference or
+ * the result). Re-enabled when the user goes back to fitting a sequence. */
+gboolean derotation_overlay_visible(void) {
+	return window_open && !overlay_hidden;
+}
 
 int derotation_get_body(void) {
 	return (window_open && dd_body) ? (int) gtk_drop_down_get_selected(dd_body) : -1;

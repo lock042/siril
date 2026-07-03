@@ -700,7 +700,7 @@ gboolean main_action_click(mouse_data *data) {
 		 * or a fit handle if one is under the cursor, otherwise fall through to
 		 * the usual selection/sampling behaviour so the main view stays
 		 * interactive while the tool window is open. */
-		if (derotation_is_open()) {
+		if (derotation_overlay_visible()) {
 			int dmode = derotation_hit_test(data->zoomed.x, data->zoomed.y);
 			if (dmode > 0) {
 				derotation_set_drag(dmode);

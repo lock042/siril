@@ -3680,11 +3680,16 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 	/* Only paint the AP overlay while the user is on the Registration
 	 * tab and MPP is selected — the overlay is a registration-workflow tool, and once the
 	 * user has switched to Plot / Stacking / etc. the boxes are visual
-	 * clutter that confuses what they're looking at. */
-	if (gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
-		return;
-	if (gtk_drop_down_get_selected(comboboxregmethod) != REG_MPP)
-		return;
+	 * clutter that confuses what they're looking at. Exception: a
+	 * multi-sequence derotation Analyze installed its combined-reference run
+	 * in the cache — the user is editing APs from the derotation tool, which
+	 * is tab/method-independent. */
+	if (!derotation_combine_run_active()) {
+		if (gtk_notebook_get_current_page(center_notebook) != (int) REGISTRATION)
+			return;
+		if (gtk_drop_down_get_selected(comboboxregmethod) != REG_MPP)
+			return;
+	}
 
 	mpp_run_t *run = mpp_get_cached_run();
 	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
@@ -3838,7 +3843,7 @@ static void draw_mpp_aps(const draw_data_t* dd) {
  * north-pole marker, an equator/ring guide, and draggable cardinal handles.
  * Coordinates are full-frame pixels, Y-flipped to the Cairo top-left origin. */
 static void draw_derot_disk(const draw_data_t* dd) {
-	if (!derotation_is_open() || !gfit || gfit->ry <= 0)
+	if (!derotation_overlay_visible() || !gfit || gfit->ry <= 0)
 		return;
 	double cx, cy, req, rpol, pa_deg;
 	gboolean mirror = FALSE;

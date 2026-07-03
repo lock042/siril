@@ -155,7 +155,7 @@
                 <property name="margin-top">6</property><property name="margin-bottom">6</property>
                 <child>
                   <object class="GtkLabel"><property name="wrap">1</property><property name="xalign">0</property><property name="max-width-chars">64</property>
-                    <property name="label" translatable="yes">Fit each sequence's disk, tag its channel and add it. Pick one as the reference (★) — it defines the shared frame all channels are stacked into. Then combine.</property></object>
+                    <property name="label" translatable="yes">Fit each sequence's disk, tag its channel and add it. Pick one as the reference (★) — it defines the shared frame all channels are stacked into. Then Analyze (review and edit the alignment points if you wish) and Register and stack.</property></object>
                 </child>
                 <child>
                   <object class="GtkBox"><property name="spacing">6</property>
@@ -190,9 +190,19 @@
                     <child><object class="GtkButton" id="derot_remove"><property name="label" translatable="yes">Remove</property>
                       <property name="tooltip-text" translatable="yes">Remove the selected sequence from the session.</property>
                       <signal name="clicked" handler="on_derotation_remove_clicked" swapped="no"/></object></child>
-                    <child><object class="GtkButton" id="derot_combine"><property name="label" translatable="yes">Combine sequences</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox"><property name="spacing">6</property>
+                    <child><object class="GtkButton" id="derot_analyze"><property name="label" translatable="yes">Analyze</property>
+                      <property name="tooltip-text" translatable="yes">Build each sequence's derotation at the shared epoch, rank and align the frames, build the combined reference image and place the alignment points — then stop, so the points can be reviewed and edited before stacking. The reference image is shown with the alignment points overlaid.</property>
+                      <signal name="clicked" handler="on_derotation_analyze_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_edit_aps"><property name="label" translatable="yes">Edit APs…</property>
+                      <property name="tooltip-text" translatable="yes">Open the alignment-point editor on the combined reference built by Analyze: click to add, right-click to remove, drag to move.</property>
+                      <signal name="clicked" handler="on_seqmpp_edit_aps_button_clicked" swapped="no"/></object></child>
+                    <child><object class="GtkButton" id="derot_combine"><property name="label" translatable="yes">Register and stack</property>
                       <property name="hexpand">1</property><property name="halign">end</property>
-                      <property name="tooltip-text" translatable="yes">Build each sequence's derotation at the shared epoch and stack every channel into the reference frame, removing planetary rotation. Saves one image per channel; when Red, Green and Blue are all present they are assembled into a colour image automatically.</property>
+                      <property name="tooltip-text" translatable="yes">Register and stack every channel into the reference frame, removing planetary rotation. Uses the analysis and alignment points from Analyze when available (run it first to edit the points); otherwise runs the whole pipeline automatically. Saves one image per channel; when Red, Green and Blue are all present they are assembled into a colour image automatically.</property>
                       <signal name="clicked" handler="on_derotation_combine_clicked" swapped="no"/></object></child>
                   </object>
                 </child>
@@ -241,7 +251,7 @@
             <child>
               <object class="GtkExpander">
                 <property name="label" translatable="yes">Registration parameters</property>
-                <property name="expanded">0</property>
+                <property name="expanded">1</property>
                 <child>
                   <object class="GtkGrid">
                     <property name="row-spacing">4</property><property name="column-spacing">8</property>
@@ -272,7 +282,7 @@
             <child>
               <object class="GtkExpander">
                 <property name="label" translatable="yes">Stacking parameters</property>
-                <property name="expanded">0</property>
+                <property name="expanded">1</property>
                 <child>
                   <object class="GtkGrid">
                     <property name="row-spacing">4</property><property name="column-spacing">8</property>

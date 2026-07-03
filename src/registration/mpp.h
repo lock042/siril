@@ -185,6 +185,32 @@ mpp_status_t mpp_multistack_to(sequence **seqs, struct mpp_derot **derots,
                                const struct mpp_derot *out_derot,
                                const mpp_config_t *cfg, fits *out);
 
+/* Two-phase variant of mpp_multistack_to, for the GUI's Analyze /
+ * Register-and-stack split. The analyze entry runs ranking, global
+ * alignment, the combined reference and AP placement, returning an opaque
+ * state (the analysis products; holds no sequence pointers) plus a
+ * GUI-cache-ready mpp_run_t carrying the mean reference and the AP grid —
+ * install it with mpp_set_cached_run so the standard AP editor and overlay
+ * operate on the combined reference. The apply entry then stacks using the
+ * (possibly edited) grid `aps`, whose coordinates live in the analysis
+ * intersection canvas. The same seqs/derots must be passed to both calls
+ * (both rebuild their frame readers from them). Free the state with
+ * mpp_ms_analysis_free once stacking is done or abandoned. */
+typedef struct mpp_ms_analysis mpp_ms_analysis_t;
+mpp_status_t mpp_multistack_analyze_to(sequence **seqs, struct mpp_derot **derots,
+                                       int n, sequence *ref_seq,
+                                       const struct mpp_derot *out_derot,
+                                       const mpp_config_t *cfg,
+                                       mpp_ms_analysis_t **out_state,
+                                       mpp_run_t **out_run);
+mpp_status_t mpp_multistack_apply_to(sequence **seqs, struct mpp_derot **derots,
+                                     int n, sequence *ref_seq,
+                                     const struct mpp_derot *out_derot,
+                                     const mpp_config_t *cfg,
+                                     mpp_ms_analysis_t *state,
+                                     const mpp_aps_t *aps, fits *out);
+void mpp_ms_analysis_free(mpp_ms_analysis_t *state);
+
 /* Top-level Siril `register -method=mpp` entry. Drives Stages A + B and
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);
