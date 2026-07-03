@@ -83,7 +83,16 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	 * passthrough would ghost their globe into the reference sky. Sources
 	 * sharing the output disk keep the single-sequence behaviour: rings
 	 * and sky pass through and stack normally. (A single-sequence combine
-	 * is then identical to the ordinary derotation stack.) */
+	 * is then identical to the ordinary derotation stack.)
+	 *
+	 * This masking applies to the STACK maps only (derot_provider below).
+	 * The analysis relocation must NOT hard-mask: the mask is anchored to
+	 * the FITTED disk while the content drifts frame to frame (and the fit
+	 * itself carries an error), so masking would cookie-cut the real planet
+	 * at a static ellipse — the global aligner then locks onto that
+	 * artificial edge instead of the content, the mean reference grows a
+	 * dark crescent, the AP thresholds refuse APs there, and the final
+	 * stack inherits the bite (the badmulti regression). */
 	auto src_masks = [&](int s) -> bool { return !srcs[s].shares_output_disk; };
 
 	/* Relocate+derotate a source frame into the reference epoch canvas: the C3
@@ -94,7 +103,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		cv::Mat mx, my, mu, out;
 		mpp_derot_frame_map_ms(refd, srcs[s].derot, local, out_w, out_h,
 		                       0.0, 0.0, 1.0, 0.0, 0.0, 1.0, mx, my, mu,
-		                       src_masks(s));
+		                       /*mask_outside=*/false);
 		cv::remap(m, out, mx, my, cv::INTER_LANCZOS4, cv::BORDER_CONSTANT,
 		          cv::Scalar(0));
 		return out;
@@ -186,11 +195,27 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	if (align.oom) { res.oom = true; return res; }
 	if (align.best_frame_idx < 0) { res.cancelled = true; return res; }
 
-	/* Averaged reference + frame intersection, in the reference canvas. */
+	/* Averaged reference + frame intersection, in the reference canvas.
+	 * The visibility provider (the derot map's mu, in the same reference
+	 * canvas as the relocated frame) makes the mean per-pixel normalised
+	 * over the frames that actually see each pixel: a surface region hidden
+	 * behind the limb in one video keeps its full brightness from the other
+	 * — so the AP thresholds still place APs there and the region stacks
+	 * from the video that covers it. */
+	auto vis_provider = [&](int g) -> cv::Mat {
+		int s, l;
+		if (!layout.locate(g, &s, &l)) return cv::Mat();
+		cv::Mat mx, my, mu;
+		mpp_derot_frame_map_ms(refd, srcs[s].derot, l, out_w, out_h,
+		                       0.0, 0.0, 1.0, 0.0, 0.0, 1.0, mx, my, mu,
+		                       /*mask_outside=*/false);
+		return mu;
+	};
+	const mpp::FrameProvider vis_fn = vis_provider;
 	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: building reference"));
 	const auto avg = mpp::align_average_frame_streamed(
 	    raw_provider, N, out_h, out_w, q_sel, align.shifts, cfg,
-	    ms_progress, nullptr, included);
+	    ms_progress, nullptr, included, &vis_fn);
 	if (avg.mean_frame.empty()) { res.cancelled = true; return res; }
 
 	/* AP grid on the reference. */

@@ -31,6 +31,7 @@
  *   Inverse: ray (u r + v u + d O) intersected with the ellipsoid, near root.
  */
 
+#include <algorithm>
 #include <cmath>
 
 #include "mpp_derot_geom.h"
@@ -56,7 +57,7 @@ bool derot_project(double lat_g, double lon, double B, double CM, double f,
 }
 
 bool derot_unproject(double u, double v, double B, double CM, double f,
-                     double *lat_g, double *lon) {
+                     double *lat_g, double *lon, double *disc_out) {
 	const double cf = 1.0 - f;
 	const double c2 = cf * cf;
 	const double cB = cos(B), sB = sin(B), cC = cos(CM), sC = sin(CM);
@@ -76,6 +77,8 @@ bool derot_unproject(double u, double v, double B, double CM, double f,
 	const double Bq = Rx * ox + Ry * oy + Rz * oz / c2;
 	const double Cq = Rx * Rx + Ry * Ry + Rz * Rz / c2 - 1.0;
 	const double disc = Bq * Bq - A * Cq;
+	if (disc_out)
+		*disc_out = disc;
 	if (disc < 0.0)
 		return false;                    /* outside the limb */
 	const double d = (-Bq + sqrt(disc)) / A;   /* near side: larger depth */
@@ -127,20 +130,44 @@ void derot_build_map_ms(int out_w, int out_h,
 
 	const double f = out_disk.flattening;   /* same body on both sides */
 
+	/* Feather band beyond the limb for the masked (multi-source) case: about
+	 * three source pixels of normalised radius, so the seeing-blurred limb
+	 * tail hands over smoothly instead of cutting at the exact ellipse. The
+	 * ray discriminant is ~ 1 - rho^2, so a band of width `w` in normalised
+	 * radius spans disc in (-2w, 0]. */
+	const double feather_w = std::min(0.08,
+	    std::max(0.01, 3.0 / std::max(out_disk.r_eq, 1.0)));
+	const double feather_band = 2.0 * feather_w;
+
 	for (int y = 0; y < out_h; ++y) {
 		float *mx = mapx.ptr<float>(y);
 		float *my = mapy.ptr<float>(y);
 		uint8_t *vp = valid.ptr<uint8_t>(y);
 		float *mp = mu.ptr<float>(y);
 		for (int x = 0; x < out_w; ++x) {
-			double u0, v0, lat, lon, uf, vf, m;
+			double u0, v0, lat, lon, uf, vf, m, disc;
 			pixel_to_norm(x, y, out_disk, epoch.pole_angle, &u0, &v0);
 			if (!derot_unproject(u0, v0, epoch.sub_obs_lat, epoch.cm,
-			                     f, &lat, &lon)) {
+			                     f, &lat, &lon, &disc)) {
 				if (mask_outside) {
 					/* Multi-source: nothing off the globe co-registers across
 					 * sources, and identity here would ghost a displaced source
-					 * globe into the reference sky. Drop it. */
+					 * globe into the reference sky. Drop it — but feather the
+					 * hand-off: just beyond the limb the rigid passthrough
+					 * still samples this source with a weight tapering to
+					 * zero, so the blurred limb tail blends across sources
+					 * rather than stopping dead at the fitted ellipse. */
+					const double t = 1.0 + disc / feather_band;
+					if (t > 0.0) {
+						double sx, sy;
+						norm_to_pixel(u0, v0, src_disk, frame.pole_angle,
+						              &sx, &sy);
+						mx[x] = (float) sx;
+						my[x] = (float) sy;
+						vp[x] = 1;
+						mp[x] = (float) t;
+						continue;
+					}
 					mx[x] = -1.0f;
 					my[x] = -1.0f;
 					vp[x] = 0;

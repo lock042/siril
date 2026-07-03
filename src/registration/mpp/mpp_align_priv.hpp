@@ -209,6 +209,13 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_mono_r
  * wild global shift must not collapse the common area) and from the
  * averaged-reference top-N (the caller also passes `quality` pre-masked so
  * excluded frames sort last). */
+/* `visibility` (optional): per-frame CV_32F weight map (frame-sized; 1 =
+ * pixel seen by this frame, 0 = hidden/masked, values between feather). When
+ * given, the mean is normalised per pixel by the summed visibility instead
+ * of the frame count, so regions some frames cannot see (multi-sequence
+ * derotation: longitudes hidden in one video) keep full brightness from the
+ * frames that CAN see them — without this those regions darken and the AP
+ * placement thresholds then refuse alignment points there. */
 AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 int num_frames,
                                                 int frame_rows, int frame_cols,
@@ -217,7 +224,8 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
                                                 void *progress_user = nullptr,
-                                                const std::vector<int> &included = {});
+                                                const std::vector<int> &included = {},
+                                                const FrameProvider *visibility = nullptr);
 
 }  // namespace mpp
 

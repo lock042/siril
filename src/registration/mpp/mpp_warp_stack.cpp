@@ -62,10 +62,6 @@
 
 namespace mpp {
 
-/* Down-weight floor for foreshortened (near-limb) samples: the visible disk
- * keeps at least this fraction of weight so the limb is not starved to noise,
- * while off-disk points (mu = 0) are hard-zeroed. */
-static constexpr float DEROT_MU_FLOOR = 0.2f;
 
 cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth) {
 	const int C = num_layers;
@@ -244,7 +240,8 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	int n_threads = par ? nt : 1;
 	if (par && mem_budget_bytes > 0) {
 		const size_t canvas = (size_t) DY * DX * sizeof(float);
-		const size_t per_thread = canvas * ((size_t) (holes ? 3 : 2) * C + 10);
+		const size_t per_thread = canvas * ((size_t) (holes ? 3 : 2) * C
+		                                    + (holes ? 11 : 10));
 		int fit = (int) (mem_budget_bytes / std::max<size_t>(1, per_thread));
 		if (fit < 1) fit = 1;
 		if (fit < n_threads) n_threads = fit;
@@ -253,6 +250,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	std::vector<cv::Mat> acc(C);
 	std::vector<cv::Mat> bg(C);
 	cv::Mat wsum;
+	cv::Mat bgw;   /* per-pixel visibility count of the bg composite */
 
 	gint cur_nb = 0;
 	gint cancelled = 0;
@@ -263,13 +261,14 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	{
 		bool local_ok = true;
 		std::vector<cv::Mat> lacc(C), lbg(C);
-		cv::Mat lwsum;
+		cv::Mat lwsum, lbgw;
 		try {
 			for (int c = 0; c < C; ++c) {
 				lacc[c] = cv::Mat::zeros(DY, DX, CV_32F);
 				if (holes) lbg[c] = cv::Mat::zeros(DY, DX, CV_32F);
 			}
 			lwsum = cv::Mat::zeros(DY, DX, CV_32F);
+			if (holes) lbgw = cv::Mat::zeros(DY, DX, CV_32F);
 		} catch (const std::exception &) {
 			local_ok = false;
 			g_atomic_int_set(&oom, 1);
@@ -421,46 +420,54 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::scaleAdd(Dyd, -S, mapy, mapy);
 			cv::scaleAdd(Dxd, -S, mapx, mapx);
 
-			/* Zero the weight where the sample leaves the source frame. */
-			cv::Mat vy8, vx8, v8, vf;
+			/* Per-pixel visibility of this frame's sample: 1 inside the source
+			 * frame, times the derotation mask/feather weight (1 on the visible
+			 * globe, tapering at the masked-source limb hand-off, 0 where the
+			 * point is hidden or off a masked source's globe — this also keeps
+			 * the -1 off-disk map sentinel, offset into range, from
+			 * contributing). Folded into the AP weight below AND used to gate
+			 * the background composite: the bg average must only count frames
+			 * that actually see the pixel, else hidden samples (remapped
+			 * border junk / black) dilute it and the blend paints dark
+			 * regions wherever some frames are blind (multi-sequence
+			 * derotation combines). */
+			cv::Mat vy8, vx8, v8, vis;
 			cv::inRange(mapy, 0.0, (double) (Hd - 1), vy8);
 			cv::inRange(mapx, 0.0, (double) (Wd_f - 1), vx8);
 			cv::bitwise_and(vy8, vx8, v8);
-			v8.convertTo(vf, CV_32F, 1.0 / 255.0);
-			cv::multiply(Wd, vf, Wd);
-
-			/* Fold the derotation foreshortening weight: max(mu, floor) on the
-			 * visible disk, hard zero off-disk. This also prevents the -1
-			 * off-disk map sentinel (now offset into range) from contributing. */
+			v8.convertTo(vis, CV_32F, 1.0 / 255.0);
 			if (have_derot) {
-				cv::Mat wmu, onmask, onf;
-				cv::max(dmu, DEROT_MU_FLOOR, wmu);
-				cv::compare(dmu, 0.0f, onmask, cv::CMP_GT);
-				onmask.convertTo(onf, CV_32F, 1.0 / 255.0);
-				cv::multiply(wmu, onf, wmu);
-				cv::multiply(Wd, wmu, Wd);
+				cv::max(dmu, 0.0f, dmu);
+				cv::multiply(vis, dmu, vis);
 			}
+			cv::multiply(Wd, vis, Wd);
 
 			cv::Mat warped;
 			cv::remap(frame_drizzled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
 			cv::Mat tmp;
+			const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 			if (C == 1) {
 				cv::multiply(warped, Wd, tmp);
 				lacc[0] += tmp;
-				if (holes && top_for_bg.find(f) != top_for_bg.end())
-					lbg[0] += warped;
+				if (in_bg) {
+					cv::multiply(warped, vis, tmp);
+					lbg[0] += tmp;
+				}
 			} else {
 				std::vector<cv::Mat> chans;
 				cv::split(warped, chans);
-				const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 				for (int c = 0; c < C; ++c) {
 					cv::multiply(chans[c], Wd, tmp);
 					lacc[c] += tmp;
-					if (in_bg) lbg[c] += chans[c];
+					if (in_bg) {
+						cv::multiply(chans[c], vis, tmp);
+						lbg[c] += tmp;
+					}
 				}
 			}
+			if (in_bg) lbgw += vis;
 			lwsum += Wd;
 
 			gui_iface.set_progress(0.5 + 0.5 * (double) g_atomic_int_add(&cur_nb, 1)
@@ -480,12 +487,14 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 				try {
 					if (wsum.empty()) {
 						wsum = lwsum;
+						if (holes) bgw = lbgw;
 						for (int c = 0; c < C; ++c) {
 							acc[c] = lacc[c];
 							if (holes) bg[c] = lbg[c];
 						}
 					} else {
 						wsum += lwsum;
+						if (holes) bgw += lbgw;
 						for (int c = 0; c < C; ++c) {
 							acc[c] += lacc[c];
 							if (holes) bg[c] += lbg[c];
@@ -533,9 +542,15 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::min(s, cov, s);
 			cv::max(fg, s, fg);
 		}
+		/* Per-pixel visibility normalisation: average only the frames that
+		 * actually saw each pixel. Dividing by the fixed stack_size instead
+		 * darkens the composite wherever some top frames are blind (masked
+		 * source globes / hidden longitudes in multi-sequence combines). */
+		cv::Mat bgden;
+		cv::max(bgw, 1e-6f, bgden);
 		for (int c = 0; c < C; ++c) {
 			cv::Mat bgm, diff;
-			bg[c].convertTo(bgm, CV_32F, 1.0 / (double) apq.stack_size);
+			cv::divide(bg[c], bgden, bgm);
 			cv::subtract(mean_ch[c], bgm, diff);
 			cv::multiply(diff, fg, diff);
 			cv::add(bgm, diff, mean_ch[c]);

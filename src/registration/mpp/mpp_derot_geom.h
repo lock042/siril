@@ -66,9 +66,12 @@ bool derot_project(double lat_g, double lon, double B, double CM, double f,
                    double *u, double *v, double *mu);
 
 /* Inverse projection: normalised north-up (u,v) -> visible-side surface point
- * (*lat_g,*lon, radians). Returns false when (u,v) falls outside the limb. */
+ * (*lat_g,*lon, radians). Returns false when (u,v) falls outside the limb.
+ * `disc` (optional) receives the ray/ellipsoid discriminant: 0 at the limb,
+ * negative outside (~ 1 - rho^2 for a sphere), so callers can feather the
+ * globe boundary instead of cutting at the exact ellipse. */
 bool derot_unproject(double u, double v, double B, double CM, double f,
-                     double *lat_g, double *lon);
+                     double *lat_g, double *lon, double *disc = nullptr);
 
 /* Build the dense derotation maps for one frame, sized out_h x out_w (CV_32F
  * for mapx/mapy/mu, CV_8U for valid). Only the globe is derotated; pixels
@@ -103,7 +106,12 @@ void derot_build_map(int out_w, int out_h,
  * one frame stack normally. true (multi-source): they are masked (mu=0) — when
  * the source globe sits elsewhere in its own frame, identity passthrough would
  * sample that displaced globe where the reference expects sky, ghosting it; only
- * the globe co-registers across sources, so everything off it is dropped. */
+ * the globe co-registers across sources, so everything off it is dropped.
+ * The mask is feathered: within a narrow band just beyond the limb the
+ * passthrough still samples the source with mu tapering 1 -> 0, so the
+ * seeing-blurred limb tail blends across sources instead of being cut at the
+ * exact fitted ellipse (which reads as an unrealistic razor edge and wrecks
+ * wavelet sharpening). */
 void derot_build_map_ms(int out_w, int out_h,
                         const derot_diskfit_t &out_disk,
                         const derot_diskfit_t &src_disk,

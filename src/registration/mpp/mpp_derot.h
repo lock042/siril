@@ -34,10 +34,13 @@
  *   mapx/mapy (CV_32F) — source position to sample: the derotated globe point,
  *                        or the identity for pixels outside the fitted globe
  *                        (rings/sky pass through and stack normally);
- *   mu (CV_32F)        — 1 where usable, 0 only where a globe point rotated
- *                        behind the limb (masked).
+ *   mu (CV_32F)        — per-pixel sample weight: 1 where usable, 0 where a
+ *                        globe point rotated behind the limb (masked), and a
+ *                        1 -> 0 taper across the feather band just beyond a
+ *                        masked source's limb (mask_outside variant only).
  * These are exactly the inputs the warp engine's DerotMapProvider expects (the
- * engine adds the global offset and AP-residual terms). */
+ * engine adds the global offset and AP-residual terms and multiplies mu into
+ * its weight field). */
 void mpp_derot_frame_map(const mpp_derot_t *d, int frame,
                          int out_w, int out_h,
                          double org_x, double org_y, double scale,

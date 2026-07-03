@@ -712,7 +712,8 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress,
                                                 void *progress_user,
-                                                const std::vector<int> &included) {
+                                                const std::vector<int> &included,
+                                                const FrameProvider *visibility) {
 	AlignAverageResult out;
 	if (N == 0 || (int) shifts.size() != N || (int) quality.size() != N)
 		return out;
@@ -767,6 +768,8 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 
 	const int oh = int_y_hi - int_y_lo, ow = int_x_hi - int_x_lo;
 	cv::Mat accum(oh, ow, CV_32F, cv::Scalar(0));
+	cv::Mat waccum;
+	if (visibility) waccum = cv::Mat(oh, ow, CV_32F, cv::Scalar(0));
 	int done = 0;
 	const int total = (int) indices.size();
 	for (int idx : indices) {
@@ -779,12 +782,19 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 		const int sx = (int) std::lround(s[1]);
 		const cv::Mat frame = provider(idx);
 		if (frame.empty()) { ++done; continue; }
-		const cv::Mat patch = frame(
-		    cv::Range(int_y_lo - sy, int_y_hi - sy),
-		    cv::Range(int_x_lo - sx, int_x_hi - sx));
+		const cv::Range ry(int_y_lo - sy, int_y_hi - sy);
+		const cv::Range rx(int_x_lo - sx, int_x_hi - sx);
+		const cv::Mat patch = frame(ry, rx);
 		cv::Mat patch_f32;
 		patch.convertTo(patch_f32, CV_32F);
 		accum += patch_f32;
+		if (visibility) {
+			const cv::Mat vm = (*visibility)(idx);
+			if (!vm.empty() && vm.rows == frame.rows && vm.cols == frame.cols)
+				waccum += vm(ry, rx);
+			else
+				waccum += 1.0f;   /* no mask for this frame: fully visible */
+		}
 		++done;
 		if (progress) progress((double) done / (double) total, progress_user);
 	}
@@ -794,8 +804,7 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	 * look at cfg.bitdepth — NOT cv::Mat::depth() — to decide. Output
 	 * mean_frame always lands in the 0..65535 range, so downstream AP
 	 * code can use a single `× 256` threshold scale. */
-	const double scale = (cfg.bitdepth == 8 ? 256.0 : 1.0) / (double) indices.size();
-	accum *= scale;
+	const double bitscale = cfg.bitdepth == 8 ? 256.0 : 1.0;
 	/* Use NumPy-style `.astype(int32)` truncation toward zero. OpenCV's
 	 * convertTo(CV_32S) uses cvRound (round half to even on x86), so a
 	 * naive cast would produce off-by-one diffs at half-pixel values and
@@ -803,11 +812,27 @@ AlignAverageResult align_average_frame_streamed(const FrameProvider &provider,
 	 * the truncation manually to keep bit-equivalence with the reference
 	 * algorithm. */
 	out.mean_frame.create(accum.size(), CV_32S);
-	for (int y = 0; y < accum.rows; ++y) {
-		const float *src = accum.ptr<float>(y);
-		int32_t *dst = out.mean_frame.ptr<int32_t>(y);
-		for (int x = 0; x < accum.cols; ++x)
-			dst[x] = (int32_t) src[x];  /* truncation toward zero */
+	if (visibility) {
+		/* Per-pixel visibility normalisation: average only the frames that
+		 * saw each pixel. A pixel below half a frame's worth of visibility
+		 * has no usable data — leave it black rather than boosting noise. */
+		for (int y = 0; y < accum.rows; ++y) {
+			const float *src = accum.ptr<float>(y);
+			const float *wv = waccum.ptr<float>(y);
+			int32_t *dst = out.mean_frame.ptr<int32_t>(y);
+			for (int x = 0; x < accum.cols; ++x)
+				dst[x] = wv[x] >= 0.5f
+				    ? (int32_t) (src[x] * bitscale / wv[x])
+				    : 0;
+		}
+	} else {
+		accum *= bitscale / (double) indices.size();
+		for (int y = 0; y < accum.rows; ++y) {
+			const float *src = accum.ptr<float>(y);
+			int32_t *dst = out.mean_frame.ptr<int32_t>(y);
+			for (int x = 0; x < accum.cols; ++x)
+				dst[x] = (int32_t) src[x];  /* truncation toward zero */
+		}
 	}
 	return out;
 }

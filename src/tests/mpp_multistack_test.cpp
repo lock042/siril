@@ -14,7 +14,10 @@
 #include <criterion/criterion.h>
 #include <opencv2/imgproc.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 #include "registration/mpp/mpp_derot_geom.h"
@@ -99,6 +102,58 @@ mpp_derot_t *make_plan(int N, const derot_diskfit_t &disk, int W, int H,
 		d->pole_pa[f] = 0.0;
 	}
 	return d;
+}
+
+/* Seeing blur so the synthetic limb has a realistic soft profile — the limb
+ * sharpness metric below needs the ideal stack's limb to be resolvably wide. */
+cv::Mat blur16(const cv::Mat &m) {
+	cv::Mat o;
+	cv::GaussianBlur(m, o, cv::Size(0, 0), 2.0);
+	return o;
+}
+
+/* Debug dump (set MPP_DUMP=1): 8-bit PGM for visual inspection. */
+void dump_pgm(const char *path, const cv::Mat &m16) {
+	if (!getenv("MPP_DUMP")) return;
+	cv::Mat m8;
+	m16.convertTo(m8, CV_8U, 255.0 / 65535.0);
+	FILE *f = fopen(path, "wb");
+	if (!f) return;
+	fprintf(f, "P5\n%d %d\n255\n", m8.cols, m8.rows);
+	fwrite(m8.data, 1, (size_t) m8.cols * m8.rows, f);
+	fclose(f);
+}
+
+double sample_bilinear(const cv::Mat &m16, double y, double x) {
+	const int y0 = (int) std::floor(y), x0 = (int) std::floor(x);
+	if (y0 < 0 || x0 < 0 || y0 + 1 >= m16.rows || x0 + 1 >= m16.cols) return 0.0;
+	const double fy = y - y0, fx = x - x0;
+	const double a = m16.at<uint16_t>(y0, x0), b = m16.at<uint16_t>(y0, x0 + 1);
+	const double c = m16.at<uint16_t>(y0 + 1, x0), d = m16.at<uint16_t>(y0 + 1, x0 + 1);
+	return a * (1 - fy) * (1 - fx) + b * (1 - fy) * fx
+	     + c * fy * (1 - fx) + d * fy * fx;
+}
+
+/* 90th percentile (over rays) of the maximum radial gradient across the limb —
+ * the razor-edge detector. A localized hard bite only affects a minority of
+ * rays, so the median would miss it. `cy`/`cx` in this image's own coords. */
+double limb_max_gradient(const cv::Mat &img, double cy, double cx, double R) {
+	std::vector<double> grads;
+	for (int k = 0; k < 72; ++k) {
+		const double th = 2.0 * M_PI * k / 72.0;
+		double gmax = 0.0;
+		for (double r = R - 12.0; r <= R + 12.0; r += 1.0) {
+			const double i1 = sample_bilinear(img, cy + (r + 1) * std::sin(th),
+			                                  cx + (r + 1) * std::cos(th));
+			const double i0 = sample_bilinear(img, cy + (r - 1) * std::sin(th),
+			                                  cx + (r - 1) * std::cos(th));
+			gmax = std::max(gmax, std::abs(i1 - i0) / 2.0);
+		}
+		grads.push_back(gmax);
+	}
+	std::nth_element(grads.begin(), grads.begin() + (grads.size() * 9) / 10,
+	                 grads.end());
+	return grads[(grads.size() * 9) / 10];
 }
 
 }  // namespace
@@ -270,4 +325,103 @@ Test(mpp_multistack, drift_cropped_intersection_recovers) {
 	             "(err %.0f LSB)", err);
 
 	mpp_derot_free(d);
+}
+
+/* Realistic two-video combine (the badmulti regression): two short videos of
+ * the same planet separated by a small central-meridian gap, each frame
+ * drifting in its own canvas, and the second sequence's disk FIT displaced
+ * from where its content actually sits (fit error — the fit is made on one
+ * frame, the video drifts). The combine must neither darken any part of the
+ * disk (every surface point is well covered by at least one video) nor
+ * harden the limb beyond the seeing-blurred profile of an ideal stack. */
+Test(mpp_multistack, gap_drift_fit_error_keeps_disk_bright_and_limb_soft) {
+	const int W = 300, H = 260, N = 16;
+	const double B = 3.0, CM0 = 40.0;
+	const derot_diskfit_t ref_disk{150.0, 130.0, 100.0, 0.0, 1.0};
+	const derot_diskfit_t s1_fit  {162.0, 118.0, 100.0, 0.0, 1.0};
+	const cv::Mat base = make_planet(H, W, ref_disk.cx, ref_disk.cy, ref_disk.r_eq);
+	const cv::Mat ideal = blur16(base);   /* what a perfect stack looks like */
+
+	/* video 1 before the epoch, video 2 after — ~0.5 deg hidden band total */
+	auto cm_v0 = [&](int f) { return CM0 - 1.40 + 1.15 * f / (N - 1); };
+	auto cm_v1 = [&](int f) { return CM0 + 0.25 + 1.15 * f / (N - 1); };
+
+	std::vector<cv::Mat> f0(N), f1(N);
+	for (int f = 0; f < N; ++f) {
+		derot_diskfit_t d0c = ref_disk;   /* good fit, small drift */
+		d0c.cx += 2.0 * std::sin(f * 0.7);
+		d0c.cy += 1.5 * std::cos(f * 0.9);
+		f0[f] = blur16(render_view(base, W, H, d0c, ref_disk, B, cm_v0(f), CM0));
+
+		derot_diskfit_t d1c = s1_fit;     /* fit off by (5,-4), drift up to ~5 px */
+		d1c.cx += 5.0 + 4.0 * std::sin(f * 0.6);
+		d1c.cy += -4.0 + 3.0 * std::cos(f * 0.5);
+		f1[f] = blur16(render_view(base, W, H, d1c, ref_disk, B, cm_v1(f), CM0));
+	}
+
+	mpp_config_t cfg{};
+	mpp_config_defaults(&cfg);
+	cfg.frames_normalization = false;
+	cfg.alignment_points_frame_percent = 100;
+	cfg.stack_method = MPP_STACK_WARP;
+	cfg.drizzle_scale = 1.0;
+
+	mpp_derot_t *d0 = make_plan(N, ref_disk, W, H, B, CM0, 0.0);
+	mpp_derot_t *d1 = make_plan(N, s1_fit,  W, H, B, CM0, 0.0);
+	for (int f = 0; f < N; ++f) {
+		d0->cm[f] = cm_v0(f);
+		d1->cm[f] = cm_v1(f);
+	}
+
+	std::vector<mpp::MsSource> srcs(2);
+	srcs[0].derot = d0; srcs[0].num_frames = N;
+	srcs[0].analysis_read = [&](int l) { return f0[l]; };
+	srcs[0].full_read     = [&](int l) { return f0[l]; };
+	srcs[0].shares_output_disk = true;
+	srcs[1].derot = d1; srcs[1].num_frames = N;
+	srcs[1].analysis_read = [&](int l) { return f1[l]; };
+	srcs[1].full_read     = [&](int l) { return f1[l]; };
+
+	const auto res = mpp::multistack_channel(srcs, d0, 1, cfg, 1);
+	cr_assert(!res.error && !res.oom && !res.cancelled && !res.image.empty());
+	dump_pgm("/tmp/multistack_repro.pgm", res.image);
+	dump_pgm("/tmp/multistack_ideal.pgm", ideal);
+
+	/* res.image[y][x] corresponds to base[y + oy][x + ox] */
+	const int ox = res.intersection[2], oy = res.intersection[0];
+
+	/* (a) no dark region: out/ideal brightness ratio across the disk interior
+	 * must stay near 1 even at its darkest few percent */
+	std::vector<double> ratio;
+	for (int y = 0; y < res.image.rows; ++y)
+		for (int x = 0; x < res.image.cols; ++x) {
+			const int by = y + oy, bx = x + ox;
+			if (by < 0 || by >= H || bx < 0 || bx >= W) continue;
+			if (std::hypot(by - ref_disk.cy, bx - ref_disk.cx) > ref_disk.r_eq * 0.97)
+				continue;
+			const double b = ideal.at<uint16_t>(by, bx);
+			if (b < 5000.0) continue;
+			ratio.push_back((double) res.image.at<uint16_t>(y, x) / b);
+		}
+	cr_assert(!ratio.empty());
+	std::sort(ratio.begin(), ratio.end());
+	const double p05 = ratio[ratio.size() / 20];
+
+	/* (b) no razor limb: the limb's radial gradient must stay comparable to the
+	 * ideal (seeing-blurred) stack's */
+	const double g_out = limb_max_gradient(res.image, ref_disk.cy - oy,
+	                                       ref_disk.cx - ox, ref_disk.r_eq);
+	const double g_ref = limb_max_gradient(ideal, ref_disk.cy, ref_disk.cx,
+	                                       ref_disk.r_eq);
+	cr_log_info("gap+drift: p05 ratio=%.3f limb grad out=%.0f ideal=%.0f (x%.2f)",
+	            p05, g_out, g_ref, g_out / std::max(g_ref, 1.0));
+
+	cr_assert_gt(p05, 0.80,
+	             "disk darkened — 5th percentile out/ideal = %.3f", p05);
+	cr_assert_lt(g_out, g_ref * 1.6,
+	             "limb hardened — max radial gradient %.0f vs ideal %.0f",
+	             g_out, g_ref);
+
+	mpp_derot_free(d0);
+	mpp_derot_free(d1);
 }
