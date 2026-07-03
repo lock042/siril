@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
+#include "core/processing.h"                   /* processing_should_continue */
 #include "registration/mpp/mpp_multistack.hpp"
 #include "registration/mpp/mpp_multisource.hpp"
 #include "registration/mpp/mpp_derot.h"          /* mpp_derot_frame_map_ms */
@@ -145,13 +146,15 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	}
 
 	std::atomic<bool> p1_fail{false};
+	std::atomic<bool> p1_cancel{false};
 	std::atomic<int> p1_done{0};
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nt) schedule(guided) \
     if (provider_thread_safe && nt > 1)
 #endif
 	for (int g = 0; g < N; ++g) {
-		if (p1_fail.load() || !included[g]) continue;
+		if (p1_fail.load() || p1_cancel.load() || !included[g]) continue;
+		if (!processing_should_continue()) { p1_cancel.store(true); continue; }
 		const cv::Mat m = raw_provider(g);
 		if (m.empty()) { p1_fail.store(true); continue; }
 		quality[g]    = mpp::rank_score_normalized(m, cfg);
@@ -159,6 +162,7 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 		const int d = ++p1_done;
 		gui_iface.set_progress((double) d / (double) N, NULL);
 	}
+	if (p1_cancel.load()) { res.cancelled = true; return res; }
 	if (p1_fail.load()) {
 		siril_log_error(_("Derotation stack: could not read/relocate every frame "
 		                  "for analysis.\n"));
@@ -222,6 +226,11 @@ MultiStackResult multistack_channel(const std::vector<MsSource> &srcs,
 	const auto apq = mpp::ap_compute_frame_qualities_streamed(
 	    raw_provider, N, brightness, *aps, offsets, out_h, out_w, cfg,
 	    ms_progress, nullptr, included, nt, provider_thread_safe);
+	if (apq.stack_size <= 0) {   /* cancellation / OOM sentinel */
+		mpp_ap_free(aps);
+		res.cancelled = true;
+		return res;
+	}
 
 	/* Per-AP per-frame shifts (epoch space, against the shared reference). */
 	gui_iface.set_progress(PROGRESS_RESET, _("Derotation: measuring local shifts"));

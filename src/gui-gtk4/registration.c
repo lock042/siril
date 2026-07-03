@@ -1317,12 +1317,16 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	return 0;
 }
 
+/* Returns 0 on success (thread slot reserved, caller submits or unreserves),
+ * -1 when the slot could not be reserved (another job is running — the caller
+ * must NOT unreserve, that would clear the running job's busy flag), and 1 on
+ * any later failure (slot reserved by us — the caller must unreserve). */
 static int fill_registration_structure_from_GUI(struct registration_args *regargs) {
 	struct registration_method *method;
 
 	if (!reserve_thread()) {	// reentrant from here
 		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
+		return -1;
 	}
 
 	if (!com.seq.regparam) {
@@ -1540,10 +1544,12 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
 
 	char *msg;
-	if (fill_registration_structure_from_GUI(regargs)) {
+	int fill_ret = fill_registration_structure_from_GUI(regargs);
+	if (fill_ret) {
 		free(regargs->mpp_cfg);
 		free(regargs);
-		unreserve_thread();
+		if (fill_ret > 0)	// reserve succeeded before the failure
+			unreserve_thread();
 		return;
 	}
 	fits fit_ref = { 0 };
@@ -1776,10 +1782,12 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if (fill_registration_structure_from_GUI(regargs)) {
+	int fill_ret = fill_registration_structure_from_GUI(regargs);
+	if (fill_ret) {
 		free(regargs->mpp_cfg);
 		free(regargs);
-		unreserve_thread();
+		if (fill_ret > 0)	// reserve succeeded before the failure
+			unreserve_thread();
 		return;
 	}
 	regargs->mpp_stage_a_only = TRUE;

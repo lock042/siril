@@ -2619,6 +2619,13 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	 * or not); an idempotent no-op for a sidecar-loaded run that already
 	 * carries the ranking. */
 	const int rc_q = mpp_recompute_qualities(regargs->seq, run, derot_b);
+	if (rc_q == MPP_EINTR) {
+		siril_log_message(_("mpp: per-AP frame ranking cancelled by user.\n"));
+		gui_iface.set_progress(PROGRESS_DONE, _("Cancelled"));
+		mpp_derot_free(derot_b);
+		if (run_owned) mpp_run_free(run);
+		return rc_q;
+	}
 	if (rc_q != MPP_OK) {
 		siril_log_error(_("mpp: per-AP frame ranking failed (code %d)\n"), rc_q);
 		gui_iface.set_progress(PROGRESS_DONE, _("Failed"));

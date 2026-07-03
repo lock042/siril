@@ -1001,6 +1001,7 @@ struct derot_combine_args {
 	mpp_config_t cfg;
 	/* results */
 	int saved, failed;
+	gboolean cancelled;      /* user abort (Stop button) */
 	gboolean composed;       /* an RGB image was assembled from R+G+B */
 	gchar *rgb_name;
 	gchar *load_name;        /* result to open on completion (base name, no ext) */
@@ -1034,13 +1035,16 @@ static gboolean derot_combine_idle(gpointer p) {
 		siril_log_message(_("Derotation combine: saved %d channel stack(s)%s. "
 		                    "Assemble colour with the compositing tools.\n"),
 		                  a->saved, a->failed ? _(" (some channels failed)") : "");
+	else if (a->cancelled)
+		siril_log_message(_("Derotation combine: cancelled — no channels stacked.\n"));
 	else
 		siril_log_error(_("Derotation combine: no channels stacked — see the log.\n"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	set_status(a->saved > 0
 	    ? (a->composed ? _("Combine done — colour image assembled (see the log).")
 	                   : _("Combine done — see the log for the saved files."))
-	    : _("Combine failed — see the log."));
+	    : a->cancelled ? _("Combine cancelled.")
+	                   : _("Combine failed — see the log."));
 	set_cursor_waiting(FALSE);
 	/* Open the primary result so it is shown straight away. */
 	if (a->saved > 0 && a->load_name) {
@@ -1145,6 +1149,13 @@ static gpointer derot_combine_worker(gpointer p) {
 			g_free(name);
 			chan_fits[ch] = out;   /* keep for compose (ownership transferred) */
 			have[ch] = TRUE;
+		} else if (st == MPP_EINTR) {
+			siril_log_message(_("Derotation combine: cancelled by user.\n"));
+			a->cancelled = TRUE;
+			clearfits(&out);
+			g_free(cs);
+			g_free(cd);
+			break;
 		} else {
 			siril_log_error(_("Derotation combine: channel %s failed (code %d)\n"),
 			                channel_label(ch), st);
@@ -1153,7 +1164,10 @@ static gpointer derot_combine_worker(gpointer p) {
 		}
 		g_free(cs);
 		g_free(cd);
-		if (!processing_should_continue()) break;   /* cancelled */
+		if (!processing_should_continue()) {   /* cancelled between channels */
+			a->cancelled = TRUE;
+			break;
+		}
 	}
 
 	/* RGB compose: the three mono channels share the reference canvas, so a
@@ -1192,6 +1206,7 @@ static gpointer derot_combine_worker(gpointer p) {
 		if (have[ch]) clearfits(&chan_fits[ch]);
 
 	set_progress_bar_data(a->saved > 0 ? _("Derotation combine complete")
+	                    : a->cancelled ? _("Derotation combine cancelled")
 	                                   : _("Derotation combine failed"),
 	                      a->saved > 0 ? PROGRESS_DONE : PROGRESS_RESET);
 	siril_add_idle(derot_combine_idle, a);
