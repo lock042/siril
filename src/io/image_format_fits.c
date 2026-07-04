@@ -2955,159 +2955,129 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	const int n_channels = (naxis >= 3 && naxes[2] >= 3) ? 3 : 1;
 	const gboolean is_color = (n_channels == 3);
 
-	if (w <= 0 || h <= 0)
+	if (w <= 0 || h <= 0) {
+		fits_close_file(fp, &status);
 		return NULL;
+	}
 
-	/* Read the FITS keywords and extract the filter string */
-        fits tmpfit = { 0 };
-        tmpfit.fptr = fp;
-        read_fits_keywords(&tmpfit);
+	// Read the FITS keywords and extract the filter string 
+	fits tmpfit = { 0 };
+	tmpfit.fptr = fp;
+	read_fits_keywords(&tmpfit);
 
-        gchar *filter_str = NULL;
-        if (tmpfit.keywords.filter[0] != '\0') {
-                gchar *currfilter = g_strstrip(g_strdup(tmpfit.keywords.filter));
-                if (currfilter && *currfilter) {
-                        filter_str = g_strdup_printf("\n%s: %s", _("Filter"), currfilter);
-                }
-                g_free(currfilter);
-        }
-        clearfits(&tmpfit);
+	gchar *filter_str = NULL;
+	if (tmpfit.keywords.filter[0] != '\0') {
+		gchar *currfilter = g_strstrip(g_strdup(tmpfit.keywords.filter));
+		if (currfilter && *currfilter) {
+			filter_str = g_strdup_printf("\n%s: %s", _("Filter"), currfilter);
+		}
+		g_free(currfilter);
+	}
+	clearfits(&tmpfit);
 
-        /* Build description from header data — always available regardless of image size */
-        if (fitseq_is_fitseq(filename, &frames)) {
-                description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s%s", w,
-                                h, ngettext("pixel", "pixels", h), n_channels,
-                                ngettext("channel", "channels", n_channels), abs(dtype), frames,
-                                ngettext("frame", "frames", frames),
-                                filter_str ? filter_str : "");
-        } else {
-                description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)%s", w,
-                                h, ngettext("pixel", "pixels", h), n_channels,
-                                ngettext("channel", "channels", n_channels), abs(dtype),
-                                filter_str ? filter_str : "");
-        }
-        g_free(filter_str);
-
+	/* Build description from header data — always available regardless of image size */
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s%s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype), frames,
+				ngettext("frame", "frames", frames),
+				filter_str ? filter_str : "");
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)%s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype),
+				filter_str ? filter_str : "");
+	}
+	g_free(filter_str);
 	*descr = description;
 
-	size_t sz = (size_t)w * h * n_channels;
-	/* Skip pixel loading for images too large to thumbnail (>256 M floats ≈ 1 GB) */
-	if (sz > 256UL * 1024 * 1024) {
-		fits_close_file(fp, &status);
-		return NULL;
-	}
+	// Dimensions calibrated exactly to match CFITSIO striding
+	const float scale_x = (float)w / MAX_SIZE;
+	const float scale_y = (float)h / MAX_SIZE;
+	const float max_scale = (scale_x > scale_y) ? scale_x : scale_y;
 
-	ima_data = malloc(sz * sizeof(float));
-	if (!ima_data) {
-		fits_close_file(fp, &status);
-		return NULL;
-	}
+	// If max_scale is less than 1.0 (image is smaller than thumbnail size), step is 1
+	const int pixScale = (max_scale > 1.0f) ? (int)max_scale : 1;
 
-	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
-
-	const int x = (int) ceil((float) w / MAX_SIZE);
-	const int y = (int) ceil((float) h / MAX_SIZE);
-	const int pixScale = (x > y) ? x : y;   // picture scale factor
-	const int Ws = w / pixScale;            // preview width
-	const int Hs = h / pixScale;            // preview height
-
-	/* Allocate preview_data */
+	const int Ws = ((w - 1) / pixScale) + 1;
+	const int Hs = ((h - 1) / pixScale) + 1;
 	size_t prev_size = (size_t)Ws * Hs;
+
+	if (Ws <= 0 || Hs <= 0) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
+
+	// Allocate preview buffer directly
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
-		free(ima_data);
 		fits_close_file(fp, &status);
-		return NULL;  /* description already in *descr; caller owns it */
+		return NULL;
 	}
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	{
-#ifdef _OPENMP
-#pragma omp for
-#endif
-		for (int i = 0; i < Hs; i++) { // cycle through blocks by lines
-			int M = i * pixScale;
 
-			for (int j = 0; j < Ws; j++) { // cycle through blocks by columns
-				int N = j * pixScale;
+	// Read each channel plane sequentially to optimize disk streaming layout 
+	int anynul;
+	stat = 0;
+	for (int ch = 0; ch < n_channels; ch++) {
+		long fpixel[3] = { 1, 1, ch + 1 }; // Step to the specific channel plane
+		long lpixel[3] = { w, h, ch + 1 }; // Limit read to just this plane
+		long inc[3]	= { pixScale, pixScale, 1 };
+		float *channel_dest = preview_data + (ch * prev_size);
 
-				for (int ch = 0; ch < n_channels; ch++) {
-					float sum = 0.f;
-					unsigned int count = 0;
-
-					for (int l = 0; l < pixScale && (M + l) < h; l++) {
-						for (int k = 0; k < pixScale && (N + k) < w; k++) {
-							size_t idx;
-							if (is_color) {
-								idx = (size_t)ch * (size_t)w * h + (size_t)(M + l) * w + (N + k);
-							} else {
-								idx = (size_t)(M + l) * w + (N + k);
-							}
-							sum += ima_data[idx];
-							count++;
-						}
-					}
-
-					int preview_idx = ch * Ws * Hs + i * Ws + j;
-					preview_data[preview_idx] = (count > 0) ? sum / count : 0.0f;
-				}
-			}
+		if (fits_read_subset(fp, TFLOAT, fpixel, lpixel, inc, &nullval, channel_dest, &anynul, &stat)) {
+			free(preview_data);
+			fits_close_file(fp, &status);
+			return NULL;
 		}
 	}
 
-	// Set min, max and scale, avoiding caclulations where possible
+	// Set min, max and scale, avoiding calculations where possible
 	float maxmax = 1.f;
 	float minmin = 0.f;
 	float scale = 1.f;
 	switch (dtype) {
-		case BYTE_IMG:;
+		case BYTE_IMG:
 			scale = INV_UCHAR_MAX_SINGLE;
 			break;
-		case SHORT_IMG:;
+		case SHORT_IMG:
 			scale = INV_USHRT_MAX_SINGLE;
 			break;
-		case USHORT_IMG:;
+		case USHORT_IMG:
 			scale = INV_USHRT_MAX_SINGLE;
-			minmin = -32768.f; // min value for 16-bit signed
+			minmin = -32768.f;
 			break;
-		default:; // FLOAT_IMG, LONG_IMG, ULONG_IMG
-			/* Find per-channel min/max */
+		default: { // FLOAT_IMG, LONG_IMG, ULONG_IMG
 			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
 			for (int ch = 0; ch < n_channels; ch++) {
+				size_t ch_offset = ch * prev_size;
 				for (size_t i = 0; i < prev_size; i++) {
-					int idx = ch * prev_size + i;
-					float val = preview_data[idx];
+					float val = preview_data[ch_offset + i];
 					if (val < min_vals[ch]) min_vals[ch] = val;
 					if (val > max_vals[ch]) max_vals[ch] = val;
 				}
 			}
 			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
-			if (maxmax < 10.f) maxmax = 1.f;	// Allow maxmax to handle integer-range and JWST images but clamp
-												// to typical 0-1 range otherwise, for consistent preview
+			if (maxmax < 10.f) maxmax = 1.f;
+
 			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
-			if (minmin > -1.f) minmin = 0.f; // Allow minmin to handle SHORT_IMG but clamp to 0.f otherwise
+			if (minmin > -1.f) minmin = 0.f;
 
 			if (dtype == FLOAT_IMG) {
 				scale = (maxmax > 10.f) ? INV_USHRT_MAX_SINGLE : 1.f;
-				break;
+			} else {
+				scale = 1.f / ((maxmax - minmin) > 0.00001f ? (maxmax - minmin) : 1.f);
 			}
-			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
-			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
-			scale = 1.f / (maxmax - minmin);
 			break;
+		}
 	}
 
-	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
-#endif
 	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
+	// Apply Midtone Stretching (MTF)
 	fits *tmp = NULL;
 	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
 	struct mtf_params mtfp[3] = {
@@ -3126,16 +3096,12 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	free(tmp);
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+	if (!pixbuf_data) {
+		free(preview_data);
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
-	// Move this outside the loop to avoid unnecessary multiplications
-	// in the loop
-	int twice_prev_size = prev_size * 2;
-
-	// Recalculate num_threads as we rely on simd in the inner loop
-	num_threads = choose_num_threads(1, Hs, com.max_thread);
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
-#endif
 	for (int i = 0; i < Hs; i++) {
 		int src_row_offset  = i * Ws;
 		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
@@ -3145,8 +3111,8 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 
 			if (is_color) {
 				float r = preview_data[src_idx];
-				float g = preview_data[prev_size + src_idx];
-				float b = preview_data[twice_prev_size + src_idx];
+				float g = preview_data[src_idx + prev_size];
+				float b = preview_data[src_idx + prev_size * 2];
 				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
 			} else {
 				float gray = preview_data[src_idx];
@@ -3156,10 +3122,8 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	}
 
 	fits_close_file(fp, &status);
-	free(ima_data);
 	free(preview_data);
 
-	*descr = description;
 	if (width_out) *width_out = Ws;
 	if (height_out) *height_out = Hs;
 	return pixbuf_data;
