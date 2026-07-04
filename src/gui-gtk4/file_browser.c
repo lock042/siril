@@ -15,6 +15,7 @@
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "io/avi_preview.h"
+#include "io/SirilJpegXLWrapper.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
@@ -2211,7 +2212,11 @@ void siril_file_browser_default_preview(const gchar *path,
 	 * recognises .fit / .fits / .fits.fz / etc; the SER one reads frame 0
 	 * with an MTF stretch for higher bit depths; the AVI one decodes the
 	 * first video frame via libavformat without a full FFMS2 index. */
-	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI) {
+	gboolean jxl_thumbnail = FALSE;
+#ifdef HAVE_LIBJXL
+	jxl_thumbnail = (itype == TYPEJXL);
+#endif
+	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI || jxl_thumbnail) {
 		gchar *descr = NULL;
 		int w = 0, h = 0;
 		guchar *data = NULL;
@@ -2219,8 +2224,26 @@ void siril_file_browser_default_preview(const gchar *path,
 			data = extract_thumbnail_from_fits(path, &descr, &w, &h);
 		else if (itype == TYPESER)
 			data = extract_thumbnail_from_ser(path, &descr, &w, &h);
-		else /* TYPEAVI */
+		else if (itype == TYPEAVI)
 			data = extract_thumbnail_from_avi(path, &descr, &w, &h);
+#ifdef HAVE_LIBJXL
+		else /* TYPEJXL */ {
+			/* JPEG XL previews go through Siril's own libjxl extractor,
+			 * never gdk-pixbuf: the optional gdk-pixbuf JXL loader can hang
+			 * indefinitely on some files, and previews run synchronously on
+			 * the GTK main thread, so that freezes the whole application.
+			 * libjxl also handles both raw codestreams and ISOBMFF
+			 * containers.  The extractor wants the encoded bytes, not a
+			 * path, so slurp the file first. */
+			gchar *raw = NULL;
+			gsize raw_size = 0;
+			if (g_file_get_contents(path, &raw, &raw_size, NULL)) {
+				data = extract_thumbnail_from_jxl((uint8_t *)raw, &descr,
+				                                  (size_t)raw_size, &w, &h);
+				g_free(raw);
+			}
+		}
+#endif
 		if (data) {
 			GdkTexture *tex = siril_texture_from_rgb_bytes(data,
 				(gsize)w * h * 3, w, h, w * 3, FALSE,

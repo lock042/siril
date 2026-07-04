@@ -2090,8 +2090,49 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+/* GTK4 dispatches application accelerators in the bubble phase at the
+ * window, i.e. AFTER the focused widget has seen the key event.  Whenever
+ * the focus sits in a widget that consumes keys (command entry, spin
+ * buttons, text views...), the shortcuts silently stop working until the
+ * user clicks a widget that gives focus back.  GTK3 did the opposite:
+ * gtk_window_activate_key() ran the accelerators BEFORE propagating the
+ * event to the focus widget.  To restore that priority, the accel map is
+ * mirrored into a capture-phase GtkShortcutController on the main window,
+ * which sees every key event first.  The
+ * gtk_application_set_accels_for_action() calls are kept alongside so menu
+ * items still display their shortcut labels (and as a fallback dispatch
+ * path).  A shortcut whose action is currently disabled or missing is not
+ * consumed by the controller, so normal propagation still happens then. */
+static GtkShortcutController *rebuild_capture_accel_controller(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return NULL;
+	GtkEventController *old = g_object_get_data(G_OBJECT(win), "siril-accel-capture");
+	if (old)
+		gtk_widget_remove_controller(win, old);
+	GtkEventController *ctrl = gtk_shortcut_controller_new();
+	gtk_event_controller_set_propagation_phase(ctrl, GTK_PHASE_CAPTURE);
+	gtk_widget_add_controller(win, ctrl);
+	g_object_set_data(G_OBJECT(win), "siril-accel-capture", ctrl);
+	return GTK_SHORTCUT_CONTROLLER(ctrl);
+}
+
+static void add_capture_accels(GtkShortcutController *ctrl,
+		const gchar *detailed_action, const gchar * const *accels) {
+	if (!ctrl)
+		return;
+	for (const gchar * const *a = accels; *a; a++) {
+		GtkShortcutTrigger *trigger = gtk_shortcut_trigger_parse_string(*a);
+		if (!trigger)
+			continue;
+		gtk_shortcut_controller_add_shortcut(ctrl,
+				gtk_shortcut_new(trigger, gtk_named_action_new(detailed_action)));
+	}
+}
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
+	GtkShortcutController *capture = rebuild_capture_accel_controller();
 
 	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
 #ifdef OS_OSX
@@ -2103,9 +2144,11 @@ void set_accel_map(const gchar * const *accelmap) {
 			remapped[i] = siril_remap_accel(it[1 + i]);
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0],
 		                                      (const gchar * const *) remapped);
+		add_capture_accels(capture, it[0], (const gchar * const *) remapped);
 		g_strfreev(remapped);
 #else
 		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+		add_capture_accels(capture, it[0], &it[1]);
 #endif
 	}
 }
