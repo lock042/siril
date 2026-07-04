@@ -184,20 +184,43 @@ void reactivate_parent(GtkWidget *dialog) {
 	                 ? gtk_window_get_transient_for(GTK_WINDOW(dialog)) : NULL);
 }
 
-/* Phase 14: GTK4 routes key input through GtkEventControllerKey instead
- * of the legacy "key-press-event" signal.  The escape-to-close behaviour
- * for the search-entry dialog is hooked via gtk_event_controller_key,
- * with the controller attached to the window once on first open. */
+/* GTK4 routes key input through GtkEventControllerKey instead of the
+ * legacy "key-press-event" signal, and plain GtkWindows lost the built-in
+ * Escape-to-close binding that GtkDialog gave every dialog under GTK3.
+ * Escape is therefore wired explicitly on every dialog we open, and it
+ * takes the same path as the title-bar close button: gtk_window_close()
+ * emits "close-request", so each dialog's own handler (hide-on-delete,
+ * preview cancel, ...) runs exactly as if the user had clicked ✕ —
+ * which is what GTK3's Escape → delete-event did. */
 static gboolean check_escape(GtkEventControllerKey *ctrl, guint keyval,
 		guint keycode, GdkModifierType state, gpointer data) {
 	(void)ctrl; (void)keycode; (void)state;
-	if (keyval == GDK_KEY_Escape) {
-		GtkWidget *widget = GTK_WIDGET(data);
-		gtk_widget_set_visible(widget, FALSE);
-		reactivate_parent(widget);
-		return TRUE;
-	}
-	return FALSE;
+	if (keyval != GDK_KEY_Escape)
+		return FALSE;
+	GtkWindow *win = GTK_WINDOW(data);
+	/* When the focus sits inside a popover (an open GtkDropDown list, a
+	 * context menu, a completion popup...), Escape must close the popover,
+	 * not the dialog — decline it here and let it propagate. */
+	for (GtkWidget *w = gtk_window_get_focus(win); w; w = gtk_widget_get_parent(w))
+		if (GTK_IS_POPOVER(w))
+			return FALSE;
+	gtk_window_close(win);
+	return TRUE;
+}
+
+/* Attach the Escape-to-close controller to a dialog window, once.
+ * The controller runs in the CAPTURE phase: several stock widgets
+ * (GtkDropDown's internal button among others) consume key events in
+ * the bubble phase before they ever reach the window, which left Escape
+ * dead in dialogs like SPCC depending on where the focus landed. */
+static void ensure_escape_controller(GtkWindow *win) {
+	if (g_object_get_data(G_OBJECT(win), "siril-escape-ctrl"))
+		return;
+	GtkEventController *ctrl = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(ctrl, GTK_PHASE_CAPTURE);
+	g_signal_connect(ctrl, "key-pressed", G_CALLBACK(check_escape), win);
+	gtk_widget_add_controller(GTK_WIDGET(win), ctrl);
+	g_object_set_data(G_OBJECT(win), "siril-escape-ctrl", ctrl);
 }
 
 
@@ -227,15 +250,9 @@ void siril_open_dialog(gchar *id) {
 			}
 		}
 	}
-	if (entry.type == SEARCH_ENTRY_DIALOG) {
-		/* Attach a key controller once per window; subsequent opens reuse it. */
-		if (!g_object_get_data(G_OBJECT(win), "siril-escape-ctrl")) {
-			GtkEventController *ctrl = gtk_event_controller_key_new();
-			g_signal_connect(ctrl, "key-pressed", G_CALLBACK(check_escape), win);
-			gtk_widget_add_controller(GTK_WIDGET(win), ctrl);
-			g_object_set_data(G_OBJECT(win), "siril-escape-ctrl", ctrl);
-		}
-	}
+	/* GTK3's GtkDialog closed on Escape out of the box; restore that for
+	 * every dialog (the controller is attached once, reused on reopen). */
+	ensure_escape_controller(win);
 
 	/* GTK4: GTK_WIN_POS_CENTER and GDK_WINDOW_TYPE_HINT_DIALOG are gone.
 	 * The window manager centres modal/transient windows automatically

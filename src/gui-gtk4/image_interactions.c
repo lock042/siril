@@ -477,6 +477,12 @@ static void on_drawingarea_pressed_cb(GtkGestureClick *gesture, int n_press,
 	SirilEventType type = siril_event_type_from_n_press(n_press);
 	SirilModifierMask mods = siril_mods_from_gdk(gdk_state);
 
+	/* GTK4 does not move keyboard focus to a clicked widget by itself
+	 * (GTK3 didn't either, but its window ran accelerators before the
+	 * focus widget).  Take the focus explicitly so clicking the image
+	 * pulls it out of entries/spin buttons, as users expect. */
+	gtk_widget_grab_focus(widget);
+
 	cache_widgets();
 	if (!gui.mouse_actions)
 		load_or_initialize_mouse_actions();
