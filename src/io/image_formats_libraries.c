@@ -66,6 +66,7 @@
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"
+#include "io/single_image.h"
 /* gui_calls.h removed: heif_dialog now routes through gui_iface */
 #include "image_format_fits.h"
 
@@ -119,6 +120,8 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	}
 	for (uint32_t row = 0; row < height; row += rowsperstrip){
 		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+		if (read_progress_active())
+			gui_iface.set_progress((double) row / (double) height, NULL);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -202,6 +205,8 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	}
 	for (uint32_t row = 0; row < height; row += rowsperstrip) {
 		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+		if (read_progress_active())
+			gui_iface.set_progress((double) row / (double) height, NULL);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -285,6 +290,8 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	}
 	for (uint32_t row = 0; row < height; row += rowsperstrip) {
 		uint32_t nrow = (row + rowsperstrip > height ? height - row : rowsperstrip);
+		if (read_progress_active())
+			gui_iface.set_progress((double) row / (double) height, NULL);
 		switch (config) {
 		case PLANARCONFIG_CONTIG:
 			if (TIFFReadEncodedStrip(tif, TIFFComputeStrip(tif, row, 0), buf, nrow * scanline) < 0) {
@@ -1309,6 +1316,9 @@ int readjpg(const char* name, fits *fit){
 	JSAMPARRAY pJpegBuffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE,	row_stride, 1);
 
 	while (cinfo.output_scanline < cinfo.output_height) {
+		if (read_progress_active() && (cinfo.output_scanline & 63) == 0)
+			gui_iface.set_progress(
+				(double) cinfo.output_scanline / (double) cinfo.output_height, NULL);
 		jpeg_read_scanlines(&cinfo, pJpegBuffer, 1);
 		for (int i = 0; i < cinfo.output_width; i++) {
 			*buf[RLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 0];
@@ -1631,6 +1641,10 @@ int readpng(const char *name, fits* fit) {
 			|| color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
 		png_set_gray_to_rgb(png);
 
+	/* Needed so we can decode row-by-row below (and report progress) while
+	 * still handling interlaced PNGs; returns 1 for non-interlaced images. */
+	int number_of_passes = png_set_interlace_handling(png);
+
 	png_read_update_info(png, info);
 
 	png_bytep *row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
@@ -1657,7 +1671,16 @@ int readpng(const char *name, fits* fit) {
 		}
     }
 
-	png_read_image(png, row_pointers);
+	/* Decode row by row (equivalent to png_read_image) so a large PNG can
+	 * report real decode progress on the interactive open path. */
+	for (int pass = 0; pass < number_of_passes; pass++) {
+		for (int y = 0; y < height; y++) {
+			png_read_row(png, row_pointers[y], NULL);
+			if (read_progress_active() && (y & 63) == 0)
+				gui_iface.set_progress(
+					((double) pass * height + y) / ((double) number_of_passes * height), NULL);
+		}
+	}
 
 	fclose(f);
 	png_destroy_read_struct(&png, &info, &end_info);
@@ -2140,9 +2163,28 @@ static int fcol(libraw_data_t *raw, int row, int col) {
 	return FC(raw->idata.filters, row, col);
 }
 
+static int siril_libraw_progress_cb(void *data, enum LibRaw_progress stage,
+		int iteration, int expected) {
+	(void) stage;
+	if (!read_progress_active() || expected <= 0)
+		return 0;
+	int pct = (int) (100.0 * iteration / expected);
+	if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
+	int *last_pct = data;
+	if (last_pct) {
+		if (pct == *last_pct)
+			return 0;
+		*last_pct = pct;
+	}
+	gui_iface.set_progress((double) pct / 100.0, NULL);
+	return 0;
+}
+
 static int readraw_in_cfa(const char *name, fits *fit) {
 	libraw_data_t *raw = libraw_init(0);
 	char pattern[FLEN_VALUE];
+	int lr_last_pct = -1;
+	libraw_set_progress_handler(raw, siril_libraw_progress_cb, &lr_last_pct);
 
 	int ret = siril_libraw_open_file(raw, name);
 	if (ret) {

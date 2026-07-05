@@ -41,6 +41,7 @@
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "core/gui_iface.h"
+#include "io/single_image.h"
 /* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
  * should move to gui/ so that image_format_fits.c is GDK-free. */
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -588,6 +589,33 @@ static int siril_fits_move_first_image(fitsfile* fp) {
  * currently should be TBYTE or TUSHORT because fit doesn't contain other data.
  * filename is for error reporting
  */
+/* Read `nbdata` image elements into `buffer` with cfitsio, in bands, so the
+ * progress bar can advance during the load of a large image.  fits_read_img()
+ * fills the destination linearly in pixel order, so we simply step the
+ * first-element index forward and report progress after each band.  `elemsize`
+ * is the size in bytes of one destination element for `datatype`.  When the
+ * read isn't flagged as interactive (batch/sequence paths) or the image is
+ * small, this behaves like the single bulk read it replaces. */
+static void read_pix_with_progress(fitsfile *fptr, int datatype, size_t nbdata,
+		size_t elemsize, void *buffer, int *status) {
+	int zero = 0;
+	/* ~8M elements per band: smooth progress on big frames, negligible
+	 * per-call overhead. */
+	const size_t band = 8u * 1024 * 1024;
+	if (!read_progress_active() || nbdata <= band) {
+		fits_read_img(fptr, datatype, 1, nbdata, &zero, buffer, &zero, status);
+		return;
+	}
+	for (size_t off = 0; off < nbdata; off += band) {
+		size_t n = (nbdata - off < band) ? (nbdata - off) : band;
+		fits_read_img(fptr, datatype, (LONGLONG)(off + 1), (LONGLONG)n, &zero,
+				(char *)buffer + off * elemsize, &zero, status);
+		if (*status)
+			return;
+		gui_iface.set_progress((double)(off + n) / (double)nbdata, NULL);
+	}
+}
+
 int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float) {
 	int status = 0, zero = 0, datatype;
 	BYTE *data8;
@@ -650,20 +678,20 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 	case BYTE_IMG:
 		data8 = malloc(nbdata * sizeof(BYTE));
 		datatype = fit->bitpix == BYTE_IMG ? TBYTE : TSBYTE;
-		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, data8, &zero, &status);
+		read_pix_with_progress(fit->fptr, datatype, nbdata, sizeof(BYTE), data8, &status);
 		if (status) break;
 		convert_data_ushort(fit->bitpix, data8, fit->data, nbdata, FALSE);
 		free(data8);
 		break;
 	case SHORT_IMG:
-		fits_read_img(fit->fptr, TSHORT, 1, nbdata, &zero, fit->data, &zero, &status);
+		read_pix_with_progress(fit->fptr, TSHORT, nbdata, sizeof(WORD), fit->data, &status);
 		if (status) break;
 		convert_data_ushort(fit->bitpix, fit->data, fit->data, nbdata, FALSE);
 		fit->bitpix = USHORT_IMG;
 		break;
 	case USHORT_IMG:
 		// siril 0.9 native, no conversion required
-		fits_read_img(fit->fptr, TUSHORT, 1, nbdata, &zero, fit->data, &zero, &status);
+		read_pix_with_progress(fit->fptr, TUSHORT, nbdata, sizeof(WORD), fit->data, &status);
 		if (status == NUM_OVERFLOW) {
 			// in case there are errors, we try short data
 			status = 0;
@@ -684,7 +712,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 	case LONG_IMG:		// 32-bit signed integer pixels
 		pixels_long = malloc(nbdata * sizeof(unsigned long));
 		datatype = fit->bitpix == LONG_IMG ? TLONG : TULONG;
-		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, pixels_long, &zero, &status);
+		read_pix_with_progress(fit->fptr, datatype, nbdata, sizeof(unsigned long), pixels_long, &status);
 		if (status) break;
 		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
 		if (status) {
@@ -702,7 +730,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		/* we assume we are in the range [0, 1]. But, for some images
 		 * some values can be negative
 		 */
-		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
+		read_pix_with_progress(fit->fptr, TFLOAT, nbdata, sizeof(float), fit->fdata, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {

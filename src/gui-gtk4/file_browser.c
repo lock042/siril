@@ -14,8 +14,10 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
+#include "core/exif.h"
 #include "io/avi_preview.h"
 #include "io/SirilJpegXLWrapper.h"
+#include "io/SirilXISFWraper.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
@@ -277,7 +279,7 @@ static void build_recent_store(SirilFileBrowser *fb) {
 		 * attribute set (size, icon, type, display-name, mtime, is-hidden).
 		 * Hand-building a partial GFileInfo means every column bind callback
 		 * that reads an unset attribute raises a GLib-GIO CRITICAL (icon,
-		 * size, …) — querying once gets them all and matches exactly what
+		 * size, ...) — querying once gets them all and matches exactly what
 		 * GtkDirectoryList produces for the normal listing. */
 		GFile *gf = g_file_new_for_path(path);
 		GFileInfo *fi = g_file_query_info(gf,
@@ -2216,7 +2218,12 @@ void siril_file_browser_default_preview(const gchar *path,
 #ifdef HAVE_LIBJXL
 	jxl_thumbnail = (itype == TYPEJXL);
 #endif
-	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI || jxl_thumbnail) {
+	gboolean xisf_thumbnail = FALSE;
+#ifdef HAVE_LIBXISF
+	xisf_thumbnail = (itype == TYPEXISF);
+#endif
+	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI
+			|| xisf_thumbnail || jxl_thumbnail) {
 		gchar *descr = NULL;
 		int w = 0, h = 0;
 		guchar *data = NULL;
@@ -2226,6 +2233,10 @@ void siril_file_browser_default_preview(const gchar *path,
 			data = extract_thumbnail_from_ser(path, &descr, &w, &h);
 		else if (itype == TYPEAVI)
 			data = extract_thumbnail_from_avi(path, &descr, &w, &h);
+#ifdef HAVE_LIBXISF
+		else if (xisf_thumbnail)
+			data = extract_thumbnail_from_xisf(path, &descr, &w, &h);
+#endif
 #ifdef HAVE_LIBJXL
 		else /* TYPEJXL */ {
 			/* JPEG XL previews go through Siril's own libjxl extractor,
@@ -2270,45 +2281,131 @@ void siril_file_browser_default_preview(const gchar *path,
 			g_strfreev(lines);
 		}
 		g_free(descr);
-	} else if (!type_known_non_raster(itype)) {
-		int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
-		/* Original dimensions for the metadata line, read from the header
-		 * without decoding the pixels. */
-		int orig_w = 0, orig_h = 0;
-		gdk_pixbuf_get_file_info(path, &orig_w, &orig_h);
-		GError *err = NULL;
-		GdkPixbuf *pix = gdk_pixbuf_new_from_file_at_scale(path, max_size,
-			max_size, TRUE, &err);
-		if (pix) {
-			/* Wrap the pixbuf's pixels in a GdkMemoryTexture (the
-			 * non-deprecated path; gdk_texture_new_for_pixbuf is deprecated).
-			 * The GBytes keeps the pixbuf alive for as long as the texture
-			 * references its pixel data — ownership of our pixbuf ref is
-			 * handed to the bytes' free func, so we don't unref pix here. */
-			int pw = gdk_pixbuf_get_width(pix);
-			int ph = gdk_pixbuf_get_height(pix);
-			int stride = gdk_pixbuf_get_rowstride(pix);
-			GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(pix)
-				? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
-			GBytes *bytes = g_bytes_new_with_free_func(
-				gdk_pixbuf_get_pixels(pix), (gsize)stride * ph,
-				(GDestroyNotify)g_object_unref, pix);
-			GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
-			g_bytes_unref(bytes);  /* texture holds its own ref */
-			if (tex) {
-				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
-				if (orig_w > 0 && orig_h > 0)
-					dims_str = g_strdup_printf("%d x %d %s",
-						orig_w, orig_h, _("pixels"));
-				else
-					dims_str = g_strdup_printf("%d x %d %s",
-						pw, ph, _("pixels"));
-				g_object_unref(tex);
-				got_texture = TRUE;
+	} else {
+		/* Try the exiv2 embedded preview FIRST  then fall back to decoding the
+		 * file directly with gdk-pixbuf.  On builds without exiv2 the extractor
+		 * just returns non-zero and we go straight to the fallback. */
+		uint8_t *ebuf = NULL;
+		size_t esize = 0;
+		char *emime = NULL;
+		if (siril_get_thumbnail_exiv(path, &ebuf, &esize, &emime) == 0
+				&& ebuf && esize) {
+			int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
+			GError *err = NULL;
+			GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+			GdkPixbuf *pix = NULL;
+			if (gdk_pixbuf_loader_write(loader, ebuf, esize, &err)
+					&& gdk_pixbuf_loader_close(loader, &err)) {
+				pix = gdk_pixbuf_loader_get_pixbuf(loader);
+				if (pix) g_object_ref(pix);  /* loader owns it otherwise */
+			} else {
+				g_clear_error(&err);
+				gdk_pixbuf_loader_close(loader, NULL);
 			}
-		} else {
-			g_clear_error(&err);
+			g_object_unref(loader);
+			if (pix) {
+				int ow = gdk_pixbuf_get_width(pix);
+				int oh = gdk_pixbuf_get_height(pix);
+				int longest = ow > oh ? ow : oh;
+				/* If the embedded preview is smaller than the requested
+				 * thumbnail size and the file is one gdk-pixbuf can decode
+				 * directly (JPEG/TIFF/PNG...), drop it: the full-resolution
+				 * fallback below then yields a crisp thumbnail at the
+				 * preference size instead of a tiny EXIF thumbnail (which
+				 * SCALE_DOWN leaves undersized) or a blurry upscale.  RAW &
+				 * friends (not gdk-pixbuf-decodable) keep the preview. */
+				if (longest > 0 && longest < max_size && !type_known_non_raster(itype)) {
+					g_object_unref(pix);
+					pix = NULL;
+				}
+				if (pix) {
+					/* Scale so the longest side matches the thumbnail size —
+					 * down for large previews, up for small RAW previews —
+					 * preserving aspect ratio, like the 1.4 preview did. */
+					GdkPixbuf *scaled = pix;
+					if (longest > 0 && longest != max_size) {
+						double s = (double) max_size / longest;
+						int sw = MAX(1, (int) (ow * s + 0.5));
+						int sh = MAX(1, (int) (oh * s + 0.5));
+						scaled = gdk_pixbuf_scale_simple(pix, sw, sh, GDK_INTERP_BILINEAR);
+						g_object_unref(pix);
+					}
+					if (scaled) {
+						int pw = gdk_pixbuf_get_width(scaled);
+						int ph = gdk_pixbuf_get_height(scaled);
+						int stride = gdk_pixbuf_get_rowstride(scaled);
+						GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(scaled)
+							? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
+						GBytes *bytes = g_bytes_new_with_free_func(
+							gdk_pixbuf_get_pixels(scaled), (gsize)stride * ph,
+							(GDestroyNotify)g_object_unref, scaled);
+						GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
+						g_bytes_unref(bytes);  /* texture holds its own ref */
+						if (tex) {
+							gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+							gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+							/* Prefer the real image dimensions (readable from the
+							 * header for JPEG/TIFF/...); fall back to the preview's
+							 * own size for RAW, whose preview ≈ the full frame. */
+							int fw = 0, fh = 0;
+							gdk_pixbuf_get_file_info(path, &fw, &fh);
+							if (fw > 0 && fh > 0)
+								dims_str = g_strdup_printf("%d x %d %s", fw, fh, _("pixels"));
+							else
+								dims_str = g_strdup_printf("%d x %d %s", ow, oh, _("pixels"));
+							g_object_unref(tex);
+							got_texture = TRUE;
+						}
+					}
+				}
+			}
+		}
+		free(ebuf);
+		free(emime);
+
+		/* Fallback (exiv2 found nothing): decode the file directly.  Only for
+		 * formats gdk-pixbuf can actually open — RAW/XISF/PIC can't, so they
+		 * stay on the exiv2 result or the type icon. */
+		if (!got_texture && !type_known_non_raster(itype)) {
+			int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
+			/* Original dimensions for the metadata line, read from the header
+			 * without decoding the pixels. */
+			int orig_w = 0, orig_h = 0;
+			gdk_pixbuf_get_file_info(path, &orig_w, &orig_h);
+			GError *err = NULL;
+			GdkPixbuf *pix = gdk_pixbuf_new_from_file_at_scale(path, max_size,
+				max_size, TRUE, &err);
+			if (pix) {
+				/* Wrap the pixbuf's pixels in a GdkMemoryTexture (the
+				 * non-deprecated path; gdk_texture_new_for_pixbuf is deprecated).
+				 * The GBytes keeps the pixbuf alive for as long as the texture
+				 * references its pixel data — ownership of our pixbuf ref is
+				 * handed to the bytes' free func, so we don't unref pix here. */
+				int pw = gdk_pixbuf_get_width(pix);
+				int ph = gdk_pixbuf_get_height(pix);
+				int stride = gdk_pixbuf_get_rowstride(pix);
+				GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(pix)
+					? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
+				GBytes *bytes = g_bytes_new_with_free_func(
+					gdk_pixbuf_get_pixels(pix), (gsize)stride * ph,
+					(GDestroyNotify)g_object_unref, pix);
+				GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
+				g_bytes_unref(bytes);  /* texture holds its own ref */
+				if (tex) {
+					gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+					gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+					if (orig_w > 0 && orig_h > 0)
+						dims_str = g_strdup_printf("%d x %d %s",
+							orig_w, orig_h, _("pixels"));
+					else
+						dims_str = g_strdup_printf("%d x %d %s",
+							pw, ph, _("pixels"));
+					g_object_unref(tex);
+					got_texture = TRUE;
+				}
+			} else {
+				g_clear_error(&err);
+			}
 		}
 	}
 
