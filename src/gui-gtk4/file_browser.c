@@ -2044,16 +2044,11 @@ static void picture_set_icon(GtkPicture *picture, const char *icon_name) {
 	GdkDisplay *disp = gtk_widget_get_display(GTK_WIDGET(picture));
 	if (!disp) { gtk_picture_set_paintable(picture, NULL); return; }
 	GtkIconTheme *theme = gtk_icon_theme_get_for_display(disp);
-	/* Request a large icon so themed SVGs render crisply when scaled to
-	 * fit the preview area; raster fallbacks stay close to native size. */
+	int icon_size = com.pref.gui.thumbnail_size;
 	GtkIconPaintable *icon = gtk_icon_theme_lookup_icon(theme, icon_name,
-		NULL, 256, 1, GTK_TEXT_DIR_NONE, 0);
+		NULL, icon_size, 1, GTK_TEXT_DIR_NONE, 0);
 	if (!icon) { gtk_picture_set_paintable(picture, NULL); return; }
 	gtk_picture_set_paintable(picture, GDK_PAINTABLE(icon));
-	/* SCALE_DOWN, like the thumbnail path: show the icon at (up to) its
-	 * looked-up native size (256 px) centred in the pane, rather than
-	 * blowing it up to fill the whole preview area — keeps the icon within
-	 * the same size constraints as image thumbnails. */
 	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
 	g_object_unref(icon);
 }

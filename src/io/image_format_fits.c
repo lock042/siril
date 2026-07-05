@@ -42,9 +42,6 @@
 #include "io/fits_sequence.h"
 #include "core/gui_iface.h"
 #include "io/single_image.h"
-/* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
- * should move to gui/ so that image_format_fits.c is GDK-free. */
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "algos/spcc.h"
@@ -2934,12 +2931,6 @@ static inline int choose_num_threads(int W, int H, int max_threads) {
 	return threads;
 }
 
-static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
-	free(pixels);
-	free(data);
-	return FALSE;
-}
-
 #define TRYFITS(f, ...) \
 	do{ \
 		status = FALSE; \
@@ -3155,18 +3146,6 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	if (width_out) *width_out = Ws;
 	if (height_out) *height_out = Hs;
 	return pixbuf_data;
-}
-
-/* Pixbuf-returning shim around extract_thumbnail_from_fits, kept for the
- * GTK3 build and for any caller that still wants a GdkPixbuf.  Ownership
- * of the byte buffer is transferred to the pixbuf via free_preview_data. */
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
-	int w = 0, h = 0;
-	guchar *data = extract_thumbnail_from_fits(filename, descr, &w, &h);
-	if (!data) return NULL;
-	return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
-			w, h, w * 3,
-			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
