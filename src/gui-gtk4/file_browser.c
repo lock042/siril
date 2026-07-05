@@ -2805,6 +2805,11 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_column_view_set_show_column_separators(fb->columnview, FALSE);
 	gtk_column_view_set_show_row_separators(fb->columnview, FALSE);
 	gtk_widget_add_css_class(GTK_WIDGET(fb->columnview), "siril-dense-rows");
+	/* Rubber-band (drag-a-rectangle) selection — GTK3's file chooser tree
+	 * gave this for free, but GtkColumnView starts with it off.  Only
+	 * meaningful with a multi-selection model, so it's kept in sync with
+	 * fb->select_multiple here and in siril_file_browser_set_select_multiple. */
+	gtk_column_view_set_enable_rubberband(fb->columnview, fb->select_multiple);
 	/* Column order: Name | Size | Type | Modified. */
 	{
 		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
@@ -3121,6 +3126,14 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	if (fb->open_button)
 		gtk_widget_set_sensitive(fb->open_button, FALSE);
 
+	/* Clear the preview pane.  Nothing is selected yet on a fresh run, so
+	 * without this the thumbnail + metadata from the previously previewed
+	 * file stay on screen until the user happens to select something. */
+	if (fb->preview)
+		gtk_picture_set_paintable(fb->preview, NULL);
+	if (fb->metadata_label)
+		gtk_label_set_text(fb->metadata_label, "");
+
 	update_nav_sensitivity(fb);
 }
 
@@ -3208,6 +3221,9 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 	g_clear_object(&fb->selection);
 	fb->selection = fresh;  /* takes the +1 ref we got from _new */
 	gtk_column_view_set_model(fb->columnview, fb->selection);
+	/* Rubber-band selection only makes sense when several items can be
+	 * selected at once — enable it in multi mode, disable it otherwise. */
+	gtk_column_view_set_enable_rubberband(fb->columnview, multi);
 	g_signal_connect(fb->selection, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), fb);
 }
