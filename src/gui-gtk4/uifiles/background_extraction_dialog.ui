@@ -592,6 +592,7 @@
             <child>
               <object class="GtkButton" id="bkg_compute_bkg">
                 <property name="focusable">1</property>
+                <property name="sensitive">0</property>
                 <property name="label" translatable="yes">Compute Background</property>
                 <property name="receives-default">1</property>
                 <property name="tooltip-text" translatable="yes">This will compute the synthetic background and will apply the selected correction. The model is always computed from the original image kept in memory allowing the user to work iteratively.</property>

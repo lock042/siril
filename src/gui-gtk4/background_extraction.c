@@ -35,6 +35,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/siril_actions.h"
 
 static GtkDropDown *bkg_poly_order_combo = NULL;
 static GtkDropDown *bkg_correction_combo = NULL;
@@ -46,6 +47,7 @@ static GtkCheckButton *bkg_dither_btn = NULL;
 static GtkCheckButton *bkg_randomize_btn = NULL;
 static GtkCheckButton *bkg_grad_descent_btn = NULL;
 static GtkWidget *bkg_ok_button = NULL;
+static GtkWidget *bkg_compute_bkg_button = NULL;
 static GtkDropDown *bkg_view_combo = NULL;
 static GtkWidget *bkg_view_box = NULL;
 static GtkLabel *bkg_label_samples = NULL;
@@ -84,6 +86,7 @@ static void background_extraction_init_statics(void) {
 	bkg_randomize_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_randomize_button"));
 	bkg_grad_descent_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_grad_descent_button"));
 	bkg_ok_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "background_ok_button"));
+	bkg_compute_bkg_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_compute_bkg"));
 	bkg_view_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bkg_view_combo"));
 	bkg_view_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_view_box"));
 	bkg_label_samples = GTK_LABEL(gtk_builder_get_object(gui.builder, "background_label_samples"));
@@ -145,6 +148,15 @@ static gboolean is_grad_descent_checked() {
 
 static background_method get_background_method() {
 	return gtk_drop_down_get_selected(bkg_method_combo);
+}
+
+void update_bkg_compute_button_sensitivity(void) {
+	background_extraction_init_statics();
+	if (!bkg_compute_bkg_button)
+		return;
+	gboolean can_compute = (get_background_method() == BACKGROUND_METHOD_AUTO)
+			|| (com.grad_samples != NULL);
+	gtk_widget_set_sensitive(bkg_compute_bkg_button, can_compute);
 }
 
 static int get_ag_downsample() {
@@ -231,11 +243,13 @@ static gboolean bkg_generate_idle(gpointer p) {
 	stop_processing_thread();
 	if (!args) {
 		/* generation failed — log tab was already switched in the worker */
+		update_bkg_compute_button_sensitivity();
 		redraw(REDRAW_OVERLAY);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
 	free(args);
+	update_bkg_compute_button_sensitivity();
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -294,6 +308,7 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	com.grad_samples = NULL;
 	sample_mutex_unlock();
 
+	update_bkg_compute_button_sensitivity();
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 }
@@ -533,6 +548,7 @@ static void bkg_sync_method(void) {
 	gtk_widget_set_visible(bkg_auto_expander, is_auto);
 	if (is_auto)
 		ag_sync_sensitivity();
+	update_bkg_compute_button_sensitivity();
 	mouse_status = is_auto ? MOUSE_ACTION_SELECT_REG_AREA : MOUSE_ACTION_DRAW_SAMPLES;
 	redraw(REDRAW_OVERLAY);
 }
