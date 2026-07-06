@@ -31,6 +31,9 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/icc_profile.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/sorting.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -343,6 +346,70 @@ static gchar *pick_non_image(int whichdial, GtkWindow *parent) {
 	return picked;
 }
 
+static void opendial(int whichdial);
+
+/* ── threaded single-image open ────────────────────────────────────────
+ *
+ * open_single_image() blocks its caller for the whole decode, so calling it
+ * straight from the GUI froze the main loop and the progress bar (updated via
+ * g_idle_add) could never paint.  We run the decode on the processing thread
+ * instead: reserve the slot, launch the worker, and finalise in an idle.  The
+ * worker calls open_single_image_internal() (not open_single_image()) because
+ * owning the reserved slot would otherwise trip that function's own
+ * "a job is already running" guard. */
+struct threaded_open_data {
+	gchar *filename;
+	int    retval;
+};
+
+static gboolean end_threaded_open(gpointer p) {
+	struct threaded_open_data *d = p;
+	stop_processing_thread();
+	/* ICC assignment + these final GUI touches must run on the main thread. */
+	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	set_cursor_waiting(FALSE);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	/* A sub-dialog cancelled mid-load (e.g. the RAW/debayer prompt) asks to
+	 * re-prompt, matching the old synchronous behaviour. */
+	if (d->retval == OPEN_IMAGE_CANCEL)
+		opendial(OD_OPEN);
+	g_free(d->filename);
+	free(d);
+	return FALSE;
+}
+
+static gpointer threaded_open_worker(gpointer p) {
+	struct threaded_open_data *d = p;
+	d->retval = open_single_image_internal(d->filename);
+	siril_add_idle(end_threaded_open, d);
+	return GINT_TO_POINTER(d->retval);
+}
+
+/* Open `path` as a single image with a live progress bar.  Returns 0 when the
+ * load was handed off to the worker (its idle owns cursor/ICC/progress from
+ * there), otherwise the synchronous open_single_image() return code — so the
+ * caller can still honour OPEN_IMAGE_CANCEL.  Takes its own copy of `path`. */
+static int open_image_threaded(const char *path) {
+	set_cursor_waiting(TRUE);
+	if (reserve_thread()) {
+		struct threaded_open_data *d = malloc(sizeof(*d));
+		d->filename = g_strdup(path);
+		d->retval = 0;
+		if (start_in_reserved_thread(threaded_open_worker, d))
+			return 0;  /* async: worker + end idle own the rest */
+		/* Submission failed — release the slot and fall through to sync. */
+		unreserve_thread();
+		g_free(d->filename);
+		free(d);
+	}
+	/* Fallback: synchronous open.  Also the correct path when a job is truly
+	 * busy — open_single_image() then shows the proper "cannot open" error. */
+	int rv = open_single_image(path);
+	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	set_cursor_waiting(FALSE);
+	return rv;
+}
+
 static void opendial(int whichdial) {
 	open_dialog_init_statics();
 	GtkWindow *control_window = od_control_window;
@@ -454,10 +521,7 @@ static void opendial(int whichdial) {
 			}
 			break;
 		case OD_OPEN:
-			set_cursor_waiting(TRUE);
-			retval = open_single_image(filename);
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
-			set_cursor_waiting(FALSE);
+			retval = open_image_threaded(filename);
 			if (retval == OPEN_IMAGE_CANCEL) continue;  /* re-prompt */
 			break;
 		case OD_CONVERT:
@@ -551,9 +615,7 @@ void open_recent_action_activate(GSimpleAction *action, GVariant *parameter,
 	/* The GVariant target is owned by the menu item and will outlive
 	 * this handler, but downstream code passes the pointer into idles
 	 * that may run after we return — copy onto the heap to be safe. */
-	gchar *path_copy = g_strdup(path);
-	open_single_image(path_copy);
-	g_free(path_copy);
+	open_image_threaded(path);
 }
 
 static int recent_info_cmp_modified_desc(gconstpointer a, gconstpointer b) {

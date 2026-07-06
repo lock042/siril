@@ -40,6 +40,22 @@
 #include "core/undo.h"
 #include "core/processing.h"
 
+/* Progress gate for image readers.  The FITS / TIFF / PNG / JPEG readers are
+ * shared between the interactive single-image open and batch paths (stacking,
+ * conversion, sequence export).  Those batch paths already drive the progress
+ * bar with frame-level counts, so per-pixel read progress must NOT leak into
+ * them.  read_single_image() raises this flag around the actual decode; the
+ * readers consult read_progress_active() before touching the progress bar. */
+static gboolean read_progress_flag = FALSE;
+
+void set_read_progress_active(gboolean active) {
+	read_progress_flag = active;
+}
+
+gboolean read_progress_active(void) {
+	return read_progress_flag;
+}
+
 /* Closes and frees resources attached to the single image opened in gfit->
  * If a sequence is loaded and one of its images is displayed, nothing is done.
  */
@@ -130,7 +146,13 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			return 1;
 		}
 	} else {
+		/* Report decode progress for this interactive single-image open (the
+		 * readers no-op on the progress bar otherwise). */
+		set_read_progress_active(TRUE);
+		gui_iface.set_progress(PROGRESS_RESET, _("Loading image..."));
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
+		gui_iface.set_progress(PROGRESS_DONE, PROGRESS_TEXT_RESET);
+		set_read_progress_active(FALSE);
 		/* no_debayer lets a caller (e.g. the Python module) suppress debayering
 		 * without mutating the global com.pref.debayer.open_debayer. */
 		if (!retval && !no_debayer)
@@ -177,31 +199,22 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	return 0;
 }
 
-/* This function is used to load a single image, meaning outside a sequence,
- * whether a sequence is loaded or not, whether an image was already loaded or
- * not. The opened file is available in the usual global variable for current
- * image, gfit->
- */
-int open_single_image(const char* filename) {
+/* Actual open, without the "is another job running" guard.  Callers that
+ * already own the processing thread (the GUI's threaded open, which reserves
+ * the slot before running this on the worker) must use this variant — the
+ * guard in open_single_image() would otherwise see their own reservation as a
+ * conflict and refuse.  All other callers go through open_single_image(). */
+int open_single_image_internal(const char* filename) {
 	int retval = 0;
 	char *realname = NULL;
 	gboolean is_single_sequence;
 
-	/* Check we aren't running a processing thread otherwise it will clobber gfit
-	 * when it finishes and cause a segfault.
-	 */
-	if ((retval = processing_is_job_active())) {
-		siril_log_error(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
-	}
-
 	/* first, close everything */
-	if (!retval) {
-		close_sequence(FALSE);	// closing a sequence if loaded
-		close_single_image();	// close the previous image and free resources
+	close_sequence(FALSE);	// closing a sequence if loaded
+	close_single_image();	// close the previous image and free resources
 
-		/* open the new file */
-		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE, FALSE);
-	}
+	/* open the new file */
+	retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE, FALSE);
 	if (retval) {
 		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
@@ -224,6 +237,25 @@ int open_single_image(const char* filename) {
 	gui_iface.reset_cut_gui_filedependent(NULL);
 	gui_iface.check_icc_identical_to_monitor();
 	return retval;
+}
+
+/* This function is used to load a single image, meaning outside a sequence,
+ * whether a sequence is loaded or not, whether an image was already loaded or
+ * not. The opened file is available in the usual global variable for current
+ * image, gfit->
+ */
+int open_single_image(const char* filename) {
+	/* Check we aren't running a processing thread otherwise it will clobber gfit
+	 * when it finishes and cause a segfault.
+	 */
+	if (processing_is_job_active()) {
+		siril_log_error(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
+		return 1;
+	}
+	return open_single_image_internal(filename);
 }
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */

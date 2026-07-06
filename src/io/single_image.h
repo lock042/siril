@@ -5,8 +5,14 @@ void close_single_image();
 void free_image_data();
 int create_uniq_from_gfit(char *filename, gboolean exists);
 int read_single_image(const char* filename, fits *dest, char **realname_out, gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs, gboolean force_float, gboolean no_debayer);
+/* Set/query whether the shared image readers should report decode progress on
+ * the progress bar.  Active only during an interactive single-image open. */
+void set_read_progress_active(gboolean active);
+gboolean read_progress_active(void);
 gboolean end_open_single_image(gpointer arg);
 int open_single_image(const char* filename);
+/* Guard-free open body, for callers already owning the processing thread. */
+int open_single_image_internal(const char* filename);
 gboolean open_single_image_from_gfit(gpointer user_data);
 gboolean update_single_image_from_gfit(gpointer user_data);
 int image_find_minmax(fits *fit);

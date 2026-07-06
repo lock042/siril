@@ -40,6 +40,7 @@ siril-1.5.0
 * Added multipoint registration (for planetary, lunar and solar use) (!1034)
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
+* Improve speed of extract_thumbnail_from_fits (!1066)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
