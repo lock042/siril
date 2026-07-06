@@ -665,7 +665,7 @@
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Measure noise per scale</property>
                             <property name="focusable">1</property>
-                            <property name="tooltip-text" translatable="yes">Estimate noise from each scale instead of the propagation model</property>
+                            <property name="tooltip-text" translatable="yes">Measure each scale's noise directly instead of predicting it from the finest scale. Turn on for coarse or colour noise (mottled backgrounds, low frame counts, debayer/registration residuals); leave off for ordinary sensor noise.</property>
                             <signal name="toggled" handler="on_denoise_perband_toggled"/>
                             <layout><property name="column">2</property><property name="row">1</property><property name="column-span">2</property></layout>
                           </object>
