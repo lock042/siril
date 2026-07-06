@@ -13,6 +13,13 @@ gboolean end_open_single_image(gpointer arg);
 int open_single_image(const char* filename);
 /* Guard-free open body, for callers already owning the processing thread. */
 int open_single_image_internal(const char* filename);
+/* Threaded single-image open: the worker decodes into a private fits
+ * (read_new_single_image), the main thread swaps it into gfit under the writer
+ * lock (install_new_single_image).  Sequences are routed to the synchronous
+ * path via single_image_path_is_sequence(). */
+gboolean single_image_path_is_sequence(const char *filename);
+fits *read_new_single_image(const char *filename, char **realname_out, int *retval);
+int install_new_single_image(fits *newfit, char *realname);
 gboolean open_single_image_from_gfit(gpointer user_data);
 gboolean update_single_image_from_gfit(gpointer user_data);
 int image_find_minmax(fits *fit);

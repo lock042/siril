@@ -2919,18 +2919,6 @@ static inline void set_rgb(float r, float g, float b, guchar *rgb) {
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
 }
 
-// Choose thread count based on workload
-static inline int choose_num_threads(int W, int H, int max_threads) {
-	int pixels = W * H;
-	if (pixels < 65536) { // < 64k pixels → single-thread
-		return 1;
-	}
-	int threads = pixels / 16384; // aim ~16k pixels per thread
-	if (threads > max_threads) threads = max_threads;
-	if (threads < 1) threads = 1;
-	return threads;
-}
-
 #define TRYFITS(f, ...) \
 	do{ \
 		status = FALSE; \
