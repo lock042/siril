@@ -50,9 +50,9 @@ static gboolean block_preview_toggle = FALSE;
  * other. */
 static gboolean wavelet_sync_block = FALSE;
 
-/* Per-scale row widgets. Each layer occupies two grid rows: a strength row
- * (scale + spin + preview + reset) and a denoise row (scale + spin + per-layer
- * enable + reset). */
+/* Per-scale row widgets. Each layer has a strength row (scale + spin + preview
+ * + reset) in the "Adjust" grid, and a per-scale NR adjustment row (scale + spin
+ * + per-layer enable + reset) grouped in the "Denoising" frame's grid. */
 static GtkWidget *wavelets_label_w[6] = { NULL };
 static GtkRange *wavelets_scale_w[6] = { NULL };
 static GtkSpinButton *wavelets_spin_w[6] = { NULL };
@@ -63,6 +63,17 @@ static GtkWidget *wavelets_dscale_w[6] = { NULL };
 static GtkSpinButton *wavelets_denoise_w[6] = { NULL };
 static GtkCheckButton *wavelets_denoise_en_w[6] = { NULL };
 static GtkWidget *wavelets_dreset_w[6] = { NULL };
+/* Header for the grouped per-scale NR adjustment section (shown/hidden with the
+ * rows). */
+static GtkWidget *wavelets_nr_section_label = NULL;
+/* Placeholder shown in the "Adjust" frame before a decomposition exists; its
+ * visibility is the inverse of the layer controls'. */
+static GtkWidget *wavelets_placeholder_label = NULL;
+/* Number of wavelet layers in the current decomposition (0 before the first
+ * Execute). Layer controls are shown for exactly this many layers, regardless
+ * of the Nb-of-layers spinbutton, so uncomputed scales never show stale
+ * controls. */
+static int nb_computed_layers = 0;
 
 static GtkSpinButton *wavelets_plans_spin = NULL;
 static GtkWidget *wavelets_frame = NULL, *wavelets_reset_btn = NULL;
@@ -77,6 +88,10 @@ static GtkCheckButton *denoise_perband_btn = NULL, *denoise_anscombe_btn = NULL;
 static GtkDropDown *denoise_method_combo = NULL;
 static GtkSpinButton *denoise_k_spin = NULL;
 static GtkLabel *denoise_sigma_label = NULL;
+/* When off (the default) the per-scale denoise adjustment rows are hidden, so
+ * the single global strength stays the obvious primary control; ticking it
+ * reveals the second-order per-scale adjustments. */
+static GtkCheckButton *denoise_perscale_btn = NULL;
 
 static struct denoise_params wavelet_denoise;
 /* Whether the current decomposition was built in the Anscombe VST domain
@@ -103,17 +118,64 @@ static gboolean layer_denoise_active(int i) {
 			&& siril_toggle_get_active(GTK_WIDGET(wavelets_denoise_en_w[i]));
 }
 
+/* Whether the user has opted into per-scale denoise adjustments (off by
+ * default, so the global strength reads as the primary control). */
+static gboolean denoise_perscale_shown(void) {
+	return siril_toggle_get_active(GTK_WIDGET(denoise_perscale_btn));
+}
+
+/* The per-scale denoise adjustment row (label + slider + spin + enable + reset)
+ * is shown only for an active layer AND only when per-scale adjustments are
+ * enabled. Hiding it leaves the underlying values untouched (neutral 1.0,
+ * per-layer Enable on) so denoising behaviour is unchanged. */
+static void set_denoise_row_visible(int i, gboolean layer_active) {
+	gboolean vis = layer_active && denoise_perscale_shown();
+	gtk_widget_set_visible(wavelets_dlabel_w[i], vis);
+	gtk_widget_set_visible(wavelets_dscale_w[i], vis);
+	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_w[i]), vis);
+	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_en_w[i]), vis);
+	gtk_widget_set_visible(wavelets_dreset_w[i], vis);
+}
+
 static void set_scale_row_visible(int i, gboolean vis) {
 	gtk_widget_set_visible(wavelets_label_w[i], vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_scale_w[i]), vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_spin_w[i]), vis);
 	gtk_widget_set_visible(GTK_WIDGET(wavelets_preview_btn[i]), vis);
 	gtk_widget_set_visible(wavelets_reset_w[i], vis);
-	gtk_widget_set_visible(wavelets_dlabel_w[i], vis);
-	gtk_widget_set_visible(wavelets_dscale_w[i], vis);
-	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_w[i]), vis);
-	gtk_widget_set_visible(GTK_WIDGET(wavelets_denoise_en_w[i]), vis);
-	gtk_widget_set_visible(wavelets_dreset_w[i], vis);
+	set_denoise_row_visible(i, vis);
+}
+
+/* Show the strength and per-scale NR controls for exactly the layers the
+ * current decomposition produced (nb_computed_layers), plus the grouped NR
+ * section header when per-scale adjustments are enabled. The Nb-of-layers
+ * spinbutton is only the target for the next Execute: it does not reveal
+ * controls for scales that have not been computed yet. */
+static void refresh_layer_visibility(void) {
+	for (int i = 0; i < 6; i++)
+		set_scale_row_visible(i, i < nb_computed_layers);
+	gtk_widget_set_visible(wavelets_nr_section_label,
+			denoise_perscale_shown() && nb_computed_layers > 0);
+	/* The placeholder fills the "Adjust" frame until controls exist. */
+	gtk_widget_set_visible(wavelets_placeholder_label, nb_computed_layers == 0);
+}
+
+/* Ask the dialog window to shrink back to its natural size. GTK4 has no
+ * gtk_window_resize; setting the default size resizes a mapped window. When
+ * preserve_width is set the current width is kept (used when hiding rows
+ * mid-session); otherwise both dimensions snap to natural (used on show, where
+ * a reused window can reappear oversized with blank space at the bottom). */
+static void request_window_natural_size(GtkWidget *w, gboolean preserve_width) {
+	GtkRoot *root = gtk_widget_get_root(w);
+	if (!GTK_IS_WINDOW(root))
+		return;
+	int width = -1;
+	if (preserve_width) {
+		int cur = gtk_widget_get_width(GTK_WIDGET(root));
+		if (cur > 0)
+			width = cur;
+	}
+	gtk_window_set_default_size(GTK_WINDOW(root), width, -1);
 }
 
 /* The denoise strength widgets of a layer are only adjustable when that layer's
@@ -209,8 +271,14 @@ static void wavelets_dialog_init_statics(void) {
 	denoise_method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "denoise_method"));
 	denoise_k_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "denoise_k"));
 	denoise_sigma_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "denoise_sigma_label"));
+	denoise_perscale_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "denoise_perscale"));
+	wavelets_nr_section_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "nr_section_label"));
+	wavelets_placeholder_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "wavelet_placeholder_label"));
 
 	denoise_params_init(&wavelet_denoise);
+	/* per-scale adjustments start hidden (checkbox off), so hide the section now
+	 * to avoid a flash before the first reset_scale_w() runs */
+	refresh_layer_visibility();
 	refresh_denoise_sensitivity();
 }
 
@@ -230,13 +298,18 @@ static void reset_scale_w() {
 		siril_toggle_set_active(GTK_WIDGET(wavelets_denoise_en_w[i]), TRUE);
 	}
 	wavelet_sync_block = FALSE;
-	gtk_spin_button_set_value(wavelets_plans_spin, 6);
+	/* Leave the Nb-of-layers spinbutton alone: it holds the target for the next
+	 * Execute, and the visible controls track the computed layer count instead. */
 	/* global denoising back to defaults: off, BiShrink, k=3, soft, propagated */
 	siril_toggle_set_active(GTK_WIDGET(denoise_enable_btn), FALSE);
 	gtk_drop_down_set_selected(denoise_method_combo, 0);
 	gtk_spin_button_set_value(denoise_k_spin, 3.0);
 	siril_toggle_set_active(GTK_WIDGET(denoise_soft_btn), TRUE);
 	siril_toggle_set_active(GTK_WIDGET(denoise_perband_btn), FALSE);
+	/* per-scale adjustments hidden by default: global strength is the primary
+	 * control. Refresh the NR section visibility for the current layer count. */
+	siril_toggle_set_active(GTK_WIDGET(denoise_perscale_btn), FALSE);
+	refresh_layer_visibility();
 	refresh_denoise_sensitivity();
 	block_preview_toggle = FALSE;
 	set_notify_block(FALSE);
@@ -355,10 +428,14 @@ static gboolean wrecons_idle(gpointer p) {
  * re-enabled when the transform is actually ready). Owns and frees the worker
  * args handed to it. */
 static gboolean wavelet_compute_idle(gpointer p) {
+	struct wavelet_transform_data *args = (struct wavelet_transform_data *)p;
 	stop_processing_thread();
 	gtk_widget_set_sensitive(wavelets_frame, TRUE);
 	gtk_widget_set_sensitive(wavelets_reset_btn, TRUE);
 	gtk_widget_set_sensitive(denoise_frame, TRUE);
+	/* Only the layers that were actually decomposed get controls, even if the
+	 * user later bumps the Nb-of-layers spinbutton to recompute more scales. */
+	nb_computed_layers = args->Nbr_Plan;
 	reset_scale_w();
 	update_sigma_readout();
 	set_cursor_waiting(FALSE);
@@ -369,12 +446,20 @@ static gboolean wavelet_compute_idle(gpointer p) {
 void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
 	wavelets_dialog_init_statics();
 	wavelets_startup();
+	/* A reused window can reappear at its previous (taller) size with blank space
+	 * at the bottom now that the controls start hidden; snap it back to natural. */
+	request_window_natural_size(widget, FALSE);
 }
 
 void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_sensitive(wavelets_frame, FALSE);
 	gtk_widget_set_sensitive(wavelets_reset_btn, FALSE);
 	gtk_widget_set_sensitive(denoise_frame, FALSE);
+	/* No live decomposition once closed: the tool must be recomputed on reopen,
+	 * so drop the computed-layer count and hide the layer controls. */
+	nb_computed_layers = 0;
+	if (wavelets_plans_spin)
+		refresh_layer_visibility();
 	roi_supported(FALSE);
 	remove_roi_callback(wavelet_roi_changed);
 	clear_backup();
@@ -535,12 +620,6 @@ void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("extract_wavelets_layers_dialog");
 }
 
-void on_spinbutton_plans_w_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gint current_value = gtk_spin_button_get_value_as_int(button);
-	for (int i = 0; i < 6; i++)
-		set_scale_row_visible(i, current_value > i);
-}
-
 /* The strength spinbutton holds the actual coefficient; mirror it onto the
  * layer's logarithmic slider and refresh the preview. */
 static void strength_spin_changed(int n, GtkSpinButton *button) {
@@ -685,4 +764,15 @@ void on_denoise_perband_toggled(GtkCheckButton *button, gpointer user_data) {
 	if (block_preview_toggle)
 		return;
 	schedule_preview_update();
+}
+
+/* Reveal or hide the per-scale denoise adjustment rows. This is purely a display
+ * choice: the per-scale values are left as they are, so no preview refresh is
+ * needed. */
+void on_denoise_perscale_toggled(GtkCheckButton *button, gpointer user_data) {
+	refresh_layer_visibility();
+	/* Growing to show the rows happens automatically; when they are re-hidden the
+	 * window would otherwise keep its taller size with blank space at the bottom. */
+	if (!denoise_perscale_shown())
+		request_window_natural_size(GTK_WIDGET(button), TRUE);
 }

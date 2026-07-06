@@ -191,10 +191,9 @@
                         <property name="numeric">1</property>
                         <property name="snap-to-ticks">1</property>
                         <property name="text">6</property>
-                        <property name="tooltip-text" translatable="yes">Number of wavelet layers that will be used</property>
+                        <property name="tooltip-text" translatable="yes">Number of wavelet layers to compute on the next Execute</property>
                         <property name="value">6</property>
                         <property name="width-chars">1</property>
-                        <signal name="value-changed" handler="on_spinbutton_plans_w_value_changed"/>
                       </object>
                     </child>
                     <child>
@@ -246,7 +245,7 @@
                     <style>
                       <class name="wavelet-grid"/>
                     </style>
-                    <!-- Layer 1 -->
+                    <!-- Strength rows -->
                     <child>
                       <object class="GtkLabel" id="label_w0">
                         <property name="halign">start</property>
@@ -300,66 +299,11 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="dlabel_w0">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">1</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w0">
-                        <property name="adjustment">adj_dn0</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">1</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w0">
-                        <property name="adjustment">adj_dn0</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">1</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w0">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">1</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w0">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">1</property></layout>
-                      </object>
-                    </child>
-                    <!-- Layer 2 -->
-                    <child>
                       <object class="GtkLabel" id="label_w1">
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Layer 2</property>
-                        <layout><property name="column">0</property><property name="row">2</property></layout>
+                        <layout><property name="column">0</property><property name="row">1</property></layout>
                       </object>
                     </child>
                     <child>
@@ -372,7 +316,7 @@
                         <property name="valign">center</property>
                         <property name="tooltip-text" translatable="yes">Layer strength</property>
                         <signal name="value-changed" handler="on_wavelet_scale_changed"/>
-                        <layout><property name="column">1</property><property name="row">2</property></layout>
+                        <layout><property name="column">1</property><property name="row">1</property></layout>
                       </object>
                     </child>
                     <child>
@@ -382,7 +326,7 @@
                         <property name="focusable">1</property>
                         <property name="width-chars">6</property>
                         <signal name="value-changed" handler="on_spin_w1_value_changed"/>
-                        <layout><property name="column">2</property><property name="row">2</property></layout>
+                        <layout><property name="column">2</property><property name="row">1</property></layout>
                       </object>
                     </child>
                     <child>
@@ -392,7 +336,7 @@
                         <property name="label" translatable="yes">Preview</property>
                         <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
                         <signal name="toggled" handler="on_wavelet_preview_toggled"/>
-                        <layout><property name="column">3</property><property name="row">2</property></layout>
+                        <layout><property name="column">3</property><property name="row">1</property></layout>
                       </object>
                     </child>
                     <child>
@@ -403,70 +347,15 @@
                         <property name="tooltip-text" translatable="yes">Reset strength</property>
                         <signal name="clicked" handler="on_reset_w_clicked"/>
                         <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">2</property></layout>
+                        <layout><property name="column">4</property><property name="row">1</property></layout>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkLabel" id="dlabel_w1">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">3</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w1">
-                        <property name="adjustment">adj_dn1</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">3</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w1">
-                        <property name="adjustment">adj_dn1</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">3</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w1">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">3</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w1">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">3</property></layout>
-                      </object>
-                    </child>
-                    <!-- Layer 3 -->
                     <child>
                       <object class="GtkLabel" id="label_w2">
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Layer 3</property>
-                        <layout><property name="column">0</property><property name="row">4</property></layout>
+                        <layout><property name="column">0</property><property name="row">2</property></layout>
                       </object>
                     </child>
                     <child>
@@ -479,7 +368,7 @@
                         <property name="valign">center</property>
                         <property name="tooltip-text" translatable="yes">Layer strength</property>
                         <signal name="value-changed" handler="on_wavelet_scale_changed"/>
-                        <layout><property name="column">1</property><property name="row">4</property></layout>
+                        <layout><property name="column">1</property><property name="row">2</property></layout>
                       </object>
                     </child>
                     <child>
@@ -489,7 +378,7 @@
                         <property name="focusable">1</property>
                         <property name="width-chars">6</property>
                         <signal name="value-changed" handler="on_spin_w2_value_changed"/>
-                        <layout><property name="column">2</property><property name="row">4</property></layout>
+                        <layout><property name="column">2</property><property name="row">2</property></layout>
                       </object>
                     </child>
                     <child>
@@ -499,7 +388,7 @@
                         <property name="label" translatable="yes">Preview</property>
                         <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
                         <signal name="toggled" handler="on_wavelet_preview_toggled"/>
-                        <layout><property name="column">3</property><property name="row">4</property></layout>
+                        <layout><property name="column">3</property><property name="row">2</property></layout>
                       </object>
                     </child>
                     <child>
@@ -510,70 +399,15 @@
                         <property name="tooltip-text" translatable="yes">Reset strength</property>
                         <signal name="clicked" handler="on_reset_w_clicked"/>
                         <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">4</property></layout>
+                        <layout><property name="column">4</property><property name="row">2</property></layout>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkLabel" id="dlabel_w2">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">5</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w2">
-                        <property name="adjustment">adj_dn2</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">5</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w2">
-                        <property name="adjustment">adj_dn2</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">5</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w2">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">5</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w2">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">5</property></layout>
-                      </object>
-                    </child>
-                    <!-- Layer 4 -->
                     <child>
                       <object class="GtkLabel" id="label_w3">
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Layer 4</property>
-                        <layout><property name="column">0</property><property name="row">6</property></layout>
+                        <layout><property name="column">0</property><property name="row">3</property></layout>
                       </object>
                     </child>
                     <child>
@@ -586,7 +420,7 @@
                         <property name="valign">center</property>
                         <property name="tooltip-text" translatable="yes">Layer strength</property>
                         <signal name="value-changed" handler="on_wavelet_scale_changed"/>
-                        <layout><property name="column">1</property><property name="row">6</property></layout>
+                        <layout><property name="column">1</property><property name="row">3</property></layout>
                       </object>
                     </child>
                     <child>
@@ -596,7 +430,7 @@
                         <property name="focusable">1</property>
                         <property name="width-chars">6</property>
                         <signal name="value-changed" handler="on_spin_w3_value_changed"/>
-                        <layout><property name="column">2</property><property name="row">6</property></layout>
+                        <layout><property name="column">2</property><property name="row">3</property></layout>
                       </object>
                     </child>
                     <child>
@@ -606,7 +440,7 @@
                         <property name="label" translatable="yes">Preview</property>
                         <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
                         <signal name="toggled" handler="on_wavelet_preview_toggled"/>
-                        <layout><property name="column">3</property><property name="row">6</property></layout>
+                        <layout><property name="column">3</property><property name="row">3</property></layout>
                       </object>
                     </child>
                     <child>
@@ -617,70 +451,15 @@
                         <property name="tooltip-text" translatable="yes">Reset strength</property>
                         <signal name="clicked" handler="on_reset_w_clicked"/>
                         <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">6</property></layout>
+                        <layout><property name="column">4</property><property name="row">3</property></layout>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkLabel" id="dlabel_w3">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">7</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w3">
-                        <property name="adjustment">adj_dn3</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">7</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w3">
-                        <property name="adjustment">adj_dn3</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">7</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w3">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">7</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w3">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">7</property></layout>
-                      </object>
-                    </child>
-                    <!-- Layer 5 -->
                     <child>
                       <object class="GtkLabel" id="label_w4">
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Layer 5</property>
-                        <layout><property name="column">0</property><property name="row">8</property></layout>
+                        <layout><property name="column">0</property><property name="row">4</property></layout>
                       </object>
                     </child>
                     <child>
@@ -693,7 +472,7 @@
                         <property name="valign">center</property>
                         <property name="tooltip-text" translatable="yes">Layer strength</property>
                         <signal name="value-changed" handler="on_wavelet_scale_changed"/>
-                        <layout><property name="column">1</property><property name="row">8</property></layout>
+                        <layout><property name="column">1</property><property name="row">4</property></layout>
                       </object>
                     </child>
                     <child>
@@ -703,7 +482,7 @@
                         <property name="focusable">1</property>
                         <property name="width-chars">6</property>
                         <signal name="value-changed" handler="on_spin_w4_value_changed"/>
-                        <layout><property name="column">2</property><property name="row">8</property></layout>
+                        <layout><property name="column">2</property><property name="row">4</property></layout>
                       </object>
                     </child>
                     <child>
@@ -713,7 +492,7 @@
                         <property name="label" translatable="yes">Preview</property>
                         <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
                         <signal name="toggled" handler="on_wavelet_preview_toggled"/>
-                        <layout><property name="column">3</property><property name="row">8</property></layout>
+                        <layout><property name="column">3</property><property name="row">4</property></layout>
                       </object>
                     </child>
                     <child>
@@ -724,70 +503,15 @@
                         <property name="tooltip-text" translatable="yes">Reset strength</property>
                         <signal name="clicked" handler="on_reset_w_clicked"/>
                         <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">8</property></layout>
+                        <layout><property name="column">4</property><property name="row">4</property></layout>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkLabel" id="dlabel_w4">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">9</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w4">
-                        <property name="adjustment">adj_dn4</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
-                        <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">9</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w4">
-                        <property name="adjustment">adj_dn4</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">9</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w4">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">9</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w4">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">9</property></layout>
-                      </object>
-                    </child>
-                    <!-- Layer 6 -->
                     <child>
                       <object class="GtkLabel" id="label_w5">
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Layer 6</property>
-                        <layout><property name="column">0</property><property name="row">10</property></layout>
+                        <layout><property name="column">0</property><property name="row">5</property></layout>
                       </object>
                     </child>
                     <child>
@@ -800,7 +524,7 @@
                         <property name="valign">center</property>
                         <property name="tooltip-text" translatable="yes">Layer strength</property>
                         <signal name="value-changed" handler="on_wavelet_scale_changed"/>
-                        <layout><property name="column">1</property><property name="row">10</property></layout>
+                        <layout><property name="column">1</property><property name="row">5</property></layout>
                       </object>
                     </child>
                     <child>
@@ -810,7 +534,7 @@
                         <property name="focusable">1</property>
                         <property name="width-chars">6</property>
                         <signal name="value-changed" handler="on_spin_w5_value_changed"/>
-                        <layout><property name="column">2</property><property name="row">10</property></layout>
+                        <layout><property name="column">2</property><property name="row">5</property></layout>
                       </object>
                     </child>
                     <child>
@@ -820,7 +544,7 @@
                         <property name="label" translatable="yes">Preview</property>
                         <property name="tooltip-text" translatable="yes">Include this layer in the preview</property>
                         <signal name="toggled" handler="on_wavelet_preview_toggled"/>
-                        <layout><property name="column">3</property><property name="row">10</property></layout>
+                        <layout><property name="column">3</property><property name="row">5</property></layout>
                       </object>
                     </child>
                     <child>
@@ -831,61 +555,18 @@
                         <property name="tooltip-text" translatable="yes">Reset strength</property>
                         <signal name="clicked" handler="on_reset_w_clicked"/>
                         <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">10</property></layout>
+                        <layout><property name="column">4</property><property name="row">5</property></layout>
                       </object>
                     </child>
+                    <!-- Shown while no decomposition exists; hidden once the layer controls appear -->
                     <child>
-                      <object class="GtkLabel" id="dlabel_w5">
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="margin-start">12</property>
-                        <property name="label" translatable="yes">Denoise</property>
-                        <style><class name="dim-label"/></style>
-                        <layout><property name="column">0</property><property name="row">11</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="dscale_w5">
-                        <property name="adjustment">adj_dn5</property>
-                        <property name="draw-value">0</property>
-                        <property name="focusable">1</property>
+                      <object class="GtkLabel" id="wavelet_placeholder_label">
+                        <property name="halign">center</property>
                         <property name="hexpand">1</property>
-                        <property name="width-request">170</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <layout><property name="column">1</property><property name="row">11</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="denoise_w5">
-                        <property name="adjustment">adj_dn5</property>
-                        <property name="digits">2</property>
-                        <property name="focusable">1</property>
-                        <property name="width-chars">6</property>
-                        <property name="tooltip-text" translatable="yes">Per-scale denoising strength</property>
-                        <signal name="value-changed" handler="on_denoise_w_changed"/>
-                        <layout><property name="column">2</property><property name="row">11</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="denoise_en_w5">
-                        <property name="active">1</property>
-                        <property name="focusable">1</property>
-                        <property name="label" translatable="yes">Enable</property>
-                        <property name="tooltip-text" translatable="yes">Denoise this layer</property>
-                        <signal name="toggled" handler="on_denoise_layer_toggled"/>
-                        <layout><property name="column">3</property><property name="row">11</property></layout>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="dreset_w5">
-                        <property name="focusable">1</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">view-refresh-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Reset denoising</property>
-                        <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
-                        <style><class name="flat"/></style>
-                        <layout><property name="column">4</property><property name="row">11</property></layout>
+                        <property name="margin-top">8</property>
+                        <property name="margin-bottom">8</property>
+                        <property name="label" translatable="yes">Per-scale controls will appear once decomposition is done</property>
+                        <layout><property name="column">0</property><property name="row">6</property><property name="column-span">5</property></layout>
                       </object>
                     </child>
                   </object>
@@ -990,11 +671,357 @@
                           </object>
                         </child>
                         <child>
+                          <object class="GtkCheckButton" id="denoise_perscale">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Per-scale strength adjustments</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="yes">Show second-order per-scale multipliers that fine-tune the denoising above; leave off to control the strength with a single value</property>
+                            <signal name="toggled" handler="on_denoise_perscale_toggled"/>
+                            <layout><property name="column">0</property><property name="row">2</property><property name="column-span">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkLabel" id="denoise_sigma_label">
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Noise σ: —</property>
                             <style><class name="dim-label"/></style>
-                            <layout><property name="column">0</property><property name="row">2</property><property name="column-span">4</property></layout>
+                            <layout><property name="column">0</property><property name="row">3</property><property name="column-span">4</property></layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid" id="grid_nr">
+                        <property name="column-spacing">6</property>
+                        <property name="row-spacing">2</property>
+                        <property name="margin-top">4</property>
+                        <style>
+                          <class name="wavelet-grid"/>
+                        </style>
+                        <child>
+                          <object class="GtkLabel" id="nr_section_label">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Per-scale NR adjustments</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">0</property><property name="column-span">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w0">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 1</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">1</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w0">
+                            <property name="adjustment">adj_dn0</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">1</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w0">
+                            <property name="adjustment">adj_dn0</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">1</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w0">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">1</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w0">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">1</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w1">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 2</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">2</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w1">
+                            <property name="adjustment">adj_dn1</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">2</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w1">
+                            <property name="adjustment">adj_dn1</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">2</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w1">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">2</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w1">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">2</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w2">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 3</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">3</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w2">
+                            <property name="adjustment">adj_dn2</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">3</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w2">
+                            <property name="adjustment">adj_dn2</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">3</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w2">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">3</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w2">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">3</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w3">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 4</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w3">
+                            <property name="adjustment">adj_dn3</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w3">
+                            <property name="adjustment">adj_dn3</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w3">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w3">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">4</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w4">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 5</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w4">
+                            <property name="adjustment">adj_dn4</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w4">
+                            <property name="adjustment">adj_dn4</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w4">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w4">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">5</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="dlabel_w5">
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="label" translatable="yes">Layer 6</property>
+                            <style><class name="dim-label"/></style>
+                            <layout><property name="column">0</property><property name="row">6</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="dscale_w5">
+                            <property name="adjustment">adj_dn5</property>
+                            <property name="draw-value">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="width-request">170</property>
+                            <property name="valign">center</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <layout><property name="column">1</property><property name="row">6</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="denoise_w5">
+                            <property name="adjustment">adj_dn5</property>
+                            <property name="digits">2</property>
+                            <property name="focusable">1</property>
+                            <property name="width-chars">6</property>
+                            <property name="tooltip-text" translatable="yes">Relative per-scale adjustment to the denoising strength (1 = no change)</property>
+                            <signal name="value-changed" handler="on_denoise_w_changed"/>
+                            <layout><property name="column">2</property><property name="row">6</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="denoise_en_w5">
+                            <property name="active">1</property>
+                            <property name="focusable">1</property>
+                            <property name="label" translatable="yes">Enable</property>
+                            <property name="tooltip-text" translatable="yes">Denoise this layer</property>
+                            <signal name="toggled" handler="on_denoise_layer_toggled"/>
+                            <layout><property name="column">3</property><property name="row">6</property></layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="dreset_w5">
+                            <property name="focusable">1</property>
+                            <property name="valign">center</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Reset denoising</property>
+                            <signal name="clicked" handler="on_reset_denoise_w_clicked"/>
+                            <style><class name="flat"/></style>
+                            <layout><property name="column">4</property><property name="row">6</property></layout>
                           </object>
                         </child>
                       </object>
