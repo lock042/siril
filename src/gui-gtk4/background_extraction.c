@@ -498,6 +498,7 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	com.grad_samples = NULL;
 	sample_mutex_unlock();
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	gui.hide_bkg_samples = FALSE;
 	redraw(REDRAW_OVERLAY);
 
 	if (background_computed) {
@@ -550,6 +551,7 @@ static void bkg_sync_method(void) {
 		ag_sync_sensitivity();
 	update_bkg_compute_button_sensitivity();
 	mouse_status = is_auto ? MOUSE_ACTION_SELECT_REG_AREA : MOUSE_ACTION_DRAW_SAMPLES;
+	gui.hide_bkg_samples = is_auto;
 	redraw(REDRAW_OVERLAY);
 }
 
