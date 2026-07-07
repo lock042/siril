@@ -21,6 +21,8 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Added an automatic, sample-free background/gradient removal model to Background Extraction and the `subsky` command (`-auto`): the background is fitted on every pixel surviving an iterative robust rejection of structures, using a multiscale surface with structure protection or a simplified polynomial
+* Background Extraction: replaced the press-and-hold "show original" button with a view selector to switch the display between the processed image, the removed background model and the original
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
@@ -38,17 +40,20 @@ siril-1.5.0
 * Added multipoint registration (for planetary, lunar and solar use) (!1034)
 * Removed original Starnet C interface (now covered by the new python script) (!tbc)
 * Added static autostretch mode to keep display stretch parameters fixed across images
+* Improve speed of extract_thumbnail_from_fits (!1066)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
 * Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
 * Fixed command help popover being too tall on low-resolution screens
+* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
 
 siril-1.4.5
 xx/xx/xx
 
 **Fixes**
 * Fixed constellation names in annotations (#1055)
+* Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
 
 siril-1.4.4
 06/17/26

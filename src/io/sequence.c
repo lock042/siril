@@ -563,10 +563,13 @@ gboolean set_seq(gpointer user_data){
 	close_sequence(TRUE);
 
 #ifdef HAVE_FFMS2
-	int convert = (int)((com.headless));
+	/* Only film (AVI) sequences are deprecated and convertible: SER / FITSEQ
+	 * load normally. Guard the whole block on the type — convert_single_film_
+	 * to_ser dereferences seq->film_file, which is NULL for anything else. */
+	int convert = 0;
 	int avi_bayer_pattern = 0;   /* MPP_AVI_BAYER_AUTO */
-	if (!com.headless) {
-		if (seq->type == SEQ_AVI) {
+	if (seq->type == SEQ_AVI) {
+		if (!com.headless) {
 			convert = gui_iface.confirm_dialog_with_avi_bayer(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
@@ -575,12 +578,13 @@ gboolean set_seq(gpointer user_data){
 							" Bayer pattern below — it will be stamped into the SER ColorID so future runs"
 							" see the right mosaic layout. Leave Auto if you don't know or the AVI is true mono."),
 					_("Convert to SER"), &avi_bayer_pattern);
+		} else {
+			siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
+				"in Siril: some features are disabled and others may crash. Continuing, but "
+								"we strongly encourage you to convert this sequence into a SER file."
+								"SER file format is a simple image sequence format, similar to uncompressed films.\n"));
+			convert = TRUE;
 		}
-	} else {
-		siril_log_warning(_("Warning: deprecated sequence. Film sequences are now deprecated "
-			"in Siril: some features are disabled and others may crash. Continuing, but "
-							"we strongly encourage you to convert this sequence into a SER file."
-							"SER file format is a simple image sequence format, similar to uncompressed films.\n"));
 	}
 	if (convert) {
 		close_sequence(FALSE);

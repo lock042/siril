@@ -14,7 +14,10 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
+#include "core/exif.h"
 #include "io/avi_preview.h"
+#include "io/SirilJpegXLWrapper.h"
+#include "io/SirilXISFWraper.h"
 #include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/message_dialog.h"
@@ -33,6 +36,13 @@ extern guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
  * as the FITS extractor. */
 extern guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
                                            int *width_out, int *height_out);
+#ifdef HAVE_LIBTIFF
+/* From io/image_format_fits.c — last-ditch thumbnail for TIFFs that neither
+ * exiv2 nor gdk-pixbuf can decode (notably 32-bit float/int TIFFs).  Same
+ * return contract as the FITS extractor. */
+extern guchar *extract_thumbnail_from_tiff(const char *filename, gchar **descr,
+                                            int *width_out, int *height_out);
+#endif
 
 typedef struct {
 	gchar *title;
@@ -71,7 +81,8 @@ struct _SirilFileBrowser {
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
-	GtkCheckButton         *debayer_check;     /* shown when show_debayer_toggle is TRUE */
+	GtkSwitch              *debayer_check;     /* on/off switch: debayer CFA on open */
+	GtkWidget              *debayer_box;       /* "Debayer" label + switch; visibility toggled together */
 	GtkWidget              *open_button;
 	GtkWidget              *back_button;
 	GtkWidget              *forward_button;
@@ -106,14 +117,21 @@ struct _SirilFileBrowser {
 	gboolean                in_recent_mode;
 
 	/* Our own monitor on the current folder, run alongside dir_list's
-	 * built-in one purely to catch the G_FILE_MONITOR_EVENT_CHANGED /
-	 * CHANGES_DONE_HINT events that GtkDirectoryList deliberately ignores
-	 * (it only re-queries on CREATED / DELETED / ATTRIBUTE_CHANGED).  Without
-	 * this, a file still being written when we first list it (its CREATED
-	 * event fires while it is 0 bytes) keeps a stale size forever. */
+	 * built-in one for two things GtkDirectoryList gets wrong:
+	 *  1. it deliberately ignores G_FILE_MONITOR_EVENT_CHANGED /
+	 *     CHANGES_DONE_HINT (it only re-queries on CREATED / DELETED /
+	 *     ATTRIBUTE_CHANGED), so a file still being written when first
+	 *     listed keeps a stale size forever — the size_refresh_* pair
+	 *     patches the sizes in place;
+	 *  2. its internal event queue wedges permanently on any event whose
+	 *     GFileInfo query fails (see rebuild_dir_list), after which no
+	 *     external create/delete is ever reflected — the consistency_*
+	 *     pair detects the divergence and rebuilds the list. */
 	GFileMonitor           *folder_monitor;       /* +1 ref, NULL when none */
 	guint                   size_refresh_id;      /* debounce timeout (0 = none) */
 	GHashTable             *size_refresh_pending;  /* set of GFile* to re-query */
+	guint                   consistency_check_id;  /* debounce timeout (0 = none) */
+	GHashTable             *consistency_pending;   /* set of GFile* created/deleted to verify */
 
 	/* Sibling demosaic toggle (Convert tab) — kept in sync with our local
 	 * `debayer_check` so the user sees consistent state in both places. */
@@ -276,7 +294,7 @@ static void build_recent_store(SirilFileBrowser *fb) {
 		 * attribute set (size, icon, type, display-name, mtime, is-hidden).
 		 * Hand-building a partial GFileInfo means every column bind callback
 		 * that reads an unset attribute raises a GLib-GIO CRITICAL (icon,
-		 * size, …) — querying once gets them all and matches exactly what
+		 * size, ...) — querying once gets them all and matches exactly what
 		 * GtkDirectoryList produces for the normal listing. */
 		GFile *gf = g_file_new_for_path(path);
 		GFileInfo *fi = g_file_query_info(gf,
@@ -373,8 +391,10 @@ static void update_nav_sensitivity(SirilFileBrowser *fb) {
  * deleted inside the current folder, the model emits items-changed,
  * the filter/sort/selection models pass that through to the view, and
  * the listing updates in place — selection of unaffected items is
- * preserved.  We rely on that built-in monitor rather than spinning
- * up a parallel GFileMonitor that would force a full re-enumeration. */
+ * preserved.  That built-in monitor is the happy path; our parallel
+ * folder_monitor covers the cases it gets wrong (stale sizes, wedged
+ * event queue — see the comments on do_size_refresh and
+ * rebuild_dir_list). */
 /* Maintain `fb->breadcrumb_deepest` so the breadcrumb shows a persistent
  * trail of the deepest folder visited along the current chain.  Going UP
  * or clicking an ancestor segment keeps the deeper levels visible (the
@@ -507,31 +527,143 @@ static void cancel_size_refresh(SirilFileBrowser *fb) {
 		g_hash_table_remove_all(fb->size_refresh_pending);
 }
 
+/* GtkDirectoryList's live updating has a fatal flaw (GTK ≤ 4.22, see
+ * handle_events() in gtk/gtkdirectorylist.c): monitor events are queued and
+ * applied strictly in order, but a CREATED / ATTRIBUTE_CHANGED event whose
+ * async GFileInfo query fails — a file created and deleted again before the
+ * query ran (temp files from file managers, in-progress writes), or a query
+ * cancelled by navigating mid-load — is never popped from the queue.  Every
+ * later event then sits behind it forever, and the queue survives
+ * set_file(), so one short-lived temp file silently kills create/delete
+ * updates for the lifetime of the GtkDirectoryList instance.  The only
+ * reliable reset is a fresh instance (empty queue).  Swapping it under the
+ * filter model re-enumerates the folder; selection is lost, but this only
+ * runs when the listing is provably wrong anyway. */
+static void rebuild_dir_list(SirilFileBrowser *fb) {
+	if (!fb->dir_list)
+		return;
+	GtkDirectoryList *fresh =
+		gtk_directory_list_new("standard::*,time::modified", NULL);
+	gtk_directory_list_set_monitored(fresh, TRUE);
+	if (fb->current_folder)
+		gtk_directory_list_set_file(fresh, fb->current_folder);
+	/* Park focus before the swap — replacing the filter model's base
+	 * disposes every row widget, same hazard as in apply_current_folder. */
+	if (fb->window)
+		gtk_window_set_focus(fb->window, NULL);
+	if (!fb->in_recent_mode)
+		gtk_filter_list_model_set_model(fb->filter_model,
+			G_LIST_MODEL(fresh));
+	g_object_unref(fb->dir_list);
+	fb->dir_list = fresh;
+}
+
+/* Debounced verdict on the CREATED / DELETED events our own monitor saw:
+ * if a file that exists on disk is missing from the model (or vice versa),
+ * dir_list's event queue is wedged — rebuild it.  Checked against the
+ * unfiltered dir_list, so the name filter can't cause false positives. */
+static gboolean do_consistency_check(gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	fb->consistency_check_id = 0;
+	if (!fb->consistency_pending || !fb->dir_list || fb->in_recent_mode)
+		return G_SOURCE_REMOVE;
+	if (g_hash_table_size(fb->consistency_pending) == 0)
+		return G_SOURCE_REMOVE;
+	/* Mid-enumeration the model is legitimately incomplete; retry later. */
+	if (gtk_directory_list_is_loading(fb->dir_list)) {
+		fb->consistency_check_id =
+			g_timeout_add(500, do_consistency_check, fb);
+		return G_SOURCE_REMOVE;
+	}
+
+	GListModel *model = G_LIST_MODEL(fb->dir_list);
+	guint n = g_list_model_get_n_items(model);
+	GHashTable *names = g_hash_table_new_full(g_str_hash, g_str_equal,
+		g_free, NULL);
+	for (guint i = 0; i < n; i++) {
+		GFileInfo *info = g_list_model_get_item(model, i);
+		const char *name = g_file_info_get_name(info);
+		if (name)
+			g_hash_table_add(names, g_strdup(name));
+		g_object_unref(info);
+	}
+
+	gboolean stale = FALSE;
+	GHashTableIter it;
+	gpointer key;
+	g_hash_table_iter_init(&it, fb->consistency_pending);
+	while (!stale && g_hash_table_iter_next(&it, &key, NULL)) {
+		GFile *f = key;
+		gchar *base = g_file_get_basename(f);
+		if (!base)
+			continue;
+		gboolean on_disk = g_file_query_exists(f, NULL);
+		gboolean in_model = g_hash_table_contains(names, base);
+		stale = on_disk != in_model;
+		g_free(base);
+	}
+	g_hash_table_destroy(names);
+	g_hash_table_remove_all(fb->consistency_pending);
+
+	if (stale)
+		rebuild_dir_list(fb);
+	return G_SOURCE_REMOVE;
+}
+
+static void cancel_consistency_check(SirilFileBrowser *fb) {
+	if (fb->consistency_check_id) {
+		g_source_remove(fb->consistency_check_id);
+		fb->consistency_check_id = 0;
+	}
+	if (fb->consistency_pending)
+		g_hash_table_remove_all(fb->consistency_pending);
+}
+
 static void on_folder_monitor_changed(GFileMonitor *mon, GFile *file,
 		GFile *other, GFileMonitorEvent event, gpointer ud) {
 	(void)mon; (void)other;
 	SirilFileBrowser *fb = ud;
-	/* Only the events dir_list ignores; CREATED / DELETED / ATTRIBUTE_CHANGED
-	 * / RENAMED are already handled by its own monitor. */
-	if (event != G_FILE_MONITOR_EVENT_CHANGED &&
-	    event != G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT)
-		return;
 	if (!file || fb->in_recent_mode)
 		return;
-	if (!fb->size_refresh_pending)
-		fb->size_refresh_pending = g_hash_table_new_full(
-			g_file_hash, (GEqualFunc) g_file_equal, g_object_unref, NULL);
-	g_hash_table_add(fb->size_refresh_pending, g_object_ref(file));
-	/* Debounce: a single save fires a burst of CHANGED then a trailing
-	 * CHANGES_DONE_HINT.  Coalesce so we re-query once, after the writer is
-	 * (probably) done. */
-	if (fb->size_refresh_id)
-		g_source_remove(fb->size_refresh_id);
-	fb->size_refresh_id = g_timeout_add(400, do_size_refresh, fb);
+	switch ((int) event) {
+	case G_FILE_MONITOR_EVENT_CHANGED:
+	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+		/* The events dir_list ignores — live size refresh. */
+		if (!fb->size_refresh_pending)
+			fb->size_refresh_pending = g_hash_table_new_full(
+				g_file_hash, (GEqualFunc) g_file_equal,
+				g_object_unref, NULL);
+		g_hash_table_add(fb->size_refresh_pending, g_object_ref(file));
+		/* Debounce: a single save fires a burst of CHANGED then a
+		 * trailing CHANGES_DONE_HINT.  Coalesce so we re-query once,
+		 * after the writer is (probably) done. */
+		if (fb->size_refresh_id)
+			g_source_remove(fb->size_refresh_id);
+		fb->size_refresh_id = g_timeout_add(400, do_size_refresh, fb);
+		break;
+	case G_FILE_MONITOR_EVENT_CREATED:
+	case G_FILE_MONITOR_EVENT_DELETED:
+		/* Events dir_list should handle itself — verify it actually
+		 * did once the burst settles (see do_consistency_check).  The
+		 * delay leaves dir_list time to run its async info query. */
+		if (!fb->consistency_pending)
+			fb->consistency_pending = g_hash_table_new_full(
+				g_file_hash, (GEqualFunc) g_file_equal,
+				g_object_unref, NULL);
+		g_hash_table_add(fb->consistency_pending, g_object_ref(file));
+		if (fb->consistency_check_id)
+			g_source_remove(fb->consistency_check_id);
+		fb->consistency_check_id =
+			g_timeout_add(750, do_consistency_check, fb);
+		break;
+	default:
+		break;
+	}
 }
 
 static void install_folder_monitor(SirilFileBrowser *fb, GFile *folder) {
 	cancel_size_refresh(fb);
+	cancel_consistency_check(fb);
 	if (fb->folder_monitor) {
 		g_signal_handlers_disconnect_by_data(fb->folder_monitor, fb);
 		g_clear_object(&fb->folder_monitor);
@@ -2041,16 +2173,11 @@ static void picture_set_icon(GtkPicture *picture, const char *icon_name) {
 	GdkDisplay *disp = gtk_widget_get_display(GTK_WIDGET(picture));
 	if (!disp) { gtk_picture_set_paintable(picture, NULL); return; }
 	GtkIconTheme *theme = gtk_icon_theme_get_for_display(disp);
-	/* Request a large icon so themed SVGs render crisply when scaled to
-	 * fit the preview area; raster fallbacks stay close to native size. */
+	int icon_size = com.pref.gui.thumbnail_size;
 	GtkIconPaintable *icon = gtk_icon_theme_lookup_icon(theme, icon_name,
-		NULL, 256, 1, GTK_TEXT_DIR_NONE, 0);
+		NULL, icon_size, 1, GTK_TEXT_DIR_NONE, 0);
 	if (!icon) { gtk_picture_set_paintable(picture, NULL); return; }
 	gtk_picture_set_paintable(picture, GDK_PAINTABLE(icon));
-	/* SCALE_DOWN, like the thumbnail path: show the icon at (up to) its
-	 * looked-up native size (256 px) centred in the pane, rather than
-	 * blowing it up to fill the whole preview area — keeps the icon within
-	 * the same size constraints as image thumbnails. */
 	gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
 	g_object_unref(icon);
 }
@@ -2211,7 +2338,16 @@ void siril_file_browser_default_preview(const gchar *path,
 	 * recognises .fit / .fits / .fits.fz / etc; the SER one reads frame 0
 	 * with an MTF stretch for higher bit depths; the AVI one decodes the
 	 * first video frame via libavformat without a full FFMS2 index. */
-	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI) {
+	gboolean jxl_thumbnail = FALSE;
+#ifdef HAVE_LIBJXL
+	jxl_thumbnail = (itype == TYPEJXL);
+#endif
+	gboolean xisf_thumbnail = FALSE;
+#ifdef HAVE_LIBXISF
+	xisf_thumbnail = (itype == TYPEXISF);
+#endif
+	if (itype == TYPEFITS || itype == TYPESER || itype == TYPEAVI
+			|| xisf_thumbnail || jxl_thumbnail) {
 		gchar *descr = NULL;
 		int w = 0, h = 0;
 		guchar *data = NULL;
@@ -2219,8 +2355,30 @@ void siril_file_browser_default_preview(const gchar *path,
 			data = extract_thumbnail_from_fits(path, &descr, &w, &h);
 		else if (itype == TYPESER)
 			data = extract_thumbnail_from_ser(path, &descr, &w, &h);
-		else /* TYPEAVI */
+		else if (itype == TYPEAVI)
 			data = extract_thumbnail_from_avi(path, &descr, &w, &h);
+#ifdef HAVE_LIBXISF
+		else if (xisf_thumbnail)
+			data = extract_thumbnail_from_xisf(path, &descr, &w, &h);
+#endif
+#ifdef HAVE_LIBJXL
+		else /* TYPEJXL */ {
+			/* JPEG XL previews go through Siril's own libjxl extractor,
+			 * never gdk-pixbuf: the optional gdk-pixbuf JXL loader can hang
+			 * indefinitely on some files, and previews run synchronously on
+			 * the GTK main thread, so that freezes the whole application.
+			 * libjxl also handles both raw codestreams and ISOBMFF
+			 * containers.  The extractor wants the encoded bytes, not a
+			 * path, so slurp the file first. */
+			gchar *raw = NULL;
+			gsize raw_size = 0;
+			if (g_file_get_contents(path, &raw, &raw_size, NULL)) {
+				data = extract_thumbnail_from_jxl((uint8_t *)raw, &descr,
+				                                  (size_t)raw_size, &w, &h);
+				g_free(raw);
+			}
+		}
+#endif
 		if (data) {
 			GdkTexture *tex = siril_texture_from_rgb_bytes(data,
 				(gsize)w * h * 3, w, h, w * 3, FALSE,
@@ -2247,46 +2405,164 @@ void siril_file_browser_default_preview(const gchar *path,
 			g_strfreev(lines);
 		}
 		g_free(descr);
-	} else if (!type_known_non_raster(itype)) {
-		int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
-		/* Original dimensions for the metadata line, read from the header
-		 * without decoding the pixels. */
-		int orig_w = 0, orig_h = 0;
-		gdk_pixbuf_get_file_info(path, &orig_w, &orig_h);
-		GError *err = NULL;
-		GdkPixbuf *pix = gdk_pixbuf_new_from_file_at_scale(path, max_size,
-			max_size, TRUE, &err);
-		if (pix) {
-			/* Wrap the pixbuf's pixels in a GdkMemoryTexture (the
-			 * non-deprecated path; gdk_texture_new_for_pixbuf is deprecated).
-			 * The GBytes keeps the pixbuf alive for as long as the texture
-			 * references its pixel data — ownership of our pixbuf ref is
-			 * handed to the bytes' free func, so we don't unref pix here. */
-			int pw = gdk_pixbuf_get_width(pix);
-			int ph = gdk_pixbuf_get_height(pix);
-			int stride = gdk_pixbuf_get_rowstride(pix);
-			GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(pix)
-				? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
-			GBytes *bytes = g_bytes_new_with_free_func(
-				gdk_pixbuf_get_pixels(pix), (gsize)stride * ph,
-				(GDestroyNotify)g_object_unref, pix);
-			GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
-			g_bytes_unref(bytes);  /* texture holds its own ref */
-			if (tex) {
-				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-				gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
-				if (orig_w > 0 && orig_h > 0)
-					dims_str = g_strdup_printf("%d x %d %s",
-						orig_w, orig_h, _("pixels"));
-				else
-					dims_str = g_strdup_printf("%d x %d %s",
-						pw, ph, _("pixels"));
-				g_object_unref(tex);
-				got_texture = TRUE;
+	} else {
+		/* Try the exiv2 embedded preview FIRST  then fall back to decoding the
+		 * file directly with gdk-pixbuf.  On builds without exiv2 the extractor
+		 * just returns non-zero and we go straight to the fallback. */
+		uint8_t *ebuf = NULL;
+		size_t esize = 0;
+		char *emime = NULL;
+		if (siril_get_thumbnail_exiv(path, &ebuf, &esize, &emime) == 0
+				&& ebuf && esize) {
+			int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
+			GError *err = NULL;
+			GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+			GdkPixbuf *pix = NULL;
+			if (gdk_pixbuf_loader_write(loader, ebuf, esize, &err)
+					&& gdk_pixbuf_loader_close(loader, &err)) {
+				pix = gdk_pixbuf_loader_get_pixbuf(loader);
+				if (pix) g_object_ref(pix);  /* loader owns it otherwise */
+			} else {
+				g_clear_error(&err);
+				gdk_pixbuf_loader_close(loader, NULL);
 			}
-		} else {
-			g_clear_error(&err);
+			g_object_unref(loader);
+			if (pix) {
+				int ow = gdk_pixbuf_get_width(pix);
+				int oh = gdk_pixbuf_get_height(pix);
+				int longest = ow > oh ? ow : oh;
+				/* If the embedded preview is smaller than the requested
+				 * thumbnail size and the file is one gdk-pixbuf can decode
+				 * directly (JPEG/TIFF/PNG...), drop it: the full-resolution
+				 * fallback below then yields a crisp thumbnail at the
+				 * preference size instead of a tiny EXIF thumbnail (which
+				 * SCALE_DOWN leaves undersized) or a blurry upscale.  RAW &
+				 * friends (not gdk-pixbuf-decodable) keep the preview. */
+				if (longest > 0 && longest < max_size && !type_known_non_raster(itype)) {
+					g_object_unref(pix);
+					pix = NULL;
+				}
+				if (pix) {
+					/* Scale so the longest side matches the thumbnail size —
+					 * down for large previews, up for small RAW previews —
+					 * preserving aspect ratio, like the 1.4 preview did. */
+					GdkPixbuf *scaled = pix;
+					if (longest > 0 && longest != max_size) {
+						double s = (double) max_size / longest;
+						int sw = MAX(1, (int) (ow * s + 0.5));
+						int sh = MAX(1, (int) (oh * s + 0.5));
+						scaled = gdk_pixbuf_scale_simple(pix, sw, sh, GDK_INTERP_BILINEAR);
+						g_object_unref(pix);
+					}
+					if (scaled) {
+						int pw = gdk_pixbuf_get_width(scaled);
+						int ph = gdk_pixbuf_get_height(scaled);
+						int stride = gdk_pixbuf_get_rowstride(scaled);
+						GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(scaled)
+							? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
+						GBytes *bytes = g_bytes_new_with_free_func(
+							gdk_pixbuf_get_pixels(scaled), (gsize)stride * ph,
+							(GDestroyNotify)g_object_unref, scaled);
+						GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
+						g_bytes_unref(bytes);  /* texture holds its own ref */
+						if (tex) {
+							gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+							gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+							/* Prefer the real image dimensions (readable from the
+							 * header for JPEG/TIFF/...); fall back to the preview's
+							 * own size for RAW, whose preview ≈ the full frame. */
+							int fw = 0, fh = 0;
+							gdk_pixbuf_get_file_info(path, &fw, &fh);
+							if (fw > 0 && fh > 0)
+								dims_str = g_strdup_printf("%d x %d %s", fw, fh, _("pixels"));
+							else
+								dims_str = g_strdup_printf("%d x %d %s", ow, oh, _("pixels"));
+							g_object_unref(tex);
+							got_texture = TRUE;
+						}
+					}
+				}
+			}
 		}
+		free(ebuf);
+		free(emime);
+
+		/* Fallback (exiv2 found nothing): decode the file directly.  Only for
+		 * formats gdk-pixbuf can actually open — RAW/XISF/PIC can't, so they
+		 * stay on the exiv2 result or the type icon. */
+		if (!got_texture && !type_known_non_raster(itype)) {
+			int max_size = com.pref.gui.thumbnail_size;  /* 128, 256 or 512 */
+			/* Original dimensions for the metadata line, read from the header
+			 * without decoding the pixels. */
+			int orig_w = 0, orig_h = 0;
+			gdk_pixbuf_get_file_info(path, &orig_w, &orig_h);
+			GError *err = NULL;
+			GdkPixbuf *pix = gdk_pixbuf_new_from_file_at_scale(path, max_size,
+				max_size, TRUE, &err);
+			if (pix) {
+				/* Wrap the pixbuf's pixels in a GdkMemoryTexture (the
+				 * non-deprecated path; gdk_texture_new_for_pixbuf is deprecated).
+				 * The GBytes keeps the pixbuf alive for as long as the texture
+				 * references its pixel data — ownership of our pixbuf ref is
+				 * handed to the bytes' free func, so we don't unref pix here. */
+				int pw = gdk_pixbuf_get_width(pix);
+				int ph = gdk_pixbuf_get_height(pix);
+				int stride = gdk_pixbuf_get_rowstride(pix);
+				GdkMemoryFormat fmt = gdk_pixbuf_get_has_alpha(pix)
+					? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8;
+				GBytes *bytes = g_bytes_new_with_free_func(
+					gdk_pixbuf_get_pixels(pix), (gsize)stride * ph,
+					(GDestroyNotify)g_object_unref, pix);
+				GdkTexture *tex = gdk_memory_texture_new(pw, ph, fmt, bytes, stride);
+				g_bytes_unref(bytes);  /* texture holds its own ref */
+				if (tex) {
+					gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+					gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+					if (orig_w > 0 && orig_h > 0)
+						dims_str = g_strdup_printf("%d x %d %s",
+							orig_w, orig_h, _("pixels"));
+					else
+						dims_str = g_strdup_printf("%d x %d %s",
+							pw, ph, _("pixels"));
+					g_object_unref(tex);
+					got_texture = TRUE;
+				}
+			} else {
+				g_clear_error(&err);
+			}
+		}
+
+#ifdef HAVE_LIBTIFF
+		/* Last-ditch fallback for TIFFs that neither exiv2 nor gdk-pixbuf
+		 * could decode — notably Siril's own 32-bit float/int output.
+		 * Siril's libtiff reader handles every bit depth, so load the image
+		 * and MTF-stretch it like a FITS/SER preview. */
+		if (!got_texture && itype == TYPETIFF) {
+			gchar *descr = NULL;
+			int w = 0, h = 0;
+			guchar *data = extract_thumbnail_from_tiff(path, &descr, &w, &h);
+			if (data) {
+				GdkTexture *tex = siril_texture_from_rgb_bytes(data,
+					(gsize)w * h * 3, w, h, w * 3, FALSE,
+					(GDestroyNotify)free, data);
+				if (tex) {
+					gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+					gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+					g_object_unref(tex);
+					got_texture = TRUE;
+				} else {
+					free(data);
+				}
+			}
+			if (descr && *descr) {
+				gchar **lines = g_strsplit(descr, "\n", 2);
+				if (lines[0] && *lines[0]) dims_str  = g_strdup(lines[0]);
+				if (lines[0] && lines[1]) extra_str = g_strdup(lines[1]);
+				g_strfreev(lines);
+			}
+			g_free(descr);
+		}
+#endif
 	}
 
 	/* No thumbnail available — show a type-appropriate icon so the
@@ -2342,9 +2618,10 @@ void siril_file_browser_default_preview(const gchar *path,
  * demosaicingButton.  Mirroring fires the latter's own "toggled" handler
  * (on_demosaicing_toggled in conversion.c) but that handler just re-
  * writes the same pref, so there's no real loop. */
-static void on_browser_debayer_toggled(GtkCheckButton *cb, gpointer ud) {
+static void on_browser_debayer_toggled(GObject *sw, GParamSpec *pspec, gpointer ud) {
+	(void)pspec;
 	SirilFileBrowser *fb = ud;
-	gboolean active = gtk_check_button_get_active(cb);
+	gboolean active = gtk_switch_get_active(GTK_SWITCH(sw));
 	com.pref.debayer.open_debayer = active;
 	if (fb->external_demosaic_btn &&
 	    gtk_check_button_get_active(fb->external_demosaic_btn) != active) {
@@ -2358,12 +2635,12 @@ static void on_external_demosaic_toggled(GtkCheckButton *cb, gpointer ud) {
 	SirilFileBrowser *fb = ud;
 	gboolean active = gtk_check_button_get_active(cb);
 	if (fb->debayer_check &&
-	    gtk_check_button_get_active(fb->debayer_check) != active) {
+	    gtk_switch_get_active(fb->debayer_check) != active) {
 		/* Block our own handler while we mirror, so we don't write the
 		 * pref twice. */
 		if (fb->debayer_check_handler)
 			g_signal_handler_block(fb->debayer_check, fb->debayer_check_handler);
-		gtk_check_button_set_active(fb->debayer_check, active);
+		gtk_switch_set_active(fb->debayer_check, active);
 		if (fb->debayer_check_handler)
 			g_signal_handler_unblock(fb->debayer_check, fb->debayer_check_handler);
 	}
@@ -2372,16 +2649,17 @@ static void on_external_demosaic_toggled(GtkCheckButton *cb, gpointer ud) {
 void siril_file_browser_set_show_debayer_toggle(SirilFileBrowser *fb, gboolean show) {
 	if (!fb || !fb->debayer_check) return;
 	fb->show_debayer_toggle = show;
-	gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), show);
+	gtk_widget_set_visible(fb->debayer_box, show);
 	if (!show) return;
 
-	/* Initial state from the pref. */
-	gtk_check_button_set_active(fb->debayer_check, com.pref.debayer.open_debayer);
+	/* Initial state from the pref (set before connecting the handler below so
+	 * it doesn't re-fire on this programmatic change). */
+	gtk_switch_set_active(fb->debayer_check, com.pref.debayer.open_debayer);
 
-	/* Connect our own toggle handler once. */
+	/* Connect our own change handler once. */
 	if (!fb->debayer_check_handler) {
 		fb->debayer_check_handler = g_signal_connect(fb->debayer_check,
-			"toggled", G_CALLBACK(on_browser_debayer_toggled), fb);
+			"notify::active", G_CALLBACK(on_browser_debayer_toggled), fb);
 	}
 
 	/* Bind to the Convert tab's demosaicingButton (if the main UI builder
@@ -2782,6 +3060,11 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_column_view_set_show_column_separators(fb->columnview, FALSE);
 	gtk_column_view_set_show_row_separators(fb->columnview, FALSE);
 	gtk_widget_add_css_class(GTK_WIDGET(fb->columnview), "siril-dense-rows");
+	/* Rubber-band (drag-a-rectangle) selection — GTK3's file chooser tree
+	 * gave this for free, but GtkColumnView starts with it off.  Only
+	 * meaningful with a multi-selection model, so it's kept in sync with
+	 * fb->select_multiple here and in siril_file_browser_set_select_multiple. */
+	gtk_column_view_set_enable_rubberband(fb->columnview, fb->select_multiple);
 	/* Column order: Name | Size | Type | Modified. */
 	{
 		GtkSignalListItemFactory *fname = GTK_SIGNAL_LIST_ITEM_FACTORY(
@@ -2972,12 +3255,20 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	                 G_CALLBACK(on_filter_changed), fb);
 
 	/* Debayer toggle — hidden unless siril_file_browser_set_show_debayer_toggle
-	 * is called.  Initial state and sibling-button binding happen there. */
-	fb->debayer_check = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(_("Debayer")));
-	gtk_widget_set_tooltip_text(GTK_WIDGET(fb->debayer_check),
+	 * is called.  Initial state and sibling-button binding happen there.
+	 * A GtkSwitch reads as an unambiguous on/off, unlike a toggle button whose
+	 * pressed state is easy to miss.  The switch has no built-in label, so it
+	 * sits next to a "Debayer" label in debayer_box; the whole box is what gets
+	 * shown / hidden. */
+	fb->debayer_check = GTK_SWITCH(gtk_switch_new());
+	gtk_widget_set_valign(GTK_WIDGET(fb->debayer_check), GTK_ALIGN_CENTER);
+	fb->debayer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_box_append(GTK_BOX(fb->debayer_box), gtk_label_new(_("Debayer")));
+	gtk_box_append(GTK_BOX(fb->debayer_box), GTK_WIDGET(fb->debayer_check));
+	gtk_widget_set_tooltip_text(fb->debayer_box,
 		_("Debayer CFA images on open.  Linked to the same setting as the "
 		  "Conversion tab's Debayer toggle."));
-	gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
+	gtk_widget_set_visible(fb->debayer_box, FALSE);
 
 	/* Action row (bottom).  Cancel / Open have moved to the top toolbar, so
 	 * the bottom strip now carries only the secondary controls: the
@@ -2988,7 +3279,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_widget_set_margin_end(action_row, 6);
 	gtk_widget_set_margin_bottom(action_row, 6);
 	gtk_widget_set_margin_top(action_row, 3);
-	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->debayer_check));
+	gtk_box_append(GTK_BOX(action_row), fb->debayer_box);
 	GtkWidget *spacer = gtk_label_new(NULL);
 	gtk_widget_set_hexpand(spacer, TRUE);
 	gtk_box_append(GTK_BOX(action_row), spacer);
@@ -3038,8 +3329,8 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	}
 	fb->external_demosaic_btn = NULL;
 	fb->show_debayer_toggle = FALSE;
-	if (fb->debayer_check)
-		gtk_widget_set_visible(GTK_WIDGET(fb->debayer_check), FALSE);
+	if (fb->debayer_box)
+		gtk_widget_set_visible(fb->debayer_box, FALSE);
 
 	/* Folder-picker mode is per-open; clear it so the next caller starts as
 	 * a normal file picker unless it opts back in. */
@@ -3097,6 +3388,14 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	/* Open button starts insensitive until a selection lands. */
 	if (fb->open_button)
 		gtk_widget_set_sensitive(fb->open_button, FALSE);
+
+	/* Clear the preview pane.  Nothing is selected yet on a fresh run, so
+	 * without this the thumbnail + metadata from the previously previewed
+	 * file stay on screen until the user happens to select something. */
+	if (fb->preview)
+		gtk_picture_set_paintable(fb->preview, NULL);
+	if (fb->metadata_label)
+		gtk_label_set_text(fb->metadata_label, "");
 
 	update_nav_sensitivity(fb);
 }
@@ -3185,6 +3484,9 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 	g_clear_object(&fb->selection);
 	fb->selection = fresh;  /* takes the +1 ref we got from _new */
 	gtk_column_view_set_model(fb->columnview, fb->selection);
+	/* Rubber-band selection only makes sense when several items can be
+	 * selected at once — enable it in multi mode, disable it otherwise. */
+	gtk_column_view_set_enable_rubberband(fb->columnview, multi);
 	g_signal_connect(fb->selection, "selection-changed",
 	                 G_CALLBACK(on_selection_changed), fb);
 }

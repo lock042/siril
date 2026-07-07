@@ -399,7 +399,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
-	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_grab_focus(button_spcc_ok);
 	gtk_widget_set_visible(gaia_status_check, TRUE);
 	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
 	siril_toggle_set_active(GTK_WIDGET(spcc_toggle_nb), com.pref.spcc.nb_mode);

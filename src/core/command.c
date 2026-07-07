@@ -8618,6 +8618,138 @@ int process_subsky(int nb) {
 		dithering = FALSE;
 	}
 
+	/* Automatic (sample-free) model: SUBSKY [-auto] places no samples and fits
+	 * the background on every pixel surviving an iterative robust rejection. It
+	 * shares only the correction mode with the sample-based method. */
+	if (word[arg_index] && !g_strcmp0(word[arg_index], "-auto")) {
+		struct autograd_data ag = {
+			.scale = 5.0, .smoothness = 1.0, .protect = TRUE,
+			.protect_threshold = 0.05, .protect_amount = 0.5,
+			.simplified = FALSE, .degree = 2, .downsample = 4,
+		};
+		background_correction mode = BACKGROUND_CORRECTION_SUBTRACT;
+		arg_index++;
+		while (arg_index < nb && word[arg_index]) {
+			char *arg = word[arg_index];
+			char *next, *value;
+			if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
+				value = arg + 8;
+				if (value[0] == '\0') {
+					siril_log_error(_("Missing argument to %s, aborting.\n"), arg);
+					return CMD_ARG_ERROR;
+				}
+				free(prefix);
+				prefix = strdup(value);
+			} else if (g_str_has_prefix(arg, "-scale=")) {
+				value = arg + 7;
+				ag.scale = g_ascii_strtod(value, &next);
+				if (next == value || ag.scale < 1.0 || ag.scale > 10.0) {
+					siril_log_error(_("Invalid argument to %s, aborting.\n"), arg);
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (g_str_has_prefix(arg, "-smoothness=")) {
+				value = arg + 12;
+				ag.smoothness = g_ascii_strtod(value, &next);
+				if (next == value || ag.smoothness < 0.0) {
+					siril_log_error(_("Invalid argument to %s, aborting.\n"), arg);
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (!g_strcmp0(arg, "-noprotect")) {
+				ag.protect = FALSE;
+			} else if (g_str_has_prefix(arg, "-protect_threshold=")) {
+				value = arg + 19;
+				ag.protect_threshold = g_ascii_strtod(value, &next);
+				if (next == value || ag.protect_threshold < 0.0 || ag.protect_threshold > 1.0) {
+					siril_log_error(_("Invalid argument to %s, aborting.\n"), arg);
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (g_str_has_prefix(arg, "-protect_amount=")) {
+				value = arg + 16;
+				ag.protect_amount = g_ascii_strtod(value, &next);
+				if (next == value || ag.protect_amount < 0.0 || ag.protect_amount > 1.0) {
+					siril_log_error(_("Invalid argument to %s, aborting.\n"), arg);
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (!g_strcmp0(arg, "-simplified")) {
+				ag.simplified = TRUE;
+			} else if (g_str_has_prefix(arg, "-degree=")) {
+				value = arg + 8;
+				ag.degree = g_ascii_strtoull(value, &next, 10);
+				if (next == value || ag.degree < 1 || ag.degree > 6) {
+					siril_log_error(_("Polynomial degree must be within the [1, 6] range.\n"));
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (g_str_has_prefix(arg, "-downsample=")) {
+				value = arg + 12;
+				ag.downsample = g_ascii_strtoull(value, &next, 10);
+				if (next == value || (ag.downsample != 1 && ag.downsample != 2 &&
+						ag.downsample != 4 && ag.downsample != 8)) {
+					siril_log_error(_("Downsample must be one of 1, 2, 4, 8.\n"));
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (g_str_has_prefix(arg, "-mode=")) {
+				value = arg + 6;
+				if (!g_strcmp0(value, "subtract"))
+					mode = BACKGROUND_CORRECTION_SUBTRACT;
+				else if (!g_strcmp0(value, "divide"))
+					mode = BACKGROUND_CORRECTION_DIVIDE;
+				else {
+					siril_log_error(_("Mode must be 'subtract' or 'divide'.\n"));
+					free(prefix);
+					return CMD_ARG_ERROR;
+				}
+			} else if (is_sequence && !g_strcmp0(arg, "-nodither")) {
+				dithering = FALSE;
+			} else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
+				dithering = TRUE;
+			} else {
+				siril_log_error(_("Unknown parameter %s, aborting.\n"), arg);
+				free(prefix);
+				return CMD_ARG_ERROR;
+			}
+			arg_index++;
+		}
+
+		struct background_data *bkg_args = calloc(1, sizeof(struct background_data));
+		bkg_args->destroy_fn = free_background_data;
+		bkg_args->method = BACKGROUND_METHOD_AUTO;
+		bkg_args->correction = mode;
+		bkg_args->autograd = ag;
+		bkg_args->threads = com.max_thread;
+		bkg_args->dither = dithering;
+		bkg_args->from_ui = FALSE;
+
+		if (is_sequence) {
+			bkg_args->seq = seq;
+			bkg_args->seqEntry = prefix ? prefix : strdup("bkg_");
+			apply_background_extraction_to_sequence(bkg_args);
+		} else {
+			bkg_args->seq = NULL;
+			bkg_args->seqEntry = NULL;
+			bkg_args->fit = gfit;
+			struct generic_img_args *iargs = calloc(1, sizeof(struct generic_img_args));
+			iargs->fit = gfit;
+			iargs->image_hook = remove_gradient_image_hook;
+			iargs->log_hook = remove_gradient_log_hook;
+			iargs->description = _("Automatic gradient removal");
+			iargs->verbose = TRUE;
+			iargs->command = TRUE;
+			iargs->command_updates_gfit = TRUE;
+			iargs->user = bkg_args;
+			if (!start_in_new_thread(generic_image_worker, iargs)) {
+				free_generic_img_args(iargs);
+				return CMD_GENERIC_ERROR;
+			}
+		}
+		return CMD_OK;
+	}
+
 	if (!strcmp(word[arg_index], "-rbf"))
 		interp = BACKGROUND_INTER_RBF;
 	else {

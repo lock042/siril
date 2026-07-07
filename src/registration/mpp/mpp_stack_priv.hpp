@@ -137,7 +137,9 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 const mpp_config_t &cfg,
                                                 progress_cb_fn progress = nullptr,
                                                 void *progress_user = nullptr,
-                                                const std::vector<int> &included = {});
+                                                const std::vector<int> &included = {},
+                                                int max_threads = 1,
+                                                bool provider_thread_safe = false);
 
 /*
  * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
@@ -167,6 +169,11 @@ struct StackState {
 
 	/* Per-AP — all length = aps->count. */
 	std::vector<cv::Vec4i> patch_drizzled;  /* (y_low, y_high, x_low, x_high) */
+	/* Drizzled px added beyond the REGISTERED patch bounds at each edge
+	 * (y_low, y_high, x_low, x_high) by the boundary-patch extension —
+	 * see stack_prepare_for_blending. Frame clipping inside an extension
+	 * is best-effort loss, not grounds for trimming the output border. */
+	std::vector<cv::Vec4i> patch_extension;
 	std::vector<cv::Vec2i> ap_drizzled;     /* (y, x) */
 	std::vector<cv::Mat> weights_yx;        /* CV_32F, patch-sized */
 	std::vector<cv::Mat> stacking_buffers;  /* CV_32F, patch-sized, zero-init */
@@ -219,7 +226,9 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
                                             const APQualities &apq,
                                             const std::vector<FrameOffset> &offsets,
                                             const mpp_config_t &cfg,
-                                            const int *included = nullptr);
+                                            const int *included = nullptr,
+                                            int max_threads = 1,
+                                            bool provider_thread_safe = false);
 
 /* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
  * averaged_background. Takes the same shifts vector as Stage B; the rest of

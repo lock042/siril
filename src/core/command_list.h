@@ -166,7 +166,7 @@ static command commands[] = {
 	{"register_mpp", 1, "register_mpp seqname [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N]\n"
 					"register_mpp seqname ... [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N]\n"
 					"register_mpp seqname ... [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed]\n"
-					"register_mpp seqname ,,, [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
+					"register_mpp seqname ... [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= | -maxdim= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -237,7 +237,7 @@ static command commands[] = {
 #ifdef HAVE_LIBTIFF
 #endif
 	{"seqstat", 2, "seqstat sequencename output_file [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
-	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=] [-random] [-gradient] [-border=<pixels|percent%>]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
+	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree | -auto } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=2] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
 	{"sequpdate_key", 2, "sequpdate_key sequencename key value [keycomment]\n"
@@ -277,7 +277,7 @@ static command commands[] = {
 	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename] [-rotate] [-32bits]", process_start_ls, STR_START_LS, TRUE, REQ_CMD_NO_THREAD},
 	{"stat", 0, "stat [-cfa] [main]", process_stat, STR_STAT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE, REQ_CMD_NONE},
-	{"subsky", 1, "subsky { -rbf | degree } [-dither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-existing] [-random] [-gradient] [-border=<pixels|percent%>]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"subsky", 1, "subsky { -rbf | degree | -auto } [-dither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-existing] [-random] [-gradient] [-border=<pixels|percent%>] [-scale=5] [-smoothness=1] [-noprotect] [-protect_threshold=0.05] [-protect_amount=0.5] [-simplified] [-degree=2] [-downsample=4] [-mode=subtract|divide]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"threshlo", 1, "threshlo level [-mask]", process_thresh, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
