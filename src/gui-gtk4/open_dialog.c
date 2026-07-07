@@ -353,20 +353,36 @@ static void opendial(int whichdial);
  * open_single_image() blocks its caller for the whole decode, so calling it
  * straight from the GUI froze the main loop and the progress bar (updated via
  * g_idle_add) could never paint.  We run the decode on the processing thread
- * instead: reserve the slot, launch the worker, and finalise in an idle.  The
- * worker calls open_single_image_internal() (not open_single_image()) because
- * owning the reserved slot would otherwise trip that function's own
- * "a job is already running" guard. */
+ * instead: reserve the slot, launch the worker, and finalise in an idle.
+ *
+ * The worker only ever decodes into a private fits (read_new_single_image);
+ * gfit itself is mutated exclusively on the main thread, in the finishing idle,
+ * under gfit's writer lock (install_new_single_image).  Decoding straight into
+ * gfit on the worker — as this path first did — raced the display's gfit
+ * readers (the autostretch remap and the lazy-tile pool, which call
+ * statistics() under a reader lock) and crashed when a redraw landed mid-load. */
 struct threaded_open_data {
 	gchar *filename;
+	fits  *newfit;    /* decoded on the worker, installed on the main thread */
+	char  *realname;  /* resolved path from the decode (owned) */
 	int    retval;
 };
 
 static gboolean end_threaded_open(gpointer p) {
 	struct threaded_open_data *d = p;
 	stop_processing_thread();
-	/* ICC assignment + these final GUI touches must run on the main thread. */
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	/* The gfit swap-install + ICC assignment + these final GUI touches must all
+	 * run on the main thread. */
+	if (d->newfit) {
+		install_new_single_image(d->newfit, d->realname);  /* consumes both */
+		d->newfit = NULL;
+		d->realname = NULL;
+		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	} else if (d->retval && d->retval != OPEN_IMAGE_CANCEL) {
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error opening file"),
+				_("There was an error when opening this image. "
+						"See the log for more information."));
+	}
 	set_cursor_waiting(FALSE);
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	/* A sub-dialog cancelled mid-load (e.g. the RAW/debayer prompt) asks to
@@ -374,13 +390,16 @@ static gboolean end_threaded_open(gpointer p) {
 	if (d->retval == OPEN_IMAGE_CANCEL)
 		opendial(OD_OPEN);
 	g_free(d->filename);
+	free(d->realname);
 	free(d);
 	return FALSE;
 }
 
 static gpointer threaded_open_worker(gpointer p) {
 	struct threaded_open_data *d = p;
-	d->retval = open_single_image_internal(d->filename);
+	/* Decode into a private fits — gfit is left untouched (and readable by the
+	 * display) until install_new_single_image() swaps the result in. */
+	d->newfit = read_new_single_image(d->filename, &d->realname, &d->retval);
 	siril_add_idle(end_threaded_open, d);
 	return GINT_TO_POINTER(d->retval);
 }
@@ -391,10 +410,12 @@ static gpointer threaded_open_worker(gpointer p) {
  * caller can still honour OPEN_IMAGE_CANCEL.  Takes its own copy of `path`. */
 static int open_image_threaded(const char *path) {
 	set_cursor_waiting(TRUE);
-	if (reserve_thread()) {
-		struct threaded_open_data *d = malloc(sizeof(*d));
+	/* Sequences load gfit/com.seq directly and aren't handled by the
+	 * decode-into-a-local-fits worker; open them synchronously on the main
+	 * thread (safe: no concurrent gfit writer) via the fallback below. */
+	if (!single_image_path_is_sequence(path) && reserve_thread()) {
+		struct threaded_open_data *d = calloc(1, sizeof(*d));
 		d->filename = g_strdup(path);
-		d->retval = 0;
 		if (start_in_reserved_thread(threaded_open_worker, d))
 			return 0;  /* async: worker + end idle own the rest */
 		/* Submission failed — release the slot and fall through to sync. */

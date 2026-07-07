@@ -2919,18 +2919,6 @@ static inline void set_rgb(float r, float g, float b, guchar *rgb) {
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
 }
 
-// Choose thread count based on workload
-static inline int choose_num_threads(int W, int H, int max_threads) {
-	int pixels = W * H;
-	if (pixels < 65536) { // < 64k pixels → single-thread
-		return 1;
-	}
-	int threads = pixels / 16384; // aim ~16k pixels per thread
-	if (threads > max_threads) threads = max_threads;
-	if (threads < 1) threads = 1;
-	return threads;
-}
-
 #define TRYFITS(f, ...) \
 	do{ \
 		status = FALSE; \
@@ -3147,6 +3135,144 @@ guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
 	if (height_out) *height_out = Hs;
 	return pixbuf_data;
 }
+
+#ifdef HAVE_LIBTIFF
+/**
+ * Fallback thumbnail extractor for TIFF files that neither exiv2 nor
+ * gdk-pixbuf can decode — notably 32-bit float / 32-bit integer TIFFs,
+ * which are Siril's own default export format.  Siril's libtiff reader
+ * (readtif) handles every TIFF bit depth, so we load the image into a
+ * fits and downsample + MTF-stretch it exactly like the FITS extractor.
+ * Same return contract as extract_thumbnail_from_fits(): a malloc'd
+ * RGB888 buffer (caller frees with free()), or NULL on error.
+ */
+guchar *extract_thumbnail_from_tiff(const char *filename, gchar **descr,
+                                     int *width_out, int *height_out) {
+	const int MAX_SIZE = com.pref.gui.thumbnail_size;
+	fits fit = { 0 };
+
+	/* force_float: 8/16-bit are normalised to [0, 1] float and 32-bit stays
+	 * float, so from here on we only ever deal with planar float channels. */
+	if (readtif(filename, &fit, TRUE, FALSE) <= 0) {
+		clearfits(&fit);
+		return NULL;
+	}
+
+	const int w = fit.rx;
+	const int h = fit.ry;
+	const int n_channels = (fit.naxes[2] >= 3) ? 3 : 1;
+	const gboolean is_color = (n_channels == 3);
+	if (w <= 0 || h <= 0 || !fit.fdata) {
+		clearfits(&fit);
+		return NULL;
+	}
+
+	/* description line mirrors the FITS/SER extractors: "W x H pixels" then
+	 * "N channels (B bits)". */
+	int bits = (fit.orig_bitpix == BYTE_IMG) ? 8
+	         : (fit.orig_bitpix == FLOAT_IMG) ? 32 : 16;
+	*descr = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w, h,
+			ngettext("pixel", "pixels", h), n_channels,
+			ngettext("channel", "channels", n_channels), bits);
+
+	/* Decimation step, calibrated exactly like the FITS extractor. */
+	const float scale_x = (float)w / MAX_SIZE;
+	const float scale_y = (float)h / MAX_SIZE;
+	const float max_scale = (scale_x > scale_y) ? scale_x : scale_y;
+	const int pixScale = (max_scale > 1.0f) ? (int)max_scale : 1;
+	const int Ws = ((w - 1) / pixScale) + 1;
+	const int Hs = ((h - 1) / pixScale) + 1;
+	const size_t prev_size = (size_t)Ws * Hs;
+	if (Ws <= 0 || Hs <= 0) {
+		clearfits(&fit);
+		return NULL;
+	}
+
+	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
+	if (!preview_data) {
+		clearfits(&fit);
+		return NULL;
+	}
+
+	/* Decimate each channel plane (readtif stores planes contiguously in
+	 * fpdata) into the planar preview buffer. */
+	for (int ch = 0; ch < n_channels; ch++) {
+		const float *src = fit.fpdata[ch];
+		float *dst = preview_data + (size_t)ch * prev_size;
+		for (int iy = 0; iy < Hs; iy++) {
+			const float *srow = src + (size_t)(iy * pixScale) * w;
+			float *drow = dst + (size_t)iy * Ws;
+			for (int ix = 0; ix < Ws; ix++)
+				drow[ix] = srow[ix * pixScale];
+		}
+	}
+	clearfits(&fit);	/* pixels copied out; drop the full-res image */
+
+	/* Auto-scale to [0, 1] from the actual data range: readtif normalises
+	 * 8/16-bit and 32-bit-uint to [0, 1], but a raw 32-bit float TIFF can
+	 * hold anything. */
+	float minv = FLT_MAX, maxv = -FLT_MAX;
+	for (size_t i = 0; i < prev_size * n_channels; i++) {
+		float v = preview_data[i];
+		if (v < minv) minv = v;
+		if (v > maxv) maxv = v;
+	}
+	const float range = (maxv - minv > 1e-6f) ? (maxv - minv) : 1.f;
+	const float inv = 1.f / range;
+	for (size_t i = 0; i < prev_size * n_channels; i++)
+		preview_data[i] = (preview_data[i] - minv) * inv;
+
+	/* Apply Midtone Stretching (MTF), same as the FITS/SER extractors. */
+	fits *tmp = NULL;
+	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp[3] = {
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+	};
+	find_unlinked_midtones_balance_default(tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+	/* preview_data is still ours to free; detach it before clearing tmp. */
+	tmp->fdata = NULL;
+	tmp->fpdata[0] = NULL;
+	tmp->fpdata[1] = NULL;
+	tmp->fpdata[2] = NULL;
+	clearfits(tmp);
+	free(tmp);
+
+	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+	if (!pixbuf_data) {
+		free(preview_data);
+		return NULL;
+	}
+
+	/* Flip vertically (dest row Hs-1-i): readtif conforms the image to
+	 * Siril's internal bottom-up convention, just like a loaded FITS. */
+	for (int i = 0; i < Hs; i++) {
+		int src_row_offset  = i * Ws;
+		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
+		for (int j = 0; j < Ws; j++) {
+			int src_idx  = src_row_offset + j;
+			int dest_idx = dest_row_offset + j * 3;
+
+			if (is_color) {
+				float r = preview_data[src_idx];
+				float g = preview_data[src_idx + prev_size];
+				float b = preview_data[src_idx + prev_size * 2];
+				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
+			} else {
+				gray2rgb(preview_data[src_idx], &pixbuf_data[dest_idx]);
+			}
+		}
+	}
+
+	free(preview_data);
+
+	if (width_out) *width_out = Ws;
+	if (height_out) *height_out = Hs;
+	return pixbuf_data;
+}
+#endif	/* HAVE_LIBTIFF */
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes, gboolean relax_dimcheck) {
