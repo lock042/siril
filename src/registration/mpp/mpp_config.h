@@ -105,13 +105,15 @@ struct mpp_config {
 	 * Both default ON — deliberate divergences from PSS, documented in
 	 * MPP_PSS_DIFFS.md. PSS-equivalence fixtures must pin them off
 	 * (CLI -no-zero-mean / -no-refine). */
-	bool alignment_points_zero_mean;        /* true — per-AP correlation uses
-	    zero-mean NCC (TM_CCOEFF_NORMED) instead of PSS's TM_CCORR_NORMED.
-	    Pearson correlation is invariant to the brightness gain AND offset
-	    mismatches (transparency drift, haze) between a frame and the
-	    averaged reference; plain NCC is only gain-invariant and its peak
-	    is biased by pixels under an offset mismatch — Stage B applies no
-	    brightness normalisation to the correlation inputs. */
+	bool alignment_points_zero_mean;        /* false — opt-in: per-AP
+	    correlation uses zero-mean NCC (TM_CCOEFF_NORMED) instead of PSS's
+	    TM_CCORR_NORMED. Pearson correlation is invariant to the brightness
+	    gain AND offset mismatches (transparency drift, haze) between a
+	    frame and the averaged reference, where plain NCC's peak is biased
+	    by pixels. Off by default: on low-SNR data the mean-subtracted
+	    residual of weak boxes is noise, the failure rate roughly doubles,
+	    and the fallbacks cost band-scale detail and border rows (see
+	    MPP_PSS_DIFFS.md section 10). */
 	bool alignment_points_refine_reference; /* true — after the normal Stage B
 	    pass, stack the top-K frames per AP at the pass-1 shifts and
 	    re-measure every per-AP shift against that (much sharper) reference

@@ -143,6 +143,19 @@ they were all pushing on a non-binding constraint. (Smoothing stays default
 ON: measurably cleaner warp field, better failed-pair handling, no downside;
 re-validate on lunar/solar where warp is real.)
 
+### Phase 1d: zero-mean default flipped OFF (newsat.ser ablation)
+
+The true problem capture (newsat.ser, 752×394×9064, 8-bit RGGB — much
+harder: 12.5 % baseline failure rate vs 3.5 % on sat.ser) exposed zero-mean
+as a net harm on low-SNR data: a 4-run ablation traced a 3–4 % band-power
+loss, a doubling of the Stage B failure rate (12.5→23.7 %), and a
+catastrophic 159-row border trim at legacy pitch directly to that one flag.
+Mean-subtracting weak boxes leaves noise → honest rails → fallbacks that
+cost more than plain NCC's DC-anchored near-zero answers. Default now OFF
+(`-zero-mean` to opt in); refine + smoothing + dense pitch survive the
+ablation clean. Best newsat config: `-ap-step=27 -stack-percent=50`
+(199 APs, 11.7 % failures, band ratios ≈ 1.00 vs baseline, clean render).
+
 **Where the AS! gap actually lives (next):** a heavily mid-band-boosted
 render of the current stack shows banding approaching the AS! reference, so
 part of the historical gap was the post-processing chain. Remaining

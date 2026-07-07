@@ -91,10 +91,18 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
 	cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
 
-	/* mpp_improve — Stage B measurement quality. Both are deliberate
-	 * divergences from PSS (see MPP_PSS_DIFFS.md); equivalence fixtures
-	 * pin them off explicitly. */
-	cfg->alignment_points_zero_mean = true;
+	/* mpp_improve — Stage B measurement quality. Deliberate divergences
+	 * from PSS (see MPP_PSS_DIFFS.md); equivalence fixtures pin them off
+	 * explicitly.
+	 *
+	 * zero_mean defaults OFF after multi-dataset A/B: on low-SNR 8-bit
+	 * captures it raises the Stage B failure rate ~2x (honest rails on
+	 * boxes whose mean-subtracted residual is noise, where plain NCC's
+	 * DC anchoring acts as an implicit regulariser), and the fallback
+	 * estimates cost band-scale detail and border rows. Opt in with
+	 * -zero-mean where frame-vs-reference brightness offset mismatch is
+	 * the dominant error (see MPP_PSS_DIFFS.md section 10). */
+	cfg->alignment_points_zero_mean = false;
 	cfg->alignment_points_refine_reference = true;
 	cfg->alignment_points_reference_frames = 0;   /* auto */
 	cfg->alignment_points_step = 0;               /* auto = PSS geometry */

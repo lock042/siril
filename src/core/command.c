@@ -14621,12 +14621,17 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		 * registration data (default on). */
 		cfg->align_frames_seed_from_regdata = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && !strcmp(arg, "-zero-mean")) {
+		/* Opt-in: zero-mean NCC for the per-AP correlation. Invariant to
+		 * the brightness gain/offset mismatch between frame and reference
+		 * (transparency drift), but on low-SNR data it roughly doubles
+		 * the Stage B failure rate and the fallbacks cost detail — hence
+		 * off by default. */
+		cfg->alignment_points_zero_mean = TRUE; return MPP_FLAG_OK;
+	}
 	if (accept_register && !strcmp(arg, "-no-zero-mean")) {
-		/* Revert the per-AP correlation to plain normalized
-		 * cross-correlation (the PSS-faithful method; default is
-		 * zero-mean NCC, whose peak is invariant to the brightness
-		 * gain/offset mismatches between frame and reference that
-		 * transparency drift produces). */
+		/* Explicit off (the default) — kept so scripts written against
+		 * the earlier default-on behaviour keep working. */
 		cfg->alignment_points_zero_mean = FALSE; return MPP_FLAG_OK;
 	}
 	if (accept_register && !strcmp(arg, "-no-refine")) {
