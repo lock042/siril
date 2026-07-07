@@ -904,7 +904,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 					    ap.box_y_low + dy, ap.box_y_high + dy,
 					    ap.box_x_low + dx, ap.box_x_high + dx,
 					    cfg.frames_gauss_width, cfg.alignment_points_search_width,
-					    use_subpixel, weight_matrix);
+					    use_subpixel, weight_matrix,
+					    cfg.alignment_points_zero_mean);
 					if (!r.success) {
 						const MultilevelShiftResult r2 = multilevel_correlation(
 						    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
@@ -913,7 +914,8 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 						    ap.box_x_low + dx, ap.box_x_high + dx,
 						    cfg.frames_gauss_width,
 						    cfg_retry.alignment_points_search_width,
-						    use_subpixel, weight_matrix_retry);
+						    use_subpixel, weight_matrix_retry,
+						    cfg.alignment_points_zero_mean);
 						/* Keep the original coarse estimate over a retry
 						 * that produced none (railed again / window
 						 * off-frame). */

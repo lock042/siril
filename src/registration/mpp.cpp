@@ -1270,6 +1270,145 @@ extern "C" mpp_status_t mpp_analyze(sequence *seq, const mpp_config_t *cfg,
 
 /* -------------------- Stage B: mpp_compute_shifts -------------------- */
 
+/* mpp_improve: build the refined correlation reference for the second
+ * Stage B pass (cfg->alignment_points_refine_reference; no PSS
+ * equivalent — see MPP_PSS_DIFFS.md).
+ *
+ * The pass-1 reference is the seeing-averaged mean frame: fine structure
+ * (planetary banding, ring gradations) is washed out of it, so it cannot
+ * drive the correlation peak and low-contrast APs measure mostly noise.
+ * Stack the top-K frames per AP at the pass-1 shifts instead — locally
+ * registered, so far sharper than the global-aligned average — and hand
+ * that back as the reference for a full re-measure.
+ *
+ * K is deliberately small: reference noise adds in quadrature to frame
+ * noise in the normalized correlation, so ~8 frames already make it
+ * negligible, while a small K keeps the reference sharp (only the per-AP
+ * best moments of seeing, and less pass-1 shift jitter averaged in).
+ * Auto value: clamp(ceil(5% of included frames), 8, 32); explicit
+ * cfg->alignment_points_reference_frames overrides.
+ *
+ * The merge output is pasted into a mean-frame-sized canvas (the merge
+ * trims the clipped border ring; AP box coordinates are mean-frame-
+ * relative, so the mean frame fills whatever the trim removed — those
+ * pixels only matter for boxes hard against the intersection border).
+ *
+ * Returns MPP_OK with *ref_out / *k_out set, MPP_EINTR on cancellation,
+ * MPP_ENOMEM / MPP_ENODATA on containable failures (caller keeps the
+ * pass-1 shifts). */
+static mpp_status_t build_refined_reference(sequence *seq, const mpp_config_t *cfg,
+                                            mpp_run_t *run,
+                                            const mpp::APQualities &apq,
+                                            const std::vector<mpp::FrameOffset> &offsets,
+                                            const cv::Mat &mean_raw,
+                                            const mpp_shifts_t *pass1,
+                                            int threads, bool provider_safe,
+                                            cv::Mat *ref_out, int *k_out) {
+	const int N = run->num_frames;
+	const int M = run->aps ? run->aps->count : 0;
+	int n_included = 0;
+	for (int f = 0; f < N; ++f)
+		if (!run->included || run->included[f]) ++n_included;
+	if (n_included == 0 || M == 0) return MPP_ENODATA;
+
+	int K = cfg->alignment_points_reference_frames > 0
+	      ? cfg->alignment_points_reference_frames
+	      : std::clamp((n_included + 19) / 20, 8, 32);
+	K = std::min(K, n_included);
+
+	/* Hard top-K trim of the baked per-AP selection (rows are sorted by
+	 * descending per-AP quality), weight 1 per entry. Only frames that
+	 * appear in some AP's top-K — plus the global top-K for the
+	 * background composite — are read for this stack. */
+	mpp::APQualities apq_ref;
+	apq_ref.taper = 0;
+	apq_ref.best_frame_indices.assign(M, {});
+	apq_ref.used_alignment_points.assign(N, {});
+	std::vector<int> included_ref(N, 0);
+	int max_rows = 0;
+	for (int a = 0; a < M; ++a) {
+		const auto &row = apq.best_frame_indices[a];
+		const int k = std::min((int) row.size(), K);
+		max_rows = std::max(max_rows, k);
+		for (int i = 0; i < k; ++i) {
+			const int f = row[i];
+			if (f < 0 || f >= N) continue;
+			apq_ref.best_frame_indices[a].push_back(f);
+			apq_ref.used_alignment_points[f].push_back({a, 1.0f});
+			included_ref[f] = 1;
+		}
+	}
+	if (max_rows == 0) return MPP_ENODATA;
+	apq_ref.stack_size = std::min(K, max_rows);
+
+	std::vector<int> sorted_idx;
+	sorted_idx.reserve(N);
+	for (int f = 0; f < N; ++f)
+		if (!run->included || run->included[f]) sorted_idx.push_back(f);
+	std::sort(sorted_idx.begin(), sorted_idx.end(),
+	          [run](int a, int b) { return run->quality[a] > run->quality[b]; });
+	for (int i = 0; i < apq_ref.stack_size && i < (int) sorted_idx.size(); ++i)
+		included_ref[sorted_idx[i]] = 1;
+
+	/* Raw (unblurred) analysis-mono provider — same source as the pass-1
+	 * correlation frames minus the Gaussian blur. */
+	const mpp_cache_t *cache = run->cache;
+	const int cache_N = cache ? (int) cache->raw_frames.size() : 0;
+	auto raw_provider = [seq, cfg, cache, cache_N](int f) -> cv::Mat {
+		return guarded_frame([&]() -> cv::Mat {
+			if (cache && f >= 0 && f < cache_N
+			 && !cache->raw_frames[f].empty())
+				return cache->raw_frames[f];
+			return mpp::read_analysis_frame(seq, f, cfg->avi_bayer_pattern,
+			                                cfg->bitdepth);
+		});
+	};
+
+	const std::vector<double> brightness(run->frame_brightness,
+	                                     run->frame_brightness + N);
+	const cv::Vec4i intersection(run->intersection[0], run->intersection[1],
+	                             run->intersection[2], run->intersection[3]);
+
+	/* The reference lives in mean-frame coordinates — never drizzled. */
+	mpp_config_t cfg_ref = *cfg;
+	cfg_ref.drizzle_scale = 1.0;
+
+	size_t budget = 0;
+	{
+		guint64 budget_b = get_available_memory();
+		const long long cap_mb = get_max_memory_in_MB();
+		if (cap_mb > 0) {
+			const guint64 cap_b = (guint64) cap_mb * 1024ULL * 1024ULL;
+			if (cap_b < budget_b) budget_b = cap_b;
+		}
+		budget = (size_t) ((long double) budget_b * 0.8L);
+	}
+
+	const auto loop = mpp::stack_apply_shifts_streamed(
+	    raw_provider, N, /*num_layers=*/1, *run->aps, apq_ref, pass1,
+	    offsets, brightness, sorted_idx, intersection, cfg_ref,
+	    included_ref.data(), threads, provider_safe, budget);
+	if (loop.oom) return MPP_ENOMEM;
+	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
+	const cv::Mat merged = mpp::stack_merge_alignment_point_buffers(
+	    loop.state, loop.border, *run->aps, cfg_ref);
+
+	cv::Mat canvas;
+	mean_raw.convertTo(canvas, CV_32F);
+	cv::Mat m32;
+	merged.convertTo(m32, CV_32F);
+	const int y0 = loop.border.y_low, x0 = loop.border.x_low;
+	const int h = std::min(m32.rows, canvas.rows - y0);
+	const int w = std::min(m32.cols, canvas.cols - x0);
+	if (h <= 0 || w <= 0) return MPP_ENODATA;
+	m32(cv::Range(0, h), cv::Range(0, w)).copyTo(
+	    canvas(cv::Range(y0, y0 + h), cv::Range(x0, x0 + w)));
+
+	*ref_out = canvas;
+	*k_out = apq_ref.stack_size;
+	return MPP_OK;
+}
+
 static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *cfg,
                                             mpp_run_t *run) {
 	if (!seq || !cfg || !run || !run->aps) return MPP_EINVAL;
@@ -1354,6 +1493,52 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 		mpp_shift_free(shifts);
 		return MPP_EINTR;
 	}
+
+	/* mpp_improve: second pass against a refined reference. Stack the
+	 * top-K frames per AP at the pass-1 shifts and re-measure every
+	 * shift against that (much sharper) stack instead of the seeing-
+	 * averaged mean frame — see build_refined_reference. Failures other
+	 * than cancellation are contained: pass-1 shifts are kept. */
+	if (cfg->alignment_points_refine_reference) {
+		cv::Mat refined;
+		int k_ref = 0;
+		gui_iface.set_progress(PROGRESS_RESET,
+		                       _("Register: stacking refinement reference"));
+		const mpp_status_t rrc = build_refined_reference(
+		    seq, cfg, run, apq, offsets, mean_raw, shifts,
+		    stageb_threads, stageb_provider_safe, &refined, &k_ref);
+		if (rrc == MPP_EINTR) {
+			mpp_shift_free(shifts);
+			return MPP_EINTR;
+		}
+		if (rrc == MPP_OK) {
+			siril_log_message(_("Register: refined reference stacked from the "
+			                    "top %d frames per alignment point — "
+			                    "re-measuring shifts against it\n"), k_ref);
+			gui_iface.set_progress(PROGRESS_RESET,
+			                       _("Register: correlating per-AP boxes (pass 2)"));
+			mpp_shifts_t *shifts2 = mpp::stack_compute_shifts_streamed(
+			    provider, run->num_frames, refined, *run->aps, apq, offsets,
+			    *cfg, run->included, stageb_threads, stageb_provider_safe);
+			if (shifts2 && shifts2->failure_counter == -1) {
+				mpp_shift_free(shifts2);
+				mpp_shift_free(shifts);
+				return MPP_EINTR;
+			}
+			if (shifts2) {
+				mpp_shift_free(shifts);
+				shifts = shifts2;
+			} else {
+				siril_log_message(_("Register: refined pass ran out of memory "
+				                    "— keeping first-pass shifts\n"));
+			}
+		} else {
+			siril_log_message(_("Register: refinement reference build failed "
+			                    "(code %d) — keeping first-pass shifts\n"),
+			                  (int) rrc);
+		}
+	}
+
 	if (run->shifts) mpp_shift_free(run->shifts);
 	run->shifts = shifts;
 	return MPP_OK;

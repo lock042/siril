@@ -101,6 +101,25 @@ struct mpp_config {
 	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — drizzle-only */
 	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_TURBO */
 
+	/* Stage B measurement quality (mpp_improve; no PSS equivalent).
+	 * Both default ON — deliberate divergences from PSS, documented in
+	 * MPP_PSS_DIFFS.md. PSS-equivalence fixtures must pin them off
+	 * (CLI -no-zero-mean / -no-refine). */
+	bool alignment_points_zero_mean;        /* true — per-AP correlation uses
+	    zero-mean NCC (TM_CCOEFF_NORMED) instead of PSS's TM_CCORR_NORMED.
+	    Pearson correlation is invariant to the brightness gain AND offset
+	    mismatches (transparency drift, haze) between a frame and the
+	    averaged reference; plain NCC is only gain-invariant and its peak
+	    is biased by pixels under an offset mismatch — Stage B applies no
+	    brightness normalisation to the correlation inputs. */
+	bool alignment_points_refine_reference; /* true — after the normal Stage B
+	    pass, stack the top-K frames per AP at the pass-1 shifts and
+	    re-measure every per-AP shift against that (much sharper) reference
+	    instead of the seeing-averaged mean frame. */
+	int alignment_points_reference_frames;  /* 0 = auto: clamp(ceil(5% of
+	    included frames), 8, 32). Explicit >0 overrides the per-AP frame
+	    count of the refinement reference stack. */
+
 	/* AVI Bayer-pattern hint. AVI / film containers carry no Bayer
 	 * marker, so when an OSC capture is saved to AVI Siril has no way
 	 * to know the mosaic layout — the heuristic in film_read_frame

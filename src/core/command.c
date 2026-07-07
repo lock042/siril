@@ -14621,6 +14621,26 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		 * registration data (default on). */
 		cfg->align_frames_seed_from_regdata = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && !strcmp(arg, "-no-zero-mean")) {
+		/* Revert the per-AP correlation to plain normalized
+		 * cross-correlation (the PSS-faithful method; default is
+		 * zero-mean NCC, whose peak is invariant to the brightness
+		 * gain/offset mismatches between frame and reference that
+		 * transparency drift produces). */
+		cfg->alignment_points_zero_mean = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && !strcmp(arg, "-no-refine")) {
+		/* Disable the second registration pass against a stacked
+		 * refined reference (default on). */
+		cfg->alignment_points_refine_reference = FALSE; return MPP_FLAG_OK;
+	}
+	if (accept_register && g_str_has_prefix(arg, "-refine-frames=")) {
+		/* Per-AP frame count of the refinement reference stack.
+		 * 0 = auto (clamp(ceil(5% of frames), 8, 32)). */
+		const int v = atoi(arg + 15);
+		if (v < 0) return MPP_FLAG_INVALID_VALUE;
+		cfg->alignment_points_reference_frames = v; return MPP_FLAG_OK;
+	}
 	if (accept_register && g_str_has_prefix(arg, "-align=")) {
 		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
 		 * "planet" = brightness centroid (default), for discs on a dark

@@ -19,9 +19,15 @@ Root causes, ranked (from the July 2026 code review):
    box against the *seeing-averaged* mean frame. Banding is washed out of
    that reference, so it cannot contribute to the peak; correlation peaks on
    globe APs are broad and the sub-pixel fit rides noise.
-2. **`TM_CCORR_NORMED` without mean subtraction.** Plain NCC is dominated by
-   DC and smooth gradients: on a limb-darkened globe box the peak locates
-   the brightness ramp, not the structure.
+2. **`TM_CCORR_NORMED` without mean subtraction.** Plain NCC is
+   gain-invariant but not offset-invariant: brightness offset mismatches
+   between a frame and the averaged reference (transparency drift, haze —
+   Stage B applies no brightness normalisation to the correlation inputs)
+   bias the peak by pixels. *(Empirical correction during implementation:
+   a pedestal or gradient common to both windows cancels in the
+   normalisation and does NOT bias plain NCC — the demonstrated failure
+   regime is the gain+offset mismatch, locked in by the
+   `zero_mean_recovers_shift_under_gradient` fixture.)*
 3. Heavy pre-blur (ksize 7, twice in phase 1) + 3×3 parabolic sub-pixel fit
    → pixel-locking bias, ~0.1–0.2 px accuracy floor even at good APs.
 4. AP pitch hard-coupled to box size (step = 2.25 × half-box → 54 px at
@@ -37,9 +43,10 @@ Root causes, ranked (from the July 2026 code review):
 
 **(2) Zero-mean Stage B correlation** — config-gated switch of the per-AP
 `matchTemplate` method from `TM_CCORR_NORMED` to `TM_CCOEFF_NORMED`
-(zero-mean NCC), applied in both correlation phases of Stage B only. Global
-alignment and the Phase-4 `shift_compute_all` path keep `TM_CCORR_NORMED`
-(PSS-faithful; used by the equivalence oracle tests).
+(zero-mean NCC = Pearson correlation, invariant to frame-vs-reference
+brightness gain and offset mismatch), applied in both correlation phases of
+Stage B only. Global alignment and the Phase-4 `shift_compute_all` path keep
+`TM_CCORR_NORMED` (PSS-faithful; used by the equivalence oracle tests).
 
 - `cfg.alignment_points_zero_mean`, default **true** (deliberate divergence,
   same precedent as the Planet-mode default; documented in

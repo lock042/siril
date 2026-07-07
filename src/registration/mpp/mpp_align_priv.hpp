@@ -76,7 +76,12 @@ struct MultilevelShiftResult {
  * neighbourhood. `weight_matrix_first_phase`, when non-empty, is
  * element-wise multiplied into the phase-1 correlation result before
  * argmax — used during stacking to apply an off-centre penalty bias
- * (alignment_points_penalty_factor). */
+ * (alignment_points_penalty_factor). `zero_mean` switches both phases
+ * from PSS's TM_CCORR_NORMED to zero-mean NCC (TM_CCOEFF_NORMED), which
+ * is invariant to brightness gain AND offset mismatch between frame and
+ * reference (plain NCC is only gain-invariant) — Stage B only
+ * (cfg.alignment_points_zero_mean); the global aligner and the Phase-4
+ * oracle path stay PSS-faithful. */
 MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              const cv::Mat &ref_first_phase_f32,
                                              const cv::Mat &frame_mono_blurred,
@@ -84,7 +89,8 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              int patch_x_low, int patch_x_high,
                                              int gauss_width, int search_width,
                                              bool subpixel_solve,
-                                             const cv::Mat &weight_matrix_first_phase = cv::Mat());
+                                             const cv::Mat &weight_matrix_first_phase = cv::Mat(),
+                                             bool zero_mean = false);
 
 /* Phase 2 wrapper. */
 AlignShiftResult align_shift_one_frame(const cv::Mat &reference_window_f32,
