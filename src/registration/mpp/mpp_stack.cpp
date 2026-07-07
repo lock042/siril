@@ -443,10 +443,16 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 					 * y_high = int(min(frame_h, patch_y_high + dy) / stride);
 					 * Python `int()` truncates toward zero. C integer division
 					 * does the same for non-negatives, so / stride matches. */
-					const int yl_raw = ap.patch_y_low  + dy;
-					const int yh_raw = ap.patch_y_high + dy;
-					const int xl_raw = ap.patch_x_low  + dx;
-					const int xh_raw = ap.patch_x_high + dx;
+					/* Rank over the patch ∪ box union: with a decoupled AP
+					 * pitch (alignment_points_step) the paste patch can be
+					 * smaller than the measurement box, and ranking on the
+					 * shrunken patch alone would be noise. Legacy geometry
+					 * has patch ⊇ box, so the union reduces to the patch —
+					 * bit-identical to PSS there. */
+					const int yl_raw = std::min(ap.patch_y_low,  ap.box_y_low)  + dy;
+					const int yh_raw = std::max(ap.patch_y_high, ap.box_y_high) + dy;
+					const int xl_raw = std::min(ap.patch_x_low,  ap.box_x_low)  + dx;
+					const int xh_raw = std::max(ap.patch_x_high, ap.box_x_high) + dx;
 					const int yl = std::max(0, yl_raw) / stride;
 					const int yh = std::min(frame_rows, yh_raw) / stride;
 					const int xl = std::max(0, xl_raw) / stride;

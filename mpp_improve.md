@@ -96,6 +96,29 @@ bit-identical) vs defaults; inspect banding with the à trous level-1 ×40
 boost standard. Watch Stage B failure counters and the shift-viewer spread
 (per-AP shift dispersion should tighten in pass 2).
 
+### Phase 1 results (Saturn A/B, sat.ser 512×320×17934 8-bit, 1.5×, 50%)
+
+- hb 24 (26 APs): refined+zero-mean vs baseline is a wash on the globe —
+  pixel-scale ratio 0.995–1.016, band-scale (6–32 px) +0.7–1.4 %, visually
+  marginal, no artefacts, +18 s. Stage B failures 3.5 % → 5.3 % of pairs.
+- Density probe via `-half-box=12` (76 APs): **net loss** — band-scale
+  −0.3…−2.3 %, failures 10 %/19 %, visible AP-lattice imprints on the globe.
+  Shrinking the half-box starves the 24 px correlation template; density
+  gained that way is worthless. AS! used 198 APs on this data (7.6× denser
+  than our 26) with *large overlapping* measurement boxes — density and
+  measurement support must be decoupled.
+
+### Phase 1b (implemented): decoupled AP grid pitch
+
+`cfg.alignment_points_step` / `-ap-step=N` (0 = legacy PSS geometry,
+bit-identical). Explicit step keeps the correlation box at 2×half-box,
+places APs every `step` px, and sizes the paste patch to
+step + 0.75×half-box (legacy blend margin). Box may exceed patch (it only
+feeds measurement + placement filters); per-AP frame ranking region is the
+patch ∪ box union so a shrunken patch doesn't degrade ranking. Sidecar v11.
+Validation: `-ap-step=27` (≈4× APs at unchanged box SNR) vs auto on the
+Saturn data.
+
 ### Phase 2 (next): measurement accuracy floor
 
 - Upsampled-correlation sub-pixel refinement (Guizar-Sicairos-style local

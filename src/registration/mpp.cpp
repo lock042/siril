@@ -2359,6 +2359,7 @@ extern "C" void mpp_write_quality_to_regdata(sequence *seq, int layer,
  * default in both cfgs, so they never spuriously trigger a regeneration. */
 static bool ap_placement_cfg_differs(const mpp_config_t *a, const mpp_config_t *b) {
 	return a->alignment_points_half_box_width        != b->alignment_points_half_box_width
+	    || a->alignment_points_step                  != b->alignment_points_step
 	    || a->alignment_points_search_width          != b->alignment_points_search_width
 	    || a->alignment_points_brightness_threshold  != b->alignment_points_brightness_threshold
 	    || a->alignment_points_contrast_threshold    != b->alignment_points_contrast_threshold

@@ -14641,6 +14641,16 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		if (v < 0) return MPP_FLAG_INVALID_VALUE;
 		cfg->alignment_points_reference_frames = v; return MPP_FLAG_OK;
 	}
+	if (accept_register && g_str_has_prefix(arg, "-ap-step=")) {
+		/* AP grid pitch in px, decoupled from the correlation-box size
+		 * (which stays 2 x half-box). 0 = auto (PSS geometry: 2.25 x
+		 * half-box). Dense grids sample the warp field finer without
+		 * starving the correlation of signal the way a smaller half-box
+		 * does. */
+		const int v = atoi(arg + 9);
+		if (v != 0 && v < 8) return MPP_FLAG_INVALID_VALUE;
+		cfg->alignment_points_step = v; return MPP_FLAG_OK;
+	}
 	if (accept_register && g_str_has_prefix(arg, "-align=")) {
 		/* Global frame alignment mode (see mpp_config.h enum mpp_align_mode).
 		 * "planet" = brightness centroid (default), for discs on a dark

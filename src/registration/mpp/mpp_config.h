@@ -119,6 +119,15 @@ struct mpp_config {
 	int alignment_points_reference_frames;  /* 0 = auto: clamp(ceil(5% of
 	    included frames), 8, 32). Explicit >0 overrides the per-AP frame
 	    count of the refinement reference stack. */
+	int alignment_points_step;              /* 0 = auto (PSS geometry:
+	    step = 2.25 × half-box). >0 decouples the AP grid pitch from the
+	    correlation-box size: the measurement box stays at 2 × half-box
+	    (keeping its correlation SNR) while APs are placed every `step`
+	    px and the paste patch shrinks to step + legacy blend margin.
+	    This is the AutoStakkert regime — large overlapping measurement
+	    boxes, dense warp sampling. Shrinking half-box instead collapses
+	    the box SNR (measured on Saturn: hb 12 → 10-19% Stage B failure
+	    rate + AP-lattice imprints on the globe). */
 
 	/* AVI Bayer-pattern hint. AVI / film containers carry no Bayer
 	 * marker, so when an OSC capture is saved to AVI Siril has no way
@@ -183,14 +192,30 @@ enum mpp_drizzle_kernel {
 
 typedef struct mpp_config mpp_config_t;
 
-/* Half-patch width and step size derive from
- * alignment_points_half_box_width; helpers keep the arithmetic in one
- * place. For default half_box_width = 24 both formulas give exact
- * integers; for odd values they fall back to a floor of half_box * 1.5. */
+/* Half-patch width and step size. Legacy (alignment_points_step == 0,
+ * PSS geometry): both derive from alignment_points_half_box_width —
+ * half_patch = 1.5 × half_box, step = 1.5 × half_patch. For default
+ * half_box_width = 24 both formulas give exact integers; for odd values
+ * they fall back to a floor.
+ *
+ * Decoupled (alignment_points_step > 0): the grid pitch is the explicit
+ * step; the paste patch is sized to the pitch plus the legacy blend
+ * margin (patch − step = 0.75 × half_box, i.e. 18 px at half-box 24) so
+ * adjacent patches keep the same absolute blend overlap however dense
+ * the grid is. The measurement box stays 2 × half_box and may then
+ * exceed the patch — harmless: the box only feeds the shift measurement
+ * and the structure/brightness filters, while the patch is what gets
+ * pasted. */
 static inline int mpp_cfg_half_patch_width(const struct mpp_config *c) {
+	if (c->alignment_points_step > 0) {
+		const int overlap = (c->alignment_points_half_box_width * 3) / 4;
+		return (c->alignment_points_step + overlap + 1) / 2;  /* ceil((step+o)/2) */
+	}
 	return (c->alignment_points_half_box_width * 3) / 2;  /* round(half_box * 1.5) */
 }
 static inline int mpp_cfg_step_size(const struct mpp_config *c) {
+	if (c->alignment_points_step > 0)
+		return c->alignment_points_step;
 	/* round((half_patch_width * 4.5) / 3) == round(half_patch_width * 1.5) */
 	return (mpp_cfg_half_patch_width(c) * 3) / 2;
 }

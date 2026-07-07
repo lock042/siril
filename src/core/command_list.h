@@ -135,7 +135,7 @@ static command commands[] = {
 	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 1, "modasinh -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-mask]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed] [-no-zero-mean] [-no-refine] [-refine-frames=N] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_MPP, TRUE, REQ_CMD_NO_THREAD},
+	{"mpp", 1, "mpp seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N] [-stack-frames=N] [-bg-fraction=F] [-bg-blend=F] [-skip-failed-aps] [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N] [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N] [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed] [-no-zero-mean] [-no-refine] [-refine-frames=N] [-ap-step=N] [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_mpp, STR_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"mtf", 3, "mtf low mid high [channels] [-mask]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg [-mask]", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -166,7 +166,7 @@ static command commands[] = {
 	{"register_mpp", 1, "register_mpp seqname [-align={planet|surface}] [-half-box=N] [-search-width=N] [-search-global=N]\n"
 					"register_mpp seqname ... [-register-percent=N] [-ref-percent=N] [-fast-changing] [-min-brightness=N]\n"
 					"register_mpp seqname ... [-min-contrast=N] [-min-structure=F] [-no-shifts] [-no-normalize] [-noseed]\n"
-					"register_mpp seqname ... [-no-zero-mean] [-no-refine] [-refine-frames=N]\n"
+					"register_mpp seqname ... [-no-zero-mean] [-no-refine] [-refine-frames=N] [-ap-step=N]\n"
 					"register_mpp seqname ... [-avi-bayer={auto|none|rggb|bggr|gbrg|grbg}]", process_register_mpp, STR_REGISTER_MPP, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
