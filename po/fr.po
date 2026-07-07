@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-29 11:08+0200\n"
-"PO-Revision-Date: 2026-06-30 11:18+0000\n"
+"PO-Revision-Date: 2026-07-07 14:18+0000\n"
 "Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
@@ -26179,7 +26179,7 @@ msgstr "Double clic sur le bouton du milieu de la souris pour zoomer"
 
 #: src/core/settings.c:519
 msgid "Mouse smooth scroll speed limit"
-msgstr "Limitation de la vitesse de défilement de la souris"
+msgstr "Limite de vitesse du défilement fluide de la souris"
 
 #: src/core/settings.c:520
 msgid "configure background samples color"
