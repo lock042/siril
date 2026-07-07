@@ -209,6 +209,7 @@ struct guiinf {
 
 	gboolean          show_wcs_grid;
 	gboolean          show_wcs_disto;
+	gboolean          hide_bkg_samples;  /* suppress the background sample overlay (sample-free method) */
 
 	psf_star         *qphot;            /* quick-photometry highlight */
 

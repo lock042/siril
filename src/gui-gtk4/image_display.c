@@ -3832,6 +3832,9 @@ static void draw_mpp_aps(const draw_data_t* dd) {
 static void draw_brg_boxes(const draw_data_t* dd) {
 	GSList *list;
 	GdkRGBA gdk_color;
+	
+	if (gui.hide_bkg_samples)
+		return;
 	for (list = com.grad_samples; list; list = list->next) {
 		background_sample *sample = (background_sample *)list->data;
 		if (sample && background_sample_is_valid(sample)) {

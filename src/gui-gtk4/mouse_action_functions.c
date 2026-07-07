@@ -757,6 +757,7 @@ gboolean main_action_click(mouse_data *data) {
 					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt, gd);
 					sample_mutex_unlock();
 
+					update_bkg_compute_button_sensitivity();
 					redraw(REDRAW_OVERLAY);
 					gui_function(redraw_previews, NULL);
 				}
@@ -944,6 +945,7 @@ gboolean second_action_click(mouse_data *data) {
 				com.grad_samples = remove_background_sample(com.grad_samples, gfit, pt);
 				sample_mutex_unlock();
 
+				update_bkg_compute_button_sensitivity();
 				redraw(REDRAW_OVERLAY);
 				gui_function(redraw_previews, NULL);
 			}
