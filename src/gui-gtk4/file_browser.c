@@ -36,6 +36,13 @@ extern guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
  * as the FITS extractor. */
 extern guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
                                            int *width_out, int *height_out);
+#ifdef HAVE_LIBTIFF
+/* From io/image_format_fits.c — last-ditch thumbnail for TIFFs that neither
+ * exiv2 nor gdk-pixbuf can decode (notably 32-bit float/int TIFFs).  Same
+ * return contract as the FITS extractor. */
+extern guchar *extract_thumbnail_from_tiff(const char *filename, gchar **descr,
+                                            int *width_out, int *height_out);
+#endif
 
 typedef struct {
 	gchar *title;
@@ -2524,6 +2531,38 @@ void siril_file_browser_default_preview(const gchar *path,
 				g_clear_error(&err);
 			}
 		}
+
+#ifdef HAVE_LIBTIFF
+		/* Last-ditch fallback for TIFFs that neither exiv2 nor gdk-pixbuf
+		 * could decode — notably Siril's own 32-bit float/int output.
+		 * Siril's libtiff reader handles every bit depth, so load the image
+		 * and MTF-stretch it like a FITS/SER preview. */
+		if (!got_texture && itype == TYPETIFF) {
+			gchar *descr = NULL;
+			int w = 0, h = 0;
+			guchar *data = extract_thumbnail_from_tiff(path, &descr, &w, &h);
+			if (data) {
+				GdkTexture *tex = siril_texture_from_rgb_bytes(data,
+					(gsize)w * h * 3, w, h, w * 3, FALSE,
+					(GDestroyNotify)free, data);
+				if (tex) {
+					gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+					gtk_picture_set_content_fit(picture, GTK_CONTENT_FIT_SCALE_DOWN);
+					g_object_unref(tex);
+					got_texture = TRUE;
+				} else {
+					free(data);
+				}
+			}
+			if (descr && *descr) {
+				gchar **lines = g_strsplit(descr, "\n", 2);
+				if (lines[0] && *lines[0]) dims_str  = g_strdup(lines[0]);
+				if (lines[0] && lines[1]) extra_str = g_strdup(lines[1]);
+				g_strfreev(lines);
+			}
+			g_free(descr);
+		}
+#endif
 	}
 
 	/* No thumbnail available — show a type-appropriate icon so the
