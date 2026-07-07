@@ -119,6 +119,23 @@ struct mpp_config {
 	int alignment_points_reference_frames;  /* 0 = auto: clamp(ceil(5% of
 	    included frames), 8, 32). Explicit >0 overrides the per-AP frame
 	    count of the refinement reference stack. */
+	double alignment_points_smooth_radius;  /* per-frame shift-field
+	    smoothing radius in grid-step units; 0 = off. Default 2.5. After
+	    Stage B, each AP's (dy, dx) is replaced by a robust local plane
+	    fit (LOESS, tricube distance × Tukey bisquare residual weights)
+	    over the successful measurements of the APs within the radius on
+	    the SAME frame. Measured motivation (Saturn, 96 APs): the
+	    adjacent-AP shift-disagreement structure function is flat from 20
+	    to 200 px separation — i.e. per-(frame,AP) measurement noise
+	    (σ ≈ 0.8 px dy / 1.8 px dx) dominates the true differential warp,
+	    and every paste convolves the stack with that noise kernel. The
+	    true warp field is smooth at grid-step scale, so a robust local
+	    fit averages the noise down by ~sqrt(n_neighbours/3) while
+	    preserving genuine smooth warp; outlier measurements (railed
+	    searches, aperture-problem dx on banded targets) are down-
+	    weighted by the bisquare loop. Failed pairs inside a well-
+	    measured neighbourhood get the fit prediction (their success
+	    flag is preserved for skip-failed accounting). */
 	int alignment_points_step;              /* 0 = auto (PSS geometry:
 	    step = 2.25 × half-box). >0 decouples the AP grid pitch from the
 	    correlation-box size: the measurement box stays at 2 × half-box

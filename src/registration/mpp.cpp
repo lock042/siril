@@ -1494,6 +1494,17 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 		return MPP_EINTR;
 	}
 
+	/* mpp_improve: robust per-frame smoothing of the shift field (see
+	 * shift_field_smooth). Applied to the pass-1 shifts BEFORE the
+	 * refined-reference build so the reference stack is pasted at the
+	 * denoised field, and again to the pass-2 output below. */
+	if (cfg->alignment_points_smooth_radius > 0.0 && run->aps->count >= 5)
+		siril_log_message(_("Register: smoothing the per-AP shift field "
+		                    "(radius %.1f grid steps)\n"),
+		                  cfg->alignment_points_smooth_radius);
+	mpp::shift_field_smooth(shifts, *run->aps, *cfg, run->included,
+	                        stageb_threads);
+
 	/* mpp_improve: second pass against a refined reference. Stack the
 	 * top-K frames per AP at the pass-1 shifts and re-measure every
 	 * shift against that (much sharper) stack instead of the seeing-
@@ -1526,6 +1537,8 @@ static mpp_status_t mpp_compute_shifts_impl(sequence *seq, const mpp_config_t *c
 				return MPP_EINTR;
 			}
 			if (shifts2) {
+				mpp::shift_field_smooth(shifts2, *run->aps, *cfg,
+				                        run->included, stageb_threads);
 				mpp_shift_free(shifts);
 				shifts = shifts2;
 			} else {

@@ -98,5 +98,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_refine_reference = true;
 	cfg->alignment_points_reference_frames = 0;   /* auto */
 	cfg->alignment_points_step = 0;               /* auto = PSS geometry */
+	cfg->alignment_points_smooth_radius = 2.5;    /* grid steps; 0 = off */
 	return MPP_OK;
 }

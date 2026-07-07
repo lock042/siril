@@ -119,6 +119,39 @@ patch ∪ box union so a shrunken patch doesn't degrade ranking. Sidecar v11.
 Validation: `-ap-step=27` (≈4× APs at unchanged box SNR) vs auto on the
 Saturn data.
 
+### Phase 1c (implemented): per-frame shift-field smoothing
+
+Sidecar shift-field analysis (96 APs): the adjacent-AP disagreement structure
+function is flat 20–200 px (RMS ≈ 1.1 px dy / 2.5 px dx) ⇒ per-(frame,AP)
+measurement noise dominates true differential warp; dx ≫ dy is the aperture
+problem on banded content. `cfg.alignment_points_smooth_radius`
+(`-shift-smooth=F`, grid-step units, default 2.5, 0 = off): robust local
+plane fit per frame per AP (tricube × Tukey bisquare, 3 IRLS rounds) over the
+successful neighbours; failed pairs get the fit prediction. Applied after
+each Stage B pass (the refined reference is built from the smoothed pass-1
+field). Sidecar v12.
+
+**Validation & the key negative result:** smoothing demonstrably denoises the
+field (structure function 0.94/2.18 → 0.40/0.79 px at 20–35 px, now growing
+with separation = physical warp), yet the stacked output is unchanged
+(band-scale ratios 0.999). MTF arithmetic explains the whole plateau: after
+Hann blending averages 2–4 APs, effective paste noise is ~0.3–0.5 px, and a
+0.3 px Gaussian costs only ~3 % contrast at λ = 8 px, <1 % at λ = 16 px.
+**Registration accuracy is not the binding constraint for band-scale detail
+on this data** — phases 1/1b/1c all land within ±2 % of each other because
+they were all pushing on a non-binding constraint. (Smoothing stays default
+ON: measurably cleaner warp field, better failed-pair handling, no downside;
+re-validate on lunar/solar where warp is real.)
+
+**Where the AS! gap actually lives (next):** a heavily mid-band-boosted
+render of the current stack shows banding approaching the AS! reference, so
+part of the historical gap was the post-processing chain. Remaining
+candidates for the residual fine-scale gap, in test order: (1) per-frame
+RCD debayer of noisy 8-bit CFA vs AS!'s Bayer handling — try pre-debayered
+input / green-extracted mono; (2) frame-quality ranking discrimination
+(uint8-quantised Laplace σ) — float ranking, phase 2; (3) sub-pixel peak
+bias (3×3 parabolic) — matters at fine scale only; upsampled-DFT fit.
+
 ### Phase 2 (next): measurement accuracy floor
 
 - Upsampled-correlation sub-pixel refinement (Guizar-Sicairos-style local

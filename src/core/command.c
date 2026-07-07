@@ -14641,6 +14641,19 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 		if (v < 0) return MPP_FLAG_INVALID_VALUE;
 		cfg->alignment_points_reference_frames = v; return MPP_FLAG_OK;
 	}
+	if (accept_register && g_str_has_prefix(arg, "-shift-smooth=")) {
+		/* Per-frame robust smoothing radius for the AP shift field, in
+		 * grid-step units (0 disables). Measurement noise on individual
+		 * per-AP shifts dominates the true differential warp, which is
+		 * smooth at grid-step scale — the local robust fit averages the
+		 * noise away without flattening genuine warp. */
+		const char *v = arg + 14;
+		char *end = NULL;
+		const double r = g_ascii_strtod(v, &end);
+		if (end == v || *end != '\0' || r < 0.0 || r > 20.0)
+			return MPP_FLAG_INVALID_VALUE;
+		cfg->alignment_points_smooth_radius = r; return MPP_FLAG_OK;
+	}
 	if (accept_register && g_str_has_prefix(arg, "-ap-step=")) {
 		/* AP grid pitch in px, decoupled from the correlation-box size
 		 * (which stays 2 x half-box). 0 = auto (PSS geometry: 2.25 x
