@@ -31,6 +31,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->frames_gauss_width = 7;
 	cfg->align_frames_sampling_stride = 2;
 	cfg->rank_laplacian_alpha = 1.0 / 256.0;
+	cfg->rank_float_precision = true;   /* mpp_improve; -no-float-rank reverts */
 	cfg->frames_normalization = true;
 	cfg->frames_normalization_threshold = 15;
 	cfg->bitdepth = 16;

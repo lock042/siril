@@ -63,7 +63,7 @@ void stack_remap_subpixel(const cv::Mat &frame_f32, cv::Mat &buffer_f32,
 
 /* Per-AP per-frame quality for the default Laplace (frame-rank) +
  * Laplace (AP-rank) path. The strided LoG of each frame is computed
- * once via rank_blurred_laplacian_u8 (shared with mpp_rank), then each
+ * once via rank_blurred_laplacian (shared with mpp_rank), then each
  * AP's patch is sliced from it and meanStdDev gives σ. With
  * frames_normalization on, σ is divided by frame avg_brightness. */
 /* A (frame → AP) selection entry: the AP index plus the frame's selection

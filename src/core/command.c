@@ -14633,6 +14633,13 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_register && !strcmp(arg, "-no-normalize")) {
 		cfg->frames_normalization = FALSE; return MPP_FLAG_OK;
 	}
+	if (accept_register && !strcmp(arg, "-no-float-rank")) {
+		/* Revert the frame-quality measure to the classic quantised
+		 * uint8 |Laplacian| (steps of 256 16-bit ADU, saturating);
+		 * default is full float precision, which keeps the quality
+		 * ordering exact on low-contrast data. */
+		cfg->rank_float_precision = FALSE; return MPP_FLAG_OK;
+	}
 	if (accept_register && !strcmp(arg, "-noseed")) {
 		/* Disable auto-seeding the global aligner from existing .seq shift
 		 * registration data (default on). */

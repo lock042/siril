@@ -97,20 +97,31 @@ cv::Mat blur_mono_for_align(const cv::Mat &mono, const mpp_config_t &cfg) {
 	return blurred;
 }
 
-cv::Mat rank_blurred_laplacian_u8(const cv::Mat &mono, const mpp_config_t &cfg) {
+cv::Mat rank_blurred_laplacian(const cv::Mat &mono, const mpp_config_t &cfg) {
 	const cv::Mat blurred = blur_mono_for_align(mono, cfg);
 	const cv::Mat sub = stride_subsample(blurred, cfg.align_frames_sampling_stride);
 	cv::Mat lap;
 	cv::Laplacian(sub, lap, CV_32F);
+	if (cfg.rank_float_precision) {
+		/* mpp_improve: |lap|·α at full float precision. The PSS u8 path
+		 * below quantises the Laplacian to steps of 1/α (256 in 16-bit
+		 * ADU) and saturates at 255/α — low-contrast regions collapse
+		 * to a handful of levels and strong edges clip, degrading the
+		 * quality ORDERING that the global ranking and the per-AP frame
+		 * selection both depend on. Same α scale, so score magnitudes
+		 * stay comparable (regdata quality display, thresholds). */
+		cv::Mat out = cv::abs(lap) * cfg.rank_laplacian_alpha;
+		return out;
+	}
 	cv::Mat lap_u8;
 	cv::convertScaleAbs(lap, lap_u8, cfg.rank_laplacian_alpha);
 	return lap_u8;
 }
 
 double rank_score_mat(const cv::Mat &mono, const mpp_config_t &cfg) {
-	const cv::Mat lap_u8 = rank_blurred_laplacian_u8(mono, cfg);
+	const cv::Mat lap = rank_blurred_laplacian(mono, cfg);
 	cv::Scalar mean, stddev;
-	cv::meanStdDev(lap_u8, mean, stddev);
+	cv::meanStdDev(lap, mean, stddev);
 	return stddev[0];
 }
 

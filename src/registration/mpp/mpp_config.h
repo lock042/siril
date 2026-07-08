@@ -16,6 +16,15 @@ struct mpp_config {
 	int frames_gauss_width;            /* default 7 */
 	int align_frames_sampling_stride;  /* default 2 (used by Laplace rank) */
 	double rank_laplacian_alpha;       /* default 1/256 (convertScaleAbs scale) */
+	bool rank_float_precision;         /* true — compute the Laplace-σ frame
+	    quality on the float |Laplacian| instead of PSS's uint8
+	    convertScaleAbs image. The u8 path quantises the Laplacian to
+	    steps of 256 (16-bit ADU) and saturates at 255·256, so
+	    low-contrast regions collapse to a handful of levels and strong
+	    edges clip; float precision keeps the full ordering. Affects the
+	    global frame ranking and the per-AP frame selection (both use the
+	    same Laplacian image). -no-float-rank restores the PSS-faithful
+	    quantised path; equivalence fixtures must pin it off. */
 
 	/* Brightness normalization (Phase 1) */
 	bool frames_normalization;             /* default true */

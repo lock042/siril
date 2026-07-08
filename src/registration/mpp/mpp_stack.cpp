@@ -431,7 +431,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 		try {
 			const cv::Mat frame = provider(f);
 			if (!frame.empty()) {
-				const cv::Mat lap = rank_blurred_laplacian_u8(frame, cfg);
+				const cv::Mat lap = rank_blurred_laplacian(frame, cfg);
 				/* Round sub-pixel offsets — Stage A's box-slicing math wants
 				 * integer indices; the sub-pixel residual matters only at the
 				 * drizzle pixmap stage. */
