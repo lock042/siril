@@ -165,6 +165,25 @@ input / green-extracted mono; (2) frame-quality ranking discrimination
 (uint8-quantised Laplace σ) — float ranking, phase 2; (3) sub-pixel peak
 bias (3×3 parabolic) — matters at fine scale only; upsampled-DFT fit.
 
+### Phase 2a (mpp_improve_experimental): debayer A/B — DONE
+
+`-debayer={rcd|bilinear|vng|ahd|amaze|dcb|hphd|igv|lmmse}` (stack-side;
+`cfg.debayer_method`, sidecar v13) replaces the hard-coded BAYER_RCD in
+`ser_read_frame`'s CFA path for the duration of Stage C. 5-way A/B on
+newsat.ser (same sidecar, same shifts): **luminance band-scale detail is
+independent of the demosaicing algorithm** (all variants within ±0.6 % of
+RCD at every scale) — the debayer is ruled out as the band-detail gap.
+Material finding: **LMMSE cuts stacked chroma noise 19 %** vs RCD (AMaZE/
+VNG ~12 %; bilinear +4 % worse) at ~+14 s — recommended for colour work;
+RCD stays the default (application-wide consistency).
+
+Remaining band-detail suspects: per-AP frame-quality ranking precision
+(uint8-quantised Laplace σ → float; cheap test: stack-percent sweep
+10/25/50 from the same sidecar — if percent barely matters, ranking is
+weakly discriminating), 3×3 parabolic sub-pixel bias (fine-scale only),
+and the AS! reference's third-hand processing chain (unquantifiable —
+no unprocessed AS! stack available).
+
 ### Phase 2 (next): measurement accuracy floor
 
 - Upsampled-correlation sub-pixel refinement (Guizar-Sicairos-style local
