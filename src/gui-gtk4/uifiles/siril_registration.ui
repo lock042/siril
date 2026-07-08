@@ -1215,7 +1215,21 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <layout>
                                                                                   <property name="column">2</property>
                                                                                   <property name="row">8</property>
-                                                                                  <property name="column-span">2</property>
+                                                                                </layout>
+                                                                              </object>
+                                                                            </child>
+                                                                            <child>
+                                                                              <object class="GtkButton" id="button_mpp_advanced">
+                                                                                <property name="icon-name">emblem-system-symbolic</property>
+                                                                                <property name="focusable">1</property>
+                                                                                <property name="receives-default">1</property>
+                                                                                <property name="tooltip-text" translatable="1">Advanced settings…</property>
+                                                                                <property name="halign">end</property>
+                                                                                <property name="hexpand">1</property>
+                                                                                <signal name="clicked" handler="on_seqmpp_advanced_button_clicked" swapped="no"/>
+                                                                                <layout>
+                                                                                  <property name="column">3</property>
+                                                                                  <property name="row">8</property>
                                                                                 </layout>
                                                                               </object>
                                                                             </child>

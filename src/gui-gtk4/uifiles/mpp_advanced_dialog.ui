@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (C) The free-astro development team, 2026
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+-->
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_mpp_adv_refine_frames">
+    <property name="upper">500</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_adv_smooth">
+    <property name="upper">10</property>
+    <property name="step-increment">0.5</property>
+    <property name="page-increment">1</property>
+    <property name="value">2.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_adv_ap_step">
+    <property name="upper">500</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkWindow" id="mpp_advanced_dialog">
+    <property name="title" translatable="yes">Multipoint registration — advanced settings</property>
+    <property name="resizable">0</property>
+    <property name="modal">0</property>
+    <property name="hide-on-close">1</property>
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <child>
+          <object class="GtkGrid">
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">10</property>
+            <child>
+              <object class="GtkCheckButton" id="check_mpp_adv_refine">
+                <property name="label" translatable="yes">Refine against a first-pass stack</property>
+                <property name="focusable">1</property>
+                <property name="active">1</property>
+                <property name="tooltip-text" translatable="yes">After the normal registration pass, stack the best few frames of each alignment point and re-measure every shift against that much sharper reference instead of the averaged reference frame. Markedly reduces failed measurements on difficult data (e.g. solar surface detail). Default on.</property>
+                <signal name="toggled" handler="on_check_mpp_adv_refine_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                  <property name="column-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_mpp_adv_refine_frames">
+                <property name="halign">start</property>
+                <property name="margin-start">24</property>
+                <property name="label" translatable="yes">Reference frames per point:</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_mpp_adv_refine_frames">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="yes">How many of each alignment point&apos;s best frames are stacked into the refinement reference. 0 = automatic (about 5% of the frames, limited to 8–32). Small values keep the reference sharp; the automatic choice is right for almost all data.</property>
+                <property name="adjustment">adj_mpp_adv_refine_frames</property>
+                <property name="numeric">1</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Shift smoothing radius:</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_mpp_adv_smooth">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="yes">Smooth each frame&apos;s alignment-point shifts with a robust fit over the neighbouring points within this radius (in grid steps). Individual shift measurements carry noise well above the true frame-to-frame distortion, which varies smoothly across the image, so the fit removes most of the noise without flattening genuine distortion. 0 disables. Default 2.5.</property>
+                <property name="adjustment">adj_mpp_adv_smooth</property>
+                <property name="digits">1</property>
+                <property name="numeric">1</property>
+                <property name="value">2.5</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Grid pitch (px):</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_mpp_adv_ap_step">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="yes">Distance between alignment points, decoupled from the half-box size (the measurement area keeps its full size). 0 = automatic (2.25 × half-box, the classic geometry). Smaller values place a denser grid that tracks the seeing distortion field finer — unlike shrinking the half-box, this does not starve the shift measurement of signal.</property>
+                <property name="adjustment">adj_mpp_adv_ap_step</property>
+                <property name="numeric">1</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="check_mpp_adv_zero_mean">
+                <property name="label" translatable="yes">Zero-mean correlation</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="yes">Subtract the local mean brightness in the per-alignment-point correlation. Helps when transparency drifts across the capture, but on low-signal data it roughly doubles failed shift measurements and can cost detail. Default off.</property>
+                <property name="halign">start</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">4</property>
+                  <property name="column-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="check_mpp_adv_float_rank">
+                <property name="label" translatable="yes">Full-precision frame ranking</property>
+                <property name="focusable">1</property>
+                <property name="active">1</property>
+                <property name="tooltip-text" translatable="yes">Rank frame quality at full numeric precision instead of the classic quantised 8-bit measure, keeping the sharpness ordering exact on low-contrast data. Frame selection quality directly affects how much detail survives stacking. Default on.</property>
+                <property name="halign">start</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">5</property>
+                  <property name="column-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Colour demosaicing (stacking):</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">6</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkDropDown" id="combo_mpp_adv_debayer">
+                <property name="tooltip-text" translatable="yes">Demosaicing algorithm used when stacking colour (Bayer) videos; stored with the registration and applied at stacking time. LMMSE (default) gives the cleanest stacked colour on noisy captures; luminance detail is the same for all choices.</property>
+                <property name="model">
+                  <object class="GtkStringList">
+                    <items>
+                      <item translatable="yes">Bilinear</item>
+                      <item translatable="yes">VNG</item>
+                      <item translatable="yes">AHD</item>
+                      <item translatable="yes">AMaZE</item>
+                      <item translatable="yes">DCB</item>
+                      <item translatable="yes">HPHD</item>
+                      <item translatable="yes">IGV</item>
+                      <item translatable="yes">LMMSE</item>
+                      <item translatable="yes">RCD</item>
+                    </items>
+                  </object>
+                </property>
+                <property name="selected">7</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">6</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="button_mpp_adv_reset">
+            <property name="label" translatable="yes">Reset to defaults</property>
+            <property name="focusable">1</property>
+            <property name="halign">end</property>
+            <property name="tooltip-text" translatable="yes">Restore every setting in this window to its default value.</property>
+            <signal name="clicked" handler="on_mpp_advanced_reset_clicked" swapped="no"/>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
+</interface>

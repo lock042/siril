@@ -141,6 +141,10 @@ static GtkSpinButton *spin_mpp_reg_stack_percent = NULL;
 /* GTK4: GtkCheckButton no longer derives from GtkToggleButton, so these are
  * GtkWidget* and read via siril_toggle_get_active. */
 static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
+/* Advanced-settings window widgets (mpp_advanced_dialog.ui). */
+static GtkWidget *check_mpp_adv_refine = NULL, *check_mpp_adv_zero_mean = NULL, *check_mpp_adv_float_rank = NULL;
+static GtkSpinButton *spin_mpp_adv_refine_frames = NULL, *spin_mpp_adv_smooth = NULL, *spin_mpp_adv_ap_step = NULL;
+static GtkDropDown *combo_mpp_adv_debayer = NULL;
 static GtkDropDown *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkDropDown *combo_mpp_align_mode = NULL;
@@ -292,6 +296,14 @@ static void registration_init_statics() {
 		combo_mpp_avi_bayer        = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_avi_bayer"));
 		label_mpp_avi_bayer        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_mpp_avi_bayer"));
 		combo_mpp_align_mode       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_align_mode"));
+		// REG_MPP advanced-settings window (mpp_advanced_dialog.ui)
+		check_mpp_adv_refine        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_refine"));
+		check_mpp_adv_zero_mean     = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_zero_mean"));
+		check_mpp_adv_float_rank    = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_float_rank"));
+		spin_mpp_adv_refine_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_refine_frames"));
+		spin_mpp_adv_smooth         = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_smooth"));
+		spin_mpp_adv_ap_step        = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_ap_step"));
+		combo_mpp_adv_debayer       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_adv_debayer"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -1397,6 +1409,28 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			cfg->align_frames_mode = (am == MPP_ALIGN_PLANET) ? MPP_ALIGN_PLANET
 			                                                  : MPP_ALIGN_SURFACE;
 		}
+		/* Advanced-settings window (cog button). Widgets keep their state
+		 * whether or not the window is open; missing widgets (ui load
+		 * failure) leave the mpp_config_defaults values in place. */
+		if (check_mpp_adv_refine)
+			cfg->alignment_points_refine_reference = siril_toggle_get_active(check_mpp_adv_refine);
+		if (spin_mpp_adv_refine_frames)
+			cfg->alignment_points_reference_frames = gtk_spin_button_get_value_as_int(spin_mpp_adv_refine_frames);
+		if (spin_mpp_adv_smooth)
+			cfg->alignment_points_smooth_radius = gtk_spin_button_get_value(spin_mpp_adv_smooth);
+		if (spin_mpp_adv_ap_step)
+			cfg->alignment_points_step = gtk_spin_button_get_value_as_int(spin_mpp_adv_ap_step);
+		if (check_mpp_adv_zero_mean)
+			cfg->alignment_points_zero_mean = siril_toggle_get_active(check_mpp_adv_zero_mean);
+		if (check_mpp_adv_float_rank)
+			cfg->rank_float_precision = siril_toggle_get_active(check_mpp_adv_float_rank);
+		if (combo_mpp_adv_debayer) {
+			/* Combo item indices match interpolation_method 0..8
+			 * (BAYER_BILINEAR..BAYER_RCD). */
+			const guint dbm = gtk_drop_down_get_selected(combo_mpp_adv_debayer);
+			if (dbm <= BAYER_RCD)
+				cfg->debayer_method = (int) dbm;
+		}
 		regargs->mpp_cfg = cfg;
 	}
 	if (regindex == REG_COMET) {
@@ -1570,6 +1604,70 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 		free(regargs);
 		unreserve_thread();
 	}
+}
+
+/* Multipoint-registration advanced settings (cog button on the MPP page).
+ * The window is a plain hide-on-close GtkWindow from mpp_advanced_dialog.ui;
+ * its widgets hold their state for the whole session and are read by
+ * fill_registration_structure_from_GUI whether or not the window is open. */
+static void mpp_advanced_sync_sensitivity(void) {
+	const gboolean refine = check_mpp_adv_refine
+	    ? siril_toggle_get_active(check_mpp_adv_refine) : TRUE;
+	if (spin_mpp_adv_refine_frames)
+		gtk_widget_set_sensitive(GTK_WIDGET(spin_mpp_adv_refine_frames), refine);
+	GtkWidget *lbl = GTK_WIDGET(gtk_builder_get_object(gui.builder,
+	                                                   "label_mpp_adv_refine_frames"));
+	if (lbl)
+		gtk_widget_set_sensitive(lbl, refine);
+}
+
+void on_check_mpp_adv_refine_toggled(GtkCheckButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	mpp_advanced_sync_sensitivity();
+}
+
+void on_mpp_advanced_reset_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	mpp_config_t d;
+	mpp_config_defaults(&d);
+	if (check_mpp_adv_refine)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_refine),
+		                            d.alignment_points_refine_reference);
+	if (spin_mpp_adv_refine_frames)
+		gtk_spin_button_set_value(spin_mpp_adv_refine_frames,
+		                          d.alignment_points_reference_frames);
+	if (spin_mpp_adv_smooth)
+		gtk_spin_button_set_value(spin_mpp_adv_smooth,
+		                          d.alignment_points_smooth_radius);
+	if (spin_mpp_adv_ap_step)
+		gtk_spin_button_set_value(spin_mpp_adv_ap_step, d.alignment_points_step);
+	if (check_mpp_adv_zero_mean)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_zero_mean),
+		                            d.alignment_points_zero_mean);
+	if (check_mpp_adv_float_rank)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_float_rank),
+		                            d.rank_float_precision);
+	if (combo_mpp_adv_debayer && d.debayer_method >= 0
+	    && d.debayer_method <= BAYER_RCD)
+		gtk_drop_down_set_selected(combo_mpp_adv_debayer, (guint) d.debayer_method);
+	mpp_advanced_sync_sensitivity();
+}
+
+void on_seqmpp_advanced_button_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	GtkWidget *dlg = GTK_WIDGET(gtk_builder_get_object(gui.builder,
+	                                                   "mpp_advanced_dialog"));
+	if (!dlg)
+		return;
+	/* Keep the settings window above the control window; a top-level
+	 * without a transient parent can end up behind it (and code-created
+	 * windows must never go modal without one). */
+	GtkWindow *parent = GTK_WINDOW(gtk_builder_get_object(gui.builder,
+	                                                      "control_window"));
+	if (parent)
+		gtk_window_set_transient_for(GTK_WINDOW(dlg), parent);
+	mpp_advanced_sync_sensitivity();
+	gtk_window_present(GTK_WINDOW(dlg));
 }
 
 /* Toggle "Edit APs..." button sensitivity from com.mpp_run state. Called

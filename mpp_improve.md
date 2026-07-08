@@ -239,10 +239,17 @@ the below-one-quantisation-step ordering case.
   pss-derot warp-field engine. Removes intra-patch warp averaging and blend
   softening; enables AS!-like effective AP density.
 
-### GUI (follows once CLI behaviour is validated)
+### GUI — DONE (cog button + advanced settings window)
 
-- Keep the registration tab uncluttered: a **cog button opening an
-  "advanced settings" window** for the mpp_improve options (refine
-  reference + frame count, shift-smooth radius, AP step, zero-mean opt-in,
-  stack-side debayer algorithm). Only broadly useful controls stay on the
-  tab itself. (No "PSS" in user-facing strings.)
+`mpp_advanced_dialog.ui` (hide-on-close GtkWindow, transient over the
+control window) opened by a cog button (`emblem-system-symbolic`) on the
+registration tab's multipoint page. Holds: refine reference (+ frames
+spin, greyed when refine off), shift-smooth radius, AP grid pitch,
+zero-mean opt-in, full-precision ranking, and the stacking demosaicing
+drop-down (indices = interpolation_method 0..8), plus Reset-to-defaults.
+Widget state is read by `fill_registration_structure_from_GUI` whether or
+not the window is open; the demosaicing choice travels to the stack via
+the sidecar cfg snapshot (the stack tab's overrides deliberately do not
+touch it). Headless smoke test: builder loads with no missing-handler
+warnings; UI files validate; dialog render verified. (No "PSS" in
+user-facing strings.)
