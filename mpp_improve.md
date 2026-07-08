@@ -231,13 +231,26 @@ the below-one-quantisation-step ordering case.
 - Float-precision per-AP ranking (σ on CV_32F |Laplacian|, skip the uint8
   quantization) behind the same PSS-equivalence gate.
 
-### Phase 3 (later): warp-field stacking
+### Phase 3 — warp-field stacking: DONE (mpp_improve_experimental)
 
-- Decouple AP pitch from box size (overlap factor), or better: interpolate a
-  smooth per-pixel warp from the AP shift lattice and remap each frame once
-  (Lanczos), replacing rigid-patch pastes + Hann blending. Builds on the
-  pss-derot warp-field engine. Removes intra-patch warp averaging and blend
-  softening; enables AS!-like effective AP density.
+Ported the pss-derot warp engine as a first-class Stage C choice:
+`-engine={patch|warp}` / `cfg.stack_method` (sidecar v15; DerotMapProvider
+hook kept for the future derot merge). Per frame: per-AP shifts → smooth
+dense displacement field (coarse grid step/3, per-AP Hann scatter, robust
+neighbour-median clamp, bicubic upsample), selection weights → dense weight
+field, one Lanczos4 remap, weighted accumulation + PSS background blend.
+Unit tests: rigid-jitter equivalence with the patch engine; smooth-warp
+recovery beats the un-dewarped average and matches the patch engine
+(comparison target = the reference frame's geometry, not absolute truth).
+
+**Benchmarks (50 %):** Saturn 199 APs — warp **+2.6/+4.5/+8.7 %** detail,
+visibly crisper belt/ring edges, no artefacts (+31 % time). Moon surface
+557 APs — ratios 0.999, identical (+24 % time). Hα full disc 1218 APs,
+25.9 % Stage B failures — warp **−10/−7/−3 %** (3× time): local patch
+compositing wins where fine content sits at the AP-pitch sampling limit
+with many unreliable field nodes. **Default stays patch; use warp for
+planetary discs.** Follow-up ideas for the solar case: finer field grid,
+failure-aware field stiffness, or per-region engine blending.
 
 ### GUI — DONE (cog button + advanced settings window)
 
