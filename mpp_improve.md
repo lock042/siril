@@ -174,8 +174,10 @@ newsat.ser (same sidecar, same shifts): **luminance band-scale detail is
 independent of the demosaicing algorithm** (all variants within ±0.6 % of
 RCD at every scale) — the debayer is ruled out as the band-detail gap.
 Material finding: **LMMSE cuts stacked chroma noise 19 %** vs RCD (AMaZE/
-VNG ~12 %; bilinear +4 % worse) at ~+14 s — recommended for colour work;
-RCD stays the default (application-wide consistency).
+VNG ~12 %; bilinear +4 % worse) at ~+14 s. **LMMSE is now the mpp stack
+default** (`cfg.debayer_method`; `-debayer=rcd` restores the application-
+wide SER choice). The `ser_set_debayer_method` override is scoped to
+Stage C via an RAII guard, so nothing outside mpp sees it.
 
 Remaining band-detail suspects: per-AP frame-quality ranking precision
 (uint8-quantised Laplace σ → float; cheap test: stack-percent sweep
@@ -202,6 +204,8 @@ no unprocessed AS! stack available).
 
 ### GUI (follows once CLI behaviour is validated)
 
-- Registration tab: "Zero-mean correlation" and "Refine reference (second
-  pass)" checkbuttons + a reference-frames spin (0 = auto). Defaults on.
-  (No "PSS" in user-facing strings.)
+- Keep the registration tab uncluttered: a **cog button opening an
+  "advanced settings" window** for the mpp_improve options (refine
+  reference + frame count, shift-smooth radius, AP step, zero-mean opt-in,
+  stack-side debayer algorithm). Only broadly useful controls stay on the
+  tab itself. (No "PSS" in user-facing strings.)

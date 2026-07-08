@@ -108,6 +108,13 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_reference_frames = 0;   /* auto */
 	cfg->alignment_points_step = 0;               /* auto = PSS geometry */
 	cfg->alignment_points_smooth_radius = 2.5;    /* grid steps; 0 = off */
-	cfg->debayer_method = BAYER_RCD;              /* Stage C CFA reads */
+	/* LMMSE default after the 5-way debayer A/B (July 2026, newsat.ser):
+	 * luminance band-scale detail is independent of the algorithm (all
+	 * within ±0.6 %), but LMMSE cuts stacked chroma noise 19 % vs RCD
+	 * (AMaZE/VNG ~12 %) on noisy 8-bit CFA planetary data — per-frame
+	 * chroma aliasing does not fully average out in the stack. Costs
+	 * ~35 % more stack wall time. -debayer=rcd restores the application-
+	 * wide SER choice. */
+	cfg->debayer_method = BAYER_LMMSE;            /* Stage C CFA reads */
 	return MPP_OK;
 }
