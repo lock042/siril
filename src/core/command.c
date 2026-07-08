@@ -14556,6 +14556,18 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
 		cfg->stack_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
 	}
+	if (accept_stack && g_str_has_prefix(arg, "-engine=")) {
+		/* Stage C stacking engine. patch (default) = classic per-AP
+		 * patch mosaic; warp = experimental dense warp-field engine
+		 * (one Lanczos remap per frame through a smooth displacement
+		 * field interpolated from the per-AP shifts — no patch lattice,
+		 * no blend seams). */
+		const char *v = arg + 8;
+		if      (!g_ascii_strcasecmp(v, "patch")) cfg->stack_method = MPP_STACK_PATCH;
+		else if (!g_ascii_strcasecmp(v, "warp"))  cfg->stack_method = MPP_STACK_WARP;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
 	if (accept_stack && g_str_has_prefix(arg, "-debayer=")) {
 		/* Demosaicing algorithm for Stage C's CFA frame reads. Default
 		 * lmmse (19% lower stacked chroma noise than the application-wide

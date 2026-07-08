@@ -7,6 +7,7 @@
 #define SRC_REGISTRATION_MPP_STACK_PRIV_HPP_
 
 #include <opencv2/core.hpp>
+#include <functional>
 #include <vector>
 
 #include "registration/mpp.h"
@@ -353,6 +354,57 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
                                             const RemapBorder &border,
                                             const mpp_aps_t &aps,
                                             const mpp_config_t &cfg);
+
+/* Final-output conversion shared by both stacking engines: scale the float
+ * canvas by 1/255 (8-bit) or 1/65535, clip to [0,1] and cast to uint16 via
+ * skimage img_as_uint rounding. */
+cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth);
+
+/* Optional per-frame derotation hook for the warp engine. Unused on this
+ * branch (no derotation infrastructure) but kept in the engine's signature
+ * so the pss-derot branch, whose derotation is built on this exact engine,
+ * merges cleanly. Fills, in the engine's drizzled canvas (rows=DY, cols=DX):
+ *   mapx/mapy (CV_32F) — source position for each canvas pixel (replaces the
+ *                        identity base of the remap);
+ *   mu (CV_32F)        — usability weight (0 drops the pixel).
+ * Returns false to treat the frame as identity-based with mu = 1. Must be
+ * thread-safe (called concurrently across frames). */
+using DerotMapProvider =
+    std::function<bool(int frame, int DY, int DX,
+                       cv::Mat &mapx, cv::Mat &mapy, cv::Mat &mu)>;
+
+/* Warp-field stacking engine (MPP_STACK_WARP) — Stage C alternative to the
+ * patch-blend pipeline. Per frame: per-AP shifts -> smooth dense displacement
+ * field D, per-(frame,AP) selection weights -> dense weight field W; the frame
+ * is warped once (cv::remap, Lanczos4) through
+ *   map = identity + global_offset*S - D*S
+ * and accumulated acc += W (.) warped, wsum += W. Output acc/wsum plus the
+ * PSS background blend where AP coverage thins. Removes the AP lattice from
+ * the architecture: no rigid patch pastes, no Hann mosaic, no per-AP DC
+ * equalisation — disagreements between neighbouring APs become smooth field
+ * gradients instead of blend seams. Same frame-parallel private-accumulator
+ * scheme and mem_budget clamp as stack_apply_shifts_streamed. */
+struct WarpStackResult {
+	cv::Mat image;          /* final CV_16U / CV_16UC3; empty on cancel/error */
+	bool oom = false;
+	bool cancelled = false;
+};
+
+WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
+                                          int num_frames, int num_layers,
+                                          const mpp_aps_t &aps,
+                                          const APQualities &apq,
+                                          const mpp_shifts_t *shifts,
+                                          const std::vector<FrameOffset> &offsets,
+                                          const std::vector<double> &frame_brightness,
+                                          const std::vector<int> &quality_sorted_idx,
+                                          const cv::Vec4i &intersection,
+                                          const mpp_config_t &cfg,
+                                          const int *included = nullptr,
+                                          int max_threads = 0,
+                                          bool provider_thread_safe = false,
+                                          size_t mem_budget_bytes = 0,
+                                          const DerotMapProvider *derot = nullptr);
 
 }  // namespace mpp
 

@@ -157,6 +157,16 @@ struct mpp_config {
 	    the box SNR (measured on Saturn: hb 12 → 10-19% Stage B failure
 	    rate + AP-lattice imprints on the globe). */
 
+	/* Stage C engine (enum mpp_stack_method; stack-time only). PATCH is
+	 * the PSS architecture: each AP's patch pasted rigidly at its own
+	 * shift, mosaicked with Hann blend windows + DC equalisation. WARP
+	 * interpolates the per-AP shifts into a smooth dense displacement
+	 * field per frame and warps the whole frame once (cv::remap,
+	 * Lanczos4) — no patch lattice, no blend seams; neighbouring-AP
+	 * disagreements become smooth field gradients. Experimental;
+	 * -engine=warp opts in. */
+	int stack_method;          /* default MPP_STACK_PATCH */
+
 	/* Demosaicing algorithm for Stage C's CFA frame reads
 	 * (interpolation_method value from core/settings.h; default
 	 * BAYER_LMMSE — measured 19 % lower stacked chroma noise than the
@@ -189,6 +199,13 @@ struct mpp_config {
 enum mpp_align_mode {
 	MPP_ALIGN_SURFACE = 0,
 	MPP_ALIGN_PLANET  = 1,
+};
+
+/* Stage C stacking engine (cfg.stack_method). Values persisted in the
+ * sidecar — do not renumber. */
+enum mpp_stack_method {
+	MPP_STACK_PATCH = 0,   /* per-AP patch blend (PSS architecture) */
+	MPP_STACK_WARP  = 1,   /* dense warp-field accumulation */
 };
 
 enum mpp_drizzle_mode {

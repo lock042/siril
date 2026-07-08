@@ -117,5 +117,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	 * ~35 % more stack wall time. -debayer=rcd restores the application-
 	 * wide SER choice. */
 	cfg->debayer_method = BAYER_LMMSE;            /* Stage C CFA reads */
+	cfg->stack_method = MPP_STACK_PATCH;          /* -engine=warp opts in */
 	return MPP_OK;
 }

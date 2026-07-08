@@ -1826,19 +1826,39 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 		}
 		stack_mem_budget = (size_t) ((long double) budget_b * 0.8L);
 	}
-	const auto loop = mpp::stack_apply_shifts_streamed(
-	    provider, run->num_frames, num_layers, *run->aps, apq,
-	    run->shifts, offsets, frame_brightness, sorted_idx,
-	    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
-	    stack_mem_budget);
-	if (loop.oom) {
-		siril_log_error(_("Stack (mpp): out of memory while accumulating "
-		                  "frames — reduce the memory ratio in Preferences.\n"));
-		return MPP_ENOMEM;
+	/* Stage C engine: the warp-field engine (-engine=warp) warps each
+	 * frame once through a dense displacement field interpolated from the
+	 * per-AP shifts; the default is the PSS per-AP patch-blend engine. */
+	cv::Mat stacked;
+	if (cfg->stack_method == MPP_STACK_WARP) {
+		siril_log_message(_("Stack (mpp): warp-field engine\n"));
+		const mpp::WarpStackResult wr = mpp::stack_warp_apply_streamed(
+		    provider, run->num_frames, num_layers, *run->aps, apq,
+		    run->shifts, offsets, frame_brightness, sorted_idx,
+		    intersection, *cfg, run->included, stack_threads,
+		    stack_provider_safe, stack_mem_budget);
+		if (wr.oom) {
+			siril_log_error(_("Stack (mpp): out of memory while accumulating "
+			                  "frames — reduce the memory ratio in Preferences.\n"));
+			return MPP_ENOMEM;
+		}
+		if (wr.cancelled || wr.image.empty()) return MPP_EINTR;
+		stacked = wr.image;
+	} else {
+		const auto loop = mpp::stack_apply_shifts_streamed(
+		    provider, run->num_frames, num_layers, *run->aps, apq,
+		    run->shifts, offsets, frame_brightness, sorted_idx,
+		    intersection, *cfg, run->included, stack_threads, stack_provider_safe,
+		    stack_mem_budget);
+		if (loop.oom) {
+			siril_log_error(_("Stack (mpp): out of memory while accumulating "
+			                  "frames — reduce the memory ratio in Preferences.\n"));
+			return MPP_ENOMEM;
+		}
+		if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
+		stacked = mpp::stack_merge_alignment_point_buffers(
+		    loop.state, loop.border, *run->aps, *cfg);
 	}
-	if (loop.state.dim_y == 0) return MPP_EINTR;   /* cancellation sentinel */
-	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
-	    loop.state, loop.border, *run->aps, *cfg);
 
 	/* Pack stacked into the caller-supplied fits. The caller allocates the
 	 * shell (`fits out = {0};`); we fill its members and own `data`. For
