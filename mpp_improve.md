@@ -241,6 +241,19 @@ the below-one-quantisation-step ordering case.
 
 ### GUI — DONE (cog button + advanced settings window)
 
+**Rebalanced (user review):** the main multipoint page now holds only the
+per-dataset knobs — correlation box half-width, grid pitch (moved out of
+the cog window to sit beside the box size), reference frame %, "object is
+changing fast", alignment mode, AVI Bayer, and the buttons row. Everything
+else moved behind the cog: search widths, register percent, placement
+filters (min brightness/contrast/structure), apply per-AP shifts,
+brightness-normalise quality, seed from existing registration, plus the
+original refine/smoothing/zero-mean/demosaicing controls. Widget IDs kept,
+so the cfg capture in registration.c is unchanged; shared adj_mpp_*
+adjustments stay defined in siril_registration.ui (loads first — same
+cross-file mechanism as the AP editor). Reset-to-defaults covers every
+widget in the window and only that window.
+
 `mpp_advanced_dialog.ui` (hide-on-close GtkWindow, transient over the
 control window) opened by a cog button (`emblem-system-symbolic`) on the
 registration tab's multipoint page. Holds: refine reference (+ frames

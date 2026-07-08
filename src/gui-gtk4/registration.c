@@ -145,7 +145,8 @@ static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_m
  * ranking is deliberately NOT exposed here: the quantised path exists only
  * for the upstream-equivalence test fixtures (-no-float-rank on the CLI). */
 static GtkWidget *check_mpp_adv_refine = NULL, *check_mpp_adv_zero_mean = NULL;
-static GtkSpinButton *spin_mpp_adv_refine_frames = NULL, *spin_mpp_adv_smooth = NULL, *spin_mpp_adv_ap_step = NULL;
+static GtkSpinButton *spin_mpp_adv_refine_frames = NULL, *spin_mpp_adv_smooth = NULL;
+static GtkSpinButton *spin_mpp_ap_step = NULL;   /* main-tab geometry control */
 static GtkDropDown *combo_mpp_adv_debayer = NULL;
 static GtkDropDown *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
@@ -303,7 +304,7 @@ static void registration_init_statics() {
 		check_mpp_adv_zero_mean     = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_zero_mean"));
 		spin_mpp_adv_refine_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_refine_frames"));
 		spin_mpp_adv_smooth         = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_smooth"));
-		spin_mpp_adv_ap_step        = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_ap_step"));
+		spin_mpp_ap_step            = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_step"));
 		combo_mpp_adv_debayer       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_adv_debayer"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
@@ -1419,8 +1420,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			cfg->alignment_points_reference_frames = gtk_spin_button_get_value_as_int(spin_mpp_adv_refine_frames);
 		if (spin_mpp_adv_smooth)
 			cfg->alignment_points_smooth_radius = gtk_spin_button_get_value(spin_mpp_adv_smooth);
-		if (spin_mpp_adv_ap_step)
-			cfg->alignment_points_step = gtk_spin_button_get_value_as_int(spin_mpp_adv_ap_step);
+		if (spin_mpp_ap_step)
+			cfg->alignment_points_step = gtk_spin_button_get_value_as_int(spin_mpp_ap_step);
 		if (check_mpp_adv_zero_mean)
 			cfg->alignment_points_zero_mean = siril_toggle_get_active(check_mpp_adv_zero_mean);
 		if (combo_mpp_adv_debayer) {
@@ -1638,14 +1639,42 @@ void on_mpp_advanced_reset_clicked(GtkButton *button, gpointer user_data) {
 	if (spin_mpp_adv_smooth)
 		gtk_spin_button_set_value(spin_mpp_adv_smooth,
 		                          d.alignment_points_smooth_radius);
-	if (spin_mpp_adv_ap_step)
-		gtk_spin_button_set_value(spin_mpp_adv_ap_step, d.alignment_points_step);
 	if (check_mpp_adv_zero_mean)
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_zero_mean),
 		                            d.alignment_points_zero_mean);
 	if (combo_mpp_adv_debayer && d.debayer_method >= 0
 	    && d.debayer_method <= BAYER_RCD)
 		gtk_drop_down_set_selected(combo_mpp_adv_debayer, (guint) d.debayer_method);
+	/* Settings relocated here from the registration tab — the reset
+	 * covers every widget in this window, and only this window (the
+	 * main-tab controls, including the grid pitch, are left alone). */
+	if (spin_mpp_search_width)
+		gtk_spin_button_set_value(spin_mpp_search_width,
+		                          d.alignment_points_search_width);
+	if (spin_mpp_search_global)
+		gtk_spin_button_set_value(spin_mpp_search_global,
+		                          d.align_frames_search_width);
+	if (spin_mpp_reg_stack_percent)
+		gtk_spin_button_set_value(spin_mpp_reg_stack_percent,
+		                          d.alignment_points_frame_percent);
+	if (spin_mpp_min_brightness)
+		gtk_spin_button_set_value(spin_mpp_min_brightness,
+		                          d.alignment_points_brightness_threshold);
+	if (spin_mpp_min_contrast)
+		gtk_spin_button_set_value(spin_mpp_min_contrast,
+		                          d.alignment_points_contrast_threshold);
+	if (spin_mpp_min_structure)
+		gtk_spin_button_set_value(spin_mpp_min_structure,
+		                          d.alignment_points_structure_threshold);
+	if (check_mpp_dewarp)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_dewarp),
+		                            d.alignment_points_de_warp);
+	if (check_mpp_normalize)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_normalize),
+		                            d.frames_normalization);
+	if (check_mpp_seed)
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_seed),
+		                            d.align_frames_seed_from_regdata);
 	mpp_advanced_sync_sensitivity();
 }
 
