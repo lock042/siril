@@ -3694,6 +3694,11 @@ void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_on
 	/* The create-folder button only makes sense when picking a directory. */
 	if (fb->new_folder_btn)
 		gtk_widget_set_visible(fb->new_folder_btn, dir_only);
+	/* No file is selectable when picking a folder, so the preview pane has
+	 * nothing to show — hide it (same as save mode); GtkPaned then gives the
+	 * whole width to the file list. */
+	if (fb->preview_box)
+		gtk_widget_set_visible(fb->preview_box, !dir_only && !fb->save_mode);
 }
 
 void siril_file_browser_set_save_mode(SirilFileBrowser *fb, gboolean save) {
