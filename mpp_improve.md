@@ -186,6 +186,21 @@ weakly discriminating), 3×3 parabolic sub-pixel bias (fine-scale only),
 and the AS! reference's third-hand processing chain (unquantifiable —
 no unprocessed AS! stack available).
 
+### Phase 2b: stack-percent sweep — the ranking DOES discriminate
+
+Sweep 5/10/25/50/100 % from one sidecar (newsat, 199 APs, LMMSE): globe
+band power rises **monotonically as the percent drops** — vs the 50 %
+operating point, 10 % gives +13.8 %/+8.1 %/+5.8 % (3-8/6-16/12-32 px) and
+5 % gives +21.9 %/+12.2 %/+10.7 %, while 100 % LOSES ~11 %. Sky-noise
+correction confirms the gains are sharpness, not noise (even 5 % = 453
+frames/AP is not noise-limited on this 9064-frame capture; lumHP rises
+only ~19 % at 5 %). Two conclusions: (1) the uint8-quantised per-AP
+ranking is genuinely informative — the float-ranking upgrade is a
+refinement, not a fix; (2) **the 50 % operating point was costing more
+band detail than any pipeline deficiency we found** — the AS!-convention
+best-5–25 % is the right regime for long captures. User-side: prefer
+10 % (or 5 % if the extra noise tolerates the denoise step).
+
 ### Phase 2 (next): measurement accuracy floor
 
 - Upsampled-correlation sub-pixel refinement (Guizar-Sicairos-style local
