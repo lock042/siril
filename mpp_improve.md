@@ -201,6 +201,28 @@ band detail than any pipeline deficiency we found** — the AS!-convention
 best-5–25 % is the right regime for long captures. User-side: prefer
 10 % (or 5 % if the extra noise tolerates the denoise step).
 
+### Phase 2c: float-precision ranking + lunar/solar regression suite
+
+`cfg.rank_float_precision` (default true, `-no-float-rank`, sidecar v14):
+Laplace-σ computed on CV_32F |lap|·α instead of PSS's uint8
+convertScaleAbs image (quantised to steps of 256 16-bit ADU, saturating).
+Same α scale so score magnitudes stay comparable; one shared quality
+image feeds the global ranking and the per-AP selection. Unit test locks
+the below-one-quantisation-step ordering case.
+
+**Regression suite (branch defaults vs legacy flags):**
+- Moon.ser (1500×1440×979 8-bit RGGB, surface mode, 557 APs): **SAFE** —
+  band ratios 0.984/0.992/1.000, no AP-lattice imprint in the high-pass
+  seam check, failure rate 0.6 % both ways, +43 % wall time.
+- 11_29_46.ser (2180² ×1221 16-bit mono Hα full disc, 1218 APs): **SAFE,
+  large win** — refined reference cuts Stage B failures 43.5 %→25.9 %
+  and fine-detail band power rises **+21.7 %** (+8.7 % mid). Limb
+  AP-pitch power spectra identical to 3 decimals at top and left arcs
+  (no beading/scallop regression); prominences render identically; DC
+  corrections drop 84→47 ADU. The granulation-scale texture that made
+  per-AP correlation fail on the blurry mean reference is exactly what
+  the refined reference fixes — solar is where phase 1 pays off.
+
 ### Phase 2 (next): measurement accuracy floor
 
 - Upsampled-correlation sub-pixel refinement (Guizar-Sicairos-style local
