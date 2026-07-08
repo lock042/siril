@@ -1977,9 +1977,33 @@ int savefits(const char *name, fits *f) {
 	return 0;
 }
 
+/* CFITSIO writes the whole image in a single fits_write_pix call, which gives
+ * no progress feedback on large frames.  This helper writes the same buffer in
+ * row-aligned chunks (using the scalar firstelem form fits_write_img) and
+ * reports progress between chunks.  Output is byte-identical to the single
+ * bulk write. */
+static int write_pix_chunked(fitsfile *fptr, int datatype, void *buf,
+		size_t elem_size, size_t pixel_count, long naxis1, int *status) {
+	size_t chunk = (naxis1 > 0) ? (size_t) naxis1 * 64 : (1u << 20);
+	if (chunk == 0)
+		chunk = pixel_count ? pixel_count : 1;
+	LONGLONG firstelem = 1;	/* 1-based */
+	size_t done = 0;
+	char *p = (char *) buf;
+	while (done < pixel_count && *status == 0) {
+		size_t n = (pixel_count - done < chunk) ? (pixel_count - done) : chunk;
+		if (fits_write_img(fptr, datatype, firstelem, (LONGLONG) n,
+				p + done * elem_size, status))
+			break;
+		done += n;
+		firstelem += (LONGLONG) n;
+		gui_iface.set_progress((double) done / pixel_count, NULL);
+	}
+	return *status;
+}
+
 int save_opened_fits(fits *f) {
 	BYTE *data8;
-	long orig[3] = { 1L, 1L, 1L };
 	size_t i, pixel_count;
 	int status = 0;
 	signed short *data;
@@ -1989,6 +2013,7 @@ int save_opened_fits(fits *f) {
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
 
 	status = 0;
+	gui_iface.set_progress(PROGRESS_RESET, _("Saving FITS"));
 	switch (f->bitpix) {
 	case BYTE_IMG:
 		data8 = malloc(pixel_count * sizeof(BYTE));
@@ -2005,7 +2030,7 @@ int save_opened_fits(fits *f) {
 					data8[i] = truncate_to_BYTE(f->data[i]);
 			}
 		}
-		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
+		if (write_pix_chunked(f->fptr, TBYTE, data8, sizeof(BYTE), pixel_count, f->naxes[0], &status)) {
 			report_fits_error(status);
 			free(data8);
 			return 1;
@@ -2023,7 +2048,7 @@ int save_opened_fits(fits *f) {
 			}
 			data = ushort_buffer_to_short(f->data, f->naxes[0] * f->naxes[1] * f->naxes[2]);
 		}
-		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, data, &status)) {
+		if (write_pix_chunked(f->fptr, TSHORT, data, sizeof(signed short), pixel_count, f->naxes[0], &status)) {
 			report_fits_error(status);
 			free(data);
 			return 1;
@@ -2033,7 +2058,7 @@ int save_opened_fits(fits *f) {
 	case USHORT_IMG:
 		if (f->type == DATA_FLOAT) {
 			WORD *datau = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, datau, &status)) {
+			if (write_pix_chunked(f->fptr, TUSHORT, datau, sizeof(WORD), pixel_count, f->naxes[0], &status)) {
 				report_fits_error(status);
 				g_free(datau);
 				return 1;
@@ -2043,7 +2068,7 @@ int save_opened_fits(fits *f) {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
 			}
-			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
+			if (write_pix_chunked(f->fptr, TUSHORT, f->data, sizeof(WORD), pixel_count, f->naxes[0], &status)) {
 				report_fits_error(status);
 				return 1;
 			}
@@ -2058,7 +2083,7 @@ int save_opened_fits(fits *f) {
 			conv_16_to_32(f->data, f->fdata, pixel_count);
 			fit_replace_buffer(f, f->fdata, DATA_FLOAT);
 		}
-		if (fits_write_pix(f->fptr, TFLOAT, orig, pixel_count, f->fdata, &status)) {
+		if (write_pix_chunked(f->fptr, TFLOAT, f->fdata, sizeof(float), pixel_count, f->naxes[0], &status)) {
 			report_fits_error(status);
 			return 1;
 		}
@@ -2079,6 +2104,8 @@ int save_opened_fits(fits *f) {
 			free(f->header);
 		f->header = copy_header(f);
 	}
+
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 
 	return 0;
 }

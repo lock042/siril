@@ -47,11 +47,14 @@ extern guchar *extract_thumbnail_from_tiff(const char *filename, gchar **descr,
 typedef struct {
 	gchar *title;
 	GPtrArray *specs;   /* of GPatternSpec* */
+	gchar *ext;         /* primary extension (no dot), for save-mode "Save as
+	                     * type"; NULL when the pattern has no "*.ext" token */
 } BrowserFilter;
 
 static void browser_filter_free(BrowserFilter *bf) {
 	if (!bf) return;
 	g_free(bf->title);
+	g_free(bf->ext);
 	if (bf->specs) {
 		for (guint i = 0; i < bf->specs->len; i++)
 			g_pattern_spec_free(g_ptr_array_index(bf->specs, i));
@@ -78,6 +81,7 @@ struct _SirilFileBrowser {
 	GtkWidget              *outer_paned;        /* sidebar | content divider */
 	GtkWidget              *list_preview_paned; /* list | preview divider */
 	GtkWidget              *sidebar_list;       /* GtkListBox inside the sidebar; populated lazily after present */
+	GtkWidget              *preview_box;        /* whole preview pane (end child of list_preview_paned); hidden in save mode */
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
@@ -156,6 +160,14 @@ struct _SirilFileBrowser {
 
 	GPtrArray              *filters;            /* of BrowserFilter*, owned */
 	gint                    active_filter_idx;  /* index into filters, -1 = none */
+
+	/* Save mode (set before run, reset on next _new).  filename_row holds the
+	 * "Name:" label + filename_entry; it and the "Save as type" behaviour of
+	 * the filter dropdown are only active while save_mode is TRUE. */
+	gboolean                save_mode;
+	GtkWidget              *filename_row;       /* whole "Name:" row, hidden in open mode */
+	GtkEntry               *filename_entry;
+	gchar                  *suggested_name;     /* owned; prefilled into the entry */
 
 	SirilFileBrowserPreview preview_cb;
 	gpointer                preview_cb_data;
@@ -1417,6 +1429,10 @@ static gboolean any_selected(SirilFileBrowser *fb) {
 }
 
 static void update_preview_for_selection(SirilFileBrowser *fb) {
+	/* Skip the (potentially expensive) preview load when the pane is hidden —
+	 * e.g. in save mode, where the preview is pointless and switched off. */
+	if (fb->preview_box && !gtk_widget_get_visible(fb->preview_box))
+		return;
 	/* The path is passed through for directories too — the default
 	 * preview handler renders a folder icon for them, and custom
 	 * callbacks can choose to do likewise (or short-circuit). */
@@ -1427,6 +1443,10 @@ static void update_preview_for_selection(SirilFileBrowser *fb) {
 	   fb->preview_cb ? fb->preview_cb_data : fb);
 	g_free(path);
 }
+
+/* Save-mode helpers, defined below with the filter dropdown handlers. */
+static void update_save_button_sensitivity(SirilFileBrowser *fb);
+static void browser_save_accept(SirilFileBrowser *fb);
 
 static void on_selection_changed(GtkSelectionModel *m, guint pos, guint n, gpointer ud) {
 	(void)m; (void)pos; (void)n;
@@ -1445,6 +1465,22 @@ static void on_selection_changed(GtkSelectionModel *m, guint pos, guint n, gpoin
 		if (info) g_object_unref(info);
 	}
 	update_preview_for_selection(fb);
+	/* Save mode: clicking an existing file drops its name into the entry (so
+	 * the user can overwrite it), and the Save button follows the entry, not
+	 * the list selection. */
+	if (fb->save_mode) {
+		if (fb->filename_entry && any_selected(fb) && !current_is_directory(fb)) {
+			gchar *p = current_selected_path(fb);
+			if (p) {
+				gchar *bn = g_path_get_basename(p);
+				gtk_editable_set_text(GTK_EDITABLE(fb->filename_entry), bn);
+				g_free(bn);
+				g_free(p);
+			}
+		}
+		update_save_button_sensitivity(fb);
+		return;
+	}
 	/* In folder mode the Open button targets the current (or highlighted)
 	 * directory, so keep it usable even with nothing highlighted. */
 	gtk_widget_set_sensitive(fb->open_button,
@@ -1462,6 +1498,18 @@ static void on_row_activated(GtkColumnView *cv, guint position, gpointer ud) {
 			GFile *target = g_file_get_child(fb->current_folder, name);
 			navigate_to(fb, target);
 			g_object_unref(target);
+		}
+	} else if (fb->save_mode) {
+		/* Double-clicking an existing file targets it for overwrite: fill the
+		 * name entry and commit (browser_save_accept prompts to replace). */
+		gchar *p = path_from_info(fb, info);
+		if (p) {
+			gchar *bn = g_path_get_basename(p);
+			if (fb->filename_entry)
+				gtk_editable_set_text(GTK_EDITABLE(fb->filename_entry), bn);
+			g_free(bn);
+			g_free(p);
+			browser_save_accept(fb);
 		}
 	} else {
 		gchar *p = path_from_info(fb, info);
@@ -1506,11 +1554,108 @@ static void on_search_mode_changed(GObject *obj, GParamSpec *p, gpointer ud) {
 
 /* ── filter dropdown ───────────────────────────────────────────────── */
 
+/* Selected save filter's primary extension (no dot), or NULL. */
+static const gchar *save_selected_ext(SirilFileBrowser *fb) {
+	if (!fb->filters || fb->active_filter_idx < 0
+	        || (guint)fb->active_filter_idx >= fb->filters->len)
+		return NULL;
+	BrowserFilter *bf = g_ptr_array_index(fb->filters, fb->active_filter_idx);
+	return bf ? bf->ext : NULL;
+}
+
+/* Replace `name`'s extension with `ext` (no dot).  A trailing token is only
+ * stripped when it is a recognised image extension, so dotted stems like
+ * "my.image" are preserved.  Returns a newly-allocated string. */
+static gchar *name_with_extension(const gchar *name, const gchar *ext) {
+	if (!ext || !*ext) return g_strdup(name);
+	gchar *stem;
+	if (get_type_from_filename(name) != TYPEUNDEF) {
+		char *s = remove_ext_from_filename(name);  /* known ext → replace it */
+		stem = g_strdup(s);
+		free(s);
+	} else {
+		stem = g_strdup(name);                     /* no known ext → append */
+	}
+	gchar *out = g_strdup_printf("%s.%s", stem, ext);
+	g_free(stem);
+	return out;
+}
+
+/* Save-mode Save-button sensitivity: enabled iff the name entry is non-empty. */
+static void update_save_button_sensitivity(SirilFileBrowser *fb) {
+	if (!fb->open_button || !fb->filename_entry) return;
+	const gchar *t = gtk_editable_get_text(GTK_EDITABLE(fb->filename_entry));
+	gtk_widget_set_sensitive(fb->open_button, t && *t);
+}
+
 static void on_filter_changed(GObject *obj, GParamSpec *pspec, gpointer ud) {
 	(void)pspec;
 	SirilFileBrowser *fb = ud;
 	fb->active_filter_idx = (gint)gtk_drop_down_get_selected(GTK_DROP_DOWN(obj));
+	/* In save mode the dropdown is a "Save as type" selector: rewrite the
+	 * name entry's extension to the newly chosen format (restores the GTK3
+	 * behaviour the native GtkFileDialog can't offer). */
+	if (fb->save_mode && fb->filename_entry) {
+		const gchar *cur = gtk_editable_get_text(GTK_EDITABLE(fb->filename_entry));
+		const gchar *ext = save_selected_ext(fb);
+		if (cur && *cur && ext) {
+			gchar *nn = name_with_extension(cur, ext);
+			if (g_strcmp0(nn, cur) != 0)
+				gtk_editable_set_text(GTK_EDITABLE(fb->filename_entry), nn);
+			g_free(nn);
+		}
+	}
 	gtk_filter_changed(GTK_FILTER(fb->file_filter), GTK_FILTER_CHANGE_DIFFERENT);
+}
+
+/* Commit a save: build the folder + filename path (appending the selected
+ * type's extension when the user typed none), confirm overwrite, and quit the
+ * run loop with ACCEPT. */
+static void browser_save_accept(SirilFileBrowser *fb) {
+	if (!fb->filename_entry || !fb->current_folder) return;
+	const gchar *typed = gtk_editable_get_text(GTK_EDITABLE(fb->filename_entry));
+	if (!typed || !*typed) return;
+
+	gchar *base = (get_type_from_filename(typed) == TYPEUNDEF)
+		? name_with_extension(typed, save_selected_ext(fb))
+		: g_strdup(typed);
+	/* Honour a fully-qualified path typed by the user; otherwise resolve the
+	 * name against the folder currently browsed. */
+	GFile *target = g_path_is_absolute(base)
+		? g_file_new_for_path(base)
+		: g_file_get_child(fb->current_folder, base);
+	gchar *path = g_file_get_path(target);
+	g_object_unref(target);
+	g_free(base);
+	if (!path) return;
+
+	if (g_file_test(path, G_FILE_TEST_EXISTS)) {
+		gchar *bn = g_path_get_basename(path);
+		gchar *msg = g_strdup_printf(_("A file named \"%s\" already exists. "
+		        "Do you want to replace it?"), bn);
+		gboolean ok = siril_confirm_dialog(_("Replace file?"), msg, _("Replace"));
+		g_free(msg);
+		g_free(bn);
+		if (!ok) {
+			g_free(path);
+			return;
+		}
+	}
+
+	g_free(fb->result_path);
+	fb->result_path = path;
+	fb->response = GTK_RESPONSE_ACCEPT;
+	if (fb->loop) g_main_loop_quit(fb->loop);
+}
+
+static void on_filename_entry_changed(GtkEditable *e, gpointer ud) {
+	(void)e;
+	update_save_button_sensitivity((SirilFileBrowser *)ud);
+}
+
+static void on_filename_entry_activate(GtkEntry *e, gpointer ud) {
+	(void)e;
+	browser_save_accept((SirilFileBrowser *)ud);
 }
 
 /* ── buttons ───────────────────────────────────────────────────────── */
@@ -1525,6 +1670,12 @@ static void on_cancel_clicked(GtkButton *b, gpointer ud) {
 static void on_open_clicked(GtkButton *b, gpointer ud) {
 	(void)b;
 	SirilFileBrowser *fb = ud;
+	/* Save mode: the button reads "Save" and commits the name entry rather
+	 * than a list selection. */
+	if (fb->save_mode) {
+		browser_save_accept(fb);
+		return;
+	}
 	/* Folder picker: commit the highlighted directory, or fall back to the
 	 * folder we're currently browsing when nothing is highlighted. */
 	if (fb->directory_only) {
@@ -3175,6 +3326,7 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	 * makes box.measure() return exactly size_request so the paned's
 	 * allocation matches the children's needs. */
 	GtkWidget *preview_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	fb->preview_box = preview_box;
 	gtk_widget_add_css_class(preview_box, "siril-zero-pad");
 
 	{
@@ -3285,12 +3437,32 @@ static void build_browser_widgets(SirilFileBrowser *fb) {
 	gtk_box_append(GTK_BOX(action_row), spacer);
 	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->filter_combo));
 
+	/* Save-mode "Name:" row — a label + editable filename entry sitting
+	 * directly under the file list.  Hidden in open mode; shown by
+	 * siril_file_browser_set_save_mode().  Enter in the entry commits the save
+	 * just like clicking the Save button, and edits keep the button's
+	 * sensitivity in sync (empty name → disabled). */
+	fb->filename_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_margin_start(fb->filename_row, 6);
+	gtk_widget_set_margin_end(fb->filename_row, 6);
+	gtk_widget_set_margin_top(fb->filename_row, 3);
+	gtk_box_append(GTK_BOX(fb->filename_row), gtk_label_new(_("Name:")));
+	fb->filename_entry = GTK_ENTRY(gtk_entry_new());
+	gtk_widget_set_hexpand(GTK_WIDGET(fb->filename_entry), TRUE);
+	g_signal_connect(fb->filename_entry, "changed",
+	                 G_CALLBACK(on_filename_entry_changed), fb);
+	g_signal_connect(fb->filename_entry, "activate",
+	                 G_CALLBACK(on_filename_entry_activate), fb);
+	gtk_box_append(GTK_BOX(fb->filename_row), GTK_WIDGET(fb->filename_entry));
+	gtk_widget_set_visible(fb->filename_row, FALSE);
+
 	/* Assemble.  Search bar sits between toolbar and the paned content so
 	 * its slide-down animation pushes the file list, not the sidebar. */
 	GtkWidget *root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_append(GTK_BOX(root), toolbar);
 	gtk_box_append(GTK_BOX(root), GTK_WIDGET(fb->search_bar));
 	gtk_box_append(GTK_BOX(root), outer_paned);
+	gtk_box_append(GTK_BOX(root), fb->filename_row);
 	gtk_box_append(GTK_BOX(root), action_row);
 	gtk_window_set_child(fb->window, root);
 
@@ -3337,6 +3509,19 @@ static void reset_browser_state(SirilFileBrowser *fb) {
 	fb->directory_only = FALSE;
 	if (fb->new_folder_btn)
 		gtk_widget_set_visible(fb->new_folder_btn, FALSE);
+
+	/* Save mode is per-open too: revert to an Open-style picker. */
+	fb->save_mode = FALSE;
+	g_clear_pointer(&fb->suggested_name, g_free);
+	if (fb->filename_row)
+		gtk_widget_set_visible(fb->filename_row, FALSE);
+	/* Bring the preview pane back for the next (open-style) caller. */
+	if (fb->preview_box)
+		gtk_widget_set_visible(fb->preview_box, TRUE);
+	if (fb->filename_entry)
+		gtk_editable_set_text(GTK_EDITABLE(fb->filename_entry), "");
+	if (fb->open_button)
+		gtk_button_set_label(GTK_BUTTON(fb->open_button), _("Open"));
 
 	/* Revert multi-select back to single — set_select_multiple() rebuilds
 	 * the selection model and rewires the columnview for us. */
@@ -3430,6 +3615,10 @@ void siril_file_browser_add_filter_pattern(SirilFileBrowser *fb,
 	for (gint i = 0; parts[i]; i++) {
 		if (parts[i][0])
 			g_ptr_array_add(bf->specs, g_pattern_spec_new(parts[i]));
+		/* Primary extension = first "*.ext" token; used in save mode as the
+		 * "Save as type" extension appended to a name typed without one. */
+		if (!bf->ext && g_str_has_prefix(parts[i], "*.") && parts[i][2])
+			bf->ext = g_ascii_strdown(parts[i] + 2, -1);
 	}
 	g_strfreev(parts);
 	g_ptr_array_add(fb->filters, bf);
@@ -3505,6 +3694,43 @@ void siril_file_browser_set_directory_only(SirilFileBrowser *fb, gboolean dir_on
 	/* The create-folder button only makes sense when picking a directory. */
 	if (fb->new_folder_btn)
 		gtk_widget_set_visible(fb->new_folder_btn, dir_only);
+}
+
+void siril_file_browser_set_save_mode(SirilFileBrowser *fb, gboolean save) {
+	if (!fb) return;
+	fb->save_mode = save;
+	if (fb->filename_row)
+		gtk_widget_set_visible(fb->filename_row, save);
+	/* The preview pane is pointless when saving (there's no file to preview
+	 * yet), so hide it in save mode; GtkPaned drops its handle and gives the
+	 * whole width to the file list when the end child is invisible. */
+	if (fb->preview_box)
+		gtk_widget_set_visible(fb->preview_box, !save);
+	if (fb->open_button)
+		gtk_button_set_label(GTK_BUTTON(fb->open_button),
+		                     save ? _("Save") : _("Open"));
+	if (save)
+		update_save_button_sensitivity(fb);
+	else if (fb->open_button)
+		gtk_widget_set_sensitive(fb->open_button,
+		                         fb->directory_only || any_selected(fb));
+}
+
+void siril_file_browser_set_suggested_name(SirilFileBrowser *fb, const gchar *name) {
+	if (!fb) return;
+	g_free(fb->suggested_name);
+	fb->suggested_name = name ? g_strdup(name) : NULL;
+	if (fb->filename_entry) {
+		gtk_editable_set_text(GTK_EDITABLE(fb->filename_entry), name ? name : "");
+		/* Preselect the stem (before the extension) so the first keystroke
+		 * replaces the base name but keeps the extension — like native save
+		 * dialogs. */
+		if (name && *name) {
+			const char *dot = strrchr(name, '.');
+			int stem_len = dot ? (int)(dot - name) : -1;
+			gtk_editable_select_region(GTK_EDITABLE(fb->filename_entry), 0, stem_len);
+		}
+	}
 }
 
 gint siril_file_browser_run(SirilFileBrowser *fb) {

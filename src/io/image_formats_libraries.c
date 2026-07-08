@@ -851,6 +851,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
+	gui_iface.set_progress(PROGRESS_RESET, _("Saving TIFF"));
+
 	switch (bitspersample) {
 	case 8:
 		siril_log_debug("Saving 8-bit TIFF file.\n");
@@ -873,6 +875,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 									float_to_uchar_range(gbuff[n][col + row * width]);
 				}
 			}
+			if (((height - row) & 0x3F) == 0)
+				gui_iface.set_progress((double)(height - row) / height, NULL);
 			if (TIFFWriteScanline(tif, buf8, height - 1 - row, 0) < 0) {
 				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
@@ -903,6 +907,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 									float_to_ushort_range(gbuff[n][col + row * width]);
 				}
 			}
+			if (((height - row) & 0x3F) == 0)
+				gui_iface.set_progress((double)(height - row) / height, NULL);
 			if (TIFFWriteScanline(tif, buf16, height - 1 - row, 0) < 0) {
 				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
@@ -932,6 +938,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 											gbuf[n][col + row * width] / USHRT_MAX_SINGLE) : gbuff[n][col + row * width];
 				}
 			}
+			if (((height - row) & 0x3F) == 0)
+				gui_iface.set_progress((double)(height - row) / height, NULL);
 			if (TIFFWriteScanline(tif, buf32, height - 1 - row, 0) < 0) {
 				siril_log_debug("Error while writing in TIFF File.\n");
 				retval = OPEN_IMAGE_ERROR;
@@ -945,6 +953,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		retval = OPEN_IMAGE_ERROR;
 		write_ok = FALSE;
 	}
+
+	if (write_ok)
+		gui_iface.set_progress(PROGRESS_DONE, NULL);
 
 	if (TIFFFlush(tif) != 1) {
 		write_ok = FALSE;
@@ -1552,11 +1563,16 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
+	gui_iface.set_progress(PROGRESS_RESET, _("Saving JPG"));
+
 	JSAMPROW row_pointer[1];
 	while (cinfo.next_scanline < cinfo.image_height) {
 		row_pointer[0] = &image_buffer[cinfo.next_scanline * row_stride];
 		(void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+		if ((cinfo.next_scanline & 0x3F) == 0)
+			gui_iface.set_progress((double)cinfo.next_scanline / cinfo.image_height, NULL);
 	}
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	// NOTE: jpeg_write_scanlines expects an array of pointers to scanlines.
 	//       Here the array is only one element long, but you could pass
 	//       more than one scanline at a time if that's more convenient.
@@ -2042,7 +2058,16 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
 	}
 
-	png_write_image(png_ptr, row_pointers);
+	/* png_write_image() is just a loop of png_write_row(); doing it by hand
+	 * lets us report progress.  row_pointers already encodes the vertical
+	 * flip, so writing them in order produces byte-identical output. */
+	gui_iface.set_progress(PROGRESS_RESET, _("Saving PNG"));
+	for (unsigned y = 0; y < height; y++) {
+		png_write_row(png_ptr, row_pointers[y]);
+		if ((y & 0x3F) == 0)
+			gui_iface.set_progress((double) y / height, NULL);
+	}
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 
 	/* Clean up after the write, and free any memory allocated */
 	png_write_end(png_ptr, info_ptr);
@@ -3023,10 +3048,15 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 		siril_log_message(_("Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
 						filename, quality, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
 
+	/* The libjxl encoder is opaque (no row/percentage callback), so we can't
+	 * report a real fraction: mark the bar pulsating for the duration of the
+	 * blocking encode. */
+	gui_iface.set_progress(PROGRESS_PULSATE, _("Encoding JPEG XL"));
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
 					fit->ry, fit->naxes[2], bitdepth,
 					&compressed, &compressed_length, effort,
 					quality, profile, profile_len);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 
 	siril_log_info(_("Save complete.\n"));
 	GError *error = NULL;
