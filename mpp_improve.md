@@ -244,9 +244,16 @@ the below-one-quantisation-step ordering case.
 `mpp_advanced_dialog.ui` (hide-on-close GtkWindow, transient over the
 control window) opened by a cog button (`emblem-system-symbolic`) on the
 registration tab's multipoint page. Holds: refine reference (+ frames
-spin, greyed when refine off), shift-smooth radius, AP grid pitch,
-zero-mean opt-in, full-precision ranking, and the stacking demosaicing
-drop-down (indices = interpolation_method 0..8), plus Reset-to-defaults.
+spin, greyed when refine off), shift-smooth radius (grid steps), AP grid
+pitch, zero-mean opt-in, and the stacking demosaicing drop-down (indices
+= interpolation_method 0..8), plus Reset-to-defaults. Float-precision
+ranking is deliberately NOT in the GUI — the quantised path exists only
+for the upstream-equivalence fixtures (CLI `-no-float-rank`). "Half-box
+width" renamed "Correlation box half-width" on the tab and in the AP
+editor (the overlay's solid boxes ARE the correlation boxes; dashed =
+stacking patches, which sit inside the boxes when an explicit grid pitch
+is set). Cog button compacted via a `button.mpp-cog` siril.css rule
+(2 px padding).
 Widget state is read by `fill_registration_structure_from_GUI` whether or
 not the window is open; the demosaicing choice travels to the stack via
 the sidecar cfg snapshot (the stack tab's overrides deliberately do not

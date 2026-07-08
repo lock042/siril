@@ -663,3 +663,12 @@ entry.search_empty {
  outline: none;
  border-image: none;
 }
+
+/* Compact icon-only cog button (multipoint registration advanced settings):
+ * the default button padding shrinks the 16 px symbolic gear to the point of
+ * being unrecognisable at the grid's row height. */
+button.mpp-cog {
+  padding: 2px;
+  min-width: 0;
+  min-height: 0;
+}

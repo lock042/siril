@@ -51,7 +51,7 @@ GNU General Public License for more details.
             <property name="margin-end">12</property>
             <child>
               <object class="GtkLabel">
-                <property name="label" translatable="yes">AP half-box width (px)</property>
+                <property name="label" translatable="yes">Correlation box half-width (px)</property>
                 <property name="halign">end</property>
                 <layout>
                   <property name="column">0</property>

@@ -141,8 +141,10 @@ static GtkSpinButton *spin_mpp_reg_stack_percent = NULL;
 /* GTK4: GtkCheckButton no longer derives from GtkToggleButton, so these are
  * GtkWidget* and read via siril_toggle_get_active. */
 static GtkWidget *check_mpp_dewarp = NULL, *check_mpp_normalize = NULL, *check_mpp_seed = NULL, *check_mpp_fast_changing = NULL;
-/* Advanced-settings window widgets (mpp_advanced_dialog.ui). */
-static GtkWidget *check_mpp_adv_refine = NULL, *check_mpp_adv_zero_mean = NULL, *check_mpp_adv_float_rank = NULL;
+/* Advanced-settings window widgets (mpp_advanced_dialog.ui). Float-precision
+ * ranking is deliberately NOT exposed here: the quantised path exists only
+ * for the upstream-equivalence test fixtures (-no-float-rank on the CLI). */
+static GtkWidget *check_mpp_adv_refine = NULL, *check_mpp_adv_zero_mean = NULL;
 static GtkSpinButton *spin_mpp_adv_refine_frames = NULL, *spin_mpp_adv_smooth = NULL, *spin_mpp_adv_ap_step = NULL;
 static GtkDropDown *combo_mpp_adv_debayer = NULL;
 static GtkDropDown *combo_mpp_avi_bayer = NULL;
@@ -299,7 +301,6 @@ static void registration_init_statics() {
 		// REG_MPP advanced-settings window (mpp_advanced_dialog.ui)
 		check_mpp_adv_refine        = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_refine"));
 		check_mpp_adv_zero_mean     = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_zero_mean"));
-		check_mpp_adv_float_rank    = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_adv_float_rank"));
 		spin_mpp_adv_refine_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_refine_frames"));
 		spin_mpp_adv_smooth         = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_smooth"));
 		spin_mpp_adv_ap_step        = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_ap_step"));
@@ -1422,8 +1423,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			cfg->alignment_points_step = gtk_spin_button_get_value_as_int(spin_mpp_adv_ap_step);
 		if (check_mpp_adv_zero_mean)
 			cfg->alignment_points_zero_mean = siril_toggle_get_active(check_mpp_adv_zero_mean);
-		if (check_mpp_adv_float_rank)
-			cfg->rank_float_precision = siril_toggle_get_active(check_mpp_adv_float_rank);
 		if (combo_mpp_adv_debayer) {
 			/* Combo item indices match interpolation_method 0..8
 			 * (BAYER_BILINEAR..BAYER_RCD). */
@@ -1644,9 +1643,6 @@ void on_mpp_advanced_reset_clicked(GtkButton *button, gpointer user_data) {
 	if (check_mpp_adv_zero_mean)
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_zero_mean),
 		                            d.alignment_points_zero_mean);
-	if (check_mpp_adv_float_rank)
-		gtk_check_button_set_active(GTK_CHECK_BUTTON(check_mpp_adv_float_rank),
-		                            d.rank_float_precision);
 	if (combo_mpp_adv_debayer && d.debayer_method >= 0
 	    && d.debayer_method <= BAYER_RCD)
 		gtk_drop_down_set_selected(combo_mpp_adv_debayer, (guint) d.debayer_method);

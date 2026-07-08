@@ -878,7 +878,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                             <child>
                                                                               <object class="GtkLabel">
                                                                                 <property name="halign">start</property>
-                                                                                <property name="label" translatable="1">Half-box width:</property>
+                                                                                <property name="label" translatable="1">Correlation box half-width:</property>
                                                                                 <layout>
                                                                                   <property name="column">0</property>
                                                                                   <property name="row">0</property>
@@ -888,7 +888,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                             <child>
                                                                               <object class="GtkSpinButton" id="spin_mpp_half_box">
                                                                                 <property name="focusable">1</property>
-                                                                                <property name="tooltip-text" translatable="1">Per-AP half-box in pixels; the AP-grid step and half-patch derive from this. Default 24.</property>
+                                                                                <property name="tooltip-text" translatable="1">Half-width in pixels of each alignment point&apos;s correlation box — the area its local shift is measured over, drawn as the solid boxes in the image overlay. The stacking patch (dashed in the overlay, toggled in the AP editor) and the default grid pitch derive from it; an explicit grid pitch in the advanced settings decouples the spacing. Default 24.</property>
                                                                                 <property name="adjustment">adj_mpp_half_box</property>
                                                                                 <property name="numeric">1</property>
                                                                                 <property name="value">24</property>
@@ -1224,6 +1224,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                                                 <property name="focusable">1</property>
                                                                                 <property name="receives-default">1</property>
                                                                                 <property name="tooltip-text" translatable="1">Advanced settings…</property>
+                                                                                <style>
+                                                                                  <class name="mpp-cog"/>
+                                                                                </style>
                                                                                 <property name="halign">end</property>
                                                                                 <property name="hexpand">1</property>
                                                                                 <signal name="clicked" handler="on_seqmpp_advanced_button_clicked" swapped="no"/>

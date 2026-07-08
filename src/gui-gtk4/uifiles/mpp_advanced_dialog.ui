@@ -67,7 +67,7 @@ GNU General Public License for more details.
               <object class="GtkLabel" id="label_mpp_adv_refine_frames">
                 <property name="halign">start</property>
                 <property name="margin-start">24</property>
-                <property name="label" translatable="yes">Reference frames per point:</property>
+                <property name="label" translatable="yes">Refinement frames per point:</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="row">1</property>
@@ -77,7 +77,7 @@ GNU General Public License for more details.
             <child>
               <object class="GtkSpinButton" id="spin_mpp_adv_refine_frames">
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="yes">How many of each alignment point&apos;s best frames are stacked into the refinement reference. 0 = automatic (about 5% of the frames, limited to 8–32). Small values keep the reference sharp; the automatic choice is right for almost all data.</property>
+                <property name="tooltip-text" translatable="yes">Used only by the refinement pass: how many of each alignment point&apos;s best-ranked frames are stacked into that point&apos;s refinement reference. (The first pass correlates against the averaged reference frame built from the globally best frames; the refinement reference is per-point and locally aligned, hence much sharper.) 0 = automatic (about 5% of the frames, limited to 8–32) — right for almost all data.</property>
                 <property name="adjustment">adj_mpp_adv_refine_frames</property>
                 <property name="numeric">1</property>
                 <layout>
@@ -89,7 +89,7 @@ GNU General Public License for more details.
             <child>
               <object class="GtkLabel">
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">Shift smoothing radius:</property>
+                <property name="label" translatable="yes">Shift smoothing radius (grid steps):</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="row">2</property>
@@ -99,7 +99,7 @@ GNU General Public License for more details.
             <child>
               <object class="GtkSpinButton" id="spin_mpp_adv_smooth">
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="yes">Smooth each frame&apos;s alignment-point shifts with a robust fit over the neighbouring points within this radius (in grid steps). Individual shift measurements carry noise well above the true frame-to-frame distortion, which varies smoothly across the image, so the fit removes most of the noise without flattening genuine distortion. 0 disables. Default 2.5.</property>
+                <property name="tooltip-text" translatable="yes">Smooth each frame&apos;s alignment-point shifts with a robust fit over the neighbouring points within this radius. The unit is grid steps (multiples of the alignment-point grid pitch), so the neighbourhood adapts to the grid density. Individual shift measurements carry noise well above the true frame-to-frame distortion, which varies smoothly across the image, so the fit removes most of the noise without flattening genuine distortion. 0 disables. Default 2.5.</property>
                 <property name="adjustment">adj_mpp_adv_smooth</property>
                 <property name="digits">1</property>
                 <property name="numeric">1</property>
@@ -123,7 +123,7 @@ GNU General Public License for more details.
             <child>
               <object class="GtkSpinButton" id="spin_mpp_adv_ap_step">
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="yes">Distance between alignment points, decoupled from the half-box size (the measurement area keeps its full size). 0 = automatic (2.25 × half-box, the classic geometry). Smaller values place a denser grid that tracks the seeing distortion field finer — unlike shrinking the half-box, this does not starve the shift measurement of signal.</property>
+                <property name="tooltip-text" translatable="yes">Distance between alignment points in pixels, decoupled from the correlation box (which keeps its full size). 0 = automatic: 2.25 × the correlation box half-width, i.e. 54 px at the default 24. To sample the seeing distortion finer, keep the correlation box at its default size and reduce the pitch — values down to about the half-width (24–27 px) work well — rather than shrinking the correlation box, which starves the shift measurement of signal.</property>
                 <property name="adjustment">adj_mpp_adv_ap_step</property>
                 <property name="numeric">1</property>
                 <layout>
@@ -136,25 +136,11 @@ GNU General Public License for more details.
               <object class="GtkCheckButton" id="check_mpp_adv_zero_mean">
                 <property name="label" translatable="yes">Zero-mean correlation</property>
                 <property name="focusable">1</property>
-                <property name="tooltip-text" translatable="yes">Subtract the local mean brightness in the per-alignment-point correlation. Helps when transparency drifts across the capture, but on low-signal data it roughly doubles failed shift measurements and can cost detail. Default off.</property>
+                <property name="tooltip-text" translatable="yes">Subtract the local mean brightness in the per-alignment-point correlation. Helps when transparency drifts across the capture, but where the correlation boxes hold little contrast it roughly doubles failed shift measurements and can cost detail. Default off.</property>
                 <property name="halign">start</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="row">4</property>
-                  <property name="column-span">2</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="check_mpp_adv_float_rank">
-                <property name="label" translatable="yes">Full-precision frame ranking</property>
-                <property name="focusable">1</property>
-                <property name="active">1</property>
-                <property name="tooltip-text" translatable="yes">Rank frame quality at full numeric precision instead of the classic quantised 8-bit measure, keeping the sharpness ordering exact on low-contrast data. Frame selection quality directly affects how much detail survives stacking. Default on.</property>
-                <property name="halign">start</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">5</property>
                   <property name="column-span">2</property>
                 </layout>
               </object>
@@ -165,7 +151,7 @@ GNU General Public License for more details.
                 <property name="label" translatable="yes">Colour demosaicing (stacking):</property>
                 <layout>
                   <property name="column">0</property>
-                  <property name="row">6</property>
+                  <property name="row">5</property>
                 </layout>
               </object>
             </child>
@@ -190,7 +176,7 @@ GNU General Public License for more details.
                 <property name="selected">7</property>
                 <layout>
                   <property name="column">1</property>
-                  <property name="row">6</property>
+                  <property name="row">5</property>
                 </layout>
               </object>
             </child>
