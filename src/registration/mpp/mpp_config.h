@@ -148,6 +148,15 @@ struct mpp_config {
 	    the box SNR (measured on Saturn: hb 12 → 10-19% Stage B failure
 	    rate + AP-lattice imprints on the globe). */
 
+	/* Demosaicing algorithm for Stage C's CFA frame reads
+	 * (interpolation_method value from core/settings.h; default
+	 * BAYER_RCD, the application-wide SER choice). Stack-time only —
+	 * the analysis/registration path reads the raw mosaic and is
+	 * unaffected. mpp_improve experimental surface for A/B-ing the
+	 * debayer's contribution to stacked fine detail and chroma noise
+	 * on noisy CFA captures (CLI -debayer=). */
+	int debayer_method;
+
 	/* AVI Bayer-pattern hint. AVI / film containers carry no Bayer
 	 * marker, so when an OSC capture is saved to AVI Siril has no way
 	 * to know the mosaic layout — the heuristic in film_read_frame

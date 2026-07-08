@@ -14556,6 +14556,23 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	if (accept_stack && g_str_has_prefix(arg, "-stack-frames=")) {
 		cfg->stack_frame_number = atoi(arg + 14); return MPP_FLAG_OK;
 	}
+	if (accept_stack && g_str_has_prefix(arg, "-debayer=")) {
+		/* Demosaicing algorithm for Stage C's CFA frame reads (default
+		 * rcd, the application-wide SER choice). Experimental A/B surface
+		 * for the debayer's contribution to stacked detail/chroma noise. */
+		const char *v = arg + 9;
+		if      (!g_ascii_strcasecmp(v, "bilinear")) cfg->debayer_method = BAYER_BILINEAR;
+		else if (!g_ascii_strcasecmp(v, "vng"))      cfg->debayer_method = BAYER_VNG;
+		else if (!g_ascii_strcasecmp(v, "ahd"))      cfg->debayer_method = BAYER_AHD;
+		else if (!g_ascii_strcasecmp(v, "amaze"))    cfg->debayer_method = BAYER_AMAZE;
+		else if (!g_ascii_strcasecmp(v, "dcb"))      cfg->debayer_method = BAYER_DCB;
+		else if (!g_ascii_strcasecmp(v, "hphd"))     cfg->debayer_method = BAYER_HPHD;
+		else if (!g_ascii_strcasecmp(v, "igv"))      cfg->debayer_method = BAYER_IGV;
+		else if (!g_ascii_strcasecmp(v, "lmmse"))    cfg->debayer_method = BAYER_LMMSE;
+		else if (!g_ascii_strcasecmp(v, "rcd"))      cfg->debayer_method = BAYER_RCD;
+		else return MPP_FLAG_INVALID_VALUE;
+		return MPP_FLAG_OK;
+	}
 	if (accept_stack && !strcmp(arg, "-skip-failed-aps")) {
 		/* Drop (frame, AP) contributions whose Stage B shift measurement
 		 * failed instead of stacking them at the coarse phase-1 estimate.

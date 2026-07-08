@@ -22,6 +22,7 @@
  *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
  */
 
+#include "core/settings.h"   /* interpolation_method / BAYER_RCD */
 #include "registration/mpp/mpp_config.h"
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
@@ -107,5 +108,6 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->alignment_points_reference_frames = 0;   /* auto */
 	cfg->alignment_points_step = 0;               /* auto = PSS geometry */
 	cfg->alignment_points_smooth_radius = 2.5;    /* grid steps; 0 = off */
+	cfg->debayer_method = BAYER_RCD;              /* Stage C CFA reads */
 	return MPP_OK;
 }

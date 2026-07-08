@@ -1602,6 +1602,21 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	if (!seq || !cfg || !run || !run->aps || !run->shifts || !out || !seq->imgparam)
 		return MPP_EINVAL;
 
+	/* mpp_improve experimental: demosaicing algorithm for the CFA frame
+	 * reads of this stack pass (default BAYER_RCD = the application-wide
+	 * choice). Set for the duration of Stage C and restored on every
+	 * exit path — the reads are the only consumers, so the concurrent
+	 * decode threads all see one consistent value. */
+	struct SerDebayerGuard {
+		SerDebayerGuard(int m) { ser_set_debayer_method((interpolation_method) m); }
+		~SerDebayerGuard() { ser_set_debayer_method(BAYER_RCD); }
+	} debayer_guard(cfg->debayer_method);
+	if (cfg->debayer_method != BAYER_RCD)
+		siril_log_message(_("Stack (mpp): using debayer method %d for CFA "
+		                    "frame reads (0=bilinear 1=VNG 2=AHD 3=AMaZE "
+		                    "4=DCB 5=HPHD 6=IGV 7=LMMSE 8=RCD)\n"),
+		                  cfg->debayer_method);
+
 	/* Refresh inclusion from the live frame selector: the user may have
 	 * excluded more frames after registration (the sidecar / cached run
 	 * carries the registration-time selection). AND the live incl state in
