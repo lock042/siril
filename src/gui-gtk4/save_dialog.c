@@ -273,9 +273,9 @@ static gchar *get_filename_and_replace_ext() {
 static int save_dialog() {
 	save_dialog_init_statics();
 
-	GtkWindow *parent = siril_get_active_window();
+	GtkWindow *parent = GTK_WINDOW(sd_control_window);
 	if (!GTK_IS_WINDOW(parent))
-		parent = sd_control_window;
+		parent = siril_get_active_window();
 
 	SirilFileBrowser *fb = siril_file_browser_new(parent, _("Save As"));
 	siril_file_browser_set_save_mode(fb, TRUE);
