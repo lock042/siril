@@ -271,6 +271,24 @@ anywhere** — candidate for default after wider visual validation.
 Remaining solar follow-up if ever needed: finer field grid,
 failure-aware field stiffness.
 
+**Off-coverage limb artefacts (user report, fixed 01364f842):** a
+stretched+sharpened solar warp stack showed a horizontal streak in the
+sky and ghosted prominences with straight coverage-boundary edges —
+three warp-only mechanisms, none present in patch: (1) the displacement
+field decayed to identity beyond the outermost AP row (zero-support
+coarse nodes), resampling off-limb content with a partially applied,
+frame-varying shift → now extrapolated outward by Jacobi neighbour
+fill, so prominences ride the nearest measured shift like patch's
+boundary patches; (2) the background composite included remap's
+replicated border rows (no validity mask) → now accumulates warped·vf
+with per-pixel count normalisation; (3) the coarse weight grid's
+bicubic upsample rang on the coverage step above the top AP row, and
+the fixed-position ripple in the fg/bg blend ramp painted a line along
+the AP-row patch boundary (second-derivative signature 32 → ambient 15)
+→ weight now upsamples linearly (displacement keeps bicubic). Verified:
+solar sky/prominences now match patch under the reporting stretch;
+Saturn and Moon warp stacks unchanged (ratios 0.999–1.001).
+
 ### GUI — DONE (cog button + advanced settings window)
 
 **Rebalanced (user review):** the main multipoint page now holds only the
