@@ -79,6 +79,8 @@ int stack_mpp_handler(struct stacking_args *args) {
 		run->cfg->stack_frame_number                      = gui->stack_frame_number;
 		run->cfg->stack_frames_background_fraction        = gui->stack_frames_background_fraction;
 		run->cfg->stack_frames_background_blend_threshold = gui->stack_frames_background_blend_threshold;
+		run->cfg->stack_skip_failed_aps                   = gui->stack_skip_failed_aps;
+		run->cfg->stack_method                            = gui->stack_method;
 	}
 
 	/* The stacking tab's "Force 32b output" checkbutton (and the auto

@@ -306,8 +306,14 @@ touch it). Headless smoke test: builder loads with no missing-handler
 warnings; UI files validate; dialog render verified. (No "PSS" in
 user-facing strings.)
 
-Stacking-engine drop-down added below the demosaicing row (phase 3
-follow-up): "Patch mosaic" / "Warp field", indices = enum
-mpp_stack_method, default patch; captured into `cfg->stack_method` and
-carried by the sidecar like the demosaicing choice, covered by
-Reset-to-defaults.
+Stacking-engine drop-down ("Patch mosaic" / "Warp field", indices = enum
+mpp_stack_method, default patch): lives on the STACKING tab's multipoint
+page (next to Scale), not the cog window — the engine is a stack-time
+choice, and a registration-time widget only reached the stack through
+the sidecar snapshot, so changing it after registering silently did
+nothing (first cut had this bug). `stack_mpp_handler` now copies
+`stack_method` (and the previously-forgotten `stack_skip_failed_aps`)
+in its stack-side override block; the CLI `-engine=` flag continues to
+override the sidecar directly. The Stage C log line now names the
+engine ("patch-mosaic engine" / "warp-field engine") instead of the
+misleading fixed "classical accumulation" text.

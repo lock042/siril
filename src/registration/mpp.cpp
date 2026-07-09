@@ -1809,8 +1809,10 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	    (seq->type == SEQ_SER
 	     || ((seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ
 	          || seq->type == SEQ_INTERNAL) && fits_is_reentrant()));
-	siril_log_message(_("Stack (mpp): classical accumulation, %d thread(s), "
+	siril_log_message(_("Stack (mpp): %s engine, %d thread(s), "
 	                    "%s frame reads\n"),
+	                  cfg->stack_method == MPP_STACK_WARP
+	                      ? _("warp-field") : _("patch-mosaic"),
 	                  stack_threads,
 	                  stack_provider_safe ? _("parallel") : _("serial"));
 	/* Memory budget for the per-thread private accumulators: 80% of the
@@ -1831,7 +1833,6 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * per-AP shifts; the default is the PSS per-AP patch-blend engine. */
 	cv::Mat stacked;
 	if (cfg->stack_method == MPP_STACK_WARP) {
-		siril_log_message(_("Stack (mpp): warp-field engine\n"));
 		const mpp::WarpStackResult wr = mpp::stack_warp_apply_streamed(
 		    provider, run->num_frames, num_layers, *run->aps, apq,
 		    run->shifts, offsets, frame_brightness, sorted_idx,

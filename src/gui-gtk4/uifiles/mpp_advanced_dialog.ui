@@ -338,34 +338,6 @@ GNU General Public License for more details.
                 </layout>
               </object>
             </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Stacking engine:</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">14</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkDropDown" id="combo_mpp_adv_engine">
-                <property name="tooltip-text" translatable="yes">How the aligned frames are combined; stored with the registration and applied at stacking time. Patch mosaic stacks each alignment point's patch at its own shift and blends the overlaps — the robust default. Warp field resamples each whole frame once through a smooth deformation interpolated between the alignment points: sharper on planetary discs, equal elsewhere, but slower on large images.</property>
-                <property name="model">
-                  <object class="GtkStringList">
-                    <items>
-                      <item translatable="yes">Patch mosaic</item>
-                      <item translatable="yes">Warp field</item>
-                    </items>
-                  </object>
-                </property>
-                <property name="selected">0</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="row">14</property>
-                </layout>
-              </object>
-            </child>
           </object>
         </child>
         <child>

@@ -108,7 +108,7 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
-	static GtkDropDown *mpp_drizzle_combo = NULL;
+	static GtkDropDown *mpp_drizzle_combo = NULL, *mpp_engine_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
 	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
 	static GtkCheckButton *mpp_skip_failed = NULL;
@@ -136,6 +136,7 @@ static void start_stacking() {
 		force32b = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
 		mpp_drizzle_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
+		mpp_engine_combo  = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_engine"));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
 		mpp_bg_fraction   = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_bg_fraction"));
@@ -258,6 +259,11 @@ static void start_stacking() {
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);
 		cfg->stack_frames_background_blend_threshold = gtk_spin_button_get_value(mpp_bg_blend);
 		cfg->stack_skip_failed_aps                   = siril_toggle_get_active(GTK_WIDGET(mpp_skip_failed));
+		if (mpp_engine_combo) {
+			/* Combo item indices match enum mpp_stack_method. */
+			const guint eng = gtk_drop_down_get_selected(mpp_engine_combo);
+			cfg->stack_method = (eng == 1) ? MPP_STACK_WARP : MPP_STACK_PATCH;
+		}
 		params->mpp_cfg = cfg;
 	}
 
