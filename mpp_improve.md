@@ -289,6 +289,23 @@ the AP-row patch boundary (second-derivative signature 32 → ambient 15)
 solar sky/prominences now match patch under the reporting stretch;
 Saturn and Moon warp stacks unchanged (ratios 0.999–1.001).
 
+**Glow-cutoff follow-up (user report on a 15 % stack, fixed b6c738fb7):**
+the halo still ended visibly at the AP-region boundary instead of fading
+like patch. Component dump showed the accumulation and the (warped)
+background render the faint halo at different levels — the acc stacks
+the nearest APs' sharpest picks (measurably less scattered light than
+the global set) and warping the bg through the rim shifts re-levels the
+steep halo gradient — so any fg/bg blend bends the falloff; patch is
+seam-free because its bg (plain global-aligned average) matches its AP
+means. Fix: warp's bg now uses the identical construct — integer
+global-offset blit of the unwarped frame with per-pixel cover count
+(replaces the warped+validity-masked bg; also still excludes replicated
+border rows by construction). A trial "extend the weight field outward
+with decay" approach was tried and reverted: it dragged the acc's
+frame-subset halo bias far into the sky. 15 % solar d2 sky profiles now
+statistically identical to patch (peak 28.0 vs 29.4, same row);
+Saturn/Moon unchanged (1.000/1.001).
+
 ### GUI — DONE (cog button + advanced settings window)
 
 **Rebalanced (user review):** the main multipoint page now holds only the
