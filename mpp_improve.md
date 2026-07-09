@@ -289,6 +289,21 @@ the AP-row patch boundary (second-derivative signature 32 → ambient 15)
 solar sky/prominences now match patch under the reporting stretch;
 Saturn and Moon warp stacks unchanged (ratios 0.999–1.001).
 
+**Stack-level independence (user report, fixed 371aae674, supersedes the
+b6c738fb7 blit background):** the blit background was accidentally tuned
+to ~15 %: the acc/bg halo level difference = subset term (sharpest picks
+carry less scattered light) + alignment term (acc locally warped, blit
+bg not), and the two cancel only near 15 % — at 100 % the full alignment
+term printed a strong line, at 10 % faint scalloping returned. Fixed by
+(1) warped background again (validity-masked, count-normalised): sharing
+the alignment zeroes the alignment term at every level (at 100 % acc ≡
+bg by construction); (2) blend ramp = C1 smoothstep of coverage reaching
+1 at 2× blend_t (hard clamp concentrated the hand-off into a few pixels
+with an fg=1 crease tracing the scalloped window envelope; a
+blurred-coverage variant was rejected — it pulls empty acc pixels into
+the composite). Verified 10/15/100 %: warp d2 sky signature ≤ patch at
+every level; angular scallop metric ≤ patch; Saturn/Moon unchanged.
+
 **Glow-cutoff follow-up (user report on a 15 % stack, fixed b6c738fb7):**
 the halo still ended visibly at the AP-region boundary instead of fading
 like patch. Component dump showed the accumulation and the (warped)
