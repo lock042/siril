@@ -528,6 +528,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                                     <child>
                                                                       <object class="GtkDropDown" id="combo_mpp_engine">
                                                                         <property name="tooltip-text" translatable="1">How the aligned frames are combined. Patch mosaic stacks each alignment point's patch at its own shift and blends the overlaps — the robust default. Warp field resamples each whole frame once through a smooth deformation interpolated between the alignment points: sharper on planetary discs, equal elsewhere, but slower on large images.</property>
+                                                                        <signal name="notify::selected" handler="on_combo_mpp_engine_changed"/>
                                                                         <property name="model">
                                                                           <object class="GtkStringList">
                                                                             <items>
@@ -641,7 +642,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                                       <object class="GtkCheckButton" id="check_mpp_skip_failed">
                                                                         <property name="label" translatable="1">Skip failed AP shifts</property>
                                                                         <property name="focusable">1</property>
-                                                                        <property name="tooltip-text" translatable="1">Drop frame/alignment-point contributions whose local shift measurement failed instead of stacking them at the coarse estimate. Helps when ghosted, doubled patches appear in the stack. Alignment points with no successful measurement at all are stacked unfiltered.</property>
+                                                                        <property name="tooltip-text" translatable="1">Patch mosaic engine only: drop frame/alignment-point contributions whose local shift measurement failed instead of stacking them at the coarse estimate. Helps when ghosted, doubled patches appear in the stack. Alignment points with no successful measurement at all are stacked unfiltered. The warp field engine handles failed measurements itself, by predicting their shifts from neighbouring alignment points.</property>
                                                                         <layout>
                                                                           <property name="column">0</property>
                                                                           <property name="row">3</property>

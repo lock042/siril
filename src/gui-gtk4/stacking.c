@@ -289,6 +289,22 @@ void on_comboboxstack_methods_changed(GObject *obj, GParamSpec *pspec, gpointer 
 	update_stack_interface(TRUE);
 }
 
+void on_combo_mpp_engine_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	(void)pspec;
+	(void)user_data;
+	static GtkWidget *skip_failed = NULL;
+	if (!skip_failed)
+		skip_failed = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_mpp_skip_failed"));
+	if (!skip_failed)
+		return;
+	/* "Skip failed AP shifts" is a patch-engine policy: the warp engine
+	 * handles failed pairs itself (smoothed shift predictions feed the
+	 * displacement field) and never reads the flag. */
+	const gboolean patch =
+	    gtk_drop_down_get_selected(GTK_DROP_DOWN(obj)) != 1;
+	gtk_widget_set_sensitive(skip_failed, patch);
+}
+
 void on_combonormalize_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
 	(void)obj;
 	(void)pspec;
