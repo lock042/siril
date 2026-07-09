@@ -397,8 +397,12 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			 * AP's full shift. Grow the field outward instead (Jacobi
 			 * passes: an empty node takes the mean of its filled
 			 * 8-neighbours), so off-support content rides the nearest
-			 * measured shift. Weights are untouched — coverage still
-			 * decides the fg/bg blend. */
+			 * measured shift. Weights are deliberately NOT extended:
+			 * beyond the outermost patch bounds the composite hands over
+			 * to the background exactly like the patch engine, and the
+			 * accumulation's frame subset (the nearest APs' sharpest
+			 * picks, which carry measurably less scattered light than the
+			 * full set) never leaks into the faint sky. */
 			{
 				int remaining = 0;
 				for (size_t i = 0; i < sup.size(); ++i)
@@ -500,34 +504,50 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::remap(frame_drizzled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
-			/* The background composite only accumulates samples that came
-			 * from inside the source frame (vf): with a tight capture ROI
-			 * and drift, remap's replicated border rows would otherwise
-			 * smear into the background average and surface in the dark
-			 * sky as level steps along the excursion envelope. */
 			cv::Mat tmp;
-			const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 			if (C == 1) {
 				cv::multiply(warped, Wd, tmp);
 				lacc[0] += tmp;
-				if (in_bg) {
-					cv::multiply(warped, vf, tmp);
-					lbg[0] += tmp;
-				}
 			} else {
 				std::vector<cv::Mat> chans;
 				cv::split(warped, chans);
 				for (int c = 0; c < C; ++c) {
 					cv::multiply(chans[c], Wd, tmp);
 					lacc[c] += tmp;
-					if (in_bg) {
-						cv::multiply(chans[c], vf, tmp);
-						lbg[c] += tmp;
-					}
 				}
 			}
-			if (in_bg) lbgw += vf;
 			lwsum += Wd;
+
+			/* Background composite: a plain global-aligned average, the
+			 * same construct as the patch engine's. Deliberately NOT
+			 * warped through the displacement field: the faint sky it
+			 * serves has a steep scattered-light gradient, and warping it
+			 * with the rim APs' shifts levels it differently from the
+			 * unwarped average, so the fg/bg hand-off above the outermost
+			 * AP row would cut the glow off visibly under a hard stretch.
+			 * The integer blit also keeps remap's replicated border rows
+			 * out of the average on drifting tight-ROI captures; the
+			 * per-pixel count keeps partially covered sky at its natural
+			 * level. */
+			if (holes && top_for_bg.find(f) != top_for_bg.end()) {
+				const int oy = (int) std::lround(offsets[f].dy * S);
+				const int ox = (int) std::lround(offsets[f].dx * S);
+				const int r0 = std::max(0, -oy), r1 = std::min(DY, Hd - oy);
+				const int c0 = std::max(0, -ox), c1 = std::min(DX, Wd_f - ox);
+				if (r1 > r0 && c1 > c0) {
+					const cv::Rect dst(c0, r0, c1 - c0, r1 - r0);
+					const cv::Rect src(c0 + ox, r0 + oy, c1 - c0, r1 - r0);
+					if (C == 1) {
+						lbg[0](dst) += frame_drizzled(src);
+					} else {
+						std::vector<cv::Mat> chans;
+						cv::split(frame_drizzled(src), chans);
+						for (int c = 0; c < C; ++c)
+							lbg[c](dst) += chans[c];
+					}
+					lbgw(dst) += 1.0f;
+				}
+			}
 
 			gui_iface.set_progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
 			                       / (double) n_included, NULL);
