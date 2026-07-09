@@ -237,7 +237,8 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	int n_threads = par ? nt : 1;
 	if (par && mem_budget_bytes > 0) {
 		const size_t canvas = (size_t) DY * DX * sizeof(float);
-		const size_t per_thread = canvas * ((size_t) (holes ? 3 : 2) * C + 10);
+		const size_t per_thread = canvas * ((size_t) (holes ? 3 : 2) * C
+		                                    + (holes ? 11 : 10));
 		int fit = (int) (mem_budget_bytes / std::max<size_t>(1, per_thread));
 		if (fit < 1) fit = 1;
 		if (fit < n_threads) n_threads = fit;
@@ -245,7 +246,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 
 	std::vector<cv::Mat> acc(C);
 	std::vector<cv::Mat> bg(C);
-	cv::Mat wsum;
+	cv::Mat wsum, bgw;
 
 	gint cur_nb = 0;
 	gint cancelled = 0;
@@ -256,13 +257,14 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	{
 		bool local_ok = true;
 		std::vector<cv::Mat> lacc(C), lbg(C);
-		cv::Mat lwsum;
+		cv::Mat lwsum, lbgw;
 		try {
 			for (int c = 0; c < C; ++c) {
 				lacc[c] = cv::Mat::zeros(DY, DX, CV_32F);
 				if (holes) lbg[c] = cv::Mat::zeros(DY, DX, CV_32F);
 			}
 			lwsum = cv::Mat::zeros(DY, DX, CV_32F);
+			if (holes) lbgw = cv::Mat::zeros(DY, DX, CV_32F);
 		} catch (const std::exception &) {
 			local_ok = false;
 			g_atomic_int_set(&oom, 1);
@@ -271,6 +273,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		std::vector<float> syA(M, 0.0f), sxA(M, 0.0f);
 		std::vector<uint8_t> okA(M, 0);
 		cv::Mat Wc(Gy, Gx, CV_32F), Dyc(Gy, Gx, CV_32F), Dxc(Gy, Gx, CV_32F);
+		std::vector<uint8_t> sup((size_t) Gy * Gx), supn((size_t) Gy * Gx);
 
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic) nowait
@@ -377,6 +380,65 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 					wrow[gx] = (float) wsum_n;
 					yrow[gx] = den > 1e-12 ? (float) (ny / den) : 0.0f;
 					xrow[gx] = den > 1e-12 ? (float) (nx / den) : 0.0f;
+					sup[(size_t) gy * Gx + gx] = den > 1e-12;
+				}
+			}
+
+			/* Extrapolate the displacement into zero-support nodes. Nodes
+			 * no AP window reaches (sky beyond the last AP row) — and, for
+			 * this frame, nodes whose APs all left it unselected — hold no
+			 * measurement; leaving them at zero makes the upsampled field
+			 * decay from the rim APs' real shifts to identity across a
+			 * couple of coarse cells, so anything hanging just off the
+			 * limb (prominences, spicule tops) is resampled with a
+			 * partially applied, frame-varying shift: ghosted detail with
+			 * a hard edge along the coverage boundary. The patch engine
+			 * has no such decay — its boundary patches apply the nearest
+			 * AP's full shift. Grow the field outward instead (Jacobi
+			 * passes: an empty node takes the mean of its filled
+			 * 8-neighbours), so off-support content rides the nearest
+			 * measured shift. Weights are untouched — coverage still
+			 * decides the fg/bg blend. */
+			{
+				int remaining = 0;
+				for (size_t i = 0; i < sup.size(); ++i)
+					if (!sup[i]) ++remaining;
+				while (remaining > 0) {
+					supn = sup;
+					int prev = remaining;
+					for (int gy = 0; gy < Gy; ++gy) {
+						float *yrow = Dyc.ptr<float>(gy);
+						float *xrow = Dxc.ptr<float>(gy);
+						for (int gx = 0; gx < Gx; ++gx) {
+							if (sup[(size_t) gy * Gx + gx]) continue;
+							float sy = 0.0f, sx = 0.0f;
+							int cnt = 0;
+							for (int dy = -1; dy <= 1; ++dy) {
+								const int ny_ = gy + dy;
+								if (ny_ < 0 || ny_ >= Gy) continue;
+								const float *nyr = Dyc.ptr<float>(ny_);
+								const float *nxr = Dxc.ptr<float>(ny_);
+								for (int dx = -1; dx <= 1; ++dx) {
+									const int nx_ = gx + dx;
+									if (nx_ < 0 || nx_ >= Gx || (!dy && !dx))
+										continue;
+									if (!sup[(size_t) ny_ * Gx + nx_])
+										continue;
+									sy += nyr[nx_];
+									sx += nxr[nx_];
+									++cnt;
+								}
+							}
+							if (cnt) {
+								yrow[gx] = sy / (float) cnt;
+								xrow[gx] = sx / (float) cnt;
+								supn[(size_t) gy * Gx + gx] = 1;
+								--remaining;
+							}
+						}
+					}
+					sup.swap(supn);
+					if (remaining == prev) break;   /* no support anywhere */
 				}
 			}
 
@@ -387,12 +449,19 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 				okA[u.ap] = 0;
 			}
 
-			/* Dense weight + displacement fields. */
+			/* Dense weight + displacement fields. The weight upsample must
+			 * be monotone: bicubic rings on the sharp coverage edge above
+			 * the outermost AP row, and the resulting fixed-position
+			 * ripple in the fg/bg blend ramp paints a line along the
+			 * boundary wherever the accumulation and background levels
+			 * differ (visible in a stretched solar halo). The displacement
+			 * keeps the smoother cubic — it is measurement data, not a
+			 * support envelope, and post-extrapolation it has no step to
+			 * ring on. */
 			cv::Mat Wd, Dyd, Dxd;
-			cv::resize(Wc, Wd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
+			cv::resize(Wc, Wd, cv::Size(DX, DY), 0, 0, cv::INTER_LINEAR);
 			cv::resize(Dyc, Dyd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
 			cv::resize(Dxc, Dxd, cv::Size(DX, DY), 0, 0, cv::INTER_CUBIC);
-			cv::max(Wd, 0.0f, Wd);   /* cubic overshoot */
 
 			/* Optional per-frame derotation base. dmx/dmy give, for each
 			 * epoch-canvas pixel, the source position in the MPP-aligned frame
@@ -431,22 +500,33 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::remap(frame_drizzled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
+			/* The background composite only accumulates samples that came
+			 * from inside the source frame (vf): with a tight capture ROI
+			 * and drift, remap's replicated border rows would otherwise
+			 * smear into the background average and surface in the dark
+			 * sky as level steps along the excursion envelope. */
 			cv::Mat tmp;
+			const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 			if (C == 1) {
 				cv::multiply(warped, Wd, tmp);
 				lacc[0] += tmp;
-				if (holes && top_for_bg.find(f) != top_for_bg.end())
-					lbg[0] += warped;
+				if (in_bg) {
+					cv::multiply(warped, vf, tmp);
+					lbg[0] += tmp;
+				}
 			} else {
 				std::vector<cv::Mat> chans;
 				cv::split(warped, chans);
-				const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 				for (int c = 0; c < C; ++c) {
 					cv::multiply(chans[c], Wd, tmp);
 					lacc[c] += tmp;
-					if (in_bg) lbg[c] += chans[c];
+					if (in_bg) {
+						cv::multiply(chans[c], vf, tmp);
+						lbg[c] += tmp;
+					}
 				}
 			}
+			if (in_bg) lbgw += vf;
 			lwsum += Wd;
 
 			gui_iface.set_progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
@@ -466,12 +546,14 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 				try {
 					if (wsum.empty()) {
 						wsum = lwsum;
+						if (holes) bgw = lbgw;
 						for (int c = 0; c < C; ++c) {
 							acc[c] = lacc[c];
 							if (holes) bg[c] = lbg[c];
 						}
 					} else {
 						wsum += lwsum;
+						if (holes) bgw += lbgw;
 						for (int c = 0; c < C; ++c) {
 							acc[c] += lacc[c];
 							if (holes) bg[c] += lbg[c];
@@ -531,9 +613,16 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::min(s, cov, s);
 			cv::max(fg, s, fg);
 		}
+		/* Per-pixel normalisation: with a drifting tight-ROI capture, the
+		 * outer sky is inside the source frame for only a subset of the
+		 * background frames; dividing by the per-pixel valid count keeps
+		 * the background at its natural level there instead of fading it
+		 * toward zero across the excursion envelope. */
+		cv::Mat bgden;
+		cv::max(bgw, 1e-30f, bgden);
 		for (int c = 0; c < C; ++c) {
 			cv::Mat bgm, diff;
-			bg[c].convertTo(bgm, CV_32F, 1.0 / (double) apq.stack_size);
+			cv::divide(bg[c], bgden, bgm);
 			cv::subtract(mean_ch[c], bgm, diff);
 			cv::multiply(diff, fg, diff);
 			cv::add(bgm, diff, mean_ch[c]);
