@@ -246,11 +246,30 @@ recovery beats the un-dewarped average and matches the patch engine
 **Benchmarks (50 %):** Saturn 199 APs — warp **+2.6/+4.5/+8.7 %** detail,
 visibly crisper belt/ring edges, no artefacts (+31 % time). Moon surface
 557 APs — ratios 0.999, identical (+24 % time). Hα full disc 1218 APs,
-25.9 % Stage B failures — warp **−10/−7/−3 %** (3× time): local patch
-compositing wins where fine content sits at the AP-pitch sampling limit
-with many unreliable field nodes. **Default stays patch; use warp for
-planetary discs.** Follow-up ideas for the solar case: finer field grid,
-failure-aware field stiffness, or per-region engine blending.
+25.9 % Stage B failures — initially measured **−10/−7/−3 %** (3× time).
+
+**Solar "regression" retracted (post-review):** two findings. (1) The
+band-power deficit was not lost detail: quadrature analysis showed the
+patch stack's extra fine power is *additive mosaic grit* riding on the
+same underlying image (diff rms matched the quadrature prediction
+√(σ_patch²−σ_warp²), and corr(diff_hp, patch_hp) ≈ −0.39 — the
+additive-noise signature, not the ≈ −1.0 a genuine blur would give).
+(2) A real flaw amplified it: the warp engine's per-AP success gate
+dropped failed Stage B pairs from the displacement field even though
+shift-field smoothing had already replaced their stored values with
+robust fit predictions — exactly the smooth-field interpolation the
+engine's own assumption licenses. With 25.9 % failures on solar this
+starved the field around every failed node. Fixed (`trust_failed` in
+mpp_warp_stack.cpp: failed pairs feed the field whenever
+`-shift-smooth` > 0). After the fix, on a fresh registration: solar
+warp/patch = **0.991/0.994/0.996** with the engines sharing fine
+structure (diff_hp corr −0.21) — parity, warp slightly *cleaner* (less
+mosaic grit). Saturn re-verified bit-noise-identical under the fix
+(1.001/1.001/1.000 vs pre-fix warp). **Default stays patch for now;
+warp is recommended for planetary discs and no longer contraindicated
+anywhere** — candidate for default after wider visual validation.
+Remaining solar follow-up if ever needed: finer field grid,
+failure-aware field stiffness.
 
 ### GUI — DONE (cog button + advanced settings window)
 

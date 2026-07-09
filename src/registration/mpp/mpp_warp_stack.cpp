@@ -305,7 +305,15 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			const int Hd = frame_drizzled.rows;
 			const int Wd_f = frame_drizzled.cols;
 
-			/* Per-frame AP weights and shifts. */
+			/* Per-frame AP weights and shifts. Failed pairs are kept as
+			 * displacement-field support when Stage B's shift-field
+			 * smoothing is active: smoothing has already replaced their
+			 * stored values with robust fit predictions from the
+			 * neighbouring successful APs, which is exactly the
+			 * interpolation the smooth-field assumption licenses. With
+			 * smoothing disabled the stored values are raw coarse
+			 * estimates again, so the success gate returns. */
+			const bool trust_failed = cfg.alignment_points_smooth_radius > 0.0;
 			const auto &used = apq.used_alignment_points[f];
 			for (const auto &u : used) {
 				wA[u.ap] = u.weight;
@@ -313,7 +321,8 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 					const size_t soff = (size_t) (f * M + u.ap) * 2;
 					syA[u.ap] = (float) shifts->shifts[soff + 0];
 					sxA[u.ap] = (float) shifts->shifts[soff + 1];
-					okA[u.ap] = shifts->success[(size_t) f * M + u.ap];
+					okA[u.ap] = trust_failed ? 1
+					          : shifts->success[(size_t) f * M + u.ap];
 				} else {
 					syA[u.ap] = 0.0f;
 					sxA[u.ap] = 0.0f;
