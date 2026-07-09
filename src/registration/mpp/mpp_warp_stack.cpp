@@ -504,50 +504,43 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			cv::remap(frame_drizzled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
+			/* The background composite is accumulated from the SAME warped
+			 * pixels as the accumulation (masked by vf so remap's
+			 * replicated border rows stay out on drifting tight-ROI
+			 * captures, normalised by the per-pixel valid count). Sharing
+			 * the alignment is what keeps the fg/bg hand-off seamless at
+			 * every stack level: at 100 % the two are the same frames
+			 * identically warped, so their level difference is zero by
+			 * construction, and at low percentages only the bounded
+			 * frame-subset difference remains — spread over the blurred
+			 * blend ramp below it is invisible. (An unwarped global-blit
+			 * background was tried: it re-levels the steep scattered-light
+			 * halo against the locally aligned accumulation, and the
+			 * cancellation of the two effects only happens near one
+			 * particular stack percentage.) */
 			cv::Mat tmp;
+			const bool in_bg = holes && top_for_bg.find(f) != top_for_bg.end();
 			if (C == 1) {
 				cv::multiply(warped, Wd, tmp);
 				lacc[0] += tmp;
+				if (in_bg) {
+					cv::multiply(warped, vf, tmp);
+					lbg[0] += tmp;
+				}
 			} else {
 				std::vector<cv::Mat> chans;
 				cv::split(warped, chans);
 				for (int c = 0; c < C; ++c) {
 					cv::multiply(chans[c], Wd, tmp);
 					lacc[c] += tmp;
-				}
-			}
-			lwsum += Wd;
-
-			/* Background composite: a plain global-aligned average, the
-			 * same construct as the patch engine's. Deliberately NOT
-			 * warped through the displacement field: the faint sky it
-			 * serves has a steep scattered-light gradient, and warping it
-			 * with the rim APs' shifts levels it differently from the
-			 * unwarped average, so the fg/bg hand-off above the outermost
-			 * AP row would cut the glow off visibly under a hard stretch.
-			 * The integer blit also keeps remap's replicated border rows
-			 * out of the average on drifting tight-ROI captures; the
-			 * per-pixel count keeps partially covered sky at its natural
-			 * level. */
-			if (holes && top_for_bg.find(f) != top_for_bg.end()) {
-				const int oy = (int) std::lround(offsets[f].dy * S);
-				const int ox = (int) std::lround(offsets[f].dx * S);
-				const int r0 = std::max(0, -oy), r1 = std::min(DY, Hd - oy);
-				const int c0 = std::max(0, -ox), c1 = std::min(DX, Wd_f - ox);
-				if (r1 > r0 && c1 > c0) {
-					const cv::Rect dst(c0, r0, c1 - c0, r1 - r0);
-					const cv::Rect src(c0 + ox, r0 + oy, c1 - c0, r1 - r0);
-					if (C == 1) {
-						lbg[0](dst) += frame_drizzled(src);
-					} else {
-						std::vector<cv::Mat> chans;
-						cv::split(frame_drizzled(src), chans);
-						for (int c = 0; c < C; ++c)
-							lbg[c](dst) += chans[c];
+					if (in_bg) {
+						cv::multiply(chans[c], vf, tmp);
+						lbg[c] += tmp;
 					}
-					lbgw(dst) += 1.0f;
 				}
 			}
+			if (in_bg) lbgw += vf;
+			lwsum += Wd;
 
 			gui_iface.set_progress((double) (g_atomic_int_add(&cur_nb, 1) + 1)
 			                       / (double) n_included, NULL);
@@ -600,9 +593,26 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		cv::Mat fg;
 		const double blend_denom = cfg.stack_frames_background_blend_threshold
 		                         * (double) apq.stack_size;
-		wsum.convertTo(fg, CV_32F, 1.0 / blend_denom);
+		/* The blend ramp is a C1 smoothstep of the coverage rather than a
+		 * hard clamp. A hard clamp saturates across the first blend_t
+		 * fraction of the outermost window taper: the whole hand-off
+		 * concentrates into a few pixels and its inner edge (fg = 1) is a
+		 * derivative discontinuity, so any residual accumulation/
+		 * background level difference prints as a line — or AP-pitch
+		 * scallops, since the contours trace the scalloped window
+		 * envelope — along the coverage boundary. smoothstep(t/2) has
+		 * zero slope at both ends (the outer end compounds with the Hann
+		 * taper's own smooth tail), reaches 1 at twice the blend
+		 * threshold, and keeps the support exactly equal to the raw
+		 * coverage (an fg wider than the accumulation's support pulls
+		 * empty acc pixels into the composite). */
+		wsum.convertTo(fg, CV_32F, 0.5 / blend_denom);
 		cv::min(fg, 1.0f, fg);
 		cv::max(fg, 0.0f, fg);
+		cv::Mat fg2;
+		cv::multiply(fg, fg, fg2);
+		cv::Mat fg3 = fg2.mul(fg);
+		fg = 3.0f * fg2 - 2.0f * fg3;
 		/* Brightness-aware boost — same measure as the patch engine's
 		 * crescent-arc fix. The coverage ramp decays across the outer AP
 		 * rows' window tapers, and along an object's rim those contours
