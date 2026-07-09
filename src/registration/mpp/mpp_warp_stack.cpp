@@ -501,6 +501,36 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 		wsum.convertTo(fg, CV_32F, 1.0 / blend_denom);
 		cv::min(fg, 1.0f, fg);
 		cv::max(fg, 0.0f, fg);
+		/* Brightness-aware boost — same measure as the patch engine's
+		 * crescent-arc fix. The coverage ramp decays across the outer AP
+		 * rows' window tapers, and along an object's rim those contours
+		 * are scalloped at AP pitch, so bright limb content would take a
+		 * periodically varying mixture of the sharp warped accumulation
+		 * and the softer global-aligned background. The accumulation
+		 * itself is fine there (the weight field cancels in acc/wsum), so
+		 * keep bright pixels on it whenever they have any real coverage —
+		 * fg = max(fg, min(signal_ramp, inner_coverage)) — and hand over
+		 * to the background only in genuinely dark sky. inner_coverage
+		 * saturates at a tenth of the blend denominator so pixels beyond
+		 * all coverage (where acc/wsum holds nothing) never take the
+		 * boost. */
+		const double lo = dc_signal_floor(cfg);
+		if (lo > 0.0) {
+			cv::Mat cov;
+			wsum.convertTo(cov, CV_32F, 10.0 / blend_denom);
+			cv::min(cov, 1.0f, cov);
+			cv::Mat gray;
+			if (C == 1) {
+				gray = mean_ch[0];
+			} else {
+				cv::Mat merged;
+				cv::merge(mean_ch, merged);
+				gray = dc_gray(merged);
+			}
+			cv::Mat s = dc_signal_ramp(gray, lo);
+			cv::min(s, cov, s);
+			cv::max(fg, s, fg);
+		}
 		for (int c = 0; c < C; ++c) {
 			cv::Mat bgm, diff;
 			bg[c].convertTo(bgm, CV_32F, 1.0 / (double) apq.stack_size);

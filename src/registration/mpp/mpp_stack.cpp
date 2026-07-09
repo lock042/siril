@@ -1418,6 +1418,7 @@ cv::Mat broadcast_channels(const cv::Mat &single, int n) {
 	cv::merge(chans, out);
 	return out;
 }
+}  // namespace
 
 /* Single-channel mean across channels (identity for mono) — the
  * luminance proxy the DC equalisation's signal ramp is evaluated on. */
@@ -1475,6 +1476,7 @@ double dc_signal_floor(const mpp_config_t &cfg) {
 	     * mpp_cfg_threshold_scale(&cfg);
 }
 
+namespace {
 /* Per-AP DC equalisation offsets (Siril enhancement; PSS has no
  * equivalent). Each AP buffer is a mean over its own top-N frame subset,
  * so neighbouring APs settle at slightly different local levels

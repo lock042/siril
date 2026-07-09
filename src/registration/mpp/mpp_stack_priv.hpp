@@ -34,6 +34,18 @@ std::vector<float> stack_one_dim_weight(int patch_low, int patch_high, int box_c
  * Centre is 1.0; off-centre values get a quadratic penalty. */
 cv::Mat stack_build_first_phase_weight_matrix(const mpp_config_t &cfg);
 
+/* DC-equalisation signal helpers (mpp_stack.cpp), shared with the warp
+ * engine's brightness-aware background blend. dc_gray: single-channel mean
+ * across channels (identity for mono). dc_signal_ramp: clamp((v−lo)/lo, 0, 1)
+ * on a CV_32F luminance. dc_band_masks: MID/HIGH level partition for the
+ * two-band DC offset merge. dc_signal_floor: the background line in pixel
+ * units (≤ 0 disables the ramps). */
+cv::Mat dc_gray(const cv::Mat &m);
+cv::Mat dc_signal_ramp(const cv::Mat &v_gray, double lo);
+void dc_band_masks(const cv::Mat &v_gray, double lo,
+                   cv::Mat &s_mid, cv::Mat &s_hi);
+double dc_signal_floor(const mpp_config_t &cfg);
+
 /* Adds frame[y_low+shift_y:y_high+shift_y,
  * x_low+shift_x:x_high+shift_x] into buffer[..]. Out-of-frame portions are
  * clipped and the four border_* counters are updated to track the maximum
