@@ -148,6 +148,7 @@ static GtkWidget *check_mpp_adv_refine = NULL, *check_mpp_adv_zero_mean = NULL;
 static GtkSpinButton *spin_mpp_adv_refine_frames = NULL, *spin_mpp_adv_smooth = NULL;
 static GtkSpinButton *spin_mpp_ap_step = NULL;   /* main-tab geometry control */
 static GtkDropDown *combo_mpp_adv_debayer = NULL;
+static GtkDropDown *combo_mpp_adv_engine = NULL;
 static GtkDropDown *combo_mpp_avi_bayer = NULL;
 static GtkWidget *label_mpp_avi_bayer = NULL;
 static GtkDropDown *combo_mpp_align_mode = NULL;
@@ -306,6 +307,7 @@ static void registration_init_statics() {
 		spin_mpp_adv_smooth         = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_adv_smooth"));
 		spin_mpp_ap_step            = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_ap_step"));
 		combo_mpp_adv_debayer       = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_adv_debayer"));
+		combo_mpp_adv_engine        = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_adv_engine"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
 		// GtkStackSwitcher
@@ -1431,6 +1433,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			if (dbm <= BAYER_RCD)
 				cfg->debayer_method = (int) dbm;
 		}
+		if (combo_mpp_adv_engine) {
+			/* Combo item indices match enum mpp_stack_method. */
+			const guint eng = gtk_drop_down_get_selected(combo_mpp_adv_engine);
+			cfg->stack_method = (eng == 1) ? MPP_STACK_WARP : MPP_STACK_PATCH;
+		}
 		regargs->mpp_cfg = cfg;
 	}
 	if (regindex == REG_COMET) {
@@ -1645,6 +1652,9 @@ void on_mpp_advanced_reset_clicked(GtkButton *button, gpointer user_data) {
 	if (combo_mpp_adv_debayer && d.debayer_method >= 0
 	    && d.debayer_method <= BAYER_RCD)
 		gtk_drop_down_set_selected(combo_mpp_adv_debayer, (guint) d.debayer_method);
+	if (combo_mpp_adv_engine)
+		gtk_drop_down_set_selected(combo_mpp_adv_engine,
+		                           d.stack_method == MPP_STACK_WARP ? 1 : 0);
 	/* Settings relocated here from the registration tab — the reset
 	 * covers every widget in this window, and only this window (the
 	 * main-tab controls, including the grid pitch, are left alone). */

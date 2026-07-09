@@ -305,3 +305,9 @@ the sidecar cfg snapshot (the stack tab's overrides deliberately do not
 touch it). Headless smoke test: builder loads with no missing-handler
 warnings; UI files validate; dialog render verified. (No "PSS" in
 user-facing strings.)
+
+Stacking-engine drop-down added below the demosaicing row (phase 3
+follow-up): "Patch mosaic" / "Warp field", indices = enum
+mpp_stack_method, default patch; captured into `cfg->stack_method` and
+carried by the sidecar like the demosaicing choice, covered by
+Reset-to-defaults.
