@@ -1875,6 +1875,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		return ret;
 	}
 
+	// Set compression settings suitable for astro images
+	png_set_compression_level(png_ptr, 1);        // level 1 is faster and similar file size to level 6
+	png_set_filter(png_ptr, 0, PNG_FILTER_NONE);  // No point in using filters for our use-case
+
 	/* Allocate/initialize the image information data.  REQUIRED */
 	info_ptr = png_create_info_struct(png_ptr);
 	if (info_ptr == NULL) {
