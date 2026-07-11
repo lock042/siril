@@ -48,7 +48,7 @@ struct streak_detection_conf {
 
 	gboolean display_streaks;
 
-	gboolean use_idle;	// not a sequence operation, GUI operation
+	gboolean use_idle;	// not a sequence operation, GUI operation, and asynchronous too
 	int nb_threads;
 
 	float fwhm;
@@ -57,7 +57,7 @@ struct streak_detection_conf {
 gpointer streak_detection_worker(gpointer ptr);
 
 struct streak_result_set *alloc_results(int size);
-//void free_results(struct streak_result_set *set);
+void free_results(struct streak_result_set *set);
 
 void display_streaks(struct track *tracks, int nblines);
 
@@ -65,7 +65,7 @@ gboolean has_streaks(fits *fit, int layer, int nb_threads);
 
 void simple_star_removal(fits *fit, int layer, double knoise, float *fwhm, star_finder_params *sf);
 
-int detect_streaks_async(fits *image, int length, gboolean bright, int image_index, gchar *basename);
+struct streak_result_set *detect_streaks_main(fits *image, int length, gboolean bright, int image_index, gchar *basename, gboolean synchronous);
 
 #endif
 

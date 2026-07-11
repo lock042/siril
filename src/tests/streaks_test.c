@@ -45,12 +45,22 @@ void test_streak_detection_gps() {
 	gchar *result_file = g_strdup_printf("%s.streaks", result_basename);
 	g_unlink(result_file);
 
-	cr_assert(detect_streaks_async(&fit, 200, FALSE, 0, result_basename) == 0);
+	struct streak_result_set *res = detect_streaks_main(&fit, 200, FALSE, 0, result_basename, TRUE);
+	cr_assert(res);
+	cr_assert(res->size == 1);
+	GSList *cur = res->data[0];
+	struct streak_result *streak = cur->data;
+	cr_assert(streak->middle_ra != 0.0);
+	cr_assert(streak->middle_dec != 0.0);
+	cr_assert(streak->middle_date_is_gps);
+	cr_assert(streak->middle_date);
+	cr_assert(!streak->magnitude_absolute);
+	cr_assert(streak->snr > 26.0);
+	cr_assert(!cur->next);	// only one detected
+	free_results(res);
 
-	claim_thread_for_python(); // a waiting function, with side effects
-	siril_log_debug("wait over\n");
+	// test file creation too
 	cr_assert(g_file_test(result_file, G_FILE_TEST_EXISTS));
-
 	gchar *buf = NULL;
 	gsize bufsz = 0;
 	cr_assert(g_file_get_contents(result_file, &buf, &bufsz, NULL));

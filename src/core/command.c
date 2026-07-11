@@ -16033,8 +16033,8 @@ int process_detect_streaks(int nb) {
 	}
 
 	clear_stars_list(FALSE);
-	detect_streaks_async(gfit, initial_segment_length, bright_target, com.uniq ? 0 : com.seq.current,
-			get_image_filename_no_ext(NULL, -1));
+	detect_streaks_main(gfit, initial_segment_length, bright_target, com.uniq ? 0 : com.seq.current,
+			get_image_filename_no_ext(NULL, -1), FALSE);
 	return CMD_OK;
 }
 

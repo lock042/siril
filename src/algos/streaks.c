@@ -127,14 +127,13 @@ struct streak_result_set *alloc_results(int size) {
 	return set;
 }
 
-/* already done in dump_results
 void free_results(struct streak_result_set *set) {
 	for (int i = 0; i < set->size; i++) {
 		g_slist_free_full(set->data[i], free);
 	}
 	free(set->data);
 	free(set);
-}*/
+}
 
 /* do we want to store the ends of the streaks or the middle?
  * in most cases the middle is more accurate and does not need to know the direction of travel.
@@ -250,16 +249,13 @@ static int dump_results(struct streak_result_set *set, const char *filename) {
 			}
 			cur = cur->next;
 		}
-		g_slist_free_full(set->data[i], free);
 	}
 
-	free(set->data);
-	free(set);
 	fclose(fd);
 	return retval;
 }
 
-static int save_streak_results_to_file(struct results *lines, int nblines, int image_index, int filenum, fits *fit, gchar *basename);
+static struct streak_result_set *save_streak_results_to_file(struct results *lines, int nbstreaks, int image_index, int filenum, fits *fit);
 
 gpointer streak_detection_worker(gpointer ptr) {
 	struct streak_detection_conf *arg = (struct streak_detection_conf *)ptr;
@@ -276,8 +272,8 @@ gpointer streak_detection_worker(gpointer ptr) {
 		.fwhm = arg->fwhm,
 	};
 
-	struct results *lines = detect_streaks(arg->fit, arg->layer, &conf, arg->nb_threads);
-	if (!lines || lines->nb_tracks == 0) {
+	struct results *streaks = detect_streaks(arg->fit, arg->layer, &conf, arg->nb_threads);
+	if (!streaks || streaks->nb_tracks == 0) {
 		siril_log_message(_("No satellite detected for image %d\n"), arg->im_idx);
 		if (arg->use_idle)
 			siril_add_idle(end_generic, NULL);
@@ -288,67 +284,72 @@ gpointer streak_detection_worker(gpointer ptr) {
 		free(arg);
 		return GINT_TO_POINTER(1);
 	}
-	siril_log_message(_("Found %d trail(s) in frame %2d\n"), lines->nb_tracks, arg->im_idx);
+	siril_log_message(_("Found %d trail(s) in frame %2d\n"), streaks->nb_tracks, arg->im_idx);
 
-	int nblines = lines->nb_tracks;
+	int nbstreaks = streaks->nb_tracks;
 	if (arg->display_streaks) {
-		psf_star **stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
+		psf_star **stars = malloc((2 * nbstreaks + 1) * sizeof(psf_star *));
 		if (stars) {
-			for (int i = 0; i < nblines; i++) {
+			for (int i = 0; i < nbstreaks; i++) {
 				stars[2*i] = new_psf_star();
-				stars[2*i]->xpos = lines->tracks[i].start.x;
-				stars[2*i]->ypos = lines->tracks[i].start.y;
+				stars[2*i]->xpos = streaks->tracks[i].start.x;
+				stars[2*i]->ypos = streaks->tracks[i].start.y;
 				stars[2*i]->fwhmx = 5.0;
 				stars[2*i]->fwhmy = 5.0;
 				stars[2*i]->has_saturated = FALSE;
 				// we could also add an angle and uneven fwhms
 				stars[2*i+1] = new_psf_star();
-				stars[2*i+1]->xpos = lines->tracks[i].end.x;
-				stars[2*i+1]->ypos = lines->tracks[i].end.y;
+				stars[2*i+1]->xpos = streaks->tracks[i].end.x;
+				stars[2*i+1]->ypos = streaks->tracks[i].end.y;
 				stars[2*i+1]->fwhmx = 5.0;
 				stars[2*i+1]->fwhmy = 5.0;
 				stars[2*i+1]->has_saturated = TRUE;
 			}
-			stars[2*nblines] = NULL;
+			stars[2*nbstreaks] = NULL;
 		}
 		gui_iface.update_star_list(stars, FALSE, FALSE);
 	}
 
-	save_streak_results_to_file(lines, nblines, arg->im_idx, arg->filenum, arg->fit, arg->filename);
-
-	clear_results(lines);
+	struct streak_result_set *results = save_streak_results_to_file(streaks, nbstreaks, arg->im_idx, arg->filenum, arg->fit);
+	clear_results(streaks);
+	gchar *filename = replace_ext(arg->filename, ".streaks");
+	dump_results(results, filename);
+	g_free(filename);
 	if (arg->use_idle) {
 		/* from using the single-file command in the GUI */
 		siril_add_idle(end_generic, NULL);
+		free_results(results);
+		results = NULL;
 	}
 	if (arg->free_fit) {
 		clearfits(arg->fit);
 		free(arg->fit);
 	}
 	free(arg);
-	return GINT_TO_POINTER(0);
+
+	return results;
 }
 
-static int save_streak_results_to_file(struct results *lines, int nblines, int image_index, int filenum, fits *fit, gchar *basename) {
-	if (nblines <= 0) return 0;
+static struct streak_result_set *save_streak_results_to_file(struct results *streaks, int nbstreaks, int image_index, int filenum, fits *fit) {
+	if (nbstreaks <= 0) return 0;
 	if (!has_wcs(fit)) {
 		siril_log_warning(_("The image was not plate solved, the results will not be saved\n"));
-		return 1;
+		return NULL;
 	}
 	struct streak_result_set *results = alloc_results(1);
 	double image_center_ra = fit->keywords.wcsdata.ra, image_center_dec = fit->keywords.wcsdata.dec;
 	// transform the streaks to a more easily manipulable result data structure
-	for (int i = 0; i < nblines; i++) {
+	for (int i = 0; i < nbstreaks; i++) {
 		double start_ra, start_dec, end_ra, end_dec, middle_ra, middle_dec;
 		double fx, fy;
-		display_to_siril(lines->tracks[i].start.x, lines->tracks[i].start.y, &fx, &fy, fit->ry);
+		display_to_siril(streaks->tracks[i].start.x, streaks->tracks[i].start.y, &fx, &fy, fit->ry);
 		pix2wcs(fit, fx, fy, &start_ra, &start_dec);
 
-		display_to_siril(lines->tracks[i].end.x, lines->tracks[i].end.y, &fx, &fy, fit->ry);
+		display_to_siril(streaks->tracks[i].end.x, streaks->tracks[i].end.y, &fx, &fy, fit->ry);
 		pix2wcs(fit, fx, fy, &end_ra, &end_dec);
 
-		double middle_x = (lines->tracks[i].start.x + lines->tracks[i].end.x) * 0.5;
-		double middle_y = (lines->tracks[i].start.y + lines->tracks[i].end.y) * 0.5;
+		double middle_x = (streaks->tracks[i].start.x + streaks->tracks[i].end.x) * 0.5;
+		double middle_y = (streaks->tracks[i].start.y + streaks->tracks[i].end.y) * 0.5;
 		display_to_siril(middle_x, middle_y, &fx, &fy, fit->ry);
 		pix2wcs(fit, fx, fy, &middle_ra, &middle_dec);
 		if ((start_ra == 0.0 && start_dec == 0.0) || (middle_ra == 0.0 && middle_dec == 0.0) ||
@@ -383,26 +384,23 @@ static int save_streak_results_to_file(struct results *lines, int nblines, int i
 		GDateTime *end_date = g_date_time_add_seconds(fit->keywords.date_obs, exposure);
 
 		add_result_middle_and_ends(results, image_index, filenum, i,
-				lines->tracks[i].angle, start_ra, start_dec, start_date,
+				streaks->tracks[i].angle, start_ra, start_dec, start_date,
 				middle_ra, middle_dec, center_date, end_ra, end_dec, end_date,
 				image_center_ra, image_center_dec,
-				lines->tracks[i].start.x, lines->tracks[i].start.y,
-				lines->tracks[i].end.x, lines->tracks[i].end.y,
-				lines->tracks[i].mag, lines->tracks[i].mag_err,
-				lines->tracks[i].mag_is_accurate, lines->tracks[i].mag_is_absolute,
-				lines->tracks[i].snr, date_is_gps);
+				streaks->tracks[i].start.x, streaks->tracks[i].start.y,
+				streaks->tracks[i].end.x, streaks->tracks[i].end.y,
+				streaks->tracks[i].mag, streaks->tracks[i].mag_err,
+				streaks->tracks[i].mag_is_accurate, streaks->tracks[i].mag_is_absolute,
+				streaks->tracks[i].snr, date_is_gps);
 	} // end of streak loop
 
-	gchar *filename = replace_ext(basename, ".streaks");
-	int retval = dump_results(results, filename);
-	g_free(filename);
-	return retval;
+	return results;
 }
 
-void display_tracks(struct track *tracks, int nblines) {
-	psf_star **stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
+void display_tracks(struct track *tracks, int nbstreaks) {
+	psf_star **stars = malloc((2 * nbstreaks + 1) * sizeof(psf_star *));
 	if (stars) {
-		for (int i = 0; i < nblines; i++) {
+		for (int i = 0; i < nbstreaks; i++) {
 			stars[2*i] = new_psf_star();
 			stars[2*i]->xpos = tracks[i].start.x;
 			stars[2*i]->ypos = tracks[i].start.y;
@@ -417,35 +415,17 @@ void display_tracks(struct track *tracks, int nblines) {
 			stars[2*i+1]->fwhmy = 5.0;
 			stars[2*i+1]->has_saturated = TRUE; // color change
 		}
-		stars[2*nblines] = NULL;
+		stars[2*nbstreaks] = NULL;
 	}
 	gui_iface.update_star_list(stars, FALSE, FALSE);
 }
 
-gboolean has_streaks(fits *fit, int layer, int nb_threads) {
-	struct streak_detector conf = {
-		.min_allowed_length = -1,
-		.min_allowed_ksigma = -1,
-		.initial_length = 500,
-		.max_allowed_segments = 20,
-		.enough_segments = 1,
-		.can_recurse = TRUE
-	};
-
-	struct results *lines = detect_streaks(fit, layer, &conf, nb_threads);
-	gboolean retval = lines != NULL && lines->nb_tracks > 0;
-	if (!com.script && retval)
-		display_tracks(lines->tracks, lines->nb_tracks);
-	clear_results(lines);
-	return retval;
-}
-
 /* the entry point for the feature */
-int detect_streaks_async(fits *image, int length, gboolean bright, int image_index, gchar *basename) {
+struct streak_result_set *detect_streaks_main(fits *image, int length, gboolean bright, int image_index, gchar *basename, gboolean synchronous) {
 	fits *fit = calloc(1, sizeof(fits));
 	int layer = (image->naxes[2] == 3) ? 1 : 0;
 	if (extract_fits(image, fit, layer, FALSE))	// also makes a copy we can alter
-		return -1;
+		return NULL;
 	copy_fits_metadata(image, fit);
 
 	float fwhm = 3.0f;
@@ -461,9 +441,11 @@ int detect_streaks_async(fits *image, int length, gboolean bright, int image_ind
 	arg->minimum_segment_length = length / 2;
 	arg->bright_target = bright;
 	arg->display_streaks = !com.script;
-	arg->use_idle = TRUE; // for single image async
+	arg->use_idle = !synchronous; // for single image async
 	arg->nb_threads = com.max_thread;
 	arg->fwhm = fwhm;
-	return !start_in_new_thread(streak_detection_worker, arg);
-	// TODO can we return the data struct from the processing function?
+	if (synchronous)
+		return streak_detection_worker(arg);
+	start_in_new_thread(streak_detection_worker, arg);
+	return NULL;
 }
