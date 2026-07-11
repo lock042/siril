@@ -5,6 +5,7 @@ xx/xx/xx
 * Fixed constellation names in annotations (#1055)
 * Fixed python-related thread contention bug (#1959)
 * Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
+* Fixed compilation when the version of opencv is >= 5
 
 siril-1.4.4
 06/17/26
