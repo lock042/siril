@@ -126,7 +126,10 @@ void akima_spline_fit(GList *points, akima_spline_data *data) {
 	int n = g_list_length(points);
 	if (!points || n < 2) return;
 
-	if (n < 5) {
+	/* Akima needs at least 3 points (the VeraLux reference uses linear
+	 * interpolation for 2 points); a cubic spline through 2 points is
+	 * exactly that straight line. */
+	if (n < 3) {
 		cubic_spline_data cb;
 		cubic_spline_fit(points, &cb);
 		memcpy(data->x_values, cb.x_values, sizeof(double)*MAX_POINTS);
@@ -221,7 +224,12 @@ static inline void rgb_to_hsv(float r, float g, float b, float *h, float *s, flo
 		*s = delta / max_v;
 	else {
 		*s = 0.0f;
-		*h = -1.0f;
+		*h = 0.0f;
+		return;
+	}
+
+	if (delta == 0.0f) {
+		*h = 0.0f;
 		return;
 	}
 
@@ -328,151 +336,41 @@ static inline float sigmoid(float x) {
 }
 
 // ------------------------------------------------------------------------
-// MASK GENERATION (Gaussian Blur approximated with box filters)
+// LUMINANCE RANGE MASK
 // ------------------------------------------------------------------------
 
-// O(n) separable box blur pass along rows.
-static void box_blur_h(const float *src, float *dst, int w, int h, int r) {
-	float inv = 1.0f / (2 * r + 1);
-	#ifdef _OPENMP
-	#pragma omp parallel for schedule(static)
-	#endif
-	for (int y = 0; y < h; y++) {
-		const float *row = src + y * w;
-		float *out = dst + y * w;
-		// Accumulate initial window
-		float acc = 0.0f;
-		for (int x = -r; x <= r; x++) {
-			int px = (x < 0) ? -x : (x >= w) ? 2 * w - x - 2 : x;
-			if (px < 0) px = 0;
-			if (px >= w) px = w - 1;
-			acc += row[px];
-		}
-		out[0] = acc * inv;
-		for (int x = 1; x < w; x++) {
-			int add = x + r;
-			int rem = x - r - 1;
-			if (add >= w) add = 2 * w - add - 2;
-			if (add < 0) add = 0;
-			if (add >= w) add = w - 1;
-			if (rem < 0) rem = -rem;
-			if (rem >= w) rem = 2 * w - rem - 2;
-			if (rem < 0) rem = 0;
-			if (rem >= w) rem = w - 1;
-			acc += row[add] - row[rem];
-			out[x] = acc * inv;
-		}
-	}
+/* Per-pixel luminance range mask, matching the VeraLux reference: a pure
+ * sigmoid roll-off (k = 2.5) on the pixel luminance, with NO spatial blur
+ * ("no spatial blur for maximum pixel-to-pixel fidelity").  The reference
+ * recomputes the mask from the *current* intermediate image before each
+ * channel is applied, which a pointwise formula reproduces exactly. */
+static inline float lum_mask_value(float lum, const curve_channel_config *cfg) {
+	if (cfg->feather < 1e-6f)
+		return (lum < cfg->lum_min || lum > cfg->lum_max) ? 0.0f : 1.0f;
+
+	float val = 1.0f;
+	const float k_smooth = 2.5f;
+	if (cfg->lum_min > 0.0f)
+		val = fminf(val, sigmoid(k_smooth * (lum - cfg->lum_min) / cfg->feather));
+	if (cfg->lum_max < 1.0f)
+		val = fminf(val, sigmoid(k_smooth * (cfg->lum_max - lum) / cfg->feather));
+	return val;
 }
 
-// O(n) separable box blur pass along columns.
-static void box_blur_v(const float *src, float *dst, int w, int h, int r) {
-	float inv = 1.0f / (2 * r + 1);
-	#ifdef _OPENMP
-	#pragma omp parallel for schedule(static)
-	#endif
-	for (int x = 0; x < w; x++) {
-		float acc = 0.0f;
-		for (int y = -r; y <= r; y++) {
-			int py = (y < 0) ? -y : (y >= h) ? 2 * h - y - 2 : y;
-			if (py < 0) py = 0;
-			if (py >= h) py = h - 1;
-			acc += src[py * w + x];
-		}
-		dst[0 * w + x] = acc * inv;
-		for (int y = 1; y < h; y++) {
-			int add = y + r;
-			int rem = y - r - 1;
-			if (add >= h) add = 2 * h - add - 2;
-			if (add < 0) add = 0;
-			if (add >= h) add = h - 1;
-			if (rem < 0) rem = -rem;
-			if (rem >= h) rem = 2 * h - rem - 2;
-			if (rem < 0) rem = 0;
-			if (rem >= h) rem = h - 1;
-			acc += src[add * w + x] - src[rem * w + x];
-			dst[y * w + x] = acc * inv;
-		}
-	}
+// Exported helpers so the GUI can build its L / C histograms and pipette
+// readouts in the exact color spaces the transform operates in.
+float curve_lab_L_norm(float r, float g, float b) {
+	float L, A, B_val;
+	rgb_to_lab(r, g, b, &L, &A, &B_val);
+	L /= 100.0f;
+	return fmaxf(0.0f, fminf(1.0f, L));
 }
 
-// Approximate a Gaussian blur using 3 successive box blurs (O(n) total).
-// Box radius from sigma: r = round(sqrt((12*sigma^2/n + 1)) / 2 - 0.5), n=3.
-static void gaussian_blur_buffer(float *buffer, int w, int h, float sigma) {
-	if (sigma <= 0.1f) return;
-
-	float *temp = malloc(w * h * sizeof(float));
-	if (!temp) return;
-
-	// Ideal box radii for 3-pass approximation of a Gaussian
-	float ideal = sqrtf((12.0f * sigma * sigma / 3.0f) + 1.0f);
-	int wl = (int)ideal;
-	if (wl % 2 == 0) wl--;
-	int wu = wl + 2;
-	float m = (12.0f * sigma * sigma - 3.0f * wl * wl - 12.0f * wl - 9.0f) / (-4.0f * wl - 4.0f);
-	int r[3];
-	for (int i = 0; i < 3; i++)
-		r[i] = ((i < (int)roundf(m)) ? wl : wu) / 2;
-
-	for (int pass = 0; pass < 3; pass++) {
-		box_blur_h(buffer, temp, w, h, r[pass]);
-		box_blur_v(temp, buffer, w, h, r[pass]);
-	}
-
-	free(temp);
-}
-
-static float* generate_lum_mask(fits *fit, float l_min, float l_max, float feather) {
-	size_t npixels = fit->rx * fit->ry;
-	float *mask = malloc(npixels * sizeof(float));
-	if (!mask) return NULL;
-
-	float k_smooth = 2.5f;
-	int channels = fit->naxes[2];
-	float norm = 1.0f;
-	if (fit->type == DATA_USHORT) norm = 1.0f / (float)get_normalized_value(fit);
-
-	#ifdef _OPENMP
-	#pragma omp parallel for schedule(static)
-	#endif
-	for (size_t i = 0; i < npixels; i++) {
-		float r, g, b;
-		if (fit->type == DATA_USHORT) {
-			r = fit->pdata[0][i] * norm;
-			g = (channels > 1) ? fit->pdata[1][i] * norm : r;
-			b = (channels > 2) ? fit->pdata[2][i] * norm : r;
-		} else {
-			r = fit->fpdata[0][i];
-			g = (channels > 1) ? fit->fpdata[1][i] : r;
-			b = (channels > 2) ? fit->fpdata[2][i] : r;
-		}
-
-		float lum = (r + g + b) / 3.0f;
-		float val = 1.0f;
-
-		if (feather < 1e-6f) {
-			if (lum < l_min || lum > l_max) val = 0.0f;
-		} else {
-			if (l_min > 0.0f) {
-				float dist = (lum - l_min) / feather;
-				val = fminf(val, sigmoid(k_smooth * dist));
-			}
-			if (l_max < 1.0f) {
-				float dist = (l_max - lum) / feather;
-				val = fminf(val, sigmoid(k_smooth * dist));
-			}
-		}
-		mask[i] = val;
-	}
-
-	if (feather > 1e-6f) {
-		float blur_sigma = feather * 150.0f;
-		if (blur_sigma > 100.0f) blur_sigma = 100.0f;
-		if (blur_sigma < 1.0f) blur_sigma = 1.0f;
-		gaussian_blur_buffer(mask, fit->rx, fit->ry, blur_sigma);
-	}
-
-	return mask;
+float curve_lab_chroma_norm(float r, float g, float b) {
+	float L, A, B_val;
+	rgb_to_lab(r, g, b, &L, &A, &B_val);
+	float c = sqrtf(A * A + B_val * B_val) / 128.0f;
+	return fmaxf(0.0f, fminf(1.0f, c));
 }
 
 // ------------------------------------------------------------------------
@@ -509,16 +407,44 @@ static void generate_lut(GList *points, enum curve_algorithm algo, float *lut_ou
 // CORE PIPELINE
 // ------------------------------------------------------------------------
 
+// Runtime cache: one LUT per active channel
+typedef struct {
+	gboolean active;
+	float lut[LUT_SIZE];
+} channel_runtime_cache;
+
+/* LUT lookup with linear interpolation between samples, equivalent to the
+ * reference's np.interp() over the LUT domain. */
+static inline float apply_lut(float v, const float *lut) {
+	if (v <= 0.0f) return lut[0];
+	if (v >= 1.0f) return lut[LUT_SIZE - 1];
+	float pos = v * (float)(LUT_SIZE - 1);
+	int idx = (int)pos;
+	float frac = pos - (float)idx;
+	return lut[idx] + (lut[idx + 1] - lut[idx]) * frac;
+}
+
+static inline float clamp01(float v) {
+	return fmaxf(0.0f, fminf(1.0f, v));
+}
+
+/* Applies the full VeraLux curve pipeline.  Channel order, luminance-mask
+ * source (the current intermediate pixel value, not the input image) and
+ * the [0,1] clamp after every color space round trip all follow the
+ * reference implementation: RGB/K -> R,G,B -> L (Lab) -> S (HSV) -> C (Lab). */
 void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean multithreaded) {
 	g_assert(from->type == to->type);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	int channels = from->naxes[2];
 
-	// *** FIX: ALLOCATE CACHE ON HEAP (Stack Overflow Prevention) ***
+	// LUTs are 256 KB each: allocate the cache on the heap
 	channel_runtime_cache *caches = calloc(CHAN_COUNT, sizeof(channel_runtime_cache));
-	if (!caches) return; // Should log error
+	if (!caches) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
 
-	for(int c=0; c<CHAN_COUNT; c++) {
+	for (int c = 0; c < CHAN_COUNT; c++) {
 		curve_channel_config *cfg = &params->channels[c];
 
 		gboolean is_identity = TRUE;
@@ -533,26 +459,15 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 		}
 
 		caches[c].active = !is_identity;
-
-		if (caches[c].active) {
+		if (caches[c].active)
 			generate_lut(cfg->points, params->algorithm, caches[c].lut);
-			if (cfg->range_enabled) {
-				caches[c].use_mask = TRUE;
-				caches[c].mask_buffer = generate_lum_mask(from, cfg->lum_min, cfg->lum_max, cfg->feather);
-			}
-		}
 	}
 
-	#define APPLY_LUT(val, cache_ptr) \
-		({ \
-			float _v = (val); \
-			int _idx = (int)(_v * (LUT_SIZE - 1)); \
-			if (_idx < 0) _idx = 0; \
-			if (_idx >= LUT_SIZE) _idx = LUT_SIZE - 1; \
-			(cache_ptr)->lut[_idx]; \
-		})
-
 	#define MIX(orig, new_val, mask_val) ((orig) * (1.0f - (mask_val)) + (new_val) * (mask_val))
+	// Mask of the channel being applied, from the current pixel state
+	#define RANGE_MASK(chan) \
+		(params->channels[chan].range_enabled \
+			? lum_mask_value((r + g + b) / 3.0f, &params->channels[chan]) : 1.0f)
 
 	float norm = 1.0f;
 	float inv_norm = 1.0f;
@@ -562,13 +477,13 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 	}
 
 	long local_clipped_low = 0;
-    long local_clipped_high = 0;
+	long local_clipped_high = 0;
 
 	#ifdef _OPENMP
-    #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded) reduction(+:local_clipped_low, local_clipped_high)
-    #endif
-    for (size_t j = 0; j < layersize; j++) {
-        float r, g, b;
+	#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded) reduction(+:local_clipped_low, local_clipped_high)
+	#endif
+	for (size_t j = 0; j < layersize; j++) {
+		float r, g, b;
 
 		if (from->type == DATA_USHORT) {
 			r = from->pdata[0][j] * inv_norm;
@@ -580,90 +495,85 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 			b = (channels > 2) ? from->fpdata[2][j] : r;
 		}
 
+		r = clamp01(r);
+		if (channels > 1) { g = clamp01(g); b = clamp01(b); }
+		else { g = r; b = r; }
+
 		// RGB Master
 		if (caches[CHAN_RGB_K].active) {
-			float nr = APPLY_LUT(r, &caches[CHAN_RGB_K]);
-			float ng = (channels > 1) ? APPLY_LUT(g, &caches[CHAN_RGB_K]) : nr;
-			float nb = (channels > 2) ? APPLY_LUT(b, &caches[CHAN_RGB_K]) : nr;
-
-			if (caches[CHAN_RGB_K].use_mask && caches[CHAN_RGB_K].mask_buffer) {
-				float m = caches[CHAN_RGB_K].mask_buffer[j];
-				r = MIX(r, nr, m);
-				if (channels > 1) { g = MIX(g, ng, m); b = MIX(b, nb, m); }
+			float m = RANGE_MASK(CHAN_RGB_K);
+			float nr = apply_lut(r, caches[CHAN_RGB_K].lut);
+			r = MIX(r, nr, m);
+			if (channels > 1) {
+				float ng = apply_lut(g, caches[CHAN_RGB_K].lut);
+				float nb = apply_lut(b, caches[CHAN_RGB_K].lut);
+				g = MIX(g, ng, m);
+				b = MIX(b, nb, m);
 			} else {
-				r = nr; if (channels > 1) { g = ng; b = nb; }
+				g = r; b = r;
 			}
 		}
 
-		// R, G, B
+		// R, G, B — each mask sees the pixel as left by the previous channel
 		if (caches[CHAN_R].active) {
-			float nr = APPLY_LUT(r, &caches[CHAN_R]);
-			if (caches[CHAN_R].use_mask && caches[CHAN_R].mask_buffer) r = MIX(r, nr, caches[CHAN_R].mask_buffer[j]);
-			else r = nr;
+			float m = RANGE_MASK(CHAN_R);
+			r = MIX(r, apply_lut(r, caches[CHAN_R].lut), m);
+			if (channels == 1) { g = r; b = r; }
 		}
 		if (channels > 1) {
 			if (caches[CHAN_G].active) {
-				float ng = APPLY_LUT(g, &caches[CHAN_G]);
-				if (caches[CHAN_G].use_mask && caches[CHAN_G].mask_buffer) g = MIX(g, ng, caches[CHAN_G].mask_buffer[j]);
-				else g = ng;
+				float m = RANGE_MASK(CHAN_G);
+				g = MIX(g, apply_lut(g, caches[CHAN_G].lut), m);
 			}
 			if (caches[CHAN_B].active) {
-				float nb = APPLY_LUT(b, &caches[CHAN_B]);
-				if (caches[CHAN_B].use_mask && caches[CHAN_B].mask_buffer) b = MIX(b, nb, caches[CHAN_B].mask_buffer[j]);
-				else b = nb;
+				float m = RANGE_MASK(CHAN_B);
+				b = MIX(b, apply_lut(b, caches[CHAN_B].lut), m);
 			}
 		}
 
-		// Lab
-		if (channels > 1 && (caches[CHAN_L].active || caches[CHAN_C].active)) {
+		// L: CIE L* adjusted in Lab space (safe for mono: r=g=b stays gray)
+		if (caches[CHAN_L].active) {
+			float m = RANGE_MASK(CHAN_L);
 			float L, A, B_val;
 			rgb_to_lab(r, g, b, &L, &A, &B_val);
-
-			if (caches[CHAN_L].active) {
-				float l_norm = L / 100.0f;
-				float l_new = APPLY_LUT(l_norm, &caches[CHAN_L]);
-				if (caches[CHAN_L].use_mask && caches[CHAN_L].mask_buffer) l_new = MIX(l_norm, l_new, caches[CHAN_L].mask_buffer[j]);
-				L = l_new * 100.0f;
-			}
-
-			if (caches[CHAN_C].active) {
-				float C = sqrtf(A*A + B_val*B_val);
-				float c_norm = C / 128.0f;
-				if (c_norm > 1.0f) c_norm = 1.0f;
-
-				float c_new_norm = APPLY_LUT(c_norm, &caches[CHAN_C]);
-				if (caches[CHAN_C].use_mask && caches[CHAN_C].mask_buffer) c_new_norm = MIX(c_norm, c_new_norm, caches[CHAN_C].mask_buffer[j]);
-
-				float C_new = c_new_norm * 128.0f;
-				float factor = (C > 1e-5f) ? (C_new / C) : 1.0f;
-				A *= factor;
-				B_val *= factor;
-			}
+			float l_norm = L / 100.0f;
+			float l_new = MIX(l_norm, apply_lut(l_norm, caches[CHAN_L].lut), m);
+			L = clamp01(l_new) * 100.0f;
 			lab_to_rgb(L, A, B_val, &r, &g, &b);
+			r = clamp01(r); g = clamp01(g); b = clamp01(b);
 		}
 
-		// HSV
+		// S: HSV saturation
 		if (channels > 1 && caches[CHAN_S].active) {
+			float m = RANGE_MASK(CHAN_S);
 			float h, s, v;
 			rgb_to_hsv(r, g, b, &h, &s, &v);
-
-			float s_new = APPLY_LUT(s, &caches[CHAN_S]);
-			if (caches[CHAN_S].use_mask && caches[CHAN_S].mask_buffer) s_new = MIX(s, s_new, caches[CHAN_S].mask_buffer[j]);
-
-			s = s_new;
+			s = clamp01(MIX(s, apply_lut(s, caches[CHAN_S].lut), m));
 			hsv_to_rgb(h, s, v, &r, &g, &b);
+			r = clamp01(r); g = clamp01(g); b = clamp01(b);
 		}
 
-		r = fmaxf(0.0f, fminf(1.0f, r));
-        g = fmaxf(0.0f, fminf(1.0f, g));
-        b = fmaxf(0.0f, fminf(1.0f, b));
+		// C: Lab chroma, scaled by C_new / C to preserve hue
+		if (channels > 1 && caches[CHAN_C].active) {
+			float m = RANGE_MASK(CHAN_C);
+			float L, A, B_val;
+			rgb_to_lab(r, g, b, &L, &A, &B_val);
+			float C = sqrtf(A * A + B_val * B_val);
+			float c_norm = fminf(C / 128.0f, 1.0f);
+			float c_new_norm = MIX(c_norm, apply_lut(c_norm, caches[CHAN_C].lut), m);
+			float factor = (C > 1e-5f) ? (c_new_norm * 128.0f / C) : 1.0f;
+			A *= factor;
+			B_val *= factor;
+			lab_to_rgb(L, A, B_val, &r, &g, &b);
+			r = clamp01(r); g = clamp01(g); b = clamp01(b);
+		}
 
-        if (r <= 0.0f) local_clipped_low++; else if (r >= 1.0f) local_clipped_high++;
+		if (r <= 0.0f) local_clipped_low++; else if (r >= 1.0f) local_clipped_high++;
 
-        if (channels > 1) {
-            if (g <= 0.0f) local_clipped_low++; else if (g >= 1.0f) local_clipped_high++;
-            if (b <= 0.0f) local_clipped_low++; else if (b >= 1.0f) local_clipped_high++;
-        }
+		if (channels > 1) {
+			if (g <= 0.0f) local_clipped_low++; else if (g >= 1.0f) local_clipped_high++;
+			if (b <= 0.0f) local_clipped_low++; else if (b >= 1.0f) local_clipped_high++;
+		}
 
 		if (to->type == DATA_USHORT) {
 			to->pdata[0][j] = roundf_to_WORD(r * norm);
@@ -680,16 +590,15 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 		}
 	}
 
-	if (params->clipped_count) {
-        params->clipped_count[0] = local_clipped_low;
-        params->clipped_count[1] = local_clipped_high;
-    }
+	#undef MIX
+	#undef RANGE_MASK
 
-	// Cleanup Heap
-	for(int c=0; c<CHAN_COUNT; c++) {
-		if (caches[c].mask_buffer) free(caches[c].mask_buffer);
+	if (params->clipped_count) {
+		params->clipped_count[0] = local_clipped_low;
+		params->clipped_count[1] = local_clipped_high;
 	}
-	free(caches); // IMPORTANT
+
+	free(caches);
 }
 
 // Hooks...

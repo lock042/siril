@@ -30,7 +30,6 @@
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -133,7 +132,9 @@ static gsl_histogram *hist_input_lum = NULL;
 static gsl_histogram *hist_input_sat = NULL;
 static gsl_histogram *hist_input_chroma = NULL;
 static gboolean is_drawingarea_pressed = FALSE;
-static void *curves_huebuf = NULL, *curves_satbuf = NULL, *curves_lumbuf = NULL;
+// Per-pixel values of the L / S / C curve domains (CIE L* / 100, HSV
+// saturation, Lab chroma / 128) — the exact spaces the transform operates in.
+static void *curves_chromabuf = NULL, *curves_satbuf = NULL, *curves_lumbuf = NULL;
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
 static point *selected_point = NULL;
@@ -161,6 +162,25 @@ static point* copy_point(const point *src, gpointer user_data) {
 	return new_p;
 }
 
+// Mirrors the identity detection of the engine (apply_curve)
+static gboolean channel_is_identity(const curve_channel_config *cfg) {
+	if (!cfg->points || g_list_length(cfg->points) < 2)
+		return TRUE;
+	if (g_list_length(cfg->points) > 2)
+		return FALSE;
+	point *p1 = (point *) cfg->points->data;
+	point *p2 = (point *) cfg->points->next->data;
+	return fabs(p1->x) <= 1e-5 && fabs(p1->y) <= 1e-5 &&
+	       fabs(p2->x - 1.0) <= 1e-5 && fabs(p2->y - 1.0) <= 1e-5;
+}
+
+static gboolean any_curve_active() {
+	for (int i = 0; i < CHAN_COUNT; i++)
+		if (!channel_is_identity(&gui_channels[i]))
+			return TRUE;
+	return FALSE;
+}
+
 // ---------------------------------------------------------------------------
 // MATHEMATICAL HISTOGRAM UPDATE (like apply_mtf_to_histo in histogram.c)
 // ---------------------------------------------------------------------------
@@ -184,7 +204,7 @@ static void apply_curve_to_histo(gsl_histogram *src, gsl_histogram *dst, enum cu
 	cubic_spline_data cspline;
 	double linear_slopes[MAX_POINTS];
 
-	gboolean use_akima = (algorithm == AKIMA_SPLINE && np >= 5);
+	gboolean use_akima = (algorithm == AKIMA_SPLINE && np >= 3);
 	if (algorithm == LINEAR) {
 		linear_fit(points, linear_slopes);
 	} else if (use_akima) {
@@ -333,7 +353,7 @@ static void curves_rebuild_from_stages() {
 	for (int i = 0; i < (int)fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
 	if (fit->naxes[2] == 3) {
-		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
 		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
 		curves_compute_special_histograms();
@@ -621,15 +641,7 @@ static void draw_ghost_curves(cairo_t *cr, int width, int height) {
 	for(int i=0; i<CHAN_COUNT; i++) {
 		if (i == current_channel) continue;
 
-		gboolean active = FALSE;
-		if (gui_channels[i].points && g_list_length(gui_channels[i].points) > 2) active = TRUE;
-		else if (gui_channels[i].points) {
-			point *p1 = (point*)gui_channels[i].points->data;
-			point *p2 = (point*)gui_channels[i].points->next->data;
-			if (fabs(p1->y) > 0.01 || fabs(p2->y - 1.0) > 0.01) active = TRUE;
-		}
-
-		if (active) {
+		if (!channel_is_identity(&gui_channels[i])) {
 			switch(i) {
 				case CHAN_R: cairo_set_source_rgba(cr, 1.0, 0.2, 0.2, 0.3); break;
 				case CHAN_G: cairo_set_source_rgba(cr, 0.2, 1.0, 0.2, 0.3); break;
@@ -797,34 +809,47 @@ static void draw_histo_with_color(gsl_histogram *histo, cairo_t *cr, int width, 
 	cairo_stroke(cr);
 }
 
-// Convert RGB image to HSL and store in buffers
-static void curves_fit_to_hsl() {
+static inline float hsv_saturation(float r, float g, float b) {
+	float mx = fmaxf(r, fmaxf(g, b));
+	if (mx <= 0.0f) return 0.0f;
+	float mn = fminf(r, fminf(g, b));
+	return (mx - mn) / mx;
+}
+
+/* Fill the L / S / C domain buffers from the current image, in the same
+ * color spaces the curve engine uses (Lab L*, HSV S, Lab chroma). */
+static void curves_fit_to_special() {
 	if (!fit || fit->naxes[2] != 3) return;
 
 	size_t npixels = fit->rx * fit->ry;
 	if (fit->type == DATA_FLOAT) {
-		float* hf = (float*) curves_huebuf;
+		float* cf = (float*) curves_chromabuf;
 		float* sf = (float*) curves_satbuf;
 		float* lf = (float*) curves_lumbuf;
-		// rgb_to_hslf has internal branches and an early return, so the loop
+		// rgb_to_lab has internal branches (powf cube-root path), so the loop
 		// body cannot be SIMD-vectorized; use plain thread parallelism.
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
+			float r = fit->fpdata[0][i], g = fit->fpdata[1][i], b = fit->fpdata[2][i];
+			lf[i] = curve_lab_L_norm(r, g, b);
+			sf[i] = hsv_saturation(r, g, b);
+			cf[i] = curve_lab_chroma_norm(r, g, b);
 		}
 	} else {
-		WORD *hw = (WORD*) curves_huebuf;
+		WORD *cw = (WORD*) curves_chromabuf;
 		WORD* sw = (WORD*) curves_satbuf;
 		WORD* lw = (WORD*) curves_lumbuf;
-		// rgbw_to_hslw wraps rgb_to_hslf (branches + early return), so the loop
-		// body cannot be SIMD-vectorized; use plain thread parallelism.
+		float inv = 1.0f / USHRT_MAX_SINGLE;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &hw[i], &sw[i], &lw[i]);
+			float r = fit->pdata[0][i] * inv, g = fit->pdata[1][i] * inv, b = fit->pdata[2][i] * inv;
+			lw[i] = roundf_to_WORD(curve_lab_L_norm(r, g, b) * USHRT_MAX_SINGLE);
+			sw[i] = roundf_to_WORD(hsv_saturation(r, g, b) * USHRT_MAX_SINGLE);
+			cw[i] = roundf_to_WORD(curve_lab_chroma_norm(r, g, b) * USHRT_MAX_SINGLE);
 		}
 	}
 }
@@ -874,83 +899,32 @@ static gsl_histogram* curves_compute_histo_from_buffer(void* buf, fits* f) {
 	return histo;
 }
 
-// Compute chroma histogram (chroma is computed from saturation and luminance)
-static gsl_histogram* curves_compute_histo_chroma(fits* f) {
-	if (!curves_satbuf || !curves_lumbuf || !f || f->naxes[2] != 3) return NULL;
-
-	size_t ndata = f->naxes[0] * f->naxes[1];
-
-	// Allocate temporary buffer for chroma values
-	void* chroma_buf = NULL;
-	if (f->type == DATA_FLOAT) {
-		chroma_buf = malloc(ndata * sizeof(float));
-		if (!chroma_buf) return NULL;
-
-		float *cf = (float*) chroma_buf;
-		float *sf = (float*) curves_satbuf;
-		float *lf = (float*) curves_lumbuf;
-
-		// Chroma approximation: saturation weighted by (1 - |2*L - 1|)
-		// This gives higher chroma for saturated colors at mid-luminance
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			float l_factor = 1.0f - fabsf(2.0f * lf[i] - 1.0f);
-			cf[i] = sf[i] * l_factor;
-		}
-	} else {
-		chroma_buf = malloc(ndata * sizeof(WORD));
-		if (!chroma_buf) return NULL;
-
-		WORD *cw = (WORD*) chroma_buf;
-		WORD *sw = (WORD*) curves_satbuf;
-		WORD *lw = (WORD*) curves_lumbuf;
-		double invnorm = 1.0 / USHRT_MAX_DOUBLE;
-
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0; i < ndata; i++) {
-			double l_norm = lw[i] * invnorm;
-			double s_norm = sw[i] * invnorm;
-			double l_factor = 1.0 - fabs(2.0 * l_norm - 1.0);
-			cw[i] = (WORD)(s_norm * l_factor * USHRT_MAX_DOUBLE);
-		}
-	}
-
-	gsl_histogram* histo = curves_compute_histo_from_buffer(chroma_buf, f);
-	free(chroma_buf);
-	return histo;
-}
-
 static void curves_setup_hsl() {
 	if (!fit || fit->naxes[2] != 3) return;
 
 	// Free existing buffers
-	if (curves_huebuf) free(curves_huebuf);
+	if (curves_chromabuf) free(curves_chromabuf);
 	if (curves_satbuf) free(curves_satbuf);
 	if (curves_lumbuf) free(curves_lumbuf);
 
 	// Allocate new buffers
 	if (fit->type == DATA_FLOAT) {
-		curves_huebuf = malloc(fit->rx * fit->ry * sizeof(float));
+		curves_chromabuf = malloc(fit->rx * fit->ry * sizeof(float));
 		curves_satbuf = malloc(fit->rx * fit->ry * sizeof(float));
 		curves_lumbuf = malloc(fit->rx * fit->ry * sizeof(float));
 	} else {
-		curves_huebuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+		curves_chromabuf = malloc(fit->rx * fit->ry * sizeof(WORD));
 		curves_satbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
 		curves_lumbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
 	}
 
-	// Convert RGB to HSL
-	curves_fit_to_hsl();
+	curves_fit_to_special();
 }
 
 static void curves_clear_hsl() {
-	if (curves_huebuf) {
-		free(curves_huebuf);
-		curves_huebuf = NULL;
+	if (curves_chromabuf) {
+		free(curves_chromabuf);
+		curves_chromabuf = NULL;
 	}
 	if (curves_satbuf) {
 		free(curves_satbuf);
@@ -1001,7 +975,8 @@ static void curves_compute_special_histograms() {
 		display_histogram_lum = curves_compute_histo_from_buffer(curves_lumbuf, fit);
 	if (curves_satbuf)
 		display_histogram_sat = curves_compute_histo_from_buffer(curves_satbuf, fit);
-	display_histogram_chroma = curves_compute_histo_chroma(fit);
+	if (curves_chromabuf)
+		display_histogram_chroma = curves_compute_histo_from_buffer(curves_chromabuf, fit);
 }
 
 // ---------------------------------------------------------------------------
@@ -1333,7 +1308,7 @@ gboolean curve_apply_idle(gpointer p) {
 
 		// Clear HSL buffers to force recomputation from the new transformed image
 		if (fit->naxes[2] == 3) {
-			if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+			if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 			if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
 			if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
 			curves_compute_special_histograms();
@@ -1375,7 +1350,7 @@ void update_gfit_curves_histogram_if_needed() {
 		compute_histo_for_fit(fit);
 		// Clear HSL buffers to force recomputation from current image
 		if (fit->naxes[2] == 3) {
-			if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+			if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 			if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
 			if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
 			curves_compute_special_histograms();
@@ -1399,7 +1374,7 @@ void curves_reset_after_undo() {
 
 	// Clear HSL buffers to force recomputation from current image
 	if (fit->naxes[2] == 3) {
-		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
 		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
 		curves_compute_special_histograms();
@@ -1517,6 +1492,15 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	reset_cursors_and_values(TRUE);
 	compute_histo_for_fit(fit);
 	update_stage_buttons();
+
+	// Mono image: only the master curve is meaningful
+	gboolean is_rgb = fit->naxes[2] == 3;
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_r_radio), is_rgb);
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_g_radio), is_rgb);
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_b_radio), is_rgb);
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_l_radio), is_rgb);
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_c_radio), is_rgb);
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_chan_s_radio), is_rgb);
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1529,15 +1513,14 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	init_single_channel_config(current_channel);
-	selected_point = (point*) gui_channels[current_channel].points->data;
+	init_all_curves();
 	update_range_ui_from_state();
 	_initialize_clip_text();
 	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
 	_update_entry_text();
-	curves_update_image();
+	update_display_histogram_from_curve();
 	gtk_widget_queue_draw(curves_drawingarea);
-	init_all_curves();
+	curves_update_image();
 	set_cursor_waiting(FALSE);
 }
 
@@ -1940,6 +1923,8 @@ void on_curves_log_check_toggled(GtkCheckButton *button, gpointer user_data) {
 
 void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa()) return;
+	// Nothing to freeze if every channel is still the identity curve
+	if (!any_curve_active()) return;
 
 	set_cursor_waiting(TRUE);
 
@@ -1966,7 +1951,7 @@ void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
 	for (int i = 0; i < (int)fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
 	if (fit->naxes[2] == 3) {
-		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_chromabuf) { free(curves_chromabuf); curves_chromabuf = NULL; }
 		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
 		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
 		curves_compute_special_histograms();
@@ -2007,31 +1992,40 @@ void on_curves_pipette_button_toggled(GtkToggleButton *button, gpointer user_dat
 }
 
 void curves_handle_pipette_click(int x, int y) {
-	if (!gfit || x < 0 || y < 0 || x >= (int)gfit->rx || y >= (int)gfit->ry)
+	/* The pipette locates an *input* tone on the curve x-axis: while the
+	 * preview is active gfit holds the transformed image, so sample the
+	 * pre-curve backup instead. */
+	fits *src = is_preview_active() ? get_preview_gfit_backup() : gfit;
+	if (!src || x < 0 || y < 0 || x >= (int)src->rx || y >= (int)src->ry)
 		return;
 
 	float r, g, b;
-	size_t idx = (size_t) y * gfit->rx + x;
+	// Display coordinates are top-down while FITS rows are bottom-up
+	size_t idx = (size_t)(src->ry - 1 - y) * src->rx + x;
 
-	if (gfit->type == DATA_FLOAT) {
-		if (gfit->naxes[2] == 3) {
-			r = gfit->fpdata[0][idx];
-			g = gfit->fpdata[1][idx];
-			b = gfit->fpdata[2][idx];
+	if (src->type == DATA_FLOAT) {
+		if (src->naxes[2] == 3) {
+			r = src->fpdata[0][idx];
+			g = src->fpdata[1][idx];
+			b = src->fpdata[2][idx];
 		} else {
-			r = g = b = gfit->fdata[idx];
+			r = g = b = src->fdata[idx];
 		}
 	} else {
 		double inv = 1.0 / USHRT_MAX_DOUBLE;
-		if (gfit->naxes[2] == 3) {
-			r = (float)(gfit->pdata[0][idx] * inv);
-			g = (float)(gfit->pdata[1][idx] * inv);
-			b = (float)(gfit->pdata[2][idx] * inv);
+		if (src->naxes[2] == 3) {
+			r = (float)(src->pdata[0][idx] * inv);
+			g = (float)(src->pdata[1][idx] * inv);
+			b = (float)(src->pdata[2][idx] * inv);
 		} else {
-			r = g = b = (float)(gfit->data[idx] * inv);
+			r = g = b = (float)(src->data[idx] * inv);
 		}
 	}
+	r = CLAMP(r, 0.0f, 1.0f);
+	g = CLAMP(g, 0.0f, 1.0f);
+	b = CLAMP(b, 0.0f, 1.0f);
 
+	// Same spaces as the transform and the displayed histograms
 	switch (current_channel) {
 		case CHAN_RGB_K:
 			pipette_value = (r + g + b) / 3.0f;
@@ -2045,26 +2039,17 @@ void curves_handle_pipette_click(int x, int y) {
 		case CHAN_B:
 			pipette_value = b;
 			break;
-		case CHAN_L: {
-			// Linear luminance approximation (close to CIE L*)
-			float lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
-			pipette_value = CLAMP(lum, 0.0f, 1.0f);
+		case CHAN_L:
+			pipette_value = curve_lab_L_norm(r, g, b);
 			break;
-		}
 		case CHAN_S: {
-			float h, s, l;
-			rgb_to_hslf(r, g, b, &h, &s, &l);
-			pipette_value = s;
+			float mx = fmaxf(r, fmaxf(g, b));
+			pipette_value = (mx > 0.0f) ? (mx - fminf(r, fminf(g, b))) / mx : 0.0f;
 			break;
 		}
-		case CHAN_C: {
-			// Chroma approximation: same as the histogram computation
-			float h, s, l;
-			rgb_to_hslf(r, g, b, &h, &s, &l);
-			float l_factor = 1.0f - fabsf(2.0f * l - 1.0f);
-			pipette_value = CLAMP(s * l_factor, 0.0f, 1.0f);
+		case CHAN_C:
+			pipette_value = curve_lab_chroma_norm(r, g, b);
 			break;
-		}
 		default:
 			pipette_value = -1.0f;
 			break;

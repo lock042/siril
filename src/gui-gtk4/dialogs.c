@@ -93,7 +93,6 @@ static const SirilDialogEntry entries[] =
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
-	{"starnet_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
@@ -137,32 +136,91 @@ static GtkWidget *get_widget_by_index(int index) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
-/* When a transient dialog is hidden, some compositors (notably Wayland) do
- * not automatically return keyboard focus to the parent window.  The main
- * window then stops receiving key events, so the app/win accelerators
- * (Ctrl+P, Ctrl+O, ...) silently stop working until the user clicks back
- * into it.  Re-presenting the control window restores it as the active
- * toplevel so the shortcuts keep working. */
-static void reactivate_main_window() {
-	GtkWidget *main_win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
-	if (main_win && gtk_widget_get_visible(main_win))
-		gtk_window_present(GTK_WINDOW(main_win));
+/* When a transient dialog or native file dialog is dismissed, some
+ * compositors (notably Wayland) and macOS do not automatically return
+ * keyboard focus/activation to the parent window.  That window then stops
+ * receiving key events, so its app/win accelerators (Ctrl+P, Ctrl+O, ...)
+ * silently stop working until the user clicks back into it.  Re-presenting
+ * the parent restores it as the active toplevel so the shortcuts keep
+ * working.
+ *
+ * Re-present `win` so it regains keyboard focus/activation; a NULL window
+ * falls back to the main control window.  Internal helper for the
+ * reactivate_parent() entry point and the native file-dialog runner. */
+static gboolean present_toplevel_idle(gpointer data) {
+	GtkWindow *win = GTK_WINDOW(data);
+	/* Only present if the window isn't already the active toplevel.  When the
+	 * compositor already handed focus back (X11, and most Wayland cases), the
+	 * parent is active and presenting it again is both pointless and harmful:
+	 * it makes GTK recompute pointer focus and clear active-state that was
+	 * never set, spewing "Broken accounting of active state" up the widget
+	 * tree.  We only need the present on the platforms that drop focus on
+	 * dismissal (notably macOS), where the parent is not active here. */
+	if (gtk_widget_get_visible(GTK_WIDGET(win)) && !gtk_window_is_active(win))
+		gtk_window_present(win);
+	return G_SOURCE_REMOVE;
 }
 
-/* Phase 14: GTK4 routes key input through GtkEventControllerKey instead
- * of the legacy "key-press-event" signal.  The escape-to-close behaviour
- * for the search-entry dialog is hooked via gtk_event_controller_key,
- * with the controller attached to the window once on first open. */
+static void present_toplevel(GtkWindow *win) {
+	if (!win)
+		win = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return;
+	/* Defer to the next main-loop iteration: we are called from a dialog's
+	 * button handler (or synchronously after a nested modal loop quits on
+	 * that click), so the triggering click's press/release is still in
+	 * flight, and acting on focus now races GTK's own input tracking.  The
+	 * window is ref'd to outlive the dialog teardown that may follow. */
+	g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, present_toplevel_idle,
+	                g_object_ref(win), g_object_unref);
+}
+
+/* Re-present the transient parent of a now-dismissed `dialog`, falling back
+ * to the main control window when it has none.  Call this AFTER hiding the
+ * dialog but BEFORE destroying it (the transient-parent link is read off the
+ * dialog).  A NULL dialog targets the control window directly. */
+void reactivate_parent(GtkWidget *dialog) {
+	present_toplevel((dialog && GTK_IS_WINDOW(dialog))
+	                 ? gtk_window_get_transient_for(GTK_WINDOW(dialog)) : NULL);
+}
+
+/* GTK4 routes key input through GtkEventControllerKey instead of the
+ * legacy "key-press-event" signal, and plain GtkWindows lost the built-in
+ * Escape-to-close binding that GtkDialog gave every dialog under GTK3.
+ * Escape is therefore wired explicitly on every dialog we open, and it
+ * takes the same path as the title-bar close button: gtk_window_close()
+ * emits "close-request", so each dialog's own handler (hide-on-delete,
+ * preview cancel, ...) runs exactly as if the user had clicked ✕ —
+ * which is what GTK3's Escape → delete-event did. */
 static gboolean check_escape(GtkEventControllerKey *ctrl, guint keyval,
 		guint keycode, GdkModifierType state, gpointer data) {
 	(void)ctrl; (void)keycode; (void)state;
-	if (keyval == GDK_KEY_Escape) {
-		GtkWidget *widget = GTK_WIDGET(data);
-		gtk_widget_set_visible(widget, FALSE);
-		reactivate_main_window();
-		return TRUE;
-	}
-	return FALSE;
+	if (keyval != GDK_KEY_Escape)
+		return FALSE;
+	GtkWindow *win = GTK_WINDOW(data);
+	/* When the focus sits inside a popover (an open GtkDropDown list, a
+	 * context menu, a completion popup...), Escape must close the popover,
+	 * not the dialog — decline it here and let it propagate. */
+	for (GtkWidget *w = gtk_window_get_focus(win); w; w = gtk_widget_get_parent(w))
+		if (GTK_IS_POPOVER(w))
+			return FALSE;
+	gtk_window_close(win);
+	return TRUE;
+}
+
+/* Attach the Escape-to-close controller to a dialog window, once.
+ * The controller runs in the CAPTURE phase: several stock widgets
+ * (GtkDropDown's internal button among others) consume key events in
+ * the bubble phase before they ever reach the window, which left Escape
+ * dead in dialogs like SPCC depending on where the focus landed. */
+static void ensure_escape_controller(GtkWindow *win) {
+	if (g_object_get_data(G_OBJECT(win), "siril-escape-ctrl"))
+		return;
+	GtkEventController *ctrl = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(ctrl, GTK_PHASE_CAPTURE);
+	g_signal_connect(ctrl, "key-pressed", G_CALLBACK(check_escape), win);
+	gtk_widget_add_controller(GTK_WIDGET(win), ctrl);
+	g_object_set_data(G_OBJECT(win), "siril-escape-ctrl", ctrl);
 }
 
 
@@ -192,15 +250,9 @@ void siril_open_dialog(gchar *id) {
 			}
 		}
 	}
-	if (entry.type == SEARCH_ENTRY_DIALOG) {
-		/* Attach a key controller once per window; subsequent opens reuse it. */
-		if (!g_object_get_data(G_OBJECT(win), "siril-escape-ctrl")) {
-			GtkEventController *ctrl = gtk_event_controller_key_new();
-			g_signal_connect(ctrl, "key-pressed", G_CALLBACK(check_escape), win);
-			gtk_widget_add_controller(GTK_WIDGET(win), ctrl);
-			g_object_set_data(G_OBJECT(win), "siril-escape-ctrl", ctrl);
-		}
-	}
+	/* GTK3's GtkDialog closed on Escape out of the box; restore that for
+	 * every dialog (the controller is attached once, reused on reopen). */
+	ensure_escape_controller(win);
 
 	/* GTK4: GTK_WIN_POS_CENTER and GDK_WINDOW_TYPE_HINT_DIALOG are gone.
 	 * The window manager centres modal/transient windows automatically
@@ -215,8 +267,9 @@ void siril_open_dialog(gchar *id) {
 }
 
 void siril_close_dialog(gchar *id) {
-	gtk_widget_set_visible(get_widget_by_id(id), FALSE);
-	reactivate_main_window();
+	GtkWidget *w = get_widget_by_id(id);
+	gtk_widget_set_visible(w, FALSE);
+	reactivate_parent(w);
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {
@@ -236,7 +289,7 @@ void siril_close_preview_dialogs() {
 		}
 	}
 	if (closed_any)
-		reactivate_main_window();
+		reactivate_parent(NULL);
 }
 
 // WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
@@ -246,7 +299,7 @@ void siril_close_preview_dialogs() {
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_set_visible(widget, FALSE);
-    reactivate_main_window();
+    reactivate_parent(widget);
     return TRUE;
 }
 
@@ -485,6 +538,10 @@ gint siril_fc_run(SirilFileChooser *fc) {
 	g_main_loop_run(fc->loop);
 	g_main_loop_unref(fc->loop);
 	fc->loop = NULL;
+	/* The native file dialog does not always hand keyboard focus/activation
+	 * back to the parent on dismissal (macOS in particular), so re-present
+	 * its parent to keep that window's accelerators working. */
+	present_toplevel(fc->parent);
 	return fc->response;
 }
 

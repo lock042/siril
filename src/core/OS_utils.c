@@ -825,6 +825,16 @@ guint64 get_available_memory() {
 	memStatusEx.dwLength = sizeof(MEMORYSTATUSEX);
 	if (GlobalMemoryStatusEx(&memStatusEx)) {
 		mem = (guint64) (memStatusEx.ullAvailPhys);
+		/* Windows has no overcommit: an allocation fails once the commit
+		 * charge reaches RAM + pagefile, so the binding constraint is the
+		 * remaining commit (ullAvailPageFile), not free physical RAM. On
+		 * machines with a small or disabled pagefile the commit headroom
+		 * can be lower than free physical memory, and budgets derived
+		 * from ullAvailPhys alone promise memory the OS will refuse to
+		 * deliver (allocation failures mid-processing instead of an
+		 * upfront "not enough memory" decision). */
+		if ((guint64) memStatusEx.ullAvailPageFile < mem)
+			mem = (guint64) memStatusEx.ullAvailPageFile;
 	}
 	return mem;
 #else

@@ -85,14 +85,6 @@ typedef enum {
 } starprofile;
 
 typedef enum {
-	NIL = 0,
-	V2 = 1,
-	V1MONO = 2,
-	V1RGB = 4,
-	TORCH = 8
-} starnet_version;
-
-typedef enum {
 	MMB_ZOOM_FIT,
 	MMB_ZOOM_100,
 	MMB_ZOOM_TOGGLE
@@ -256,8 +248,8 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
-				// short-lived catalogue for "who's in the field" annotations
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations, 
+				// 1 for velocity vectors display
 				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides
@@ -435,10 +427,7 @@ struct pref_struct {
 	gboolean use_checksum;  // Verify checksum in FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
-	gchar *starnet_exe;	// Location of starnet++ executable
-	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
-	gchar *graxpert_path; // Location of GraXpert executable
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;

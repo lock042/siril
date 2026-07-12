@@ -83,17 +83,16 @@ gchar *get_interface_language(void) {
 	if (gtk_drop_down_get_selected(GTK_DROP_DOWN(lang_combo)) == 0)
 		return g_strdup("");
 	gchar *str = siril_drop_down_get_active_text(lang_combo);
-	return extract_locale_from_string(str);
+	gchar *locale = extract_locale_from_string(str);
+	g_free(str);
+	return locale;
 }
-#include "filters/starnet.h"
 
 #ifndef W_OK
 #define W_OK 2
 #endif
 
 static gchar *sw_dir = NULL;
-static gchar *st_weights = NULL;
-static starnet_version st_version = NIL;
 static gboolean update_custom_gamut = FALSE;
 void on_working_gamut_changed(GObject *obj, GParamSpec *pspec, gpointer user_data);
 
@@ -133,35 +132,19 @@ static void update_astrometry_preferences() {
 
 	com.pref.gui.position_compass = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("wcs_formalism_combobox")));
-	gchar *newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path1"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[0]);
-		com.pref.catalogue_paths[0] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path2"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[1]);
-		com.pref.catalogue_paths[1] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path3"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[2]);
-		com.pref.catalogue_paths[2] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path4"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[3]);
-		com.pref.catalogue_paths[3] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path5"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[4]);
-		com.pref.catalogue_paths[4] = newpath;
-	}
-	newpath = siril_file_chooser_get_filename(lookup_widget("localcatalogue_path6"));
-	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.catalogue_paths[5]);
-		com.pref.catalogue_paths[5] = newpath;
+	/* siril_file_chooser_get_filename() returns an owned string; when the
+	 * chooser is empty (NULL or "") we keep the existing path and must free
+	 * the unused result rather than leak it by overwriting newpath. */
+	for (int i = 0; i < 6; i++) {
+		gchar *widget = g_strdup_printf("localcatalogue_path%d", i + 1);
+		gchar *newpath = siril_file_chooser_get_filename(lookup_widget(widget));
+		g_free(widget);
+		if (newpath && newpath[0] != '\0') {
+			g_free(com.pref.catalogue_paths[i]);
+			com.pref.catalogue_paths[i] = newpath;
+		} else {
+			g_free(newpath);
+		}
 	}
 
 	com.pref.astrometry.gaia_cache_duration = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")));
@@ -187,7 +170,8 @@ static void update_astrometry_preferences() {
 		g_free(com.pref.astrometry.default_obscode);
 		com.pref.astrometry.default_obscode = NULL;
 	}
-	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
+	// In the prefs structure, the dir is stored in the misc software-location
+	// block, not in astrometry
 	com.pref.asnet_dir = siril_file_chooser_get_filename(lookup_widget("filechooser_asnet"));
 	reset_astrometry_checks();
 }
@@ -463,19 +447,8 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkWidget *swap_dir = lookup_widget("filechooser_swap");
-	GtkWidget *starnet_exe = lookup_widget("filechooser_starnet");
-	GtkWidget *starnet_weights = lookup_widget("filechooser_starnet_weights");
-	GtkWidget *graxpert_exe = lookup_widget("filechooser_graxpert");
 
 	com.pref.swap_dir = siril_file_chooser_get_filename(swap_dir);
-
-	com.pref.starnet_exe = siril_file_chooser_get_filename(starnet_exe);
-	com.pref.starnet_weights = siril_file_chooser_get_filename(starnet_weights);
-	com.pref.graxpert_path = siril_file_chooser_get_filename(graxpert_exe);
-#ifdef OS_OSX
-	if (g_str_has_suffix(com.pref.graxpert_path, ".app"))
-		str_append(&com.pref.graxpert_path, "/Contents/MacOS/GraXpert");
-#endif
 
 	com.pref.gui.silent_quit = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscAskQuit"))));
 	com.pref.gui.silent_linear = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscAskSave"))));
@@ -501,52 +474,6 @@ void initialize_path_directory(const gchar *path) {
 		siril_file_chooser_set_filename (swap_dir, path);
 	} else {
 		siril_file_chooser_set_filename (swap_dir, g_get_tmp_dir());
-	}
-}
-
-void initialize_graxpert_executable(gchar *path) {
-	GtkWidget *graxpert_exe = lookup_widget("filechooser_graxpert");
-#ifdef OS_OSX
-	const gchar *suffix = "/Contents/MacOS/GraXpert";
-	if (path && g_str_has_suffix(path, suffix)) {
-		gsize len = strlen(path) - strlen(suffix);
-		gchar *new_path = g_strndup(path, len);
-		siril_file_chooser_set_filename(graxpert_exe, new_path);
-		g_free(new_path);
-		return;
-	}
-#endif
-
-	if (path && path[0] != '\0') {
-		siril_file_chooser_set_filename (graxpert_exe, path);
-	}
-}
-
-void initialize_starnet_executable(gchar *path) {
-#ifdef HAVE_LIBTIFF
-	GtkWidget *starnet_exe = lookup_widget("filechooser_starnet");
-	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
-	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
-	if (path && path[0] != '\0') {
-		siril_file_chooser_set_filename (starnet_exe, path);
-		if (starnet_executablecheck(path) & TORCH) {
-			gtk_widget_set_sensitive(starnet_weights, TRUE);
-			gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
-		} else {
-			gtk_widget_set_sensitive(starnet_weights, FALSE);
-			gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
-		}
-	} else {
-		gtk_widget_set_sensitive(starnet_weights, FALSE);
-		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
-	}
-#endif
-}
-
-void initialize_starnet_weights(gchar *path) {
-	GtkWidget *starnet_weights = lookup_widget("filechooser_starnet_weights");
-	if (path && path[0] != '\0') {
-		siril_file_chooser_set_filename (starnet_weights, path);
 	}
 }
 
@@ -620,69 +547,14 @@ void on_filechooser_swap_file_set(GtkWidget *fileChooser, gpointer user_data) {
 		g_rw_lock_reader_lock(&com.pref_rwlock);
 		siril_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
 		g_rw_lock_reader_unlock(&com.pref_rwlock);
+		g_free(dir);
 		return;
 	}
 	if (sw_dir) {
 		g_free(sw_dir);
 		sw_dir = siril_file_chooser_get_filename(swap_dir);
 	}
-}
-
-void on_filechooser_starnet_file_set(GtkWidget *fileChooser, gpointer user_data) {
-#ifdef HAVE_LIBTIFF
-	GtkWidget *starnet_exe = fileChooser;
-	gchar *path;
-
-	path = siril_file_chooser_get_filename (starnet_exe);
-	printf("%s\n", path);
-	if (g_access(path, X_OK)) {
-		gchar *msg = siril_log_error(_("You don't have permission to execute this file: %s\n"), path);
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
-		g_rw_lock_reader_lock(&com.pref_rwlock);
-		siril_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
-		g_rw_lock_reader_unlock(&com.pref_rwlock);
-		return;
-	}
-	st_version = starnet_executablecheck(path);
-	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
-	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
-	if (st_version & TORCH) {
-		gtk_widget_set_sensitive(starnet_weights, TRUE);
-		gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
-	} else {
-		gtk_widget_set_sensitive(starnet_weights, FALSE);
-		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
-	}
-#endif
-}
-
-void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {
-	GtkWidget *starnet_weights = lookup_widget("filechooser_starnet_weights");
-	if (st_weights) {
-		g_free(st_weights);
-	}
-	st_weights = g_strdup("\0");
-	siril_file_chooser_set_filename(starnet_weights, st_weights);
-}
-
-void on_filechooser_starnet_weights_file_set(GtkWidget *fileChooser, gpointer user_data) {
-	GtkWidget *starnet_weights = fileChooser;
-	gchar *path;
-
-	path = siril_file_chooser_get_filename (starnet_weights);
-
-	if (g_access(path, R_OK)) {
-		gchar *msg = siril_log_error(_("You don't have permission to read this file: %s\n"), path);
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
-		g_rw_lock_reader_lock(&com.pref_rwlock);
-		siril_file_chooser_set_filename(starnet_weights, com.pref.starnet_weights);
-		g_rw_lock_reader_unlock(&com.pref_rwlock);
-		return;
-	}
-	if (st_weights) {
-		g_free(st_weights);
-	}
-	st_weights = siril_file_chooser_get_filename(starnet_weights);
+	g_free(dir);
 }
 
 void on_show_preview_button_toggled(GtkCheckButton *togglebutton, gpointer user_data) {
@@ -939,9 +811,6 @@ void update_preferences_from_model() {
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
-	initialize_graxpert_executable(pref->graxpert_path);
-	initialize_starnet_executable(pref->starnet_exe);
-	initialize_starnet_weights(pref->starnet_weights);
 	initialize_asnet_directory(pref->asnet_dir);
 
 	siril_toggle_set_active(GTK_WIDGET(GTK_CHECK_BUTTON(lookup_widget("miscHideInfoROI"))), pref->gui.enable_roi_warning ? FALSE : TRUE);
@@ -1020,12 +889,6 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	                       _("Select monitor profile"), "icc_filter", FALSE);
 	siril_path_button_init(lookup_widget("pref_soft_proofing_profile"),
 	                       _("Select soft-proofing profile"), "icc_filter", FALSE);
-	siril_path_button_init(lookup_widget("filechooser_graxpert"),
-	                       _("Select GraXpert executable"), NULL, FALSE);
-	siril_path_button_init(lookup_widget("filechooser_starnet"),
-	                       _("Select StarNet executable"), NULL, FALSE);
-	siril_path_button_init(lookup_widget("filechooser_starnet_weights"),
-	                       _("Select StarNet weights"), NULL, FALSE);
 	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
 	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 

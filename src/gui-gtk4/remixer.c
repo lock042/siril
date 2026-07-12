@@ -45,10 +45,6 @@
 
 #include <gsl/gsl_histogram.h>
 
-// Invocation: 1 if called directly from starnet GUI,
-// 2 if called from Siril menu
-static int invocation = 0;
-
 static clip_mode_t clip_mode = RGBBLEND;
 static float leftD = 0.0f, rightD = 0.0f;
 static float leftB = 0.0f, rightB = 0.0f;
@@ -740,8 +736,7 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fit_right) {
-	invocation = _invocation;
+int toggle_remixer_window_visibility(void) {
 	/* The .ui doesn't wire a "show" signal on the dialog, so make sure the
 	 * remix_filechooser_{left,right} buttons get their click handlers
 	 * connected — and the two remix_histo_{left,right} drawing areas
@@ -764,48 +759,10 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 		GtkCheckButton *toggle_log = GTK_CHECK_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
 		siril_toggle_set_active(GTK_WIDGET(toggle_log), remix_log_scale);
-		if (invocation == CALL_FROM_STARNET) {
-			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-			copy_fits_metadata(_fit_left, &fit_left);
-			clearfits(_fit_left);
-			free(_fit_left);
-			close_histograms(TRUE, TRUE);
-			remix_histo_startup_left();
-			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
-			close_single_image();
-			copyfits(&fit_left, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-			left_loaded = TRUE; // Mark LHS image as loaded
-			left_changed = TRUE; // Force update on initial draw
-			permit_calculation = TRUE;
-			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-			copy_fits_metadata(_fit_right, &fit_right);
-			remix_histo_startup_right();
-			clearfits(_fit_right);
-			free(_fit_right);
-			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
-			right_loaded = TRUE; // Mark RHS image as loaded
-			right_changed = TRUE; // Force update on initial draw
-			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
-			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
-			gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
-			gfit->keywords.livetime = fit_left.keywords.livetime;
-			// Update the header
-			update_fits_header(gfit);
-			initialise_image();
-			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
-			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
-			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
-			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), FALSE);
-			update_image *param = malloc(sizeof(update_image));
-			param->update_preview_fn = remixer_update_preview;
-			param->show_preview = TRUE;
-			notify_update((gpointer) param);
-
-		} else {
-			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), TRUE);
-			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), TRUE);
-			/* Initial folder for the browser is com.wd at click time. */
-		}
+		/* Images are loaded from disk via the file choosers. */
+		gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), TRUE);
+		gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), TRUE);
+		/* Initial folder for the browser is com.wd at click time. */
 		// Set eyedropper icons to light or dark according to theme
 		GtkWidget *v = NULL, *w = NULL;
 		if (siril_current_theme_is_dark()) {

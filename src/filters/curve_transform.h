@@ -81,14 +81,6 @@ typedef struct {
 	int n;
 } akima_spline_data;
 
-// Runtime Cache (LUT + Mask buffer)
-typedef struct {
-	gboolean active;
-	float lut[LUT_SIZE]; 
-	gboolean use_mask;
-	float *mask_buffer;  
-} channel_runtime_cache;
-
 struct curve_params *new_curve_params();
 void free_curve_params(void *args);
 
@@ -107,5 +99,9 @@ float cubic_spline_interpolate(float x, cubic_spline_data *cspline_data);
 
 void akima_spline_fit(GList *points, akima_spline_data *akima_data);
 float akima_spline_interpolate(float x, akima_spline_data *akima_data);
+
+// Color space helpers matching the spaces the transform operates in
+float curve_lab_L_norm(float r, float g, float b);      // CIE L* / 100, clamped to [0,1]
+float curve_lab_chroma_norm(float r, float g, float b); // Lab chroma / 128, clamped to [0,1]
 
 #endif

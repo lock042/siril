@@ -59,6 +59,9 @@ static void build_the_dialog() {
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	/* A modal GtkWindow with no transient parent grabs input with no anchor
+	 * and can wedge the whole session on Wayland/Xorg. */
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
 	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
@@ -235,6 +238,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		gtk_editable_set_text(GTK_EDITABLE(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 		gtk_editable_set_text(GTK_EDITABLE(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 		gtk_widget_set_visible(dialog, FALSE);
+		reactivate_parent(dialog);
 		return;
 	}
 	if (!sequence_is_loaded()) {	// Tests if a valid sequence is loaded
@@ -259,6 +263,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	g_free(dirname);
 	if (!has_wcs(gfit)) {	// Is the current image properly plate solved
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
+		g_free(nina_file);
 		return;
 	}
 	purge_user_catalogue(CAT_AN_USER_TEMP);
@@ -309,7 +314,6 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		free(args);
-		g_free(nina_file);
 		return;
 	}
 	// Update of the UI

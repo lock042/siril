@@ -33,6 +33,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialog_preview.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/icc_profile.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/callbacks.h"
@@ -45,7 +46,6 @@
 #include "save_dialog.h"
 
 static image_type type_of_image = TYPEUNDEF;
-static SirilFileChooser *saveDialog = NULL;
 
 static GtkNotebook *sd_notebook_format = NULL;
 static GtkWidget *sd_savepopup = NULL;
@@ -79,91 +79,46 @@ static void save_dialog_init_statics(void) {
 	sd_scrolledwindow3 = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow3"));
 }
 
-static void set_filters_save_dialog(SirilFileChooser *fc) {
-	GString *all_filter = NULL;
-	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
-	const gchar *bmp_filter = "*.bmp;*.BMP";
-	const gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
+/* Populate the save browser's "Save as type" dropdown, one filter per writable
+ * format in a fixed order.  Each filter's FIRST "*.ext" token is what the
+ * browser appends when the user types a name without an extension, so it leads
+ * with the preferred extension (com.pref.ext for FITS; .pgm vs .ppm chosen by
+ * the image's channel count for Netpbm).  Upper-case variants follow only so
+ * the file list matches existing files.  `suggested` marks the matching filter
+ * default so the dropdown agrees with the pre-filled name. */
+static void set_filters_save_browser(SirilFileBrowser *fb, image_type suggested) {
+	gchar *fits_filter = g_strdup_printf(
+			"*%s;*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;"
+			"*.fit.fz;*.fits.fz;*.fts.fz", com.pref.ext);
+	siril_file_browser_add_filter_pattern(fb, _("FITS Files (*.fit, *.fits, *.fts)"),
+			fits_filter, suggested == TYPEFITS || suggested == TYPEUNDEF);
+	g_free(fits_filter);
 
-	all_filter = g_string_new(fits_filter);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, netpbm_filter);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, bmp_filter);
-
-	siril_fc_add_filter_pattern(fc, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
-	siril_fc_add_filter_pattern(fc, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
-#ifdef HAVE_LIBJPEG
-	const gchar *jpg_filter = "*.jpg;*.JPG;*.jpeg;*.JPEG";
-	siril_fc_add_filter_pattern(fc, _("JPEG Files (*.jpg, *.jpeg)"), jpg_filter, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, jpg_filter);
-#endif
-
-#ifdef HAVE_LIBJXL
-	const gchar *jxl_filter = "*.jxl;*.JXL";
-	siril_fc_add_filter_pattern(fc, _("JPEG XL Files (*.jxl)"), jxl_filter, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, jxl_filter);
-#endif
-
-#ifdef HAVE_LIBPNG
-	const gchar *png_filter = "*.png;*.PNG";
-	siril_fc_add_filter_pattern(fc, _("PNG Files (*.png)"), png_filter, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, png_filter);
-#endif
-
+	siril_file_browser_add_filter_pattern(fb, _("BMP Files (*.bmp)"),
+			"*.bmp;*.BMP", suggested == TYPEBMP);
 #ifdef HAVE_LIBTIFF
-	const gchar *tif_filter = "*.tif;*.TIF;*.tiff;*.TIFF";
-	siril_fc_add_filter_pattern(fc, _("TIFF Files (*.tif, *.tiff)"), tif_filter, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, tif_filter);
+	siril_file_browser_add_filter_pattern(fb, _("TIFF Files (*.tif, *.tiff)"),
+			"*.tif;*.TIF;*.tiff;*.TIFF", suggested == TYPETIFF);
 #endif
-
-	/* NETPBM FILES */
-	siril_fc_add_filter_pattern(fc, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"), netpbm_filter, FALSE);
-
-	gchar *supported_file = g_string_free(all_filter, FALSE);
-	siril_fc_add_filter_pattern(fc, _("Supported Image Files"), supported_file, TRUE);
-
-	g_free(supported_file);
-}
-
-static image_type get_filetype(const gchar *filter) {
-	image_type type = TYPEUNDEF;
-	int i = 0;
-
-	gchar **string = g_strsplit_set(filter, "*(),.", -1);
-
-	while (string[i]) {
-		if (!g_strcmp0(string[i], "fit")) {
-			type = TYPEFITS;
-			break;
-		} else if (!g_strcmp0(string[i], "bmp")) {
-			type = TYPEBMP;
-			break;
-		} else if (!g_strcmp0(string[i], "jpg")) {
-			type = TYPEJPG;
-			break;
-		} else if (!g_strcmp0(string[i], "png")) {
-			type = TYPEPNG;
-			break;
-		} else if (!g_strcmp0(string[i], "tif")) {
-			type = TYPETIFF;
-			break;
-		} else if (!g_strcmp0(string[i], "jxl")) {
-			type = TYPEJXL;
-			break;
-		} else if (!g_strcmp0(string[i], "ppm")) {
-			type = TYPEPNM;
-			break;
-		}
-		i++;
-	}
-	g_strfreev(string);
-
-	return type;
+#ifdef HAVE_LIBJPEG
+	siril_file_browser_add_filter_pattern(fb, _("JPEG Files (*.jpg, *.jpeg)"),
+			"*.jpg;*.JPG;*.jpeg;*.JPEG", suggested == TYPEJPG);
+#endif
+#ifdef HAVE_LIBJXL
+	siril_file_browser_add_filter_pattern(fb, _("JPEG XL Files (*.jxl)"),
+			"*.jxl;*.JXL", suggested == TYPEJXL);
+#endif
+#ifdef HAVE_LIBPNG
+	siril_file_browser_add_filter_pattern(fb, _("PNG Files (*.png)"),
+			"*.png;*.PNG", suggested == TYPEPNG);
+#endif
+	/* Netpbm: the writer chooses .pgm (mono) or .ppm (colour) by channel
+	 * count, so lead with the matching one for a coherent default name. */
+	gboolean mono = gfit->naxes[2] == 1;
+	siril_file_browser_add_filter_pattern(fb, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
+			mono ? "*.pgm;*.PGM;*.pnm;*.PNM;*.ppm;*.PPM"
+			     : "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM",
+			suggested == TYPEPNM);
 }
 
 static void set_copyright_in_TIFF() {
@@ -285,31 +240,6 @@ static void prepare_savepopup() {
 	gtk_widget_grab_focus(button_savepopup);
 }
 
-static void init_dialog() {
-	/* The savepopup statics back both the parameters dialog and the
-	 * GtkEntry that save_dialog() writes the chosen path into. Populate
-	 * them up-front so callers that read sd_* before prepare_savepopup()
-	 * (e.g. save_dialog() at the gtk_editable_set_text() call site, and
-	 * on_header_save_as_button_clicked() that latches sd_savepopup) see
-	 * non-NULL widgets. */
-	save_dialog_init_statics();
-	if (saveDialog == NULL) {
-		GtkWindow *parent = siril_get_active_window();
-		saveDialog = siril_fc_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
-		set_filters_save_dialog(saveDialog);
-	}
-	/* Refresh every time: com.wd can change between save-as invocations. */
-	if (com.wd)
-		siril_fc_set_current_folder_path(saveDialog, com.wd);
-}
-
-static void close_dialog() {
-	if (saveDialog != NULL) {
-		siril_fc_destroy(saveDialog);
-		saveDialog = NULL;
-	}
-}
-
 static gchar *get_filename_and_replace_ext() {
 	gchar *basename;
 
@@ -334,149 +264,48 @@ static gchar *get_filename_and_replace_ext() {
 	return basename;
 }
 
-static image_type get_image_type_from_filter(GtkFileFilter *filter) {
-	return get_filetype(gtk_file_filter_get_name(filter));
-}
-
-/* Adjust the basename's extension to match the filter's expected format.
- * GtkFileDialog has no notify::filter signal, so we reconcile only after
- * the user accepts: return a possibly-corrected newly-allocated filename
- * (caller must g_free) or NULL if no change is needed. */
-static gchar *reconcile_filename_with_filter(const gchar *filename, GtkFileFilter *filter) {
-	if (!filename || !filter) return NULL;
-	char *file_no_ext = remove_ext_from_filename(filename);
-	image_type format = get_image_type_from_filter(filter);
-	gchar *new_filename = NULL;
-
-	switch (format) {
-	default:
-	case TYPEFITS:
-		new_filename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
-		break;
-	case TYPEBMP:
-		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
-		break;
-	case TYPEPNM:
-		new_filename = g_strdup_printf("%s%s", file_no_ext,
-		                              (gfit->naxes[2] == 1) ? ".pgm" : ".ppm");
-		break;
-#ifdef HAVE_LIBTIFF
-	case TYPETIFF:
-		new_filename = g_strdup_printf("%s.tif", file_no_ext);
-		break;
-#endif
-#ifdef HAVE_LIBJPEG
-	case TYPEJPG:
-		new_filename = g_strdup_printf("%s.jpg", file_no_ext);
-		break;
-#endif
-#ifdef HAVE_LIBJXL
-	case TYPEJXL:
-		new_filename = g_strdup_printf("%s.jxl", file_no_ext);
-		break;
-#endif
-#ifdef HAVE_LIBPNG
-	case TYPEPNG:
-		new_filename = g_strdup_printf("%s.png", file_no_ext);
-		break;
-#endif
-	}
-	free(file_no_ext);
-	return new_filename;
-}
-
-gchar* extract_extension_from_filter(const gchar *filter_name) {
-	// Regex pattern to match first extension inside parentheses
-	GRegex *regex;
-	GError *error = NULL;
-	gchar *extension = NULL;
-
-	// Compile regex to match first extension after *. inside parentheses
-	regex = g_regex_new("\\*\\.([a-zA-Z0-9]+)", G_REGEX_MULTILINE, 0, &error);
-
-	if (error != NULL) {
-		g_warning("Regex compilation error: %s", error->message);
-		g_error_free(error);
-		return NULL;
-	}
-
-	// Try to match the regex
-	GMatchInfo *match_info;
-	if (g_regex_match(regex, filter_name, 0, &match_info)) {
-		// Get the first captured group (extension)
-		extension = g_match_info_fetch(match_info, 1);
-	}
-
-	// Free resources
-	g_match_info_free(match_info);
-	g_regex_unref(regex);
-
-	return extension;
-}
-
+/* Custom Save-As browser (SirilFileBrowser in save mode).  The native
+ * GtkFileDialog can't report which "Save as type" filter the user picked, so
+ * choosing a format no longer changed the extension — that logic now lives in
+ * the browser, which owns the format dropdown and guarantees the returned path
+ * carries a valid extension.  The savepopup (format-specific options) stays a
+ * separate dialog, launched afterwards by on_header_save_as_button_clicked. */
 static int save_dialog() {
-	init_dialog();
+	save_dialog_init_statics();
+
+	GtkWindow *parent = GTK_WINDOW(sd_control_window);
+	if (!GTK_IS_WINDOW(parent))
+		parent = siril_get_active_window();
+
+	SirilFileBrowser *fb = siril_file_browser_new(parent, _("Save As"));
+	siril_file_browser_set_save_mode(fb, TRUE);
 
 	gchar *fname = get_filename_and_replace_ext();
-	siril_fc_set_current_name(saveDialog, fname);
+	set_filters_save_browser(fb, get_type_from_filename(fname));
+	siril_file_browser_set_suggested_name(fb, fname);
 	g_free(fname);
+	if (com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
 
-	while (TRUE) {
-		gint res = siril_fc_run(saveDialog);
-
-		if (res != GTK_RESPONSE_ACCEPT) {
-			close_dialog();
-			return res;
-		}
-
-		gchar *filename = siril_fc_get_filename(saveDialog);
-		if (!filename) {
-			close_dialog();
-			return GTK_RESPONSE_CANCEL;
-		}
-
-		GtkFileFilter *current_filter = siril_fc_get_filter(saveDialog);
-		const gchar *filter_name = current_filter ? gtk_file_filter_get_name(current_filter) : NULL;
-		gchar *filter_extension = filter_name ? extract_extension_from_filter(filter_name) : NULL;
-
-		image_type file_type = get_type_from_filename(filename);
-		image_type filter_format = filter_extension ? get_type_for_extension(filter_extension) : TYPEUNDEF;
-		image_type selected_type = (filter_format != TYPEUNDEF) ? filter_format : file_type;
-
-		if (file_type != TYPEUNDEF && filter_format != TYPEUNDEF && file_type != filter_format) {
-			gboolean confirm = siril_confirm_dialog(_("Extension Mismatch"),
-							_("The given file extension does not match the chosen file type. Do you want to save the image using this name anyway?"),
-							_("Save Anyway"));
-
-			if (!confirm) {
-				/* User declined: reconcile the basename to the filter's
-				 * expected extension and re-show the dialog. */
-				gchar *fixed = reconcile_filename_with_filter(filename, current_filter);
-				if (fixed) {
-					gchar *bname = g_path_get_basename(fixed);
-					siril_fc_set_current_name(saveDialog, bname);
-					g_free(bname);
-					g_free(fixed);
-				}
-				g_free(filename);
-				g_free(filter_extension);
-				continue;
-			}
-
-			selected_type = file_type;
-		}
-
-		type_of_image = selected_type;
-
-		GtkEntry *savetext = sd_savetxt_entry;
-		gtk_editable_set_text(GTK_EDITABLE(savetext), filename);
-
-		prepare_savepopup();
-		g_free(filename);
-		g_free(filter_extension);
-
+	gint res = siril_file_browser_run(fb);
+	if (res != GTK_RESPONSE_ACCEPT)
 		return res;
-	}
+
+	gchar *path = siril_file_browser_get_path(fb);
+	if (!path)
+		return GTK_RESPONSE_CANCEL;
+
+	/* The browser guarantees a valid extension, so the format is simply read
+	 * back from the path (falling back to FITS should it ever be unknown). */
+	type_of_image = get_type_from_filename(path);
+	if (type_of_image == TYPEUNDEF)
+		type_of_image = TYPEFITS;
+
+	gtk_editable_set_text(GTK_EDITABLE(sd_savetxt_entry), path);
+	prepare_savepopup();
+	g_free(path);
+
+	return GTK_RESPONSE_ACCEPT;
 }
 
 // idle function executed at the end of the Save Data processing
@@ -489,11 +318,11 @@ static gboolean end_save(gpointer p) {
 
 	gtk_editable_set_text(GTK_EDITABLE(args->entry), "");
 	gtk_widget_set_visible(sd_savepopup, FALSE);
+	reactivate_parent(sd_savepopup);
 	display_filename(); // update filename display
 	adjust_sellabel();
 	gui_function(set_precision_switch, NULL);
 	set_cursor_waiting(FALSE);
-	close_dialog();
 	gui_function(update_MenuItem, NULL);
 
 	g_free(args->copyright);
@@ -842,11 +671,18 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(sd_savepopup, FALSE);
+	reactivate_parent(sd_savepopup);
 }
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
+		if (save_dialog() != GTK_RESPONSE_ACCEPT) {
+			/* Native file dialog dismissed without a selection.  Focus is
+			 * already handed back to the parent inside siril_fc_run(); just
+			 * bail out without showing the format popup. */
+			return;
+		}
+		{
 			GtkWidget *savepopup = sd_savepopup;
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
@@ -867,7 +703,6 @@ void on_header_save_as_button_clicked() {
 					siril_add_idle(end_generic, NULL);
 				}
 			} else {
-				close_dialog();
 				GtkWindow *parent = siril_get_active_window();
 				if (!GTK_IS_WINDOW(parent)) {
 					parent = sd_control_window;

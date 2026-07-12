@@ -662,7 +662,7 @@ void siril_check_updates(gboolean verbose) {
 		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-update", fetch_url_async, args);
+	g_thread_unref(g_thread_new("siril-update", fetch_url_async, args));
 }
 
 void siril_check_notifications(gboolean verbose) {
@@ -682,7 +682,7 @@ void siril_check_notifications(gboolean verbose) {
 		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-notifications", fetch_url_async, args);
+	g_thread_unref(g_thread_new("siril-notifications", fetch_url_async, args));
 }
 
 // Parse SPCC mirrors JSON and populate the global string vector
@@ -691,6 +691,11 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	if (spcc_mirrors) {
 		g_strfreev(spcc_mirrors);
 		spcc_mirrors = NULL;
+	}
+
+	if (spcc_mirrors_desc) {
+		g_strfreev(spcc_mirrors_desc);
+		spcc_mirrors_desc= NULL;
 	}
 
 	// Parse JSON from string using yyjson
@@ -716,6 +721,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 
 	// Allocate string vector (NULL-terminated)
 	spcc_mirrors = g_new0(gchar *, length + 1);
+	spcc_mirrors_desc = g_new0(gchar *, length + 1);
 
 	// Iterate over mirror entries
 	size_t valid_count = 0;
@@ -735,8 +741,9 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 			continue;
 		}
 
-		// Store the URL in the string vector
+		// Store the URL in parallel string vectors
 		spcc_mirrors[valid_count] = g_strdup(url);
+		spcc_mirrors_desc[valid_count] = g_strdup(description);
 		valid_count++;
 
 		siril_log_debug("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
@@ -748,6 +755,8 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 	if (valid_count == 0) {
 		g_strfreev(spcc_mirrors);
 		spcc_mirrors = NULL;
+		g_strfreev(spcc_mirrors_desc);
+                spcc_mirrors_desc = NULL;
 		siril_log_error(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"));
 		return 1;
 	}

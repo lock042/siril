@@ -83,7 +83,8 @@ typedef enum {
 	MOUSE_ACTION_ADD_POLY_TO_MASK, // 11
 	MOUSE_ACTION_CLEAR_POLY_FROM_MASK, // 12
 	MOUSE_ACTION_SAMPLE_MASK_COLOR, // 13
-	MOUSE_ACTION_CURVES_PIPETTE // 14
+	MOUSE_ACTION_CURVES_PIPETTE, // 14
+	MOUSE_ACTION_EDIT_APS // 15 — multipoint AP grid editor (left=add, right=remove, drag=move)
 } mouse_status_enum;
 
 typedef enum {

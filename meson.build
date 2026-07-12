@@ -317,10 +317,14 @@ else
 endif
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+opencv_dep = dependency('opencv5', version : '>= 5.0.0', required : false)
+if not opencv_dep.found()
+  opencv_dep = dependency('opencv4', version : '>= 4.2.0', required : true)
+endif
 # checking required opencv modules
-opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', 'HAVE_OPENCV_CALIB3D', 'HAVE_OPENCV_STITCHING']
-opencv_incdir = '-I'+opencv4_dep.get_variable(pkgconfig : 'includedir')
+opencv_calib_module = opencv_dep.version().version_compare('>= 5.0.0') ? 'HAVE_OPENCV_GEOMETRY' : 'HAVE_OPENCV_CALIB3D'
+opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', opencv_calib_module, 'HAVE_OPENCV_STITCHING']
+opencv_incdir = '-I'+opencv_dep.get_variable(pkgconfig : 'includedir')
 foreach s : opencv_symbols
   cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
 endforeach
@@ -332,6 +336,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
@@ -349,6 +354,7 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -371,6 +377,7 @@ if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+  opt_var.set_install(false)
 if platform_windows
   opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
 endif
@@ -612,7 +619,7 @@ foreach header : [
 endforeach
 
 ## Dependencies configuration
-if opencv4_dep.version().version_compare('>=4.4.0')
+if opencv_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
@@ -755,7 +762,7 @@ core_dep = declare_dependency(
     sqlite_dep,
     libgit2_dep,
     gsl_dep,
-    opencv4_dep,
+    opencv_dep,
     rtprocess_dep,
     htmesh_dep,
     healpix_dep,
