@@ -811,17 +811,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32 image_rx = gfit->rx;
 					guint32 image_ry = gfit->ry;
 					g_rw_lock_reader_unlock(&gfit->rwlock);
-					if (selection.x < 0 || selection.x + selection.w > image_rx ||
-								selection.y < 0 || selection.y + selection.h > image_ry) {
+					/* selection fields are unsigned; compare with subtraction
+					 * (no addition) to avoid uint32 overflow, and only commit
+					 * the selection when it is fully inside the image. */
+					if (selection.x >= image_rx || selection.y >= image_ry ||
+								selection.w > image_rx - selection.x ||
+								selection.h > image_ry - selection.y) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
 							siril_log_debug("Error in send_response\n");
+					} else {
+						memcpy(&com.selection, &selection, sizeof(rectangle));
+						if (!com.headless)
+							gui_iface.new_selection_zone();
+						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
-					memcpy(&com.selection, &selection, sizeof(rectangle));
-					if (!com.headless)
-						gui_iface.new_selection_zone();
-					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
 				// Handle error retrieving dimensions
@@ -1420,6 +1425,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_plot_request(conn, info);
 			}
@@ -1433,6 +1439,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				info->data_type = GUINT32_FROM_BE(info->data_type);
 				info->channels = GUINT32_FROM_BE(info->channels);
@@ -2569,7 +2576,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			memcpy(&count, payload, sizeof(uint32_t));
 			count = GUINT32_FROM_BE(count);
 
-			if (payload_length != 4 + (4 * count) + 4) {
+			/* Compute the expected length in 64-bit to avoid a 32-bit overflow
+			 * of (4 * count), which would let a tiny payload pass validation and
+			 * then drive the read loop far past the received buffer. */
+			if ((uint64_t)payload_length != 8ULL + 4ULL * (uint64_t)count) {
 				const char* error_msg = _("Incorrect payload length: count mismatch");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2622,7 +2632,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				chan = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 4 || chan < 0 || chan >= com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2658,6 +2668,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
@@ -2674,6 +2685,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_add_user_polygon_request(conn, info);
 			}
@@ -3175,6 +3187,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
@@ -3541,6 +3554,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
@@ -3610,6 +3624,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_mask_update_polygon_request(conn, info);
 			}

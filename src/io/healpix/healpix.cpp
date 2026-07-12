@@ -414,6 +414,14 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         uint32_t index_start = (start_healpixel == 0) ? 0 : full_index[start_healpixel - 1];
         uint32_t index_end   = full_index[end_healpixel];
 
+        // The index values come from a downloaded (potentially malicious or
+        // MITM'd) index file: guard against underflow of the unsigned
+        // subtraction, which would otherwise yield a ~4-billion record count.
+        if (index_end < index_start) {
+            siril_log_error(_("Catalog index is corrupt (non-monotonic offsets)\n"));
+            results.clear();
+            return std::nullopt;
+        }
         size_t num_records = index_end - index_start;
 	char* data_buffer = nullptr;
 
@@ -447,6 +455,17 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
                 return std::nullopt;
             }
 
+            // The server controls how many bytes it actually returns for the
+            // requested byte range. Require an exact match with the amount we
+            // sized the destination vector for, otherwise the memcpy below
+            // would overflow the heap (mirrors the index-fetch length check).
+            if (data_response_length != data_length) {
+                siril_log_error(_("Catalog data response size mismatch\n"));
+                free(data_buffer);
+                results.clear();
+                return std::nullopt;
+            }
+
            std::vector<EntryType> buffer(num_records);
            memcpy(buffer.data(), data_buffer, data_response_length);
            results.insert(results.end(), buffer.begin(), buffer.end());
@@ -471,10 +490,16 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
                 global_hp += header.chunk_first_healpixel;
             }
 
-            if (count > 0 && data_buffer) {
+            // The per-healpixel offsets come from the downloaded index and must
+            // be monotonic and within the fetched data buffer; otherwise the
+            // unsigned subtractions underflow and produce an out-of-bounds
+            // pointer/length handed to the cache.
+            if (count > 0 && data_buffer &&
+                    p_end >= p_start && p_start >= range_base_record &&
+                    (size_t)(p_end - range_base_record) <= num_records) {
                 // Calculate byte offset into the data_buffer
-                size_t byte_offset = (p_start - range_base_record) * sizeof(EntryType);
-                segments.push_back({global_hp, data_buffer + byte_offset, count * sizeof(EntryType)});
+                size_t byte_offset = (size_t)(p_start - range_base_record) * sizeof(EntryType);
+                segments.push_back({global_hp, data_buffer + byte_offset, (size_t)count * sizeof(EntryType)});
             } else {
                 segments.push_back({global_hp, nullptr, 0});
 	    }
