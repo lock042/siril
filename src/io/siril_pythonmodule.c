@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #endif
 #include <string.h>
@@ -339,8 +340,22 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_error("Error in send_response\n");
 		return NULL;
 	}
-	if (region.h > 0 && region.w > 0)
-		region.y = fit->ry - region.y - region.h; // Flip vertically 
+	/* The region is supplied by the (possibly untrusted) script. Validate it
+	 * against the image bounds before it is used to compute memcpy offsets,
+	 * otherwise a crafted x/y/w/h reads arbitrary heap into shared memory that
+	 * the script can read back. Comparisons use subtraction to avoid int
+	 * overflow. */
+	if (region.w <= 0 || region.h <= 0 ||
+			region.x < 0 || region.y < 0 ||
+			region.w > (int)fit->rx || region.h > (int)fit->ry ||
+			region.x > (int)fit->rx - region.w ||
+			region.y > (int)fit->ry - region.h) {
+		const char* error_msg = _("Failed to retrieve pixel data - region exceeds image bounds");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_error("Error in send_response\n");
+		return NULL;
+	}
+	region.y = fit->ry - region.y - region.h; // Flip vertically
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
@@ -566,6 +581,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
+	info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 	info->width = GUINT32_FROM_BE(info->width);
 	info->height = GUINT32_FROM_BE(info->height);
 	info->channels = GUINT32_FROM_BE(info->channels);
@@ -628,6 +644,17 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+				UnmapViewOfFile(shm_ptr);
+				CloseHandle(mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
+		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
 	#else
@@ -638,6 +665,16 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+				close(fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
@@ -806,6 +843,17 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 				siril_log_error("Error in send_response\n");
 			return FALSE;
 		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+				UnmapViewOfFile(shm_ptr);
+				CloseHandle(mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
+		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
 	#else
@@ -816,6 +864,16 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 				siril_log_error("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+				close(fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
@@ -891,6 +949,9 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	}
 
 	save_image_info_t* info = (save_image_info_t*)payload;
+	info->image_shm_name[sizeof(info->image_shm_name) - 1] = '\0';
+	info->header_shm_name[sizeof(info->header_shm_name) - 1] = '\0';
+	info->filename[sizeof(info->filename) - 1] = '\0';
 
 	// Convert from network byte order
 	info->width = GUINT32_FROM_BE(info->width);
@@ -953,6 +1014,17 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_data_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->image_size) {
+				UnmapViewOfFile(shm_data_ptr);
+				CloseHandle(data_mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
+		}
 		win_data_handle.mapping = data_mapping;
 		win_data_handle.ptr = shm_data_ptr;
 	#else
@@ -962,6 +1034,16 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(data_fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->image_size) {
+				close(data_fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_data_ptr = mmap(NULL, info->image_size, PROT_READ, MAP_SHARED, data_fd, 0);
 		if (shm_data_ptr == MAP_FAILED) {
@@ -1006,6 +1088,17 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			siril_log_debug("Error in send_response\n");
 			return FALSE;
 		}
+		{
+			MEMORY_BASIC_INFORMATION _shmmbi;
+			if (VirtualQuery(shm_header_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->header_size) {
+				UnmapViewOfFile(shm_header_ptr);
+				CloseHandle(header_mapping);
+				const char* error_msg = "Shared memory object is smaller than the declared size";
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
+		}
 		win_header_handle.mapping = header_mapping;
 		win_header_handle.ptr = shm_header_ptr;
 	#else
@@ -1017,6 +1110,16 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_debug("Error in send_response\n");
 			return FALSE;
+		}
+		{
+			struct stat _shmst;
+			if (fstat(header_fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->header_size) {
+				close(header_fd);
+				const char* error_msg = _("Shared memory object is smaller than the declared size");
+				if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+					siril_log_error("Error in send_response\n");
+				return FALSE;
+			}
 		}
 		shm_header_ptr = mmap(NULL, info->header_size, PROT_READ, MAP_SHARED, header_fd, 0);
 		if (shm_header_ptr == MAP_FAILED) {
@@ -1153,6 +1256,17 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 #else
@@ -1160,6 +1274,16 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1253,6 +1377,17 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 #else
@@ -1260,6 +1395,16 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1344,6 +1489,17 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1351,6 +1507,16 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1364,9 +1530,13 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
-	// Unpack the FITS header string
-	char *header = (char*) shm_ptr;
-	if (fits_parse_header_str(gfit, header)) {
+	// Unpack the FITS header string. The shared memory is not guaranteed to
+	// contain a NUL within info->size bytes, so make a bounded, NUL-terminated
+	// copy rather than scanning shm_ptr directly (which could over-read).
+	char *header = g_strndup((const char*) shm_ptr, info->size);
+	int header_parse_failed = fits_parse_header_str(gfit, header);
+	g_free(header);
+	if (header_parse_failed) {
 		const char* error_msg = _("Error: could not parse FITS header string");
 		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_debug("Error in send_response()\n");
@@ -1405,6 +1575,17 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 		const char* error_msg = "Failed to map shared memory view";
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1412,6 +1593,16 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1467,6 +1658,17 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		CloseHandle(mapping);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1474,6 +1676,16 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -1548,6 +1760,17 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		CloseHandle(mapping);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
+	{
+		MEMORY_BASIC_INFORMATION _shmmbi;
+		if (VirtualQuery(shm_ptr, &_shmmbi, sizeof(_shmmbi)) == 0 || _shmmbi.RegionSize < info->size) {
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(mapping);
+			const char* error_msg = "Shared memory object is smaller than the declared size";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
+	}
 	win_handle.mapping = mapping;
 	win_handle.ptr = shm_ptr;
 	#else
@@ -1555,6 +1778,16 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 	if (fd == -1) {
 		const char* error_msg = _("Failed to open shared memory");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	{
+		struct stat _shmst;
+		if (fstat(fd, &_shmst) == -1 || (size_t)_shmst.st_size < info->size) {
+			close(fd);
+			const char* error_msg = _("Shared memory object is smaller than the declared size");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_error("Error in send_response\n");
+			return FALSE;
+		}
 	}
 	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 	if (shm_ptr == MAP_FAILED) {
@@ -2512,25 +2745,15 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	if (needs_install) {
 		siril_log_message(_("Installing / updating python module in the background. This may take a few seconds...\n"));
 
-		// ATOMIC INSTALLATION: Create temporary installation directory
-		gchar *temp_install_path = g_strdup_printf("%s.tmp.%d", user_module_path, getpid());
-
-		// Ensure temp directory doesn't exist from a previous failed attempt
-		if (g_file_test(temp_install_path, G_FILE_TEST_EXISTS)) {
-			GError *cleanup_error = NULL;
-			if (!delete_directory(temp_install_path, &cleanup_error)) {
-				siril_log_debug("Warning: failed to clean up existing temp directory: %s\n",
-								cleanup_error ? cleanup_error->message : "unknown error");
-				g_clear_error(&cleanup_error);
-			}
-		}
-
-		// Create temporary directory
-		int mkdir_result = siril_mkdir_with_parents(temp_install_path, 0755);
-		if (mkdir_result != 0) {
-		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
-					"Failed to create temporary directory %s: %s",
-					temp_install_path, g_strerror(errno));
+		// ATOMIC INSTALLATION: Create a uniquely-named temporary installation
+		// directory. g_mkdtemp() creates it atomically with a random suffix and
+		// 0700 permissions, avoiding the predictable "<path>.tmp.<pid>" name and
+		// its check-then-create race with a pre-existing/symlinked directory.
+		gchar *temp_install_path = g_strdup_printf("%s.tmp.XXXXXX", user_module_path);
+		if (!g_mkdtemp(temp_install_path)) {
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+						"Failed to create temporary directory %s: %s",
+						temp_install_path, g_strerror(errno));
 			g_free(temp_install_path);
 			g_free(python_path);
 			return FALSE;
