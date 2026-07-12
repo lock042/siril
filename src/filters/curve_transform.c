@@ -601,13 +601,60 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 	free(caches);
 }
 
+/* "Show Mask" preview: replace the image with the luminance range mask of
+ * one channel, computed from the input pixels (white = full application,
+ * black = excluded), as the VeraLux reference does. */
+static void render_lum_mask(fits *from, fits *to, const curve_channel_config *cfg, gboolean multithreaded) {
+	g_assert(from->type == to->type);
+	const size_t layersize = from->naxes[0] * from->naxes[1];
+	int channels = from->naxes[2];
+
+	float norm = 1.0f;
+	float inv_norm = 1.0f;
+	if (from->type == DATA_USHORT) {
+		norm = (float) get_normalized_value(from);
+		inv_norm = 1.f / norm;
+	}
+
+	#ifdef _OPENMP
+	#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
+	#endif
+	for (size_t j = 0; j < layersize; j++) {
+		float r, g, b;
+		if (from->type == DATA_USHORT) {
+			r = from->pdata[0][j] * inv_norm;
+			g = (channels > 1) ? from->pdata[1][j] * inv_norm : r;
+			b = (channels > 2) ? from->pdata[2][j] * inv_norm : r;
+		} else {
+			r = from->fpdata[0][j];
+			g = (channels > 1) ? from->fpdata[1][j] : r;
+			b = (channels > 2) ? from->fpdata[2][j] : r;
+		}
+		float lum = (clamp01(r) + clamp01(g) + clamp01(b)) / 3.0f;
+		float m = lum_mask_value(lum, cfg);
+
+		if (to->type == DATA_USHORT) {
+			WORD w = roundf_to_WORD(m * norm);
+			for (int c = 0; c < channels; c++)
+				to->pdata[c][j] = w;
+		} else {
+			for (int c = 0; c < channels; c++)
+				to->fpdata[c][j] = m;
+		}
+	}
+}
+
 // Hooks...
 int curve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct curve_params *params = (struct curve_params *)args->user;
 	if (!params) return 1;
 
 	params->fit = fit;
-	apply_curve(fit, fit, params, TRUE);
+	if (params->show_mask && params->for_preview
+			&& params->channels[params->target_channel].range_enabled)
+		render_lum_mask(fit, fit, &params->channels[params->target_channel], TRUE);
+	else
+		apply_curve(fit, fit, params, TRUE);
 	return 0;
 }
 

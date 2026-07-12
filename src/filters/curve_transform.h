@@ -59,8 +59,12 @@ struct curve_params {
 	curve_channel_config channels[CHAN_COUNT];
 	
 	enum curve_algorithm algorithm;
-	enum curve_channel target_channel; 
-	
+	enum curve_channel target_channel;
+
+	/* Preview-only: render the luminance range mask of target_channel as a
+	 * grayscale image instead of applying the curves (VeraLux "Show Mask"). */
+	gboolean show_mask;
+
 	fits *fit;
 	gboolean verbose;
 	gboolean for_preview;

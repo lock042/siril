@@ -27,8 +27,10 @@ void on_curves_display_toggle(GtkToggleButton *togglebutton, gpointer user_data)
 void apply_curve_to_sequence(struct curve_data *curve_args);
 
 void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_data);
+void on_curves_show_mask_toggled(GtkToggleButton *button, gpointer user_data);
 void on_curves_range_value_changed(GtkRange *range, gpointer user_data);
 void on_curves_feather_value_changed(GtkRange *range, gpointer user_data);
+void on_curves_reset_channel_button_clicked(GtkButton *button, gpointer user_data);
 
 void curves_handle_pipette_click(int x, int y);
 

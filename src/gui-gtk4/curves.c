@@ -103,6 +103,7 @@ static GtkToggleButton *curves_chan_l_radio = NULL;
 static GtkToggleButton *curves_chan_c_radio = NULL;
 static GtkToggleButton *curves_chan_s_radio = NULL;
 static GtkCheckButton *curves_range_check = NULL;
+static GtkCheckButton *curves_show_mask_check = NULL;
 static GtkScale *curves_range_min_scale = NULL;
 static GtkScale *curves_range_max_scale = NULL;
 static GtkScale *curves_range_feather_scale = NULL;
@@ -115,6 +116,8 @@ static GtkButton *curves_apply_stage_button = NULL;
 // ---------------------------------------------------------------------------
 
 static curve_channel_config gui_channels[CHAN_COUNT];
+// Per-channel "Show Mask" preview flag (GUI-only state, like the reference)
+static gboolean gui_show_mask[CHAN_COUNT];
 
 static enum curve_channel current_channel = CHAN_RGB_K;
 enum curve_algorithm algorithm = AKIMA_SPLINE;
@@ -392,6 +395,7 @@ static void init_single_channel_config(int ch) {
 	gui_channels[ch].lum_min = 0.0f;
 	gui_channels[ch].lum_max = 1.0f;
 	gui_channels[ch].feather = 0.25f;
+	gui_show_mask[ch] = FALSE;
 }
 
 static void init_all_curves() {
@@ -410,20 +414,29 @@ static void init_all_curves_and_reset_channel() {
 static void update_range_ui_from_state() {
 	if (!curves_range_check) return;
 	g_signal_handlers_block_by_func(curves_range_check, on_curve_check_range_button_toggled, NULL);
+	g_signal_handlers_block_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
 	g_signal_handlers_block_by_func(curves_range_min_scale, on_curves_range_value_changed, NULL);
 	g_signal_handlers_block_by_func(curves_range_max_scale, on_curves_range_value_changed, NULL);
 	g_signal_handlers_block_by_func(curves_range_feather_scale, on_curves_feather_value_changed, NULL);
 
 	curve_channel_config *cfg = &gui_channels[current_channel];
 	siril_toggle_set_active(GTK_WIDGET(curves_range_check), cfg->range_enabled);
+	siril_toggle_set_active(GTK_WIDGET(curves_show_mask_check), gui_show_mask[current_channel]);
 	gtk_range_set_value(GTK_RANGE(curves_range_min_scale), cfg->lum_min * 100.0);
 	gtk_range_set_value(GTK_RANGE(curves_range_max_scale), cfg->lum_max * 100.0);
 	gtk_range_set_value(GTK_RANGE(curves_range_feather_scale), cfg->feather * 100.0);
 
 	g_signal_handlers_unblock_by_func(curves_range_check, on_curve_check_range_button_toggled, NULL);
+	g_signal_handlers_unblock_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
 	g_signal_handlers_unblock_by_func(curves_range_min_scale, on_curves_range_value_changed, NULL);
 	g_signal_handlers_unblock_by_func(curves_range_max_scale, on_curves_range_value_changed, NULL);
 	g_signal_handlers_unblock_by_func(curves_range_feather_scale, on_curves_feather_value_changed, NULL);
+
+	// Follow the current channel's range state on channel switches too
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_show_mask_check), cfg->range_enabled);
+	GtkWidget *grid = lookup_widget("curves_range_grid");
+	if (grid)
+		gtk_widget_set_sensitive(grid, cfg->range_enabled);
 }
 
 static void switch_channel_view(enum curve_channel new_chan) {
@@ -523,6 +536,7 @@ void curves_dialog_init_statics() {
 		curves_viewport = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_viewport"));
 
 		curves_range_check = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "curve_check_range_button"));
+		curves_show_mask_check = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "curves_show_mask_button"));
 		curves_range_min_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_min"));
 		curves_range_max_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_max"));
 		curves_range_feather_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_feather"));
@@ -1226,7 +1240,22 @@ static struct curve_params *build_curve_params_from_gui() {
 	}
 	params->algorithm = algorithm;
 	params->target_channel = current_channel;
+	params->show_mask = gui_show_mask[current_channel];
 	return params;
+}
+
+// TRUE while the preview shows the luminance mask instead of the curve result
+static gboolean mask_preview_shown() {
+	return gui_show_mask[current_channel] && gui_channels[current_channel].range_enabled;
+}
+
+// Drop the mask view (silently, no preview recomputation) before committing
+static void disable_mask_preview() {
+	if (!gui_show_mask[current_channel]) return;
+	gui_show_mask[current_channel] = FALSE;
+	g_signal_handlers_block_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
+	siril_toggle_set_active(GTK_WIDGET(curves_show_mask_check), FALSE);
+	g_signal_handlers_unblock_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
 }
 
 static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
@@ -1253,6 +1282,9 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->fit = params->fit;
 	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
 	args->image_hook = curve_image_hook;
+	/* Undo is handled by curve_apply_idle with the pre-tool image so that
+	 * pending stages and the final curves revert as one entry. */
+	args->skip_generic_undo = TRUE;
 	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
 	args->description = _("Curve Transformation");
 	args->verbose = !for_preview;
@@ -1293,6 +1325,19 @@ gboolean curve_apply_idle(gpointer p) {
 		gfit_modified_update_gui();
 
 		copy_gfit_to_backup();
+
+		/* One undo entry for the whole operation (stages + final curves),
+		 * restoring the image saved when the tool was opened or last
+		 * applied.  Skipped for ROI runs, which never saved undo. */
+		if (!gui.roi.active && original_fit_copy) {
+			gchar *summary = curves_log_hook(args->user, SUMMARY);
+			fits undo_fit = { 0 };
+			memcpy(&undo_fit, original_fit_copy, sizeof(fits));
+			undo_fit.icc_profile = original_icc;
+			undo_fit.color_managed = original_icc != NULL;
+			undo_save_state(&undo_fit, "%s", summary);
+			g_free(summary);
+		}
 
 		// Full commit: reset stage stack and update the original reference
 		free_stage_stack();
@@ -1441,13 +1486,25 @@ void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_
 	gboolean active = siril_toggle_get_active(GTK_WIDGET(button));
 	gui_channels[current_channel].range_enabled = active;
 
-	GtkWidget *expander = lookup_widget("curve_range_expander");
-	if (expander) {
-		gtk_widget_set_sensitive(expander, active);
-		gtk_expander_set_expanded((GtkExpander*)expander, active);
+	GtkWidget *grid = lookup_widget("curves_range_grid");
+	if (grid)
+		gtk_widget_set_sensitive(grid, active);
+
+	// Show Mask only makes sense while range masking is enabled
+	gtk_widget_set_sensitive(GTK_WIDGET(curves_show_mask_check), active);
+	if (!active && gui_show_mask[current_channel]) {
+		gui_show_mask[current_channel] = FALSE;
+		g_signal_handlers_block_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
+		siril_toggle_set_active(GTK_WIDGET(curves_show_mask_check), FALSE);
+		g_signal_handlers_unblock_by_func(curves_show_mask_check, on_curves_show_mask_toggled, NULL);
 	}
 
 	gtk_widget_queue_draw(curves_drawingarea);
+	curves_update_image();
+}
+
+void on_curves_show_mask_toggled(GtkToggleButton *button, gpointer user_data) {
+	gui_show_mask[current_channel] = siril_toggle_get_active(GTK_WIDGET(button));
 	curves_update_image();
 }
 
@@ -1524,10 +1581,30 @@ void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+void on_curves_reset_channel_button_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	init_single_channel_config(current_channel);
+	selected_point = (point *) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_update_entry_text();
+	update_display_histogram_from_curve();
+	gtk_widget_queue_draw(curves_drawingarea);
+	curves_update_image();
+	set_cursor_waiting(FALSE);
+}
+
 void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa()) return;
 
-	if (siril_toggle_get_active(GTK_WIDGET(curves_sequence_check)) && sequence_is_loaded()) {
+	gboolean seq_mode = siril_toggle_get_active(GTK_WIDGET(curves_sequence_check)) && sequence_is_loaded();
+	/* Nothing to commit: no active curve and (for single image) no pending
+	 * stage — do not touch the image or push a useless undo entry. */
+	if (!any_curve_active() && (seq_mode || !stage_stack)) {
+		siril_log_message(_("Curves: nothing to apply.\n"));
+		return;
+	}
+
+	if (seq_mode) {
 		struct curve_data *args = calloc(1, sizeof(struct curve_data));
 		for(int i=0; i<CHAN_COUNT; i++) {
 			args->params.channels[i].active = gui_channels[i].active;
@@ -1554,8 +1631,12 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		fit = gfit;
 		gboolean preview_active = siril_toggle_get_active(GTK_WIDGET(curves_preview_check));
+		/* If the preview currently displays the mask, gfit does NOT hold
+		 * the curve result: force the worker path below to recompute it. */
+		gboolean mask_shown = mask_preview_shown();
+		disable_mask_preview();
 
-		if (preview_active && !gui.roi.active) {
+		if (preview_active && !gui.roi.active && !mask_shown) {
 			// The curve is already applied to gfit via preview; we are
 			// about to discard the backup that holds the pre-curve
 			// pixels, so push them onto the undo stack first.  Without
@@ -1566,7 +1647,11 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			struct curve_params *undo_params = build_curve_params_from_gui();
 			gchar *summary = curves_log_hook(undo_params, SUMMARY);
 			fits undo_fit = { 0 };
-			memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+			/* Restore point: the image as it was when the tool was opened
+			 * (or last fully applied) so that all stages plus the final
+			 * curves revert as ONE undo entry; the preview backup only
+			 * holds the last stage. */
+			memcpy(&undo_fit, original_fit_copy ? original_fit_copy : get_preview_gfit_backup(), sizeof(fits));
 			undo_fit.icc_profile = original_icc;
 			undo_fit.color_managed = original_icc != NULL;
 			undo_save_state(&undo_fit, "%s", summary);
@@ -1929,8 +2014,12 @@ void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	gboolean preview_active = siril_toggle_get_active(GTK_WIDGET(curves_preview_check));
+	/* If the preview currently displays the mask, gfit does NOT hold the
+	 * curve result: use the synchronous path below to compute it. */
+	gboolean mask_shown = mask_preview_shown();
+	disable_mask_preview();
 
-	if (preview_active && !gui.roi.active) {
+	if (preview_active && !gui.roi.active && !mask_shown) {
 		// gfit already has backup + current curves; just freeze it
 		stage_stack = g_list_append(stage_stack, snapshot_current_state());
 		copy_gfit_to_backup();

@@ -287,6 +287,13 @@
                         <property name="spacing">6</property>
                         <property name="valign">start</property>
                         <child>
+                          <object class="GtkButton" id="curves_reset_channel_button">
+                            <property name="label" translatable="yes">Reset channel</property>
+                            <property name="tooltip-text" translatable="yes">Reset the current channel to the identity curve</property>
+                            <signal name="clicked" handler="on_curves_reset_channel_button_clicked"/>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkButton" id="curves_undo_stage_button">
                             <property name="label" translatable="yes">↩ Stage</property>
                             <property name="sensitive">0</property>
@@ -308,72 +315,106 @@
                         <property name="orientation">vertical</property>
                         <property name="spacing">6</property>
                         <child>
-                          <object class="GtkCheckButton" id="curve_check_range_button">
-                            <property name="focusable">1</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Enable Range Masking</property>
-                            <property name="tooltip-text" translatable="yes">Restrict the curve to a luminance range with a soft feathered roll-off</property>
-                            <signal name="toggled" handler="on_curve_check_range_button_toggled"/>
+                          <object class="GtkBox">
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkCheckButton" id="curve_check_range_button">
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Enable Range Masking</property>
+                                <property name="tooltip-text" translatable="yes">Restrict the curve to a luminance range with a soft feathered roll-off</property>
+                                <signal name="toggled" handler="on_curve_check_range_button_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="curves_show_mask_button">
+                                <property name="focusable">1</property>
+                                <property name="halign">start</property>
+                                <property name="sensitive">0</property>
+                                <property name="label" translatable="yes">Show mask</property>
+                                <property name="tooltip-text" translatable="yes">Preview the luminance mask of the current channel as a grayscale image: white means full curve application, black means excluded</property>
+                                <signal name="toggled" handler="on_curves_show_mask_toggled"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkExpander" id="curve_range_expander">
-                            <property name="label" translatable="yes">Range</property>
+                          <object class="GtkGrid" id="curves_range_grid">
                             <property name="sensitive">0</property>
-                            <property name="child">
-                              <object class="GtkBox">
-                                <property name="orientation">vertical</property>
-                                <property name="spacing">3</property>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Min</property>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkScale" id="curve_slider_min">
-                                    <property name="adjustment">adj_curve_slider_min</property>
-                                    <property name="digits">3</property>
-                                    <property name="draw-value">0</property>
-                                    <property name="hexpand">1</property>
-                                    <property name="tooltip-text" translatable="yes">Minimum luminance range.</property>
-                                    <signal name="value-changed" handler="on_curves_range_value_changed"/>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Max</property>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkScale" id="curve_slider_max">
-                                    <property name="adjustment">adj_curve_slider_max</property>
-                                    <property name="digits">3</property>
-                                    <property name="draw-value">0</property>
-                                    <property name="hexpand">1</property>
-                                    <property name="tooltip-text" translatable="yes">Maximum luminance range.</property>
-                                    <signal name="value-changed" handler="on_curves_range_value_changed"/>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Feather</property>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkScale" id="curve_slider_feather">
-                                    <property name="adjustment">adj_curve_slider_feather</property>
-                                    <property name="digits">3</property>
-                                    <property name="draw-value">0</property>
-                                    <property name="hexpand">1</property>
-                                    <property name="tooltip-text" translatable="yes">Soft roll-off width at range boundaries.</property>
-                                    <signal name="value-changed" handler="on_curves_feather_value_changed"/>
-                                  </object>
-                                </child>
+                            <property name="row-spacing">2</property>
+                            <property name="column-spacing">8</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Min</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
-                            </property>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="curve_slider_min">
+                                <property name="adjustment">adj_curve_slider_min</property>
+                                <property name="digits">3</property>
+                                <property name="draw-value">0</property>
+                                <property name="hexpand">1</property>
+                                <property name="tooltip-text" translatable="yes">Minimum luminance range.</property>
+                                <signal name="value-changed" handler="on_curves_range_value_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">0</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Max</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">1</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="curve_slider_max">
+                                <property name="adjustment">adj_curve_slider_max</property>
+                                <property name="digits">3</property>
+                                <property name="draw-value">0</property>
+                                <property name="hexpand">1</property>
+                                <property name="tooltip-text" translatable="yes">Maximum luminance range.</property>
+                                <signal name="value-changed" handler="on_curves_range_value_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">1</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Feather</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">2</property>
+                                </layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="curve_slider_feather">
+                                <property name="adjustment">adj_curve_slider_feather</property>
+                                <property name="digits">3</property>
+                                <property name="draw-value">0</property>
+                                <property name="hexpand">1</property>
+                                <property name="tooltip-text" translatable="yes">Soft roll-off width at range boundaries.</property>
+                                <signal name="value-changed" handler="on_curves_feather_value_changed"/>
+                                <layout>
+                                  <property name="column">1</property>
+                                  <property name="row">2</property>
+                                </layout>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
@@ -599,9 +640,9 @@
             <child>
               <object class="GtkButton" id="curves_reset_button">
                 <property name="focusable">1</property>
-                <property name="label" translatable="yes">Reset</property>
+                <property name="label" translatable="yes">Reset all</property>
                 <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="yes">Reset curves transformation dialog window</property>
+                <property name="tooltip-text" translatable="yes">Reset all channels and settings</property>
                 <property name="valign">start</property>
                 <signal name="clicked" handler="on_curves_reset_button_clicked"/>
               </object>
