@@ -8,20 +8,37 @@
 
 #include <glib.h>
 
-typedef struct _SirilSandbox SirilSandbox;   // opaque
-
-// Build in the PARENT, before fork. `wd`, `venv_path` may be NULL (skipped).
-// Returns NULL if sandboxing is unavailable/disabled — caller then spawns
-// with no child_setup (fail-open; see spec §6 policy note).
-SirilSandbox *siril_sandbox_prepare(const char *wd,
-                                    const char *venv_path,
-                                    gboolean allow_network);
-
-// GSpawnChildSetupFunc. Runs in the child AFTER fork, BEFORE exec.
-// MUST be async-signal-safe: only raw syscalls, no malloc/glib/logging.
-void siril_sandbox_child_setup(gpointer user_data);   // user_data = SirilSandbox*
-
-// Parent-side cleanup after spawn returns (closes the ruleset fd, frees struct).
-void siril_sandbox_finish(SirilSandbox *sb);
+/*
+ * Spawn the Python script interpreter under the platform sandbox, confining
+ * its "Category-B" power (filesystem destruction + network exfiltration) that
+ * bypasses the sirilpy interface via raw CPython.
+ *
+ * This mirrors the subset of g_spawn_async_with_pipes() that
+ * execute_python_script() relies on, so all platform divergence is hidden here:
+ *   - Linux:   g_spawn + a child_setup that installs Landlock + seccomp.
+ *   - macOS:   g_spawn with the argv wrapped by /usr/bin/sandbox-exec (Seatbelt).
+ *   - Windows: a bespoke AppContainer CreateProcess (g_spawn cannot set the
+ *              security capabilities an AppContainer needs).
+ *   - other:   plain g_spawn, unsandboxed (with a one-line warning).
+ *
+ * `working_dir` may be NULL (inherit cwd). `argv`/`envp` follow g_spawn
+ * conventions. `wd`/`venv_path` are the writable roots granted to the script
+ * (may be NULL). `allow_network` relaxes the network confinement (future
+ * manifest opt-in; currently always FALSE).
+ *
+ * On success returns TRUE and fills `child_pid` (a process HANDLE on Windows),
+ * `stdout_fd` and `stderr_fd` (CRT file descriptors, as g_spawn returns). On
+ * failure returns FALSE and sets `error`.
+ */
+gboolean siril_sandbox_spawn(const char *working_dir,
+                             gchar **argv,
+                             gchar **envp,
+                             const char *wd,
+                             const char *venv_path,
+                             gboolean allow_network,
+                             GPid *child_pid,
+                             gint *stdout_fd,
+                             gint *stderr_fd,
+                             GError **error);
 
 #endif /* SRC_IO_SIRIL_SANDBOX_H */

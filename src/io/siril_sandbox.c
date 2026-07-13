@@ -315,6 +315,9 @@ static inline long sandbox_landlock_restrict_self(int ruleset_fd, __u32 flags) {
 
 #define SANDBOX_MAX_PATHS 16
 
+/* Internal to the Linux implementation (no longer exposed in the header, which
+ * now offers only siril_sandbox_spawn()). */
+typedef struct _SirilSandbox SirilSandbox;
 struct _SirilSandbox {
 	int install_seccomp;               /* 1 if a seccomp filter applies     */
 	int allow_network;                 /* select net-on vs net-off filter   */
@@ -365,9 +368,9 @@ static void sandbox_child_add_path(int ruleset_fd, guint64 access,
 }
 #endif /* HAVE_LANDLOCK */
 
-SirilSandbox *siril_sandbox_prepare(const char *wd,
-                                    const char *venv_path,
-                                    gboolean allow_network) {
+static SirilSandbox *sandbox_prepare(const char *wd,
+                                     const char *venv_path,
+                                     gboolean allow_network) {
 	int have_seccomp = 0;
 	int have_landlock = 0;
 	SirilSandbox *sb;
@@ -470,7 +473,7 @@ SirilSandbox *siril_sandbox_prepare(const char *wd,
  * errno message formatting. Failures surface as the child exiting 127. The
  * ruleset is built HERE (not in the parent) because GLib has already closed
  * any parent-created fd by this point. */
-void siril_sandbox_child_setup(gpointer user_data) {
+static void sandbox_child_setup(gpointer user_data) {
 	const SirilSandbox *sb = (const SirilSandbox *) user_data;
 
 	if (!sb)
@@ -537,7 +540,7 @@ void siril_sandbox_child_setup(gpointer user_data) {
 #endif
 }
 
-void siril_sandbox_finish(SirilSandbox *sb) {
+static void sandbox_finish(SirilSandbox *sb) {
 	if (!sb)
 		return;
 #ifdef HAVE_LANDLOCK
@@ -547,23 +550,176 @@ void siril_sandbox_finish(SirilSandbox *sb) {
 	g_free(sb);
 }
 
-#else /* !__linux__ — no-op stubs so build/runtime are unchanged elsewhere. */
-
-SirilSandbox *siril_sandbox_prepare(const char *wd,
-                                    const char *venv_path,
-                                    gboolean allow_network) {
-	(void) wd;
-	(void) venv_path;
-	(void) allow_network;
-	return NULL;
+gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
+                             const char *wd, const char *venv_path,
+                             gboolean allow_network, GPid *child_pid,
+                             gint *stdout_fd, gint *stderr_fd, GError **error) {
+	/* Build the ruleset spec in the parent; the actual Landlock ruleset and
+	 * seccomp filter are installed by sandbox_child_setup() post-fork. If
+	 * preparation fails entirely (unsupported kernel) sb is NULL and we spawn
+	 * without a child_setup (fail-open). */
+	SirilSandbox *sb = sandbox_prepare(wd, venv_path, allow_network);
+	gboolean ok = g_spawn_async_with_pipes(
+		working_dir, argv, envp,
+		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		sb ? sandbox_child_setup : NULL, sb,
+		child_pid, NULL, stdout_fd, stderr_fd, error);
+	sandbox_finish(sb);
+	return ok;
 }
 
-void siril_sandbox_child_setup(gpointer user_data) {
-	(void) user_data;
+#elif defined(__APPLE__)
+
+/* ==================================================================== */
+/* macOS: confine via /usr/bin/sandbox-exec with a generated Seatbelt   */
+/* (SBPL) profile prepended to the argv.                                */
+/*                                                                       */
+/* Why argv-wrap and not sandbox_init() in a child_setup: sandbox_init() */
+/* is not async-signal-safe (it parses/compiles the profile and         */
+/* allocates), so it is unsafe to call between fork() and exec() in the  */
+/* multithreaded Siril process. sandbox-exec applies the profile in a    */
+/* separate exec, side-stepping that entirely.                          */
+/*                                                                       */
+/* NB sandbox-exec is Apple-deprecated but remains the only mechanism    */
+/* for a DYNAMIC, per-child, path-scoped profile — App Sandbox is        */
+/* app-wide and static (set at code-signing), so it cannot express       */
+/* "confine just this Python child with these dirs". The mechanism       */
+/* (Seatbelt) underpins App Sandbox itself and is stable in practice.    */
+/*                                                                       */
+/* LIMITATION: this SBPL profile is a best-effort draft that could not   */
+/* be validated on macOS in the build environment; it needs a runtime    */
+/* test on a Mac (the CI macos job only packages, it does not run a      */
+/* script under the profile). Same residual limits as Linux apply        */
+/* (X11/Wayland n/a on mac; the C IPC is still the TCB; local IPC        */
+/* sockets to privileged daemons are not filtered here).                 */
+/* ==================================================================== */
+
+#include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
+
+#define SANDBOX_EXEC_PATH "/usr/bin/sandbox-exec"
+
+/* Append `s` to the profile as an SBPL double-quoted string literal, escaping
+ * backslashes and double quotes. */
+static void sb_append_quoted(GString *p, const char *s) {
+	g_string_append_c(p, '"');
+	for (const char *c = s; *c; c++) {
+		if (*c == '\\' || *c == '"')
+			g_string_append_c(p, '\\');
+		g_string_append_c(p, *c);
+	}
+	g_string_append_c(p, '"');
 }
 
-void siril_sandbox_finish(SirilSandbox *sb) {
-	(void) sb;
+/* Append (allow file-write* (subpath "PATH")) if path is non-empty. */
+static void sb_allow_write_subpath(GString *p, const char *path) {
+	if (!path || !*path)
+		return;
+	g_string_append(p, "(allow file-write* (subpath ");
+	sb_append_quoted(p, path);
+	g_string_append(p, "))");
 }
 
-#endif /* __linux__ */
+/* Build a self-contained Seatbelt profile string (passed via sandbox-exec -p).
+ * Allow-by-default (so the interpreter reads its libs freely), then confine:
+ * deny all writes except the granted roots, and deny IP network egress while
+ * leaving AF_UNIX (Siril IPC) untouched. */
+static gchar *build_seatbelt_profile(const char *wd, const char *venv_path,
+                                     gboolean allow_network) {
+	GString *p = g_string_new("(version 1)(allow default)");
+
+	/* Write confinement: global deny, then re-allow the granted roots (SBPL
+	 * is last-match-wins, so the allows must follow the deny). */
+	g_string_append(p, "(deny file-write*)");
+	sb_allow_write_subpath(p, wd);
+	sb_allow_write_subpath(p, venv_path);
+	sb_allow_write_subpath(p, siril_get_user_data_dir());
+	{
+		gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
+		sb_allow_write_subpath(p, cfg);
+		g_free(cfg);
+	}
+	sb_allow_write_subpath(p, g_get_tmp_dir());
+	sb_allow_write_subpath(p, "/dev/null");
+	sb_allow_write_subpath(p, "/dev/random");
+	sb_allow_write_subpath(p, "/dev/urandom");
+
+	/* Network: deny IP egress (exfil). AF_UNIX stays allowed by (allow
+	 * default), so the Siril IPC socket is unaffected. */
+	if (!allow_network)
+		g_string_append(p, "(deny network-outbound (remote ip \"*:*\"))");
+
+	/* Deny reading other processes' state (ptrace/task_for_pid analogue). */
+	g_string_append(p, "(deny process-info*)");
+
+	return g_string_free(p, FALSE);
+}
+
+gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
+                             const char *wd, const char *venv_path,
+                             gboolean allow_network, GPid *child_pid,
+                             gint *stdout_fd, gint *stderr_fd, GError **error) {
+	/* If sandbox-exec is missing (should never happen on macOS), fall back to
+	 * an unsandboxed spawn with a warning rather than failing outright. */
+	if (!g_file_test(SANDBOX_EXEC_PATH, G_FILE_TEST_IS_EXECUTABLE)) {
+		siril_log_message(_("Script sandbox unavailable (%s missing); running "
+		                    "Python without confinement.\n"), SANDBOX_EXEC_PATH);
+		return g_spawn_async_with_pipes(working_dir, argv, envp,
+			G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+	}
+
+	gchar *profile = build_seatbelt_profile(wd, venv_path, allow_network);
+
+	/* Prepend: sandbox-exec -p <profile> <original argv...> */
+	GPtrArray *wrapped = g_ptr_array_new();
+	g_ptr_array_add(wrapped, (gpointer) SANDBOX_EXEC_PATH);
+	g_ptr_array_add(wrapped, (gpointer) "-p");
+	g_ptr_array_add(wrapped, profile);
+	for (gchar **a = argv; a && *a; a++)
+		g_ptr_array_add(wrapped, *a);
+	g_ptr_array_add(wrapped, NULL);
+
+	gboolean ok = g_spawn_async_with_pipes(working_dir,
+		(gchar **) wrapped->pdata, envp,
+		G_SPAWN_DO_NOT_REAP_CHILD,   /* absolute path, no SEARCH_PATH needed */
+		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+
+	g_ptr_array_free(wrapped, FALSE);
+	g_free(profile);
+	return ok;
+}
+
+#elif defined(_WIN32)
+
+/* ==================================================================== */
+/* Windows: AppContainer confinement — implemented separately.          */
+/* Placeholder retained so the tree builds; replaced by the real        */
+/* AppContainer CreateProcess in the Windows implementation step.       */
+/* ==================================================================== */
+
+gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
+                             const char *wd, const char *venv_path,
+                             gboolean allow_network, GPid *child_pid,
+                             gint *stdout_fd, gint *stderr_fd, GError **error) {
+	(void) wd; (void) venv_path; (void) allow_network;
+	/* TODO(securescripts): AppContainer CreateProcess. Until then, spawn
+	 * unsandboxed so Windows behaviour is unchanged. */
+	return g_spawn_async_with_pipes(working_dir, argv, envp,
+		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+}
+
+#else /* other POSIX — no confinement available; spawn plainly. */
+
+gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
+                             const char *wd, const char *venv_path,
+                             gboolean allow_network, GPid *child_pid,
+                             gint *stdout_fd, gint *stderr_fd, GError **error) {
+	(void) wd; (void) venv_path; (void) allow_network;
+	return g_spawn_async_with_pipes(working_dir, argv, envp,
+		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+}
+
+#endif /* platform */
