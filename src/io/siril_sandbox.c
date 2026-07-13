@@ -414,14 +414,14 @@ SirilSandbox *siril_sandbox_prepare(const char *wd,
 				sb->paths[n++] = g_strdup(venv_path);
 
 			/* Siril's own writable directories, via the app-dirs accessors
-			 * (platform/XDG-correct — do not hardcode). Scripts legitimately
-			 * write here: user data (~/.local/share/siril: prefs, venv
-			 * metadata), the per-app config dir (<config>/siril — NOT the whole
-			 * XDG config base, which would expose every app's config), the
-			 * scripts repo and the SPCC data dir. NB reads are already
-			 * unrestricted (read rights are unhandled), so a read-only consumer
-			 * of these needs no grant; these grants are only about writes. A
-			 * dir that does not exist yet is simply skipped when the rule is
+			 * (platform/XDG-correct — do not hardcode): user data
+			 * (~/.local/share/siril: prefs, venv metadata) and the per-app
+			 * config dir (<config>/siril — NOT the whole XDG config base, which
+			 * would expose every app's config). The scripts repo and SPCC data
+			 * dir are deliberately NOT granted: they are git-managed by Siril's
+			 * own C code, and since reads are unrestricted (read rights are
+			 * unhandled) scripts can still read them — they just cannot write.
+			 * A dir that does not exist yet is simply skipped when the rule is
 			 * added in the child. */
 			{
 				const char *d;
@@ -434,12 +434,6 @@ SirilSandbox *siril_sandbox_prepare(const char *wd,
 					sb->paths[n++] = cfg;   /* heap-owned; freed in finish() */
 				else
 					g_free(cfg);
-				d = siril_get_scripts_repo_path();
-				if (d && *d)
-					sb->paths[n++] = g_strdup(d);
-				d = siril_get_spcc_repo_path();
-				if (d && *d)
-					sb->paths[n++] = g_strdup(d);
 			}
 
 			tmpdir = g_getenv("TMPDIR");
