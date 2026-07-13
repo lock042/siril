@@ -202,6 +202,7 @@ src_files = [
   'io/siril_plot.c',
   'io/siril_pythoncommands.c',
   'io/siril_pythonmodule.c',
+  'io/siril_sandbox.c',
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',

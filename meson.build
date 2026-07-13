@@ -614,6 +614,7 @@ foreach header : [
     { 'm': 'HAVE_SYS_STATVFS_H',  'v': 'sys/statvfs.h' },
     { 'm': 'HAVE_SYS_VFS_H',      'v': 'sys/vfs.h' },
     { 'm': 'HAVE_SYS_PARAM_H',    'v': 'sys/param.h' },
+    { 'm': 'HAVE_LANDLOCK',       'v': 'linux/landlock.h' },
   ]
   conf_data.set(header['m'], cc.has_header(header['v']) ? 1 : false)
 endforeach

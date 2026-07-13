@@ -1,0 +1,299 @@
+# securescripts — Linux sandbox for the Python script run phase (implementation spec)
+
+Branch: `securescripts`. This spec is for an implementing sub-agent. Leave all changes in
+the working tree (do NOT commit). Build to validate ONLY in `/home/siril-dev/mppbuild`
+— never run `meson setup`/`reconfigure` under `/workspace` (it breaks the user's build).
+
+## 1. Goal & threat model
+
+Constrain **Category-B** power of a Siril Python script: the ability to do damage *around*
+the sirilpy interface using raw CPython (`open()`, `os.system`, `socket`, `subprocess`,
+`ctypes`). Two concrete threats, low-probability / high-impact:
+
+- **Destruction** — `rm -rf ~/*`, overwriting/truncating files outside the project.
+- **Exfiltration** — read personal files (`~/.ssh`, `~/Documents`) and POST them out.
+
+Defenses, both enforced by the **kernel** on the spawned child (a script cannot remove
+them from inside the interpreter — `ctypes`/native code bypass any Python-level hook):
+
+1. **Landlock** — filesystem access control: **confine writes** to the project working dir
+   + venv + temp; allow reads broadly (see §4 for why read-confinement is deliberately out
+   of scope for this cut).
+2. **seccomp-bpf** — **block internet egress**: deny `socket(2)` for `AF_INET`/`AF_INET6`,
+   allow `AF_UNIX` (Siril IPC is an AF_UNIX socket, so this does not touch it).
+
+Scope of THIS cut: **Linux only**. macOS/Windows get no-op stubs so the build and runtime
+are unchanged there. Default policy: **network off, writes confined**, applied
+unconditionally to every script run (no manifest yet — that is a later layer).
+
+## 2. Why the run-phase spawn only (phase split)
+
+The venv is provisioned by separate `g_spawn_sync(..., env, ...)` calls to `uv`
+(around lines 3206, 3266, 4178, 4286, 4834, 4998 in `siril_pythonmodule.c`). Those need
+network + cache/venv writes and must stay **unsandboxed**. Only the final script-run spawn,
+`g_spawn_async_with_pipes` at **`siril_pythonmodule.c:5770`**, receives the sandbox. So the
+phase split requires no restructuring — just hook that one call site.
+
+## 3. Files to add
+
+### `src/io/siril_sandbox.h`
+Public API, platform-neutral:
+
+```c
+#ifndef SRC_IO_SIRIL_SANDBOX_H
+#define SRC_IO_SIRIL_SANDBOX_H
+#include <glib.h>
+
+typedef struct _SirilSandbox SirilSandbox;   // opaque
+
+// Build in the PARENT, before fork. `wd`, `venv_path` may be NULL (skipped).
+// Returns NULL if sandboxing is unavailable/disabled — caller then spawns
+// with no child_setup (fail-open; see §6 policy note).
+SirilSandbox *siril_sandbox_prepare(const char *wd,
+                                    const char *venv_path,
+                                    gboolean allow_network);
+
+// GSpawnChildSetupFunc. Runs in the child AFTER fork, BEFORE exec.
+// MUST be async-signal-safe: only raw syscalls, no malloc/glib/logging.
+void siril_sandbox_child_setup(gpointer user_data);   // user_data = SirilSandbox*
+
+// Parent-side cleanup after spawn returns (closes the ruleset fd, frees struct).
+void siril_sandbox_finish(SirilSandbox *sb);
+
+#endif
+```
+
+### `src/io/siril_sandbox.c`
+- Non-Linux (`#ifndef __linux__` or `#if !defined(HAVE_LANDLOCK)`): `prepare` returns NULL,
+  `child_setup` is a no-op, `finish` frees nothing. Done.
+- Linux implementation per §4/§5.
+
+`SirilSandbox` holds only POD that `child_setup` reads post-fork (async-signal-safe to read
+parent memory): `int ruleset_fd; int allow_network;` plus the pre-built seccomp
+`struct sock_fprog` (or a flag selecting a `static const` filter). No pointers that require
+heap access in the child.
+
+## 4. Landlock
+
+> **CORRECTION (found in review, applied in code):** the ruleset must be built in the
+> **CHILD** (`child_setup`), NOT the parent. GLib's `GSpawnChildSetupFunc` contract says the
+> callback runs *after GLib has performed all its setup* — which includes closing every
+> descriptor ≥3 it does not manage. A ruleset fd created in the parent is therefore already
+> closed by the time `child_setup` runs, so `landlock_restrict_self(fd)` fails with `EBADF`
+> and — because we `_exit(127)` on that — **every script fails to launch** on a
+> Landlock-capable kernel. (We must NOT use `G_SPAWN_LEAVE_DESCRIPTORS_OPEN` to keep the fd,
+> as that leaks Siril's own fds into the untrusted interpreter.) So: the parent only probes
+> the ABI, computes the access mask, and assembles the writable path list (as `g_strdup`'d
+> strings, resolving `$TMPDIR` etc. so the child needs no `g_getenv`); the child creates the
+> ruleset, adds the rules, and calls `landlock_restrict_self`, using only async-signal-safe
+> syscalls (`open`/`fstat`/`close`/`syscall`). seccomp is unaffected — its filter is a
+> `static const` array inherited via COW, needing no fd, which is why seccomp-in-child_setup
+> is the common, working pattern and Landlock's fd was the wrinkle.
+>
+> Validated end-to-end against the real `g_spawn_*` path (not a bare `fork()` harness, which
+> bypasses GLib's fd-closing and hides this bug): writes confined to wd, `$HOME`/`/etc`
+> denied, `AF_INET` blocked, `AF_UNIX` intact.
+>
+> Build note: `HAVE_LANDLOCK` only lands in `config.h` after a meson **reconfigure**; a bare
+> `ninja` may report "no work to do" and silently build the Landlock code out. Force a
+> reconfigure (or clean the object) when first wiring the probe.
+
+Original (parent-build) plan below is superseded by the correction above but kept for the
+access-mask / path-list details, which still apply.
+
+- Detect ABI: `landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION)`.
+  If it returns `-1` with `ENOSYS`/`EOPNOTSUPP` (kernel <5.13 or Landlock off), Landlock is
+  unavailable → see §6.
+- Mask the requested access rights down to what the detected ABI supports (older ABI lacks
+  `REFER`/`TRUNCATE`/`IOCTL_DEV`); requesting unsupported bits gives `EINVAL`.
+- Use `<linux/landlock.h>` for structs; call syscalls via `syscall(__NR_landlock_*)`
+  (glibc has no wrappers). Provide the three thin static wrappers.
+
+**Rule set (deliberately confine WRITES, allow READS):**
+- Handled write-ish rights: `WRITE_FILE | REMOVE_DIR | REMOVE_FILE | MAKE_CHAR |
+  MAKE_DIR | MAKE_REG | MAKE_SOCK | MAKE_FIFO | MAKE_BLOCK | MAKE_SYM |
+  TRUNCATE(if ABI≥3) | REFER(if ABI≥2)`.
+- **Do NOT handle** the read rights (`READ_FILE`, `READ_DIR`, `EXECUTE`). Under Landlock,
+  access rights that are *not handled* are always allowed — so the interpreter can freely
+  read its stdlib, `/usr`, `/etc`, the uv-managed python, etc., with no allow-list needed.
+  This is why only writes need path rules.
+- Grant the handled write rights on these paths only (skip any that are NULL/missing):
+  - `wd` (the project working dir — `com.wd`),
+  - `venv_path` (python writes `__pycache__`/`.pyc` here; alternatively set
+    `PYTHONDONTWRITEBYTECODE=1` in env and you may drop this — but granting is simpler),
+  - `TMPDIR` if set, else `/tmp`, plus `/var/tmp`,
+  - `/dev/null`, `/dev/zero`, `/dev/full` (needed for normal write() to /dev/null).
+- `landlock_restrict_self` requires `PR_SET_NO_NEW_PRIVS` (set in child, §5).
+
+**Why read-confinement is out of scope for this cut:** with egress cut (§5), a script can
+read `~/.ssh` but has nowhere to send it. Read-confinement is a later refinement; note it in
+a code comment so it isn't mistaken for an oversight.
+
+## 5. seccomp-bpf (build filter in parent, install in child)
+
+Build the `sock_filter` program as a **`static const`** array (or in the struct) in the
+parent; the child just calls `prctl` + `seccomp`. In `siril_sandbox_child_setup`, in order:
+
+1. `prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)` — required for both unprivileged seccomp and
+   Landlock. Abort child (`_exit(127)`) on failure.
+2. `landlock_restrict_self(ruleset_fd, 0)` if `ruleset_fd >= 0`. On failure `_exit(127)`.
+3. If `!allow_network`: `seccomp(SECCOMP_SET_MODE_FILTER, 0, &prog)` (or the `prctl`
+   equivalent). On failure `_exit(127)`.
+
+**Filter logic** (minimal; default ALLOW):
+- Load `arch` (`offsetof(struct seccomp_data, arch)`); if not the expected arch, `KILL`
+  (guards against arg layout differences). Target `x86_64` and `aarch64` — both have a
+  direct `socket(2)` syscall so filtering on `args[0]` (domain) is reliable.
+- Load `nr`; if `nr == __NR_socket`, load `args[0]` (domain); if `domain == AF_INET (2)` or
+  `AF_INET6 (10)` → `RET_ERRNO(EAFNOSUPPORT)`. Everything else (incl. `AF_UNIX (1)`,
+  `AF_NETLINK`) → `ALLOW`.
+- All other syscalls → `ALLOW`.
+- Handle the two arch NR values (they differ) — emit per-arch, or compile for the build
+  arch via `#if defined(__x86_64__) / __aarch64__` and `KILL` on any other arch build so we
+  never ship a filter that silently no-ops.
+
+Only `socket()` creation is blocked; with no way to obtain an inet fd, `connect()` etc. need
+no filtering. `allow_network=TRUE` (future manifest opt-in) skips step 3 but KEEPS Landlock.
+
+**Async-signal-safety:** `child_setup` must call ONLY `prctl`, `syscall`, `seccomp`,
+`_exit`. No `g_*`, no `malloc`, no `siril_log_*`, no `errno`-message formatting. Do not use
+`GSpawnChildSetupFunc`'s environment to log; failures surface as the child exiting 127.
+
+## 6. Availability / fail policy
+
+If `siril_sandbox_prepare` cannot build a ruleset (old kernel, Landlock disabled): return
+NULL and have the caller spawn with `child_setup = NULL`. i.e. **fail-open with a one-line
+`siril_log_message` warning** ("Script sandbox unavailable on this kernel; running Python
+without filesystem/network confinement."). Rationale: not breaking users on older kernels
+for an MVP. Put the open/closed choice behind a single `#define SANDBOX_FAIL_OPEN 1` so it
+can be flipped to fail-closed later. seccomp can still be installed even if Landlock is
+absent (they are independent) — attempt each independently; a NULL SirilSandbox means
+neither could be prepared.
+
+## 7. Integration at the call site (`siril_pythonmodule.c` ~5768–5786)
+
+- `#include "io/siril_sandbox.h"` at the top.
+- Just before the spawn, after `env`/`python_argv` are ready:
+  ```c
+  SirilSandbox *sb = siril_sandbox_prepare(com.wd, venv_path, FALSE /* allow_network */);
+  ```
+  Note `venv_path` is still in scope here (freed at line ~5827, after the spawn). `com.wd`
+  is the working dir (`core/siril.h:862`).
+- Change the spawn call args 5 and 6 from `NULL, NULL` to
+  `sb ? siril_sandbox_child_setup : NULL, sb`.
+- After `g_spawn_async_with_pipes` returns (success or failure), call
+  `siril_sandbox_finish(sb);` (closes the parent's ruleset fd, frees the struct). Make sure
+  it runs on BOTH the success and the `!success` cleanup path.
+- `GSpawnChildSetupFunc` is ignored by GLib on Windows, and our stub is a no-op, so no
+  platform guard is needed at the call site.
+
+## 8. Build system
+
+- Add `'io/siril_sandbox.c',` to `src/meson.build` right after `'io/siril_pythonmodule.c',`
+  (line ~204).
+- Add a Landlock header probe near the other `cc.has_header` checks:
+  ```meson
+  if cc.has_header('linux/landlock.h')
+    config_h.set('HAVE_LANDLOCK', 1)   # match the project's existing config-define idiom
+  endif
+  ```
+  Find how this project defines config macros (grep `config.h`/`configuration_data`/
+  `add_project_arguments('-DHAVE_`) and follow the SAME pattern — do not invent a new one.
+- The .c file compiles on all platforms; the Linux body is guarded by `HAVE_LANDLOCK`
+  (Landlock) and `__linux__` (seccomp). seccomp needs `<linux/seccomp.h>`,
+  `<linux/filter.h>`, `<linux/audit.h>`, `<sys/prctl.h>`, `<sys/syscall.h>`.
+
+## 9. Acceptance checks (build + run in /home/siril-dev/mppbuild only)
+
+1. Builds cleanly on Linux; the sandbox source compiles.
+2. A script doing `open('/tmp/../etc/x','w')` or writing anywhere outside `com.wd`/venv/tmp
+   raises `PermissionError`; writing a file *inside* the working dir succeeds.
+3. `import socket; socket.create_connection(('1.1.1.1',80),2)` raises
+   `OSError`/`PermissionError` (EAFNOSUPPORT at socket creation); a normal sirilpy script still
+   connects to Siril and runs commands (AF_UNIX unaffected).
+4. On a kernel without Landlock, Siril logs the fail-open warning and scripts still run.
+
+Report: files changed, the exact call-site diff, build result, and any of the four checks
+you could/couldn't run headless.
+
+## 10. Hardening additions (round 2) — three cheap, high-value vectors
+
+All three land ONLY in `src/io/siril_sandbox.c` (no call-site or meson change). Keep the
+existing Landlock design untouched. Everything new that runs in `child_setup` stays
+async-signal-safe (raw syscalls / setrlimit / prctl / _exit only).
+
+### 10a. seccomp: deny process-inspection syscalls (a real sandbox ESCAPE otherwise)
+Same-uid `ptrace` / `process_vm_readv` lets a script read another process's memory (steal
+browser cookies, ssh-agent keys) and — worse — inject code into an UN-sandboxed sibling the
+user owns, escaping our per-process confinement entirely. Deny, with `RET_ERRNO(EPERM)` (not
+KILL — benign probes shouldn't be fatal): `ptrace`, `process_vm_readv`, `process_vm_writev`,
+`process_madvise`, `kcmp`, `pidfd_getfd`. These denials apply in BOTH the network-off and
+network-on filters.
+
+### 10b. seccomp: tighten socket() to an AF_UNIX allow-list
+Today the filter denies only `AF_INET`/`AF_INET6` and ALLOWS everything else (incl.
+`AF_NETLINK`, `AF_PACKET`). Change the default (network-off) filter to allow ONLY
+`AF_UNIX` (== 1, needed for Siril IPC) and `RET_ERRNO(EAFNOSUPPORT)` for every other family.
+For the future network-on path (`allow_network == TRUE`), install a filter that keeps the
+10a ptrace denials but does NOT restrict socket families (inet permitted).
+
+Because seccomp now does more than networking, it must be installed **whenever the arch is
+supported, regardless of `allow_network`** (previously it was skipped when network was
+allowed). Restructure: store `allow_network` in the struct and select between two
+`static const` filters in `child_setup`:
+- `sandbox_seccomp_insns` (network off): ptrace denials + AF_UNIX-only.
+- `sandbox_seccomp_insns_net` (network on): ptrace denials only.
+
+**BPF assembly guidance (avoid the offset foot-gun):**
+- Keep the instruction layout FIXED so `#ifdef`s never shift jump offsets. For syscall
+  numbers that may be absent from build headers, define a local fallback that can never
+  match a real nr, so the compare instruction is still emitted:
+  `#ifdef __NR_process_madvise ... #else #define SBX_NR_PROCESS_MADVISE 0xffffffffu #endif`
+  (do this for `process_madvise` and `pidfd_getfd` at least; `ptrace`/`process_vm_*`/`kcmp`
+  are old enough to assume present, but guard them the same way for safety).
+- Use a shared RET trailer (`RET_KILL`, `RET_DENY_EPERM`, `RET_ERRNO_EAFNOSUPPORT`,
+  `RET_ALLOW`) and jump to it, rather than sprinkling RETs — makes the offsets reviewable.
+- VALIDATE behaviourally (see below), which catches any offset mistake regardless.
+
+### 10c. setrlimit: DoS hardening (non-fatal, generous)
+In `child_setup`, before/after the seccomp install, apply resource limits. These are
+hardening, NOT a security boundary — a failed `setrlimit` must be **non-fatal** (ignore the
+return; do NOT `_exit`), because breaking a legit script is worse than the DoS risk.
+- `RLIMIT_NPROC` — anti-fork-bomb. CAVEAT: this limit is the real-UID's TOTAL live process
+  count, not just this subtree, so set it GENEROUS (`#define SANDBOX_MAX_PROCS 4096`) or the
+  child may be unable to fork at all on a busy desktop. Comment this prominently.
+- `RLIMIT_FSIZE` — cap a single file's size. CAVEAT: astro images/stacks are large and
+  exceeding this raises SIGXFSZ (kills the writer), so set it VERY generous
+  (`#define SANDBOX_MAX_FSIZE_BYTES (64ULL << 30)` = 64 GiB). It only stops the single-giant-
+  file case; total-disk exhaustion needs cgroups/quota (out of scope — note it).
+Both via `#define` so they are tunable. Do NOT add memory/CPU limits — they fight legitimate
+image processing.
+
+### 10d. Limitations comment (required)
+Add a clearly-marked comment block near the top of `siril_sandbox.c` documenting what this
+Landlock+seccomp approach CANNOT close, so nobody mistakes it for full containment:
+- **AF_UNIX reach to privileged local daemons**: we must allow AF_UNIX for Siril IPC, and
+  neither seccomp (can't see the connect path/address) nor Landlock (doesn't mediate unix
+  connect) can stop a script connecting to `docker.sock` (→ root), the ssh-agent socket
+  (→ the user's keys), or the D-Bus session/system bus. Closing this needs a mount/network
+  namespace or an LSM (AppArmor) profile.
+- **X11 keylogging/screenshot for GUI (PyQt) scripts**: `$DISPLAY` access = full session
+  snooping; cannot be closed while giving the script an X11 GUI. Needs Wayland or a nested X
+  server.
+- **Trusted computing base**: Siril's own C IPC handlers (`CMD_*`, SHM) run UNsandboxed; a
+  memory-safety bug there reachable from a script is a full escape. Hardening those is
+  separate/ongoing.
+- **Resource limits are generous-by-necessity** and don't contain total disk/CPU exhaustion.
+- **No kernel-attack-surface reduction**: the filter is targeted denials, not a syscall
+  allow-list, so a kernel LPE via an allowed syscall is not mitigated.
+
+### 10e. Acceptance (build in /home/siril-dev/mppbuild, validate via REAL g_spawn)
+A bare `fork()` harness is NOT acceptable for validation (it bypasses GLib's fd-closing and
+would hide bugs). Reuse the real-`g_spawn_*` pattern. Confirm:
+1. Builds clean (force a rebuild of the sandbox object; a bare ninja may say "no work to do").
+2. `socket(AF_INET)` → EAFNOSUPPORT; `socket(AF_NETLINK)` → EAFNOSUPPORT now too;
+   `socket(AF_UNIX)` → OK.
+3. `ptrace(PTRACE_TRACEME)` (or `os.system("cat /proc/1/maps")` via process_vm) → EPERM;
+   a Python `import ctypes; ctypes.CDLL(None).ptrace(...)` attempt fails with EPERM.
+4. Landlock write-confinement + AF_UNIX + stdout capture still work (no regression).
+Report the filter layout you assembled, the struct/flag change, and each check's outcome.

@@ -47,6 +47,7 @@
 #include "io/siril_git.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_sandbox.h"
 #include "io/siril_plot.h"
 #include "core/gui_iface.h"
 #include "gui-gtk4/user_polygons.h"
@@ -5767,19 +5768,26 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// Use the GPtrArray for spawning
 		GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD;
 
+		// Prepare the run-phase sandbox (Linux only; no-op elsewhere). Built in
+		// the parent before fork; the child_setup restricts the interpreter
+		// post-fork/pre-exec. venv_path is still in scope (freed after spawn).
+		SirilSandbox *sb = siril_sandbox_prepare(com.wd, venv_path, FALSE /* allow_network */);
+
 		success = g_spawn_async_with_pipes(
 			working_dir,
 			(gchar**)python_argv->pdata,
 			env,
 			spawn_flags,
-			NULL,
-			NULL,
+			sb ? siril_sandbox_child_setup : NULL,
+			sb,
 			&child_pid,
 			NULL,
 			&stdout_fd,
 			&stderr_fd,
 			&error
 		);
+		// Parent-side sandbox cleanup (closes the ruleset fd, frees struct).
+		siril_sandbox_finish(sb);
 		// Free the GPtrArray (but not its contents - the caller must free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
