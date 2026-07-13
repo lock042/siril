@@ -491,6 +491,7 @@ int undo_display_data(int dir) {
 			gui_iface.update_histogram();
 			gui_iface.curves_reset_after_undo();
 			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
 			gui_iface.reset_display_transform();
 			refresh_annotations(TRUE);
@@ -561,6 +562,7 @@ int undo_display_data(int dir) {
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			gui_iface.update_histogram();
 			gui_iface.curves_reset_after_undo();
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_iface.update_menu_state();
 			refresh_annotations(TRUE);
 			gui_iface.reset_display_transform();

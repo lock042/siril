@@ -1391,7 +1391,7 @@ void _update_entry_text() {
 
 void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
-	if (gtk_widget_get_visible(curves_dialog)) {
+	if (curves_dialog && gtk_widget_get_visible(curves_dialog)) {
 		compute_histo_for_fit(fit);
 		// Clear HSL buffers to force recomputation from current image
 		if (fit->naxes[2] == 3) {
@@ -1405,7 +1405,8 @@ void update_gfit_curves_histogram_if_needed() {
 }
 
 void curves_reset_after_undo() {
-	if (!gtk_widget_get_visible(curves_dialog))
+	// curves_dialog is NULL until the dialog has been opened once
+	if (!curves_dialog || !gtk_widget_get_visible(curves_dialog))
 		return;
 
 	fit = gfit;
