@@ -7,6 +7,8 @@
 #include <gio/gio.h>
 #ifdef _WIN32
 #include <windows.h>
+#include <sddl.h>     /* ConvertStringSidToSid — AppContainer pipe DACL */
+#include <aclapi.h>   /* SetEntriesInAcl / EXPLICIT_ACCESS */
 #include <gio/gwin32inputstream.h>
 #include <process.h>
 #define getpid _getpid
@@ -1960,10 +1962,114 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 }
 
 #ifdef _WIN32
+/* securescripts: build a SECURITY_ATTRIBUTES whose DACL grants the well-known
+ * "ALL APPLICATION PACKAGES" SID (S-1-15-2-1) generic read/write access to the
+ * IPC named pipe, in ADDITION to the normal owner rights the pipe would get by
+ * default. Without this ACE an AppContainer child (see siril_sandbox.c) is
+ * denied when it tries to open the pipe, and IPC breaks silently under the
+ * sandbox.
+ *
+ * The returned SECURITY_ATTRIBUTES points at heap allocations that must outlive
+ * the CreateNamedPipe call; the caller frees them with free_appcontainer_pipe_sa().
+ * On any failure this returns FALSE and leaves *sa_out zeroed so the caller
+ * passes NULL to CreateNamedPipe — i.e. it FAILS OPEN to the previous (default
+ * DACL) behaviour, which is correct for a non-sandboxed / pre-Win8 run.
+ *
+ * NB this uses ConvertStringSidToSid on the fixed string "S-1-15-2-1" rather
+ * than CreateWellKnownSid(WinBuiltinAnyPackageSid) so it compiles on older
+ * MinGW-w64 SDKs that lack that enum value; the SID string is a documented,
+ * stable well-known constant. */
+typedef struct {
+	PSID sid;                 /* ALL APPLICATION PACKAGES */
+	PACL dacl;                /* built by SetEntriesInAcl */
+	PSECURITY_DESCRIPTOR sd;  /* self-relative-free absolute SD */
+	SECURITY_ATTRIBUTES sa;
+} AppContainerPipeSA;
+
+static void free_appcontainer_pipe_sa(AppContainerPipeSA *p) {
+	if (!p)
+		return;
+	if (p->dacl)
+		LocalFree(p->dacl);           /* allocated by SetEntriesInAcl */
+	if (p->sd)
+		LocalFree(p->sd);             /* allocated by us via LocalAlloc */
+	if (p->sid)
+		LocalFree(p->sid);            /* allocated by ConvertStringSidToSid */
+	g_free(p);
+}
+
+static AppContainerPipeSA *make_appcontainer_pipe_sa(void) {
+	AppContainerPipeSA *p = g_new0(AppContainerPipeSA, 1);
+	EXPLICIT_ACCESSA ea;
+	DWORD rc;
+
+	/* "ALL APPLICATION PACKAGES" — every AppContainer child carries this SID. */
+	if (!ConvertStringSidToSidA("S-1-15-2-1", &p->sid)) {
+		siril_log_debug("pipe SD: ConvertStringSidToSid failed: %lu\n",
+		                GetLastError());
+		goto fail;
+	}
+
+	ZeroMemory(&ea, sizeof(ea));
+	ea.grfAccessPermissions = GENERIC_READ | GENERIC_WRITE;
+	ea.grfAccessMode        = SET_ACCESS;
+	ea.grfInheritance       = NO_INHERITANCE;
+	ea.Trustee.TrusteeForm  = TRUSTEE_IS_SID;
+	ea.Trustee.TrusteeType  = TRUSTEE_IS_WELL_KNOWN_GROUP;
+	ea.Trustee.ptstrName    = (LPSTR) p->sid;
+
+	/* WARNING (untested, verify on Windows): passing an explicit DACL REPLACES
+	 * the pipe's default DACL entirely — it is NOT merged with the token default.
+	 * This single-ACE DACL therefore grants access ONLY to ALL APPLICATION
+	 * PACKAGES. The server (Siril) is unaffected (it uses the handle it already
+	 * holds), and an AppContainer child carries that SID so it can connect. BUT a
+	 * NON-AppContainer client (the fail-open path when AppContainer can't be
+	 * created, or a normal-user run) lacks that SID and would be DENIED, breaking
+	 * IPC. Before relying on the fail-open path, add a second ACE granting the
+	 * current token user (OpenProcessToken + GetTokenInformation(TokenUser)) full
+	 * access here. */
+	rc = SetEntriesInAclA(1, &ea, NULL, &p->dacl);
+	if (rc != ERROR_SUCCESS) {
+		siril_log_debug("pipe SD: SetEntriesInAcl failed: %lu\n", rc);
+		goto fail;
+	}
+
+	p->sd = (PSECURITY_DESCRIPTOR) LocalAlloc(LPTR,
+	                                          SECURITY_DESCRIPTOR_MIN_LENGTH);
+	if (!p->sd) {
+		siril_log_debug("pipe SD: LocalAlloc(SD) failed\n");
+		goto fail;
+	}
+	if (!InitializeSecurityDescriptor(p->sd, SECURITY_DESCRIPTOR_REVISION)) {
+		siril_log_debug("pipe SD: InitializeSecurityDescriptor failed: %lu\n",
+		                GetLastError());
+		goto fail;
+	}
+	if (!SetSecurityDescriptorDacl(p->sd, TRUE, p->dacl, FALSE)) {
+		siril_log_debug("pipe SD: SetSecurityDescriptorDacl failed: %lu\n",
+		                GetLastError());
+		goto fail;
+	}
+
+	p->sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	p->sa.lpSecurityDescriptor = p->sd;
+	p->sa.bInheritHandle = FALSE;
+	return p;
+
+fail:
+	free_appcontainer_pipe_sa(p);
+	return NULL;
+}
+
 static Connection* create_connection(const gchar *pipe_name) {
 	Connection *conn = g_new0(Connection, 1);
 	g_mutex_init(&conn->mutex);
 	g_cond_init(&conn->condition);
+
+	/* Grant the AppContainer child (ALL APPLICATION PACKAGES) access to the
+	 * pipe. If the SD cannot be built we pass NULL (default DACL) and IPC keeps
+	 * its previous behaviour — correct for a non-sandboxed run. */
+	AppContainerPipeSA *pipe_sa = make_appcontainer_pipe_sa();
 
 	conn->pipe_handle = CreateNamedPipe(
 		pipe_name,
@@ -1973,8 +2079,10 @@ static Connection* create_connection(const gchar *pipe_name) {
 		BUFFER_SIZE,
 		BUFFER_SIZE,
 		0,
-		NULL
+		pipe_sa ? &pipe_sa->sa : NULL
 	);
+
+	free_appcontainer_pipe_sa(pipe_sa);
 
 	if (conn->pipe_handle == INVALID_HANDLE_VALUE) {
 		siril_log_debug("Failed to create pipe: %lu\n", GetLastError());

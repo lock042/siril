@@ -68,6 +68,20 @@
 #  include <config.h>
 #endif
 
+/* Windows AppContainer APIs (used in the _WIN32 branch far below) need the
+ * Win8/10 API level. The project defines _WIN32_WINNT=0x0600 (Vista) globally,
+ * so we MUST raise it and pull in <windows.h> HERE, before "core/siril.h"
+ * transitively includes windows.h at the lower level (after which its include
+ * guard would freeze the API surface). This mirrors io/FITS_symlink.c, which
+ * sets the level before its first include for the same reason. */
+#ifdef _WIN32
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00
+#undef WINVER
+#define WINVER 0x0A00
+#include <windows.h>
+#endif
+
 #include "core/siril.h"
 #include "io/siril_sandbox.h"
 
@@ -693,21 +707,482 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 #elif defined(_WIN32)
 
 /* ==================================================================== */
-/* Windows: AppContainer confinement — implemented separately.          */
-/* Placeholder retained so the tree builds; replaced by the real        */
-/* AppContainer CreateProcess in the Windows implementation step.       */
+/* Windows: AppContainer confinement.                                   */
+/*                                                                       */
+/* AppContainer cannot be applied through g_spawn: it needs a           */
+/* SECURITY_CAPABILITIES attribute passed to CreateProcess at creation  */
+/* time. So this path owns process creation and reproduces g_spawn's    */
+/* contract: it fills *child_pid (the process HANDLE cast to GPid),     */
+/* *stdout_fd / *stderr_fd (CRT fds via _open_osfhandle), and returns   */
+/* TRUE / FALSE + g_set_error.                                          */
+/*                                                                       */
+/* Defenses:                                                            */
+/*   - ZERO capabilities in the container => no internetClient etc., so  */
+/*     network egress is denied by construction (nothing to un-set).    */
+/*   - AppContainer is deny-by-default for the user's files, so the      */
+/*     child cannot even load its interpreter until we add explicit      */
+/*     access-allowed ACEs for the container SID. Windows is therefore   */
+/*     also READ-confined (stricter than the Linux cut, which leaves     */
+/*     reads open) — this is acceptable and documented below.           */
+/*                                                                       */
+/* HONESTY / LIMITATIONS (this file could NOT be compiled or run in the  */
+/* dev environment — no MinGW / Windows):                                */
+/*   - The interpreter/stdlib READ-grant set (step 2) is the most        */
+/*     test-dependent part. We grant the dir of argv[0] and its parent   */
+/*     plus wd/venv/user-data/config, but the BASE Python install (where */
+/*     the real stdlib lives for a uv-managed interpreter) is NOT known  */
+/*     here and is very likely to need additional grants once a dev      */
+/*     runs a script and sees which reads are denied. This will iterate. */
+/*   - The IPC pipe SD (companion change in siril_pythonmodule.c) grants */
+/*     ALL APPLICATION PACKAGES; that too wants runtime confirmation.    */
+/*   - The granted ACEs PERSIST on disk (they name only this one         */
+/*     container SID). The MVP leaves them in place across runs.         */
 /* ==================================================================== */
+
+/* <windows.h> is already included at the top of this file at the required
+ * Win8/10 API level (see the _WIN32_WINNT bump there). Only the extra
+ * headers this branch needs are pulled in here. */
+#include <userenv.h>   /* CreateAppContainerProfile / DeriveAppContainerSid... */
+#include <aclapi.h>    /* GetNamedSecurityInfo / SetEntriesInAcl / SetNamed...  */
+#include <io.h>        /* _open_osfhandle                                       */
+#include <fcntl.h>     /* _O_RDONLY                                             */
+
+#include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
+
+/* Fixed container name/identity. A stable name means the profile is created
+ * once and re-derived on subsequent runs. */
+#define SANDBOX_APPCONTAINER_NAME L"org.siril.script_sandbox"
+#define SANDBOX_APPCONTAINER_DESC L"Siril Python script sandbox"
+
+/* ---- MinGW-w64 header workarounds ---------------------------------------
+ * Some AppContainer bits are absent or inconsistent across MinGW-w64 header
+ * vintages. Declare/guard each locally so the CI build does not depend on a
+ * particular MSYS2 header snapshot. Every workaround here is listed in the
+ * report so it can be confirmed against the actual CI toolchain.
+ */
+
+/* PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES / _HANDLE_LIST are usually
+ * present in <processthreadsapi.h>, but older MinGW-w64 lacked them. They are
+ * fixed constants (ProcThreadAttributeValue-encoded), so define if missing. */
+#ifndef PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES
+/* ProcThreadAttributeSecurityCapabilities == 9; Input|Additive, no Thread. */
+#define PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES \
+	ProcThreadAttributeValue(9, FALSE, TRUE, FALSE)
+#endif
+#ifndef PROC_THREAD_ATTRIBUTE_HANDLE_LIST
+/* ProcThreadAttributeHandleList == 2; Input, no Thread/Additive. */
+#define PROC_THREAD_ATTRIBUTE_HANDLE_LIST \
+	ProcThreadAttributeValue(2, FALSE, TRUE, FALSE)
+#endif
+
+/* SECURITY_CAPABILITIES and SID_AND_ATTRIBUTES are declared in <winnt.h> when
+ * _WIN32_WINNT >= 0x0602 (bumped above). CreateAppContainerProfile /
+ * DeriveAppContainerSidFromAppContainerName are prototyped in <userenv.h> on
+ * MinGW-w64 >= ~8.x. If the CI toolchain is older and the compile fails with
+ * "unknown type SECURITY_CAPABILITIES" or an implicit-declaration warning for
+ * those functions, a local fallback declaration must be added here (we could
+ * not feature-test it without a Windows toolchain in this environment). This
+ * is called out in the report as an item to confirm on CI. */
+
+/* ---- UTF-16 command line assembly ---------------------------------------
+ * Build the full UTF-16 command line from a UTF-8 argv[], quoting each element
+ * per the CommandLineToArgvW rules: an element is wrapped in double quotes only
+ * when it is empty or contains whitespace or a quote; a run of backslashes is
+ * doubled only when it immediately precedes a double quote (or the closing
+ * quote), and a literal double quote is escaped as \". This is the canonical
+ * MS "Everyone quotes command line arguments the wrong way" algorithm.
+ *
+ * Returns a newly-allocated, NUL-terminated wchar_t* built via a GArray; free
+ * it with g_free() (it is the detached g_array data pointer). Returns NULL on
+ * a UTF-8 -> UTF-16 conversion failure. */
+static wchar_t *sandbox_win_build_cmdline(gchar **argv) {
+	GArray *buf = g_array_new(TRUE, FALSE, sizeof(wchar_t)); /* zero-terminated */
+
+	for (gchar **a = argv; a && *a; a++) {
+		if (a != argv) {
+			wchar_t sp = L' ';
+			g_array_append_val(buf, sp);
+		}
+
+		glong wlen = 0;
+		gunichar2 *warg = g_utf8_to_utf16(*a, -1, NULL, &wlen, NULL);
+		if (!warg) {
+			g_array_free(buf, TRUE);
+			return NULL;
+		}
+
+		/* Decide whether quoting is needed. */
+		gboolean need_quotes = (warg[0] == L'\0');
+		for (glong i = 0; !need_quotes && i < wlen; i++) {
+			if (warg[i] == L' ' || warg[i] == L'\t' || warg[i] == L'"')
+				need_quotes = TRUE;
+		}
+
+		if (!need_quotes) {
+			for (glong i = 0; i < wlen; i++) {
+				wchar_t c = (wchar_t) warg[i];
+				g_array_append_val(buf, c);
+			}
+		} else {
+			wchar_t q = L'"';
+			g_array_append_val(buf, q);
+			for (glong i = 0; i < wlen; i++) {
+				/* Count a run of backslashes. */
+				glong nbs = 0;
+				while (i < wlen && warg[i] == L'\\') { nbs++; i++; }
+				if (i == wlen) {
+					/* Escape all backslashes so the closing quote is literal. */
+					for (glong k = 0; k < nbs * 2; k++) {
+						wchar_t bs = L'\\';
+						g_array_append_val(buf, bs);
+					}
+					break;
+				} else if (warg[i] == L'"') {
+					/* Escape the backslashes AND the quote. */
+					for (glong k = 0; k < nbs * 2 + 1; k++) {
+						wchar_t bs = L'\\';
+						g_array_append_val(buf, bs);
+					}
+					wchar_t dq = L'"';
+					g_array_append_val(buf, dq);
+				} else {
+					/* Backslashes not before a quote stay literal. */
+					for (glong k = 0; k < nbs; k++) {
+						wchar_t bs = L'\\';
+						g_array_append_val(buf, bs);
+					}
+					wchar_t c = (wchar_t) warg[i];
+					g_array_append_val(buf, c);
+				}
+			}
+			g_array_append_val(buf, q);
+		}
+		g_free(warg);
+	}
+
+	/* g_array has a trailing zero element (TRUE above). Detach the buffer. */
+	wchar_t *line = (wchar_t *) g_array_free(buf, FALSE);
+	return line;
+}
+
+/* Build the UTF-16, double-NUL-terminated environment block from a UTF-8
+ * envp[] (each "KEY=VALUE"). Returns NULL to mean "inherit parent env" when
+ * envp is NULL. On conversion failure returns NULL and sets *failed. */
+static wchar_t *sandbox_win_build_env_block(gchar **envp, gboolean *failed) {
+	*failed = FALSE;
+	if (!envp)
+		return NULL;   /* NULL => CreateProcessW inherits the parent env. */
+
+	GArray *buf = g_array_new(FALSE, FALSE, sizeof(wchar_t));
+	for (gchar **e = envp; *e; e++) {
+		glong wlen = 0;
+		gunichar2 *w = g_utf8_to_utf16(*e, -1, NULL, &wlen, NULL);
+		if (!w) {
+			*failed = TRUE;
+			g_array_free(buf, TRUE);
+			return NULL;
+		}
+		for (glong i = 0; i < wlen; i++) {   /* wlen excludes the terminator */
+			wchar_t c = (wchar_t) w[i];
+			g_array_append_val(buf, c);
+		}
+		wchar_t z = L'\0';
+		g_array_append_val(buf, z);          /* terminate this entry */
+		g_free(w);
+	}
+	/* A completely empty block must still be "\0\0"; add the final NUL. */
+	wchar_t z = L'\0';
+	g_array_append_val(buf, z);
+	return (wchar_t *) g_array_free(buf, FALSE);
+}
+
+/* Add an inheritable access-allowed ACE for `sid` granting `access` on `path`.
+ * Best-effort: a failure is logged and ignored (a missing/ungrantable path
+ * must not abort the whole spawn — the child will simply be denied that path).
+ * Uses the ANSI Get/SetNamedSecurityInfo since `path` is a UTF-8 g-string; we
+ * convert to the local codepage via g_win32 helpers is avoided by using the
+ * wide variants with a UTF-16 path. */
+static void grant_appcontainer(const char *path, DWORD access, PSID sid) {
+	if (!path || !*path || !sid)
+		return;
+
+	wchar_t *wpath = (wchar_t *) g_utf8_to_utf16(path, -1, NULL, NULL, NULL);
+	if (!wpath) {
+		siril_log_debug("sandbox: grant path utf16 conversion failed\n");
+		return;
+	}
+
+	PACL old_dacl = NULL, new_dacl = NULL;
+	PSECURITY_DESCRIPTOR sd = NULL;
+	DWORD rc;
+
+	rc = GetNamedSecurityInfoW(wpath, SE_FILE_OBJECT,
+	                           DACL_SECURITY_INFORMATION,
+	                           NULL, NULL, &old_dacl, NULL, &sd);
+	if (rc != ERROR_SUCCESS) {
+		siril_log_debug("sandbox: GetNamedSecurityInfo(%s) failed: %lu\n",
+		                path, rc);
+		g_free(wpath);
+		return;
+	}
+
+	EXPLICIT_ACCESSW ea;
+	ZeroMemory(&ea, sizeof(ea));
+	ea.grfAccessPermissions = access;
+	ea.grfAccessMode        = GRANT_ACCESS;   /* merge with existing ACEs */
+	ea.grfInheritance       = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+	ea.Trustee.TrusteeForm  = TRUSTEE_IS_SID;
+	ea.Trustee.TrusteeType  = TRUSTEE_IS_WELL_KNOWN_GROUP;
+	ea.Trustee.ptstrName    = (LPWSTR) sid;
+
+	rc = SetEntriesInAclW(1, &ea, old_dacl, &new_dacl);
+	if (rc != ERROR_SUCCESS) {
+		siril_log_debug("sandbox: SetEntriesInAcl(%s) failed: %lu\n", path, rc);
+		if (sd) LocalFree(sd);
+		g_free(wpath);
+		return;
+	}
+
+	rc = SetNamedSecurityInfoW(wpath, SE_FILE_OBJECT,
+	                           DACL_SECURITY_INFORMATION,
+	                           NULL, NULL, new_dacl, NULL);
+	if (rc != ERROR_SUCCESS)
+		siril_log_debug("sandbox: SetNamedSecurityInfo(%s) failed: %lu\n",
+		                path, rc);
+
+	if (new_dacl) LocalFree(new_dacl);
+	if (sd) LocalFree(sd);
+	g_free(wpath);
+}
+
+/* Fall back to a plain unsandboxed g_spawn (fail-open policy, matches Linux). */
+static gboolean sandbox_win_spawn_unsandboxed(const char *working_dir,
+                                              gchar **argv, gchar **envp,
+                                              GPid *child_pid, gint *stdout_fd,
+                                              gint *stderr_fd, GError **error) {
+	return g_spawn_async_with_pipes(working_dir, argv, envp,
+		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+}
 
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
                              const char *wd, const char *venv_path,
                              gboolean allow_network, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
-	(void) wd; (void) venv_path; (void) allow_network;
-	/* TODO(securescripts): AppContainer CreateProcess. Until then, spawn
-	 * unsandboxed so Windows behaviour is unchanged. */
-	return g_spawn_async_with_pipes(working_dir, argv, envp,
-		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+	/* allow_network is honoured only by having/not-having capabilities; for
+	 * this MVP we always create a ZERO-capability container (network denied),
+	 * so allow_network==TRUE is currently a no-op on Windows. Documented. */
+	(void) allow_network;
+
+	/* ---- 1. Container SID ------------------------------------------------ */
+	PSID container_sid = NULL;
+	HRESULT hr = CreateAppContainerProfile(SANDBOX_APPCONTAINER_NAME,
+	                                       SANDBOX_APPCONTAINER_NAME,
+	                                       SANDBOX_APPCONTAINER_DESC,
+	                                       NULL, 0, &container_sid);
+	if (hr == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
+		/* Profile already exists (created on a previous run): re-derive. */
+		hr = DeriveAppContainerSidFromAppContainerName(
+			SANDBOX_APPCONTAINER_NAME, &container_sid);
+	}
+	if (FAILED(hr) || !container_sid) {
+		/* Fail-open: cannot build the container SID (too old an OS, policy,
+		 * ...). Warn once and run the script unsandboxed rather than block it. */
+		siril_log_message(_("Script sandbox unavailable on this system "
+		                    "(AppContainer SID could not be created); running "
+		                    "Python without confinement.\n"));
+		return sandbox_win_spawn_unsandboxed(working_dir, argv, envp,
+		                                     child_pid, stdout_fd, stderr_fd,
+		                                     error);
+	}
+
+	/* ---- 2. Filesystem grants ------------------------------------------- */
+	/* Read/write on the writable roots. */
+	const DWORD RW = GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE;
+	const DWORD RX = GENERIC_READ | GENERIC_EXECUTE;
+
+	grant_appcontainer(wd, RW, container_sid);
+	grant_appcontainer(venv_path, RW, container_sid);
+	grant_appcontainer(siril_get_user_data_dir(), RW, container_sid);
+	{
+		gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
+		grant_appcontainer(cfg, RW, container_sid);
+		g_free(cfg);
+	}
+
+	/* Interpreter tree: grant read/execute on the directory of argv[0] (the
+	 * venv Scripts dir) AND its parent. NB the BASE python install (real
+	 * stdlib for a uv-managed interpreter) is NOT known here — this grant set
+	 * WILL likely need dev iteration once a real script runs and Windows
+	 * reports which reads are denied. See the limitations block above. */
+	if (argv && argv[0] && *argv[0]) {
+		gchar *interp_dir = g_path_get_dirname(argv[0]);
+		if (interp_dir && *interp_dir) {
+			grant_appcontainer(interp_dir, RX, container_sid);
+			gchar *interp_parent = g_path_get_dirname(interp_dir);
+			if (interp_parent && *interp_parent)
+				grant_appcontainer(interp_parent, RX, container_sid);
+			g_free(interp_parent);
+		}
+		g_free(interp_dir);
+	}
+
+	/* ---- 4. Spawn -------------------------------------------------------- */
+	/* All locals used after any `goto cleanup` are declared up front (no
+	 * initializer that a goto could skip) to stay clean under
+	 * -Wjump-misses-init on MinGW GCC. */
+	gboolean result = FALSE;
+	HANDLE out_r = INVALID_HANDLE_VALUE, out_w = INVALID_HANDLE_VALUE;
+	HANDLE err_r = INVALID_HANDLE_VALUE, err_w = INVALID_HANDLE_VALUE;
+	LPPROC_THREAD_ATTRIBUTE_LIST attr_list = NULL;
+	wchar_t *cmdline = NULL, *env_block = NULL, *wworkdir = NULL;
+	SECURITY_CAPABILITIES sec_caps;
+	STARTUPINFOEXW si;
+	PROCESS_INFORMATION pi;
+	HANDLE inherit_handles[2];
+	SIZE_T attr_size = 0;
+	DWORD create_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT;
+	gboolean env_failed = FALSE;
+	ZeroMemory(&sec_caps, sizeof(sec_caps));
+	ZeroMemory(&si, sizeof(si));
+	ZeroMemory(&pi, sizeof(pi));
+
+	/* stdout/stderr pipes: write ends inheritable, read ends NOT. */
+	SECURITY_ATTRIBUTES pipe_sa;
+	pipe_sa.nLength = sizeof(pipe_sa);
+	pipe_sa.lpSecurityDescriptor = NULL;
+	pipe_sa.bInheritHandle = TRUE;
+
+	if (!CreatePipe(&out_r, &out_w, &pipe_sa, 0) ||
+	    !CreatePipe(&err_r, &err_w, &pipe_sa, 0)) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "CreatePipe failed: %lu", GetLastError());
+		goto cleanup;
+	}
+	/* The read ends must NOT be inherited by the child. */
+	SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0);
+	SetHandleInformation(err_r, HANDLE_FLAG_INHERIT, 0);
+
+	/* Command line + environment + working dir (UTF-16). */
+	cmdline = sandbox_win_build_cmdline(argv);
+	if (!cmdline) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "failed to build UTF-16 command line");
+		goto cleanup;
+	}
+	env_block = sandbox_win_build_env_block(envp, &env_failed);
+	if (env_failed) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "failed to build UTF-16 environment block");
+		goto cleanup;
+	}
+	if (working_dir && *working_dir)
+		wworkdir = (wchar_t *) g_utf8_to_utf16(working_dir, -1, NULL, NULL, NULL);
+
+	/* STARTUPINFOEX with two proc-thread attributes:
+	 *   - SECURITY_CAPABILITIES (the container SID, zero capabilities)
+	 *   - HANDLE_LIST (exactly the two pipe write ends we allow to inherit) */
+	si.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+	si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+	/* WARNING (untested, verify on Windows): with PROC_THREAD_ATTRIBUTE_HANDLE_LIST
+	 * set below, ONLY handles in that list are inherited. hStdInput here is the
+	 * parent's console stdin, which is (a) not in the list and (b) likely not
+	 * marked inheritable — under STARTF_USESTDHANDLES that may make CreateProcessW
+	 * fail (ERROR_INVALID_HANDLE) on every launch. If so, the fix is to open an
+	 * inheritable handle to "NUL" for stdin and add it to inherit_handles[], or to
+	 * add the std handles to the list. Scripts do not need real stdin. */
+	si.StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	si.StartupInfo.hStdOutput = out_w;
+	si.StartupInfo.hStdError = err_w;
+
+	InitializeProcThreadAttributeList(NULL, 2, 0, &attr_size);
+	attr_list = (LPPROC_THREAD_ATTRIBUTE_LIST) g_malloc0(attr_size);
+	if (!InitializeProcThreadAttributeList(attr_list, 2, 0, &attr_size)) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "InitializeProcThreadAttributeList failed: %lu",
+		            GetLastError());
+		goto cleanup;
+	}
+
+	sec_caps.AppContainerSid = container_sid;
+	sec_caps.Capabilities = NULL;   /* zero capabilities => no network etc. */
+	sec_caps.CapabilityCount = 0;
+	if (!UpdateProcThreadAttribute(attr_list, 0,
+	        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
+	        &sec_caps, sizeof(sec_caps), NULL, NULL)) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "UpdateProcThreadAttribute(SECURITY_CAPABILITIES) failed: %lu",
+		            GetLastError());
+		goto cleanup;
+	}
+
+	inherit_handles[0] = out_w;
+	inherit_handles[1] = err_w;
+	if (!UpdateProcThreadAttribute(attr_list, 0,
+	        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+	        inherit_handles, sizeof(inherit_handles), NULL, NULL)) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "UpdateProcThreadAttribute(HANDLE_LIST) failed: %lu",
+		            GetLastError());
+		goto cleanup;
+	}
+	si.lpAttributeList = attr_list;
+
+	if (!CreateProcessW(
+	        NULL,             /* application name: taken from cmdline */
+	        cmdline,          /* mutable UTF-16 command line */
+	        NULL, NULL,       /* process/thread security */
+	        TRUE,             /* inherit handles (restricted by HANDLE_LIST) */
+	        create_flags,
+	        env_block,        /* NULL => inherit parent env */
+	        wworkdir,         /* current dir (NULL => inherit) */
+	        &si.StartupInfo,
+	        &pi)) {
+		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		            "CreateProcessW failed: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* ---- 5. Return: process HANDLE as child_pid, read ends as CRT fds ---- */
+	CloseHandle(pi.hThread);
+	/* The parent must close the write ends so it sees EOF when the child
+	 * exits; ownership of the read ends transfers to the CRT fds below. */
+	CloseHandle(out_w); out_w = INVALID_HANDLE_VALUE;
+	CloseHandle(err_w); err_w = INVALID_HANDLE_VALUE;
+
+	if (stdout_fd) {
+		*stdout_fd = _open_osfhandle((intptr_t) out_r, _O_RDONLY);
+		if (*stdout_fd >= 0)
+			out_r = INVALID_HANDLE_VALUE;   /* fd owns it now */
+	}
+	if (stderr_fd) {
+		*stderr_fd = _open_osfhandle((intptr_t) err_r, _O_RDONLY);
+		if (*stderr_fd >= 0)
+			err_r = INVALID_HANDLE_VALUE;   /* fd owns it now */
+	}
+	if (child_pid)
+		*child_pid = (GPid) pi.hProcess;   /* HANDLE, per g_spawn on Windows */
+
+	result = TRUE;
+
+cleanup:
+	if (attr_list) {
+		DeleteProcThreadAttributeList(attr_list);
+		g_free(attr_list);
+	}
+	if (out_w != INVALID_HANDLE_VALUE) CloseHandle(out_w);
+	if (err_w != INVALID_HANDLE_VALUE) CloseHandle(err_w);
+	if (!result) {
+		if (out_r != INVALID_HANDLE_VALUE) CloseHandle(out_r);
+		if (err_r != INVALID_HANDLE_VALUE) CloseHandle(err_r);
+	}
+	g_free(cmdline);
+	g_free(env_block);
+	g_free(wworkdir);
+	if (container_sid)
+		FreeSid(container_sid);
+	return result;
 }
 
 #else /* other POSIX — no confinement available; spawn plainly. */

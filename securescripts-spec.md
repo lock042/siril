@@ -287,6 +287,82 @@ Landlock+seccomp approach CANNOT close, so nobody mistakes it for full containme
 - **No kernel-attack-surface reduction**: the filter is targeted denials, not a syscall
   allow-list, so a kernel LPE via an allowed syscall is not mitigated.
 
+## 11. Windows AppContainer (`#elif defined(_WIN32)` body of siril_sandbox_spawn)
+
+Context: `siril_sandbox_spawn()` is the single cross-platform entry point (§ the
+header). Windows AppContainer cannot be applied through `g_spawn` (it needs
+`SECURITY_CAPABILITIES` at `CreateProcess` time), so the Windows path owns
+process creation and must reproduce g_spawn's contract: fill `*child_pid` (the
+process HANDLE cast to GPid), `*stdout_fd`, `*stderr_fd` (CRT fds via
+`_open_osfhandle`), return TRUE/FALSE + `g_set_error` on failure.
+
+BUILD ENV: Windows CI builds with **MinGW-w64 / GCC** (MSYS2), NOT MSVC. So:
+- `#define _WIN32_WINNT 0x0A00` before `<windows.h>` (AppContainer APIs need ≥8;
+  capability-SID helpers want 10).
+- Includes: `<windows.h>`, `<userenv.h>` (CreateAppContainerProfile /
+  DeriveAppContainerSidFromAppContainerName), `<sddl.h>`, `<aclapi.h>`,
+  `<io.h>`, `<fcntl.h>`.
+- Link `-luserenv` (advapi32 is auto-linked). Add userenv to the Windows link
+  deps in `src/meson.build` (find the existing `host_machine.system() ==
+  'windows'` deps block and append; if none, add one).
+- Some AppContainer symbols may be absent/partial in the MinGW-w64 headers —
+  if so, declare the missing prototypes/constants locally (guarded) and NOTE
+  each one in the report so we can confirm on CI.
+
+Implementation sequence:
+1. **Container SID**: use a FIXED container name (e.g. `L"org.siril.script_sandbox"`).
+   `CreateAppContainerProfile(name, name, desc, NULL, 0, &sid)`; if it returns
+   `HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)`, call
+   `DeriveAppContainerSidFromAppContainerName(name, &sid)`. Zero capabilities
+   (no `internetClient` etc.) → network is denied by construction. Free with
+   `FreeSid`/`RtlFreeSid` as appropriate.
+2. **Filesystem grants**: AppContainer is deny-by-default for user files, so the
+   child cannot even load its interpreter without ACEs. Add an inheritable
+   access-allowed ACE for the container SID via GetNamedSecurityInfo →
+   SetEntriesInAcl (EXPLICIT_ACCESS, `SUB_CONTAINERS_AND_OBJECTS_INHERIT`) →
+   SetNamedSecurityInfo, in a small `grant_appcontainer(path, access)` helper:
+   - GENERIC_READ|WRITE|EXECUTE (recursive) on: `wd`, `venv_path`,
+     `siril_get_user_data_dir()`, `<config>/siril`.
+   - GENERIC_READ|EXECUTE on the interpreter tree: the directory of `argv[0]`
+     (venv Scripts) AND the base Python install. NB the base-python location is
+     not known here; grant the dir of argv[0] and its parent, and CLEARLY log +
+     comment that the read-grant set for the interpreter/stdlib will likely need
+     dev iteration (this is the most test-dependent part). Windows is thus
+     read-confined too (stricter than Linux — acceptable, document it).
+   - These ACEs persist on disk (only granting this one container SID). MVP
+     leaves them; note it.
+3. **IPC pipe (companion change, `src/io/siril_pythonmodule.c` create_connection,
+   Windows branch, CreateNamedPipe ~line 1967)**: an AppContainer child cannot
+   open the pipe unless its SD grants access. Simplest robust MVP: build a
+   SECURITY_ATTRIBUTES whose DACL grants the well-known **ALL APPLICATION
+   PACKAGES** SID (`S-1-15-2-1`, via ConvertStringSidToSid) plus the normal
+   owner, and pass it to CreateNamedPipe. Guard so behaviour is unchanged when
+   sandboxing is off. Flag clearly — without this, IPC breaks under AppContainer.
+4. **Spawn**: CreatePipe ×2 (stdout/stderr; write ends inheritable, read ends
+   NOT); InitializeProcThreadAttributeList with TWO attrs —
+   `PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES` (SECURITY_CAPABILITIES{sid,0,NULL})
+   and `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` (the two write handles). Build the
+   UTF-16 command line from `argv` with correct quoting (g_utf8_to_utf16 per arg;
+   quote args containing spaces/quotes per CommandLineToArgvW rules) and the
+   UTF-16 environment block from `envp` (double-NUL terminated) — or pass NULL
+   env to inherit if `envp` is NULL. CreateProcessW with
+   `EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT`,
+   bInheritHandles=TRUE, lpCurrentDirectory from `working_dir`.
+5. **Return**: `_open_osfhandle((intptr_t)read_end, _O_RDONLY)` → *stdout_fd /
+   *stderr_fd; `*child_pid = (GPid) pi.hProcess`; CloseHandle the write ends and
+   pi.hThread in the parent. On any failure: CloseHandle everything, g_set_error
+   (G_SPAWN_ERROR/G_SPAWN_ERROR_FAILED with GetLastError), return FALSE.
+6. **Fail-open**: if the AppContainer SID cannot be created/derived, log a
+   one-line warning and fall back to a plain `g_spawn_async_with_pipes` (matches
+   the Linux fail-open policy) rather than blocking scripts.
+
+CANNOT be compiled or run in this environment (no MinGW/Windows). Deliver a
+best-effort draft to compile on the MinGW CI; runtime correctness (ACLs, pipe SD,
+interpreter read-grants) will be iterated by a dev on Windows. Do NOT claim it is
+validated. Report: exact files/functions changed, the meson link change, any
+MinGW headers/symbols you had to declare locally, and the command-line/env
+UTF-16 conversion approach.
+
 ### 10e. Acceptance (build in /home/siril-dev/mppbuild, validate via REAL g_spawn)
 A bare `fork()` harness is NOT acceptable for validation (it bypasses GLib's fd-closing and
 would hide bugs). Reuse the real-`g_spawn_*` pattern. Confirm:
