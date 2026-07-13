@@ -32,7 +32,7 @@ std::vector<APRefBoxes> shift_prepare_ref_boxes(const cv::Mat &mean_frame_raw,
  * Used to translate AP box bounds (mean-frame coords) into each frame's
  * native coordinates. Sub-pixel since the global align pass switched to
  * parabolic refinement; consumers that need integer indices (Stage B
- * box positioning) round explicitly, drizzle's pixmap math uses the
+ * box positioning) round explicitly, the output resample uses the
  * doubles directly. */
 struct FrameOffset { double dy; double dx; };
 std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2d> &global_shifts,

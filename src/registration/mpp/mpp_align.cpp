@@ -396,9 +396,9 @@ AlignShiftResult align_shift_one_frame(const cv::Mat &ref_window_f32,
                                        int y_low, int y_high,
                                        int x_low, int x_high,
                                        const mpp_config_t &cfg) {
-	/* Sub-pixel ON unconditionally: the parabolic-fit residual is the
-	 * only thing that gives Bayer drizzle's cross-frame CFA-phase
-	 * coverage. Cheap (4 extra reads per frame on the phase-2 correlation
+	/* Sub-pixel ON unconditionally: the parabolic-fit residual is what
+	 * keeps global registration accurate enough for cv::resize output
+	 * upscaling. Cheap (4 extra reads per frame on the phase-2 correlation
 	 * surface, gated on the same success path). The previous integer
 	 * rounding wasted that information. */
 	const MultilevelShiftResult r = multilevel_correlation(

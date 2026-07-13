@@ -474,7 +474,7 @@ cv::Mat mean_frame_from_run(const mpp_run_t *run) {
  * Each tier's byte cost is N · rx · ry · channels · bytes_per_sample · copies
  * (for cached/half_cached) or K · ... (for partial), or
  * in_flight · rx · ry · channels · bytes_per_sample (for streaming),
- * plus output_bytes (mean_frame accumulator, shifts arrays, drizzle
+ * plus output_bytes (mean_frame accumulator, shifts arrays, scaled
  * output canvas).
  *
  * `bytes_per_sample` should match what the caller actually stores: 2
@@ -1369,9 +1369,9 @@ static mpp_status_t build_refined_reference(sequence *seq, const mpp_config_t *c
 	const cv::Vec4i intersection(run->intersection[0], run->intersection[1],
 	                             run->intersection[2], run->intersection[3]);
 
-	/* The reference lives in mean-frame coordinates — never drizzled. */
+	/* The reference lives in mean-frame coordinates — never upscaled. */
 	mpp_config_t cfg_ref = *cfg;
-	cfg_ref.drizzle_scale = 1.0;
+	cfg_ref.output_scale = 1.0;
 
 	size_t budget = 0;
 	{
@@ -1708,11 +1708,6 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	 * accumulation + Hann-weight mosaic, parallelised over frames, with
 	 * cv::resize interpolation for scale > 1.
 	 *
-	 * The STScI / Bayer dobox drizzle backends were removed: both produced
-	 * sampling / mosaic-phase artefacts on planetary data. (The code is
-	 * preserved on the pss-drizzle branch in case a future CFA-aware
-	 * revival is wanted.)
-	 *
 	 * CFA input is debayered first (read_full_frame forces ser_read_frame
 	 * to debayer regardless of the user's debayer-on-open pref), then
 	 * stacked classically like any RGB sequence. */
@@ -1725,13 +1720,6 @@ static mpp_status_t mpp_stack_apply_impl(sequence *seq, const mpp_config_t *cfg,
 	                      && cfg->avi_bayer_pattern <= MPP_AVI_BAYER_GRBG);
 	const mpp_input_type input_type = mpp_classify_sequence_input(seq);
 	const bool is_cfa = (input_type == MPP_INPUT_CFA) || avi_cfa;
-
-	/* The classical (OpenCV-interpolation) path handles every input and
-	 * scale; a sidecar/script that explicitly pinned a dobox backend is
-	 * overridden — drizzle is no longer applied for scaling. */
-	if (cfg->drizzle_mode != MPP_DRIZZLE_OFF)
-		siril_log_message(_("Stack (mpp): dobox drizzle backend disabled — "
-		                    "scaling uses OpenCV interpolation\n"));
 
 	/* Pre-flight memory check for the classical path. */
 	{

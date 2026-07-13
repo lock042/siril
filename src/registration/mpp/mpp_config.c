@@ -77,20 +77,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->stack_frames_background_patch_size = 100;
 	cfg->stack_skip_failed_aps = false;
 	cfg->output_32bit = false;
-	cfg->drizzle_scale = 1.0;
-
-	/* Drizzle backend defaults: off. drizzle_mode is auto-set at stack
-	 * time from input type (mpp_classify_sequence_input); pixfrac /
-	 * kernel only consulted when scale > 1.0.
-	 *
-	 * Turbo kernel selected as default after the Phase 7.4 / 7.5 kernel
-	 * sweep: same wall-clock as bicubic-2x on test-big.ser (174.6 s vs
-	 * 177.1 s) and 2.8x faster than square with no measurable quality
-	 * difference (SSIM avg 0.9686 vs 0.9701, span across all four kernels
-	 * < 0.15 %). */
-	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
-	cfg->drizzle_pixfrac = 0.7;
-	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
+	cfg->output_scale = 1.0;
 	cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
 
 	/* mpp_improve — Stage B measurement quality. Deliberate divergences

@@ -496,7 +496,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                                       </object>
                                                                     </child>
                                                                     <child>
-                                                                      <object class="GtkDropDown" id="combo_mpp_drizzle">
+                                                                      <object class="GtkDropDown" id="combo_mpp_scale">
                                                                         <property name="tooltip-text" translatable="1">Output scale factor. 1x produces a stack at the input resolution; 1.5x / 2x / 3x upscale during the stack.</property>
                                                                         <property name="model">
                                                                           <object class="GtkStringList">

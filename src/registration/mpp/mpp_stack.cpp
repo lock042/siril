@@ -30,7 +30,7 @@
  *   2) Pre-compute per-AP weights_yx and the global sum_single_frame_weights
  *      buffer (prepare_for_stack_blending).
  *   3) For each frame: brightness-equalise to the per-frame brightness
- *      median, resize for drizzle (INTER_LINEAR), recompute per-AP shift
+ *      median, resize for upscaling (INTER_LINEAR), recompute per-AP shift
  *      with the weight_matrix_first_phase penalty, then remap_rigid the
  *      patch into the AP's stacking buffer.
  *   4) Merge AP buffers into the global stacking buffer with the weights
@@ -54,7 +54,6 @@
 #include "registration/mpp/mpp_align_priv.hpp"     /* multilevel_correlation */
 #include "registration/mpp/mpp_rank_priv.hpp"
 #include "registration/mpp/mpp_shift_priv.hpp"     /* shift_prepare_ref_boxes */
-#include "registration/mpp/mpp_stack.h"
 #include "registration/mpp/mpp_stack_priv.hpp"
 
 #include "core/gui_iface.h"                    /* set_progress (no-op stub in headless) */
@@ -434,7 +433,7 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
 				const cv::Mat lap = rank_blurred_laplacian(frame, cfg);
 				/* Round sub-pixel offsets — Stage A's box-slicing math wants
 				 * integer indices; the sub-pixel residual matters only at the
-				 * drizzle pixmap stage. */
+				 * output-resample stage. */
 				const int dy = (int) std::lround(offsets[f].dy);
 				const int dx = (int) std::lround(offsets[f].dx);
 				for (int a = 0; a < M; ++a) {
@@ -612,32 +611,32 @@ APQualities ap_compute_frame_qualities(const std::vector<cv::Mat> &frames,
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
-                                      double drizzle_scale,
+                                      double output_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg,
                                       const std::vector<float> *ap_effective_counts) {
 	StackState s;
-	s.drizzle_scale  = drizzle_scale;
+	s.output_scale  = output_scale;
 	s.stack_size     = stack_size;
 	s.num_layers     = num_layers;
 	s.dim_y = intersection[1] - intersection[0];
 	s.dim_x = intersection[3] - intersection[2];
-	/* Output (drizzled) dimensions. drizzle_scale may be fractional (e.g.
+	/* Output (scaled) dimensions. output_scale may be fractional (e.g.
 	 * 1.5); every coordinate below is the original × scale rounded to the
 	 * nearest pixel. lround is monotonic so patch bounds never exceed the
 	 * canvas. */
-	auto scl = [drizzle_scale](int v) { return (int) std::lround((double) v * drizzle_scale); };
-	s.dim_y_drizzled = scl(s.dim_y);
-	s.dim_x_drizzled = scl(s.dim_x);
+	auto scl = [output_scale](int v) { return (int) std::lround((double) v * output_scale); };
+	s.dim_y_scaled = scl(s.dim_y);
+	s.dim_x_scaled = scl(s.dim_x);
 	const int buf_type = (num_layers == 3) ? CV_32FC3 : CV_32F;
 
 	const int M = aps.count;
-	s.patch_drizzled.reserve(M);
-	s.ap_drizzled.reserve(M);
+	s.patch_scaled.reserve(M);
+	s.ap_scaled.reserve(M);
 	s.weights_yx.reserve(M);
 	s.stacking_buffers.reserve(M);
 	s.ap_frame_counts.reserve(M);
-	s.sum_single_frame_weights.create(s.dim_y_drizzled, s.dim_x_drizzled, CV_32F);
+	s.sum_single_frame_weights.create(s.dim_y_scaled, s.dim_x_scaled, CV_32F);
 	s.sum_single_frame_weights.setTo(cv::Scalar(1e-30f));
 
 	const float stack_size_f = (float) stack_size;
@@ -710,11 +709,11 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		const int yc    = scl(ap.y);
 		const int xc    = scl(ap.x);
 
-		s.patch_drizzled.push_back(cv::Vec4i(py_lo, py_hi, px_lo, px_hi));
+		s.patch_scaled.push_back(cv::Vec4i(py_lo, py_hi, px_lo, px_hi));
 		s.patch_extension.push_back(cv::Vec4i(
 		    scl(patch[a][0]) - py_lo, py_hi - scl(patch[a][1]),
 		    scl(patch[a][2]) - px_lo, px_hi - scl(patch[a][3])));
-		s.ap_drizzled.push_back(cv::Vec2i(yc, xc));
+		s.ap_scaled.push_back(cv::Vec2i(yc, xc));
 
 		/* Edge-extension (flat) window flags follow the REGISTERED patch
 		 * bounds: a patch that only reaches the canvas edge through the
@@ -722,9 +721,9 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 		 * extension content fades out instead of carrying full weight
 		 * into rows some frames cannot supply. */
 		const bool extend_y_low  = (scl(patch[a][0]) == 0);
-		const bool extend_y_high = (scl(patch[a][1]) == s.dim_y_drizzled);
+		const bool extend_y_high = (scl(patch[a][1]) == s.dim_y_scaled);
 		const bool extend_x_low  = (scl(patch[a][2]) == 0);
-		const bool extend_x_high = (scl(patch[a][3]) == s.dim_x_drizzled);
+		const bool extend_x_high = (scl(patch[a][3]) == s.dim_x_scaled);
 		const auto wy = stack_one_dim_weight(py_lo, py_hi, yc, extend_y_low,  extend_y_high);
 		const auto wx = stack_one_dim_weight(px_lo, px_hi, xc, extend_x_low,  extend_x_high);
 
@@ -760,7 +759,7 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	if (s.number_stacking_holes == 0)
 		return s;
 
-	/* Background buffer (pre-drizzle). */
+	/* Background buffer (pre-scale). */
 	s.averaged_background = cv::Mat::zeros(s.dim_y, s.dim_x, buf_type);
 
 	/* Count pixels where sum_weights < background_blend_threshold *
@@ -771,8 +770,8 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	cv::Mat needed_mask;
 	cv::compare(s.sum_single_frame_weights, blend_t * stack_size_f, needed_mask, cv::CMP_LT);
 	const int points_where_used = cv::countNonZero(needed_mask);
-	const double total_drizzled = (double) s.dim_y_drizzled * (double) s.dim_x_drizzled;
-	if ((double) points_where_used / total_drizzled
+	const double total_scaled = (double) s.dim_y_scaled * (double) s.dim_x_scaled;
+	if ((double) points_where_used / total_scaled
 	    < cfg.stack_frames_background_fraction) {
 		const int patch_size = cfg.stack_frames_background_patch_size;
 		for (int py = 0; py < s.dim_y; py += patch_size) {
@@ -884,7 +883,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 			 *   AP content sits at ap.box_y_low + 0.3 → correlation peak
 			 *     at +0.3 from search centre → r.dy = -0.3 (matches the
 			 *     algorithm's sign convention).
-			 *   We want stored per-AP shift = 0 so that drizzle's
+			 *   We want stored per-AP shift = 0 so that the resample's
 			 *     gdy + weighted_ap = -0.3 + 0 = -0.3 (matches the true
 			 *     alignment correction). That means r.dy + sub_y = 0. ✓
 			 * If we used r.dy − sub_y the sub-pixel global residual would
@@ -1005,7 +1004,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 	/* Output scale. Fractional values (e.g. 1.5) are supported: every
 	 * coordinate is original × S rounded to the nearest pixel, and each
 	 * frame is cv::resize'd to S× before its patches are accumulated. */
-	const double S = std::max(1.0, cfg.drizzle_scale);
+	const double S = std::max(1.0, cfg.output_scale);
 	const int M = aps.count;
 
 	/* Per-AP accumulated-weight totals (selection weights over included
@@ -1162,8 +1161,8 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		if (holes && !out.state.averaged_background.empty())
 			set_bytes += out.state.averaged_background.total()
 			           * out.state.averaged_background.elemSize();
-		const size_t frame_bytes = (size_t) out.state.dim_x_drizzled
-		                         * (size_t) out.state.dim_y_drizzled
+		const size_t frame_bytes = (size_t) out.state.dim_x_scaled
+		                         * (size_t) out.state.dim_y_scaled
 		                         * (size_t) num_layers * sizeof(float) * 2;
 		const size_t per_thread = set_bytes + frame_bytes;
 		int fit = (int) (mem_budget_bytes / std::max<size_t>(1, per_thread));
@@ -1187,7 +1186,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		                cv::Range(src_x_lo, src_x_hi));
 	};
 
-	/* Single streaming pass (read + drizzle + remap happen together), so
+	/* Single streaming pass (read + resize + remap happen together), so
 	 * per-frame progress maps across Stage C's whole 0..1 bar. */
 	gint cur_nb = 0;
 	gint cancelled = 0;
@@ -1241,15 +1240,15 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 			} else {
 				frame_raw.convertTo(frame_f32, CV_32F);
 			}
-			cv::Mat frame_drizzled;
+			cv::Mat frame_scaled;
 			if (S != 1.0)
-				cv::resize(frame_f32, frame_drizzled,
+				cv::resize(frame_f32, frame_scaled,
 				           cv::Size((int) std::lround(frame_f32.cols * S),
 				                    (int) std::lround(frame_f32.rows * S)),
 				           0, 0, cv::INTER_LINEAR);
 			else
-				frame_drizzled = frame_f32;
-			/* Sub-pixel rigid placement in drizzled coords. The full
+				frame_scaled = frame_f32;
+			/* Sub-pixel rigid placement in scaled coords. The full
 			 * source position for a patch is (offsets − per-AP shift) ×
 			 * scale; stack_remap_subpixel resolves the fractional part by
 			 * interpolation, so neighbouring APs no longer disagree by the
@@ -1277,13 +1276,13 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 				    && shift_y == offsets[f].dy - (double) dy
 				    && shift_x == offsets[f].dx - (double) dx)
 					interpolated_shift(f, a, &shift_y, &shift_x);
-				const auto &p = out.state.patch_drizzled[a];
+				const auto &p = out.state.patch_scaled[a];
 				/* Per-call border, folded with the AP's boundary-patch
 				 * extension discounted: clipping that stays inside the
 				 * extension is best-effort loss in empty margin, not
 				 * grounds for trimming rows off the output. */
 				RemapBorder pb;
-				stack_remap_subpixel(frame_drizzled, lbuf[a],
+				stack_remap_subpixel(frame_scaled, lbuf[a],
 				                     (offsets[f].dy - shift_y) * S,
 				                     (offsets[f].dx - shift_x) * S,
 				                     p[0], p[1], p[2], p[3], pb, u.weight);
@@ -1354,7 +1353,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
 		if (S != 1.0) {
 			cv::Mat r;
 			cv::resize(out.state.averaged_background, r,
-			           cv::Size(out.state.dim_x_drizzled, out.state.dim_y_drizzled),
+			           cv::Size(out.state.dim_x_scaled, out.state.dim_y_scaled),
 			           0, 0, cv::INTER_CUBIC);
 			out.state.averaged_background = r;
 		}
@@ -1621,13 +1620,13 @@ APDCOffsets stack_solve_ap_dc_offsets(const mpp::StackState &state,
 
 	std::vector<std::vector<DCEdge>> nbrs_hi(M), nbrs_mid(M);
 	for (int a = 0; a < M; ++a) {
-		const auto &pa = state.patch_drizzled[a];
+		const auto &pa = state.patch_scaled[a];
 		const double ca = state.ap_frame_counts[a];
 		if (ca <= 0.0) continue;
 		for (int b = a + 1; b < M; ++b) {
 			const double cb = state.ap_frame_counts[b];
 			if (cb <= 0.0) continue;
-			const auto &pb = state.patch_drizzled[b];
+			const auto &pb = state.patch_scaled[b];
 			const int y0 = std::max(pa[0], pb[0]), y1 = std::min(pa[1], pb[1]);
 			const int x0 = std::max(pa[2], pb[2]), x1 = std::min(pa[3], pb[3]);
 			if (y1 <= y0 || x1 <= x0) continue;
@@ -1717,8 +1716,8 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 	const int C = state.num_layers;
 	const int buf_type = (C == 3) ? CV_32FC3 : CV_32F;
 
-	/* Global drizzled image buffer. */
-	cv::Mat buf = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
+	/* Global scaled image buffer. */
+	cv::Mat buf = cv::Mat::zeros(state.dim_y_scaled, state.dim_x_scaled, buf_type);
 
 	/* DC equalisation offsets — see stack_solve_ap_dc_offsets. */
 	const APDCOffsets dc = stack_solve_ap_dc_offsets(state, cfg);
@@ -1742,11 +1741,11 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 	 * patch also covers. */
 	cv::Mat corr_hi, corr_mid;
 	if (max_hi > 0.0)
-		corr_hi = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
+		corr_hi = cv::Mat::zeros(state.dim_y_scaled, state.dim_x_scaled, buf_type);
 	if (max_mid > 0.0)
-		corr_mid = cv::Mat::zeros(state.dim_y_drizzled, state.dim_x_drizzled, buf_type);
+		corr_mid = cv::Mat::zeros(state.dim_y_scaled, state.dim_x_scaled, buf_type);
 	for (int a = 0; a < aps.count; ++a) {
-		const auto &p = state.patch_drizzled[a];
+		const auto &p = state.patch_scaled[a];
 		cv::Mat dst = buf(cv::Range(p[0], p[1]), cv::Range(p[2], p[3]));
 		cv::Mat weighted;
 		const cv::Mat w = broadcast_channels(state.weights_yx[a], C);
@@ -1833,9 +1832,9 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 
 	/* Border trim. */
 	const int trim_y_lo = border.y_low;
-	const int trim_y_hi = state.dim_y_drizzled - border.y_high;
+	const int trim_y_hi = state.dim_y_scaled - border.y_high;
 	const int trim_x_lo = border.x_low;
-	const int trim_x_hi = state.dim_x_drizzled - border.x_high;
+	const int trim_x_hi = state.dim_x_scaled - border.x_high;
 	if (border.y_low || border.y_high || border.x_low || border.x_high)
 		buf = buf(cv::Range(trim_y_lo, trim_y_hi),
 		          cv::Range(trim_x_lo, trim_x_hi)).clone();
@@ -1864,17 +1863,3 @@ cv::Mat stack_merge_alignment_point_buffers(const StackState &state,
 }
 
 }  // namespace mpp
-
-/* ----------------- Public C interface (still stubbed) ----------------- */
-
-extern "C" mpp_status_t mpp_stack(sequence *seq,
-                                  const mpp_config_t *cfg,
-                                  const mpp_aps_t *aps,
-                                  const mpp_shifts_t *shifts,
-                                  const int *global_shifts,
-                                  mpp_resample_kind_t backend, int upscale,
-                                  fits *stacked_out) {
-	(void) seq; (void) cfg; (void) aps; (void) shifts; (void) global_shifts;
-	(void) backend; (void) upscale; (void) stacked_out;
-	return MPP_ENOTIMPL;
-}

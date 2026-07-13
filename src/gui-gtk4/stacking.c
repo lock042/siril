@@ -60,7 +60,7 @@ stack_method stacking_methods[] = {
  * (mpp_stack_apply) then performs all scaling via cv::resize. Entries map
  * one-to-one to the GtkStringList items in siril_stacking.ui (1x / 1.5x /
  * 2x / 3x); sequence-type-specific gating happens at run time. */
-static const double mpp_drizzle_scales[] = { 1.0, 1.5, 2.0, 3.0 };
+static const double mpp_output_scales[] = { 1.0, 1.5, 2.0, 3.0 };
 
 void initialize_stacking_methods() {
 	init_stacking_args(&stackparam);
@@ -108,7 +108,7 @@ static void start_stacking() {
 					*upscale_at_stacking = NULL, *overlap_norm = NULL, *force32b = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
-	static GtkDropDown *mpp_drizzle_combo = NULL, *mpp_engine_combo = NULL;
+	static GtkDropDown *mpp_scale_combo = NULL, *mpp_engine_combo = NULL;
 	static GtkSpinButton *mpp_stack_percent = NULL, *mpp_stack_frames = NULL,
 	                     *mpp_bg_fraction = NULL, *mpp_bg_blend = NULL;
 	static GtkCheckButton *mpp_skip_failed = NULL;
@@ -135,7 +135,7 @@ static void start_stacking() {
 		overlap_norm = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
 		force32b = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 		/* STACK_MPP widgets */
-		mpp_drizzle_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_drizzle"));
+		mpp_scale_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_scale"));
 		mpp_engine_combo  = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "combo_mpp_engine"));
 		mpp_stack_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_percent"));
 		mpp_stack_frames  = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mpp_stack_frames"));
@@ -248,12 +248,11 @@ static void start_stacking() {
 	if (stackparam.method == stack_mpp_handler) {
 		mpp_config_t *cfg = calloc(1, sizeof(*cfg));
 		mpp_config_defaults(cfg);
-		const guint driz_idx = gtk_drop_down_get_selected(mpp_drizzle_combo);
-		if (driz_idx < G_N_ELEMENTS(mpp_drizzle_scales))
-			cfg->drizzle_scale = mpp_drizzle_scales[driz_idx];
+		const guint scale_idx = gtk_drop_down_get_selected(mpp_scale_combo);
+		if (scale_idx < G_N_ELEMENTS(mpp_output_scales))
+			cfg->output_scale = mpp_output_scales[scale_idx];
 		else	/* GTK_INVALID_LIST_POSITION */
-			cfg->drizzle_scale = 1.0;
-		cfg->drizzle_mode = MPP_DRIZZLE_OFF;   /* dobox disabled; scaling via cv::resize */
+			cfg->output_scale = 1.0;
 		cfg->stack_frame_percent                     = gtk_spin_button_get_value_as_int(mpp_stack_percent);
 		cfg->stack_frame_number                      = gtk_spin_button_get_value_as_int(mpp_stack_frames);
 		cfg->stack_frames_background_fraction        = gtk_spin_button_get_value(mpp_bg_fraction);

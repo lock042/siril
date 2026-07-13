@@ -110,7 +110,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 	const int M = aps.count;
 	const int N = num_frames;
 	const int C = num_layers;
-	const double S = std::max(1.0, cfg.drizzle_scale);
+	const double S = std::max(1.0, cfg.output_scale);
 	const int dim_y = intersection[1] - intersection[0];
 	const int dim_x = intersection[3] - intersection[2];
 	const int DY = (int) std::lround(dim_y * S);
@@ -297,16 +297,16 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			} else {
 				frame_raw.convertTo(frame_f32, CV_32F);
 			}
-			cv::Mat frame_drizzled;
+			cv::Mat frame_scaled;
 			if (S != 1.0)
-				cv::resize(frame_f32, frame_drizzled,
+				cv::resize(frame_f32, frame_scaled,
 				           cv::Size((int) std::lround(frame_f32.cols * S),
 				                    (int) std::lround(frame_f32.rows * S)),
 				           0, 0, cv::INTER_LINEAR);
 			else
-				frame_drizzled = frame_f32;
-			const int Hd = frame_drizzled.rows;
-			const int Wd_f = frame_drizzled.cols;
+				frame_scaled = frame_f32;
+			const int Hd = frame_scaled.rows;
+			const int Wd_f = frame_scaled.cols;
 
 			/* Per-frame AP weights and shifts. Failed pairs are kept as
 			 * displacement-field support when Stage B's shift-field
@@ -501,7 +501,7 @@ WarpStackResult stack_warp_apply_streamed(const FrameProvider &provider,
 			}
 
 			cv::Mat warped;
-			cv::remap(frame_drizzled, warped, mapx, mapy,
+			cv::remap(frame_scaled, warped, mapx, mapy,
 			          cv::INTER_LANCZOS4, cv::BORDER_REPLICATE);
 
 			/* The background composite is accumulated from the SAME warped

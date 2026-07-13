@@ -32,7 +32,6 @@ extern "C" {
 #include "registration/mpp/mpp_ap.h"
 #include "registration/mpp/mpp_config.h"
 #include "registration/mpp/mpp_shift.h"
-#include "registration/mpp/mpp_stack.h"
 }
 
 cominfo com;
@@ -90,12 +89,6 @@ cv::Mat shifted(const cv::Mat &mono, int dy, int dx) {
 
 /* ------------------------------------------------------------------------- */
 
-Test(mpp_stack, stub_returns_enotimpl) {
-	cr_assert_eq(mpp_stack(nullptr, nullptr, nullptr, nullptr, nullptr,
-	                       MPP_RESAMPLE_BICUBIC, 1, nullptr),
-	             MPP_ENOTIMPL);
-}
-
 Test(mpp_stack, default_config_phase5a) {
 	const auto cfg = default_cfg();
 	cr_assert_eq(cfg.alignment_points_frame_percent, 100);
@@ -106,7 +99,7 @@ Test(mpp_stack, default_config_phase5a) {
 	cr_assert_float_eq(cfg.stack_frames_background_fraction, 0.3, 1e-12);
 	cr_assert_float_eq(cfg.stack_frames_background_blend_threshold, 0.2, 1e-12);
 	cr_assert_eq(cfg.stack_frames_background_patch_size, 100);
-	cr_assert_float_eq(cfg.drizzle_scale, 1.0, 1e-12);
+	cr_assert_float_eq(cfg.output_scale, 1.0, 1e-12);
 }
 
 /* one_dim_weight: PSS's linear ramp t is mapped through the raised-cosine
@@ -535,12 +528,12 @@ Test(mpp_stack, apply_shifts_parallel_matches_serial) {
 	mpp_ap_free(aps);
 }
 
-/* Fractional output scale (e.g. 1.5x) is honoured exactly — the drizzled
+/* Fractional output scale (e.g. 1.5x) is honoured exactly — the scaled
  * canvas is round(intersection × scale), NOT the nearest integer factor —
  * and accumulation stays deterministic across thread counts. */
 Test(mpp_stack, apply_shifts_fractional_scale) {
 	auto cfg = default_cfg();
-	cfg.drizzle_scale = 1.5;
+	cfg.output_scale = 1.5;
 	const cv::Mat truth = make_textured_frame();
 	const std::vector<std::pair<int, int>> jit = {
 	    {0, 0}, {-2, 1}, {3, -1}, {1, 2}};
@@ -587,11 +580,11 @@ Test(mpp_stack, apply_shifts_fractional_scale) {
 
 	const int dim_y = avg.intersection[1] - avg.intersection[0];
 	const int dim_x = avg.intersection[3] - avg.intersection[2];
-	cr_assert_float_eq(serial.state.drizzle_scale, 1.5, 1e-12);
+	cr_assert_float_eq(serial.state.output_scale, 1.5, 1e-12);
 	/* Exact fractional geometry, not integer-rounded scale. */
-	cr_assert_eq(serial.state.dim_y_drizzled, (int) std::lround(dim_y * 1.5));
-	cr_assert_eq(serial.state.dim_x_drizzled, (int) std::lround(dim_x * 1.5));
-	cr_assert_neq(serial.state.dim_y_drizzled, dim_y * 2);
+	cr_assert_eq(serial.state.dim_y_scaled, (int) std::lround(dim_y * 1.5));
+	cr_assert_eq(serial.state.dim_x_scaled, (int) std::lround(dim_x * 1.5));
+	cr_assert_neq(serial.state.dim_y_scaled, dim_y * 2);
 
 	/* 1-thread vs 8-thread stays close at fractional scale (frame-parallel
 	 * reduction reorders the float sum → ≤1 16-bit LSB, not bit-identical). */
@@ -645,7 +638,7 @@ Test(mpp_stack, merge_equalises_ap_dc_offsets) {
 	const cv::Vec4i intersection(0, 72, 0, 126);
 	auto state = mpp::stack_prepare_for_blending(aps, intersection,
 	                                             /*stack_size=*/1,
-	                                             /*drizzle_scale=*/1.0,
+	                                             /*output_scale=*/1.0,
 	                                             /*num_layers=*/1, cfg);
 	cr_assert_eq(state.number_stacking_holes, 0);
 	cr_assert_eq((int) state.ap_frame_counts.size(), 2);
@@ -723,8 +716,8 @@ Test(mpp_stack, skip_failed_aps_drops_corrupted_pairs) {
 		    out.state, out.border, *aps, c);
 		const int m = 24;   /* canvas margin large enough to cover any border */
 		const int y0 = m - out.border.y_low, x0 = m - out.border.x_low;
-		const int h = out.state.dim_y_drizzled - 2 * m;
-		const int w = out.state.dim_x_drizzled - 2 * m;
+		const int h = out.state.dim_y_scaled - 2 * m;
+		const int w = out.state.dim_x_scaled - 2 * m;
 		return img(cv::Range(y0, y0 + h), cv::Range(x0, x0 + w)).clone();
 	};
 

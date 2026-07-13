@@ -14510,7 +14510,7 @@ int process_offline(int nb) {
  * `apply_mpp_flag` parses a single argv entry into `cfg`/`out_path`.
  * Flags fall into three categories driven by the matrix in pss_port_plan.md §6:
  *   register-time  — affect Stage A/B (AP placement + per-AP shift compute)
- *   stack-time     — affect Stage C  (top-N pick, drizzle resize, blending, output)
+ *   stack-time     — affect Stage C  (top-N pick, output resize, blending, output)
  *   shared         — accepted everywhere
  * Each command passes `accept_register` and `accept_stack` to opt in/out.
  *
@@ -14540,14 +14540,13 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-scale=")) {
 		/* Output scale factor in [1.0, 3.0]; fractional values are
-		 * supported. Scaling is done by cv::resize in the classical stack
-		 * (the dobox drizzle backends are no longer used). */
+		 * supported. Scaling is done by cv::resize in the classical stack. */
 		const char *v = arg + 7;
 		char *end = NULL;
 		const double s = g_ascii_strtod(v, &end);
 		if (end == v || *end != '\0' || s < 1.0 || s > 3.0)
 			return MPP_FLAG_INVALID_VALUE;
-		cfg->drizzle_scale = s;
+		cfg->output_scale = s;
 		return MPP_FLAG_OK;
 	}
 	if (accept_stack && g_str_has_prefix(arg, "-stack-percent=")) {
@@ -14781,33 +14780,6 @@ static sequence *load_sequence_force_debayer(const char *name) {
 	return seq;
 }
 
-/* Validate drizzle-mode / input-type mismatches in sidecars from
- * older runs that explicitly pinned a backend. New sidecars produced
- * by either the CLI (-scale=) or the GUI always leave drizzle_mode =
- * OFF and let the dispatcher auto-route.
- *
- * STSCI on CFA used to be rejected (would amplify debayer artefacts);
- * with the current routing STSCI on CFA is the *intended* default
- * (auto-debayer is engaged by mpp_stack_apply's SerAnalysisDebayerGuard
- * before the dobox call), so the check has been removed.
- *
- * Bayer drizzle on CFA is allowed but no longer the auto-routed
- * default — mpp_stack_apply promotes BAYER to STSCI (see comment
- * there). A non-CFA sidecar that pinned BAYER is still a hard
- * mismatch since the path requires a raw mosaic input. */
-static int reject_drizzle_mismatch(const sequence *seq, const mpp_config_t *cfg,
-                                   const char *cmd_name) {
-	const mpp_input_type type = mpp_classify_sequence_input(seq);
-	if (cfg->drizzle_mode == MPP_DRIZZLE_OFF) return CMD_OK;
-	if (cfg->drizzle_mode == MPP_DRIZZLE_BAYER && type != MPP_INPUT_CFA) {
-		siril_log_error(_("%s: sidecar pins Bayer drizzle but this is not a "
-		                  "CFA SER. Re-run Analyse to regenerate the "
-		                  "sidecar, then stack with -scale=N.\n"), cmd_name);
-		return CMD_ARG_ERROR;
-	}
-	return CMD_OK;
-}
-
 int process_mpp(int nb) {
 	/* `pss seqname [-out=file] [-scale=N (1.0..3.0)] [-stack-percent=N]
 	 *              [-stack-frames=N] [-half-box=N] [-search-width=N]
@@ -14846,15 +14818,9 @@ int process_mpp(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	const int reject_rc = reject_drizzle_mismatch(seq, &cfg, "pss");
-	if (reject_rc != CMD_OK) {
-		g_free(out_path);
-		return reject_rc;
-	}
-
 	siril_log_message(_("pss: %d frames, %dx%d, bitdepth=%d%s\n"),
 	                  seq->number, seq->rx, seq->ry, cfg.bitdepth,
-	                  cfg.drizzle_scale > 1.001 ? " (upscaled)" : "");
+	                  cfg.output_scale > 1.001 ? " (upscaled)" : "");
 
 	mpp_run_t *run = NULL;
 	int rc = mpp_analyze(seq, &cfg, &run);
@@ -15047,17 +15013,10 @@ int process_stack_mpp(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	const int reject_rc = reject_drizzle_mismatch(seq, run->cfg, "stack_mpp");
-	if (reject_rc != CMD_OK) {
-		mpp_run_free(run);
-		g_free(out_path);
-		return reject_rc;
-	}
-
 	siril_log_message(_("stack_mpp: %d frames, %dx%d, %d APs, bitdepth=%d%s\n"),
 	                  run->num_frames, run->frame_cols, run->frame_rows,
 	                  run->aps->count, run->bitdepth,
-	                  run->cfg->drizzle_scale > 1.001 ? " (upscaled)" : "");
+	                  run->cfg->output_scale > 1.001 ? " (upscaled)" : "");
 
 	fits stacked = {0};
 	rc = mpp_stack_apply(seq, run->cfg, run, &stacked);

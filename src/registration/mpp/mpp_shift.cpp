@@ -137,7 +137,7 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_blurred,
 	for (int f = 0; f < N; ++f) {
 		/* See the long sign-trace comment in
 		 * stack_compute_shifts_streamed — per-AP shift stored =
-		 * r.dy + sub_y so that drizzle's gdy + weighted_ap equals
+		 * r.dy + sub_y so that the resample's gdy + weighted_ap equals
 		 * the full sub-pixel alignment correction. */
 		const double dy_full = offsets[f].dy;
 		const double dx_full = offsets[f].dx;

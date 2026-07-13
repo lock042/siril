@@ -59,7 +59,7 @@ struct mpp_config {
 	int alignment_points_contrast_threshold;    /* 0   (gets multiplied by 256 for 16-bit) */
 	double alignment_points_structure_threshold; /* 0.04 (post-normalisation) */
 	double alignment_points_dim_fraction_threshold; /* 0.6 — triggers COM re-centring */
-	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic fit (drizzle path) */
+	bool alignment_points_local_search_subpixel; /* false — phase-2 parabolic sub-pixel fit */
 
 	/* Per-AP frame selection. Two independent controls:
 	 *  - REGISTER (alignment_points_frame_*): the upper bound baked at
@@ -94,21 +94,11 @@ struct mpp_config {
 	 * checkbutton. */
 	bool output_32bit;                           /* false */
 
-	/* Output scale factor. 1.0 = no upscale (bicubic-no-op path); > 1.0
-	 * routes to STScI dobox for mono / RGB input and Bayer dobox for raw
-	 * CFA input. Non-integer values (e.g. 1.5) are supported natively —
-	 * the dobox pixmap is built with a double scale and output dimensions
-	 * round to nearest. */
-	double drizzle_scale;
-
-	/* Phase 5b — drizzle backend selection. Now derived from input type
-	 * at stack time (see mpp_stack_apply); user-facing surface is just
-	 * the scale factor. The enum still exists so the dispatcher can
-	 * record which path it picked, and so older sidecar code keeps
-	 * compiling. */
-	int drizzle_mode;          /* enum mpp_drizzle_mode; default MPP_DRIZZLE_OFF */
-	double drizzle_pixfrac;    /* (0, 1]; default 0.7 — drizzle-only */
-	int drizzle_kernel;        /* enum mpp_drizzle_kernel; default MPP_KERNEL_TURBO */
+	/* Output scale factor. 1.0 = no upscale; > 1.0 upscales the stacked
+	 * result via cv::resize. Non-integer values (e.g. 1.5) are supported
+	 * natively — output dimensions are the input × scale rounded to the
+	 * nearest pixel. */
+	double output_scale;
 
 	/* Stage B measurement quality (mpp_improve; no PSS equivalent).
 	 * Both default ON — deliberate divergences from PSS, documented in
@@ -185,8 +175,8 @@ struct mpp_config {
 	 * existing film_read_frame heuristic in charge (current behaviour);
 	 * MONO is an explicit "yes it is mono, don't probe"; the four
 	 * Bayer values route analysis through cv::cvtColor BayerXX2BGR
-	 * and Stage C through the dobox Bayer path. Only consulted for
-	 * SEQ_AVI sequences; ignored for SER / FITS. */
+	 * and Stage C debayers the raw mosaic before stacking. Only
+	 * consulted for SEQ_AVI sequences; ignored for SER / FITS. */
 	int avi_bayer_pattern;     /* enum mpp_avi_bayer; default MPP_AVI_BAYER_AUTO */
 };
 
@@ -208,15 +198,6 @@ enum mpp_stack_method {
 	MPP_STACK_WARP  = 1,   /* dense warp-field accumulation */
 };
 
-enum mpp_drizzle_mode {
-	MPP_DRIZZLE_OFF     = 0,  /* scale = 1.0; cv::resize no-op path */
-	/* slot 1 was MPP_DRIZZLE_BICUBIC (Phase 5a cv::resize upscale) —
-	 * deprecated, the OFF path covers the scale=1 case and dobox covers
-	 * upscale better. Numbering preserved so saved configs keep meaning. */
-	MPP_DRIZZLE_STSCI   = 2,  /* dobox with debayered / mono / RGB input */
-	MPP_DRIZZLE_BAYER   = 3,  /* dobox with raw Bayer input → 3-channel output */
-};
-
 /* AVI Bayer-pattern hint values. Ordering matches the GUI combo's item
  * indices (see siril.ui's combo_mpp_avi_bayer); persisted to the sidecar
  * via cfg->avi_bayer_pattern. */
@@ -227,21 +208,6 @@ enum mpp_avi_bayer {
 	MPP_AVI_BAYER_BGGR = 3,
 	MPP_AVI_BAYER_GBRG = 4,
 	MPP_AVI_BAYER_GRBG = 5,
-};
-
-enum mpp_drizzle_kernel {
-	MPP_KERNEL_SQUARE   = 0,
-	MPP_KERNEL_GAUSSIAN = 1,
-	MPP_KERNEL_POINT    = 2,
-	MPP_KERNEL_TURBO    = 3,
-	MPP_KERNEL_LANCZOS2 = 4,
-	MPP_KERNEL_LANCZOS3 = 5,
-	/* Not a real drizzle kernel — when picked, mpp_stack_apply
-	 * routes through the cv::resize bicubic path instead of dobox.
-	 * Reliable fallback for rare cases where true drizzle produces
-	 * resonance / ringing on fine high-contrast structure (Saturn's
-	 * rings, planetary terminator edges). */
-	MPP_KERNEL_UPSCALE  = 6,
 };
 
 typedef struct mpp_config mpp_config_t;

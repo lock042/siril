@@ -155,16 +155,16 @@ APQualities ap_compute_frame_qualities_streamed(const FrameProvider &provider,
                                                 bool provider_thread_safe = false);
 
 /*
- * Per-AP: drizzled patch bounds + drizzled centre + 2D weights_yx
+ * Per-AP: scaled patch bounds + scaled centre + 2D weights_yx
  * (`weight_y[:, None] * weight_x[None, :]`, Hann-tapering from the AP
  * centre to the patch boundaries, with the boundary taper suppressed at
- * frame edges). Global: a sum_single_frame_weights buffer in drizzled coords,
+ * frame edges). Global: a sum_single_frame_weights buffer in scaled coords,
  * accumulating `stack_size × weights_yx` over every AP. The count of pixels
  * with summed weight < 1e-10 is the "background hole" count.
  *
- * Initialised stacking_buffers (per-AP zeros, drizzled patch size) live
+ * Initialised stacking_buffers (per-AP zeros, scaled patch size) live
  * here so the main loop can accumulate into them.
- * A pre-drizzle rectangular region of the intersection that contains at
+ * A pre-scale rectangular region of the intersection that contains at
  * least one "hole" pixel needing background fill. Empty list ⇒ full-frame
  * background. */
 struct StackBackgroundPatch {
@@ -172,22 +172,22 @@ struct StackBackgroundPatch {
 };
 
 struct StackState {
-	double drizzle_scale = 1.0;   /* output scale; fractional supported (cv::resize) */
+	double output_scale = 1.0;   /* output scale; fractional supported (cv::resize) */
 	int stack_size = 0;
 	int num_layers = 1;       /* 1 = mono, 3 = RGB */
-	int dim_y = 0;            /* pre-drizzle intersection size (for background) */
+	int dim_y = 0;            /* pre-scale intersection size (for background) */
 	int dim_x = 0;
-	int dim_y_drizzled = 0;
-	int dim_x_drizzled = 0;
+	int dim_y_scaled = 0;
+	int dim_x_scaled = 0;
 
 	/* Per-AP — all length = aps->count. */
-	std::vector<cv::Vec4i> patch_drizzled;  /* (y_low, y_high, x_low, x_high) */
-	/* Drizzled px added beyond the REGISTERED patch bounds at each edge
+	std::vector<cv::Vec4i> patch_scaled;  /* (y_low, y_high, x_low, x_high) */
+	/* Scaled px added beyond the REGISTERED patch bounds at each edge
 	 * (y_low, y_high, x_low, x_high) by the boundary-patch extension —
 	 * see stack_prepare_for_blending. Frame clipping inside an extension
 	 * is best-effort loss, not grounds for trimming the output border. */
 	std::vector<cv::Vec4i> patch_extension;
-	std::vector<cv::Vec2i> ap_drizzled;     /* (y, x) */
+	std::vector<cv::Vec2i> ap_scaled;     /* (y, x) */
 	std::vector<cv::Mat> weights_yx;        /* CV_32F, patch-sized */
 	std::vector<cv::Mat> stacking_buffers;  /* CV_32F, patch-sized, zero-init */
 	/* Frames accumulated per AP (stack_size, or the reduced effective
@@ -195,7 +195,7 @@ struct StackState {
 	 * a mean patch — used by the merge's per-AP DC equalisation. */
 	std::vector<float> ap_frame_counts;
 
-	cv::Mat sum_single_frame_weights;       /* CV_32F, dim_y_drizzled × dim_x_drizzled */
+	cv::Mat sum_single_frame_weights;       /* CV_32F, dim_y_scaled × dim_x_scaled */
 	int number_stacking_holes = 0;
 
 	/* Background plumbing (only meaningful when number_stacking_holes > 0). */
@@ -206,7 +206,7 @@ struct StackState {
 StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       const cv::Vec4i &intersection,
                                       int stack_size,
-                                      double drizzle_scale,
+                                      double output_scale,
                                       int num_layers,
                                       const mpp_config_t &cfg,
                                       const std::vector<float> *ap_effective_counts = nullptr);
@@ -245,7 +245,7 @@ mpp_shifts_t *stack_compute_shifts_streamed(const FrameProvider &provider,
 
 /* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
  * averaged_background. Takes the same shifts vector as Stage B; the rest of
- * the bookkeeping (brightness equalise, drizzle resize, remap_rigid,
+ * the bookkeeping (brightness equalise, output resize, remap_rigid,
  * background accumulate) is identical to stack_frames_loop. `included` is an
  * optional per-frame mask (length frames_raw.size()); when non-null, frames
  * with included[f]==0 are skipped entirely from the stack. NULL ⇒ all frames
@@ -280,7 +280,7 @@ StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
  *
  * The float sum is reordered by the per-thread reduction, so the output is
  * not bit-identical across thread counts (measured ≤1 16-bit LSB on an
- * 8000-frame stack) — the same trade the drizzle paths make, negligible for
+ * 8000-frame stack) — the same trade every resampling stack makes, negligible for
  * a statistical stack.
  *
  * `mem_budget_bytes` (0 = unbounded) caps the thread count so the private
@@ -305,7 +305,7 @@ StackLoopOutput stack_apply_shifts_streamed(const FrameProvider &provider,
  *
  * Inputs:
  *   frames_raw            — raw mono (uint16-stored in Siril). Brightness-
- *                           equalised and resampled to drizzled coords
+ *                           equalised and resampled to scaled coords
  *                           inside.
  *   frames_mono_blurred   — Gaussian-blurred mono frames, fed into
  *                           multilevel_correlation for per-AP shift.
@@ -351,7 +351,7 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 /* merge_alignment_point_buffers.
  *
  * 1. For each AP: add `stacking_buffer * weights_yx` into the global
- *    stacked_image_buffer at the AP's drizzled patch bounds.
+ *    stacked_image_buffer at the AP's scaled patch bounds.
  * 2. Divide stacked_image_buffer by sum_single_frame_weights (per-pixel).
  * 3. If there are background holes, blend in averaged_background using a
  *    clipped `sum_weights / (blend_threshold × stack_size)` foreground
@@ -375,7 +375,7 @@ cv::Mat stack_float_to_uint16(const cv::Mat &buf, int num_layers, int bitdepth);
 /* Optional per-frame derotation hook for the warp engine. Unused on this
  * branch (no derotation infrastructure) but kept in the engine's signature
  * so the pss-derot branch, whose derotation is built on this exact engine,
- * merges cleanly. Fills, in the engine's drizzled canvas (rows=DY, cols=DX):
+ * merges cleanly. Fills, in the engine's scaled canvas (rows=DY, cols=DX):
  *   mapx/mapy (CV_32F) — source position for each canvas pixel (replaces the
  *                        identity base of the remap);
  *   mu (CV_32F)        — usability weight (0 drops the pixel).
