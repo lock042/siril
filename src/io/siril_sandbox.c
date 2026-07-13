@@ -93,6 +93,7 @@
 #endif
 
 #include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
 
 /* Fail-open policy switch. When 1, an unavailable sandbox (old kernel, Landlock
  * disabled) results in a plain unsandboxed spawn plus a one-line warning. Flip
@@ -312,7 +313,7 @@ static inline long sandbox_landlock_restrict_self(int ruleset_fd, __u32 flags) {
 /* using only async-signal-safe syscalls (open/fstat/close/syscall).   */
 /* ------------------------------------------------------------------ */
 
-#define SANDBOX_MAX_PATHS 8
+#define SANDBOX_MAX_PATHS 16
 
 struct _SirilSandbox {
 	int install_seccomp;               /* 1 if a seccomp filter applies     */
@@ -411,6 +412,35 @@ SirilSandbox *siril_sandbox_prepare(const char *wd,
 				sb->paths[n++] = g_strdup(wd);
 			if (venv_path && *venv_path)
 				sb->paths[n++] = g_strdup(venv_path);
+
+			/* Siril's own writable directories, via the app-dirs accessors
+			 * (platform/XDG-correct — do not hardcode). Scripts legitimately
+			 * write here: user data (~/.local/share/siril: prefs, venv
+			 * metadata), the per-app config dir (<config>/siril — NOT the whole
+			 * XDG config base, which would expose every app's config), the
+			 * scripts repo and the SPCC data dir. NB reads are already
+			 * unrestricted (read rights are unhandled), so a read-only consumer
+			 * of these needs no grant; these grants are only about writes. A
+			 * dir that does not exist yet is simply skipped when the rule is
+			 * added in the child. */
+			{
+				const char *d;
+				gchar *cfg;
+				d = siril_get_user_data_dir();
+				if (d && *d)
+					sb->paths[n++] = g_strdup(d);
+				cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
+				if (cfg && *cfg)
+					sb->paths[n++] = cfg;   /* heap-owned; freed in finish() */
+				else
+					g_free(cfg);
+				d = siril_get_scripts_repo_path();
+				if (d && *d)
+					sb->paths[n++] = g_strdup(d);
+				d = siril_get_spcc_repo_path();
+				if (d && *d)
+					sb->paths[n++] = g_strdup(d);
+			}
 
 			tmpdir = g_getenv("TMPDIR");
 			sb->paths[n++] = g_strdup((tmpdir && *tmpdir) ? tmpdir : "/tmp");
