@@ -111,6 +111,30 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->height = image.height();
 		xdata->channelCount = image.channelCount();
 
+		// Validate that the reported geometry is consistent with the actual
+		// image data size: the consumer indexes width*height*channels samples
+		// out of this buffer, so a crafted XISF declaring dimensions larger
+		// than the data it ships would over-read the heap.
+		size_t bytes_per_sample;
+		switch (image.sampleFormat()) {
+			case LibXISF::Image::UInt8:   bytes_per_sample = 1; break;
+			case LibXISF::Image::UInt16:  bytes_per_sample = 2; break;
+			case LibXISF::Image::UInt32:
+			case LibXISF::Image::Float32: bytes_per_sample = 4; break;
+			case LibXISF::Image::Float64: bytes_per_sample = 8; break;
+			default:                      bytes_per_sample = 0; break;
+		}
+		const uint64_t max_dim = 100000; // matches MAX_IMAGE_DIM
+		if (bytes_per_sample == 0 || xdata->width == 0 || xdata->height == 0 ||
+				xdata->channelCount == 0 || xdata->width > max_dim ||
+				xdata->height > max_dim || xdata->channelCount > 3 ||
+				(uint64_t) image.imageDataSize() <
+					(uint64_t) xdata->width * xdata->height *
+					xdata->channelCount * bytes_per_sample) {
+			xisfReader.close();
+			return -1;
+		}
+
 		xdata->data = (uint8_t*) malloc(image.imageDataSize());
 		if (!xdata->data) {
 			xisfReader.close();

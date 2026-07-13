@@ -193,6 +193,10 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file format error, missing S line\n");
 					goto error;
 				}
+				if (i >= seq->number) {
+					fprintf(stderr, "readseqfile: sequence file has more image lines than declared\n");
+					goto error;
+				}
 
 				if (version <= 3) {
 					allocate_stats(&stats);
@@ -237,13 +241,13 @@ sequence * readseqfile(const char *name){
 				break;
 			case 'D': // Distortion data - from version 5 onwards
 				current_layer = line[1] - '0';
-				if (current_layer < 0 || current_layer > seq->nb_layers) {
+				if (current_layer < 0 || current_layer >= seq->nb_layers) {
 					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
 					goto error;
 				}
 				int index;
 				char buf0[256], buf1[256], buf2[256];
-				nb_tokens = sscanf(line + 3, "%d %s %s %s\n",
+				nb_tokens = sscanf(line + 3, "%d %255s %255s %255s\n",
 							&index,
 							buf0, buf1, buf2);
 				if (nb_tokens < 1 || nb_tokens > 4) {
@@ -595,6 +599,14 @@ sequence * readseqfile(const char *name){
 						&(stats->normValue),
 						&(stats->bgnoise));
 				if (nb_tokens == 15) {
+					int max_layer = to_backup ? 3 : seq->nb_layers;
+					if (current_layer >= max_layer || image < 0 || image >= seq->number) {
+						/* stats we cannot store (e.g. CFA opened as mono, or
+						 * a bogus layer/image index): drop the line rather than
+						 * writing out of bounds */
+						free_stats(stats);
+						break;
+					}
 					if (to_backup)
 						add_stats_to_seq_backup(seq, image, current_layer, stats);
 					else add_stats_to_seq(seq, image, current_layer, stats);
@@ -608,7 +620,7 @@ sequence * readseqfile(const char *name){
 			case 'E': { // External reference: "E path rx ry"
 				char buf0[256];
 				unsigned int ref_rx, ref_ry, active;
-				nb_tokens = sscanf(line + 2, "%s %u %u %u\n",
+				nb_tokens = sscanf(line + 2, "%255s %u %u %u\n",
 							buf0, &active, &ref_rx, &ref_ry);
 				if (nb_tokens != 4) {
 					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
@@ -651,6 +663,12 @@ sequence * readseqfile(const char *name){
 					&(ostat.scaji));
 				if (nb_tokens != 17) {
 					fprintf(stderr, "readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				if (current_layer < 0 || current_layer >= seq->nb_layers ||
+						ostat.i < 0 || ostat.j < 0 ||
+						ostat.i >= ostat.j || ostat.j >= seq->number) {
+					fprintf(stderr, "readseqfile: sequence file bad overlap stats: %s\n", line);
 					goto error;
 				}
 				ostat.areaj.w = ostat.areai.w;

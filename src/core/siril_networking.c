@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/gui_iface.h"
+#include "core/OS_utils.h"
 
 #define STR_INDIR(x) #x 
 #define STR(x) STR_INDIR(x)
@@ -46,10 +47,50 @@ static gboolean online_status = TRUE;
 
 #if defined(HAVE_LIBCURL)
 
+// Upper bound on a single response body we will buffer in memory. Computed once
+// as a large fraction of the memory available at first use: it is only a safety
+// ceiling to stop a malicious or misbehaving server streaming data until we
+// exhaust RAM, so it is deliberately lenient and legitimately large downloads
+// still succeed.
+static size_t get_max_response_size() {
+	static gsize max_size = 0;
+	if (g_once_init_enter(&max_size)) {
+		guint64 avail = get_available_memory();
+		guint64 limit = (avail / 4) * 3; // up to ~75% of the available memory
+		if (limit < (guint64) 256 * 1024 * 1024)
+			limit = (guint64) 256 * 1024 * 1024; // never below 256 MiB
+		g_once_init_leave(&max_size, (gsize) limit);
+	}
+	return (size_t) max_size;
+}
+
+// Restrict redirects: bound their number and confine them to http/https so a
+// crafted Location: header cannot make libcurl follow file:// or other schemes.
+static void siril_curl_harden_redirects(CURL *curl) {
+	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
+#if defined(CURLOPT_REDIR_PROTOCOLS_STR)
+	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#elif defined(CURLOPT_REDIR_PROTOCOLS)
+	curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS,
+			(long) (CURLPROTO_HTTP | CURLPROTO_HTTPS));
+#endif
+}
+
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct ucontent *mem = (struct ucontent *) userp;
-	mem->data = realloc(mem->data, mem->len + realsize + 1);
+	size_t max_size = get_max_response_size();
+	// Abort if the accumulated response would exceed the ceiling or overflow.
+	if (mem->len + realsize + 1 < mem->len || mem->len + realsize > max_size) {
+		siril_log_error(_("Aborting download: response exceeds the maximum size (%zu bytes)\n"), max_size);
+		return 0; // returning less than realsize tells libcurl to abort
+	}
+	char *tmp = realloc(mem->data, mem->len + realsize + 1);
+	if (!tmp) {
+		PRINT_ALLOC_ERR;
+		return 0; // abort on OOM instead of dereferencing a NULL buffer
+	}
+	mem->data = tmp;
 	memcpy(&(mem->data[mem->len]), buffer, realsize);
 	mem->len += realsize;
 	mem->data[mem->len] = 0;
@@ -74,6 +115,7 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	siril_curl_harden_redirects(curl);
 	if (request_type == HTTP_POST) {
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
@@ -205,6 +247,7 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	siril_curl_harden_redirects(curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
 
 	g_free(range_header);
@@ -340,6 +383,7 @@ int http_check(const gchar *url) {
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	siril_curl_harden_redirects(curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
 	retval |= curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 

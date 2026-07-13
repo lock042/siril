@@ -33,6 +33,7 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
+#include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "io/fits_keywords.h"
 
@@ -403,8 +404,12 @@ int savebmp(const char *name, fits *fit) {
 	fwrite(bmpfileheader, sizeof(bmpfileheader), 1, f);
 	fwrite(bmpinfoheader, sizeof(bmpinfoheader), 1, f);
 
+	gui_iface.set_progress(PROGRESS_RESET, _("Saving BMP"));
+
 	if (fit->type == DATA_USHORT) {
 		for (i = 0; i < height; i++) {
+			if ((i & 0x3F) == 0)
+				gui_iface.set_progress((double)i / height, NULL);
 			for (j = 0; j < width; j++) {
 				red = *gbuf[RLAYER]++;
 				if (fit->naxes[2] == 3) {
@@ -426,6 +431,8 @@ int savebmp(const char *name, fits *fit) {
 		}
 	} else {
 		for (i = 0; i < height; i++) {
+			if ((i & 0x3F) == 0)
+				gui_iface.set_progress((double)i / height, NULL);
 			for (j = 0; j < width; j++) {
 				redf = *gbuff[RLAYER]++;
 				if (fit->naxes[2] == 3) {
@@ -446,6 +453,7 @@ int savebmp(const char *name, fits *fit) {
 				fwrite("0", 1, padsize, f);	//We fill the end of width with 0
 		}
 	}
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	fclose(f);
 	siril_log_message(_("Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"), filename,
 			fit->naxes[2], fit->rx, fit->ry);
@@ -725,6 +733,8 @@ static int saveppm(const char *name, fits *fit) {
 	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	if (fit->type == DATA_USHORT) {
 		for (i = 0; i < ndata; i++) {
+			if ((i % fit->rx) == 0)
+				gui_iface.set_progress((double)i / ndata, _("Saving NetPBM"));
 			WORD color[3];
 			color[0] = *gbuf[RLAYER]++ * norm;
 			color[1] = *gbuf[GLAYER]++ * norm;
@@ -737,6 +747,8 @@ static int saveppm(const char *name, fits *fit) {
 		}
 	} else {
 		for (i = 0; i < ndata; i++) {
+			if ((i % fit->rx) == 0)
+				gui_iface.set_progress((double)i / ndata, _("Saving NetPBM"));
 			WORD color[3];
 			color[0] = float_to_ushort_range(*gbuff[RLAYER]++);
 			color[1] = float_to_ushort_range(*gbuff[GLAYER]++);
@@ -748,6 +760,7 @@ static int saveppm(const char *name, fits *fit) {
 			fwrite(color, sizeof(WORD), 3, fp);
 		}
 	}
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	fclose(fp);
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -801,6 +814,8 @@ static int savepgm(const char *name, fits *fit) {
 	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	if (fit->type == DATA_USHORT) {
 		for (i = 0; i < ndata; i++) {
+			if ((i % fit->rx) == 0)
+				gui_iface.set_progress((double)i / ndata, _("Saving NetPBM"));
 			WORD tmp = *gbuf++ * norm;
 			/* change endianness in place */
 			WORD data[1];
@@ -809,6 +824,8 @@ static int savepgm(const char *name, fits *fit) {
 		}
 	} else {
 		for (i = 0; i < ndata; i++) {
+			if ((i % fit->rx) == 0)
+				gui_iface.set_progress((double)i / ndata, _("Saving NetPBM"));
 			WORD tmp = float_to_ushort_range(*gbuff++);
 			/* change endianness in place */
 			WORD data[1];
@@ -816,6 +833,7 @@ static int savepgm(const char *name, fits *fit) {
 			fwrite(data, sizeof(data), 1, fp);
 		}
 	}
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	fclose(fp);
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
