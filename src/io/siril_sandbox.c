@@ -261,6 +261,20 @@ static const struct sock_filter sandbox_seccomp_insns_net[] = {
  * needs cgroups/quota (out of scope). */
 #define SANDBOX_MAX_FSIZE_BYTES (64ULL << 30)
 
+/* PORTABILITY NOTE — OpenBSD (future, not implemented).
+ * OpenBSD's unveil(2) is a close analogue of the Landlock write-confinement
+ * below (a per-path filesystem allow-list that survives execve), and pledge(2)
+ * — with its execpromises argument — is the analogue of the seccomp syscall
+ * restriction. Both are plain syscalls callable from a GSpawnChildSetupFunc
+ * exactly like the Linux child_setup here, so an #elif defined(__OpenBSD__)
+ * branch could provide an equivalent per-child sandbox with modest effort.
+ * Other non-Linux/macOS POSIX systems currently fall through to the
+ * unconfined generic branch (see the bottom of this file): FreeBSD Capsicum is
+ * all-or-nothing capability mode that needs a capsicum-aware program (would
+ * break a stock interpreter); jails are root-only/heavyweight; NetBSD/HURD have
+ * no practical per-process mechanism. Left unimplemented deliberately — could
+ * not be built or tested in the dev environment. */
+
 /* ------------------------------------------------------------------ */
 /* Landlock thin syscall wrappers (glibc provides no wrappers).       */
 /* ------------------------------------------------------------------ */
