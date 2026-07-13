@@ -142,6 +142,12 @@
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
+          <object class="GtkScrolledWindow" id="wavelets_scroll">
+            <property name="vexpand">1</property>
+            <property name="hscrollbar-policy">never</property>
+            <property name="propagate-natural-width">1</property>
+            <property name="propagate-natural-height">1</property>
+            <property name="child">
           <object class="GtkBox" id="dialog-vbox25">
             <property name="margin-bottom">6</property>
             <property name="margin-end">6</property>
@@ -1039,6 +1045,8 @@
                 </child>
               </object>
             </child>
+          </object>
+            </property>
           </object>
         </child>
         <child>
