@@ -1,12 +1,19 @@
 siril-1.5.0
 --/--/--
 
+**Platform update**
+* Drop support for Intel architecture on macOS. (!1054)
+
+**Fixes**
+* Fixed issue with bgnoise calculation that could result in a small overestimate (#1817)
+
 **Improvements**
 * Vectorized rejection stacking hotspot with portable SIMD, ~13% cold / ~22% warm stacking speedup (!1032)
 * Introduced generic_image_worker to standardize image operations (!965)
 * Added splashscreen at startup (!975)
 * Added caching of online GAIA database (!985)
 * Added image masks (!981)
+* Added QHY GPS timestamps support (!891)
 * Added eqcrop command (!889)
 * Added catmag command (!888)
 * Added draggable histogram overlay with cursor tracking (!986)
@@ -14,9 +21,12 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Added an automatic, sample-free background/gradient removal model to Background Extraction and the `subsky` command (`-auto`): the background is fitted on every pixel surviving an iterative robust rejection of structures, using a multiscale surface with structure protection or a simplified polynomial
+* Background Extraction: replaced the press-and-hold "show original" button with a view selector to switch the display between the processed image, the removed background model and the original
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 * Separation of GUI and processing code (!1025)
+* Improved latency of live previews (!1011)
 * Refactored the undo/redo mechanism. A right click displays the history list. The command line now supports undo and redo functions.
 * Added external reference image support to global star alignment, allowing multi-session alignment via the GUI or the new `-extref=` option of the `register` command
 * Adding TIFF support in Pixelmath (#1726)
@@ -25,16 +35,33 @@ siril-1.5.0
 * Added Search Entry in the Script menu to filter scripts by name (!1042)
 * Migrated GUI to GTK4 and improved image rendering to use GPU-backed GtkSurface (!1027)
 * Improved script editor (multiple tabs, code folding, smart line wrapping) (!1039)
+* Added displaying velocity vectors for SSO annotations (!1045)
+* Removed autotools build support (!1056)
+* Added multipoint registration (for planetary, lunar and solar use) (!1034)
+* Removed original Starnet C interface (now covered by the new python script) (!tbc)
+* Added static autostretch mode to keep display stretch parameters fixed across images
+* Improve speed of extract_thumbnail_from_fits (!1066)
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+* Fixed blurry image display on HiDPI and Wayland fractional-scaling displays (!1052)
 * Fixed command help popover being too tall on low-resolution screens
+* Fixed freeze when previewing JPEG XL files in the open dialog (#1961)
+
+siril-1.4.5
+xx/xx/xx
+
+**Fixes**
+* Fixed constellation names in annotations (#1055)
+* Fixed opening JPEG XL files wrapped in an ISO/IEC 18181-2 container (#1961)
+* Fixed compilation when the version of opencv is >= 5
 
 siril-1.4.4
---/--/--
+06/17/26
 
 **Fixes**
 * Fixed seq file corruption (#1204, #1934)
+* Fixed crash when loading a sequence with an out-of-range reference image, e.g. after preprocessing (#1950)
 * Fixed wrong "not enough disk space" error on macOS external APFS/HFS volumes
 * Fixed scripts in custom subfolders showing up under "Other" instead of their folder name on Windows
 * Fixed regression when reading 16b fitseq (#1946)

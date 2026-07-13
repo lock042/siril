@@ -3,6 +3,38 @@
 <interface>
   <!-- interface-name siril_stacking.ui -->
   <requires lib="gtk" version="4.0"/>
+  <!-- Shared factory: sizes the image-rejection metric dropdowns to their widest
+       entry ("weighted FWHM") from creation so they don't grow when selected. -->
+  <object class="GtkBuilderListItemFactory" id="filter_metric_factory">
+    <property name="bytes"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtkListItem">
+    <property name="child">
+      <object class="GtkLabel">
+        <property name="xalign">0</property>
+        <property name="width-chars">14</property>
+        <binding name="label">
+          <lookup name="string" type="GtkStringObject">
+            <lookup name="item">GtkListItem</lookup>
+          </lookup>
+        </binding>
+      </object>
+    </property>
+  </template>
+</interface>]]></property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_bg_blend">
+    <property name="upper">1</property>
+    <property name="value">0.20</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_mpp_bg_fraction">
+    <property name="upper">1</property>
+    <property name="value">0.29999999999999999</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_stack_blending">
     <property name="page-increment">100</property>
     <property name="step-increment">20</property>
@@ -68,6 +100,7 @@
                                   <item translatable="yes">Median stacking</item>
                                   <item translatable="yes">Pixel maximum stacking</item>
                                   <item translatable="yes">Pixel minimum stacking</item>
+                                  <item translatable="yes">Multipoint (planetary)</item>
                                 </items>
                               </object>
                             </property>
@@ -441,6 +474,183 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                             </property>
                           </object>
                         </child>
+                                                            <child>
+                                                              <object class="GtkNotebookPage">
+                                                                <property name="position">5</property>
+                                                                <property name="child">
+                                                                  <object class="GtkGrid" id="mpp_stack_page">
+                                                                    <property name="margin-start">6</property>
+                                                                    <property name="margin-end">6</property>
+                                                                    <property name="margin-top">6</property>
+                                                                    <property name="margin-bottom">6</property>
+                                                                    <property name="row-spacing">5</property>
+                                                                    <property name="column-spacing">10</property>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Scale:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">0</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkDropDown" id="combo_mpp_drizzle">
+                                                                        <property name="tooltip-text" translatable="1">Output scale factor. 1x produces a stack at the input resolution; 1.5x / 2x / 3x upscale during the stack.</property>
+                                                                        <property name="model">
+                                                                          <object class="GtkStringList">
+                                                                            <items>
+                                                                              <item translatable="yes">1x</item>
+                                                                              <item translatable="yes">1.5x</item>
+                                                                              <item translatable="yes">2x</item>
+                                                                              <item translatable="yes">3x</item>
+                                                                            </items>
+                                                                          </object>
+                                                                        </property>
+                                                                        <property name="selected">0</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">0</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Stack percent:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_stack_percent">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Keep the best N% of frames for each alignment point. Default 100 — keep every included frame. Lower it for automatic culling if you haven&apos;t already filtered in the Plot tab.</property>
+                                                                        <property name="adjustment">adj_mpp_stack_percent</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">100</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Stack frames:</property>
+                                                                        <layout>
+                                                                          <property name="column">2</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_stack_frames">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Exact number of best frames per alignment point; a positive value overrides Stack percent. -1 disables (use the percentage). Default -1.</property>
+                                                                        <property name="adjustment">adj_mpp_stack_frames</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">-1</property>
+                                                                        <layout>
+                                                                          <property name="column">3</property>
+                                                                          <property name="row">1</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Background fraction:</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_bg_fraction">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Decides full-frame vs patch-based background composition. Default 0.3.</property>
+                                                                        <property name="adjustment">adj_mpp_bg_fraction</property>
+                                                                        <property name="digits">2</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">0.29999999999999999</property>
+                                                                        <layout>
+                                                                          <property name="column">1</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkLabel">
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="1">Background blend:</property>
+                                                                        <layout>
+                                                                          <property name="column">2</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkSpinButton" id="spin_mpp_bg_blend">
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Controls the soft fg/bg blend ramp. Default 0.2.</property>
+                                                                        <property name="adjustment">adj_mpp_bg_blend</property>
+                                                                        <property name="digits">2</property>
+                                                                        <property name="numeric">1</property>
+                                                                        <property name="value">0.20</property>
+                                                                        <layout>
+                                                                          <property name="column">3</property>
+                                                                          <property name="row">2</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <object class="GtkCheckButton" id="check_mpp_skip_failed">
+                                                                        <property name="label" translatable="1">Skip failed AP shifts</property>
+                                                                        <property name="focusable">1</property>
+                                                                        <property name="tooltip-text" translatable="1">Drop frame/alignment-point contributions whose local shift measurement failed instead of stacking them at the coarse estimate. Helps when ghosted, doubled patches appear in the stack. Alignment points with no successful measurement at all are stacked unfiltered.</property>
+                                                                        <layout>
+                                                                          <property name="column">0</property>
+                                                                          <property name="row">3</property>
+                                                                          <property name="column-span">4</property>
+                                                                        </layout>
+                                                                      </object>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                    <child>
+                                                                      <placeholder/>
+                                                                    </child>
+                                                                  </object>
+                                                                </property>
+                                                                <property name="tab">
+                                                                  <object class="GtkLabel" id="label_mpp_stack">
+                                                                    <property name="label">page 6</property>
+                                                                  </object>
+                                                                </property>
+                                                              </object>
+                                                            </child>
                       </object>
                     </child>
                     <child>
@@ -515,7 +725,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                       </object>
                     </child>
                     <child>
-                      <object class="GtkFrame">
+                      <object class="GtkFrame" id="seq_filters_frame_stack">
                         <child>
                           <object class="GtkBox" id="seq_filters_box_stack">
                             <property name="margin-top">5</property>
@@ -529,10 +739,16 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                               </object>
                             </child>
                             <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter1">
+                              <object class="GtkGrid">
+                                    <property name="column-spacing">5</property>
+                                    <property name="row-spacing">5</property>
+                                    <child>
+                                      <object class="GtkDropDown" id="combofilter1">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -570,6 +786,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin1">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="adjustment">adjustment1</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -590,6 +810,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type1">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -606,11 +830,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter1">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_add1">
+                                    <layout>
+                                      <property name="column">4</property>
+                                      <property name="row">0</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -623,13 +855,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                     </child>
                                   </object>
                                 </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter2">
+                              <child>
+                                      <object class="GtkDropDown" id="combofilter2">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -668,6 +900,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin2">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="adjustment">adjustment2</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -689,6 +925,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type2">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -705,11 +945,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter2">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_add2">
+                                    <layout>
+                                      <property name="column">4</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -725,6 +973,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_rem2">
+                                    <layout>
+                                      <property name="column">5</property>
+                                      <property name="row">1</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>
@@ -738,13 +990,13 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                     </child>
                                   </object>
                                 </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                  <object class="GtkDropDown" id="combofilter3">
+                              <child>
+                                      <object class="GtkDropDown" id="combofilter3">
+                                        <property name="factory">filter_metric_factory</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -783,6 +1035,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkSpinButton" id="stackspin3">
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="adjustment">adjustment3</property>
                                     <property name="climb-rate">1</property>
                                     <property name="digits">2</property>
@@ -804,6 +1060,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkDropDown" id="filter_type3">
+                                    <layout>
+                                      <property name="column">2</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="model">
                                       <object class="GtkStringList">
                                         <items>
@@ -820,11 +1080,19 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                 </child>
                                 <child>
                                   <object class="GtkLabel" id="labelfilter3">
+                                    <layout>
+                                      <property name="column">3</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="width-chars">10</property>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="filter_rem3">
+                                    <layout>
+                                      <property name="column">5</property>
+                                      <property name="row">2</property>
+                                    </layout>
                                     <property name="focusable">1</property>
                                     <property name="halign">end</property>
                                     <property name="receives-default">1</property>

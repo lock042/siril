@@ -182,8 +182,13 @@ gpointer gaia_check(gpointer user_data) {
     if (best_mirror_index != -1) {
         g_free(com.spcc_remote_catalogue);
         com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
+
+	// Prefer the description field
+        const char *display_name = (spcc_mirrors_desc && spcc_mirrors_desc[best_mirror_index]) ?
+                                   spcc_mirrors_desc[best_mirror_index] : com.spcc_remote_catalogue;
+
         siril_log_message(_("Primary SPCC catalogue set to: %s (%d working mirrors available)\n"),
-                               com.spcc_remote_catalogue, working_mirrors);
+                               display_name, working_mirrors);
     }
 
     execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));
@@ -394,7 +399,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
-	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_grab_focus(button_spcc_ok);
 	gtk_widget_set_visible(gaia_status_check, TRUE);
 	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
 	siril_toggle_set_active(GTK_WIDGET(spcc_toggle_nb), com.pref.spcc.nb_mode);

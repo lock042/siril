@@ -339,6 +339,17 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	else
 		ser_file->number_of_planes = 1;
 
+	/* Validate the header dimensions read from the (untrusted) file before
+	 * they are used to size allocations and compute file offsets. Negative or
+	 * absurd values would otherwise wrap size computations. */
+	if (ser_file->image_width <= 0 || ser_file->image_height <= 0 ||
+			ser_file->bit_pixel_depth <= 0 || ser_file->bit_pixel_depth > 16) {
+		siril_log_error(_("Invalid SER header dimensions (%dx%d, %d-bit)\n"),
+				ser_file->image_width, ser_file->image_height,
+				ser_file->bit_pixel_depth);
+		return SER_GENERIC_ERROR;
+	}
+
 	/* In some cases, oacapture, firecapture, ... crash before writing
 	 * frame_count data. Here we try to get the calculated frame count
 	 * which has not been written in the header. Then we fix the SER file
@@ -876,6 +887,14 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
 	ser_color debayer_type_ser = ser_file->debayer_type_ser; // this was set in accordance with prefs when reading the header
+	/* Honour an explicit per-call debayer request. When the debayer-on-open
+	 * preference is off, ser_read_header bakes debayer_type_ser = SER_MONO
+	 * even for a CFA file, which used to silently defeat callers passing
+	 * open_debayer = TRUE (e.g. mpp's full-frame stacking reads). */
+	if (open_debayer && debayer_type_ser == SER_MONO &&
+			ser_file->color_id >= SER_BAYER_RGGB &&
+			ser_file->color_id <= SER_BAYER_BGGR)
+		debayer_type_ser = ser_file->color_id;
 	switch (debayer_type_ser) {
 	case SER_MONO: // real mono or CFA kept CFA
 		fit->naxis = 2;
@@ -894,7 +913,14 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit->naxes[1] = fit->ry = ser_file->image_height;
 		fit->naxes[2] = 3;
 		sensor_pattern bayer_pattern = convert_color_id_to_bayer_pattern(debayer_type_ser);
-		debayer(fit, BAYER_RCD, bayer_pattern);
+		/* debayer() fails on allocation failure (a real possibility on
+		 * Windows where there is no memory overcommit); returning the
+		 * un-demosaiced fits with naxes[2] = 3 and stale pdata would
+		 * crash the caller. */
+		if (debayer(fit, BAYER_RCD, bayer_pattern)) {
+			siril_log_error(_("Could not debayer SER frame %d\n"), frame_no);
+			return SER_GENERIC_ERROR;
+		}
 		break;
 	case SER_BGR:
 		swap = 2;
@@ -1018,7 +1044,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	gint64 offset, frame_size;
 	int retval = SER_OK;
 	WORD *read_buffer;
-	size_t read_size = ser_file->image_width * area->h * ser_file->byte_pixel_depth;
+	size_t read_size = (size_t)ser_file->image_width * area->h * ser_file->byte_pixel_depth;
 	if (layer != -1) read_size *= 3;
 	if (layer != -1 || area->w != ser_file->image_width) {
 		// allocated space is probably not enough to
@@ -1125,7 +1151,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		get_debayer_area(area, &debayer_area, &image_area, &xoffset, &yoffset);
 
 		// allocating a buffer for WORD because it's going to be converted in-place
-		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
+		rawbuf = malloc((size_t)debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;

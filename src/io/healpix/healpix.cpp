@@ -36,8 +36,8 @@
 #include <vector>
 #include <optional>
 #include <string_view>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846  /* pi */
+#ifndef G_PI
+#define G_PI 3.14159265358979323846  /* pi */
 #endif
 
 extern "C" {
@@ -244,7 +244,8 @@ static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int
     // Read the header
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
     if (!file) {
-        *error_status = READ_ERROR;
+        if (error_status)
+            *error_status = READ_ERROR;
         return {};
     }
 
@@ -369,6 +370,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 
         if (error || !buffer || response_length != INDEX_SIZE) {
             siril_log_error(_("Failed to download index via HTTP\n"));
+            free(buffer);
             return std::nullopt;
         }
 
@@ -412,6 +414,14 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         uint32_t index_start = (start_healpixel == 0) ? 0 : full_index[start_healpixel - 1];
         uint32_t index_end   = full_index[end_healpixel];
 
+        // The index values come from a downloaded (potentially malicious or
+        // MITM'd) index file: guard against underflow of the unsigned
+        // subtraction, which would otherwise yield a ~4-billion record count.
+        if (index_end < index_start) {
+            siril_log_error(_("Catalog index is corrupt (non-monotonic offsets)\n"));
+            results.clear();
+            return std::nullopt;
+        }
         size_t num_records = index_end - index_start;
 	char* data_buffer = nullptr;
 
@@ -440,6 +450,18 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 
             if (data_error || !data_buffer) {
                 siril_log_error(_("Failed to read data entries via HTTP\n"));
+                free(data_buffer);
+                results.clear();
+                return std::nullopt;
+            }
+
+            // The server controls how many bytes it actually returns for the
+            // requested byte range. Require an exact match with the amount we
+            // sized the destination vector for, otherwise the memcpy below
+            // would overflow the heap (mirrors the index-fetch length check).
+            if (data_response_length != data_length) {
+                siril_log_error(_("Catalog data response size mismatch\n"));
+                free(data_buffer);
                 results.clear();
                 return std::nullopt;
             }
@@ -468,10 +490,16 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
                 global_hp += header.chunk_first_healpixel;
             }
 
-            if (count > 0 && data_buffer) {
+            // The per-healpixel offsets come from the downloaded index and must
+            // be monotonic and within the fetched data buffer; otherwise the
+            // unsigned subtractions underflow and produce an out-of-bounds
+            // pointer/length handed to the cache.
+            if (count > 0 && data_buffer &&
+                    p_end >= p_start && p_start >= range_base_record &&
+                    (size_t)(p_end - range_base_record) <= num_records) {
                 // Calculate byte offset into the data_buffer
-                size_t byte_offset = (p_start - range_base_record) * sizeof(EntryType);
-                segments.push_back({global_hp, data_buffer + byte_offset, count * sizeof(EntryType)});
+                size_t byte_offset = (size_t)(p_start - range_base_record) * sizeof(EntryType);
+                segments.push_back({global_hp, data_buffer + byte_offset, (size_t)count * sizeof(EntryType)});
             } else {
                 segments.push_back({global_hp, nullptr, 0});
 	    }
@@ -751,11 +779,11 @@ static int local_gaia_xp_query(double ra, double dec, double radius, double limi
                                EntryType **stars, uint32_t *nb_stars) {
     radius /= 60.0; // arcmin -> deg, then radians below
     siril_log_debug("Search radius: %f deg\n", radius);
-    const double DEG_TO_RAD = M_PI / 180.0;
+    const double DEG_TO_RAD = G_PI / 180.0;
     double radius_rad = radius * DEG_TO_RAD;
     double ra_rad = ra * DEG_TO_RAD;
     double dec_rad = dec * DEG_TO_RAD;
-    double theta = M_PI / 2.0 - dec_rad;
+    double theta = G_PI / 2.0 - dec_rad;
     double phi = ra_rad;
     double radius_h = pow(sin(0.5 * radius_rad), 2);
 
@@ -902,11 +930,11 @@ extern "C" {
 
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_log_debug("Search radius: %f deg\n", radius);
-        const double DEG_TO_RAD = M_PI / 180.0;
+        const double DEG_TO_RAD = G_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         double ra_rad = ra * DEG_TO_RAD;
         double dec_rad = dec * DEG_TO_RAD;
-        double theta = M_PI / 2.0 - dec_rad;
+        double theta = G_PI / 2.0 - dec_rad;
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
         // Check the correct healpixel level and create our healpix_base
@@ -1037,11 +1065,11 @@ static int remote_gaia_xp_query(double ra, double dec, double radius, double lim
 
     radius /= 60.0;
     siril_log_debug("Search radius: %f deg\n", radius);
-    const double DEG_TO_RAD = M_PI / 180.0;
+    const double DEG_TO_RAD = G_PI / 180.0;
     double radius_rad = radius * DEG_TO_RAD;
     double ra_rad = ra * DEG_TO_RAD;
     double dec_rad = dec * DEG_TO_RAD;
-    double theta = M_PI / 2.0 - dec_rad;
+    double theta = G_PI / 2.0 - dec_rad;
     double phi = ra_rad;
     double radius_h = pow(sin(0.5 * radius_rad), 2);
 

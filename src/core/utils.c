@@ -334,15 +334,12 @@ int is_readable_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
 		return 0;
-	if (S_ISREG (sts.st_mode)
+	return S_ISREG (sts.st_mode) ||
 #ifndef _WIN32
-			|| S_ISLNK(sts.st_mode)
+		S_ISLNK(sts.st_mode);
 #else
-		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+		(GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT );
 #endif
-	)
-		return 1;
-	return 0;
 }
 
 /**
@@ -488,8 +485,15 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEHEIF;
 	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
 		return TYPEAVIF;
-	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
-		(magic[0] == 0xFF && magic[1] == 0x0A)))
+	// JPEG XL comes in two flavours: a raw codestream starting with the
+	// 2-byte marker FF 0A, or an ISO/IEC 18181-2 container whose first box
+	// is the 12-byte signature box 00 00 00 0C "JXL " 0D 0A 87 0A. libjxl
+	// decodes both, but only the codestream was recognised here, so
+	// containerised files (e.g. saved by GIMP or libjxl >= 0.12 for high
+	// bit-depth images) were rejected before reaching the decoder.
+	if (bytes_read >= 2 && magic[0] == 0xFF && magic[1] == 0x0A)
+		return TYPEJXL;
+	if (bytes_read >= 12 && memcmp(magic, "\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A", 12) == 0)
 		return TYPEJXL;
 #ifdef HAVE_FFMS2
 	// Film containers — all routed to TYPEAVI since films.c handles every flavor via FFMS2.
@@ -919,8 +923,6 @@ float compute_slope(WORD *lo, WORD *hi) {
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
-/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
-
 /**
 * Truncate a string str to not exceed an length of size
 * @param str the string to be truncated
@@ -1344,8 +1346,8 @@ We have 4 conventions to handle:
 
 /* converts Siril coordinates to display coordinates */
 int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
-	if (sx < 0.0 || sy < 0.0 || sy > ry)
-			return 1;
+	// if (sx < 0.0 || sy < 0.0 || sy > ry)
+	// 		return 1;
 	*dx = sx;
 	*dy = ry - sy;
 	return 0;
@@ -1353,8 +1355,8 @@ int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
 
 /* converts display coordinates to Siril */
 int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
-	if (dx < 0.0 || dy < 0.0 || dy > ry)
-			return 1;
+	// if (dx < 0.0 || dy < 0.0 || dy > ry)
+	// 		return 1;
 	*sx = dx;
 	*sy = ry - dy;
 	return 0;
@@ -2016,7 +2018,7 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			/* Ignore errors from the move: we don't want to mask the
 			* original deletion error.
 			*/
-			g_file_move(root,
+			(void) g_file_move(root,
 						quarantine,
 						G_FILE_COPY_NOFOLLOW_SYMLINKS,
 						NULL, NULL, NULL, NULL);

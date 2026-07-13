@@ -53,12 +53,6 @@
     <property name="upper">1100</property>
     <property name="value">1013.25</property>
   </object>
-  <object class="GtkImage" id="gaia_status_widget">
-    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
-    <property name="sensitive">0</property>
-    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
-    <property name="valign">center</property>
-  </object>
   <object class="GtkAdjustment" id="nb_b_bw">
     <property name="lower">1</property>
     <property name="page-increment">10</property>
@@ -1082,11 +1076,30 @@
             <child>
               <object class="GtkButton" id="button_gaia_status_check">
                 <property name="focusable">1</property>
-                <property name="label" translatable="yes">Status: </property>
                 <property name="receives-default">1</property>
                 <property name="tooltip-text" translatable="yes">Click to update Gaia archive status check</property>
                 <property name="valign">center</property>
                 <signal name="clicked" handler="on_button_gaia_status_check_clicked"/>
+                <!-- GTK4 removed GtkButton's "image" property; the status
+                     "traffic light" (gaia_status_widget) is now packed as a
+                     custom child next to the label. -->
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Status: </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="gaia_status_widget">
+                        <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
+                        <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
+                        <property name="valign">center</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
               </object>
             </child>
             <child>

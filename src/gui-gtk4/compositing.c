@@ -917,7 +917,7 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 	}
 
 	if ((retval = read_single_image(filename, &layers[layer]->the_fit,
-	                                NULL, FALSE, NULL, FALSE, TRUE))) {
+	                                NULL, FALSE, NULL, FALSE, TRUE, FALSE))) {
 		gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
 		gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label),
 		                            _("Cannot load the file, See the log for more information."));
@@ -1295,7 +1295,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			if (has_fit(i)) {
 				double dx, dy, rotation;
 				translation_from_H(seq->regparam[0][j].H, &dx, &dy);
-				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
+				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / G_PI;
 				gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
 				gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
 				gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
@@ -1691,6 +1691,10 @@ void on_colordialog_cancel_clicked(GtkButton *button, gpointer user_data) {
 	(void)button; (void)user_data;
 	current_layer_color_choosing = 0;
 	gtk_widget_set_visible(GTK_WIDGET(color_dialog), FALSE);
+	/* This dialog is transient for the compositing window, not the main
+	 * control window; reactivate_parent() reads that link off color_dialog
+	 * and re-presents the right window so its shortcuts keep working. */
+	reactivate_parent(GTK_WIDGET(color_dialog));
 	gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
 }
@@ -1748,6 +1752,7 @@ void on_colordialog_ok_clicked(GtkButton *button, gpointer user_data) {
 		color_has_been_updated(current_layer_color_choosing);
 		gtk_widget_queue_draw(GTK_WIDGET(layers[current_layer_color_choosing]->color_w));
 		gtk_widget_set_visible(GTK_WIDGET(color_dialog), FALSE);
+		reactivate_parent(GTK_WIDGET(color_dialog));
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
 		if (has_fit(current_layer_color_choosing))
@@ -1818,6 +1823,11 @@ static void on_color_tile_released(GtkGestureClick *gesture, int n_press,
 			gtk_color_dialog_button_set_rgba(color_dialog_button, &layers[layer]->color);
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(box), -1);
+		/* This modal dialog (modal=1 in colorchooserdialog.ui) is not opened
+		 * through siril_open_dialog(), so nothing sets its transient parent.
+		 * Anchor it to the compositing window before showing, otherwise the
+		 * modal grab has no anchor and can wedge the session on Wayland/Xorg. */
+		gtk_window_set_transient_for(color_dialog, GTK_WINDOW(gtk_widget_get_root(widget)));
 		gtk_widget_set_visible(GTK_WIDGET(color_dialog), TRUE);
 	} else if (button == GDK_BUTTON_SECONDARY) {
 		if (has_fit(current_layer_color_choosing))
@@ -2287,7 +2297,7 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		double dy = layers[in_index + offset]->spinbutton_y_value;
 		double dr = layers[in_index + offset]->spinbutton_r_value;
 		// Convert dr to radians
-		dr *= M_PI;
+		dr *= G_PI;
 		dr /= 180.0;
 		point *center = &layers[in_index + offset]->center;
 		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {

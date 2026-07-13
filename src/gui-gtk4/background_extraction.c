@@ -23,6 +23,7 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "algos/background_extraction.h"
+#include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -34,6 +35,7 @@
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/siril_preview.h"
+#include "gui-gtk4/siril_actions.h"
 
 static GtkDropDown *bkg_poly_order_combo = NULL;
 static GtkDropDown *bkg_correction_combo = NULL;
@@ -45,12 +47,32 @@ static GtkCheckButton *bkg_dither_btn = NULL;
 static GtkCheckButton *bkg_randomize_btn = NULL;
 static GtkCheckButton *bkg_grad_descent_btn = NULL;
 static GtkWidget *bkg_ok_button = NULL;
-static GtkWidget *bkg_show_original = NULL;
+static GtkWidget *bkg_compute_bkg_button = NULL;
+static GtkDropDown *bkg_view_combo = NULL;
+static GtkWidget *bkg_view_box = NULL;
 static GtkLabel *bkg_label_samples = NULL;
 static GtkCheckButton *bkg_keep_samples_btn = NULL;
 static GtkCheckButton *bkg_seq_btn = NULL;
 static GtkEntry *bkg_seq_entry = NULL;
 static GtkNotebook *bkg_notebook = NULL;
+
+/* method selection + automatic (sample-free) model widgets */
+static GtkDropDown *bkg_method_combo = NULL;
+static GtkWidget *bkg_samples_expander = NULL;
+static GtkWidget *bkg_auto_expander = NULL;
+static GtkSpinButton *ag_scale_spin = NULL;
+static GtkSpinButton *ag_smoothness_spin = NULL;
+static GtkCheckButton *ag_protect_check = NULL;
+static GtkSpinButton *ag_protect_threshold_spin = NULL;
+static GtkSpinButton *ag_protect_amount_spin = NULL;
+static GtkWidget *ag_protect_threshold_label = NULL;
+static GtkWidget *ag_protect_amount_label = NULL;
+static GtkCheckButton *ag_simplified_check = NULL;
+static GtkSpinButton *ag_degree_spin = NULL;
+static GtkWidget *ag_degree_label = NULL;
+static GtkDropDown *ag_downsample_combo = NULL;
+
+static void bkg_sync_method(void);
 
 static void background_extraction_init_statics(void) {
 	if (bkg_poly_order_combo) return;
@@ -64,12 +86,28 @@ static void background_extraction_init_statics(void) {
 	bkg_randomize_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_randomize_button"));
 	bkg_grad_descent_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_grad_descent_button"));
 	bkg_ok_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "background_ok_button"));
-	bkg_show_original = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_show_original"));
+	bkg_compute_bkg_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_compute_bkg"));
+	bkg_view_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bkg_view_combo"));
+	bkg_view_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_view_box"));
 	bkg_label_samples = GTK_LABEL(gtk_builder_get_object(gui.builder, "background_label_samples"));
 	bkg_keep_samples_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "subsky_keep_samples"));
 	bkg_seq_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "checkBkgSeq"));
 	bkg_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBkgSeq"));
 	bkg_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "bkg_notebook_inter"));
+	bkg_method_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "background_method_combo"));
+	bkg_samples_expander = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_samples_expander"));
+	bkg_auto_expander = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_auto_expander"));
+	ag_scale_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ag_scale"));
+	ag_smoothness_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ag_smoothness"));
+	ag_protect_check = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_ag_protect_check"));
+	ag_protect_threshold_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ag_protect_threshold"));
+	ag_protect_amount_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ag_protect_amount"));
+	ag_protect_threshold_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ag_protect_threshold"));
+	ag_protect_amount_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ag_protect_amount"));
+	ag_simplified_check = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "bkg_ag_simplified_check"));
+	ag_degree_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ag_degree"));
+	ag_degree_label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_ag_degree"));
+	ag_downsample_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "bkg_ag_downsample_combo"));
 }
 
 static poly_order get_poly_order() {
@@ -108,44 +146,71 @@ static gboolean is_grad_descent_checked() {
 	return siril_toggle_get_active(GTK_WIDGET(bkg_grad_descent_btn));
 }
 
-/* management of the graphical state and backup image */
-static fits background_backup;
+static background_method get_background_method() {
+	return gtk_drop_down_get_selected(bkg_method_combo);
+}
+
+void update_bkg_compute_button_sensitivity(void) {
+	background_extraction_init_statics();
+	if (!bkg_compute_bkg_button)
+		return;
+	gboolean can_compute = (get_background_method() == BACKGROUND_METHOD_AUTO)
+			|| (com.grad_samples != NULL);
+	gtk_widget_set_sensitive(bkg_compute_bkg_button, can_compute);
+}
+
+static int get_ag_downsample() {
+	static const int vals[] = {8, 4, 2, 1};
+	guint sel = gtk_drop_down_get_selected(ag_downsample_combo);
+	if (sel > 3) sel = 1;
+	return vals[sel];
+}
+
+static void fill_autograd_from_ui(struct autograd_data *ag) {
+	ag->scale = gtk_spin_button_get_value(ag_scale_spin);
+	ag->smoothness = gtk_spin_button_get_value(ag_smoothness_spin);
+	ag->protect = siril_toggle_get_active(GTK_WIDGET(ag_protect_check));
+	ag->protect_threshold = gtk_spin_button_get_value(ag_protect_threshold_spin);
+	ag->protect_amount = gtk_spin_button_get_value(ag_protect_amount_spin);
+	ag->simplified = siril_toggle_get_active(GTK_WIDGET(ag_simplified_check));
+	ag->degree = gtk_spin_button_get_value_as_int(ag_degree_spin);
+	ag->downsample = get_ag_downsample();
+}
+
+/* management of the graphical state and backup image.
+ * The original image is held by the shared preview backup (copy_gfit_to_backup);
+ * bkg_processed keeps a copy of the last corrected result so the "View" selector
+ * can switch between processed / background model / original at will. */
+static fits bkg_processed = { 0 };
+static background_correction bkg_view_correction = BACKGROUND_CORRECTION_SUBTRACT;
 static gboolean background_computed = FALSE;
 
 static void background_startup() {
 	copy_gfit_to_backup();
 }
 
-static void copy_gfit_to_bkg_backup() {
-	if (!background_computed) return;
-	if (copyfits(gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_debug("Image copy error in previews\n");
-		return;
-	}
-}
-
-static int copy_bkg_backup_to_gfit() {
-	if (!background_computed) return 0;
-	int retval = 0;
-	if (!gfit->data && !gfit->fdata)
-		retval = 1;
-	else if (copyfits(&background_backup, gfit, CP_COPYA, -1)) {
-		siril_log_debug("Image copy error in previews\n");
-		retval = 1;
-	}
-	return retval;
+/* Called on the GTK thread once a background has been computed and applied to
+ * gfit. Stashes the result and arms the view selector (reset to "Processed"). */
+static void bkg_on_computed(void) {
+	background_computed = TRUE;
+	clearfits(&bkg_processed);
+	copyfits(gfit, &bkg_processed, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	bkg_view_correction = get_correction_type();
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	gfit_modified_update_gui();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
+	gtk_widget_set_sensitive(bkg_ok_button, TRUE);
+	if (bkg_view_box)
+		gtk_widget_set_sensitive(bkg_view_box, TRUE);
+	if (bkg_view_combo)
+		gtk_drop_down_set_selected(bkg_view_combo, 0);   /* show the processed result */
 }
 
 gboolean end_background(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	stop_processing_thread();
 	if (args) {
-		background_computed = TRUE;
-		g_rw_lock_reader_lock(&gfit->rwlock);
-		gfit_modified_update_gui();
-		g_rw_lock_reader_unlock(&gfit->rwlock);
-		gtk_widget_set_sensitive(bkg_ok_button, TRUE);
-		gtk_widget_set_sensitive(bkg_show_original, TRUE);
+		bkg_on_computed();
 		free(args);
 	}
 	set_cursor_waiting(FALSE);
@@ -155,12 +220,7 @@ gboolean end_background(gpointer p) {
 /* Idle function for generic_image_worker path of on_bkg_compute_bkg_clicked */
 static gboolean background_idle(gpointer p) {
 	stop_processing_thread();
-	background_computed = TRUE;
-	g_rw_lock_reader_lock(&gfit->rwlock);
-	gfit_modified_update_gui();
-	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gtk_widget_set_sensitive(bkg_ok_button, TRUE);
-	gtk_widget_set_sensitive(bkg_show_original, TRUE);
+	bkg_on_computed();
 	free_generic_img_args((struct generic_img_args *)p);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -183,11 +243,13 @@ static gboolean bkg_generate_idle(gpointer p) {
 	stop_processing_thread();
 	if (!args) {
 		/* generation failed — log tab was already switched in the worker */
+		update_bkg_compute_button_sensitivity();
 		redraw(REDRAW_OVERLAY);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
 	free(args);
+	update_bkg_compute_button_sensitivity();
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -246,11 +308,47 @@ void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
 	com.grad_samples = NULL;
 	sample_mutex_unlock();
 
+	update_bkg_compute_button_sensitivity();
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 }
 
 void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
+	background_method method = get_background_method();
+
+	if (method == BACKGROUND_METHOD_AUTO) {
+		set_cursor_waiting(TRUE);
+		copy_backup_to_gfit();
+
+		struct background_data *bkg_args = calloc(1, sizeof(struct background_data));
+		bkg_args->destroy_fn = free_background_data;
+		bkg_args->method = BACKGROUND_METHOD_AUTO;
+		bkg_args->threads = com.max_thread;
+		bkg_args->from_ui = TRUE;
+		bkg_args->correction = get_correction_type();
+		bkg_args->dither = is_dither_checked();
+		bkg_args->fit = gfit;
+		fill_autograd_from_ui(&bkg_args->autograd);
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		args->fit = gfit;
+		args->mem_ratio = 6.0f;
+		args->image_hook = remove_gradient_image_hook;
+		args->log_hook = remove_gradient_log_hook;
+		args->idle_function = background_idle;
+		args->description = _("Automatic gradient removal");
+		args->verbose = TRUE;
+		/* Compute only previews the result; the undo state is saved on Apply.
+		 * Without this the generic worker would push an undo entry right away,
+		 * so a Close after Compute would leave a spurious undo step. */
+		args->skip_generic_undo = TRUE;
+		args->user = bkg_args;
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
+		}
+		return;
+	}
+
 	if (com.grad_samples == NULL) {
 		return;
 	}
@@ -287,6 +385,8 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->idle_function = background_idle;
 	args->description = _("Background extraction");
 	args->verbose = TRUE;
+	/* Compute only previews the result; the undo state is saved on Apply. */
+	args->skip_generic_undo = TRUE;
 	args->user = bkg_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -296,7 +396,24 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 	background_extraction_init_statics();
 	GtkCheckButton *seq_button = bkg_seq_btn;
-	if (siril_toggle_get_active(GTK_WIDGET(seq_button)) && sequence_is_loaded()) {
+	if (siril_toggle_get_active(GTK_WIDGET(seq_button)) && sequence_is_loaded()
+			&& get_background_method() == BACKGROUND_METHOD_AUTO) {
+		struct background_data *args = calloc(1, sizeof(struct background_data));
+		args->method = BACKGROUND_METHOD_AUTO;
+		args->correction = get_correction_type();
+		args->dither = is_dither_checked();
+		args->threads = com.max_thread;
+		fill_autograd_from_ui(&args->autograd);
+		set_cursor_waiting(TRUE);
+		args->seqEntry = strdup(gtk_editable_get_text(GTK_EDITABLE(bkg_seq_entry)));
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
+			args->seqEntry = strdup("bkg_");
+		}
+		args->seq = &com.seq;
+		siril_toggle_set_active(GTK_WIDGET(seq_button), FALSE);
+		apply_background_extraction_to_sequence(args);
+	} else if (siril_toggle_get_active(GTK_WIDGET(seq_button)) && sequence_is_loaded()) {
 		struct background_data *args = calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
@@ -343,9 +460,15 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		apply_background_extraction_to_sequence(args);
 	} else {
 		if (background_computed) {
-			background_correction correction = get_correction_type();
+			/* the view selector may be showing the background model or the
+			 * original, so restore the corrected result into gfit before saving */
+			if (bkg_view_combo && gtk_drop_down_get_selected(bkg_view_combo) != 0
+					&& bkg_processed.naxes[0] == gfit->naxes[0]) {
+				copyfits(&bkg_processed, gfit, CP_COPYA, -1);
+				notify_gfit_data_modified();
+			}
 			undo_save_state(get_preview_gfit_backup(), _("Background extraction (Correction: %s)"),
-					correction == BACKGROUND_CORRECTION_DIVIDE ? "Division" : "Subtraction");
+					bkg_view_correction == BACKGROUND_CORRECTION_DIVIDE ? "Division" : "Subtraction");
 			background_computed = FALSE;
 			clear_backup();
 			siril_close_dialog("background_extraction_dialog");
@@ -375,6 +498,7 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	com.grad_samples = NULL;
 	sample_mutex_unlock();
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	gui.hide_bkg_samples = FALSE;
 	redraw(REDRAW_OVERLAY);
 
 	if (background_computed) {
@@ -383,14 +507,19 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	} else {
 		clear_backup();
 	}
+	clearfits(&bkg_processed);
 	gtk_widget_set_sensitive(bkg_ok_button, FALSE);
-	gtk_widget_set_sensitive(bkg_show_original, FALSE);
+	if (bkg_view_box)
+		gtk_widget_set_sensitive(bkg_view_box, FALSE);
+	if (bkg_view_combo)
+		gtk_drop_down_set_selected(bkg_view_combo, 0);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
 	background_extraction_init_statics();
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	background_startup();
+	bkg_sync_method();   /* show the panel/overlay matching the selected method */
 }
 
 void on_background_extraction_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
@@ -400,53 +529,122 @@ void on_background_extraction_combo_changed(GObject *obj, GParamSpec *pspec, gpo
 	gtk_notebook_set_current_page(bkg_notebook, gtk_drop_down_get_selected(combo));
 }
 
-static gboolean pressed = FALSE;
-
-void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-	new_state |= GTK_STATE_FLAG_ACTIVE;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = TRUE;
-
-	copy_gfit_to_bkg_backup();
-	copy_backup_to_gfit();
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+/* grey out the automatic-model settings that don't apply with the current checkboxes */
+static void ag_sync_sensitivity(void) {
+	gboolean protect = siril_toggle_get_active(GTK_WIDGET(ag_protect_check));
+	gtk_widget_set_sensitive(GTK_WIDGET(ag_protect_threshold_spin), protect);
+	gtk_widget_set_sensitive(GTK_WIDGET(ag_protect_amount_spin), protect);
+	gtk_widget_set_sensitive(ag_protect_threshold_label, protect);
+	gtk_widget_set_sensitive(ag_protect_amount_label, protect);
+	gboolean simpl = siril_toggle_get_active(GTK_WIDGET(ag_simplified_check));
+	gtk_widget_set_sensitive(GTK_WIDGET(ag_degree_spin), simpl);
+	gtk_widget_set_sensitive(ag_degree_label, simpl);
 }
 
-void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = FALSE;
-
-	copy_bkg_backup_to_gfit();
-	clearfits(&background_backup);
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+/* show the parameter panel matching the selected method; the automatic model
+ * places no samples, so the interactive sample overlay is turned off for it */
+static void bkg_sync_method(void) {
+	gboolean is_auto = get_background_method() == BACKGROUND_METHOD_AUTO;
+	gtk_widget_set_visible(bkg_samples_expander, !is_auto);
+	gtk_widget_set_visible(bkg_auto_expander, is_auto);
+	if (is_auto)
+		ag_sync_sensitivity();
+	update_bkg_compute_button_sensitivity();
+	mouse_status = is_auto ? MOUSE_ACTION_SELECT_REG_AREA : MOUSE_ACTION_DRAW_SAMPLES;
+	gui.hide_bkg_samples = is_auto;
+	redraw(REDRAW_OVERLAY);
 }
 
-gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-		& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
+void on_background_method_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	(void)obj; (void)pspec; (void)user_data;
+	background_extraction_init_statics();
+	bkg_sync_method();
+}
 
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-	if (pressed) {
-		new_state |= GTK_STATE_FLAG_ACTIVE;
+void on_bkg_ag_protect_toggled(GtkCheckButton *button, gpointer user_data) {
+	(void)button; (void)user_data;
+	background_extraction_init_statics();
+	ag_sync_sensitivity();
+}
 
+void on_bkg_ag_simplified_toggled(GtkCheckButton *button, gpointer user_data) {
+	(void)button; (void)user_data;
+	background_extraction_init_statics();
+	ag_sync_sensitivity();
+}
+
+/* View selector: after a background has been computed, the user can display the
+ * corrected result, the background model that was removed, or the original.
+ * The background model is reconstructed on the fly from the original (kept in
+ * the preview backup) and the processed result, so it needs no extra storage
+ * from the compute path and works identically for every removal method.
+ * Reconstruction is exact up to a cosmetic brightness offset:
+ *   subtract: bg = original - processed + level
+ *   divide:   bg = original / processed * level
+ * with `level` the per-channel mean of the original, so the shown background
+ * sits at the image's own brightness. */
+static void bkg_build_background_view(void) {
+	fits *orig = get_preview_gfit_backup();
+	if (!orig || (!orig->fdata && !orig->data))
+		return;
+	if (gfit->naxes[0] != orig->naxes[0] || gfit->naxes[1] != orig->naxes[1]
+			|| gfit->naxes[2] != orig->naxes[2] || gfit->type != orig->type)
+		return;
+	if (bkg_processed.naxes[0] != orig->naxes[0] || bkg_processed.type != orig->type)
+		return;
+
+	const size_t npix = gfit->naxes[0] * gfit->naxes[1];
+	const int nchan = gfit->naxes[2];
+	const gboolean divide = (bkg_view_correction == BACKGROUND_CORRECTION_DIVIDE);
+
+	for (int c = 0; c < nchan; c++) {
+		if (gfit->type == DATA_FLOAT) {
+			const float *o = orig->fpdata[c];
+			const float *p = bkg_processed.fpdata[c];
+			float *out = gfit->fpdata[c];
+			double sum = 0.0;
+			for (size_t i = 0; i < npix; i++) sum += o[i];
+			const float level = (float)(sum / npix);
+			for (size_t i = 0; i < npix; i++) {
+				float v = divide ? o[i] / (p[i] > 1e-6f ? p[i] : 1e-6f) * level
+								 : o[i] - p[i] + level;
+				out[i] = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+			}
+		} else {
+			const WORD *o = orig->pdata[c];
+			const WORD *p = bkg_processed.pdata[c];
+			WORD *out = gfit->pdata[c];
+			double sum = 0.0;
+			for (size_t i = 0; i < npix; i++) sum += o[i];
+			const double level = sum / npix;
+			for (size_t i = 0; i < npix; i++) {
+				double v = divide ? (double)o[i] / (p[i] > 0 ? p[i] : 1) * level
+								  : (double)o[i] - p[i] + level;
+				out[i] = v < 0.0 ? 0 : (v > USHRT_MAX ? USHRT_MAX : (WORD)(v + 0.5));
+			}
+		}
 	}
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	return TRUE;
+	invalidate_stats_from_fit(gfit);
+}
+
+void on_bkg_view_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
+	(void)obj; (void)pspec; (void)user_data;
+	background_extraction_init_statics();
+	if (!background_computed)
+		return;
+	switch (gtk_drop_down_get_selected(bkg_view_combo)) {
+		case 0:  /* processed result */
+			copyfits(&bkg_processed, gfit, CP_COPYA, -1);
+			break;
+		case 1:  /* background model (reconstructed) */
+			bkg_build_background_view();
+			break;
+		default: /* original image */
+			copy_backup_to_gfit();
+			break;
+	}
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
 }
 
 void on_checkBkgSeq_toggled(GtkCheckButton *button, gpointer user_data) {
@@ -455,6 +653,8 @@ void on_checkBkgSeq_toggled(GtkCheckButton *button, gpointer user_data) {
 	if (siril_toggle_get_active(GTK_WIDGET(button))) {
 		gtk_widget_set_sensitive(ok, TRUE);
 	} else {
-		gtk_widget_set_sensitive(ok, (com.grad_samples != NULL) && background_computed);
+		gboolean have_model = get_background_method() == BACKGROUND_METHOD_AUTO
+				? background_computed : ((com.grad_samples != NULL) && background_computed);
+		gtk_widget_set_sensitive(ok, have_model);
 	}
 }

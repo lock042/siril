@@ -547,37 +547,59 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	if (!plot_data)
 		return NULL;
 
-	// We don't need to use the siril_plot_set_X functions here as we
-	// know the plot_data is newly allocated and initialized
+	/* The buffer is an untrusted, attacker-sized shared-memory region, so every
+	 * read is bounds-checked against buffer_size. NEED(n) guarantees n bytes
+	 * remain at offset (overflow-safe); READ_STR copies a NUL-terminated string
+	 * that must terminate inside the buffer. Any violation jumps to unpack_fail,
+	 * which frees everything built so far. Loop-local buffers are declared up
+	 * front so that path can free a partially-built series. */
+	gchar *series_label = NULL;
+	double *xdata = NULL, *ydata = NULL, *nerror = NULL, *perror = NULL;
 
-	// Unpack title (null-terminated string)
-	plot_data->title = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->title) + 1;
+#define NEED(n) do { \
+		size_t needbytes = (size_t)(n); \
+		if (needbytes > buffer_size || offset > buffer_size - needbytes) \
+			goto unpack_fail; \
+	} while (0)
+#define READ_STR(dst) do { \
+		if (offset >= buffer_size) goto unpack_fail; \
+		const void *nulp = memchr(buffer + offset, '\0', buffer_size - offset); \
+		if (!nulp) goto unpack_fail; \
+		size_t slen = (const uint8_t*)nulp - (buffer + offset); \
+		(dst) = g_strndup((const char*)buffer + offset, slen); \
+		offset += slen + 1; \
+	} while (0)
 
-	// Unpack x and y axis labels
-	plot_data->xlabel = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->xlabel) + 1;
+	if (!buffer)
+		goto unpack_fail;
 
-	plot_data->ylabel = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->ylabel) + 1;
-
-	// Unpack savename
-	plot_data->savename = g_strdup((const char*)buffer + offset);
-	offset += strlen(plot_data->savename) + 1;
+	// Unpack title, axis labels and savename (null-terminated strings)
+	READ_STR(plot_data->title);
+	READ_STR(plot_data->xlabel);
+	READ_STR(plot_data->ylabel);
+	READ_STR(plot_data->savename);
 
 	// Unpack show_legend (as a single byte)
+	NEED(sizeof(uint8_t));
 	plot_data->show_legend = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 
 	// Unpack number of series (network byte-order)
+	NEED(sizeof(uint32_t));
 	uint32_t num_series;
 	memcpy(&num_series, buffer + offset, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
+	// Lenient sanity bound: each series consumes several bytes, so there cannot
+	// be more series than bytes in the buffer (also caps the loop count).
+	if (num_series > buffer_size)
+		goto unpack_fail;
 
+	NEED(sizeof(uint8_t));
 	gboolean datamin_set = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 	if (datamin_set) {
 		point datamin;
+		NEED(2 * sizeof(double));
 		memcpy(&datamin.x, buffer + offset, sizeof(double));
 		offset += sizeof(double);
 		memcpy(&datamin.y, buffer + offset, sizeof(double));
@@ -585,10 +607,12 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		memcpy(&plot_data->datamin, &datamin, sizeof(point));
 	}
 
+	NEED(sizeof(uint8_t));
 	gboolean datamax_set = BOOL_FROM_BYTE(buffer[offset]);
 	offset += sizeof(uint8_t);
 	if (datamax_set) {
 		point datamax;
+		NEED(2 * sizeof(double));
 		memcpy(&datamax.x, buffer + offset, sizeof(double));
 		offset += sizeof(double);
 		memcpy(&datamax.y, buffer + offset, sizeof(double));
@@ -599,37 +623,42 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
-		gchar* series_label = g_strdup((const char*)buffer + offset);
-		offset += strlen(series_label) + 1;
+		READ_STR(series_label);
 
-		// Unpack with_errors (as a single byte)
-		// This indicates if there are errorbar series or not
+		// Unpack with_errors (as a single byte) - errorbar series or not
+		NEED(sizeof(uint8_t));
 		gboolean with_errors = BOOL_FROM_BYTE(buffer[offset]);
 		offset += sizeof(uint8_t);
 
 		// Read number of points (network byte-order)
+		NEED(sizeof(uint32_t));
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
-		if (num_points > get_available_memory() / 64) {
-			// Error if the unpacked data would use more than half the available memory
-			free_siril_plot_data(plot_data);
-			g_free(series_label);
-			return NULL;
-		}
-
+		if (num_points > get_available_memory() / 64)
+			goto unpack_fail;   // would use more than ~half the available memory
 		offset += sizeof(uint32_t);
 
 		// Read plot type (network byte-order)
+		NEED(sizeof(uint32_t));
 		uint32_t plot_type;
 		memcpy(&plot_type, buffer + offset, sizeof(uint32_t));
 		offset += sizeof(uint32_t);
 
+		// Ensure all point bytes are present before allocating/reading them.
+		// num_points is bounded above, so this product cannot overflow size_t.
+		size_t doubles_per_point = with_errors ? 4 : 2;
+		NEED((size_t)num_points * doubles_per_point * sizeof(double));
+
 		// Create a new dataseries and add it to plot_data
-		double *xdata = malloc(num_points * sizeof(double));
-		double *ydata = malloc(num_points * sizeof(double));
-		double *nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		double *perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		// Read coordinates (native byte order, packed doubles)
+		xdata = malloc(num_points * sizeof(double));
+		ydata = malloc(num_points * sizeof(double));
+		nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		if (num_points > 0 && (!xdata || !ydata || (with_errors && (!nerror || !perror))))
+			goto unpack_fail;
+
+		// Read coordinates (native byte order, packed doubles). All bytes are
+		// guaranteed present by the NEED() above.
 		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
 			memcpy(&xdata[point_idx], buffer + offset, sizeof(double));
 			offset += sizeof(double);
@@ -647,16 +676,26 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		// Add to plot list (assuming simple xy plot)
 		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, perror, nerror);
 		siril_plot_set_nth_plot_type(plot_data, series_idx+1, (enum kplottype) plot_type);
-		g_free(series_label);
-		free(xdata);
-		free(ydata);
-		free(nerror);
-		free(perror);
+		g_free(series_label); series_label = NULL;
+		free(xdata);  xdata  = NULL;
+		free(ydata);  ydata  = NULL;
+		free(nerror); nerror = NULL;
+		free(perror); perror = NULL;
 	}
 
 	plot_data->plottype = KPLOT_LINES;  // Default plot type
-
 	return plot_data;
+
+unpack_fail:
+	g_free(series_label);
+	free(xdata);
+	free(ydata);
+	free(nerror);
+	free(perror);
+	free_siril_plot_data(plot_data);
+	return NULL;
+#undef NEED
+#undef READ_STR
 }
 
 /**
@@ -780,17 +819,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32 image_rx = gfit->rx;
 					guint32 image_ry = gfit->ry;
 					g_rw_lock_reader_unlock(&gfit->rwlock);
-					if (selection.x < 0 || selection.x + selection.w > image_rx ||
-								selection.y < 0 || selection.y + selection.h > image_ry) {
+					/* selection fields are unsigned; compare with subtraction
+					 * (no addition) to avoid uint32 overflow, and only commit
+					 * the selection when it is fully inside the image. */
+					if (selection.x >= image_rx || selection.y >= image_ry ||
+								selection.w > image_rx - selection.x ||
+								selection.h > image_ry - selection.y) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
 							siril_log_debug("Error in send_response\n");
+					} else {
+						memcpy(&com.selection, &selection, sizeof(rectangle));
+						if (!com.headless)
+							gui_iface.new_selection_zone();
+						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
-					memcpy(&com.selection, &selection, sizeof(rectangle));
-					if (!com.headless)
-						gui_iface.new_selection_zone();
-					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
 				// Handle error retrieving dimensions
@@ -1353,8 +1397,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Update the imgparam rx and ry
 				com.seq.imgparam[index].rx = fit->rx;
 				com.seq.imgparam[index].ry = fit->ry;
-				// Clean the sequence registration data, stats and selection as they will no longer be valid
-				clean_sequence(&com.seq, TRUE, TRUE, TRUE);
+				// Clean the sequence registration data, stats, selection and mpp sidecar as they will no longer be valid
+				clean_sequence(&com.seq, TRUE, TRUE, TRUE, TRUE);
 			}
 			clearfits(fit);
 			free(fit);
@@ -1374,6 +1418,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				success = handle_plot_request(conn, info);
 			}
 			break;
@@ -1386,6 +1431,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				gboolean show_samples = (gboolean) info->data_type;
 				gboolean recalculate = (gboolean) info->channels;
 				success = handle_set_bgsamples_request(conn, info, show_samples, recalculate);
@@ -1958,22 +2004,30 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			// Check if we need to find stars or use existing ones
-			g_rw_lock_reader_lock(&com.stars_lock);
-			int py_comstar_count = starcount(com.stars);
-			if (py_comstar_count >= 1) {
-				stars = com.stars;
-				nb_stars = py_comstar_count;
-			}
-			g_rw_lock_reader_unlock(&com.stars_lock);
+			// Check if we need to find stars or use existing ones. Take a
+			// private, reader-locked copy so the serialization loop below runs
+			// on the python thread without racing a concurrent free/replace.
+			stars = snapshot_com_stars(&nb_stars);
+			int py_comstar_count = nb_stars;
+			if (stars)
+				stars_needs_freeing = TRUE;
 
 			if (py_comstar_count < 1) {
+				// snapshot_com_stars() can return a non-NULL but empty array
+				// (first duplicate_psf OOM); free it before findstar_worker
+				// overwrites stars.
+				if (stars_needs_freeing) {
+					free_fitted_stars(stars);
+					stars = NULL;
+					stars_needs_freeing = FALSE;
+				}
 				// Set up starfinder_data structure
 				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 				if (!sf_data) {
 					g_rw_lock_reader_unlock(&gfit->rwlock);
 					const char* error_msg = _("Memory allocation failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					// snapshot already freed above; stars_needs_freeing is FALSE here.
 					break;
 				}
 
@@ -2492,7 +2546,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			
 			uint32_t count;
 			memcpy(&count, payload, sizeof(uint32_t));
-			if (payload_length != 4 + (4 * count) + 4) {
+
+			/* Compute the expected length in 64-bit to avoid a 32-bit overflow
+			 * of (4 * count), which would let a tiny payload pass validation and
+			 * then drive the read loop far past the received buffer. */
+			if ((uint64_t)payload_length != 8ULL + 4ULL * (uint64_t)count) {
 				const char* error_msg = _("Incorrect payload length: count mismatch");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2503,26 +2561,33 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean incl = (gboolean)incl_encoded;
 			
 			// Process each index
+			gboolean index_error = FALSE;
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t index;
 				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					index_error = TRUE;
 					break;
 				}
 				com.seq.imgparam[index].incl = incl;
 			}
-			fix_selnum(&com.seq, FALSE);
-			if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
-				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			// On an out-of-range index we already replied STATUS_ERROR; don't then
+			// finalise and send a second STATUS_OK (which also discarded the error
+			// result of the send_response above).
+			if (!index_error) {
+				fix_selnum(&com.seq, FALSE);
+				if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
+					com.seq.reference_image = sequence_find_refimage(&com.seq);
+				}
+				// Update GUI
+				if (!com.headless) {
+					gui_iface.update_sequence_overlay_async();
+					gui_iface.redraw_image_sync(REDRAW_OVERLAY);
+				}
+				success = send_response(conn, STATUS_OK, NULL, 0);
 			}
-			// Update GUI
-			if (!com.headless) {
-				gui_iface.update_sequence_overlay_async();
-				gui_iface.redraw_image_sync(REDRAW_OVERLAY);
-			}
-			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
@@ -2536,7 +2601,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				chan = (*(int*) payload);
 			}
-			if (payload_length != 4 || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 4 || chan < 0 || chan >= com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2574,6 +2639,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_header_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -2589,6 +2655,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				success = handle_add_user_polygon_request(conn, info);
 			}
 			break;
@@ -2802,7 +2869,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
-			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
+			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE, FALSE)) {
 				free(fit);
 				g_free(filepath);
 				const char* error_msg = _("Failed to read image file");
@@ -2962,14 +3029,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
-			g_rw_lock_writer_lock(&com.pref_rwlock);
-			gboolean debayer_pref = com.pref.debayer.open_debayer;
-			com.pref.debayer.open_debayer = FALSE; // disable debayering
-			g_rw_lock_writer_unlock(&com.pref_rwlock);
-			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
-			g_rw_lock_writer_lock(&com.pref_rwlock);
-			com.pref.debayer.open_debayer = debayer_pref;
-			g_rw_lock_writer_unlock(&com.pref_rwlock);
+			// Disable debayering via the no_debayer argument rather than racily
+			// toggling the global com.pref.debayer.open_debayer.
+			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE, TRUE);
 			if (retval) {
 				free(fit);
 				g_free(filepath);
@@ -3092,6 +3154,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_iccprofile_request(conn, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -3455,6 +3518,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -3523,6 +3587,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->shm_name[sizeof(info->shm_name) - 1] = '\0';
 				success = handle_mask_update_polygon_request(conn, info);
 			}
 			break;
@@ -3665,9 +3730,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							break;
 						case SPLIT_CFA_DIALOG:
 							action_name="split-cfa-processing";
-							break;
-						case STARNET_DIALOG:
-							action_name="starnet-processing";
 							break;
 						case STARS_LIST_WINDOW:
 							action_name="dyn-psf";

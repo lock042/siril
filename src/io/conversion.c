@@ -49,6 +49,7 @@
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
 #include "core/gui_iface.h"
+#include "registration/mpp/mpp_config.h"  /* enum mpp_avi_bayer */
 #include "conversion.h"
 
 #ifdef HAVE_LIBRAW
@@ -409,6 +410,10 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq) {
+	return convert_single_film_to_ser_with_bayer(seq, MPP_AVI_BAYER_AUTO);
+}
+
+int convert_single_film_to_ser_with_bayer(sequence *seq, int avi_bayer_pattern) {
 	char **files_to_convert = malloc(1 * sizeof(char *));
 
 	if (!files_to_convert) {
@@ -430,6 +435,9 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->output_type = SEQ_SER;
 	args->multiple_output = FALSE;
 	args->make_link = FALSE;
+	args->avi_bayer_pattern = (avi_bayer_pattern >= MPP_AVI_BAYER_AUTO
+	                           && avi_bayer_pattern <= MPP_AVI_BAYER_GRBG)
+	                       ? avi_bayer_pattern : MPP_AVI_BAYER_AUTO;
 	gettimeofday(&(args->t_start), NULL);
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
@@ -501,6 +509,9 @@ struct reader_data {
 	gboolean allow_32bits;
 
 	gboolean debayer;
+	/* AVI Bayer-pattern hint copied from convert args; consulted by
+	 * read_fit's film branch (see _convert_data.avi_bayer_pattern). */
+	int avi_bayer_pattern;
 };
 
 /* single image writing information */
@@ -843,6 +854,7 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader) {
 	seqread_status retval = GOT_READ_ERROR;
 	reader->debayer = conv->args->debayer;
+	reader->avi_bayer_pattern = conv->args->avi_bayer_pattern;
 
 	// first, check for already opened sequence files
 	if (conv->current_ser) {
@@ -990,7 +1002,47 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		fit = calloc(1, sizeof(fits));
 		if (film_read_frame(reader->film, reader->index, fit) != FILM_SUCCESS)
 			*retval = READ_FAILED;
-		else *retval = READ_OK;
+		else {
+			*retval = READ_OK;
+			/* AVI Bayer-pattern hint: AVI containers have no Bayer
+			 * marker, so a raw mosaic captured from an OSC camera
+			 * loses its pattern at decode time. Stamp it onto the
+			 * fits keyword so SER ser_write_header_from_fit picks
+			 * up the right color_id and FITS savefits writes a
+			 * BAYERPAT card. Only applied when the resulting fit is
+			 * single-channel — for an AVI that autodetect already
+			 * decoded as RGB the hint would be wrong (a debayered
+			 * RGB stream isn't a mosaic).
+			 *
+			 * The user picks the pattern as the camera sensor sees
+			 * it (top-down, matching the raw AVI byte order). But
+			 * film_read_frame has already flipped the pixel data
+			 * top-to-bottom to match Siril's in-memory bottom-up
+			 * convention (films.c:363), and the bayer_pattern
+			 * keyword must describe the in-memory data — that's the
+			 * contract assumed by ser_write_frame's row_order ==
+			 * "TOP-DOWN" Bayer-flip path, by SER-read which writes
+			 * a Y-flipped pattern (ser.c:962), and by the FITS
+			 * savefits BAYERPAT card. Apply the same Y-flip here so
+			 * the keyword matches the data; otherwise a user pick
+			 * of RGGB round-trips out as SER color_id GBRG. */
+			if (fit && fit->naxes[2] == 1) {
+				sensor_pattern p = BAYER_FILTER_NONE;
+				switch (reader->avi_bayer_pattern) {
+				case MPP_AVI_BAYER_RGGB: p = BAYER_FILTER_RGGB; break;
+				case MPP_AVI_BAYER_BGGR: p = BAYER_FILTER_BGGR; break;
+				case MPP_AVI_BAYER_GBRG: p = BAYER_FILTER_GBRG; break;
+				case MPP_AVI_BAYER_GRBG: p = BAYER_FILTER_GRBG; break;
+				default: break;   /* AUTO / NONE — leave keyword empty */
+				}
+				if (p != BAYER_FILTER_NONE) {
+					adjust_Bayer_pattern_orientation(&p, fit->ry, TRUE);
+					(void) g_strlcpy(fit->keywords.bayer_pattern,
+					          filter_pattern[p],
+					          sizeof(fit->keywords.bayer_pattern));
+				}
+			}
+		}
 		finish_read_seq(reader);
 	}
 #endif

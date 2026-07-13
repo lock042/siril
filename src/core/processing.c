@@ -990,7 +990,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
+				if (child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
@@ -1690,7 +1690,12 @@ gpointer generic_image_worker(gpointer p) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				blend_fits_with_mask(hook_fit, gfit);
 				g_rw_lock_reader_unlock(&gfit->rwlock);
-			} else {
+			} else if (orig) {
+				/* On the non-swap path orig is the pre-hook backup, allocated
+				 * exactly when masking is active (preview_using_mask), which is
+				 * the same condition as using_mask since hook_fit == argfit
+				 * here - so orig is non-NULL. Guard explicitly to make that
+				 * invariant safe (and silence the static-analysis null deref). */
 				blend_fits_with_mask(hook_fit, orig);
 			}
 		}
