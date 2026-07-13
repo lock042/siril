@@ -2306,7 +2306,11 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 //      macOS falls through to step 3: the launcher prepends the bundled
 //      bin dir to PATH and get_siril_bundle_path() is _WIN32-only here.
 //   3. g_find_program_in_path() (Linux / Flatpak / AppImage / macOS bundle).
-//   4. NULL with *error set; caller falls back to the legacy pip path.
+//   4. On macOS, well-known install dirs. GUI apps inherit launchd's
+//      minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin), so a uv installed by
+//      the standalone installer or Homebrew is invisible to step 3 even
+//      though it is on the user's shell PATH.
+//   5. NULL with *error set; caller falls back to the legacy pip path.
 static gchar *find_uv_executable(GError **error) {
 	const gchar *override = g_getenv("SIRIL_UV");
 	if (override && *override) {
@@ -2338,6 +2342,28 @@ static gchar *find_uv_executable(GError **error) {
 		siril_log_debug("Using uv from PATH: %s\n", on_path);
 		return on_path;
 	}
+
+#ifdef __APPLE__
+	const gchar *home = g_get_home_dir();
+	gchar *candidates[] = {
+		g_build_filename(home, ".local", "bin", UV_EXE, NULL),  // standalone installer
+		g_build_filename(home, ".cargo", "bin", UV_EXE, NULL),  // older standalone installer
+		g_build_filename("/opt/homebrew/bin", UV_EXE, NULL),    // Homebrew (Apple silicon)
+		g_build_filename("/usr/local/bin", UV_EXE, NULL),       // Homebrew (Intel)
+		g_build_filename("/opt/local/bin", UV_EXE, NULL),       // MacPorts
+		NULL
+	};
+	gchar *found = NULL;
+	for (gchar **p = candidates; *p; p++) {
+		if (!found && g_file_test(*p, G_FILE_TEST_IS_EXECUTABLE))
+			found = g_strdup(*p);
+		g_free(*p);
+	}
+	if (found) {
+		siril_log_debug("Using uv from well-known macOS location: %s\n", found);
+		return found;
+	}
+#endif
 
 	g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
 			"uv executable not found");
