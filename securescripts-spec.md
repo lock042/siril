@@ -373,3 +373,64 @@ would hide bugs). Reuse the real-`g_spawn_*` pattern. Confirm:
    a Python `import ctypes; ctypes.CDLL(None).ptrace(...)` attempt fails with EPERM.
 4. Landlock write-confinement + AF_UNIX + stdout capture still work (no regression).
 Report the filter layout you assembled, the struct/flag change, and each check's outcome.
+
+## 12. Per-script permissions — manifest + remembered consent
+
+User-chosen model (2026-07-14): scripts declare requested permissions in an in-file
+`[tool.siril.permissions]` manifest; Siril prompts once and remembers the grant keyed by
+script hash. Network is a boolean (per-host is not enforceable by seccomp/Seatbelt/
+AppContainer). Three phases:
+
+### Phase A — policy plumbing — DONE (commit 4fa5711eb)
+`siril_sandbox_spawn()` takes a `SirilSandboxPolicy { wd, venv_path, allow_network,
+extra_write_paths[], extra_read_paths[] }`, honored on all platforms (Windows `allow_network`
+now adds the internetClient capability). Call site builds a DEFAULT policy → no elevation yet.
+
+### Phase B — manifest parse — DONE (commit 5c8a54841)
+`parse_siril_permissions(source, workdir)` in siril_pythonmodule.c reads
+`[tool.siril.permissions]` (`network` bool, `write`/`read` path arrays, tokens
+`$WORKDIR/$TMPDIR/$HOME/$USERDATA/$CONFIG`) into a `siril_script_perms` REQUEST. Currently
+parsed + logged in execute_python_script(); NOT yet applied.
+
+### Phase C — consent + remembered grants — TODO
+
+Flow in execute_python_script(), after Phase B parsing:
+1. If the request does not elevate beyond defaults (no `network`, no extra paths) → run with
+   the default policy, no consent needed.
+2. Otherwise look up a remembered grant for this script's hash (see store below):
+   - grant present & covers the request → build the elevated `SirilSandboxPolicy` and run,
+     silently.
+   - no grant (script not yet approved) → decide by mode:
+     - **GUI**: show a consent dialog listing exactly what is requested (network? which
+       paths, read vs write?). Approve → persist grant + apply; Deny → run with DEFAULT policy
+       (the script may fail if it truly needs the perm — that is the script's problem, not a
+       silent elevation).
+     - **Headless / CLI, no `-permissive`**: **default-DENY** — run with the default policy and
+       log that elevated permissions were requested but not granted (no interactive prompt is
+       possible).
+
+**`-permissive` (new `pyscript` option).** Flips the headless/CLI default from default-deny to
+**default-ALLOW + remember**: it approves the script's requested permissions AND persists the
+grant to the store, so subsequent runs (even without `-permissive`) are pre-approved. i.e. it
+is the CLI way to "approve a script that has not been run before", equivalent to clicking
+Approve in the GUI dialog. Semantics: treat `-permissive` as an explicit user approval —
+grant the full requested set, persist it, no dialog. (It does NOT grant more than the manifest
+requests; it only consents to what was asked.)
+
+- Parsing: `pyscript` currently accepts a leading `-async`. Add `-permissive` as another
+  optional leading flag (parse both in a small loop before the script name; order between the
+  two flags need not matter). Thread a `gboolean permissive` through
+  process_pyscript → pyscript_data → execute_python_script_wrapper → execute_python_script.
+- Update `STR_PYSCRIPT` in command_def.h to document `-permissive` (command help lives there,
+  NOT in GUI tooltips per project convention).
+
+**Grant store.** `script_perms.json` under the project dir, mirroring script_venvs.json:
+versioned, keyed by script hash → { network: bool, write: [paths], read: [paths], approved:
+ISO-8601, script_path (informational) }. Reuse the existing script-hash identity
+(compute_script_hash / pep723 hash) so a script's grant survives edits the same way its venv
+does. A grant only counts if it COVERS the current request (superset); if the manifest later
+asks for MORE, re-prompt (or, headless, re-deny unless `-permissive`).
+
+**Safety invariants.** A remembered grant is applied silently, but is never broader than what
+the script's manifest requests at run time (defense against a stored over-grant). `-permissive`
+and a GUI Approve are the only ways to CREATE a grant. Deny/headless never persists anything.
