@@ -15014,13 +15014,15 @@ typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
 	gboolean from_cli;
+	gboolean permissive;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
 	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE,
 			data->script_name /* venv_identity_path: real file on disk */,
-			NULL /* pep723_source: read from file */);
+			NULL /* pep723_source: read from file */,
+			data->permissive);
 	// execute_python_script() frees data->script_name
 	g_strfreev(data->argv_script);
 	free(data);
@@ -15032,12 +15034,19 @@ int process_pyscript(int nb) {
 	GStatBuf statbuf;
 
 	gboolean async = FALSE;
+	gboolean permissive = FALSE;
 	int arg_offset = 1;
 
-	// Check for -async as first argument
-	if (nb >= 1 && g_strcmp0(word[1], "-async") == 0) {
-		async = TRUE;
-		arg_offset = 2;
+	// Consume any leading flags (-async / -permissive), in any order, before
+	// the script name.
+	while (arg_offset <= nb && word[arg_offset] && word[arg_offset][0] == '-') {
+		if (g_strcmp0(word[arg_offset], "-async") == 0)
+			async = TRUE;
+		else if (g_strcmp0(word[arg_offset], "-permissive") == 0)
+			permissive = TRUE;
+		else
+			break;   // unknown flag: treat as the script name/argument
+		arg_offset++;
 	}
 
 	// Ensure we still have a script name
@@ -15079,6 +15088,7 @@ int process_pyscript(int nb) {
 		data->script_name = script_name;
 		data->argv_script = argv_script;
 		data->from_cli = TRUE;
+		data->permissive = permissive;
 
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread

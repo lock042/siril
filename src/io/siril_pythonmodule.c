@@ -2967,6 +2967,210 @@ static siril_script_perms *parse_siril_permissions(const gchar *source,
 	return p;
 }
 
+// TRUE if the request asks for anything beyond the safe defaults.
+static gboolean perms_request_is_elevated(const siril_script_perms *p) {
+	return p && p->present && (p->unsandboxed || p->network ||
+			p->write_paths->len > 0 || p->read_paths->len > 0);
+}
+
+// ---- remembered consent store (phase C) --------------------------------
+// A grant records exactly what the user approved for a script, keyed by its
+// hash, in <project>/script_perms.json (mirrors script_venvs.json). It is
+// re-applied on a later run only if it still COVERS the script's current
+// request, so adding a permission re-prompts. Only a GUI Approve or the
+// `pyscript -permissive` flag ever creates a grant.
+typedef struct {
+	gboolean unsandboxed;
+	gboolean network;
+	GPtrArray *write_paths;   // gchar*
+	GPtrArray *read_paths;    // gchar*
+	gchar *approved_iso;
+	gchar *script_path;       // informational
+} perms_grant;
+
+static void perms_grant_free(perms_grant *g) {
+	if (!g) return;
+	if (g->write_paths) g_ptr_array_free(g->write_paths, TRUE);
+	if (g->read_paths)  g_ptr_array_free(g->read_paths, TRUE);
+	g_free(g->approved_iso);
+	g_free(g->script_path);
+	g_free(g);
+}
+
+// Build a grant capturing exactly what the request asks for.
+static perms_grant *perms_grant_from_request(const siril_script_perms *req,
+                                             const gchar *script_path) {
+	perms_grant *g = g_new0(perms_grant, 1);
+	g->unsandboxed = req->unsandboxed;
+	g->network = req->network;
+	g->write_paths = g_ptr_array_new_with_free_func(g_free);
+	g->read_paths  = g_ptr_array_new_with_free_func(g_free);
+	for (guint i = 0; i < req->write_paths->len; i++)
+		g_ptr_array_add(g->write_paths,
+				g_strdup(g_ptr_array_index(req->write_paths, i)));
+	for (guint i = 0; i < req->read_paths->len; i++)
+		g_ptr_array_add(g->read_paths,
+				g_strdup(g_ptr_array_index(req->read_paths, i)));
+	g->script_path = script_path ? g_strdup(script_path) : NULL;
+	GDateTime *now = g_date_time_new_now_utc();
+	g->approved_iso = now ? g_date_time_format_iso8601(now) : NULL;
+	if (now) g_date_time_unref(now);
+	return g;
+}
+
+static gboolean ptrarray_contains_str(GPtrArray *a, const char *s) {
+	for (guint i = 0; i < a->len; i++)
+		if (g_strcmp0(g_ptr_array_index(a, i), s) == 0)
+			return TRUE;
+	return FALSE;
+}
+
+// TRUE if `grant` covers everything `req` asks for (grant is a superset).
+static gboolean perms_grant_covers(const perms_grant *grant,
+                                   const siril_script_perms *req) {
+	if (!grant) return FALSE;
+	if (req->unsandboxed && !grant->unsandboxed) return FALSE;
+	if (req->network && !grant->network) return FALSE;
+	for (guint i = 0; i < req->write_paths->len; i++)
+		if (!ptrarray_contains_str(grant->write_paths,
+				g_ptr_array_index(req->write_paths, i)))
+			return FALSE;
+	for (guint i = 0; i < req->read_paths->len; i++)
+		if (!ptrarray_contains_str(grant->read_paths,
+				g_ptr_array_index(req->read_paths, i)))
+			return FALSE;
+	return TRUE;
+}
+
+static gchar *perms_store_path(const gchar *project_path) {
+	return g_build_filename(project_path, "script_perms.json", NULL);
+}
+
+// Load hash -> perms_grant* from disk (missing file => empty table). Caller
+// destroys the table (values freed via perms_grant_free).
+static GHashTable *perms_store_load(const gchar *project_path) {
+	GHashTable *t = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify) perms_grant_free);
+	gchar *path = perms_store_path(project_path);
+	yyjson_doc *doc = g_file_test(path, G_FILE_TEST_EXISTS)
+			? yyjson_read_file(path, 0, NULL, NULL) : NULL;
+	g_free(path);
+	if (!doc) return t;
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *entries = root ? yyjson_obj_get(root, "entries") : NULL;
+	if (entries && yyjson_is_obj(entries)) {
+		yyjson_obj_iter it;
+		yyjson_obj_iter_init(entries, &it);
+		yyjson_val *key;
+		while ((key = yyjson_obj_iter_next(&it))) {
+			yyjson_val *e = yyjson_obj_iter_get_val(key);
+			if (!yyjson_is_obj(e)) continue;
+			perms_grant *g = g_new0(perms_grant, 1);
+			g->write_paths = g_ptr_array_new_with_free_func(g_free);
+			g->read_paths  = g_ptr_array_new_with_free_func(g_free);
+			yyjson_val *v;
+			if ((v = yyjson_obj_get(e, "unsandboxed"))) g->unsandboxed = yyjson_get_bool(v);
+			if ((v = yyjson_obj_get(e, "network")))     g->network = yyjson_get_bool(v);
+			if ((v = yyjson_obj_get(e, "approved")) && yyjson_is_str(v))
+				g->approved_iso = g_strdup(yyjson_get_str(v));
+			if ((v = yyjson_obj_get(e, "script_path")) && yyjson_is_str(v))
+				g->script_path = g_strdup(yyjson_get_str(v));
+			yyjson_val *arr, *item; yyjson_arr_iter ait;
+			if ((arr = yyjson_obj_get(e, "write")) && yyjson_is_arr(arr)) {
+				yyjson_arr_iter_init(arr, &ait);
+				while ((item = yyjson_arr_iter_next(&ait)))
+					if (yyjson_is_str(item))
+						g_ptr_array_add(g->write_paths, g_strdup(yyjson_get_str(item)));
+			}
+			if ((arr = yyjson_obj_get(e, "read")) && yyjson_is_arr(arr)) {
+				yyjson_arr_iter_init(arr, &ait);
+				while ((item = yyjson_arr_iter_next(&ait)))
+					if (yyjson_is_str(item))
+						g_ptr_array_add(g->read_paths, g_strdup(yyjson_get_str(item)));
+			}
+			g_hash_table_replace(t, g_strdup(yyjson_get_str(key)), g);
+		}
+	}
+	yyjson_doc_free(doc);
+	return t;
+}
+
+// Rewrite the whole store atomically (.tmp + rename), mirroring ledger_save.
+static gboolean perms_store_save(GHashTable *t, const gchar *project_path) {
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
+	yyjson_mut_obj_add_int(doc, root, "version", 1);
+	yyjson_mut_val *entries = yyjson_mut_obj(doc);
+	yyjson_mut_obj_add_val(doc, root, "entries", entries);
+
+	GHashTableIter it; gpointer k, v;
+	g_hash_table_iter_init(&it, t);
+	while (g_hash_table_iter_next(&it, &k, &v)) {
+		perms_grant *g = v;
+		yyjson_mut_val *obj = yyjson_mut_obj(doc);
+		yyjson_mut_obj_add_bool(doc, obj, "unsandboxed", g->unsandboxed);
+		yyjson_mut_obj_add_bool(doc, obj, "network", g->network);
+		if (g->approved_iso)
+			yyjson_mut_obj_add_strcpy(doc, obj, "approved", g->approved_iso);
+		if (g->script_path)
+			yyjson_mut_obj_add_strcpy(doc, obj, "script_path", g->script_path);
+		yyjson_mut_val *warr = yyjson_mut_arr(doc);
+		for (guint i = 0; i < g->write_paths->len; i++)
+			yyjson_mut_arr_add_strcpy(doc, warr, g_ptr_array_index(g->write_paths, i));
+		yyjson_mut_obj_add_val(doc, obj, "write", warr);
+		yyjson_mut_val *rarr = yyjson_mut_arr(doc);
+		for (guint i = 0; i < g->read_paths->len; i++)
+			yyjson_mut_arr_add_strcpy(doc, rarr, g_ptr_array_index(g->read_paths, i));
+		yyjson_mut_obj_add_val(doc, obj, "read", rarr);
+		/* key `k` is the hash-table key; it outlives this write (the table is
+		 * destroyed only after save returns), so add_val's non-copying key is
+		 * safe — mirrors ledger_save. */
+		yyjson_mut_obj_add_val(doc, entries, (const char *) k, obj);
+	}
+
+	gchar *path = perms_store_path(project_path);
+	gchar *tmp = g_strdup_printf("%s.tmp.%d", path, getpid());
+	gboolean ok = yyjson_mut_write_file(tmp, doc, YYJSON_WRITE_PRETTY, NULL, NULL);
+	yyjson_mut_doc_free(doc);
+	if (ok && g_rename(tmp, path) != 0) ok = FALSE;
+	if (!ok) g_unlink(tmp);
+	g_free(tmp);
+	g_free(path);
+	return ok;
+}
+
+// NULL-terminated gchar** copy of a GPtrArray of strings (for the policy's
+// extra_write/read_paths). An empty array yields a 1-element {NULL} vector,
+// which the platform backends treat as "no extra paths".
+static gchar **strv_from_ptrarray(GPtrArray *a) {
+	gchar **v = g_new0(gchar *, a->len + 1);
+	for (guint i = 0; i < a->len; i++)
+		v[i] = g_strdup(g_ptr_array_index(a, i));
+	return v;
+}
+
+// Human-readable consent text for the GUI dialog. Unsandboxed gets a distinct,
+// sterner message.
+static gchar *build_perms_consent_message(const siril_script_perms *req) {
+	if (req->unsandboxed)
+		return g_strdup(_("This script has asked to run with NO sandbox. It will have "
+				"the same full access to your files and network as any program you "
+				"run.\n\nOnly approve scripts you fully trust."));
+	GString *s = g_string_new(
+			_("This script has requested the following extra permissions:\n"));
+	if (req->network)
+		g_string_append(s, _("\n  \xe2\x80\xa2 Network access"));
+	for (guint i = 0; i < req->write_paths->len; i++)
+		g_string_append_printf(s, _("\n  \xe2\x80\xa2 Write access to: %s"),
+				(const char *) g_ptr_array_index(req->write_paths, i));
+	for (guint i = 0; i < req->read_paths->len; i++)
+		g_string_append_printf(s, _("\n  \xe2\x80\xa2 Read access to: %s"),
+				(const char *) g_ptr_array_index(req->read_paths, i));
+	g_string_append(s, _("\n\nApprove only if you trust this script."));
+	return g_string_free(s, FALSE);
+}
+
 // Per-script venv ledger.
 //
 // Maps script_hash → metadata about the venv we created for it. Lives on
@@ -5514,7 +5718,8 @@ static void execute_startup_scripts(void) {
 							FALSE,                   /* from_cli     */
 							FALSE,                   /* debug_mode   */
 							script_path,             /* venv_identity_path */
-							NULL                     /* pep723_source */);
+							NULL,                    /* pep723_source */
+							FALSE                    /* permissive: startup scripts are not -permissive */);
 	}
 }
 
@@ -5758,7 +5963,8 @@ static gpointer execute_python_script_async_thread(gpointer user_data) {
 	python_script_async_args *a = user_data;
 	execute_python_script(a->script_name, a->from_file, FALSE /* sync */,
 			a->argv_script, a->is_temp_file, a->from_cli, a->debug_mode,
-			a->venv_identity_path, a->pep723_source);
+			a->venv_identity_path, a->pep723_source,
+			FALSE /* permissive: GUI/async runs use the consent dialog, not -permissive */);
 	// script_name was consumed by execute_python_script. argv_script is
 	// borrowed (used during spawn but not freed there), so we free it
 	// here once execute_python_script has returned (post-spawn).
@@ -5799,7 +6005,8 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
 						gboolean debug_mode,
 						const gchar *venv_identity_path,
-						const gchar *pep723_source) {
+						const gchar *pep723_source,
+						gboolean permissive) {
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
@@ -6055,36 +6262,90 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// siril_sandbox_spawn(); it returns the same child_pid + stdout/stderr
 		// fds g_spawn_async_with_pipes() would. venv_path is still in scope
 		// (freed after spawn).
-		/* Phase B: parse the script's [tool.siril.permissions] manifest. This is
-		 * only a REQUEST — for now we parse and log it; the applied policy stays
-		 * at the safe default until phase C (consent + remembered grants) wires
-		 * the granted request into the policy below. */
+		/* Phase C: parse the script's [tool.siril.permissions] request, decide
+		 * whether to grant it (remembered consent / GUI dialog / -permissive /
+		 * headless default-deny), and build the applied policy. granted_* stay at
+		 * the safe default unless an elevated request is actually granted. */
+		gchar *perm_src = NULL;
+		gchar **granted_write = NULL, **granted_read = NULL;
+		gboolean granted_network = FALSE, granted_unsandboxed = FALSE;
 		{
-			gchar *perm_src = NULL;
 			const gchar *src_for_perms = script_name;
 			if (from_file && script_name
 					&& g_file_get_contents(script_name, &perm_src, NULL, NULL))
 				src_for_perms = perm_src;
-			siril_script_perms *reqperms =
-				parse_siril_permissions(src_for_perms, com.wd);
-			if (reqperms->present)
-				siril_log_debug("script requests sandbox permissions: "
-						"unsandboxed=%d network=%d write=%u read=%u\n",
-						reqperms->unsandboxed, reqperms->network,
-						reqperms->write_paths->len, reqperms->read_paths->len);
-			siril_script_perms_free(reqperms);
-			g_free(perm_src);
+			siril_script_perms *req = parse_siril_permissions(src_for_perms, com.wd);
+
+			gboolean apply = FALSE;
+			if (perms_request_is_elevated(req)) {
+				gchar *project_path = g_build_filename(g_get_user_data_dir(),
+						"siril", NULL);
+				pep723_metadata *pep = parse_pep723(src_for_perms);
+				gchar *hash = compute_script_hash(venv_identity_path, pep);
+				pep723_metadata_free(pep);
+
+				GHashTable *store = perms_store_load(project_path);
+				perms_grant *existing = hash ? g_hash_table_lookup(store, hash) : NULL;
+
+				if (existing && perms_grant_covers(existing, req)) {
+					apply = TRUE;   /* previously approved, still covers request */
+				} else if (permissive) {
+					apply = TRUE;   /* explicit CLI approval: grant + remember */
+					if (hash) {
+						g_hash_table_replace(store, g_strdup(hash),
+								perms_grant_from_request(req,
+										from_file ? script_name : NULL));
+						perms_store_save(store, project_path);
+					}
+					siril_log_message(_("Approved and remembered sandbox permissions "
+							"for this script (-permissive).\n"));
+				} else if (!com.headless) {
+					gchar *msg = build_perms_consent_message(req);
+					const char *title = req->unsandboxed
+							? _("Script requests to run WITHOUT sandbox")
+							: _("Script requests extra permissions");
+					if (gui_iface.confirm_dialog(title, msg, _("Approve"))) {
+						apply = TRUE;
+						if (hash) {
+							g_hash_table_replace(store, g_strdup(hash),
+									perms_grant_from_request(req,
+											from_file ? script_name : NULL));
+							perms_store_save(store, project_path);
+						}
+					}
+					g_free(msg);
+				} else {
+					siril_log_warning(_("Script requested elevated sandbox "
+							"permissions but none are granted; running with default "
+							"confinement. Approve it once in the GUI, or run "
+							"'pyscript -permissive <script>'.\n"));
+				}
+
+				if (apply && req->unsandboxed)
+					siril_log_message(_("Running this script with NO sandbox — it has "
+							"full access to your files and network.\n"));
+
+				g_hash_table_destroy(store);
+				g_free(hash);
+				g_free(project_path);
+			}
+
+			if (apply) {
+				granted_network = req->network;
+				granted_unsandboxed = req->unsandboxed;
+				granted_write = strv_from_ptrarray(req->write_paths);
+				granted_read  = strv_from_ptrarray(req->read_paths);
+			}
+			siril_script_perms_free(req);
 		}
 
-		/* Default policy: no network, writes confined to the built-in roots,
-		 * no extra paths. Phase C (manifest + remembered consent) will populate
-		 * this from the parsed request above once granted. */
 		SirilSandboxPolicy sandbox_policy = {
 			.wd = com.wd,
 			.venv_path = venv_path,
-			.allow_network = FALSE,
-			.extra_write_paths = NULL,
-			.extra_read_paths = NULL,
+			.allow_network = granted_network,
+			.extra_write_paths = (const char * const *) granted_write,
+			.extra_read_paths = (const char * const *) granted_read,
+			.unsandboxed = granted_unsandboxed,
 		};
 		success = siril_sandbox_spawn(
 			working_dir,
@@ -6099,6 +6360,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// Free the GPtrArray (but not its contents - the caller must free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
+		// The granted policy vectors were consumed by siril_sandbox_spawn (the
+		// backends copy or use them synchronously), so free them now.
+		g_strfreev(granted_write);
+		g_strfreev(granted_read);
+		g_free(perm_src);
 
 		if (success) {
 			// Set the flag that a python script is running

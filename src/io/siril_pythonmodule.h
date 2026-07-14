@@ -282,7 +282,7 @@ typedef struct {
 // Both new parameters are advisory: per-script venvs are only created when
 // the SIRIL_PER_SCRIPT_VENVS feature gate is set; otherwise the base venv
 // is used regardless.
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, const gchar *venv_identity_path, const gchar *pep723_source);
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode, const gchar *venv_identity_path, const gchar *pep723_source, gboolean permissive);
 
 // Fire-and-forget async variant for GUI callers (script menu, editor).
 // execute_python_script's preamble — wait for venv init, run
