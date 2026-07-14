@@ -2691,6 +2691,43 @@ static gint pep723_compare_strings(gconstpointer a, gconstpointer b) {
 	                          *(const gchar * const *)b);
 }
 
+// Extract the "# /// script ... # ///" inline-metadata block from `source` and
+// strip the leading "# " from each line, yielding a TOML-ish chunk. Returns a
+// GString the caller frees with g_string_free(), or NULL if no block is present.
+// Shared by parse_pep723() (dependencies) and parse_siril_permissions().
+static GString *pep723_cleaned_block(const gchar *source) {
+	if (!source || !*source) return NULL;
+
+	GRegex *block_re = g_regex_new(
+			"^#\\s*///\\s*script\\s*$([\\s\\S]*?)^#\\s*///\\s*$",
+			G_REGEX_MULTILINE, 0, NULL);
+	if (!block_re) return NULL;
+
+	GMatchInfo *block_match = NULL;
+	gchar *block_inner = NULL;
+	if (g_regex_match(block_re, source, 0, &block_match))
+		block_inner = g_match_info_fetch(block_match, 1);
+	g_match_info_free(block_match);
+	g_regex_unref(block_re);
+	if (!block_inner) return NULL;
+
+	GString *cleaned = g_string_new(NULL);
+	gchar **lines = g_strsplit(block_inner, "\n", -1);
+	for (gchar **p = lines; *p; p++) {
+		const gchar *line = *p;
+		while (*line == ' ' || *line == '\t') line++;
+		if (*line != '#')   // PEP 723 blocks are entirely comment-prefixed
+			continue;
+		line++;             // skip '#'
+		if (*line == ' ') line++;   // skip optional single space
+		g_string_append(cleaned, line);
+		g_string_append_c(cleaned, '\n');
+	}
+	g_strfreev(lines);
+	g_free(block_inner);
+	return cleaned;
+}
+
 // Extract the PEP 723 metadata block from a source string. Returns NULL if
 // no block is found or no `dependencies` array is present. The caller owns
 // the returned struct.
@@ -2710,45 +2747,8 @@ static gint pep723_compare_strings(gconstpointer a, gconstpointer b) {
 // strings between `[` and `]` are simple double-quoted entries. Anything
 // fancier should be expressed in pyproject.toml, not in inline metadata.
 static pep723_metadata *parse_pep723(const gchar *source) {
-	if (!source || !*source) return NULL;
-
-	// Find the block start: a line containing "# /// script" (allowing
-	// arbitrary whitespace).
-	GRegex *block_re = g_regex_new(
-			"^#\\s*///\\s*script\\s*$([\\s\\S]*?)^#\\s*///\\s*$",
-			G_REGEX_MULTILINE, 0, NULL);
-	if (!block_re) return NULL;
-
-	GMatchInfo *block_match = NULL;
-	gchar *block_inner = NULL;
-	if (g_regex_match(block_re, source, 0, &block_match)) {
-		block_inner = g_match_info_fetch(block_match, 1);
-	}
-	g_match_info_free(block_match);
-	g_regex_unref(block_re);
-
-	if (!block_inner) return NULL;
-
-	// Strip the leading "# " (or "#") from each line so we have a TOML-ish
-	// chunk to scan.
-	GString *cleaned = g_string_new(NULL);
-	gchar **lines = g_strsplit(block_inner, "\n", -1);
-	for (gchar **p = lines; *p; p++) {
-		const gchar *line = *p;
-		// Skip leading whitespace
-		while (*line == ' ' || *line == '\t') line++;
-		if (*line != '#') {
-			// Stop at any non-comment line; PEP 723 blocks are entirely
-			// comment-prefixed.
-			continue;
-		}
-		line++;  // skip the '#'
-		if (*line == ' ') line++;  // skip optional single space
-		g_string_append(cleaned, line);
-		g_string_append_c(cleaned, '\n');
-	}
-	g_strfreev(lines);
-	g_free(block_inner);
+	GString *cleaned = pep723_cleaned_block(source);
+	if (!cleaned) return NULL;
 
 	// Find `dependencies = [ ... ]` — the `]` may be on the same line or a
 	// later one. We capture everything between the brackets non-greedily.
@@ -2826,6 +2826,134 @@ static gchar *pep723_canonical_hash(const pep723_metadata *meta) {
 	gchar *truncated = g_strndup(full, 16);
 	g_free(full);
 	return truncated;
+}
+
+// ---- [tool.siril.permissions] manifest (phase B) -----------------------
+// A script may declare the sandbox permissions it needs in an inline-metadata
+// table (parsed statically, BEFORE the script runs):
+//
+//   # /// script
+//   # [tool.siril.permissions]
+//   # network = true
+//   # write = ["$WORKDIR/out", "$HOME/astro"]
+//   # read  = ["$HOME/catalogues"]
+//   # ///
+//
+// This is a REQUEST only; the consent layer (phase C) decides what is actually
+// granted. Path tokens $WORKDIR / $TMPDIR / $HOME / $USERDATA / $CONFIG expand
+// to the matching directory. `network` is a boolean — per-host allow-listing is
+// not enforceable by the underlying sandboxes (seccomp / Seatbelt / AppContainer).
+typedef struct {
+	gboolean present;        // a [tool.siril.permissions] table was found
+	gboolean network;        // network = true
+	GPtrArray *write_paths;  // gchar*, token-expanded
+	GPtrArray *read_paths;   // gchar*
+} siril_script_perms;
+
+static void siril_script_perms_free(siril_script_perms *p) {
+	if (!p) return;
+	if (p->write_paths) g_ptr_array_free(p->write_paths, TRUE);
+	if (p->read_paths)  g_ptr_array_free(p->read_paths, TRUE);
+	g_free(p);
+}
+
+// Expand a leading $TOKEN in a manifest path to its directory. Unknown/absent
+// tokens leave the string unchanged. Caller frees.
+static gchar *expand_perm_path_tokens(const gchar *raw, const char *workdir) {
+	gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
+	const struct { const char *tok; const char *val; } map[] = {
+		{ "$WORKDIR",  workdir },
+		{ "$TMPDIR",   g_get_tmp_dir() },
+		{ "$HOME",     g_get_home_dir() },
+		{ "$USERDATA", siril_get_user_data_dir() },
+		{ "$CONFIG",   cfg },
+	};
+	gchar *out = NULL;
+	for (gsize i = 0; i < G_N_ELEMENTS(map); i++) {
+		gsize tlen = strlen(map[i].tok);
+		if (map[i].val && strncmp(raw, map[i].tok, tlen) == 0) {
+			out = g_strconcat(map[i].val, raw + tlen, NULL);
+			break;
+		}
+	}
+	g_free(cfg);
+	return out ? out : g_strdup(raw);
+}
+
+// Pull quoted strings out of `KEY = [ "a", "b" ]` within `table`, token-expand
+// them and append to `dest`.
+static void parse_perm_path_array(const gchar *table, const gchar *key,
+                                  GPtrArray *dest, const char *workdir) {
+	gchar *pat = g_strdup_printf("%s\\s*=\\s*\\[([\\s\\S]*?)\\]", key);
+	GRegex *arr_re = g_regex_new(pat, G_REGEX_MULTILINE, 0, NULL);
+	g_free(pat);
+	if (!arr_re) return;
+	GMatchInfo *m = NULL;
+	gchar *inner = NULL;
+	if (g_regex_match(arr_re, table, 0, &m))
+		inner = g_match_info_fetch(m, 1);
+	g_match_info_free(m);
+	g_regex_unref(arr_re);
+	if (!inner) return;
+
+	GRegex *str_re = g_regex_new("[\"']([^\"']*)[\"']", 0, 0, NULL);
+	if (str_re) {
+		GMatchInfo *sm = NULL;
+		g_regex_match(str_re, inner, 0, &sm);
+		while (g_match_info_matches(sm)) {
+			gchar *s = g_match_info_fetch(sm, 1);
+			if (s && *s)
+				g_ptr_array_add(dest, expand_perm_path_tokens(s, workdir));
+			g_free(s);
+			g_match_info_next(sm, NULL);
+		}
+		g_match_info_free(sm);
+		g_regex_unref(str_re);
+	}
+	g_free(inner);
+}
+
+// Parse the [tool.siril.permissions] table from a script's inline metadata.
+// Always returns a struct (never NULL); present==FALSE means no manifest so the
+// safe defaults apply. `workdir` seeds the $WORKDIR token (may be NULL).
+static siril_script_perms *parse_siril_permissions(const gchar *source,
+                                                   const char *workdir) {
+	siril_script_perms *p = g_new0(siril_script_perms, 1);
+	p->write_paths = g_ptr_array_new_with_free_func(g_free);
+	p->read_paths  = g_ptr_array_new_with_free_func(g_free);
+
+	GString *cleaned = pep723_cleaned_block(source);
+	if (!cleaned) return p;
+
+	// Isolate the table body: from its header to the next "[...]" header or EOF.
+	GRegex *tbl_re = g_regex_new(
+			"^\\[tool\\.siril\\.permissions\\]\\s*$([\\s\\S]*?)(?=^\\[|\\z)",
+			G_REGEX_MULTILINE, 0, NULL);
+	gchar *table = NULL;
+	if (tbl_re) {
+		GMatchInfo *tm = NULL;
+		if (g_regex_match(tbl_re, cleaned->str, 0, &tm))
+			table = g_match_info_fetch(tm, 1);
+		g_match_info_free(tm);
+		g_regex_unref(tbl_re);
+	}
+	g_string_free(cleaned, TRUE);
+	if (!table) return p;   // block present but no permissions table
+
+	p->present = TRUE;
+
+	GRegex *net_re = g_regex_new("network\\s*=\\s*true\\b",
+	                             G_REGEX_MULTILINE, 0, NULL);
+	if (net_re) {
+		p->network = g_regex_match(net_re, table, 0, NULL);
+		g_regex_unref(net_re);
+	}
+
+	parse_perm_path_array(table, "write", p->write_paths, workdir);
+	parse_perm_path_array(table, "read",  p->read_paths,  workdir);
+
+	g_free(table);
+	return p;
 }
 
 // Per-script venv ledger.
@@ -5879,9 +6007,29 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// siril_sandbox_spawn(); it returns the same child_pid + stdout/stderr
 		// fds g_spawn_async_with_pipes() would. venv_path is still in scope
 		// (freed after spawn).
+		/* Phase B: parse the script's [tool.siril.permissions] manifest. This is
+		 * only a REQUEST — for now we parse and log it; the applied policy stays
+		 * at the safe default until phase C (consent + remembered grants) wires
+		 * the granted request into the policy below. */
+		{
+			gchar *perm_src = NULL;
+			const gchar *src_for_perms = script_name;
+			if (from_file && script_name
+					&& g_file_get_contents(script_name, &perm_src, NULL, NULL))
+				src_for_perms = perm_src;
+			siril_script_perms *reqperms =
+				parse_siril_permissions(src_for_perms, com.wd);
+			if (reqperms->present)
+				siril_log_debug("script requests sandbox permissions: "
+						"network=%d write=%u read=%u\n", reqperms->network,
+						reqperms->write_paths->len, reqperms->read_paths->len);
+			siril_script_perms_free(reqperms);
+			g_free(perm_src);
+		}
+
 		/* Default policy: no network, writes confined to the built-in roots,
 		 * no extra paths. Phase C (manifest + remembered consent) will populate
-		 * this from the script's [tool.siril.permissions] once granted. */
+		 * this from the parsed request above once granted. */
 		SirilSandboxPolicy sandbox_policy = {
 			.wd = com.wd,
 			.venv_path = venv_path,
