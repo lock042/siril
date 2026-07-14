@@ -756,26 +756,32 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 /* TRUE / FALSE + g_set_error.                                          */
 /*                                                                       */
 /* Defenses:                                                            */
-/*   - ZERO capabilities in the container => no internetClient etc., so  */
-/*     network egress is denied by construction (nothing to un-set).    */
+/*   - No network capability in the container => no internetClient etc.,  */
+/*     so network egress is denied by construction (nothing to un-set).  */
+/*     removableStorage is a FILE capability and does not change this.   */
 /*   - AppContainer is deny-by-default for the user's files, so the      */
 /*     child cannot even load its interpreter until we add explicit      */
-/*     access-allowed ACEs for the container SID. Windows is therefore   */
-/*     also READ-confined (stricter than the Linux cut, which leaves     */
-/*     reads open) — this is acceptable and documented below.           */
+/*     access-allowed ACEs for the container SID. To MATCH the Linux/    */
+/*     macOS model (reads permitted everywhere; exfiltration blocked by  */
+/*     the network cut, not by read confinement), we grant read/execute  */
+/*     broadly — the user profile, every fixed drive root, and removable */
+/*     media via the removableStorage capability. Writes stay confined.  */
 /*                                                                       */
 /* HONESTY / LIMITATIONS (this file could NOT be compiled or run in the  */
 /* dev environment — no MinGW / Windows):                                */
-/*   - The interpreter/stdlib READ-grant set (step 2) is the most        */
-/*     test-dependent part. We grant the dir of argv[0] and its parent   */
-/*     plus wd/venv/user-data/config, but the BASE Python install (where */
-/*     the real stdlib lives for a uv-managed interpreter) is NOT known  */
-/*     here and is very likely to need additional grants once a dev      */
-/*     runs a script and sees which reads are denied. This will iterate. */
-/*   - The IPC pipe SD (companion change in siril_pythonmodule.c) grants */
-/*     ALL APPLICATION PACKAGES; that too wants runtime confirmation.    */
-/*   - The granted ACEs PERSIST on disk (they name only this one         */
-/*     container SID). The MVP leaves them in place across runs.         */
+/*   - The broad read grants (user profile + fixed drive roots) should    */
+/*     now cover the interpreter/stdlib wherever a uv-managed Python lives */
+/*     (under the user profile or a fixed drive), so the earlier "base    */
+/*     Python install not readable" risk should be resolved — but this,   */
+/*     like everything here, is UNVERIFIED without a Windows toolchain.   */
+/*   - The C:\ root DACL edit typically fails without elevation and is     */
+/*     skipped; the user-profile grant covers C:\Users\<user>, but reads   */
+/*     of C:\ locations OUTSIDE the profile, and files with protected/     */
+/*     explicit ACLs that do not inherit, may still be denied.            */
+/*   - The IPC pipe SD (companion change in siril_pythonmodule.c) grants  */
+/*     ALL APPLICATION PACKAGES; that too wants runtime confirmation.     */
+/*   - The granted ACEs PERSIST on disk (they name only this one          */
+/*     container SID). The MVP leaves them in place across runs.          */
 /* ==================================================================== */
 
 /* <windows.h> is already included at the top of this file at the required
@@ -1046,8 +1052,9 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	}
 
 	/* Per-script extra paths from the granted manifest: extra_write RW,
-	 * extra_read RX. Unlike Linux/macOS, Windows is read-confined, so
-	 * extra_read_paths are meaningful here. */
+	 * extra_read RX. With the broad read grants below, Windows is read-open like
+	 * Linux/macOS, so extra_read_paths now only matter for locations the broad
+	 * grant cannot reach (e.g. network shares, protected-ACL system paths). */
 	if (policy->extra_write_paths)
 		for (const char * const *e = policy->extra_write_paths; *e; e++)
 			grant_appcontainer(*e, RW, container_sid);
@@ -1072,6 +1079,32 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 		g_free(interp_dir);
 	}
 
+	/* Read-anywhere, to match the Linux/macOS model: reads are permitted
+	 * broadly and exfiltration is prevented by the network cut, not by read
+	 * confinement (so a script can open images outside the working dir).
+	 * AppContainer is deny-by-default for the filesystem, so read/execute must
+	 * be granted explicitly:
+	 *   - the user profile (the user owns it, so the DACL edit succeeds); this
+	 *     also covers Pictures/Documents/Desktop, so the known-folder
+	 *     capabilities are unnecessary;
+	 *   - every FIXED drive root, best-effort — works on user-owned data drives
+	 *     (e.g. D:\); the C:\ root DACL edit typically fails without elevation
+	 *     and is skipped, but the profile grant already covers C:\Users\<user>;
+	 *   - removable media is handled by the removableStorage capability added at
+	 *     the spawn step below (a dynamic mount cannot be pre-ACLed).
+	 * Writes remain confined to the roots granted earlier. */
+	grant_appcontainer(g_get_home_dir(), RX, container_sid);
+	{
+		DWORD drives = GetLogicalDrives();
+		for (int i = 0; i < 26; i++) {
+			if (!(drives & (1u << i)))
+				continue;
+			char root[4] = { (char) ('A' + i), ':', '\\', '\0' };
+			if (GetDriveTypeA(root) == DRIVE_FIXED)
+				grant_appcontainer(root, RX, container_sid);
+		}
+	}
+
 	/* ---- 4. Spawn -------------------------------------------------------- */
 	/* All locals used after any `goto cleanup` are declared up front (no
 	 * initializer that a goto could skip) to stay clean under
@@ -1082,8 +1115,9 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	LPPROC_THREAD_ATTRIBUTE_LIST attr_list = NULL;
 	wchar_t *cmdline = NULL, *env_block = NULL, *wworkdir = NULL;
 	SECURITY_CAPABILITIES sec_caps;
-	SID_AND_ATTRIBUTES cap_attr;   /* internetClient, only if allow_network */
-	PSID inet_cap_sid = NULL;
+	SID_AND_ATTRIBUTES cap_attrs[2];   /* removableStorage [+ internetClient] */
+	PSID inet_cap_sid = NULL;          /* internetClient, only if allow_network */
+	PSID removable_cap_sid = NULL;     /* removableStorage, for read-anywhere    */
 	STARTUPINFOEXW si;
 	PROCESS_INFORMATION pi;
 	HANDLE inherit_handles[2];
@@ -1152,23 +1186,35 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	}
 
 	sec_caps.AppContainerSid = container_sid;
-	sec_caps.Capabilities = NULL;   /* zero capabilities => no network etc. */
+	sec_caps.Capabilities = cap_attrs;
 	sec_caps.CapabilityCount = 0;
+	/* removableStorage (well-known cap SID S-1-15-3-10): read access to removable
+	 * media — the dynamic-mount counterpart of the fixed-drive read ACEs above.
+	 * It is a FILE-access capability, not a network one, so it does not weaken
+	 * the no-network default. */
+	if (ConvertStringSidToSidW(L"S-1-15-3-10", &removable_cap_sid)) {
+		cap_attrs[sec_caps.CapabilityCount].Sid = removable_cap_sid;
+		cap_attrs[sec_caps.CapabilityCount].Attributes = SE_GROUP_ENABLED;
+		sec_caps.CapabilityCount++;
+	} else {
+		siril_log_debug("sandbox: removableStorage capability SID failed: %lu\n",
+		                GetLastError());
+	}
+	/* internetClient (S-1-15-3-1) only when the policy allows network. With NO
+	 * network capability an AppContainer cannot use WinSock at all — that is
+	 * exactly how the default (no-network) policy denies egress by construction. */
 	if (policy->allow_network) {
-		/* Grant the internetClient capability (well-known SID S-1-15-3-1) so the
-		 * container may make outbound connections. With NO network capability an
-		 * AppContainer cannot use WinSock at all — that is exactly how the
-		 * default (no-network) policy denies egress by construction. */
 		if (ConvertStringSidToSidW(L"S-1-15-3-1", &inet_cap_sid)) {
-			cap_attr.Sid = inet_cap_sid;
-			cap_attr.Attributes = SE_GROUP_ENABLED;
-			sec_caps.Capabilities = &cap_attr;
-			sec_caps.CapabilityCount = 1;
+			cap_attrs[sec_caps.CapabilityCount].Sid = inet_cap_sid;
+			cap_attrs[sec_caps.CapabilityCount].Attributes = SE_GROUP_ENABLED;
+			sec_caps.CapabilityCount++;
 		} else {
 			siril_log_debug("sandbox: internetClient capability SID failed: %lu\n",
 			                GetLastError());
 		}
 	}
+	if (sec_caps.CapabilityCount == 0)
+		sec_caps.Capabilities = NULL;   /* both derivations failed */
 	if (!UpdateProcThreadAttribute(attr_list, 0,
 	        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
 	        &sec_caps, sizeof(sec_caps), NULL, NULL)) {
@@ -1242,7 +1288,9 @@ cleanup:
 	g_free(env_block);
 	g_free(wworkdir);
 	if (inet_cap_sid)
-		LocalFree(inet_cap_sid);   /* allocated by ConvertStringSidToSid */
+		LocalFree(inet_cap_sid);        /* allocated by ConvertStringSidToSid */
+	if (removable_cap_sid)
+		LocalFree(removable_cap_sid);   /* allocated by ConvertStringSidToSid */
 	if (container_sid)
 		FreeSid(container_sid);
 	return result;
