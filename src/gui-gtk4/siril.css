@@ -663,3 +663,10 @@ entry.search_empty {
  outline: none;
  border-image: none;
 }
+
+/* Curves dialog: compact channel selector (7 buttons on one row) */
+button.curves-channel-btn {
+  padding: 2px 8px;
+  min-width: 16px;
+  min-height: 24px;
+}

@@ -120,7 +120,7 @@
                           </object>
                         </property>
                         <property name="focusable">1</property>
-                        <property name="height-request">300</property>
+                        <property name="height-request">220</property>
                         <property name="hexpand">1</property>
                         <property name="hscrollbar-policy">always</property>
                         <property name="overlay-scrolling">0</property>
@@ -141,11 +141,10 @@
                             <property name="valign">start</property>
                             <child>
                               <object class="GtkGrid" id="curves_channel_box">
-                                <property name="column-homogeneous">1</property>
-                                <property name="column-spacing">6</property>
-                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">4</property>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_rgb">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="active">1</property>
                                     <property name="label" translatable="yes">RGB/K</property>
                                     <property name="tooltip-text" translatable="yes">Master channel (RGB or greyscale)</property>
@@ -158,6 +157,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_r">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">R</property>
                                     <property name="tooltip-text" translatable="yes">Red channel</property>
                                     <property name="group">curves_chan_rgb</property>
@@ -170,6 +170,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_g">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">G</property>
                                     <property name="tooltip-text" translatable="yes">Green channel</property>
                                     <property name="group">curves_chan_rgb</property>
@@ -182,6 +183,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_b">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">B</property>
                                     <property name="tooltip-text" translatable="yes">Blue channel</property>
                                     <property name="group">curves_chan_rgb</property>
@@ -194,37 +196,40 @@
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_l">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">L</property>
                                     <property name="tooltip-text" translatable="yes">Luminance (CIE L*)</property>
                                     <property name="group">curves_chan_rgb</property>
                                     <signal name="toggled" handler="on_curves_chan_l_toggled"/>
                                     <layout>
-                                      <property name="column">0</property>
-                                      <property name="row">1</property>
+                                      <property name="column">4</property>
+                                      <property name="row">0</property>
                                     </layout>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_c">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">C</property>
                                     <property name="tooltip-text" translatable="yes">Chrominance (LCH chroma)</property>
                                     <property name="group">curves_chan_rgb</property>
                                     <signal name="toggled" handler="on_curves_chan_c_toggled"/>
                                     <layout>
-                                      <property name="column">1</property>
-                                      <property name="row">1</property>
+                                      <property name="column">5</property>
+                                      <property name="row">0</property>
                                     </layout>
                                   </object>
                                 </child>
                                 <child>
                                   <object class="GtkToggleButton" id="curves_chan_s">
+                                    <property name="css-classes">curves-channel-btn</property>
                                     <property name="label" translatable="yes">S</property>
                                     <property name="tooltip-text" translatable="yes">Saturation (HSV)</property>
                                     <property name="group">curves_chan_rgb</property>
                                     <signal name="toggled" handler="on_curves_chan_s_toggled"/>
                                     <layout>
-                                      <property name="column">2</property>
-                                      <property name="row">1</property>
+                                      <property name="column">6</property>
+                                      <property name="row">0</property>
                                     </layout>
                                   </object>
                                 </child>
@@ -421,6 +426,8 @@
                     </child>
                     <child>
                       <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">4</property>
                         <child>
                           <object class="GtkGrid" id="curves_point_grid">
                             <property name="column-spacing">10</property>
@@ -429,17 +436,19 @@
                             <child>
                               <object class="GtkLabel" id="curves_label_y">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Curve point Y: </property>
+                                <property name="label" translatable="yes">Y:</property>
+                                <property name="tooltip-text" translatable="yes">Y coordinate of the selected curve point</property>
                                 <layout>
-                                  <property name="column">0</property>
-                                  <property name="row">2</property>
+                                  <property name="column">4</property>
+                                  <property name="row">0</property>
                                 </layout>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel" id="curves_label_id">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Curve point ID: </property>
+                                <property name="label" translatable="yes">ID:</property>
+                                <property name="tooltip-text" translatable="yes">The ID of the selected curve point</property>
                                 <layout>
                                   <property name="column">0</property>
                                   <property name="row">0</property>
@@ -449,10 +458,11 @@
                             <child>
                               <object class="GtkLabel" id="curves_label_x">
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Curve point X: </property>
+                                <property name="label" translatable="yes">X:</property>
+                                <property name="tooltip-text" translatable="yes">X coordinate of the selected curve point</property>
                                 <layout>
-                                  <property name="column">0</property>
-                                  <property name="row">1</property>
+                                  <property name="column">2</property>
+                                  <property name="row">0</property>
                                 </layout>
                               </object>
                             </child>
@@ -521,8 +531,8 @@
                                 <property name="width-chars">10</property>
                                 <signal name="activate" handler="on_curves_x_entry_activate"/>
                                 <layout>
-                                  <property name="column">1</property>
-                                  <property name="row">1</property>
+                                  <property name="column">3</property>
+                                  <property name="row">0</property>
                                 </layout>
                               </object>
                             </child>
@@ -537,8 +547,8 @@
                                 <property name="width-chars">10</property>
                                 <signal name="activate" handler="on_curves_y_entry_activate"/>
                                 <layout>
-                                  <property name="column">1</property>
-                                  <property name="row">2</property>
+                                  <property name="column">5</property>
+                                  <property name="row">0</property>
                                 </layout>
                               </object>
                             </child>
@@ -546,10 +556,10 @@
                         </child>
                         <child>
                           <object class="GtkBox" id="curves_clip_box">
-                            <property name="orientation">vertical</property>
+                            <property name="spacing">5</property>
                             <child>
                               <object class="GtkLabel" id="curves_clip_label">
-                                <property name="halign">center</property>
+                                <property name="halign">start</property>
                                 <property name="label" translatable="yes">Clip (%)</property>
                               </object>
                             </child>
@@ -674,9 +684,7 @@
         </child>
       </object>
     </property>
-    <property name="default-height">1</property>
     <property name="default-width">1</property>
-    <property name="height-request">715</property>
     <property name="title" translatable="yes">Curves Transformation</property>
     <property name="width-request">420</property>
     <signal name="close-request" handler="siril_widget_hide_on_delete"/>

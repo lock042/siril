@@ -1079,6 +1079,18 @@ static void curves_update_image() {
 	set_cursor_waiting(FALSE);
 }
 
+/* Live preview while dragging a curve point, like the GHS sliders in
+ * histogram.c: fire notify_update() on every motion event and let its
+ * coalescing keep only the latest request (cancelling the in-flight job).
+ * No blocking stop_processing_thread() or cursor churn here — this runs
+ * at motion-event frequency. */
+static void curves_notify_preview() {
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = curves_update_preview;
+	param->show_preview = siril_toggle_get_active(GTK_WIDGET(curves_preview_check));
+	notify_update((gpointer) param);
+}
+
 static void _initialize_clip_text() {
 	gtk_editable_set_text(GTK_EDITABLE(curves_clip_low), "0.000%");
 	gtk_editable_set_text(GTK_EDITABLE(curves_clip_high), "0.000%");
@@ -1737,7 +1749,9 @@ void on_curves_spin_zoom_value_changed(GtkRange *range, gpointer user_data) {
 	double zoom = gtk_adjustment_get_value(curves_adj_zoom);
 	current_width = gtk_widget_get_width(curves_viewport);
 	target_width = (int) (((double) current_width) * zoom);
-	gtk_widget_set_size_request(curves_drawingarea, target_width, 281);
+	// Zoom is horizontal only: forcing a height here would fight the
+	// window's vertical layout on small screens
+	gtk_widget_set_size_request(curves_drawingarea, target_width, -1);
 	gtk_widget_queue_draw(curves_drawingarea);
 }
 
@@ -1814,6 +1828,10 @@ static void curves_da_drag_update(GtkGestureDrag *gesture,
 	else if (next && next->x <= xpos) selected_point->x = next->x - 0.00001;
 	else                              selected_point->x = xpos;
 	_update_entry_text();
+	// Real-time feedback while dragging: reshape the displayed histogram
+	// and refresh the image preview (coalesced by notify_update)
+	update_display_histogram_from_curve();
+	curves_notify_preview();
 	gtk_widget_queue_draw(widget);
 }
 
