@@ -2846,6 +2846,7 @@ static gchar *pep723_canonical_hash(const pep723_metadata *meta) {
 typedef struct {
 	gboolean present;        // a [tool.siril.permissions] table was found
 	gboolean network;        // network = true
+	gboolean unsandboxed;    // unsandboxed = true (escape hatch; overrides all)
 	GPtrArray *write_paths;  // gchar*, token-expanded
 	GPtrArray *read_paths;   // gchar*
 } siril_script_perms;
@@ -2947,6 +2948,16 @@ static siril_script_perms *parse_siril_permissions(const gchar *source,
 	if (net_re) {
 		p->network = g_regex_match(net_re, table, 0, NULL);
 		g_regex_unref(net_re);
+	}
+
+	// unsandboxed = true — the all-or-nothing escape hatch for glue scripts
+	// spawning opaque third-party software. Overrides the granular fields; the
+	// consent layer must gate it with a sterner warning than the rest.
+	GRegex *uns_re = g_regex_new("unsandboxed\\s*=\\s*true\\b",
+	                             G_REGEX_MULTILINE, 0, NULL);
+	if (uns_re) {
+		p->unsandboxed = g_regex_match(uns_re, table, 0, NULL);
+		g_regex_unref(uns_re);
 	}
 
 	parse_perm_path_array(table, "write", p->write_paths, workdir);
@@ -6058,7 +6069,8 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 				parse_siril_permissions(src_for_perms, com.wd);
 			if (reqperms->present)
 				siril_log_debug("script requests sandbox permissions: "
-						"network=%d write=%u read=%u\n", reqperms->network,
+						"unsandboxed=%d network=%d write=%u read=%u\n",
+						reqperms->unsandboxed, reqperms->network,
 						reqperms->write_paths->len, reqperms->read_paths->len);
 			siril_script_perms_free(reqperms);
 			g_free(perm_src);

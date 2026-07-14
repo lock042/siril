@@ -599,6 +599,13 @@ static void sandbox_finish(SirilSandbox *sb) {
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
                              const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
+	/* Explicit, granted opt-out (glue scripts spawning opaque third-party
+	 * software): no confinement at all. */
+	if (policy->unsandboxed)
+		return g_spawn_async_with_pipes(working_dir, argv, envp,
+			G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+
 	/* Build the ruleset spec in the parent; the actual Landlock ruleset and
 	 * seccomp filter are installed by sandbox_child_setup() post-fork. If
 	 * preparation fails entirely (unsupported kernel) sb is NULL and we spawn
@@ -712,6 +719,13 @@ static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy) {
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
                              const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
+	/* Explicit, granted opt-out (glue scripts spawning opaque third-party
+	 * software): no confinement at all. */
+	if (policy->unsandboxed)
+		return g_spawn_async_with_pipes(working_dir, argv, envp,
+			G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+
 	/* If sandbox-exec is missing (should never happen on macOS), fall back to
 	 * an unsandboxed spawn with a warning rather than failing outright. */
 	if (!g_file_test(SANDBOX_EXEC_PATH, G_FILE_TEST_IS_EXECUTABLE)) {
@@ -1015,6 +1029,16 @@ static gboolean sandbox_win_spawn_unsandboxed(const char *working_dir,
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
                              const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
+	/* Explicit, granted opt-out (glue scripts spawning opaque third-party
+	 * software): no AppContainer at all — a plain g_spawn. NB the child is then
+	 * a normal-user process; the IPC pipe DACL companion change grants ALL
+	 * APPLICATION PACKAGES, so the same fail-open pipe-access caveat noted there
+	 * applies (a token-user ACE on the pipe is needed for non-AppContainer
+	 * clients). */
+	if (policy->unsandboxed)
+		return sandbox_win_spawn_unsandboxed(working_dir, argv, envp,
+		                                     child_pid, stdout_fd, stderr_fd, error);
+
 	/* ---- 1. Container SID ------------------------------------------------ */
 	PSID container_sid = NULL;
 	HRESULT hr = CreateAppContainerProfile(SANDBOX_APPCONTAINER_NAME,

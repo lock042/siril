@@ -24,6 +24,14 @@
  *                        NULL. Meaningful where reads are confined (Windows
  *                        AppContainer); a no-op on Linux/macOS, where reads are
  *                        already unrestricted.
+ *   unsandboxed          TRUE runs the interpreter with NO confinement at all
+ *                        (plain spawn, pre-sandbox behaviour). The escape hatch
+ *                        for glue scripts that spawn opaque third-party software
+ *                        (e.g. the RC-Astro tools) whose needs are unknown, so
+ *                        any sandboxing risks breaking them. Overrides every
+ *                        other field. Must only ever be set from an explicitly
+ *                        granted `unsandboxed = true` manifest request, gated by
+ *                        a sterner consent than the granular permissions.
  */
 typedef struct {
 	const char *wd;
@@ -31,6 +39,7 @@ typedef struct {
 	gboolean allow_network;
 	const char * const *extra_write_paths;
 	const char * const *extra_read_paths;
+	gboolean unsandboxed;
 } SirilSandboxPolicy;
 
 /*
