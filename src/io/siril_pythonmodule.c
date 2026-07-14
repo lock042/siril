@@ -5956,6 +5956,21 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Force UTF8 mode
 	env = g_environ_setenv(env, "PYTHONUTF8", "1", TRUE);
 
+	// Redirect the numba cache to a sandbox-writable location. numba's
+	// @jit/@vectorize(cache=True) writes its compiled artefacts into a
+	// __pycache__ next to the SOURCE file by default; for a script in the
+	// (read-only, git-managed) scripts repository that directory is not
+	// writable under the sandbox, and numba aborts with "no locator available
+	// for file ...". Point NUMBA_CACHE_DIR at the user-data dir, which the
+	// sandbox grants for writing and which persists across runs. overwrite is
+	// FALSE so a script or user that sets its own NUMBA_CACHE_DIR wins.
+	{
+		gchar *numba_cache = g_build_filename(g_get_user_data_dir(),
+				"siril", "numba_cache", NULL);
+		env = g_environ_setenv(env, "NUMBA_CACHE_DIR", numba_cache, FALSE);
+		g_free(numba_cache);
+	}
+
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	gboolean success = FALSE;
 	gchar *working_dir = NULL;
