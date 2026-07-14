@@ -5971,6 +5971,28 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		g_free(numba_cache);
 	}
 
+	// Redirect the XDG cache base to a sandbox-writable location. Many libraries
+	// (fontconfig — hence Qt/PyQt text rendering, astropy, pooch-based
+	// downloaders, huggingface/torch model caches, appdirs/platformdirs users)
+	// cache under ~/.cache, which is NOT in the sandbox's writable set, so they
+	// fail or rebuild their cache on every run. Pointing XDG_CACHE_HOME at a
+	// persistent, sandbox-writable dir fixes the whole XDG-respecting family in
+	// one shot, and is more contained than granting ~/.cache (which is shared
+	// with every other app). matplotlib does NOT honour XDG_CACHE_HOME — it uses
+	// MPLCONFIGDIR — so redirect that separately. overwrite is FALSE so a script
+	// or user that sets its own value wins.
+	{
+		gchar *xdg_cache = g_build_filename(g_get_user_data_dir(),
+				"siril", "xdg-cache", NULL);
+		env = g_environ_setenv(env, "XDG_CACHE_HOME", xdg_cache, FALSE);
+		g_free(xdg_cache);
+
+		gchar *mpl_dir = g_build_filename(g_get_user_data_dir(),
+				"siril", "matplotlib", NULL);
+		env = g_environ_setenv(env, "MPLCONFIGDIR", mpl_dir, FALSE);
+		g_free(mpl_dir);
+	}
+
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	gboolean success = FALSE;
 	gchar *working_dir = NULL;
