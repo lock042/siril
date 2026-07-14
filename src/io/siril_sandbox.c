@@ -341,8 +341,6 @@ static inline long sandbox_landlock_restrict_self(int ruleset_fd, __u32 flags) {
 /* using only async-signal-safe syscalls (open/fstat/close/syscall).   */
 /* ------------------------------------------------------------------ */
 
-#define SANDBOX_MAX_PATHS 16
-
 /* Internal to the Linux implementation (no longer exposed in the header, which
  * now offers only siril_sandbox_spawn()). */
 typedef struct _SirilSandbox SirilSandbox;
@@ -351,10 +349,14 @@ struct _SirilSandbox {
 	int allow_network;                 /* select net-on vs net-off filter   */
 #ifdef HAVE_LANDLOCK
 	guint64 landlock_access;           /* handled write mask, 0 => disabled */
-	char *paths[SANDBOX_MAX_PATHS];    /* g_strdup'd writable paths          */
-	int n_paths;
+	char **paths;                      /* heap array of g_strdup'd writable  */
+	int n_paths;                       /* paths (built-in roots + extras)    */
 #endif
 };
+
+/* Number of built-in writable roots the Linux ruleset always grants (wd, venv,
+ * user-data, <config>/siril, $TMPDIR, /var/tmp, /dev/{null,zero,full}). */
+#define SANDBOX_N_BUILTIN_PATHS 9
 
 #ifdef HAVE_LANDLOCK
 /* Add `path` to the ruleset with the handled write rights. ASYNC-SIGNAL-SAFE:
@@ -396,9 +398,7 @@ static void sandbox_child_add_path(int ruleset_fd, guint64 access,
 }
 #endif /* HAVE_LANDLOCK */
 
-static SirilSandbox *sandbox_prepare(const char *wd,
-                                     const char *venv_path,
-                                     gboolean allow_network) {
+static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 	int have_seccomp = 0;
 	int have_landlock = 0;
 	SirilSandbox *sb;
@@ -415,7 +415,7 @@ static SirilSandbox *sandbox_prepare(const char *wd,
 #endif
 
 	sb = g_malloc0(sizeof(SirilSandbox));
-	sb->allow_network = allow_network ? 1 : 0;
+	sb->allow_network = policy->allow_network ? 1 : 0;
 
 #ifdef HAVE_LANDLOCK
 	{
@@ -424,7 +424,7 @@ static SirilSandbox *sandbox_prepare(const char *wd,
 		if (abi >= 1) {
 			guint64 access = SANDBOX_ACCESS_WRITE_BASE;
 			const char *tmpdir;
-			int n = 0;
+			int n = 0, n_extra = 0;
 
 			/* Mask rights down to what the detected ABI supports:
 			 * requesting unsupported bits yields EINVAL. */
@@ -434,15 +434,22 @@ static SirilSandbox *sandbox_prepare(const char *wd,
 				access |= LANDLOCK_ACCESS_FS_TRUNCATE;
 			sb->landlock_access = access;
 
+			/* Size the path array for the built-in roots plus any per-script
+			 * extra writable paths from the policy/manifest. */
+			if (policy->extra_write_paths)
+				for (const char * const *p = policy->extra_write_paths; *p; p++)
+					n_extra++;
+			sb->paths = g_new0(char *, SANDBOX_N_BUILTIN_PATHS + n_extra);
+
 			/* Assemble the writable path list (resolved here in the parent
 			 * so the child needs no g_getenv). Writes are confined to the
 			 * project working dir, the venv (python writes __pycache__/.pyc
 			 * there), temp dirs and the standard write-safe char devices.
 			 * Reads are NOT handled and so remain allowed everywhere. */
-			if (wd && *wd)
-				sb->paths[n++] = g_strdup(wd);
-			if (venv_path && *venv_path)
-				sb->paths[n++] = g_strdup(venv_path);
+			if (policy->wd && *policy->wd)
+				sb->paths[n++] = g_strdup(policy->wd);
+			if (policy->venv_path && *policy->venv_path)
+				sb->paths[n++] = g_strdup(policy->venv_path);
 
 			/* Siril's own writable directories, via the app-dirs accessors
 			 * (platform/XDG-correct — do not hardcode): user data
@@ -473,7 +480,15 @@ static SirilSandbox *sandbox_prepare(const char *wd,
 			sb->paths[n++] = g_strdup("/dev/null");
 			sb->paths[n++] = g_strdup("/dev/zero");
 			sb->paths[n++] = g_strdup("/dev/full");
-			sb->n_paths = n;   /* <= SANDBOX_MAX_PATHS */
+
+			/* Per-script extra writable paths (from the granted manifest).
+			 * extra_read_paths is a no-op on Linux: reads are unrestricted. */
+			if (policy->extra_write_paths)
+				for (const char * const *p = policy->extra_write_paths; *p; p++)
+					if (**p)
+						sb->paths[n++] = g_strdup(*p);
+
+			sb->n_paths = n;
 
 			have_landlock = 1;
 		}
@@ -572,21 +587,23 @@ static void sandbox_finish(SirilSandbox *sb) {
 	if (!sb)
 		return;
 #ifdef HAVE_LANDLOCK
-	for (int i = 0; i < sb->n_paths; i++)
-		g_free(sb->paths[i]);
+	if (sb->paths) {
+		for (int i = 0; i < sb->n_paths; i++)
+			g_free(sb->paths[i]);
+		g_free(sb->paths);
+	}
 #endif
 	g_free(sb);
 }
 
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
-                             const char *wd, const char *venv_path,
-                             gboolean allow_network, GPid *child_pid,
+                             const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
 	/* Build the ruleset spec in the parent; the actual Landlock ruleset and
 	 * seccomp filter are installed by sandbox_child_setup() post-fork. If
 	 * preparation fails entirely (unsupported kernel) sb is NULL and we spawn
 	 * without a child_setup (fail-open). */
-	SirilSandbox *sb = sandbox_prepare(wd, venv_path, allow_network);
+	SirilSandbox *sb = sandbox_prepare(policy);
 	gboolean ok = g_spawn_async_with_pipes(
 		working_dir, argv, envp,
 		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
@@ -639,11 +656,11 @@ static void sb_append_quoted(GString *p, const char *s) {
 	g_string_append_c(p, '"');
 }
 
-/* Append (allow file-write* (subpath "PATH")) if path is non-empty. */
-static void sb_allow_write_subpath(GString *p, const char *path) {
+/* Append (allow <op> (subpath "PATH")) if path is non-empty. */
+static void sb_allow_subpath(GString *p, const char *op, const char *path) {
 	if (!path || !*path)
 		return;
-	g_string_append(p, "(allow file-write* (subpath ");
+	g_string_append_printf(p, "(allow %s (subpath ", op);
 	sb_append_quoted(p, path);
 	g_string_append(p, "))");
 }
@@ -652,29 +669,38 @@ static void sb_allow_write_subpath(GString *p, const char *path) {
  * Allow-by-default (so the interpreter reads its libs freely), then confine:
  * deny all writes except the granted roots, and deny IP network egress while
  * leaving AF_UNIX (Siril IPC) untouched. */
-static gchar *build_seatbelt_profile(const char *wd, const char *venv_path,
-                                     gboolean allow_network) {
+static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy) {
 	GString *p = g_string_new("(version 1)(allow default)");
 
 	/* Write confinement: global deny, then re-allow the granted roots (SBPL
 	 * is last-match-wins, so the allows must follow the deny). */
 	g_string_append(p, "(deny file-write*)");
-	sb_allow_write_subpath(p, wd);
-	sb_allow_write_subpath(p, venv_path);
-	sb_allow_write_subpath(p, siril_get_user_data_dir());
+	sb_allow_subpath(p, "file-write*", policy->wd);
+	sb_allow_subpath(p, "file-write*", policy->venv_path);
+	sb_allow_subpath(p, "file-write*", siril_get_user_data_dir());
 	{
 		gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
-		sb_allow_write_subpath(p, cfg);
+		sb_allow_subpath(p, "file-write*", cfg);
 		g_free(cfg);
 	}
-	sb_allow_write_subpath(p, g_get_tmp_dir());
-	sb_allow_write_subpath(p, "/dev/null");
-	sb_allow_write_subpath(p, "/dev/random");
-	sb_allow_write_subpath(p, "/dev/urandom");
+	sb_allow_subpath(p, "file-write*", g_get_tmp_dir());
+	sb_allow_subpath(p, "file-write*", "/dev/null");
+	sb_allow_subpath(p, "file-write*", "/dev/random");
+	sb_allow_subpath(p, "file-write*", "/dev/urandom");
+
+	/* Per-script extra writable paths from the granted manifest. extra_read
+	 * paths are a near no-op here (reads are already allowed by default) but
+	 * are granted explicitly for symmetry with the Windows read-confined case. */
+	if (policy->extra_write_paths)
+		for (const char * const *e = policy->extra_write_paths; *e; e++)
+			sb_allow_subpath(p, "file-write*", *e);
+	if (policy->extra_read_paths)
+		for (const char * const *e = policy->extra_read_paths; *e; e++)
+			sb_allow_subpath(p, "file-read*", *e);
 
 	/* Network: deny IP egress (exfil). AF_UNIX stays allowed by (allow
 	 * default), so the Siril IPC socket is unaffected. */
-	if (!allow_network)
+	if (!policy->allow_network)
 		g_string_append(p, "(deny network-outbound (remote ip \"*:*\"))");
 
 	/* Deny reading other processes' state (ptrace/task_for_pid analogue). */
@@ -684,8 +710,7 @@ static gchar *build_seatbelt_profile(const char *wd, const char *venv_path,
 }
 
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
-                             const char *wd, const char *venv_path,
-                             gboolean allow_network, GPid *child_pid,
+                             const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
 	/* If sandbox-exec is missing (should never happen on macOS), fall back to
 	 * an unsandboxed spawn with a warning rather than failing outright. */
@@ -697,7 +722,7 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
 	}
 
-	gchar *profile = build_seatbelt_profile(wd, venv_path, allow_network);
+	gchar *profile = build_seatbelt_profile(policy);
 
 	/* Prepend: sandbox-exec -p <profile> <original argv...> */
 	GPtrArray *wrapped = g_ptr_array_new();
@@ -758,6 +783,7 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
  * headers this branch needs are pulled in here. */
 #include <userenv.h>   /* CreateAppContainerProfile / DeriveAppContainerSid... */
 #include <aclapi.h>    /* GetNamedSecurityInfo / SetEntriesInAcl / SetNamed...  */
+#include <sddl.h>      /* ConvertStringSidToSid (internetClient capability SID) */
 #include <io.h>        /* _open_osfhandle                                       */
 #include <fcntl.h>     /* _O_RDONLY                                             */
 
@@ -981,14 +1007,8 @@ static gboolean sandbox_win_spawn_unsandboxed(const char *working_dir,
 }
 
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
-                             const char *wd, const char *venv_path,
-                             gboolean allow_network, GPid *child_pid,
+                             const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
-	/* allow_network is honoured only by having/not-having capabilities; for
-	 * this MVP we always create a ZERO-capability container (network denied),
-	 * so allow_network==TRUE is currently a no-op on Windows. Documented. */
-	(void) allow_network;
-
 	/* ---- 1. Container SID ------------------------------------------------ */
 	PSID container_sid = NULL;
 	HRESULT hr = CreateAppContainerProfile(SANDBOX_APPCONTAINER_NAME,
@@ -1016,14 +1036,24 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	const DWORD RW = GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE;
 	const DWORD RX = GENERIC_READ | GENERIC_EXECUTE;
 
-	grant_appcontainer(wd, RW, container_sid);
-	grant_appcontainer(venv_path, RW, container_sid);
+	grant_appcontainer(policy->wd, RW, container_sid);
+	grant_appcontainer(policy->venv_path, RW, container_sid);
 	grant_appcontainer(siril_get_user_data_dir(), RW, container_sid);
 	{
 		gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
 		grant_appcontainer(cfg, RW, container_sid);
 		g_free(cfg);
 	}
+
+	/* Per-script extra paths from the granted manifest: extra_write RW,
+	 * extra_read RX. Unlike Linux/macOS, Windows is read-confined, so
+	 * extra_read_paths are meaningful here. */
+	if (policy->extra_write_paths)
+		for (const char * const *e = policy->extra_write_paths; *e; e++)
+			grant_appcontainer(*e, RW, container_sid);
+	if (policy->extra_read_paths)
+		for (const char * const *e = policy->extra_read_paths; *e; e++)
+			grant_appcontainer(*e, RX, container_sid);
 
 	/* Interpreter tree: grant read/execute on the directory of argv[0] (the
 	 * venv Scripts dir) AND its parent. NB the BASE python install (real
@@ -1052,6 +1082,8 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	LPPROC_THREAD_ATTRIBUTE_LIST attr_list = NULL;
 	wchar_t *cmdline = NULL, *env_block = NULL, *wworkdir = NULL;
 	SECURITY_CAPABILITIES sec_caps;
+	SID_AND_ATTRIBUTES cap_attr;   /* internetClient, only if allow_network */
+	PSID inet_cap_sid = NULL;
 	STARTUPINFOEXW si;
 	PROCESS_INFORMATION pi;
 	HANDLE inherit_handles[2];
@@ -1122,6 +1154,21 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	sec_caps.AppContainerSid = container_sid;
 	sec_caps.Capabilities = NULL;   /* zero capabilities => no network etc. */
 	sec_caps.CapabilityCount = 0;
+	if (policy->allow_network) {
+		/* Grant the internetClient capability (well-known SID S-1-15-3-1) so the
+		 * container may make outbound connections. With NO network capability an
+		 * AppContainer cannot use WinSock at all — that is exactly how the
+		 * default (no-network) policy denies egress by construction. */
+		if (ConvertStringSidToSidW(L"S-1-15-3-1", &inet_cap_sid)) {
+			cap_attr.Sid = inet_cap_sid;
+			cap_attr.Attributes = SE_GROUP_ENABLED;
+			sec_caps.Capabilities = &cap_attr;
+			sec_caps.CapabilityCount = 1;
+		} else {
+			siril_log_debug("sandbox: internetClient capability SID failed: %lu\n",
+			                GetLastError());
+		}
+	}
 	if (!UpdateProcThreadAttribute(attr_list, 0,
 	        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
 	        &sec_caps, sizeof(sec_caps), NULL, NULL)) {
@@ -1194,6 +1241,8 @@ cleanup:
 	g_free(cmdline);
 	g_free(env_block);
 	g_free(wworkdir);
+	if (inet_cap_sid)
+		LocalFree(inet_cap_sid);   /* allocated by ConvertStringSidToSid */
 	if (container_sid)
 		FreeSid(container_sid);
 	return result;
@@ -1202,10 +1251,9 @@ cleanup:
 #else /* other POSIX — no confinement available; spawn plainly. */
 
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
-                             const char *wd, const char *venv_path,
-                             gboolean allow_network, GPid *child_pid,
+                             const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
-	(void) wd; (void) venv_path; (void) allow_network;
+	(void) policy;
 	return g_spawn_async_with_pipes(working_dir, argv, envp,
 		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);

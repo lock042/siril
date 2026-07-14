@@ -5879,13 +5879,21 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// siril_sandbox_spawn(); it returns the same child_pid + stdout/stderr
 		// fds g_spawn_async_with_pipes() would. venv_path is still in scope
 		// (freed after spawn).
+		/* Default policy: no network, writes confined to the built-in roots,
+		 * no extra paths. Phase C (manifest + remembered consent) will populate
+		 * this from the script's [tool.siril.permissions] once granted. */
+		SirilSandboxPolicy sandbox_policy = {
+			.wd = com.wd,
+			.venv_path = venv_path,
+			.allow_network = FALSE,
+			.extra_write_paths = NULL,
+			.extra_read_paths = NULL,
+		};
 		success = siril_sandbox_spawn(
 			working_dir,
 			(gchar**)python_argv->pdata,
 			env,
-			com.wd,
-			venv_path,
-			FALSE /* allow_network */,
+			&sandbox_policy,
 			&child_pid,
 			&stdout_fd,
 			&stderr_fd,

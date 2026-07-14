@@ -9,6 +9,31 @@
 #include <glib.h>
 
 /*
+ * Per-script sandbox policy. The caller builds one (typically from the script's
+ * [tool.siril.permissions] manifest, gated by user consent) and passes it to
+ * siril_sandbox_spawn(). A zeroed struct is the safe default: no network, and
+ * writes confined to the built-in roots (working dir, venv, Siril's data/config
+ * dirs) with no extra paths.
+ *
+ *   wd, venv_path        Writable roots always granted (may be NULL).
+ *   allow_network        TRUE relaxes the network confinement (boolean: the
+ *                        underlying mechanisms cannot filter per-host).
+ *   extra_write_paths    NULL-terminated list of additional writable paths, or
+ *                        NULL. Granted read+write on every platform.
+ *   extra_read_paths     NULL-terminated list of additional read-only paths, or
+ *                        NULL. Meaningful where reads are confined (Windows
+ *                        AppContainer); a no-op on Linux/macOS, where reads are
+ *                        already unrestricted.
+ */
+typedef struct {
+	const char *wd;
+	const char *venv_path;
+	gboolean allow_network;
+	const char * const *extra_write_paths;
+	const char * const *extra_read_paths;
+} SirilSandboxPolicy;
+
+/*
  * Spawn the Python script interpreter under the platform sandbox, confining
  * its "Category-B" power (filesystem destruction + network exfiltration) that
  * bypasses the sirilpy interface via raw CPython.
@@ -33,9 +58,7 @@
 gboolean siril_sandbox_spawn(const char *working_dir,
                              gchar **argv,
                              gchar **envp,
-                             const char *wd,
-                             const char *venv_path,
-                             gboolean allow_network,
+                             const SirilSandboxPolicy *policy,
                              GPid *child_pid,
                              gint *stdout_fd,
                              gint *stderr_fd,
