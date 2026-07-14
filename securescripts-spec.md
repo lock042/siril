@@ -434,3 +434,29 @@ asks for MORE, re-prompt (or, headless, re-deny unless `-permissive`).
 **Safety invariants.** A remembered grant is applied silently, but is never broader than what
 the script's manifest requests at run time (defense against a stored over-grant). `-permissive`
 and a GUI Approve are the only ways to CREATE a grant. Deny/headless never persists anything.
+
+### `unsandboxed = true` — the all-or-nothing escape hatch (plumbed in Phase A/B; consent = Phase C)
+
+Glue scripts that spawn opaque third-party software (e.g. the RC-Astro tools) have unknowable
+needs, so ANY confinement can break the child. `unsandboxed = true` in the manifest requests
+NO sandbox at all (plain spawn). Already wired: `siril_script_perms.unsandboxed` (parse) →
+`SirilSandboxPolicy.unsandboxed` (every platform's siril_sandbox_spawn early-returns a plain
+g_spawn). It OVERRIDES the granular fields.
+
+Phase C consent treatment — deliberately STERNER than granular permissions, because it grants
+full user-level access:
+- It is the highest tier of request; the consent decision is separate from (and stricter than)
+  network/path grants. A grant for network/paths does NOT imply an unsandboxed grant.
+- GUI: a distinct, prominent warning dialog ("This script has asked to run with NO sandbox — it
+  will have the same full access to your files and network as any program you run. Only approve
+  scripts you fully trust."), visually differentiated from the granular-permission dialog.
+- Every unsandboxed RUN (even an already-approved one) emits a persistent one-line log
+  ("Running <script> with NO sandbox") so it stays visible, not just at approval time.
+- `-permissive` question to resolve: does plain `-permissive` approve an unsandboxed request, or
+  should that require a more explicit opt-in (e.g. a separate `-permissive-unsandboxed`, or
+  `-permissive` + an interactive confirm even in CLI)? Leaning: `-permissive` MAY approve it
+  (it is already an explicit user action) but MUST emit the stern log every run; revisit if it
+  feels too easy. Store the grant with an explicit `unsandboxed: true` field so it is auditable.
+- Windows caveat: an unsandboxed child is a normal-user process, so the IPC-pipe single-ACE DACL
+  (ALL APPLICATION PACKAGES only) denies it — the same token-user-ACE fix flagged in §11 is
+  required before the unsandboxed (and fail-open) paths work on Windows.
