@@ -104,6 +104,17 @@
 
 #ifdef HAVE_LANDLOCK
 #include <linux/landlock.h>
+/* Older uapi headers (e.g. Debian oldstable / kernel < 5.19, Landlock ABI ≤ 2)
+ * predate these access-right bits. Define the fixed uapi values as fallbacks so
+ * the code compiles against old headers; whether a bit is actually requested is
+ * gated at RUNTIME by the detected ABI (see sandbox_prepare), so a build against
+ * an old header still uses TRUNCATE/REFER correctly when run on a newer kernel. */
+#ifndef LANDLOCK_ACCESS_FS_REFER
+#define LANDLOCK_ACCESS_FS_REFER (1ULL << 13)
+#endif
+#ifndef LANDLOCK_ACCESS_FS_TRUNCATE
+#define LANDLOCK_ACCESS_FS_TRUNCATE (1ULL << 14)
+#endif
 #endif
 
 #include "core/siril_log.h"
@@ -403,6 +414,15 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 	int have_landlock = 0;
 	SirilSandbox *sb;
 
+	/* State for the capability-limitation warning emitted below. Defaults
+	 * describe a build with no Landlock support at all; the probe (if compiled
+	 * in) refines them. landlock_abi > 0 means available at that ABI version;
+	 * landlock_disabled means the kernel supports Landlock but it is switched
+	 * off (probe returned EOPNOTSUPP — typically absent from the boot lsm= list). */
+	int landlock_abi = 0;
+	gboolean landlock_compiled = FALSE;
+	gboolean landlock_disabled = FALSE;
+
 #if SANDBOX_HAVE_ARCH
 	/* seccomp is available on this build arch. It installs REGARDLESS of
 	 * allow_network, because it also performs the process-inspection
@@ -418,6 +438,7 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 	sb->allow_network = policy->allow_network ? 1 : 0;
 
 #ifdef HAVE_LANDLOCK
+	landlock_compiled = TRUE;
 	{
 		int abi = (int) syscall(__NR_landlock_create_ruleset, NULL, 0,
 		                        LANDLOCK_CREATE_RULESET_VERSION);
@@ -425,6 +446,8 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 			guint64 access = SANDBOX_ACCESS_WRITE_BASE;
 			const char *tmpdir;
 			int n = 0, n_extra = 0;
+
+			landlock_abi = abi;
 
 			/* Mask rights down to what the detected ABI supports:
 			 * requesting unsupported bits yields EINVAL. */
@@ -491,8 +514,14 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 			sb->n_paths = n;
 
 			have_landlock = 1;
+		} else if (errno == EOPNOTSUPP) {
+			/* Landlock is compiled into the kernel but not active: the LSM
+			 * is not in the boot-time lsm= list. This is user-fixable, so the
+			 * warning below advises enabling it. (ENOSYS instead would mean the
+			 * kernel is < 5.13 or built without CONFIG_SECURITY_LANDLOCK, which
+			 * the user cannot fix without changing kernels.) */
+			landlock_disabled = TRUE;
 		}
-		/* abi < 0 => ENOSYS/EOPNOTSUPP (kernel < 5.13 or Landlock off). */
 	}
 #endif /* HAVE_LANDLOCK */
 
@@ -505,6 +534,70 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 		                    "confinement.\n"));
 #endif
 		return NULL;
+	}
+
+	/* At least one confinement is available: report the capabilities actually
+	 * applied so the user always knows which half of the sandbox is active on
+	 * their kernel. Full capability = Landlock ABI >= 3 (Linux 6.2+, so file
+	 * truncation is also confined) plus seccomp: reported at info level. Anything
+	 * short of that (or Landlock merely switched off) is reported as a warning
+	 * that also says how to enable it. */
+	{
+		gboolean landlock_full = (landlock_abi >= 3);
+		GString *msg = g_string_new(_("Script sandbox: "));
+
+		/* Filesystem side (Landlock). */
+		if (landlock_abi >= 3) {
+			g_string_append(msg,
+				_("file writes confined to the working area (reads "
+				  "unrestricted)"));
+		} else if (landlock_abi >= 1) {
+			g_string_append_printf(msg,
+				_("file writes confined to the working area (reads "
+				  "unrestricted) but with limited enforcement (kernel Landlock "
+				  "ABI %d; refinements such as blocking file truncation outside "
+				  "the writable area are not enforced — Linux 6.2+ is needed for "
+				  "full enforcement)"),
+				landlock_abi);
+		} else if (landlock_disabled) {
+			g_string_append(msg,
+				_("filesystem write-confinement is OFF — this kernel "
+				  "supports Landlock but it is not enabled. Enable it (add "
+				  "'landlock' to the kernel LSM list, e.g. the lsm= boot "
+				  "parameter or CONFIG_LSM) so scripts cannot damage files "
+				  "outside their working area"));
+		} else if (landlock_compiled) {
+			g_string_append(msg,
+				_("filesystem write-confinement is OFF — this kernel does "
+				  "not provide Landlock (Linux 5.13+ is required)"));
+		} else {
+			g_string_append(msg,
+				_("filesystem write-confinement is OFF — this Siril build "
+				  "was compiled without Landlock support"));
+		}
+
+		/* Network + process-inspection side (seccomp). */
+		if (have_seccomp) {
+			if (policy->allow_network)
+				g_string_append(msg,
+					_("; process inspection blocked; network access ENABLED "
+					  "at the script's request.\n"));
+			else
+				g_string_append(msg,
+					_("; network egress and process inspection blocked.\n"));
+		} else {
+			g_string_append(msg,
+				_("; network egress and process-inspection restrictions are "
+				  "unavailable on this build architecture.\n"));
+		}
+
+		/* Info when everything is enforced; warning when any protection is
+		 * missing or network was opened at the script's request. */
+		if (landlock_full && have_seccomp && !policy->allow_network)
+			siril_log_info("%s", msg->str);
+		else
+			siril_log_warning("%s", msg->str);
+		g_string_free(msg, TRUE);
 	}
 
 	sb->install_seccomp = have_seccomp;
@@ -601,10 +694,14 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
 	/* Explicit, granted opt-out (glue scripts spawning opaque third-party
 	 * software): no confinement at all. */
-	if (policy->unsandboxed)
+	if (policy->unsandboxed) {
+		siril_log_warning(_("Script sandbox: DISABLED — this script's manifest "
+		                    "requests unsandboxed execution (granted). It has "
+		                    "full access to your files and network.\n"));
 		return g_spawn_async_with_pipes(working_dir, argv, envp,
 			G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+	}
 
 	/* Build the ruleset spec in the parent; the actual Landlock ruleset and
 	 * seccomp filter are installed by sandbox_child_setup() post-fork. If
@@ -721,10 +818,14 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
 	/* Explicit, granted opt-out (glue scripts spawning opaque third-party
 	 * software): no confinement at all. */
-	if (policy->unsandboxed)
+	if (policy->unsandboxed) {
+		siril_log_warning(_("Script sandbox: DISABLED — this script's manifest "
+		                    "requests unsandboxed execution (granted). It has "
+		                    "full access to your files and network.\n"));
 		return g_spawn_async_with_pipes(working_dir, argv, envp,
 			G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+	}
 
 	/* If sandbox-exec is missing (should never happen on macOS), fall back to
 	 * an unsandboxed spawn with a warning rather than failing outright. */
@@ -751,6 +852,21 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 		(gchar **) wrapped->pdata, envp,
 		G_SPAWN_DO_NOT_REAP_CHILD,   /* absolute path, no SEARCH_PATH needed */
 		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
+
+	/* Report the capabilities applied (Seatbelt confines file writes and denies
+	 * process inspection; IP egress is denied unless the script requested it). */
+	if (ok) {
+		if (policy->allow_network)
+			siril_log_warning(_("Script sandbox active (Seatbelt): file writes "
+			                    "confined to the working area (reads "
+			                    "unrestricted); process inspection blocked; "
+			                    "network access ENABLED at the script's "
+			                    "request.\n"));
+		else
+			siril_log_info(_("Script sandbox active (Seatbelt): file writes "
+			                 "confined to the working area (reads unrestricted); "
+			                 "network egress and process inspection blocked.\n"));
+	}
 
 	g_ptr_array_free(wrapped, FALSE);
 	g_free(profile);
@@ -1035,9 +1151,13 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	 * APPLICATION PACKAGES, so the same fail-open pipe-access caveat noted there
 	 * applies (a token-user ACE on the pipe is needed for non-AppContainer
 	 * clients). */
-	if (policy->unsandboxed)
+	if (policy->unsandboxed) {
+		siril_log_warning(_("Script sandbox: DISABLED — this script's manifest "
+		                    "requests unsandboxed execution (granted). It has "
+		                    "full access to your files and network.\n"));
 		return sandbox_win_spawn_unsandboxed(working_dir, argv, envp,
 		                                     child_pid, stdout_fd, stderr_fd, error);
+	}
 
 	/* ---- 1. Container SID ------------------------------------------------ */
 	PSID container_sid = NULL;
@@ -1297,6 +1417,19 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 
 	result = TRUE;
 
+	/* Report the capabilities applied (AppContainer confines file writes and
+	 * isolates the process; without the internetClient capability the container
+	 * cannot use WinSock, so egress is denied unless the script requested it). */
+	if (policy->allow_network)
+		siril_log_warning(_("Script sandbox active (AppContainer): file writes "
+		                    "confined to the working area (reads unrestricted); "
+		                    "process isolated; network access ENABLED at the "
+		                    "script's request.\n"));
+	else
+		siril_log_info(_("Script sandbox active (AppContainer): file writes "
+		                 "confined to the working area (reads unrestricted); "
+		                 "network egress blocked and process isolated.\n"));
+
 cleanup:
 	if (attr_list) {
 		DeleteProcThreadAttributeList(attr_list);
@@ -1322,10 +1455,17 @@ cleanup:
 
 #else /* other POSIX — no confinement available; spawn plainly. */
 
+#include "core/siril_log.h"
+
 gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp,
                              const SirilSandboxPolicy *policy, GPid *child_pid,
                              gint *stdout_fd, gint *stderr_fd, GError **error) {
 	(void) policy;
+	/* No per-child confinement facility on this platform (BSD, Hurd, ...): run
+	 * unconfined, but still report it so the user knows no sandbox is applied. */
+	siril_log_warning(_("Script sandbox is not available on this platform; "
+	                    "running Python without filesystem or network "
+	                    "confinement.\n"));
 	return g_spawn_async_with_pipes(working_dir, argv, envp,
 		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 		NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
