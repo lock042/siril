@@ -22,10 +22,12 @@
  * async-signal-safe syscalls (prctl / landlock_restrict_self / seccomp /
  * _exit).
  *
- * NOTE on read-confinement being out of scope for this cut: with egress cut
- * (seccomp), a script can still read e.g. ~/.ssh but has nowhere to send it.
- * Read-confinement (a Landlock allow-list of readable paths) is a deliberate
- * later refinement, not an oversight.
+ * NOTE on read-confinement: reads ARE now confined (Landlock allow-list of
+ * readable paths — system files + working area + non-hidden $HOME + removable
+ * media + relocated caches; credential dot-dirs like ~/.ssh are withheld).
+ * Package caches are relocated out of the real dot-dirs into policy->cache_dir
+ * via env vars set by the caller, so withholding the dot-dirs is not a
+ * functional loss. See securescripts-spec.md §13.
  */
 
 /* =====================================================================
@@ -114,6 +116,14 @@
 #endif
 #ifndef LANDLOCK_ACCESS_FS_TRUNCATE
 #define LANDLOCK_ACCESS_FS_TRUNCATE (1ULL << 14)
+#endif
+/* READ_FILE/READ_DIR are ABI-1 (present since Linux 5.13), but define fallbacks
+ * for symmetry and total safety against a truncated header. */
+#ifndef LANDLOCK_ACCESS_FS_READ_FILE
+#define LANDLOCK_ACCESS_FS_READ_FILE (1ULL << 2)
+#endif
+#ifndef LANDLOCK_ACCESS_FS_READ_DIR
+#define LANDLOCK_ACCESS_FS_READ_DIR (1ULL << 3)
 #endif
 #endif
 
@@ -328,13 +338,22 @@ static inline long sandbox_landlock_restrict_self(int ruleset_fd, __u32 flags) {
 	LANDLOCK_ACCESS_FS_MAKE_BLOCK | \
 	LANDLOCK_ACCESS_FS_MAKE_SYM)
 
-/* Write rights that are meaningful on a NON-directory path (regular file,
- * device node, ...). The directory-scoped rights (REMOVE_*, MAKE_*, REFER)
+/* Rights that are meaningful on a NON-directory path (regular file, device
+ * node, ...). The directory-scoped rights (REMOVE_*, MAKE_*, REFER, READ_DIR)
  * only apply when the rule's target is a directory; adding them on a file
- * target makes landlock_add_rule fail with EINVAL. WRITE_FILE and TRUNCATE
- * (ABI≥3) are the only file-applicable write rights. */
+ * target makes landlock_add_rule fail with EINVAL. WRITE_FILE, TRUNCATE (ABI≥3)
+ * and READ_FILE are the only file-applicable rights — READ_FILE MUST be kept
+ * here so a read-only regular-file grant is not masked down to nothing. */
 #define SANDBOX_ACCESS_FILE_ONLY \
-	(LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_TRUNCATE)
+	(LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_TRUNCATE | \
+	 LANDLOCK_ACCESS_FS_READ_FILE)
+
+/* Read rights handled for read-confinement (both ABI-1). Added to the handled
+ * mask so the whole FS is read-denied by default and only the granted read
+ * roots (system trees, non-hidden $HOME, media, interpreter, scratch, manifest
+ * reads) are readable. */
+#define SANDBOX_ACCESS_READ \
+	(LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
 #endif /* HAVE_LANDLOCK */
 
@@ -359,15 +378,24 @@ struct _SirilSandbox {
 	int install_seccomp;               /* 1 if a seccomp filter applies     */
 	int allow_network;                 /* select net-on vs net-off filter   */
 #ifdef HAVE_LANDLOCK
-	guint64 landlock_access;           /* handled write mask, 0 => disabled */
-	char **paths;                      /* heap array of g_strdup'd writable  */
-	int n_paths;                       /* paths (built-in roots + extras)    */
+	guint64 landlock_access;           /* handled mask (write|read), 0=>off  */
+	char **paths;                      /* heap array of g_strdup'd paths      */
+	guint64 *paccess;                  /* parallel: allowed access per path   */
+	int n_paths;                       /* number of granted paths             */
 #endif
 };
 
-/* Number of built-in writable roots the Linux ruleset always grants (wd, venv,
- * user-data, <config>/siril, $TMPDIR, /var/tmp, /dev/{null,zero,full}). */
-#define SANDBOX_N_BUILTIN_PATHS 9
+#ifdef HAVE_LANDLOCK
+/* Append (path, access) to the parent-side builder arrays, skipping empties.
+ * The child materialises these into path_beneath rules. */
+static void sandbox_add_path(GPtrArray *paths, GArray *access,
+                             const char *path, guint64 acc) {
+	if (!path || !*path)
+		return;
+	g_ptr_array_add(paths, g_strdup(path));
+	g_array_append_val(access, acc);
+}
+#endif
 
 #ifdef HAVE_LANDLOCK
 /* Add `path` to the ruleset with the handled write rights. ASYNC-SIGNAL-SAFE:
@@ -409,7 +437,8 @@ static void sandbox_child_add_path(int ruleset_fd, guint64 access,
 }
 #endif /* HAVE_LANDLOCK */
 
-static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
+static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy,
+                                     const char *interp_path) {
 	int have_seccomp = 0;
 	int have_landlock = 0;
 	SirilSandbox *sb;
@@ -443,75 +472,155 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 		int abi = (int) syscall(__NR_landlock_create_ruleset, NULL, 0,
 		                        LANDLOCK_CREATE_RULESET_VERSION);
 		if (abi >= 1) {
-			guint64 access = SANDBOX_ACCESS_WRITE_BASE;
+			guint64 wr = SANDBOX_ACCESS_WRITE_BASE;
+			guint64 rd = SANDBOX_ACCESS_READ;
+			guint64 rw;
 			const char *tmpdir;
-			int n = 0, n_extra = 0;
+			GPtrArray *pl = g_ptr_array_new();
+			GArray *al = g_array_new(FALSE, FALSE, sizeof(guint64));
 
 			landlock_abi = abi;
 
-			/* Mask rights down to what the detected ABI supports:
-			 * requesting unsupported bits yields EINVAL. */
+			/* Mask write rights down to what the detected ABI supports:
+			 * requesting unsupported bits yields EINVAL. READ_FILE/READ_DIR
+			 * are ABI-1, always available. The handled mask now covers BOTH
+			 * write and read, so the whole FS is read-denied by default and
+			 * only the granted read roots below are readable (§13). */
 			if (abi >= 2)
-				access |= LANDLOCK_ACCESS_FS_REFER;
+				wr |= LANDLOCK_ACCESS_FS_REFER;
 			if (abi >= 3)
-				access |= LANDLOCK_ACCESS_FS_TRUNCATE;
-			sb->landlock_access = access;
+				wr |= LANDLOCK_ACCESS_FS_TRUNCATE;
+			rw = wr | rd;
+			sb->landlock_access = rw;
 
-			/* Size the path array for the built-in roots plus any per-script
-			 * extra writable paths from the policy/manifest. */
+			/* ---- Writable roots (read+write) ---------------------------
+			 * Resolved here in the parent so the child needs no g_getenv.
+			 * Writes are confined to the project working dir, the venv
+			 * (python writes __pycache__/.pyc there), Siril's own data/config
+			 * dirs, the relocated-cache scratch dir (§13.5a), temp dirs and
+			 * the standard write-safe char devices. All also readable. */
+			sandbox_add_path(pl, al, policy->wd, rw);
+			sandbox_add_path(pl, al, policy->venv_path, rw);
+			/* Siril's own dirs, via the app-dirs accessors (platform/XDG-
+			 * correct — do not hardcode): user data (prefs, venv metadata)
+			 * and the per-app config dir (<config>/siril, NOT the whole XDG
+			 * config base, which would expose every app's config). */
+			sandbox_add_path(pl, al, siril_get_user_data_dir(), rw);
+			{
+				gchar *cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
+				sandbox_add_path(pl, al, cfg, rw);
+				g_free(cfg);
+			}
+			/* Relocated package caches (XDG_*_HOME / … redirect target). */
+			sandbox_add_path(pl, al, policy->cache_dir, rw);
+			tmpdir = g_getenv("TMPDIR");
+			sandbox_add_path(pl, al, (tmpdir && *tmpdir) ? tmpdir : "/tmp", rw);
+			sandbox_add_path(pl, al, "/var/tmp", rw);
+			sandbox_add_path(pl, al, "/dev/null", rw);
+			sandbox_add_path(pl, al, "/dev/zero", rw);
+			sandbox_add_path(pl, al, "/dev/full", rw);
 			if (policy->extra_write_paths)
 				for (const char * const *p = policy->extra_write_paths; *p; p++)
-					n_extra++;
-			sb->paths = g_new0(char *, SANDBOX_N_BUILTIN_PATHS + n_extra);
+					sandbox_add_path(pl, al, *p, rw);
 
-			/* Assemble the writable path list (resolved here in the parent
-			 * so the child needs no g_getenv). Writes are confined to the
-			 * project working dir, the venv (python writes __pycache__/.pyc
-			 * there), temp dirs and the standard write-safe char devices.
-			 * Reads are NOT handled and so remain allowed everywhere. */
-			if (policy->wd && *policy->wd)
-				sb->paths[n++] = g_strdup(policy->wd);
-			if (policy->venv_path && *policy->venv_path)
-				sb->paths[n++] = g_strdup(policy->venv_path);
-
-			/* Siril's own writable directories, via the app-dirs accessors
-			 * (platform/XDG-correct — do not hardcode): user data
-			 * (~/.local/share/siril: prefs, venv metadata) and the per-app
-			 * config dir (<config>/siril — NOT the whole XDG config base, which
-			 * would expose every app's config). The scripts repo and SPCC data
-			 * dir are deliberately NOT granted: they are git-managed by Siril's
-			 * own C code, and since reads are unrestricted (read rights are
-			 * unhandled) scripts can still read them — they just cannot write.
-			 * A dir that does not exist yet is simply skipped when the rule is
-			 * added in the child. */
+			/* ---- Read-only roots (read-confinement, §13.2) -------------
+			 * System / OS read surface. The interpreter and native deps need
+			 * these. Landlock is restrictive-only (it cannot widen DAC), so a
+			 * broad system-tree read grant never exposes a mode-protected
+			 * secret (e.g. /etc/shadow stays unreadable via ordinary perms). */
 			{
-				const char *d;
-				gchar *cfg;
-				d = siril_get_user_data_dir();
-				if (d && *d)
-					sb->paths[n++] = g_strdup(d);
-				cfg = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
-				if (cfg && *cfg)
-					sb->paths[n++] = cfg;   /* heap-owned; freed in finish() */
-				else
-					g_free(cfg);
+				static const char *const sysroots[] = {
+					"/usr", "/lib", "/lib64", "/bin", "/sbin",
+					"/etc", "/opt", "/proc", "/sys", "/run",
+					/* /dev: Python reads /dev/urandom at startup to seed hash
+					 * randomisation (else "_Py_HashRandomization_Init: failed to
+					 * get random numbers" fatal); libs also read /dev/random,
+					 * /dev/shm, /dev/dri, /dev/tty. DAC-safe like the rest here —
+					 * raw disk nodes (/dev/sd*, root:disk 0660) stay unreadable to
+					 * a normal user; Landlock cannot widen DAC. Writable device
+					 * nodes /dev/{null,zero,full} keep their separate rw grant. */
+					"/dev", NULL
+				};
+				for (int i = 0; sysroots[i]; i++)
+					sandbox_add_path(pl, al, sysroots[i], rd);
 			}
 
-			tmpdir = g_getenv("TMPDIR");
-			sb->paths[n++] = g_strdup((tmpdir && *tmpdir) ? tmpdir : "/tmp");
-			sb->paths[n++] = g_strdup("/var/tmp");
-			sb->paths[n++] = g_strdup("/dev/null");
-			sb->paths[n++] = g_strdup("/dev/zero");
-			sb->paths[n++] = g_strdup("/dev/full");
+			/* Siril's own read-only data trees, needed by the run itself even
+			 * though they live under a hidden path (~/.local/share/...): the
+			 * scripts repo (the script file being executed + its sibling
+			 * modules/data) and the SPCC catalogue database. The specific script
+			 * dir (may be outside the repo — a user script path) is granted too. */
+			sandbox_add_path(pl, al, siril_get_scripts_repo_path(), rd);
+			sandbox_add_path(pl, al, siril_get_spcc_repo_path(), rd);
+			sandbox_add_path(pl, al, policy->script_dir, rd);
 
-			/* Per-script extra writable paths (from the granted manifest).
-			 * extra_read_paths is a no-op on Linux: reads are unrestricted. */
-			if (policy->extra_write_paths)
-				for (const char * const *p = policy->extra_write_paths; *p; p++)
-					if (**p)
-						sb->paths[n++] = g_strdup(*p);
+			/* Interpreter tree: realpath(argv[0]) dir and its parent, in case
+			 * a uv-managed toolchain/stdlib lives outside the venv under a
+			 * hidden ~/.local path that the non-hidden-$HOME rule would else
+			 * withhold. */
+			if (interp_path && *interp_path) {
+				char *real = realpath(interp_path, NULL);
+				if (real) {
+					gchar *dir = g_path_get_dirname(real);
+					sandbox_add_path(pl, al, dir, rd);
+					if (dir && *dir) {
+						gchar *parent = g_path_get_dirname(dir);
+						sandbox_add_path(pl, al, parent, rd);
+						g_free(parent);
+					}
+					g_free(dir);
+					free(real);
+				}
+			}
 
-			sb->n_paths = n;
+			/* Removable / external media mount parents. A Landlock grant on
+			 * the parent covers volumes mounted underneath it, INCLUDING ones
+			 * mounted after the child starts (verified: landlock_mount_test).
+			 * Non-existent paths are skipped in the child. */
+			{
+				const char *user = g_get_user_name();
+				gchar *media_user = user ? g_build_filename("/media", user, NULL) : NULL;
+				gchar *run_media = user ? g_build_filename("/run/media", user, NULL) : NULL;
+				sandbox_add_path(pl, al, "/media", rd);
+				sandbox_add_path(pl, al, media_user, rd);
+				sandbox_add_path(pl, al, run_media, rd);
+				sandbox_add_path(pl, al, "/mnt", rd);
+				g_free(media_user);
+				g_free(run_media);
+			}
+
+			/* Non-hidden $HOME entries: grant read on every top-level entry
+			 * whose name does not start with '.', so ~/astro, ~/Pictures … are
+			 * readable while credential dot-dirs (~/.ssh, ~/.aws,
+			 * ~/.config/gcloud …) are withheld. Enumerated here in the parent
+			 * (readdir is not async-signal-safe). */
+			{
+				const char *home = g_get_home_dir();
+				GDir *hd = home ? g_dir_open(home, 0, NULL) : NULL;
+				if (hd) {
+					const char *name;
+					while ((name = g_dir_read_name(hd))) {
+						gchar *full;
+						if (name[0] == '.')
+							continue;   /* withhold hidden dot-dirs (secrets) */
+						full = g_build_filename(home, name, NULL);
+						sandbox_add_path(pl, al, full, rd);
+						g_free(full);
+					}
+					g_dir_close(hd);
+				}
+			}
+
+			/* Per-script extra read paths (granted manifest): the escape hatch
+			 * for a $HOME dot-dir the cache relocation does not cover. Now
+			 * enforced (previously a no-op on Linux). */
+			if (policy->extra_read_paths)
+				for (const char * const *p = policy->extra_read_paths; *p; p++)
+					sandbox_add_path(pl, al, *p, rd);
+
+			sb->n_paths = (int) pl->len;
+			sb->paths = (char **) g_ptr_array_free(pl, FALSE);
+			sb->paccess = (guint64 *) g_array_free(al, FALSE);
 
 			have_landlock = 1;
 		} else if (errno == EOPNOTSUPP) {
@@ -546,18 +655,21 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy) {
 		gboolean landlock_full = (landlock_abi >= 3);
 		GString *msg = g_string_new(_("Script sandbox: "));
 
-		/* Filesystem side (Landlock). */
+		/* Filesystem side (Landlock). Reads are now confined too: writes to the
+		 * working area, reads to system files + working area + non-hidden home
+		 * (credential dot-dirs withheld). */
 		if (landlock_abi >= 3) {
 			g_string_append(msg,
-				_("file writes confined to the working area (reads "
-				  "unrestricted)"));
+				_("file reads and writes confined (writes to the working "
+				  "area; reads to system files and non-hidden home, with "
+				  "credential dot-dirs blocked)"));
 		} else if (landlock_abi >= 1) {
 			g_string_append_printf(msg,
-				_("file writes confined to the working area (reads "
-				  "unrestricted) but with limited enforcement (kernel Landlock "
-				  "ABI %d; refinements such as blocking file truncation outside "
-				  "the writable area are not enforced — Linux 6.2+ is needed for "
-				  "full enforcement)"),
+				_("file reads and writes confined (writes to the working "
+				  "area; reads to system files and non-hidden home) but with "
+				  "limited enforcement (kernel Landlock ABI %d; refinements such "
+				  "as blocking file truncation outside the writable area are not "
+				  "enforced — Linux 6.2+ is needed for full enforcement)"),
 				landlock_abi);
 		} else if (landlock_disabled) {
 			g_string_append(msg,
@@ -631,7 +743,7 @@ static void sandbox_child_setup(gpointer user_data) {
 			_exit(127);
 
 		for (int i = 0; i < sb->n_paths; i++)
-			sandbox_child_add_path(ruleset_fd, sb->landlock_access,
+			sandbox_child_add_path(ruleset_fd, sb->paccess[i],
 			                       sb->paths[i]);
 
 		if (syscall(__NR_landlock_restrict_self, ruleset_fd, 0) != 0)
@@ -685,6 +797,7 @@ static void sandbox_finish(SirilSandbox *sb) {
 			g_free(sb->paths[i]);
 		g_free(sb->paths);
 	}
+	g_free(sb->paccess);
 #endif
 	g_free(sb);
 }
@@ -707,7 +820,7 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	 * seccomp filter are installed by sandbox_child_setup() post-fork. If
 	 * preparation fails entirely (unsupported kernel) sb is NULL and we spawn
 	 * without a child_setup (fail-open). */
-	SirilSandbox *sb = sandbox_prepare(policy);
+	SirilSandbox *sb = sandbox_prepare(policy, (argv && argv[0]) ? argv[0] : NULL);
 	gboolean ok = g_spawn_async_with_pipes(
 		working_dir, argv, envp,
 		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
@@ -773,7 +886,8 @@ static void sb_allow_subpath(GString *p, const char *op, const char *path) {
  * Allow-by-default (so the interpreter reads its libs freely), then confine:
  * deny all writes except the granted roots, and deny IP network egress while
  * leaving AF_UNIX (Siril IPC) untouched. */
-static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy) {
+static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy,
+                                     const char *interp_path) {
 	GString *p = g_string_new("(version 1)(allow default)");
 
 	/* Write confinement: global deny, then re-allow the granted roots (SBPL
@@ -787,17 +901,45 @@ static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy) {
 		sb_allow_subpath(p, "file-write*", cfg);
 		g_free(cfg);
 	}
+	sb_allow_subpath(p, "file-write*", policy->cache_dir);   /* relocated caches */
 	sb_allow_subpath(p, "file-write*", g_get_tmp_dir());
 	sb_allow_subpath(p, "file-write*", "/dev/null");
 	sb_allow_subpath(p, "file-write*", "/dev/random");
 	sb_allow_subpath(p, "file-write*", "/dev/urandom");
 
-	/* Per-script extra writable paths from the granted manifest. extra_read
-	 * paths are a near no-op here (reads are already allowed by default) but
-	 * are granted explicitly for symmetry with the Windows read-confined case. */
+	/* Per-script extra writable paths from the granted manifest. */
 	if (policy->extra_write_paths)
 		for (const char * const *e = policy->extra_write_paths; *e; e++)
 			sb_allow_subpath(p, "file-write*", *e);
+
+	/* Read confinement (§13.4): the profile is allow-default, so withhold the
+	 * credential dot-dirs by denying reads of every ~/.* entry, then re-allow
+	 * the relocated-cache scratch, the interpreter tree (a uv toolchain may
+	 * live under a ~/.local dot-path) and — below — the explicit manifest read
+	 * paths. Last-match-wins, so these allows must follow the deny. */
+	g_string_append(p, "(deny file-read* (regex #\"^/Users/[^/]+/\\.[^/]+\"))");
+	sb_allow_subpath(p, "file-read*", policy->cache_dir);
+	if (interp_path && *interp_path) {
+		char *real = realpath(interp_path, NULL);
+		if (real) {
+			gchar *dir = g_path_get_dirname(real);
+			gchar *parent = g_path_get_dirname(dir);
+			sb_allow_subpath(p, "file-read*", dir);
+			sb_allow_subpath(p, "file-read*", parent);
+			g_free(parent);
+			g_free(dir);
+			free(real);
+		}
+	}
+	/* Siril's own read-only data trees (under a hidden ~/.local/share path on
+	 * macOS too, so withheld by the dot-deny unless re-allowed): scripts repo
+	 * (the script file + siblings), SPCC database, and the specific script dir. */
+	sb_allow_subpath(p, "file-read*", siril_get_scripts_repo_path());
+	sb_allow_subpath(p, "file-read*", siril_get_spcc_repo_path());
+	sb_allow_subpath(p, "file-read*", policy->script_dir);
+	/* Per-script extra read paths (granted manifest) — the escape hatch for a
+	 * $HOME dot-dir the cache relocation does not cover. After the deny so they
+	 * win. */
 	if (policy->extra_read_paths)
 		for (const char * const *e = policy->extra_read_paths; *e; e++)
 			sb_allow_subpath(p, "file-read*", *e);
@@ -837,7 +979,8 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 			NULL, NULL, child_pid, NULL, stdout_fd, stderr_fd, error);
 	}
 
-	gchar *profile = build_seatbelt_profile(policy);
+	gchar *profile = build_seatbelt_profile(policy,
+	                                        (argv && argv[0]) ? argv[0] : NULL);
 
 	/* Prepend: sandbox-exec -p <profile> <original argv...> */
 	GPtrArray *wrapped = g_ptr_array_new();
@@ -858,14 +1001,15 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	if (ok) {
 		if (policy->allow_network)
 			siril_log_warning(_("Script sandbox active (Seatbelt): file writes "
-			                    "confined to the working area (reads "
-			                    "unrestricted); process inspection blocked; "
-			                    "network access ENABLED at the script's "
+			                    "confined to the working area; reads confined "
+			                    "(credential dot-dirs blocked); process inspection "
+			                    "blocked; network access ENABLED at the script's "
 			                    "request.\n"));
 		else
 			siril_log_info(_("Script sandbox active (Seatbelt): file writes "
-			                 "confined to the working area (reads unrestricted); "
-			                 "network egress and process inspection blocked.\n"));
+			                 "confined to the working area; reads confined "
+			                 "(credential dot-dirs blocked); network egress and "
+			                 "process inspection blocked.\n"));
 	}
 
 	g_ptr_array_free(wrapped, FALSE);
@@ -1194,11 +1338,19 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 		grant_appcontainer(cfg, RW, container_sid);
 		g_free(cfg);
 	}
+	grant_appcontainer(policy->cache_dir, RW, container_sid);   /* relocated caches */
+
+	/* Siril's own read-only data trees (the script file + siblings, SPCC data)
+	 * and the specific script dir — needed even though AppContainer is
+	 * read-deny-by-default and these are under the user profile. */
+	grant_appcontainer(siril_get_scripts_repo_path(), RX, container_sid);
+	grant_appcontainer(siril_get_spcc_repo_path(), RX, container_sid);
+	grant_appcontainer(policy->script_dir, RX, container_sid);
 
 	/* Per-script extra paths from the granted manifest: extra_write RW,
-	 * extra_read RX. With the broad read grants below, Windows is read-open like
-	 * Linux/macOS, so extra_read_paths now only matter for locations the broad
-	 * grant cannot reach (e.g. network shares, protected-ACL system paths). */
+	 * extra_read RX. Reads are now confined (§13), so extra_read_paths are the
+	 * escape hatch for a location the non-hidden-home grant below does not reach
+	 * (e.g. data on another fixed drive, a hidden dir, a network share). */
 	if (policy->extra_write_paths)
 		for (const char * const *e = policy->extra_write_paths; *e; e++)
 			grant_appcontainer(*e, RW, container_sid);
@@ -1223,29 +1375,41 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 		g_free(interp_dir);
 	}
 
-	/* Read-anywhere, to match the Linux/macOS model: reads are permitted
-	 * broadly and exfiltration is prevented by the network cut, not by read
-	 * confinement (so a script can open images outside the working dir).
-	 * AppContainer is deny-by-default for the filesystem, so read/execute must
-	 * be granted explicitly:
-	 *   - the user profile (the user owns it, so the DACL edit succeeds); this
-	 *     also covers Pictures/Documents/Desktop, so the known-folder
-	 *     capabilities are unnecessary;
-	 *   - every FIXED drive root, best-effort — works on user-owned data drives
-	 *     (e.g. D:\); the C:\ root DACL edit typically fails without elevation
-	 *     and is skipped, but the profile grant already covers C:\Users\<user>;
-	 *   - removable media is handled by the removableStorage capability added at
-	 *     the spawn step below (a dynamic mount cannot be pre-ACLed).
-	 * Writes remain confined to the roots granted earlier. */
-	grant_appcontainer(g_get_home_dir(), RX, container_sid);
+	/* Read confinement (§13.4): withhold the credential dot-dirs. AppContainer
+	 * is deny-by-default for reads, so grant RX only on the NON-hidden top-level
+	 * entries of the user profile — covers Pictures/Documents/astro/… while
+	 * withholding hidden dirs (e.g. .ssh, .aws, and AppData, which is
+	 * FILE_ATTRIBUTE_HIDDEN). "Hidden" = the name begins with '.' OR the
+	 * FILE_ATTRIBUTE_HIDDEN bit is set (§13.8-E). The interpreter tree granted
+	 * above re-permits the specific (often AppData) path the toolchain lives in;
+	 * removable media is handled by the removableStorage capability at spawn.
+	 * We deliberately do NOT grant whole fixed drives (that would defeat read-
+	 * confinement); data elsewhere on a fixed drive needs a manifest read entry.
+	 * NB the base-interpreter/stdlib read set may still need dev iteration on
+	 * Windows (see the limitations block above). */
 	{
-		DWORD drives = GetLogicalDrives();
-		for (int i = 0; i < 26; i++) {
-			if (!(drives & (1u << i)))
-				continue;
-			char root[4] = { (char) ('A' + i), ':', '\\', '\0' };
-			if (GetDriveTypeA(root) == DRIVE_FIXED)
-				grant_appcontainer(root, RX, container_sid);
+		const char *home = g_get_home_dir();
+		GDir *hd = home ? g_dir_open(home, 0, NULL) : NULL;
+		if (hd) {
+			const char *name;
+			while ((name = g_dir_read_name(hd))) {
+				gchar *full = g_build_filename(home, name, NULL);
+				gboolean hidden = (name[0] == '.');
+				if (!hidden) {
+					wchar_t *w = (wchar_t *) g_utf8_to_utf16(full, -1, NULL, NULL, NULL);
+					if (w) {
+						DWORD a = GetFileAttributesW(w);
+						if (a != INVALID_FILE_ATTRIBUTES &&
+						    (a & FILE_ATTRIBUTE_HIDDEN))
+							hidden = TRUE;
+						g_free(w);
+					}
+				}
+				if (!hidden)
+					grant_appcontainer(full, RX, container_sid);
+				g_free(full);
+			}
+			g_dir_close(hd);
 		}
 	}
 
@@ -1422,13 +1586,14 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	 * cannot use WinSock, so egress is denied unless the script requested it). */
 	if (policy->allow_network)
 		siril_log_warning(_("Script sandbox active (AppContainer): file writes "
-		                    "confined to the working area (reads unrestricted); "
-		                    "process isolated; network access ENABLED at the "
-		                    "script's request.\n"));
+		                    "confined to the working area; reads confined "
+		                    "(credential dot-dirs blocked); process isolated; "
+		                    "network access ENABLED at the script's request.\n"));
 	else
 		siril_log_info(_("Script sandbox active (AppContainer): file writes "
-		                 "confined to the working area (reads unrestricted); "
-		                 "network egress blocked and process isolated.\n"));
+		                 "confined to the working area; reads confined "
+		                 "(credential dot-dirs blocked); network egress blocked "
+		                 "and process isolated.\n"));
 
 cleanup:
 	if (attr_list) {

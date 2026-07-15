@@ -16,14 +16,24 @@
  * dirs) with no extra paths.
  *
  *   wd, venv_path        Writable roots always granted (may be NULL).
+ *   script_dir           Directory of the script being run, granted READ (the
+ *                        interpreter must open the script file; it may live
+ *                        outside the working dir, e.g. a user script path). May
+ *                        be NULL. The siril-scripts and siril-spcc-database
+ *                        repos are granted read automatically (no field needed).
+ *   cache_dir            Siril-managed scratch dir for relocated package caches
+ *                        (the XDG_*_HOME / SCIKIT_LEARN_DATA / … redirect target,
+ *                        §13.5a). The caller creates it, points the child's env
+ *                        vars at it, and passes it here so every backend grants
+ *                        it read+write. May be NULL (no scratch root granted).
  *   allow_network        TRUE relaxes the network confinement (boolean: the
  *                        underlying mechanisms cannot filter per-host).
  *   extra_write_paths    NULL-terminated list of additional writable paths, or
  *                        NULL. Granted read+write on every platform.
  *   extra_read_paths     NULL-terminated list of additional read-only paths, or
- *                        NULL. Meaningful where reads are confined (Windows
- *                        AppContainer); a no-op on Linux/macOS, where reads are
- *                        already unrestricted.
+ *                        NULL. Granted read on every platform — reads are now
+ *                        confined everywhere (the per-path escape hatch for a
+ *                        $HOME dot-dir the cache relocation does not cover).
  *   unsandboxed          TRUE runs the interpreter with NO confinement at all
  *                        (plain spawn, pre-sandbox behaviour). The escape hatch
  *                        for glue scripts that spawn opaque third-party software
@@ -36,6 +46,8 @@
 typedef struct {
 	const char *wd;
 	const char *venv_path;
+	const char *script_dir;
+	const char *cache_dir;
 	gboolean allow_network;
 	const char * const *extra_write_paths;
 	const char * const *extra_read_paths;

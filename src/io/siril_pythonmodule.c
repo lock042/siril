@@ -3854,6 +3854,57 @@ static void inject_uv_env(gchar ***env, const gchar *project_path) {
 	}
 }
 
+// Relocate the package cache/config/data locations of the script's dependency
+// tree into `cache_dir` (a Siril-managed scratch dir under the user-data root)
+// by setting the standard locator env vars on a g_get_environ()-style array
+// (securescripts §13.5a). This lets the sandbox withhold the real ~/.cache,
+// ~/.config, ~/.local (where credentials live) while astropy/matplotlib/torch/…
+// keep working. Applied to every sandboxed spawn.
+//
+// The three XDG base vars relocate the high-volume core (matplotlib, astropy,
+// astroquery, huggingface_hub, torch, numba — all empirically verified to honour
+// XDG, §13.5a). We SET (not just rely on XDG for) the vars whose package has a
+// known non-XDG fallback that fails hard: NUMBA_CACHE_DIR (numba's cache=True
+// otherwise writes __pycache__ next to the read-only source and *aborts* rather
+// than falling back to XDG) and MPLCONFIGDIR (conservative; older matplotlib did
+// not honour XDG). Plus the three XDG-ignorers (scikit-learn, plotly, vispy). All
+// set with overwrite=TRUE so a stray inherited value cannot escape the scratch.
+// The remaining higher-precedence aliases (ASTROPY_*, TORCH_*, HF_*) honour XDG,
+// so we only UNSET them — an inherited value would otherwise override our XDG
+// redirect and leak outside the scratch.
+static void relocate_pkg_caches(gchar ***env, const gchar *cache_dir) {
+	if (!cache_dir || !*cache_dir)
+		return;
+	// Create the scratch dir and each subdir (some libs adopt a dir only if it
+	// already exists). Best-effort; a failure just means the package falls back
+	// and the sandbox denies it — not our concern here.
+	const struct { const char *var, *sub; } redirect[] = {
+		{ "XDG_CACHE_HOME",    "cache" },
+		{ "XDG_CONFIG_HOME",   "config" },
+		{ "XDG_DATA_HOME",     "data" },
+		{ "NUMBA_CACHE_DIR",   "numba" },
+		{ "MPLCONFIGDIR",      "matplotlib" },
+		{ "SCIKIT_LEARN_DATA", "sklearn" },
+		{ "PLOTLY_DIR",        "plotly" },
+		{ "VISPY_CONFIG_DIR",  "vispy" },
+	};
+	g_mkdir_with_parents(cache_dir, 0700);
+	for (gsize i = 0; i < G_N_ELEMENTS(redirect); i++) {
+		gchar *dir = g_build_filename(cache_dir, redirect[i].sub, NULL);
+		g_mkdir_with_parents(dir, 0700);
+		*env = g_environ_setenv(*env, redirect[i].var, dir, TRUE);
+		g_free(dir);
+	}
+	// Unset the XDG-honouring higher-precedence aliases so an inherited value
+	// cannot win over XDG_*_HOME and leak the cache outside the scratch.
+	static const char *const clear[] = {
+		"ASTROPY_HOME", "ASTROPY_CACHE_DIR", "ASTROPY_CONFIG_DIR",
+		"TORCH_HOME", "TORCH_HUB", "HF_HOME", "HUGGINGFACE_HUB_CACHE", NULL
+	};
+	for (int i = 0; clear[i]; i++)
+		*env = g_environ_unsetenv(*env, clear[i]);
+}
+
 // Returns TRUE if uv's managed Python install dir already contains an
 // interpreter for the requested minor version (e.g. "3.13" matches
 // `<install_dir>/cpython-3.13.0-linux-x86_64-gnu/`). Used to decide
@@ -6174,42 +6225,13 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	// Force UTF8 mode
 	env = g_environ_setenv(env, "PYTHONUTF8", "1", TRUE);
 
-	// Redirect the numba cache to a sandbox-writable location. numba's
-	// @jit/@vectorize(cache=True) writes its compiled artefacts into a
-	// __pycache__ next to the SOURCE file by default; for a script in the
-	// (read-only, git-managed) scripts repository that directory is not
-	// writable under the sandbox, and numba aborts with "no locator available
-	// for file ...". Point NUMBA_CACHE_DIR at the user-data dir, which the
-	// sandbox grants for writing and which persists across runs. overwrite is
-	// FALSE so a script or user that sets its own NUMBA_CACHE_DIR wins.
-	{
-		gchar *numba_cache = g_build_filename(g_get_user_data_dir(),
-				"siril", "numba_cache", NULL);
-		env = g_environ_setenv(env, "NUMBA_CACHE_DIR", numba_cache, FALSE);
-		g_free(numba_cache);
-	}
-
-	// Redirect the XDG cache base to a sandbox-writable location. Many libraries
-	// (fontconfig — hence Qt/PyQt text rendering, astropy, pooch-based
-	// downloaders, huggingface/torch model caches, appdirs/platformdirs users)
-	// cache under ~/.cache, which is NOT in the sandbox's writable set, so they
-	// fail or rebuild their cache on every run. Pointing XDG_CACHE_HOME at a
-	// persistent, sandbox-writable dir fixes the whole XDG-respecting family in
-	// one shot, and is more contained than granting ~/.cache (which is shared
-	// with every other app). matplotlib does NOT honour XDG_CACHE_HOME — it uses
-	// MPLCONFIGDIR — so redirect that separately. overwrite is FALSE so a script
-	// or user that sets its own value wins.
-	{
-		gchar *xdg_cache = g_build_filename(g_get_user_data_dir(),
-				"siril", "xdg-cache", NULL);
-		env = g_environ_setenv(env, "XDG_CACHE_HOME", xdg_cache, FALSE);
-		g_free(xdg_cache);
-
-		gchar *mpl_dir = g_build_filename(g_get_user_data_dir(),
-				"siril", "matplotlib", NULL);
-		env = g_environ_setenv(env, "MPLCONFIGDIR", mpl_dir, FALSE);
-		g_free(mpl_dir);
-	}
+	// NB: package cache/config/data relocation (NUMBA/XDG/MPL/… → the
+	// script-cache scratch) is now done by relocate_pkg_caches() at the sandbox
+	// policy construction below, applied only to sandboxed spawns. It supersedes
+	// the earlier per-var redirects here (which are removed): it is complete
+	// (3 XDG vars + scikit-learn/plotly/vispy, empirically verified §13.5a) and
+	// unsets the higher-precedence override vars so an inherited value cannot
+	// escape the scratch.
 
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	gboolean success = FALSE;
@@ -6339,9 +6361,27 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			siril_script_perms_free(req);
 		}
 
+		// Relocate the dependency tree's package caches into a Siril-managed
+		// scratch dir (§13.5a) so the sandbox can withhold the real ~/.cache /
+		// ~/.config / ~/.local (secrets) without breaking astropy/matplotlib/….
+		// Applied to every sandboxed spawn; skipped for a full sandbox waiver
+		// (unsandboxed), which runs the script with its normal environment.
+		gchar *script_cache_dir = NULL;
+		if (!granted_unsandboxed) {
+			script_cache_dir = g_build_filename(siril_get_user_data_dir(),
+					"script-cache", NULL);
+			relocate_pkg_caches(&env, script_cache_dir);
+		}
+		// Directory of the script being executed — the interpreter must read the
+		// script file, which may live outside the working dir (e.g. a user script
+		// path). The scripts-repo/SPCC trees are granted by the backend itself.
+		gchar *script_dir = script_name ? g_path_get_dirname(script_name) : NULL;
+
 		SirilSandboxPolicy sandbox_policy = {
 			.wd = com.wd,
 			.venv_path = venv_path,
+			.script_dir = script_dir,
+			.cache_dir = script_cache_dir,
 			.allow_network = granted_network,
 			.extra_write_paths = (const char * const *) granted_write,
 			.extra_read_paths = (const char * const *) granted_read,
@@ -6360,6 +6400,8 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		// Free the GPtrArray (but not its contents - the caller must free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
+		g_free(script_cache_dir);
+		g_free(script_dir);
 		// The granted policy vectors were consumed by siril_sandbox_spawn (the
 		// backends copy or use them synchronously), so free them now.
 		g_strfreev(granted_write);

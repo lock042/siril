@@ -460,3 +460,341 @@ full user-level access:
 - Windows caveat: an unsandboxed child is a normal-user process, so the IPC-pipe single-ACE DACL
   (ALL APPLICATION PACKAGES only) denies it — the same token-user-ACE fix flagged in §11 is
   required before the unsandboxed (and fail-open) paths work on Windows.
+
+## 13. Read-confinement for sandboxed scripts (DESIGN — not yet implemented)
+
+Supersedes the §4 "read-confinement out of scope" deferral. Applies to **every sandboxed script**;
+the only exemption is a full sandbox waiver (`unsandboxed = true`, §12), which already drops all
+confinement.
+
+### 13.0 Motivation & scope
+
+Residual risk after Phase C: a script that *legitimately* needs network (`network = true`, granted)
+runs with egress open, so a hijacked dependency / malicious update inside it can read personal
+files (`~/.ssh`, `~/.aws`, browser cookies, keychains…) and POST them out. Read-open + egress-open
+together = full exfiltration path.
+
+**Gating rule (user decision 2026-07-15): read-confinement is GLOBAL — applied to every sandboxed
+spawn, network or not — and lifted only by a complete sandbox waiver (`unsandboxed = true`).** An
+earlier draft gated it on `allow_network` (reasoning: with egress cut, a non-network script's reads
+have nowhere to go). Rejected in favour of least-privilege uniformity: (a) egress-via-seccomp is not
+the only exfil channel — a non-network script can still stage secrets into a working-dir output that
+is later synced/uploaded, or exploit a seccomp gap; (b) one behaviour for all sandboxed scripts is
+simpler to reason about and to consent to than a per-script split; (c) the cost is low because cache
+relocation (§13.5a) is already unconditional, so the withheld dot-dirs are not a functional loss for
+non-network scripts either. Network still independently toggles egress (seccomp filter / Seatbelt /
+internetClient) — that is orthogonal to read-confinement.
+
+**Not a silver bullet — state plainly, do not oversell.** Read-confining the *files* does NOT stop
+SSH-key abuse via the ssh-agent `AF_UNIX` socket (§ LIMITATIONS, still open): a compromised network
+script can sign with the keys through the agent without ever reading `~/.ssh`. Read-confinement
+raises the bar on the file-read exfil path; it does not close the agent-reach hole.
+
+### 13.1 The core idea — withhold hidden dot-dirs, not a named denylist
+
+Credentials overwhelmingly live in **hidden dot-dirs / dotfiles of `$HOME`**: `~/.ssh`, `~/.aws`,
+`~/.gnupg`, `~/.config/gcloud`, `~/.config/gh`, `~/.netrc`, `~/.kube`, `~/.docker`, browser profile
+dirs, etc. A hard-coded denylist is a losing treadmill AND is inexpressible under Landlock (no
+subtractive-deny — see §4/§13.3).
+
+Reframe "deny the secrets" as **"grant everything a data script needs, but do not grant the hidden
+entries of `$HOME`."** That is an *allow-list* (enumerate `$HOME`, add read rules for the non-hidden
+entries only), which Landlock CAN express, and which generalises past any fixed secret list — every
+hidden dir is withheld at once. The same intent maps cleanly onto macOS SBPL and Windows
+AppContainer via their native mechanisms.
+
+The obvious objection — "scientific packages keep caches in hidden dot-dirs (`~/.astropy`,
+`~/.cache/matplotlib`, `~/.cache/torch`); withholding those breaks them" — is NOT answered by a
+built-in safe-dot-dir allow-list (an earlier draft's `{ ~/.local, ~/.cache, ~/.astropy }`). That was
+**dropped**: those same dirs also hold secrets (`~/.cache/huggingface/token`,
+`~/.local/share/keyrings`), so granting them re-opens the exfil path. Instead the package caches are
+**relocated out of the real dot-dirs entirely** into a Siril-managed, sandbox-granted scratch dir via
+environment variables (§13.5a). The real dot-dirs then contain only secrets and are cleanly withheld;
+the packages read/write their state from the granted scratch. No safe-list to curate, no author
+burden.
+
+Unified policy intent (all three OSes): *a sandboxed script may read* — system/library trees,
+the interpreter + venv, the working area (incl. the relocated cache scratch), removable media,
+non-hidden `$HOME` content, and manifest-declared `read` paths — *but not the hidden dot-dirs of
+`$HOME`*.
+
+### 13.2 Readable-by-default set (generous by construction, to avoid over-constraint)
+
+1. **System / OS read surface** (interpreter + native deps must always work): `/usr`, `/lib`,
+   `/lib64`, `/bin`, `/sbin`, `/etc` (TLS roots, `resolv.conf`, `nsswitch`), `/opt`, `/proc`,
+   `/sys`, `/run` (nss/resolver sockets live here on some distros), **`/dev`** (Python reads
+   `/dev/urandom` at startup to seed hash randomisation — omitting it is a fatal
+   `_Py_HashRandomization_Init` error; libs also read `/dev/random`, `/dev/shm`, `/dev/dri`,
+   `/dev/tty`; DAC-safe like `/etc` — raw disk nodes stay `root:disk 0660`). Generous on purpose —
+   a broken interpreter is the #1 over-constraint failure mode.
+1b. **Siril's own read-only data trees** (live under a hidden `~/.local/share/...` path, so the
+   non-hidden-`$HOME` rule withholds them unless granted explicitly): the **scripts repo**
+   (`siril_get_scripts_repo_path()` — the script file being executed + its sibling modules/data),
+   the **SPCC database** (`siril_get_spcc_repo_path()`), and the **directory of the script being
+   run** (`policy->script_dir` — may be outside the repo, e.g. a user script path). Without these
+   the interpreter cannot even open the script file (`Errno 13`). Granted on all three OSes.
+2. **Interpreter tree**: resolve `argv[0]` (the python/uv interpreter) to its realpath and grant its
+   tree (dirname, up 1–2 levels to cover a uv-managed toolchain's stdlib). Reuse the Windows logic
+   at siril_sandbox.c:1209–1220. NB the uv interpreter often lives under a *hidden* path
+   (`~/.local/share/uv/...`), so it must be granted **explicitly** — the "no hidden `$HOME`" rule
+   would otherwise hide it.
+3. **Working area** (already writable, so also readable): `policy->wd`, `policy->venv_path`, Siril
+   user-data dir, `<config>/siril`, `$TMPDIR`, `/var/tmp`.
+4. **Removable / external media** — see §13.4.
+5. **Non-hidden `$HOME`** — enumerate `$HOME` top level; grant read on each entry whose basename
+   does not start with `.`. Covers `~/astro`, `~/Pictures`, `~/Documents`, etc. without exposing any
+   dot-dir.
+6. **Relocated cache scratch** (§13.5a): a single Siril-managed dir (under the already-granted
+   user-data root) into which the standard package cache/config/data locations are redirected via
+   env vars. Granted read+write. This is what lets us withhold the real `~/.cache`, `~/.config`,
+   `~/.local` (secrets) while astropy/matplotlib/torch/… still work. **No** `~/.local`/`~/.cache`/
+   `~/.astropy` safe-list is granted (dropped — see §13.1).
+7. **Manifest `read` paths** (§13.5) — the escape hatch for the long tail (libraries that hardcode a
+   `~/.foo` path and ignore their relocation env var), gated by consent.
+
+Anything not in 1–7 is unreadable. Because 1–6 are broad and the caches are relocated (§13.5a), the
+realistic over-constraint surface shrinks to "a library that hardcodes a hidden `~/.foo` and honours
+no relocation env var" — handled by a one-line manifest `read` (and `write`) entry.
+
+### 13.3 Why not a denylist (Landlock recap)
+
+Landlock's `handled_access_fs` currently omits `READ_FILE`/`READ_DIR`, which is *why* reads are
+unrestricted (siril_sandbox.c:626, mask = write-ish only). Confinement means **adding**
+`LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR` to the handled mask — at which point the
+whole FS is read-denied by default and every readable path must be an explicit allow rule. Landlock
+is purely additive-allow: there is no way to grant `/home/u` then subtract `~/.ssh`. Hence the
+enumerate-and-grant construction in §13.2#5. (Both READ rights are ABI-1, so read-confinement works
+wherever write-confinement already does — no new ABI floor.)
+
+**Landlock is restrictive-only — it can never widen DAC.** A Landlock "allow read" rule cannot make a
+file readable that the kernel's ordinary permission bits already deny; it only *intersects* with DAC.
+This is why the broad grants in §13.2#1 (all of `/etc`, `/usr`, `/lib`) are safe by construction: the
+only files a confined non-root script can read under `/etc` are ones it could already read without
+the sandbox — `/etc/shadow` (0640 root:shadow), private keys under `/etc/ssl/private` (root 0600),
+etc. stay unreadable via ordinary permissions, sandbox or not. Granting a directory tree read never
+exposes a secret that DAC protects; it only *fails to further restrict* files the user could read
+anyway. (This resolves §13.8-F: grant all of `/etc`.)
+
+### 13.4 Per-OS realisation
+
+**Linux (Landlock).** In `sandbox_prepare`, for every sandboxed spawn (i.e. whenever Landlock is
+being applied at all — network state is irrelevant; only `unsandboxed` skips this):
+- OR `READ_FILE | READ_DIR` into `sb->landlock_access` (the handled mask).
+- Grant read (a new `SANDBOX_ACCESS_READ = READ_FILE | READ_DIR`) on every path in §13.2#1–7. The
+  child's `sandbox_child_add_path` already skips missing paths and is async-signal-safe; add a
+  read-variant (or pass an access mask per path). **Writable roots must ALSO carry the read bits**
+  now that reads are handled — a path granted only write rights becomes unreadable once READ is in
+  the handled set. So every existing writable root gets `WRITE|READ`, and the read-only roots get
+  `READ` only.
+- `$HOME` enumeration happens in the **parent** (`sandbox_prepare`) — `readdir` is not async-safe and
+  the parent already resolves all paths for the child. Build the non-hidden-entry list into
+  `sb->paths` (tagged read-only) there. No safe-dotdir list (dropped, §13.1) — the relocated cache
+  scratch (§13.5a) is what makes the withheld dot-dirs non-fatal.
+- Removable media: grant read on the mount **parents** `/media/$USER`, `/run/media/$USER`, `/mnt`.
+  ✅ A RESOLVED (2026-07-15): a Landlock read grant on a parent directory **covers filesystems mounted
+  underneath it**, including volumes mounted *after* `restrict_self` — Landlock re-walks the path at
+  every access and credits any ancestor rule, so the mount-time is irrelevant. Verified by
+  `landlock_mount_test.c` (grant read on `/dev`; a file on the `/dev/shm` submount — a different
+  superblock — reads OK; exit 0). So the parent-only grant is sufficient; per-volume enumeration is
+  **not** required (may still enumerate current mounts as harmless belt-and-braces, but it is optional).
+
+**macOS (Seatbelt SBPL).** Profile is allow-default. For every sandboxed spawn (not just
+network-granted), add, in order (SBPL = last-match-wins):
+```
+(deny file-read* (regex #"^/Users/[^/]+/\\.[^/]+"))          ; hide all $HOME dot-entries (secrets)
+(allow file-read* (subpath "<cache scratch dir>"))            ; §13.5a relocated caches
+(allow file-read* (subpath "<interpreter realpath tree>"))    ; uv toolchain under a dot-path
+(allow file-read* (subpath "<each manifest read path>"))
+```
+`/Volumes` (external drives) and system trees stay readable under allow-default — no change. The
+withheld dot-dirs are non-fatal because the caches are relocated (§13.5a), so there is no safe-list to
+re-allow here — only the scratch dir, the interpreter, and explicit manifest reads. This reproduces
+the §13.1 intent natively without a fragile full read-allow-list of `/System`, `/usr`, dyld cache,
+frameworks, etc.
+
+**Windows (AppContainer).** Reads are already default-deny; today the code grants broad `$HOME` RX at
+siril_sandbox.c:1240. For every sandboxed spawn, **replace** that blanket grant with the §13.2 model:
+enumerate `$HOME`, `grant_appcontainer(entry, RX)` for each non-hidden entry, plus the cache scratch
+(§13.5a), interpreter tree (already granted, 1209–1220) and manifest read paths (already RX, 1207).
+**Hidden test (resolves §13.8-E): treat an entry as hidden if EITHER its name starts with `.` OR it
+has `FILE_ATTRIBUTE_HIDDEN`** — Unix-ish tools create dot-dirs Windows does not flag, and native tools
+set the attribute without a dot; withhold on either. Removable media is already handled by the
+removableStorage capability SID (S-1-15-3-10) — no path work. (The blanket `$HOME` RX grant is now
+removed for all sandboxed scripts, not just network ones — only an `unsandboxed` waiver keeps full
+home read.) NB the granted ACEs persist on disk (existing §11 caveat) — the per-entry grants are still
+`ALL_APPLICATION_PACKAGES`-scoped and additive, same as today.
+
+### 13.5 Manifest & consent changes
+
+- The `read = [...]` array already exists (Phase B) and is currently a no-op on Linux/macOS
+  (siril_sandbox.c:508, header:23–26). This section gives it teeth **on every sandboxed script**.
+  Update those comments.
+- A script that needs a `$HOME` dot-dir the relocation env vars (§13.5a) do not cover declares it:
+  `read = ["$HOME/.myapp"]` (and `write` if it writes there). Consent + remembered-grant flow (§12
+  Phase C) already covers `read` paths — no new consent surface. Note the consent implication: because
+  read-confinement is now global (not network-gated), a script that reads an unusual dot-path needs a
+  `read` entry *even if it requests no network*; the GUI dialog copy should say so.
+- **No coarse `read_home = true` opt-in (resolves §13.8-C: force per-path).** Decision (2026-07-15):
+  keep a single code path — the granular `read`/`write` arrays are the only way to widen access. A
+  blanket-home grant would need a special second code path *and* a secrets hard-floor to stay safe
+  (the very denylist §13.1 rejects), for a case the per-path arrays already cover. If a script truly
+  walks arbitrary home content it lists the specific roots; that it must be explicit is a feature, not
+  a burden, because the cache-relocation layer (§13.5a) already removes the *common* reason a script
+  would otherwise need broad home access.
+
+### 13.5a Dependency cache relocation (removes the author-burden objection)
+
+**Problem.** Forcing per-path `read`/`write` (§13.5) would put an unreasonable onus on script authors:
+they cannot know the filesystem footprint of the whole transitive dependency tree. The scientific-
+Python stack writes runtime state into a handful of shared XDG base dirs (`~/.cache`, `~/.config`,
+`~/.local/share`) — and *those same dirs also hold the secrets* (`~/.cache/huggingface/token`,
+`~/.local/share/keyrings`, `~/.config/gcloud`). Granting them re-opens exfil; withholding them breaks
+the packages; enumerating them per-script is the burden we are trying to avoid.
+
+**Fix.** Do not grant the real dot-dirs and do not ask authors to name them. **Relocate** the package
+cache/config/data locations into a single Siril-managed, sandbox-granted scratch dir by setting the
+standard locator environment variables in the child's `envp`. The packages follow the env vars into
+the granted scratch; the real dot-dirs (secrets only) stay ungranted and unreadable. This is exactly
+how Flatpak sandboxes apps (it redirects `XDG_*_HOME` into each app's sandbox) — well-trodden prior
+art. The knowledge of "which env var relocates which package" lives centrally in Siril, maintained
+once, **not** in every script.
+
+**Scratch dir.** A stable per-user dir under the already-granted user-data root, e.g.
+`<user-data>/script-cache/` (granted read+write like the other built-in roots; auto-readable once
+reads are handled). Stable (not per-run temp) so caches persist across runs — no re-downloading a
+model or rebuilding the matplotlib font cache every time. **GC: none — left to the user (decision
+2026-07-15).** Siril does not auto-prune it; the dir is a normal, user-visible location the user can
+clear at will (a "clear script cache" button/preference is a possible future nicety, not required).
+Rationale: auto-eviction risks deleting a large model mid-use or on a heuristic the user disagrees
+with; a visible, user-owned dir is predictable.
+
+**Applied ALWAYS, not only for network scripts (resolves the §13.5a sub-decision).** Decision
+(2026-07-15): set the relocation for *every* sandboxed spawn, network or not. Rationale: (a)
+uniform behaviour — a script's caches land in the same place regardless of its network grant; (b) it
+keeps the user's real `~/.cache`/`~/.config` free of script-written junk even for local scripts; (c)
+it makes read-confinement *viable* — because the caches are already in the granted scratch, withholding
+the real dot-dirs costs nothing. Both read-confinement (§13.0/§13.4) and cache relocation are now
+unconditional for sandboxed scripts; the only exemption for either is the `unsandboxed` waiver.
+
+**Env-var table.** Seeded from the actual `ensure_installed()` usage across the 70 dependency-declaring
+scripts in `/workspace/siril-scripts` (2026-07-15 survey) and then **empirically verified** by probing
+where each package resolves its dirs when only `XDG_*_HOME` is redirected (harness
+`/workspace/xdg_probe.py`, throwaway venv, version-anchored 2026-07-15). Result: the three XDG base
+vars alone relocate the entire high-volume core — the per-package vars I originally listed
+(`ASTROPY_HOME`, `MPLCONFIGDIR`, `TORCH_HOME`, `NUMBA_CACHE_DIR`, `HF_HOME`) turned out **redundant**.
+Only three low-use packages ignore XDG and need a specific var. Set all six; create the XDG target
+subdirs before spawn (some libs adopt XDG only if the dir exists).
+
+Core sweep — **`XDG_CACHE_HOME`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME`** → `<scratch>/{cache,config,data}`.
+Empirically confirmed to relocate, into `<scratch>`:
+
+| Package (version tested) | Resolves under `<scratch>` | Scripts |
+|---|---|---|
+| matplotlib 3.11.0 | `…/config/matplotlib`, `…/cache/matplotlib` | 15 |
+| astropy 8.0.1 | `…/config/astropy`, `…/cache/astropy` (my "finicky" worry was stale — 8.x honours XDG) | 37 |
+| astroquery 0.4.11 | nests under astropy cache | 5 |
+| huggingface_hub 1.23.0 | `…/cache/huggingface[/hub]` (so the real `~/.cache/huggingface/token` is never touched — the defensive `HF_HOME` is unnecessary) | 0 today |
+| torch 2.13.0 (→ torchvision/torch-directml/spandrel) | `…/cache/torch/hub` | 4–5 |
+| numba 0.66.0 | `…/cache/numba` (and note: `cache=True` writes next to source `__pycache__`, i.e. the working dir, not home at all) | 2 |
+
+Residual specifics — ignore XDG, so ALSO set (all still just env vars, set before spawn):
+
+| Env var | Package (version) | Real path it would use | Scripts |
+|---|---|---|---|
+| `SCIKIT_LEARN_DATA` | scikit-learn 1.9.0 | `~/scikit_learn_data` (NON-hidden → write-denied without this) | 1 |
+| `PLOTLY_DIR` | plotly 6.9.0 | `~/.plotly` | 1 |
+| `VISPY_CONFIG_DIR` | vispy 0.16.2 | `~/.vispy` (must be set *before* import — env, which we control) | 1 |
+
+**Residual hardcoders — the per-path escape hatch (§13.5) is the fallback.** After the six vars above,
+the only survey packages left are:
+- **GaiaXPy** → `~/.gaiaxpy/` (1 script, `appdirs`-based). Not probed above; `XDG_DATA_HOME` *may*
+  catch it — ⚠ verify; if not, the script declares `write/read=["$HOME/.gaiaxpy"]`.
+- **google-genai** (1 script): may read cloud creds from `~/.config/gcloud` — deliberately NOT
+  relocated and NOT granted. A sandboxed script silently reusing the user's gcloud login is the exfil
+  risk we are closing; that script must carry its own key (`GOOGLE_API_KEY` /
+  `GOOGLE_APPLICATION_CREDENTIALS` pointing at a declared `read` path), not borrow the user's.
+
+**Implementation site.** The env vector is already assembled for the spawn in
+`execute_python_script()` (the `env`/`envp` passed to `siril_sandbox_spawn`). Add the relocation there
+(it has `com.wd`, the user-data dir, etc.), or inside `siril_sandbox_spawn` before each backend spawn
+so all platforms share it.
+- **Set** the 3 XDG vars + the 3 residual specifics to point into `<scratch>`, overriding any
+  inherited value.
+- **Also UNSET the higher-precedence package override vars** even though we do not point them at
+  scratch: `MPLCONFIGDIR`, `ASTROPY_HOME`/`ASTROPY_CACHE_DIR`/`ASTROPY_CONFIG_DIR`, `TORCH_HOME`,
+  `NUMBA_CACHE_DIR`, `HF_HOME`, `HUGGINGFACE_HUB_CACHE`. These take precedence over `XDG_*_HOME`, so a
+  stray inherited value (e.g. a user's `MPLCONFIGDIR=~/.config/matplotlib`) would otherwise override
+  our XDG redirect and *escape* the scratch. Clearing them forces the package back onto the XDG path
+  we control. (This is why the probe unsets them — mirror that in production.)
+
+**Open sub-decisions (§13.8-G).** Nearly all closed: XDG-honouring answered empirically (table above),
+scratch-dir GC left to the user (§13.8-G-ii). Remaining minor: confirm GaiaXPy's `appdirs`/XDG
+behaviour (1 script, per-path fallback covers it); relocating `IPYTHONDIR`/`JUPYTER_*` deferred (no
+notebook scripts in the survey).
+
+### 13.6 Interaction with existing posture
+
+- **Fail-open / ABI.** Read-confinement rides on the same Landlock availability as write-confinement.
+  If Landlock is absent (old kernel / not enabled) a script gets neither read- nor (Landlock) write-
+  confinement — **exactly today's behaviour**; read-confinement only ever *adds* protection where
+  Landlock exists. The capability-report log (commit 0c7e77b23) should gain a clause stating whether
+  reads are confined (now independent of network state).
+- **seccomp** unchanged (reads are a filesystem/LSM concern).
+- **ssh-agent / D-Bus / X11** holes (§ LIMITATIONS) are unaffected — see §13.0.
+
+### 13.7 Over-constraint safeguards (the user's primary concern)
+
+1. Read-confinement is global (all sandboxed scripts), but the readable set is deliberately broad, so
+   the constraint bites only on hidden dot-dirs.
+2. Default readable set is deliberately broad (all system trees, all non-hidden `$HOME`, working
+   area, removable media) and package caches are relocated into the granted scratch (§13.5a), so the
+   withheld dot-dirs are not a functional loss.
+3. Per-path manifest `read`/`write` escape hatch, already consent-gated, for the residual hardcoders.
+4. Every add-rule failure is non-fatal (skip the path, keep the ruleset) — a mis-resolved root
+   degrades to "that path unreadable", never "whole sandbox discarded".
+5. The full escape valve is the `unsandboxed = true` waiver (§12) — the single, consent-gated way to
+   turn off all confinement. No separate read-confine kill-switch pref (resolves §13.8-D).
+6. Enumeration failures (`opendir($HOME)` fails) fall back to *not* confining reads rather than
+   locking the user out — fail-open, consistent with §6.
+
+### 13.8 Decisions (all resolved 2026-07-15 — cleared for implementation)
+
+- **A. Removable-media mount inheritance** — ✅ RESOLVED (2026-07-15): a Landlock parent grant covers
+  filesystems mounted underneath it, mount-time irrelevant (Landlock re-walks and credits ancestor
+  rules live). Verified by `landlock_mount_test.c` (grant `/dev`, read a file on the `/dev/shm`
+  submount → OK, exit 0) on the target kernel (ABI 8). Parent-only grant of `/media/$USER` etc.
+  suffices; per-volume enumeration not required.
+- **B. Safe dot-dir list** — ✅ RESOLVED (dropped). No safe-dot-dir allow-list; package caches are
+  relocated out of the real dot-dirs via env vars (§13.5a), so nothing hidden needs granting. This
+  also removes the `~/.cache/huggingface/token` / `~/.local/share/keyrings` re-exposure the list had.
+- **C. `read_home` coarse opt-in** — ✅ RESOLVED (no). Force per-path `read`/`write`; single code path
+  (§13.5). Relocation (§13.5a) removes the common reason a script would want broad home.
+- **D. Gating & kill-switch** — ✅ RESOLVED (2026-07-15): read-confinement is **global** (every
+  sandboxed script, not network-gated), lifted only by the `unsandboxed = true` full waiver. No
+  separate `sandbox_read_confine_network` pref (the waiver is the escape valve). See §13.0 gating rule.
+- **E. Hidden-entry definition on Windows** — ✅ RESOLVED (both). Dot-prefix OR `FILE_ATTRIBUTE_HIDDEN`
+  (§13.4 Windows).
+- **F. `/etc` breadth** — ✅ RESOLVED (all of `/etc`). Landlock is restrictive-only and cannot widen
+  DAC, so a broad `/etc` read grant never exposes a mode-protected secret (§13.3).
+- **G. Cache-relocation details (§13.5a)** — (i) ✅ RESOLVED: the three `XDG_*_HOME` vars relocate the
+  entire high-volume core (matplotlib, astropy 8.x, astroquery, huggingface_hub, torch, numba) —
+  verified by `/workspace/xdg_probe.py`; only scikit-learn/plotly/vispy need a specific var. The
+  per-package vars I first listed are redundant. (ii) ✅ RESOLVED (2026-07-15): no auto-GC of the
+  scratch dir — left to the user (see §13.5a); a "clear script cache" nicety is optional/future.
+  (iii) ⚠ minor: confirm GaiaXPy's `appdirs`/XDG behaviour (only 1 script; per-path fallback covers it).
+
+### 13.9 Acceptance checks (build/validate in /home/siril-dev/mppbuild only)
+
+- Any sandboxed script (network or not): `open(os.path.expanduser("~/.ssh/id_rsa"))` → PermissionError;
+  `open("~/astro/light.fit")` and an external drive under `/media/$USER/...` succeed. A network script
+  additionally: TLS request succeeds (system CA roots readable).
+- Read-confinement is global: run the SAME `~/.ssh` probe as a NON-network script → still
+  PermissionError (proves it is not network-gated). Only an `unsandboxed = true` script reads `~/.ssh`.
+- Cache relocation: an `import astropy; matplotlib` script writes its caches under `<scratch>` and NOT
+  under the real `~/.astropy` / `~/.cache/matplotlib`; second run reuses the scratch cache (no rebuild).
+  Confirm the real dot-dirs are untouched *and* the script does not error for lack of them. Verify a
+  stray inherited `MPLCONFIGDIR` in the parent env does NOT leak the cache out of `<scratch>` (§13.5a
+  unset rule).
+- Manifest `read=["$HOME/.myapp"]` → that path readable, `~/.ssh` still not.
+- Landlock-absent kernel: script runs read-open (fail-open), capability log says reads not confined.
+- Removable media: `landlock_mount_test` exits 0 on the target kernel (already confirmed, ABI 8).
