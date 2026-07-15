@@ -6371,6 +6371,15 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			script_cache_dir = g_build_filename(siril_get_user_data_dir(),
 					"script-cache", NULL);
 			relocate_pkg_caches(&env, script_cache_dir);
+			// Defense-in-depth: hide the ssh-agent socket from the sandboxed
+			// child. Its path is semi-random and lives only in this env var, so
+			// unsetting it blocks the naive "connect to $SSH_AUTH_SOCK and ask
+			// for a signature" grab (see siril_sandbox.c LIMITATIONS: the agent
+			// lets a same-UID process authenticate AS the user). Not airtight —
+			// the socket is discoverable by scanning $XDG_RUNTIME_DIR//tmp — and
+			// mostly moot for non-network scripts (egress is cut), but it is
+			// free and no astro script legitimately talks to ssh-agent.
+			env = g_environ_unsetenv(env, "SSH_AUTH_SOCK");
 		}
 		// Directory of the script being executed — the interpreter must read the
 		// script file, which may live outside the working dir (e.g. a user script

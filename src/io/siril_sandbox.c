@@ -35,17 +35,53 @@
  * Do NOT mistake this sandbox for full containment. The following holes
  * are known and out of scope for this cut:
  *
- *  - AF_UNIX reach to privileged local daemons. We MUST allow AF_UNIX
- *    for Siril's own IPC socket, and neither seccomp (it cannot see the
- *    connect(2) path/sockaddr) nor Landlock (it does not mediate unix
- *    socket connect) can stop a script from connecting to e.g.
- *    /var/run/docker.sock (→ root), the ssh-agent socket (→ the user's
- *    private keys) or the D-Bus session/system bus. Closing this needs a
- *    mount/network namespace or an LSM (AppArmor) profile.
+ *  - AF_UNIX reach to same-UID IPC endpoints. We MUST allow AF_UNIX for
+ *    Siril's own IPC socket, and neither seccomp (it cannot see the
+ *    connect(2) sockaddr — it is behind a pointer) nor Landlock (it does not
+ *    mediate unix-socket connect) can stop a script from connecting to other
+ *    unix sockets owned by the same user. These are NOT world-accessible:
+ *    ordinary file permissions guard them to the user's own UID. But that is
+ *    exactly the trust the sandbox is trying to retract — classic Unix treats
+ *    all same-UID code as "you", and these endpoints rely on that assumption;
+ *    Landlock+seccomp cannot express a sub-UID boundary. In-reach examples:
+ *      - the ssh-agent socket ($SSH_AUTH_SOCK): the agent protocol has NO
+ *        key-export operation, so this does NOT disclose the private-key
+ *        bytes — but it lets the script request SIGNATURES, i.e. authenticate
+ *        AS the user to any host while a key is loaded (key *use*, not key
+ *        theft; `ssh-add -c` per-use confirmation defeats it but is rare).
+ *        Mostly a NETWORK-enabled-script threat: a signature is only useful if
+ *        the script can then reach a host, which the seccomp egress block
+ *        already denies to non-network scripts. A user testing a suspect
+ *        script can neutralise it entirely by flushing (`ssh-add -D`) or
+ *        locking (`ssh-add -x`) the agent first — no keys loaded, nothing to
+ *        sign with; reversible.
+ *      - /var/run/docker.sock, ONLY if the user is in the docker group: the
+ *        daemon socket is a root-equivalent control plane (start a container
+ *        that bind-mounts host / as root → host root). This is by design
+ *        (Docker documents docker-group membership as equivalent to root),
+ *        not a container-isolation bug. A user closes this vector on the host
+ *        by NOT joining the docker group — invoke docker via `sudo` (so access
+ *        is authenticated, not ambient), or better use rootless Docker /
+ *        Podman, where the daemon runs as the user in a userns so an escape
+ *        yields only the user's own UID, no escalation.
+ *      - the D-Bus session/system bus: same-UID control surface for many
+ *        desktop and system services (not env-scrubbed here because PyQt GUI
+ *        scripts use it for portals/theming/notifications).
+ *    Closing the AF_UNIX reach in general needs a mount/network namespace or
+ *    an LSM (AppArmor) profile. DEFERRED: a light fix exists (pass Siril's IPC
+ *    socket as an inherited fd, then seccomp-deny socket(AF_UNIX)), but GUI
+ *    scripts need the X11/Wayland display socket (also AF_UNIX), so it is not
+ *    worth it while X11/XWayland GUIs are the norm.
  *
- *  - X11 keylogging / screenshot for GUI (PyQt) scripts. Any access to
- *    $DISPLAY is full session snooping and cannot be closed while still
- *    handing the script an X11 GUI. Needs Wayland or a nested X server.
+ *  - GUI display access for PyQt scripts (needs the AF_UNIX display socket).
+ *    On X11 (incl. PyQt via XWayland/xcb) this is full session snooping —
+ *    global keylogging (XRecord), screenshot of the whole screen, and input
+ *    injection (XTEST) across every client — and cannot be closed while
+ *    handing the script an X11 GUI. Native Wayland on GNOME/KDE isolates
+ *    clients (screenshot/screencast/input gated by xdg-desktop-portal +
+ *    consent), so there the display socket is NOT already a full compromise;
+ *    wlroots compositors expose some privileged protocols (screencopy,
+ *    virtual-keyboard, data-control) ungated, closer to X11.
  *
  *  - Trusted computing base. Siril's own C IPC handlers (CMD_*, the SHM
  *    transport) run UN-sandboxed; a memory-safety bug there that is
