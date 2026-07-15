@@ -543,7 +543,18 @@ non-hidden `$HOME` content, and manifest-declared `read` paths — *but not the 
 4. **Removable / external media** — see §13.4.
 5. **Non-hidden `$HOME`** — enumerate `$HOME` top level; grant read on each entry whose basename
    does not start with `.`. Covers `~/astro`, `~/Pictures`, `~/Documents`, etc. without exposing any
-   dot-dir.
+   dot-dir. **Files loose directly in `$HOME` are readable *by path*** (each is a granted entry;
+   Landlock needs no traverse right on the ungranted `$HOME` to reach them — tested).
+5a. **`$HOME` directory LISTING** (`READ_DIR` only on `$HOME`, **not** `READ_FILE`) — added so scripts
+   can list/glob home (`os.listdir("~")`, a glob of `~`), expected behaviour for users who keep data
+   loose in `$HOME`. **Known trade-off (decision 2026-07-15, accepted):** Landlock rules are
+   hierarchical and there is no non-recursive / subtractive form, so this `READ_DIR` grant also makes
+   *dot-dir listings* visible — a script can see that `~/.ssh/id_rsa` exists. This is a low-severity
+   **filename/metadata leak only**; file *contents* stay protected (`READ_FILE` is never granted on a
+   dot-dir), and it was judged an acceptable price for expected home-listing behaviour. Per-OS: Linux
+   `READ_DIR` on `$HOME`; Windows a non-inherited `FILE_LIST_DIRECTORY` ACE on `$HOME` (leaks even
+   less — only top-level dot-dir *names*, not their listings); macOS already lists `$HOME` (allow-
+   default profile denies only `~/.*` reads), so no change.
 6. **Relocated cache scratch** (§13.5a): a single Siril-managed dir (under the already-granted
    user-data root) into which the standard package cache/config/data locations are redirected via
    env vars. Granted read+write. This is what lets us withhold the real `~/.cache`, `~/.config`,

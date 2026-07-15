@@ -593,10 +593,21 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy,
 			 * whose name does not start with '.', so ~/astro, ~/Pictures … are
 			 * readable while credential dot-dirs (~/.ssh, ~/.aws,
 			 * ~/.config/gcloud …) are withheld. Enumerated here in the parent
-			 * (readdir is not async-signal-safe). */
+			 * (readdir is not async-signal-safe).
+			 *
+			 * Plus READ_DIR (dir-LISTING only, NOT READ_FILE) on $HOME itself so
+			 * scripts can list/glob the home directory (os.listdir on ~, or a
+			 * glob of ~ for FITS files) — expected behaviour for users who keep
+			 * data loose in $HOME. Landlock rules are hierarchical, so READ_DIR
+			 * also makes dot-dir *listings* visible (a script can see that
+			 * ~/.ssh/id_rsa exists) — a low-severity FILENAME/metadata leak. File
+			 * CONTENTS stay protected: READ_FILE is still only on the non-hidden
+			 * entries above, never on the dot-dirs. See securescripts-spec.md §13. */
 			{
 				const char *home = g_get_home_dir();
 				GDir *hd = home ? g_dir_open(home, 0, NULL) : NULL;
+				if (home && *home)
+					sandbox_add_path(pl, al, home, LANDLOCK_ACCESS_FS_READ_DIR);
 				if (hd) {
 					const char *name;
 					while ((name = g_dir_read_name(hd))) {
@@ -1223,7 +1234,8 @@ static wchar_t *sandbox_win_build_env_block(gchar **envp, gboolean *failed) {
  * Uses the ANSI Get/SetNamedSecurityInfo since `path` is a UTF-8 g-string; we
  * convert to the local codepage via g_win32 helpers is avoided by using the
  * wide variants with a UTF-16 path. */
-static void grant_appcontainer(const char *path, DWORD access, PSID sid) {
+static void grant_appcontainer_ex(const char *path, DWORD access, DWORD inherit,
+                                  PSID sid) {
 	if (!path || !*path || !sid)
 		return;
 
@@ -1251,7 +1263,7 @@ static void grant_appcontainer(const char *path, DWORD access, PSID sid) {
 	ZeroMemory(&ea, sizeof(ea));
 	ea.grfAccessPermissions = access;
 	ea.grfAccessMode        = GRANT_ACCESS;   /* merge with existing ACEs */
-	ea.grfInheritance       = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+	ea.grfInheritance       = inherit;
 	ea.Trustee.TrusteeForm  = TRUSTEE_IS_SID;
 	ea.Trustee.TrusteeType  = TRUSTEE_IS_WELL_KNOWN_GROUP;
 	ea.Trustee.ptstrName    = (LPWSTR) sid;
@@ -1274,6 +1286,12 @@ static void grant_appcontainer(const char *path, DWORD access, PSID sid) {
 	if (new_dacl) LocalFree(new_dacl);
 	if (sd) LocalFree(sd);
 	g_free(wpath);
+}
+
+/* Grant `access` on `path`, inherited to the whole subtree (the common case:
+ * writable/readable roots). */
+static void grant_appcontainer(const char *path, DWORD access, PSID sid) {
+	grant_appcontainer_ex(path, access, SUB_CONTAINERS_AND_OBJECTS_INHERIT, sid);
 }
 
 /* Fall back to a plain unsandboxed g_spawn (fail-open policy, matches Linux). */
@@ -1390,6 +1408,17 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 	{
 		const char *home = g_get_home_dir();
 		GDir *hd = home ? g_dir_open(home, 0, NULL) : NULL;
+		/* Directory-LISTING only on $HOME itself, NOT inherited to children
+		 * (NO_INHERITANCE) — lets a script list/glob the home directory without
+		 * exposing any dot-dir's contents (the child dirs get no ACE, so
+		 * AppContainer's read-deny-by-default still blocks them). Mirrors the
+		 * Linux READ_DIR-only grant on $HOME; on Windows the non-inherited ACE
+		 * leaks even less (only the top-level dot-dir names, not their listings).
+		 * See securescripts-spec.md §13. */
+		if (home && *home)
+			grant_appcontainer_ex(home,
+				FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE,
+				NO_INHERITANCE, container_sid);
 		if (hd) {
 			const char *name;
 			while ((name = g_dir_read_name(hd))) {
