@@ -794,7 +794,7 @@ struct registration_method *get_selected_registration_method(int *index) {
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
  */
-void update_reg_interface(gboolean dont_change_reg_radio) {
+static void update_reg_interface_now(gboolean dont_change_reg_radio) {
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method = NULL;
 	gboolean selection_is_done;
@@ -961,6 +961,18 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_label_set_text(estimate_label, "");
 	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
 	gtk_widget_set_sensitive(GTK_WIDGET(proj_estimate), ready);
+}
+
+static gboolean update_reg_interface_idle(gpointer p) {
+	update_reg_interface_now(GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
+/* Callable from any thread: commands like seq_clean and set_ref refresh the
+ * registration tab and run on the script / python connection worker thread
+ * when scripted, while GTK is main-thread-only. */
+void update_reg_interface(gboolean dont_change_reg_radio) {
+	gui_function(update_reg_interface_idle, GINT_TO_POINTER(dont_change_reg_radio));
 }
 
 // Functions to collect GUI data

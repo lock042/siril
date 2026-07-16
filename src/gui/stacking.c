@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
@@ -621,7 +622,7 @@ static void update_filter_label() {
  * all data related to stacking is set in stackparam, except the method itself,
  * determined at stacking start.
  */
-void update_stack_interface(gboolean dont_change_stack_type) {
+static void update_stack_interface_now(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
 			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
 			*upscale_at_stacking = NULL, *blend_frame = NULL, *overlap_norm = NULL;
@@ -738,4 +739,16 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	} else {
 		gtk_widget_set_sensitive(go_stack, FALSE);
 	}
+}
+
+static gboolean update_stack_interface_idle(gpointer p) {
+	update_stack_interface_now(GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
+/* Callable from any thread: commands like seq_clean and set_ref refresh the
+ * stacking tab and run on the script / python connection worker thread when
+ * scripted, while GTK is main-thread-only. */
+void update_stack_interface(gboolean dont_change_stack_type) {
+	gui_function(update_stack_interface_idle, GINT_TO_POINTER(dont_change_stack_type));
 }

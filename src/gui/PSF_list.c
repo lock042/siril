@@ -719,20 +719,27 @@ void refresh_star_list(){
 	fill_stars_list(&gfit, com.stars);
 }
 
-/* this can be called from any thread as long as refresh_GUI is false, it's
- * synchronized with the main thread with a mutex */
+static gboolean clear_stars_gui_idle(gpointer p) {
+	if (GPOINTER_TO_INT(p)) {
+		get_stars_list_store();
+		gtk_list_store_clear(liststore_stars);
+	}
+	display_status();
+	return FALSE;
+}
+
+/* this can be called from any thread: the star data update is synchronized
+ * with the main thread by a mutex, and the GUI refresh runs on the main
+ * thread (commands like rebayer call this with refresh_GUI from the script /
+ * python connection worker thread) */
 void clear_stars_list(gboolean refresh_GUI) {
 	g_mutex_lock(&com.mutex); // Lock at the beginning to protect the check and modification
 	psf_star **stars = com.stars;
+	gboolean had_stars = stars != NULL;
 
 	if (stars) {
 		com.stars = NULL; // Set com.stars to NULL while holding the lock
 		g_mutex_unlock(&com.mutex);
-
-		if (refresh_GUI && !com.headless) {
-			get_stars_list_store();
-			gtk_list_store_clear(liststore_stars);
-		}
 
 		if (stars[0]) {
 			/* freeing found stars. It must not be done when the only star in
@@ -752,7 +759,7 @@ void clear_stars_list(gboolean refresh_GUI) {
 	com.star_is_seqdata = FALSE;
 	gui.selected_star = -1;
 	if (refresh_GUI && !com.headless)
-		display_status();
+		gui_function(clear_stars_gui_idle, GINT_TO_POINTER(had_stars));
 }
 
 gboolean clear_stars_list_as_idle(gpointer user_data) {

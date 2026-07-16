@@ -487,8 +487,15 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEHEIF;
 	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
 		return TYPEAVIF;
-	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
-		(magic[0] == 0xFF && magic[1] == 0x0A)))
+	// JPEG XL comes in two flavours: a raw codestream starting with the
+	// 2-byte marker FF 0A, or an ISO/IEC 18181-2 container whose first box
+	// is the 12-byte signature box 00 00 00 0C "JXL " 0D 0A 87 0A. libjxl
+	// decodes both, but only the codestream was recognised here, so
+	// containerised files (e.g. saved by GIMP or libjxl >= 0.12 for high
+	// bit-depth images) were rejected before reaching the decoder.
+	if (bytes_read >= 2 && magic[0] == 0xFF && magic[1] == 0x0A)
+		return TYPEJXL;
+	if (bytes_read >= 12 && memcmp(magic, "\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A", 12) == 0)
 		return TYPEJXL;
 	return TYPEUNDEF;
 }
