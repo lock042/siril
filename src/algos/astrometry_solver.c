@@ -1917,7 +1917,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	return SOLVE_OK;
 }
 
-// inputs: focal length, pixel size, manual, fit, autocrop, downsample, mag_mode and mag_arg
+// inputs: focal length, pixel size, manual, fit, autocrop, downsample, mag_mode and mag_arg, searchradius
 // outputs: scale, used_fov, uncentered, solvearea, limit_mag, near_solve, catalogue
 void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
