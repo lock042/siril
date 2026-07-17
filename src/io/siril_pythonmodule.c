@@ -4109,6 +4109,30 @@ static void relocate_pkg_caches(gchar ***env, const gchar *cache_dir) {
 			*env = g_environ_setenv(*env, "XDG_DATA_DIRS",   new_data, TRUE);
 			g_free(new_cfg);
 			g_free(new_data);
+
+#ifdef __linux__
+			// dconf (GNOME/GTK theme via gsettings) reads its user DB at
+			// XDG_CONFIG_HOME/dconf/user but does NOT honour XDG_CONFIG_DIRS, so the
+			// search-path trick above cannot reach the real DB. Point the relocated
+			// config's dconf dir at the real one with a symlink
+			// (<scratch>/config/dconf -> ~/.config/dconf), so dconf reads the user's
+			// real settings (granted read via the appearance carve-out). Best-effort;
+			// skipped if the real dir is absent or something already exists there.
+			gchar *scratch_cfg = g_build_filename(cache_dir, "config", NULL);
+			g_mkdir_with_parents(scratch_cfg, 0700);
+			gchar *scratch_dconf = g_build_filename(scratch_cfg, "dconf", NULL);
+			if (g_file_test(real_cfg, G_FILE_TEST_IS_DIR)) {
+				gchar *real_dconf = g_build_filename(real_cfg, "dconf", NULL);
+				if (g_file_test(real_dconf, G_FILE_TEST_IS_DIR)
+						&& !g_file_test(scratch_dconf, G_FILE_TEST_EXISTS)
+						&& symlink(real_dconf, scratch_dconf) != 0)
+					siril_log_debug("dconf theme symlink skipped (%s)\n",
+							g_strerror(errno));
+				g_free(real_dconf);
+			}
+			g_free(scratch_dconf);
+			g_free(scratch_cfg);
+#endif
 			g_free(real_cfg);
 			g_free(real_data);
 		}

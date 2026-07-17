@@ -1095,6 +1095,36 @@ static gchar *build_seatbelt_profile(const SirilSandboxPolicy *policy,
 	sb_allow_subpath(p, "file-read*", siril_get_scripts_repo_path());
 	sb_allow_subpath(p, "file-read*", siril_get_spcc_repo_path());
 	sb_allow_subpath(p, "file-read*", policy->script_dir);
+
+	/* uv executable (parity with the Linux uv-path grant): a sandboxed script may
+	 * invoke uv, and a user-installed uv frequently lives under ~/.local/bin or
+	 * ~/.cargo/bin — hidden ~/... paths the dot-deny above would block. Grant read
+	 * on its realpath dir. A bundled uv (on PATH inside the app) is not a dot-path
+	 * and is already readable via (allow default). */
+	if (policy->uv_path && *policy->uv_path) {
+		char *real = realpath(policy->uv_path, NULL);
+		if (real) {
+			gchar *dir = g_path_get_dirname(real);
+			sb_allow_subpath(p, "file-read*", dir);
+			g_free(dir);
+			free(real);
+		}
+	}
+
+	/* GPU: on macOS the compute path is Metal/MPS via IOKit + system frameworks,
+	 * which (allow default) already permits — there is no /dev/nvidia analogue to
+	 * grant, and thread-naming/POSIX-shm are likewise allowed by default, so the
+	 * Linux device/`/proc/self/task`/`/dev/shm` carve-outs have no macOS equivalent
+	 * to add. The one thing write-confinement would block is the Metal shader
+	 * cache; when the script declared [tool.siril.gpu], allow writing it under
+	 * ~/Library/Caches (cache only, no secrets) so shaders are not recompiled every
+	 * run. Not fatal if absent — MPS falls back to recompilation. */
+	if (policy->gpu) {
+		const char *home = g_get_home_dir();
+		gchar *mcache = home ? g_build_filename(home, "Library", "Caches", NULL) : NULL;
+		sb_allow_subpath(p, "file-write*", mcache);
+		g_free(mcache);
+	}
 	/* Per-script extra read paths (granted manifest) — the escape hatch for a
 	 * $HOME dot-dir the cache relocation does not cover. After the deny so they
 	 * win. */
@@ -1540,6 +1570,17 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 		g_free(interp_dir);
 	}
 
+	/* uv executable (parity with the Linux/macOS uv-path grant): a sandboxed
+	 * script may invoke uv; grant RX on its directory in case it lives outside the
+	 * already-granted trees. A uv bundled under the app is usually covered by the
+	 * interpreter grants, so this is belt-and-braces. */
+	if (policy->uv_path && *policy->uv_path) {
+		gchar *uvdir = g_path_get_dirname(policy->uv_path);
+		if (uvdir && *uvdir)
+			grant_appcontainer(uvdir, RX, container_sid);
+		g_free(uvdir);
+	}
+
 	/* Read confinement (§13.4): withhold the credential dot-dirs. AppContainer
 	 * is deny-by-default for reads, so grant RX only on the NON-hidden top-level
 	 * entries of the user profile — covers Pictures/Documents/astro/… while
@@ -1586,6 +1627,38 @@ gboolean siril_sandbox_spawn(const char *working_dir, gchar **argv, gchar **envp
 				g_free(full);
 			}
 			g_dir_close(hd);
+		}
+	}
+
+	/* GPU: when the script declared [tool.siril.gpu], grant RW on the GPU runtime
+	 * cache/profile locations under the user profile. These live in AppData, which
+	 * the non-hidden-home rule above withholds, so CUDA / DirectML would fail to
+	 * read app-profiles or write their JIT / shader cache — the Windows analogue of
+	 * the Linux ~/.nv grant. Best-effort; skipped if a path is absent.
+	 *
+	 * IMPORTANT / UNVERIFIED (no Windows toolchain in this environment): these FS
+	 * grants are necessary but likely NOT sufficient for GPU *compute* under
+	 * AppContainer.
+	 *   - DirectML / onnxruntime-directml (D3D12) is the AppContainer-friendly path
+	 *     — the Torch/ONNX helpers already default to DirectML for Windows GPUs —
+	 *     and has the best chance of working inside the container.
+	 *   - CUDA (torch-cuda / onnxruntime-gpu) needs direct NVIDIA kernel-driver
+	 *     access (\\.\ device objects) that AppContainer brokers restrictively and
+	 *     may simply fail to initialise; such a script would then need
+	 *     `unsandboxed = true` on Windows. This whole block wants validation on a
+	 *     real Windows machine (see the LIMITATIONS header). */
+	if (policy->gpu) {
+		const char *lad = g_get_user_data_dir();   /* %LOCALAPPDATA% on Windows */
+		const char *rad = g_getenv("APPDATA");      /* roaming AppData           */
+		gchar *gpu_paths[] = {
+			lad ? g_build_filename(lad, "NVIDIA", NULL) : NULL,
+			lad ? g_build_filename(lad, "D3DSCache", NULL) : NULL,
+			rad ? g_build_filename(rad, "NVIDIA", NULL) : NULL,
+			NULL
+		};
+		for (int i = 0; gpu_paths[i]; i++) {
+			grant_appcontainer(gpu_paths[i], RW, container_sid);
+			g_free(gpu_paths[i]);
 		}
 	}
 
