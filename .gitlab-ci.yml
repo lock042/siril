@@ -221,7 +221,7 @@ macos:
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 536fca2ed5a6f65360265ed3f5550c35264d19e8
+    SM_REPO_REF: 9fa897a435966e5963997ee0e6e6e1eef0bcf49f
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
