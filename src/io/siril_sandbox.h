@@ -48,7 +48,17 @@ typedef struct {
 	const char *venv_path;
 	const char *script_dir;
 	const char *cache_dir;
+	const char *uv_path;          /* resolved uv executable, or NULL. Granted
+	                               * read+exec so a sandboxed script can run it
+	                               * even when it lives in a hidden home dir
+	                               * (~/.local/bin, ~/.cargo/bin) that read-
+	                               * confinement would otherwise withhold. */
 	gboolean allow_network;
+	gboolean gpu;                 /* script declared [tool.siril.gpu]: grant rw on
+	                               * the GPU compute device nodes (/dev/dri,
+	                               * /dev/kfd, /dev/nvidia*). Withheld otherwise so
+	                               * a non-GPU script gets no GPU-driver ioctl
+	                               * attack surface / VRAM-residue channel. */
 	const char * const *extra_write_paths;
 	const char * const *extra_read_paths;
 	gboolean unsandboxed;

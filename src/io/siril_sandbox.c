@@ -555,6 +555,64 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy,
 			sandbox_add_path(pl, al, "/dev/null", rw);
 			sandbox_add_path(pl, al, "/dev/zero", rw);
 			sandbox_add_path(pl, al, "/dev/full", rw);
+			/* /proc/self/task: multithreaded libraries name their worker threads
+			 * by writing /proc/self/task/<tid>/comm (pthread_setname_np for a
+			 * thread other than the caller). The NVIDIA/CUDA runtime does this
+			 * during init and — unlike most libraries — treats the write failing
+			 * (EACCES on read-only /proc) as fatal, so CUDA aborts with error 304
+			 * and falls back to CPU. This is the process's OWN task dir: a process
+			 * already has full control over its own threads, so granting write here
+			 * adds no cross-process capability, it just lets thread naming succeed.
+			 * "/proc/self" resolves in the child to its own /proc/<pid>. */
+			sandbox_add_path(pl, al, "/proc/self/task", rw);
+			/* POSIX shared memory (/dev/shm): Siril's pixel-data IPC passes image
+			 * buffers through shm_open(), and Python's multiprocessing
+			 * SharedMemory opens the segment O_RDWR even just to *attach* — so a
+			 * read-only /dev is not enough. Without write here, retrieving gfit
+			 * pixels or set_image_pixeldata() fails with EACCES ("Failed to create
+			 * shared memory mapping: Permission denied"). tmpfs, DAC still applies. */
+			sandbox_add_path(pl, al, "/dev/shm", rw);
+			/* GPU compute device nodes, read+write — ONLY for scripts that declared
+			 * [tool.siril.gpu] (policy->gpu). CUDA / ROCm / oneAPI open these O_RDWR
+			 * and ioctl/mmap them, so GPU ML needs write (a read-only /dev makes
+			 * CUDA init fail with error 304 and fall back to CPU). This is DAC-safe
+			 * (the user already has group/ACL access to their own GPU nodes; Landlock
+			 * cannot widen DAC), but it does expose the large GPU-driver ioctl attack
+			 * surface (seccomp does not filter ioctl) and the VRAM-residue info-leak
+			 * channel — so it is withheld from the ~70 non-GPU scripts and granted
+			 * only to consent-gated GPU ones. /dev/dri = Intel/AMD render nodes,
+			 * /dev/kfd = AMD ROCm; every /dev/nvidia* char device (nvidia0…,
+			 * nvidiactl, nvidia-uvm, nvidia-modeset, nvidia-caps) is enumerated.
+			 * All skipped if absent. */
+			if (policy->gpu) {
+				sandbox_add_path(pl, al, "/dev/dri", rw);
+				sandbox_add_path(pl, al, "/dev/kfd", rw);
+				GDir *dd = g_dir_open("/dev", 0, NULL);
+				if (dd) {
+					const char *dname;
+					while ((dname = g_dir_read_name(dd))) {
+						if (g_str_has_prefix(dname, "nvidia")) {
+							gchar *full = g_build_filename("/dev", dname, NULL);
+							sandbox_add_path(pl, al, full, rw);
+							g_free(full);
+						}
+					}
+					g_dir_close(dd);
+				}
+				/* ~/.nv: the NVIDIA driver reads its per-user application-profile
+				 * files from here and writes the CUDA JIT cache to
+				 * ~/.nv/ComputeCache. It is a hidden dot-dir, so read-confinement
+				 * withholds it — and when the dir EXISTS but is unreadable (EACCES,
+				 * exactly what Landlock yields) libcuda fails init with error 304
+				 * instead of falling back to defaults, forcing CPU. Grant it rw for
+				 * GPU scripts: it holds only driver state (no user secrets) and is
+				 * GPU-consent-gated. Skipped if absent (then the driver just gets
+				 * ENOENT and uses defaults, which is harmless). */
+				const char *home = g_get_home_dir();
+				gchar *nvdir = home ? g_build_filename(home, ".nv", NULL) : NULL;
+				sandbox_add_path(pl, al, nvdir, rw);
+				g_free(nvdir);
+			}
 			if (policy->extra_write_paths)
 				for (const char * const *p = policy->extra_write_paths; *p; p++)
 					sandbox_add_path(pl, al, *p, rw);
@@ -609,6 +667,24 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy,
 				}
 			}
 
+			/* uv executable: a sandboxed script may invoke uv at runtime to
+			 * install the recorded GPU variant into its own venv from the shared
+			 * cache (TorchHelper.ensure_torch() / ONNXHelper.ensure_onnxruntime()).
+			 * uv frequently lives in a hidden home dir (~/.local/bin,
+			 * ~/.cargo/bin) that the non-hidden-$HOME rule withholds, so grant its
+			 * realpath dir explicitly (read; EXECUTE is not in the handled mask,
+			 * so exec itself is unrestricted). A snap uv (/snap/bin/uv) is already
+			 * covered by the /snap grant above. Skipped if NULL/absent. */
+			if (policy->uv_path && *policy->uv_path) {
+				char *real = realpath(policy->uv_path, NULL);
+				if (real) {
+					gchar *dir = g_path_get_dirname(real);
+					sandbox_add_path(pl, al, dir, rd);
+					g_free(dir);
+					free(real);
+				}
+			}
+
 			/* Removable / external media mount parents. A Landlock grant on
 			 * the parent covers volumes mounted underneath it, INCLUDING ones
 			 * mounted after the child starts (verified: landlock_mount_test).
@@ -656,6 +732,41 @@ static SirilSandbox *sandbox_prepare(const SirilSandboxPolicy *policy,
 					}
 					g_dir_close(hd);
 				}
+			}
+
+			/* Appearance carve-out: GUI (PyQt6) scripts pick up the user's
+			 * system theme by reading theme/icon/font config that lives in hidden
+			 * dot-dirs (~/.config, ~/.local/share, ~/.*). These hold NO secrets —
+			 * only colours, fonts, icon/theme choices — so grant READ on a curated
+			 * allow-list (global; theming applies to every GUI script). Paired with
+			 * the XDG_CONFIG_DIRS/XDG_DATA_DIRS search-path entries set in
+			 * relocate_pkg_caches() so the toolkits actually look at the real
+			 * ~/.config / ~/.local/share (their XDG_*_HOME points at the empty
+			 * scratch). Missing paths are skipped. Deliberately does NOT grant
+			 * ~/.config or ~/.local/share as a whole — that would re-expose
+			 * credentials (~/.config/gcloud, ~/.local/share/keyrings, …). */
+			{
+				const char *ahome = g_get_home_dir();
+				static const char *const appearance[] = {
+					".config/kdeglobals", ".config/kdedefaults",
+					".config/kcminputrc",
+					".config/gtk-3.0", ".config/gtk-4.0", ".config/gtkrc",
+					".config/qt5ct", ".config/qt6ct", ".config/Kvantum",
+					".config/fontconfig", ".config/xsettingsd",
+					".config/Trolltech.conf", ".config/dconf",
+					".gtkrc-2.0", ".icons", ".themes", ".fonts",
+					".fonts.conf", ".Xresources", ".Xdefaults",
+					".local/share/icons", ".local/share/themes",
+					".local/share/color-schemes", ".local/share/aurorae",
+					".local/share/plasma", ".local/share/fonts",
+					NULL
+				};
+				if (ahome && *ahome)
+					for (int i = 0; appearance[i]; i++) {
+						gchar *full = g_build_filename(ahome, appearance[i], NULL);
+						sandbox_add_path(pl, al, full, rd);
+						g_free(full);
+					}
 			}
 
 			/* Per-script extra read paths (granted manifest): the escape hatch

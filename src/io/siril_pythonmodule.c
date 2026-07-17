@@ -117,9 +117,10 @@ static gboolean uv_install_sirilpy_into_venv(const gchar *uv_path,
                                              const gchar *project_path,
                                              GError **error);
 
-// Cached uv path. NULL when uv is not in use (either the SIRIL_USE_UV gate is
-// off, uv was not found, or the discovered uv was too old). Set by
-// probe_uv_executable(), cleared by rebuild_venv(). Owned by this TU.
+// Cached uv path. NULL only when uv was not found or is too old — which is now
+// a fatal Python-init error (uv is required), so past initialization this is
+// always non-NULL. Set by probe_uv_executable(), cleared by rebuild_venv().
+// Owned by this TU.
 //
 // All access is serialised through g_uv_mutex. In practice the path is set
 // once on the init thread and read by venv operations that follow on the
@@ -2554,38 +2555,32 @@ static gboolean validate_uv_version(const gchar *uv_path,
 	return ok;
 }
 
-// Probe for uv and cache the result. uv is used by default when it is
-// present and ≥ UV_MINIMUM_VERSION; set SIRIL_USE_UV=0 to force the
-// legacy pip path (e.g. for debugging or to reproduce a 1.4-style
-// run). On success g_uv_path holds the absolute path; on failure
-// g_uv_path is NULL and the legacy pip path is used automatically.
+// Probe for uv and cache the result. uv is REQUIRED: it is the only backend
+// that understands the PEP 723 inline dependencies this integration provisions
+// each script's venv from (pip has no PEP 723 support), so the former "legacy
+// pip" fallback can no longer set up a working environment and has been removed.
+// On success g_uv_path holds the absolute path; on failure g_uv_path stays NULL
+// and initialize_python_venv() aborts Python init with a fatal error — the same
+// treatment as a missing Python interpreter.
 //
 // Safe to call repeatedly; each call resets state and re-probes (so that
 // rebuild_*_venv() picks up a freshly installed uv).
 static void probe_uv_executable(void) {
 	clear_uv_state();
 
-	const gchar *gate = g_getenv("SIRIL_USE_UV");
-	if (gate && g_strcmp0(gate, "0") == 0) {
-		siril_log_debug("SIRIL_USE_UV=0, skipping uv probe (legacy pip path forced)\n");
-		return;
-	}
-
 	GError *error = NULL;
 	gchar *uv = find_uv_executable(&error);
 	if (!uv) {
-		siril_log_message(_("uv was not found (%s). Legacy pip path will "
-				"be used; install uv to enable the uv-managed Python "
-				"interpreter and faster venv setup.\n"),
-				error ? error->message : "unknown");
+		siril_log_warning(_("uv was not found: %s. uv is required for Python "
+				"script support.\n"), error ? error->message : "unknown");
 		g_clear_error(&error);
 		return;
 	}
 
 	if (!validate_uv_version(uv, UV_MINIMUM_VERSION, &error)) {
-		siril_log_warning(_("Found uv at %s but it is unusable: %s. "
-				"Legacy pip path will be used.\n"),
-				uv, error ? error->message : "unknown");
+		siril_log_warning(_("Found uv at %s but it is unusable: %s. A newer uv "
+				"(>= %s) is required for Python script support.\n"),
+				uv, error ? error->message : "unknown", UV_MINIMUM_VERSION);
 		g_clear_error(&error);
 		g_free(uv);
 		return;
@@ -2971,6 +2966,191 @@ static siril_script_perms *parse_siril_permissions(const gchar *source,
 static gboolean perms_request_is_elevated(const siril_script_perms *p) {
 	return p && p->present && (p->unsandboxed || p->network ||
 			p->write_paths->len > 0 || p->read_paths->len > 0);
+}
+
+// ---- [tool.siril.gpu] manifest --------------------------------------------
+// A script that needs a GPU ML framework declares it here rather than as a
+// normal PEP 723 dependency, because the correct wheel (CUDA / ROCm / DirectML /
+// CPU variant) is hardware-specific and is chosen + recorded by GPU_Manager.py,
+// not resolved by uv. Siril installs the recorded variant into the script's venv
+// during UNSANDBOXED provisioning (provision_gpu_frameworks), so the sandboxed
+// script itself never has to invoke uv — which is what makes this work with a
+// snap-packaged uv (snap-confine cannot elevate under the sandbox's
+// no_new_privs). `extra` lists ordinary packages that depend on the framework
+// (e.g. spandrel needs torch) and so must be installed AFTER it.
+//
+//   # [tool.siril.gpu]
+//   # torch = true
+//   # extra = ["spandrel"]
+typedef struct {
+	gboolean present;
+	gboolean torch;
+	gboolean onnxruntime;
+	gboolean jax;
+	GPtrArray *extra;   // gchar* package names, installed after the framework(s)
+} script_gpu_req;
+
+static void script_gpu_req_free(script_gpu_req *g) {
+	if (!g) return;
+	if (g->extra) g_ptr_array_free(g->extra, TRUE);
+	g_free(g);
+}
+
+static gboolean script_gpu_req_any(const script_gpu_req *g) {
+	return g && (g->torch || g->onnxruntime || g->jax ||
+			(g->extra && g->extra->len > 0));
+}
+
+static script_gpu_req *parse_script_gpu(const gchar *source) {
+	script_gpu_req *g = g_new0(script_gpu_req, 1);
+	g->extra = g_ptr_array_new_with_free_func(g_free);
+
+	GString *cleaned = pep723_cleaned_block(source);
+	if (!cleaned) return g;
+
+	GRegex *tbl_re = g_regex_new(
+			"^\\[tool\\.siril\\.gpu\\]\\s*$([\\s\\S]*?)(?=^\\[|\\z)",
+			G_REGEX_MULTILINE, 0, NULL);
+	gchar *table = NULL;
+	if (tbl_re) {
+		GMatchInfo *tm = NULL;
+		if (g_regex_match(tbl_re, cleaned->str, 0, &tm))
+			table = g_match_info_fetch(tm, 1);
+		g_match_info_free(tm);
+		g_regex_unref(tbl_re);
+	}
+	g_string_free(cleaned, TRUE);
+	if (!table) return g;
+
+	g->present = TRUE;
+	const struct { const char *key; gboolean *flag; } bools[] = {
+		{ "torch",       &g->torch },
+		{ "onnxruntime", &g->onnxruntime },
+		{ "jax",         &g->jax },
+	};
+	for (gsize i = 0; i < G_N_ELEMENTS(bools); i++) {
+		gchar *pat = g_strdup_printf("^%s\\s*=\\s*true\\b", bools[i].key);
+		GRegex *re = g_regex_new(pat, G_REGEX_MULTILINE, 0, NULL);
+		g_free(pat);
+		if (re) {
+			*bools[i].flag = g_regex_match(re, table, 0, NULL);
+			g_regex_unref(re);
+		}
+	}
+	// `extra` package names have no path tokens; parse_perm_path_array with a
+	// NULL workdir leaves them unchanged.
+	parse_perm_path_array(table, "extra", g->extra, NULL);
+	g_free(table);
+	return g;
+}
+
+// Best-effort: ensure the NVIDIA kernel modules + device nodes exist BEFORE the
+// sandbox is built. CUDA lazily creates /dev/nvidia-uvm via the setuid-root
+// nvidia-modprobe helper on first use, but the sandbox's PR_SET_NO_NEW_PRIVS
+// makes that setuid elevation fail (the same wall as snap-confine), so the node
+// never appears and cudaSetDevice() dies with error 304 ("OS call failed"),
+// forcing a CPU fallback. Running nvidia-modprobe here — UNSANDBOXED, before the
+// spawn and before the sandbox enumerates /dev — creates /dev/nvidia0,
+// /dev/nvidiactl and /dev/nvidia-uvm[-tools] so the confined child can open them
+// under the GPU device grant. Silently skipped when nvidia-modprobe is absent
+// (AMD/Intel, or no NVIDIA driver); ROCm (/dev/kfd) and Intel (/dev/dri) nodes
+// are created by their drivers at boot and need no equivalent. Idempotent and
+// cheap, so calling it on every GPU-script launch is fine.
+static void warmup_nvidia_devices(void) {
+	gchar *nm = g_find_program_in_path("nvidia-modprobe");
+	if (!nm)
+		return;
+	gchar *argv[] = { nm, "-u", "-c", "0", NULL };
+	GError *e = NULL;
+	if (!g_spawn_sync(NULL, argv, NULL,
+			G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+			NULL, NULL, NULL, NULL, NULL, &e))
+		siril_log_debug("nvidia-modprobe warm-up skipped: %s\n",
+				e ? e->message : "unknown");
+	g_clear_error(&e);
+	g_free(nm);
+}
+
+// Install the GPU framework(s) a script declared in [tool.siril.gpu] into its
+// venv, UNSANDBOXED (this is provisioning, before the sandboxed script runs).
+// Installs only a variant the user has already recorded via GPU_Manager.py
+// (load_gpu_preferences), so it is a fast hard-link from the shared uv cache and
+// never a surprise multi-GB heuristic download. `extra` packages install after
+// the framework so torch-dependent wheels resolve against it. Best-effort: any
+// failure is logged and does NOT block the script — the script's own import
+// guard then tells the user to run the GPU Manager. Idempotent, so it is safe to
+// call on every launch (ensure_*'s fast path is a no-op when already satisfied,
+// and it re-syncs the venv if the user later changes the recorded variant).
+static void provision_gpu_frameworks(const gchar *venv_python,
+                                     const script_gpu_req *gpu) {
+	if (!venv_python || !script_gpu_req_any(gpu))
+		return;
+
+	GString *prog = g_string_new(
+		"import sys\n"
+		"try:\n"
+		"    import sirilpy.gpuhelper as _g\n"
+		"    _p = _g.load_gpu_preferences()\n"
+		"    _have = False\n");
+	if (gpu->torch)
+		g_string_append(prog,
+			"    if 'torch' in _p:\n"
+			"        _g.TorchHelper().ensure_torch(); _have = True\n");
+	if (gpu->onnxruntime)
+		g_string_append(prog,
+			"    if 'onnxruntime' in _p:\n"
+			"        _g.ONNXHelper().ensure_onnxruntime(); _have = True\n");
+	if (gpu->jax)
+		g_string_append(prog,
+			"    if 'jax' in _p:\n"
+			"        _g.JaxHelper().ensure_jax(); _have = True\n");
+	if (gpu->extra && gpu->extra->len > 0) {
+		// Only install the extras once a framework variant is actually present,
+		// so a torch-dependent wheel (spandrel) does not pull a CPU torch when
+		// the user has not set up the GPU framework via GPU_Manager yet.
+		g_string_append(prog,
+			"    if _have:\n"
+			"        import sirilpy as _s\n"
+			"        _s.ensure_installed(");
+		for (guint i = 0; i < gpu->extra->len; i++) {
+			gchar *esc = g_strescape(g_ptr_array_index(gpu->extra, i), NULL);
+			g_string_append_printf(prog, "%s\"%s\"", i ? ", " : "", esc);
+			g_free(esc);
+		}
+		g_string_append(prog, ")\n");
+	}
+	g_string_append(prog,
+		"except Exception as _e:\n"
+		"    print('GPU provisioning: %s' % _e, file=sys.stderr)\n"
+		"    sys.exit(1)\n");
+
+	gchar *project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+	gchar *argv[] = { (gchar *)venv_python, "-c", prog->str, NULL };
+	gchar **env = g_get_environ();
+	inject_uv_env(&env, project_path);   // shared UV_CACHE_DIR (as GPU_Manager)
+	env = g_environ_setenv(env, "SIRIL_DATA_DIR", project_path, TRUE);  // gpu-prefs.json
+
+	siril_log_message(_("Checking the script's GPU framework(s)…\n"));
+	gchar *sout = NULL, *serr = NULL;
+	gint status = 0;
+	GError *err = NULL;
+	gboolean ok = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT, NULL, NULL,
+			&sout, &serr, &status, &err);
+	g_strfreev(env);
+	g_free(project_path);
+	if (!ok || !g_spawn_check_wait_status(status, NULL)) {
+		siril_log_warning(_("Could not provision GPU framework(s) for this "
+				"script: %s. The script will still run; if it needs a GPU "
+				"framework, install it with the GPU Manager script.\n"),
+				(serr && *serr) ? g_strchomp(serr)
+						: (err ? err->message : "unknown"));
+	} else if (sout && *sout) {
+		siril_log_debug("GPU provisioning output:\n%s\n", sout);
+	}
+	g_clear_error(&err);
+	g_free(sout);
+	g_free(serr);
+	g_string_free(prog, TRUE);
 }
 
 // ---- remembered consent store (phase C) --------------------------------
@@ -3903,6 +4083,36 @@ static void relocate_pkg_caches(gchar ***env, const gchar *cache_dir) {
 	};
 	for (int i = 0; clear[i]; i++)
 		*env = g_environ_unsetenv(*env, clear[i]);
+
+	// Theme/appearance integration. Qt/KDE/GTK read their theme (kdeglobals,
+	// gtk settings, qt6ct, fontconfig, icon/colour themes) from XDG_CONFIG_HOME /
+	// XDG_DATA_HOME — which we have just pointed at the empty scratch, so a GUI
+	// script would lose the user's system theme and fall back to distro defaults.
+	// Add the user's REAL ~/.config and ~/.local/share to the *_DIRS SEARCH path
+	// (read-only, and lower priority than the scratch *_HOME so package WRITES
+	// still land in the scratch, not the real dirs). This only tells the toolkits
+	// WHERE to look; actual read access is still gated by Landlock, which grants
+	// only the appearance files (see the carve-out in siril_sandbox.c) — secrets
+	// elsewhere under ~/.config / ~/.local/share stay withheld.
+	{
+		const gchar *home = g_get_home_dir();
+		if (home && *home) {
+			gchar *real_cfg  = g_build_filename(home, ".config", NULL);
+			gchar *real_data = g_build_filename(home, ".local", "share", NULL);
+			const gchar *cur_cfg  = g_environ_getenv(*env, "XDG_CONFIG_DIRS");
+			const gchar *cur_data = g_environ_getenv(*env, "XDG_DATA_DIRS");
+			gchar *new_cfg  = g_strdup_printf("%s:%s", real_cfg,
+					(cur_cfg && *cur_cfg) ? cur_cfg : "/etc/xdg");
+			gchar *new_data = g_strdup_printf("%s:%s", real_data,
+					(cur_data && *cur_data) ? cur_data : "/usr/local/share:/usr/share");
+			*env = g_environ_setenv(*env, "XDG_CONFIG_DIRS", new_cfg, TRUE);
+			*env = g_environ_setenv(*env, "XDG_DATA_DIRS",   new_data, TRUE);
+			g_free(new_cfg);
+			g_free(new_data);
+			g_free(real_cfg);
+			g_free(real_data);
+		}
+	}
 }
 
 // Returns TRUE if uv's managed Python install dir already contains an
@@ -5535,8 +5745,10 @@ static gboolean uv_create_or_check_base_venv(const gchar *project_path,
 	return TRUE;
 }
 
-// Legacy `python -m venv` path. Kept for fallback when uv is not in use
-// (either SIRIL_USE_UV gate off, uv not installed, or uv too old).
+// Legacy `python -m venv` path. DEAD CODE as of the uv-required change: uv is
+// now mandatory (Python init aborts fatally without it), so check_or_create_venv
+// never reaches this fallback. Retained until the follow-up cleanup that deletes
+// the legacy pip/venv paths wholesale; do not wire new callers to it.
 static gboolean legacy_check_or_create_venv(const gchar *project_path, GError **error) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	siril_log_debug("venv path: %s\n", venv_path);
@@ -5788,11 +6000,18 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
-	// Phase 0: probe for uv. uv is used by default (com.pref.python.uv_managed
-	// = TRUE) and the binary distributions all bundle it; SIRIL_USE_UV=0
-	// or the prefs toggle can force the legacy pip path. Logs only; venv
-	// setup below decides whether to call uv or fall back.
+	// Phase 0: probe for uv. uv is REQUIRED — it is the only backend that can
+	// install the PEP 723 inline dependencies each script's venv is provisioned
+	// from (the old pip fallback cannot, so it has been removed). The binary
+	// distributions all bundle uv; source builds must install it.
 	probe_uv_executable();
+	if (!get_uv_executable_path()) {
+		siril_log_error(_("Failed to initialize Python: uv was not found or is "
+				"too old (minimum %s). uv is required for Python script support "
+				"— please install uv and restart Siril.\n"), UV_MINIMUM_VERSION);
+		g_free(project_path);
+		return GINT_TO_POINTER(1);
+	}
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
@@ -6291,11 +6510,37 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		gchar *perm_src = NULL;
 		gchar **granted_write = NULL, **granted_read = NULL;
 		gboolean granted_network = FALSE, granted_unsandboxed = FALSE;
+		gboolean want_gpu = FALSE;
 		{
 			const gchar *src_for_perms = script_name;
 			if (from_file && script_name
 					&& g_file_get_contents(script_name, &perm_src, NULL, NULL))
 				src_for_perms = perm_src;
+
+			// Provision any GPU framework the script declared in [tool.siril.gpu]
+			// into its venv now, UNSANDBOXED, so the sandboxed script can simply
+			// import it. A sandboxed script cannot install it itself: a snap-
+			// packaged uv fails under the sandbox's no_new_privs (snap-confine
+			// cannot elevate). Best-effort — a failure never blocks the script.
+			// want_gpu also gates the GPU device-node grant in the sandbox policy.
+			if (venv_path) {
+				script_gpu_req *gpu = parse_script_gpu(src_for_perms);
+				if (script_gpu_req_any(gpu)) {
+					want_gpu = TRUE;
+					// Warm up NVIDIA modules/nodes before the sandbox is built, so
+					// CUDA's setuid nvidia-modprobe path (blocked by no_new_privs
+					// once confined) is not needed inside the child.
+					if (gpu->torch || gpu->onnxruntime || gpu->jax)
+						warmup_nvidia_devices();
+					gchar *vpy = find_venv_python_exe(venv_path, FALSE);
+					if (vpy) {
+						provision_gpu_frameworks(vpy, gpu);
+						g_free(vpy);
+					}
+				}
+				script_gpu_req_free(gpu);
+			}
+
 			siril_script_perms *req = parse_siril_permissions(src_for_perms, com.wd);
 
 			gboolean apply = FALSE;
@@ -6380,6 +6625,18 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// mostly moot for non-network scripts (egress is cut), but it is
 			// free and no astro script legitimately talks to ssh-agent.
 			env = g_environ_unsetenv(env, "SSH_AUTH_SOCK");
+
+			// If egress is cut (no network permission) a runtime uv/pip install
+			// can only succeed from the local cache. Force uv offline so it uses
+			// the shared UV_CACHE_DIR (populated unsandboxed by the GPU Manager /
+			// venv provisioning) and fails cleanly on a cache miss, instead of
+			// stalling on a seccomp-blocked network socket. This is what lets a
+			// sandboxed GPU script's TorchHelper.ensure_torch() /
+			// ONNXHelper.ensure_onnxruntime() install the recorded variant into
+			// its own venv with no network permission. A network-granted script
+			// keeps uv online (it still hits the cache first anyway).
+			if (!granted_network)
+				env = g_environ_setenv(env, "UV_OFFLINE", "1", TRUE);
 		}
 		// Directory of the script being executed — the interpreter must read the
 		// script file, which may live outside the working dir (e.g. a user script
@@ -6391,7 +6648,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			.venv_path = venv_path,
 			.script_dir = script_dir,
 			.cache_dir = script_cache_dir,
+			.uv_path = get_uv_executable_path(),
 			.allow_network = granted_network,
+			.gpu = want_gpu,
 			.extra_write_paths = (const char * const *) granted_write,
 			.extra_read_paths = (const char * const *) granted_read,
 			.unsandboxed = granted_unsandboxed,

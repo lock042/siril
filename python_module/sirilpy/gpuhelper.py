@@ -1368,12 +1368,17 @@ class ONNXHelper:
                 result = result[0]
             return result, cpu_session
 
-    def install_onnxruntime(self, force=False):
+    def install_onnxruntime(self, force=False, record=False):
         """
         Detect system configuration and install the appropriate ONNX Runtime package.
 
         Args:
             force: bool: If True, force reinstallation even if onnxruntime is already installed.
+            record: bool: If True, persist the installed variant as the user's
+                authoritative preference (gpu-prefs.json) on success, so
+                ensure_onnxruntime() in other per-script venvs installs the
+                same package. GPU_Manager.py passes record=True.
+                (record= added in sirilpy 1.1.23.)
 
         Returns:
             bool: True if installation was successful or already installed, False otherwise.
@@ -1436,6 +1441,15 @@ class ONNXHelper:
             except Exception as err:
                 print(f"Failed to install default onnxruntime: {str(err)}")
                 return False
+        if record:
+            # Persist the installed variant so ensure_onnxruntime() in other
+            # per-script venvs installs the same package from the shared cache.
+            try:
+                installed = _installed_onnxruntime_package() or onnxruntime_pkg
+                record_onnxruntime_preference(package=installed,
+                                              variant_label=installed)
+            except Exception as e:
+                print(f"Warning: could not record onnxruntime preference: {e}")
         return True
 
     def ensure_onnxruntime(self) -> bool:
@@ -1537,25 +1551,18 @@ class ONNXHelper:
         Returns:
             bool: True if the package is available, False otherwise.
         """
+        # Query the PyPI JSON API directly. (This previously shelled out to
+        # `pip index versions`, which is pip-only — uv has no equivalent — and
+        # sirilpy now standardises on uv, so we use the backend-agnostic API.)
         try:
-            output = subprocess.check_output(
-                [sys.executable, "-m", "pip", "index", "versions", package_name],
-                stderr=subprocess.DEVNULL,
-                text=True
-            )
-            return "No matching distribution found" not in output
-        except subprocess.SubprocessError:
-            # If the command fails, check directly from PyPI
-            try:
-                url = f"https://pypi.org/pypi/{package_name}/json"
-                response = requests.get(url, timeout=10)
-                return response.status_code == 200
-            except requests.exceptions.RequestException:
-                print("Connection error {e}, please try again later")
-                raise
-
-            except Exception:
-                return False
+            url = f"https://pypi.org/pypi/{package_name}/json"
+            response = requests.get(url, timeout=10)
+            return response.status_code == 200
+        except requests.exceptions.RequestException as e:
+            print(f"Connection error {e}, please try again later")
+            raise
+        except Exception:
+            return False
 
     def get_execution_providers_ordered(self, ai_gpu_acceleration=True, force_check=False):
         """
@@ -1910,7 +1917,8 @@ class TorchHelper:
 
     def install_torch(self, cuda_version: Optional[str] = None,
                         extra_index_url: Optional[str] = None,
-                        packages: Optional[list] = None):
+                        packages: Optional[list] = None,
+                        record: bool = False):
         """
         Install PyTorch with specified configuration.
 
@@ -1918,6 +1926,11 @@ class TorchHelper:
             cuda_version: CUDA version (e.g., 'cu118', 'cu126', 'cu128')
             extra_index_url: PyTorch wheel repository URL
             packages: List of packages to install
+            record: when True, persist this variant as the user's
+                authoritative preference (gpu-prefs.json) once the install
+                succeeds. GPU_Manager.py passes record=True; ensure_torch()
+                does not, so only a deliberate manual install is recorded.
+                (record= added in sirilpy 1.1.23.)
         """
         if packages is None:
             packages = ['torch', 'torchvision', 'torchaudio']
@@ -1941,6 +1954,18 @@ class TorchHelper:
             subprocess.run(install_cmd, check=True, env=_uv_subprocess_env_gpu())
             self.torch_installed = self.is_torch_installed()
             print("PyTorch installation completed successfully")
+            if record:
+                # Persist the user's authoritative choice so ensure_torch()
+                # in other per-script venvs installs this exact variant,
+                # pulling from the shared uv cache instead of re-resolving.
+                try:
+                    record_torch_preference(
+                        packages=packages,
+                        extra_index_url=extra_index_url,
+                        variant_label=_torch_variant_from_installed(),
+                    )
+                except Exception as e:
+                    print(f"Warning: could not record torch preference: {e}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to install PyTorch: {e}")
             raise
