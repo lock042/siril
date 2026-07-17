@@ -4067,6 +4067,17 @@ static void relocate_pkg_caches(gchar ***env, const gchar *cache_dir) {
 		{ "SCIKIT_LEARN_DATA", "sklearn" },
 		{ "PLOTLY_DIR",        "plotly" },
 		{ "VISPY_CONFIG_DIR",  "vispy" },
+		// GPU compute/kernel caches. These default into hidden ~/.cache / ~/.config
+		// sub-dirs that read/write-confinement withholds and which many of these
+		// libraries do NOT resolve via XDG_*_HOME, so relocate each explicitly into
+		// the writable scratch. Otherwise the runtime recompiles kernels every run
+		// (slow) or errors on the denied cache. Harmless for scripts that don't use
+		// the corresponding stack (the var just points at an unused scratch dir).
+		{ "CUDA_CACHE_PATH",        "cuda" },     // NVIDIA CUDA JIT cache (~/.nv/ComputeCache)
+		{ "MIOPEN_USER_DB_PATH",    "miopen" },   // AMD ROCm/MIOpen perf DB (~/.config/miopen)
+		{ "MIOPEN_CUSTOM_CACHE_DIR","miopen" },   // AMD ROCm/MIOpen kernel cache (~/.cache/miopen)
+		{ "NEO_CACHE_DIR",          "neo" },      // Intel compute-runtime (NEO) compiler cache
+		{ "SYCL_CACHE_DIR",         "sycl" },     // Intel oneAPI/SYCL persistent kernel cache
 	};
 	g_mkdir_with_parents(cache_dir, 0700);
 	for (gsize i = 0; i < G_N_ELEMENTS(redirect); i++) {
