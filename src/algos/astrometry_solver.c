@@ -508,7 +508,7 @@ gchar *platesolve_msg(struct astrometry_data *args) {
 		case SOLVE_DOWNSAMPLE:
 			return g_strdup(_("Not enough memory\n"));
 		case SOLVE_NOTENOUGHSTARS:
-			return g_strdup_printf(_("There are not enough stars picked in the image. least %d are needed\n"), AT_MATCH_STARTN_LINEAR);
+			return g_strdup_printf(_("There are not enough stars picked in the image. At least %d are needed\n"), AT_MATCH_STARTN_LINEAR);
 	// siril solver
 		case SOLVE_INVALID_TRANS:
 			return g_strdup(_("Transformation matrix is invalid, solve failed\n"));
