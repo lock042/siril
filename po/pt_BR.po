@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-05-10 22:03+0000\n"
+"PO-Revision-Date: 2026-07-19 06:24+0000\n"
 "Last-Translator: Eduardo Hartmann <eduardohart@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -25223,7 +25223,7 @@ msgstr "Fechar"
 #: src/gui/compstars.c:51 src/gui/git_gui.c:345 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2497
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #: src/gui/compstars.c:70
 msgid "Toggle Manual mode or Automatic mode for Comparison stars list"

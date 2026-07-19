@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-07-07 14:19+0000\n"
+"PO-Revision-Date: 2026-07-19 06:24+0000\n"
 "Last-Translator: Tomoya Maeda <yumyum.ytm6020@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -29206,9 +29206,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/3stars.c:368
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "カラー反転"
+msgstr "変換行列を保存しています\n"
 
 #: src/registration/3stars.c:431 src/registration/3stars.c:454
 #: src/registration/3stars.c:480 src/registration/3stars.c:491
@@ -29266,9 +29265,8 @@ msgid "Could not init distortion mapping\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/registration/applyreg.c:366 src/registration/global.c:179
-#, fuzzy
 msgid "Could not init drizzle\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "ドリズル処理を初期化できませんでした\n"
 
 #: src/registration/applyreg.c:395 src/registration/global.c:321
 #, c-format
@@ -29296,9 +29294,8 @@ msgid "No image was registered to the reference\n"
 msgstr ""
 
 #: src/registration/applyreg.c:734 src/registration/comet.c:239
-#, fuzzy
 msgid "Applying registration completed.\n"
-msgstr "整列完了."
+msgstr "位置合わせが完了しました。\n"
 
 #: src/registration/applyreg.c:738
 #, fuzzy, c-format
@@ -29547,9 +29544,8 @@ msgid "Moving object registration"
 msgstr ""
 
 #: src/registration/distorsion.c:349
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "ディストーション補正用マスターを解析できなかったため、処理を中止します\n"
 
 #: src/registration/distorsion.c:375 src/registration/distorsion.c:404
 #, fuzzy
@@ -29573,14 +29569,15 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:435
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, aborting\n"
-msgstr "リファレンス画像の読み込み失敗\n"
+msgstr "画像 #%d を読み込めなかったため、処理を中止します\n"
 
 #: src/registration/distorsion.c:445
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr ""
+"ディストーション補正用のマスターファイル名を解析できなかったため、処理を中止"
+"します\n"
 
 #: src/registration/distorsion.c:451
 #, fuzzy
@@ -29593,9 +29590,8 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/registration/distorsion.c:487
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには歪曲（ディストーション）情報が含まれていません\n"
 
 #: src/registration/distorsion.c:529
 #, fuzzy
@@ -29609,9 +29605,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:540
-#, fuzzy
 msgid "Platesolve current image"
-msgstr "この FITS 画像を保存"
+msgstr "現在の画像をプレートソルブする"
 
 #: src/registration/distorsion.c:546
 #, fuzzy
@@ -29629,9 +29624,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:559 src/registration/distorsion.c:561
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "リファレンス画像の読み込み失敗\n"
+msgstr "ディストーション補正に使用する FITS 画像を読み込めませんでした"
 
 #: src/registration/distorsion.c:566
 msgid ""
@@ -29640,9 +29634,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:568
-#, fuzzy
 msgid "Selected file has no WCS information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルにはWCS情報が含まれていません"
 
 #: src/registration/distorsion.c:573
 msgid ""
@@ -29651,14 +29644,12 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:575
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには歪曲（ディストーション）情報が含まれていません"
 
 #: src/registration/distorsion.c:582 src/registration/distorsion.c:584
-#, fuzzy
 msgid "Selected file has no dimensions information"
-msgstr "グラフ情報のソースを選択."
+msgstr "選択したファイルには画像サイズの情報がありません"
 
 #: src/registration/distorsion.c:589 src/registration/distorsion.c:591
 msgid "Selected file and current sequence do not have the same size"
@@ -30107,9 +30098,8 @@ msgid "Median stacking failed. Check the log."
 msgstr ""
 
 #: src/stacking/median_and_mean.c:1783
-#, fuzzy
 msgid "Stacking operation was cancelled.\n"
-msgstr "Background Extraction…"
+msgstr "スタッキング処理が中止されました。\n"
 
 #: src/stacking/median_and_mean.c:1784 src/stacking/stackminmax.c:299
 msgid "Stacking failed.\n"
@@ -30134,9 +30124,8 @@ msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr ""
 
 #: src/stacking/normalization.c:77
-#, fuzzy
 msgid "Normalization computation time"
-msgstr "エラー: 統計計算失敗\n"
+msgstr "正規化の処理時間"
 
 #: src/stacking/normalization.c:206
 #, c-format
@@ -30272,25 +30261,17 @@ msgid " (overlaps)"
 msgstr ""
 
 #: src/stacking/stacking.c:174
-#, fuzzy, c-format
+#, c-format
 msgid "Input normalization ....... %s%s%s\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "入力の正規化 …… %s%s%s\n"
 
 #: src/stacking/stacking.c:177
-#, fuzzy
 msgid "Output normalization ...... enabled\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "出力の正規化 …… 有効\n"
 
 #: src/stacking/stacking.c:178
-#, fuzzy
 msgid "Output normalization ...... disabled\n"
-msgstr ""
-"出力\n"
-"正規化"
+msgstr "出力の正規化 …… 無効\n"
 
 #: src/stacking/stacking.c:182
 msgid "Pixel rejection ........... none\n"
@@ -30379,14 +30360,12 @@ msgid "Feathering ................ over %4d pixels\n"
 msgstr ""
 
 #: src/stacking/stacking.c:246
-#, fuzzy
 msgid "RGB equalization .......... enabled\n"
-msgstr "Background Extraction…"
+msgstr "RGB イコライゼーション …… 有効\n"
 
 #: src/stacking/stacking.c:247
-#, fuzzy
 msgid "RGB equalization .......... disabled\n"
-msgstr "Background Extraction…"
+msgstr "RGB イコライゼーション …… 無効\n"
 
 #: src/stacking/stacking.c:417
 msgid "Stacking result image"
