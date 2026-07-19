@@ -97,7 +97,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -182,7 +182,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -267,7 +267,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &config);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -347,7 +347,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	int retval = nsamples;
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	*data = malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
@@ -443,6 +443,16 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
+	/* Reject absurd dimensions before they are used to size allocations.
+	 * libtiff does not cap width*height, and the per-reader npixels product
+	 * would otherwise overflow, leading to an undersized buffer and a heap
+	 * overflow while copying strips. */
+	if (width == 0 || height == 0 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_error(_("TIFF image has invalid dimensions (%u x %u)\n"), width, height);
+		TIFFClose(tif);
+		return OPEN_IMAGE_ERROR;
+	}
+
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
 	int year = 1, month = 1, day = 1, h = 0, m = 0, s = 0;
@@ -477,7 +487,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		description = g_strdup(desc);
 	}
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 
 	switch(nbits){
 		case 8:
@@ -1143,8 +1153,22 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 int readxisf(const char* name, fits *fit, gboolean force_float) {
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
-	siril_get_xisf_buffer(name, xdata);
-	size_t npixels = xdata->width * xdata->height;
+	/* siril_get_xisf_buffer can fail after partially populating the geometry
+	 * (e.g. data allocation failure), leaving xdata->data NULL while width/
+	 * height are set. Proceeding would dereference a NULL buffer. Also validate
+	 * the dimensions before they are used to size allocations. */
+	if (siril_get_xisf_buffer(name, xdata) || !xdata->data ||
+			xdata->width == 0 || xdata->height == 0 ||
+			xdata->width > MAX_IMAGE_DIM || xdata->height > MAX_IMAGE_DIM ||
+			xdata->channelCount == 0 || xdata->channelCount > 3) {
+		siril_log_error(_("Failed to read XISF file %s\n"), name);
+		free(xdata->fitsHeader);
+		free(xdata->icc_buffer);
+		free(xdata->data);
+		free(xdata);
+		return OPEN_IMAGE_ERROR;
+	}
+	size_t npixels = (size_t)xdata->width * xdata->height;
 
 	clearfits(fit);
 
@@ -1315,7 +1339,7 @@ int readjpg(const char* name, fits *fit){
 	(void) jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
-	size_t npixels = cinfo.output_width * cinfo.output_height;
+	size_t npixels = (size_t)cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -1332,9 +1356,18 @@ int readjpg(const char* name, fits *fit){
 				(double) cinfo.output_scanline / (double) cinfo.output_height, NULL);
 		jpeg_read_scanlines(&cinfo, pJpegBuffer, 1);
 		for (int i = 0; i < cinfo.output_width; i++) {
-			*buf[RLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 0];
-			*buf[GLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 1];
-			*buf[BLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 2];
+			/* A grayscale JPEG decodes to output_components == 1; reading
+			 * offsets +1/+2 would over-read the scanline. Replicate the single
+			 * channel into R/G/B instead. */
+			WORD r = pJpegBuffer[0][cinfo.output_components * i + 0];
+			*buf[RLAYER]++ = r;
+			if (cinfo.output_components >= 3) {
+				*buf[GLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 1];
+				*buf[BLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 2];
+			} else {
+				*buf[GLAYER]++ = r;
+				*buf[BLAYER]++ = r;
+			}
 		}
 	}
 	// TODO: this doesn't work despite being the same as the reference djpeg.c
@@ -1625,7 +1658,13 @@ int readpng(const char *name, fits* fit) {
 
 	const int width = png_get_image_width(png, info);
 	const int height = png_get_image_height(png, info);
-	size_t npixels = width * height;
+	if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_error(_("PNG image has invalid dimensions (%d x %d)\n"), width, height);
+		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
+		return OPEN_IMAGE_ERROR;
+	}
+	size_t npixels = (size_t)width * height;
 	png_byte color_type = png_get_color_type(png, info);
 	png_byte bit_depth = png_get_bit_depth(png, info);
 
@@ -1664,8 +1703,25 @@ int readpng(const char *name, fits* fit) {
 	png_read_update_info(png, info);
 
 	png_bytep *row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
+	if (!row_pointers) {
+		PRINT_ALLOC_ERR;
+		free(data);
+		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
+		return OPEN_IMAGE_ERROR;
+	}
 	for (int y = 0; y < height; y++) {
 		row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png, info));
+		if (!row_pointers[y]) {
+			PRINT_ALLOC_ERR;
+			for (int k = 0; k < y; k++)
+				free(row_pointers[k]);
+			free(row_pointers);
+			free(data);
+			fclose(f);
+			png_destroy_read_struct(&png, &info, &end_info);
+			return OPEN_IMAGE_ERROR;
+		}
 	}
 
 	cmsUInt8Number *embed = NULL;
@@ -2695,7 +2751,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int width = heif_image_get_width(img, heif_channel_interleaved);
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
-	size_t npixels = width * height;
+	size_t npixels = (size_t)width * height;
 	gboolean mono = TRUE;
 	WORD *data = NULL;
 	unsigned int nchannels = has_alpha ? 4 : 3;
