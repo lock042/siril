@@ -3053,6 +3053,170 @@ static gchar *current_sirilpy_version_string(void) {
 			com.python_version.micro_version);
 }
 
+// ── Streaming uv output → progress bar + log ────────────────────────────────
+//
+// Historically every uv invocation went through g_spawn_sync(), which buffers
+// the child's whole output and only surfaces it on failure. For a first-time
+// PEP 723 dependency install — uv may resolve, download and build a dozen
+// packages over tens of seconds — that reads as a dead hang: no log lines, no
+// progress-bar movement (the tester complaint this addresses). run_uv_streaming()
+// spawns uv with a live stderr pipe (uv writes all status to stderr) and reads
+// it line by line, translating uv's own output into log milestones and progress
+// updates as they happen. Callers pass "-v" in the argv so uv emits per-package
+// Downloading/Building lines; UV_NO_PROGRESS stays set (see inject_uv_env) so uv
+// prints plain text rather than ANSI progress bars we'd have to unpick.
+
+typedef struct {
+	const gchar *phase;   // short, already-translated label (e.g. "Installing dependencies")
+	int total;            // packages to prepare/install, learned from "Resolved N packages"
+	int done;             // packages seen changed so far
+} uv_stream_state;
+
+// If the line reports live activity on a package (download/build/etc.), return a
+// short label ("Downloading numpy==1.26.0") for the progress bar; else NULL.
+// Matches anywhere in the line, so it catches both uv's plain status lines and
+// the "DEBUG …"-prefixed -v firehose. Caller frees.
+static gchar *uv_activity_label(const gchar *body) {
+	static const char *kw[] = { "Downloading", "Building", "Preparing",
+	                            "Updating", "Fetching", NULL };
+	for (int i = 0; kw[i]; i++) {
+		const gchar *p = strstr(body, kw[i]);
+		if (p) {
+			gchar *s = g_strndup(p, 64);   // cap: -v lines can be very long
+			return g_strchomp(s);
+		}
+	}
+	return NULL;
+}
+
+// Translate a single line of uv's stderr into progress-bar + log updates.
+static void uv_stream_handle_line(const gchar *raw, uv_stream_state *st) {
+	gchar *line = g_strchomp(g_strdup(raw));   // drop trailing CR/space
+	if (!*line) {
+		g_free(line);
+		return;
+	}
+	// With NO_COLOR set (see inject_uv_env) uv emits plain text, so status
+	// lines start at column 0 and we can match them directly. The -v DEBUG
+	// lines start with "DEBUG " and thus fall through to the progress-only path.
+	const gchar *body = line;
+
+	int n = 0;
+	// Summary milestones — the only lines we surface in the log (default
+	// colour). Everything else is progress-bar-only, below.
+	if (sscanf(body, "Resolved %d package", &n) == 1) {
+		if (st->total < n)
+			st->total = n;
+		gui_iface.set_progress(PROGRESS_PULSATE, st->phase);
+		siril_log_message(_("%s: resolved %d package(s)\n"), st->phase, n);
+	} else if (sscanf(body, "Prepared %d package", &n) == 1) {
+		if (st->total < n)
+			st->total = n;
+		siril_log_message(_("%s: prepared %d package(s)\n"), st->phase, n);
+	} else if (sscanf(body, "Installed %d package", &n) == 1) {
+		gui_iface.set_progress(PROGRESS_DONE, st->phase);
+		siril_log_message(_("%s: installed %d package(s)\n"), st->phase, n);
+	} else if (sscanf(body, "Audited %d package", &n) == 1) {
+		siril_log_message(_("%s: %d package(s) already satisfied\n"),
+				st->phase, n);
+	} else if (g_str_has_prefix(body, "Using Python")
+			|| g_str_has_prefix(body, "Using CPython")) {
+		// "Using Python 3.13.14 environment at: …" / interpreter line.
+		siril_log_message("  %s\n", body);
+	}
+	// Per-package change list (" + name==ver", " - …", " ~ …"): drives the
+	// determinate bar, not the log.
+	else if (line[0] == ' ' && line[1] && strchr("+-~", line[1])
+			&& line[2] == ' ' && line[3]) {
+		st->done++;
+		double frac = st->total > 0
+				? MIN(1.0, (double)st->done / st->total)
+				: PROGRESS_PULSATE;
+		gchar *label = g_strdup_printf("%s: %s", st->phase, line + 3);
+		gui_iface.set_progress(frac, label);
+		g_free(label);
+	}
+	// Anything else (downloads, builds, the -v DEBUG firehose): mine only for
+	// live progress-bar text; never logged.
+	else {
+		gchar *act = uv_activity_label(body);
+		if (act) {
+			double frac = (st->total > 0 && st->done > 0)
+					? MIN(1.0, (double)st->done / st->total)
+					: PROGRESS_PULSATE;
+			gchar *label = g_strdup_printf("%s: %s", st->phase, act);
+			gui_iface.set_progress(frac, label);
+			g_free(label);
+			g_free(act);
+		}
+	}
+	g_free(line);
+}
+
+// Spawn `argv` (a uv command) with a live stderr pipe and stream its output to
+// the progress bar + log via uv_stream_handle_line(), instead of buffering it
+// the way g_spawn_sync() does. env is a g_get_environ()-style array (ownership
+// stays with the caller). phase is a short, already-translated label shown on
+// the progress bar. Returns TRUE on a clean (exit 0) run; on failure returns
+// FALSE and sets *error, embedding the tail of uv's stderr for diagnosis.
+static gboolean run_uv_streaming(gchar **argv, gchar **env,
+                                 const gchar *phase, GError **error) {
+	GError *spawn_err = NULL;
+	// STDERR piped; stdout inherited (uv writes status to stderr, and not
+	// piping stdout means no risk of a full-pipe deadlock while we block on
+	// stderr). Absolute uv path in argv[0], so no PATH search is needed.
+	GSubprocessLauncher *launcher =
+			g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
+	if (env)
+		g_subprocess_launcher_set_environ(launcher, env);
+	GSubprocess *proc = g_subprocess_launcher_spawnv(launcher,
+			(const gchar * const *)argv, &spawn_err);
+	g_object_unref(launcher);
+	if (!proc) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to spawn uv: %s",
+				spawn_err ? spawn_err->message : "unknown error");
+		g_clear_error(&spawn_err);
+		return FALSE;
+	}
+
+	gui_iface.set_progress(PROGRESS_PULSATE, phase);
+
+	// get_stderr_pipe() is owned by `proc`; do not unref it.
+	GDataInputStream *din =
+			g_data_input_stream_new(g_subprocess_get_stderr_pipe(proc));
+	g_object_set(din, "buffer-size", 1024, NULL);
+
+	uv_stream_state st = { phase, 0, 0 };
+	// Retain a bounded tail of raw stderr so a non-zero exit can still explain
+	// itself (uv_stream_handle_line only forwards a curated subset to the log).
+	GString *tail = g_string_new(NULL);
+	gchar *l;
+	while ((l = g_data_input_stream_read_line_utf8(din, NULL, NULL, NULL))) {
+		g_string_append(tail, l);
+		g_string_append_c(tail, '\n');
+		if (tail->len > 8192)
+			g_string_erase(tail, 0, tail->len - 8192);
+		uv_stream_handle_line(l, &st);
+		g_free(l);
+	}
+	g_object_unref(din);
+
+	GError *wait_err = NULL;
+	gboolean ok = g_subprocess_wait_check(proc, NULL, &wait_err);
+	g_object_unref(proc);
+
+	if (!ok) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"%s failed: %s%s%s", phase,
+				wait_err ? wait_err->message : "non-zero exit",
+				tail->len ? "\n" : "", tail->str);
+		g_clear_error(&wait_err);
+	}
+	g_string_free(tail, TRUE);
+	return ok;
+}
+
 // Create or refresh a per-script venv. Returns the venv path on success
 // (newly allocated, caller frees), or NULL on failure with *error set.
 //
@@ -3182,6 +3346,7 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 
 	gchar *argv[] = {
 		(gchar *)uv_path, "venv",
+		"-v",
 		"--python", sys_python,
 		"--seed",
 		venv_path,
@@ -3189,10 +3354,10 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	};
 	gchar **env = g_get_environ();
 	inject_uv_env(&env, project_path);
-	// Same heads-up as the base-venv path: spawn is silent until completion,
-	// so a first-time interpreter download looks like a hang otherwise.
-	// (Base venv normally runs first and primes the cache, so this branch
-	// only fires when the user just changed Python versions in prefs.)
+	// Same heads-up as the base-venv path: a first-time interpreter download
+	// can take a while. (Base venv normally runs first and primes the cache,
+	// so this branch only fires when the user just changed Python versions in
+	// prefs.) run_uv_streaming() then keeps the progress bar alive throughout.
 	gchar *managed_for_script = get_uv_managed_python_token();
 	if (managed_for_script && !managed_python_already_installed(project_path, managed_for_script)) {
 		siril_log_message(_("Downloading Python %s interpreter for per-script "
@@ -3201,25 +3366,17 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 	}
 	g_free(managed_for_script);
 	siril_log_message(_("Creating per-script Python venv with uv: %s\n"), venv_path);
-	gchar *std_err = NULL;
-	gint exit_status = 0;
-	gboolean ok = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
-			NULL, NULL, NULL, &std_err, &exit_status, &local_err);
+	gboolean ok = run_uv_streaming(argv, env,
+			_("Creating script environment"), &local_err);
 	g_strfreev(env);
 	g_free(sys_python);
-	if (!ok || !g_spawn_check_wait_status(exit_status, &local_err)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"uv venv (per-script) failed: %s%s%s",
-				local_err ? local_err->message : "non-zero exit",
-				std_err && *std_err ? "\n" : "", std_err ? std_err : "");
-		g_clear_error(&local_err);
-		g_free(std_err);
+	if (!ok) {
+		g_propagate_error(error, local_err);
 		g_free(venv_path);
 		g_free(pep723_hash);
 		g_free(current_sirilpy);
 		return NULL;
 	}
-	g_free(std_err);
 
 	// Install sirilpy into the new venv via the shared helper.
 	gchar *venv_python = find_venv_python_exe(venv_path, TRUE);
@@ -3253,6 +3410,9 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 		g_ptr_array_add(deps_argv, (gpointer)uv_path);
 		g_ptr_array_add(deps_argv, "pip");
 		g_ptr_array_add(deps_argv, "install");
+		// -v makes uv emit per-package Downloading/Building lines that
+		// run_uv_streaming() turns into live progress feedback.
+		g_ptr_array_add(deps_argv, "-v");
 		g_ptr_array_add(deps_argv, "--python");
 		g_ptr_array_add(deps_argv, venv_python);
 		for (guint i = 0; i < pep723->dependencies->len; i++)
@@ -3261,27 +3421,19 @@ static gchar *ensure_per_script_venv(const gchar *project_path,
 
 		env = g_get_environ();
 		inject_uv_env(&env, project_path);
-		std_err = NULL;
-		gint deps_status = 0;
-		gboolean deps_ok = g_spawn_sync(NULL, (gchar **)deps_argv->pdata, env,
-				G_SPAWN_DEFAULT, NULL, NULL, NULL, &std_err,
-				&deps_status, &local_err);
+		siril_log_message(_("Installing script dependencies with uv…\n"));
+		gboolean deps_ok = run_uv_streaming((gchar **)deps_argv->pdata, env,
+				_("Installing script dependencies"), &local_err);
 		g_strfreev(env);
 		g_ptr_array_free(deps_argv, TRUE);
-		if (!deps_ok || !g_spawn_check_wait_status(deps_status, &local_err)) {
-			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"uv pip install (PEP 723 deps) failed: %s%s%s",
-					local_err ? local_err->message : "non-zero exit",
-					std_err && *std_err ? "\n" : "", std_err ? std_err : "");
-			g_clear_error(&local_err);
-			g_free(std_err);
+		if (!deps_ok) {
+			g_propagate_error(error, local_err);
 			g_free(venv_python);
 			g_free(venv_path);
 			g_free(pep723_hash);
 			g_free(current_sirilpy);
 			return NULL;
 		}
-		g_free(std_err);
 	}
 
 	g_free(venv_python);
@@ -3390,7 +3542,21 @@ static void inject_uv_env(gchar ***env, const gchar *project_path) {
 	gchar *cache_dir = g_build_filename(project_path, "uv-cache", NULL);
 	*env = g_environ_setenv(*env, "UV_CACHE_DIR", cache_dir, TRUE);
 	*env = g_environ_setenv(*env, "UV_NO_PROGRESS", "1", TRUE);
+	// Disable uv's ANSI colouring: otherwise its status/-v lines arrive wrapped
+	// in escape codes, which both defeats run_uv_streaming()'s line matching and
+	// dumps raw codes into the log. NO_COLOR covers uv's output and its -v logs.
+	*env = g_environ_setenv(*env, "NO_COLOR", "1", TRUE);
 	g_free(cache_dir);
+
+	// Pin the child (and any uv sub-invocation) to the exact uv Siril
+	// discovered and version-validated. sirilpy's _resolve_uv_path() reads
+	// SIRIL_UV first; without this a script's ensure_installed() would fall
+	// back to its own shutil.which("uv") and, if that misses (uv found by
+	// Siril via a bundle/AppImage path not on the child's PATH), silently drop
+	// to plain pip — inconsistent with the uv-built venv.
+	const gchar *uv_path = get_uv_executable_path();
+	if (uv_path)
+		*env = g_environ_setenv(*env, "SIRIL_UV", uv_path, TRUE);
 
 	gchar *managed = get_uv_managed_python_token();
 	if (managed) {
@@ -4271,6 +4437,7 @@ static gboolean uv_install_sirilpy_into_venv(const gchar *uv_path,
 
 	gchar *argv[] = {
 		(gchar *)uv_path, "pip", "install",
+		"-v",
 		"--python", (gchar *)venv_python_path,
 		"--reinstall-package", "sirilpy",
 		build_path,
@@ -4280,37 +4447,13 @@ static gboolean uv_install_sirilpy_into_venv(const gchar *uv_path,
 	gchar **env = g_get_environ();
 	inject_uv_env(&env, project_path);
 
-	gchar *std_err = NULL;
-	gint exit_status = 0;
-	GError *spawn_err = NULL;
-	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
-			NULL, NULL, NULL, &std_err, &exit_status, &spawn_err);
+	gboolean ok = run_uv_streaming(argv, env,
+			_("Installing Siril Python module"), error);
 	g_strfreev(env);
 	delete_directory(build_path, NULL);
 	g_free(build_path);
 
-	if (!spawned) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"Failed to spawn uv: %s",
-				spawn_err ? spawn_err->message : "unknown");
-		g_clear_error(&spawn_err);
-		g_free(std_err);
-		return FALSE;
-	}
-
-	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"uv pip install sirilpy failed: %s%s%s",
-				spawn_err ? spawn_err->message : "non-zero exit",
-				std_err && *std_err ? "\n" : "",
-				std_err ? std_err : "");
-		g_clear_error(&spawn_err);
-		g_free(std_err);
-		return FALSE;
-	}
-
-	g_free(std_err);
-	return TRUE;
+	return ok;
 }
 
 static gboolean uv_install_sirilpy(const gchar *module_path,
@@ -4967,6 +5110,7 @@ static gboolean uv_create_or_check_base_venv(const gchar *project_path,
 	gchar *argv[] = {
 		(gchar *)uv_path,
 		"venv",
+		"-v",
 		"--python", sys_python,
 		"--seed",
 		venv_path,
@@ -4976,10 +5120,9 @@ static gboolean uv_create_or_check_base_venv(const gchar *project_path,
 	gchar **env = g_get_environ();
 	inject_uv_env(&env, project_path);
 
-	// Heads-up for the user before the (possibly slow) spawn. uv prints
-	// download progress to stderr, but g_spawn_sync captures it all and
-	// only surfaces it on failure, so a first-time interpreter download
-	// looks like Siril hung. Logging here is the cheap fix.
+	// Heads-up for the user: a first-time interpreter download can take a
+	// while. run_uv_streaming() then streams uv's -v output to the progress
+	// bar + log so this no longer looks like Siril hung.
 	gchar *managed = get_uv_managed_python_token();
 	if (managed && !managed_python_already_installed(project_path, managed)) {
 		siril_log_message(_("Downloading Python %s interpreter (first-time "
@@ -4991,43 +5134,18 @@ static gboolean uv_create_or_check_base_venv(const gchar *project_path,
 	siril_log_debug("uv venv command: %s venv --python %s --seed %s\n",
 			uv_path, sys_python, venv_path);
 
-	gchar *std_out = NULL;
-	gchar *std_err = NULL;
-	gint exit_status = 0;
 	GError *spawn_err = NULL;
-	gboolean spawned = g_spawn_sync(NULL, argv, env, G_SPAWN_DEFAULT,
-			NULL, NULL,
-			&std_out, &std_err,
-			&exit_status, &spawn_err);
+	gboolean ok = run_uv_streaming(argv, env,
+			_("Creating Python environment"), &spawn_err);
 	g_strfreev(env);
 	g_free(sys_python);
 
-	if (!spawned) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"Failed to spawn uv: %s",
-				spawn_err ? spawn_err->message : "unknown error");
-		g_clear_error(&spawn_err);
-		g_free(std_out);
-		g_free(std_err);
+	if (!ok) {
+		g_propagate_error(error, spawn_err);
 		g_free(venv_path);
 		return FALSE;
 	}
 
-	if (!g_spawn_check_wait_status(exit_status, &spawn_err)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-				"uv venv failed: %s%s%s",
-				spawn_err ? spawn_err->message : "non-zero exit",
-				std_err && *std_err ? "\n" : "",
-				std_err ? std_err : "");
-		g_clear_error(&spawn_err);
-		g_free(std_out);
-		g_free(std_err);
-		g_free(venv_path);
-		return FALSE;
-	}
-
-	g_free(std_out);
-	g_free(std_err);
 	g_free(venv_path);
 	return TRUE;
 }
