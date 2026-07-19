@@ -3565,6 +3565,17 @@ static void inject_uv_env(gchar ***env, const gchar *project_path) {
 				python_install_dir, TRUE);
 		g_free(python_install_dir);
 		g_free(managed);
+	} else {
+		// Default (and what the signed macOS/Windows bundles ship): forbid uv
+		// from downloading or selecting one of its own managed interpreters.
+		// uv is then confined to the bundled/system Python we hand it via
+		// `--python`, so no general-purpose python-build-standalone binary —
+		// usable outside Siril and outside the installer's code signature —
+		// ever lands on disk. uv keeps doing everything else (venv, resolve,
+		// wheel install, caching). Users who explicitly opt into uv-managed
+		// Python take the branch above, where downloads stay enabled.
+		*env = g_environ_setenv(*env, "UV_PYTHON_DOWNLOADS", "never", TRUE);
+		*env = g_environ_setenv(*env, "UV_NO_MANAGED_PYTHON", "1", TRUE);
 	}
 }
 
@@ -5024,8 +5035,11 @@ gboolean prune_uv_cache(GError **error) {
 //   1. SIRIL_UV_MANAGED_PYTHON=1 → a version token (e.g. "3.12") that uv
 //      will resolve against its own toolchain, downloading if necessary
 //      (see §4.4). Returns immediately without touching the filesystem.
-//   2. Windows: bundled python under <bundle>/python/.
-//   3. Anything else: PATH lookup (the macOS bundle launcher prepends its
+//   2. SIRIL_PYTHON → an absolute path to a specific interpreter (the
+//      bundle launcher points this at the bundled, signed Python so uv is
+//      pinned explicitly rather than via PATH ordering).
+//   3. Windows: bundled python under <bundle>/python/.
+//   4. Anything else: PATH lookup (the macOS bundle launcher prepends its
 //      bin dir to PATH; get_siril_bundle_path() is _WIN32-only here).
 //
 // Returns NULL with *error set if nothing usable is found. Caller frees.
@@ -5033,6 +5047,20 @@ static gchar *resolve_system_python_for_uv(GError **error) {
 	gchar *managed = get_uv_managed_python_token();
 	if (managed)
 		return managed;
+
+	// SIRIL_PYTHON: absolute path to a specific interpreter to hand uv via
+	// `--python`. The macOS/Linux bundle launchers set this to the bundled,
+	// signed interpreter so uv is pinned to it explicitly rather than relying
+	// on PATH ordering (which anything ahead of the bundle bin dir could
+	// hijack). Honoured before the platform bundle/PATH probes below.
+	const gchar *forced = g_getenv("SIRIL_PYTHON");
+	if (forced && *forced) {
+		if (g_file_test(forced, G_FILE_TEST_IS_EXECUTABLE))
+			return g_strdup(forced);
+		siril_log_warning(_("SIRIL_PYTHON points to '%s' but it is not an "
+				"executable; ignoring and falling back to bundle/PATH\n"),
+				forced);
+	}
 
 #ifdef _WIN32
 	gchar *bundle_root = get_siril_bundle_path();
