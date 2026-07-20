@@ -2589,6 +2589,88 @@ static void attach_autostretch_target_bg_reset(void) {
 	gtk_widget_add_controller(scale, GTK_EVENT_CONTROLLER(click));
 }
 
+/* GTK4 + Wayland: an autohide GtkPopover maps as an xdg_popup that only closes
+ * on an outside click while it holds an explicit compositor grab (keyboard +
+ * pointer, requested with a recent input serial).  mutter intermittently
+ * refuses or drops that grab; when it does, the popover stays up and clicking
+ * elsewhere in the window no longer dismisses it — only Escape still works,
+ * because that is handled by the popover's own key controller, independent of
+ * the grab.  GTK3 always closed a popover on an outside click.  This is not
+ * specific to any one menu: every autohide popover relies on the same grab.
+ *
+ * Restore the GTK3 behaviour with a capture-phase click controller on the main
+ * window that pops down any mapped autohide popover when the user presses
+ * somewhere in the window.  When the grab IS active this handler never fires
+ * (the compositor consumes the outside click itself, before it ever reaches
+ * our surface), so it only kicks in when autohide has failed — and clicks
+ * inside a popover go to the popover's own surface, so they never reach here
+ * either.  Popovers with autohide=FALSE (script console help, the save-format
+ * and mouse-action popovers) are deliberately persistent and left untouched. */
+static void popdown_mapped_popovers_recursive(GtkWidget *widget,
+                                              GtkWidget *skip_subtree,
+                                              gboolean *dismissed) {
+	/* Don't touch the clicked menu button's own subtree (see below): its
+	 * popover — explicit or the internal one a GMenuModel builds — lives in
+	 * there, and the button is about to toggle it shut by itself. */
+	if (widget == skip_subtree)
+		return;
+	if (GTK_IS_POPOVER(widget)) {
+		if (gtk_widget_get_mapped(widget)
+		    && gtk_popover_get_autohide(GTK_POPOVER(widget))) {
+			gtk_popover_popdown(GTK_POPOVER(widget));
+			*dismissed = TRUE;
+		}
+		/* Any nested popover closes together with its parent. */
+		return;
+	}
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child;
+	     child = gtk_widget_get_next_sibling(child))
+		popdown_mapped_popovers_recursive(child, skip_subtree, dismissed);
+}
+
+static void on_window_press_dismiss_popovers(GtkGestureClick *gesture,
+                                             int n_press, double x, double y,
+                                             gpointer user_data) {
+	(void) n_press; (void) user_data;
+	GtkWidget *win = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+
+	/* If the press landed on a GtkMenuButton, leave that button's own popover
+	 * alone so it can toggle itself shut; dismissing it here as well would make
+	 * the button immediately pop it back up.  Works for both explicit-popover
+	 * and GMenuModel menu buttons since we skip the whole button subtree. */
+	GtkWidget *skip_subtree = NULL;
+	GtkWidget *picked = gtk_widget_pick(win, x, y, GTK_PICK_DEFAULT);
+	for (GtkWidget *w = picked; w && w != win; w = gtk_widget_get_parent(w)) {
+		if (GTK_IS_MENU_BUTTON(w)) {
+			skip_subtree = w;
+			break;
+		}
+	}
+
+	gboolean dismissed = FALSE;
+	popdown_mapped_popovers_recursive(win, skip_subtree, &dismissed);
+
+	/* Mirror GTK3: the click that dismisses a popover is consumed and does not
+	 * also activate the widget underneath.  Only claim when we actually closed
+	 * something, so ordinary clicks (the normal, grab-working case) are left
+	 * completely untouched.  Never claim when the press is on a menu button:
+	 * that lets the click go on to open/toggle it, so switching straight from
+	 * one open menu to another still works in a single click. */
+	if (dismissed && !skip_subtree)
+		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+}
+
+static void install_global_popover_autodismiss(void) {
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (!win)
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); /* any button */
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed", G_CALLBACK(on_window_press_dismiss_popovers), NULL);
+	gtk_widget_add_controller(win, GTK_EVENT_CONTROLLER(click));
+}
+
 /* GTK4: GtkEventBox and button-press-event no longer exist, so the "click the
  * sequence/image field to copy its name to the clipboard" behaviour lost its
  * wiring during the port. Re-create it with a GtkGestureClick on press_field
@@ -2698,6 +2780,10 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Double-click the autostretch target-background slider to reset it. */
 	attach_autostretch_target_bg_reset();
+
+	/* Restore GTK3 "click outside closes the popover" when the Wayland
+	 * autohide grab is refused/dropped by the compositor. */
+	install_global_popover_autodismiss();
 
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("comboboxstack_methods")), 0);

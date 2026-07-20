@@ -136,7 +136,13 @@ typedef struct {
 	void     (*log_message)(const char *msg, const char *color);
 
 	/* C – Modal dialogs ---------------------------------------------------- */
+	/* Fire-and-forget: queues the dialog on the main thread and returns
+	 * immediately, without waiting for the user to dismiss it. */
 	void     (*message_dialog)(SirilMessageType type, const char *title,
+	                           const char *text);
+	/* Same, but blocks the calling thread until the user dismisses the
+	 * dialog (callable from worker threads, e.g. the python bridge). */
+	void     (*message_dialog_modal)(SirilMessageType type, const char *title,
 	                           const char *text);
 	/* Returns TRUE if the user clicked the accept button. */
 	gboolean (*confirm_dialog)(const char *title, const char *msg,
