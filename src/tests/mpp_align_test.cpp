@@ -570,3 +570,104 @@ Test(mpp_align, multilevel_keeps_phase1_shift_on_phase2_failure) {
 	          "phase-1 estimate should be kept on failure (got dy=%g)", r.dy);
 	cr_assert_float_eq(r.dx, 0.0, 2.1, "dx should stay near zero (got %g)");
 }
+
+/* mpp_improve: zero-mean correlation (cfg.alignment_points_zero_mean →
+ * multilevel_correlation's zero_mean param). The regime where the two
+ * methods genuinely diverge is a brightness GAIN + OFFSET mismatch
+ * between the frame and the reference — transparency drift, haze or gain
+ * changes across a capture, which Stage B does not normalise away (the
+ * brightness normalisation only applies at stack accumulation). Plain
+ * TM_CCORR_NORMED is gain-invariant but not offset-invariant: with the
+ * frame at 0.7× gain + 9000 offset its peak lands 2-3 px off the true
+ * shift on a limb-darkened disc. Zero-mean NCC (TM_CCOEFF_NORMED) is a
+ * Pearson correlation — invariant to both — and recovers the shift
+ * exactly. (A pedestal or gradient COMMON to both windows does NOT
+ * separate the methods: the normalisation cancels it to first order —
+ * verified while building this fixture.) This is the divergence recorded
+ * in MPP_PSS_DIFFS.md §10 — the default OFF param value keeps every
+ * other call site PSS-faithful. */
+Test(mpp_align, zero_mean_recovers_shift_under_gradient) {
+	auto cfg = default_cfg();
+	const int rows = 200, cols = 240;
+	const int dy_true = 6, dx_true = 4;
+
+	/* Texture blobs (±600) riding on a limb-darkening dome; BOTH move
+	 * together (the dome is signal, as on a real disc). */
+	cv::Mat tex(rows, cols, CV_32F, cv::Scalar(0));
+	cv::RNG rng(7);
+	for (int i = 0; i < 200; ++i) {
+		const int sy = rng.uniform(10, rows - 10);
+		const int sx = rng.uniform(10, cols - 10);
+		const float amp = (float) rng.uniform(-600, 600);
+		cv::circle(tex, {sx, sy}, 3, cv::Scalar(amp), -1);
+	}
+	cv::Mat dome(rows, cols, CV_32F);
+	for (int y = 0; y < rows; ++y)
+		for (int x = 0; x < cols; ++x) {
+			const double r2 = (y - 100.0) * (y - 100.0)
+			                + (x - 120.0) * (x - 120.0);
+			dome.at<float>(y, x) =
+			    40000.0f * (float) std::exp(-r2 / (2.0 * 90.0 * 90.0));
+		}
+
+	auto compose = [&](const cv::Mat &content, double gain, double bias,
+	                   bool add_noise) {
+		cv::Mat f32 = (content + cv::Scalar(8000.0)) * gain + cv::Scalar(bias);
+		if (add_noise) {
+			cv::Mat noise(rows, cols, CV_32F);
+			cv::RNG nrng(11);
+			nrng.fill(noise, cv::RNG::NORMAL, 0.0, 250.0);
+			f32 += noise;
+		}
+		cv::Mat u16;
+		f32.convertTo(u16, CV_16U);   /* saturating cast */
+		return blurred(u16, cfg);
+	};
+	const cv::Mat ref_frame = compose(dome + tex, 1.0, 0.0, false);
+	/* Frame: same content shifted, seen through a transparency change. */
+	const cv::Mat mov_frame = compose(shifted(dome + tex, dy_true, dx_true),
+	                                  0.7, 9000.0, true);
+
+	const int y_low = 60, y_high = 124, x_low = 80, x_high = 144;
+	cv::Mat ref_f32;
+	ref_frame.convertTo(ref_f32, CV_32F);
+	const cv::Mat ref_window = ref_f32(cv::Range(y_low, y_high),
+	                                   cv::Range(x_low, x_high));
+	cv::Mat ref_first;
+	{
+		const int s = 2;
+		const int new_h = (ref_window.rows + s - 1) / s;
+		const int new_w = (ref_window.cols + s - 1) / s;
+		ref_first.create(new_h, new_w, CV_32F);
+		for (int y = 0; y < new_h; ++y)
+			for (int x = 0; x < new_w; ++x)
+				ref_first.at<float>(y, x) = ref_window.at<float>(y * s, x * s);
+	}
+
+	const auto r_zm = mpp::multilevel_correlation(
+	    ref_window, ref_first, mov_frame,
+	    y_low, y_high, x_low, x_high,
+	    cfg.frames_gauss_width, cfg.alignment_points_search_width,
+	    /*subpixel_solve=*/false, cv::Mat(), /*zero_mean=*/true);
+	cr_assert(r_zm.success, "zero-mean correlation should converge");
+	cr_assert_float_eq(r_zm.dy, (double) -dy_true, 1.01,
+	                   "zero-mean dy should recover the texture shift (got %g)",
+	                   r_zm.dy);
+	cr_assert_float_eq(r_zm.dx, (double) -dx_true, 1.01,
+	                   "zero-mean dx should recover the texture shift (got %g)",
+	                   r_zm.dx);
+
+	/* Plain NCC on the same data must NOT recover it — the offset part of
+	 * the transparency mismatch biases the non-zero-mean peak by 2-3 px.
+	 * (If this half ever starts recovering the shift, the fixture has
+	 * left the offset-mismatch regime and needs rebuilding.) */
+	const auto r_ccorr = mpp::multilevel_correlation(
+	    ref_window, ref_first, mov_frame,
+	    y_low, y_high, x_low, x_high,
+	    cfg.frames_gauss_width, cfg.alignment_points_search_width,
+	    /*subpixel_solve=*/false, cv::Mat(), /*zero_mean=*/false);
+	const double err = std::hypot(r_ccorr.dy + dy_true, r_ccorr.dx + dx_true);
+	cr_assert_gt(err, 2.0,
+	             "plain NCC should be gradient-biased on this fixture "
+	             "(got dy=%g dx=%g)", r_ccorr.dy, r_ccorr.dx);
+}

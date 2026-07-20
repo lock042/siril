@@ -138,3 +138,59 @@ Test(mpp_ap, create_grid_basic_invariants) {
 	mpp_ap_free(aps);
 }
 
+
+/* mpp_improve: decoupled AP grid pitch (cfg.alignment_points_step;
+ * MPP_PSS_DIFFS.md section 12). With step > 0 the grid pitch and paste
+ * patch decouple from the correlation box: box stays 2*half_box, patch
+ * shrinks to step + 0.75*half_box, and the grid gets denser. step == 0
+ * must reproduce the legacy PSS geometry exactly. */
+Test(mpp_ap, decoupled_step_geometry_and_density) {
+	auto cfg = default_cfg();
+
+	/* step == 0: legacy helpers (locked above at 36 / 54). */
+	cr_assert_eq(cfg.alignment_points_step, 0);
+	cr_assert_eq(mpp_cfg_half_patch_width(&cfg), 36);
+	cr_assert_eq(mpp_cfg_step_size(&cfg), 54);
+
+	/* step = 27 with half-box 24: pitch 27, overlap 0.75*24 = 18,
+	 * half-patch ceil((27+18)/2) = 23 — smaller than the box half-width,
+	 * which is allowed (the box only feeds measurement + filters). */
+	cfg.alignment_points_step = 27;
+	cr_assert_eq(mpp_cfg_step_size(&cfg), 27);
+	cr_assert_eq(mpp_cfg_half_patch_width(&cfg), 23);
+
+	/* Bright textured field covering the frame so placement is limited by
+	 * geometry, not the brightness/structure filters. */
+	cv::Mat ref(240, 300, CV_32S);
+	for (int y = 0; y < ref.rows; ++y)
+		for (int x = 0; x < ref.cols; ++x)
+			ref.at<int32_t>(y, x) = 8000
+			    + (int) (600 * std::sin(0.4 * x) * std::sin(0.35 * y));
+
+	auto cfg_legacy = default_cfg();
+	const cv::Mat rb_legacy = mpp::blur_mean_frame_for_ap(ref, cfg_legacy);
+	mpp_aps_t *aps_legacy = mpp::ap_create_grid(rb_legacy, cfg_legacy);
+	const cv::Mat rb_dense = mpp::blur_mean_frame_for_ap(ref, cfg);
+	mpp_aps_t *aps_dense = mpp::ap_create_grid(rb_dense, cfg);
+	cr_assert_not_null(aps_legacy);
+	cr_assert_not_null(aps_dense);
+	cr_assert_gt(aps_legacy->count, 0);
+	/* Half the pitch on both axes: expect a substantially denser grid
+	 * (bounded loosely — border margins eat some of the 4x). */
+	cr_assert_geq(aps_dense->count, 2 * aps_legacy->count,
+	              "dense grid %d APs vs legacy %d", aps_dense->count,
+	              aps_legacy->count);
+
+	for (int i = 0; i < aps_dense->count; ++i) {
+		const auto &ap = aps_dense->records[i];
+		/* Box unchanged at 2*half_box. */
+		cr_assert_eq(ap.box_y_high - ap.box_y_low, 48);
+		cr_assert_eq(ap.box_x_high - ap.box_x_low, 48);
+		/* Interior patches are 2*half_patch = 46 wide; edge APs extend
+		 * to the frame border, so allow >=. */
+		cr_assert_geq(ap.patch_y_high - ap.patch_y_low, 46);
+		cr_assert_geq(ap.patch_x_high - ap.patch_x_low, 46);
+	}
+	mpp_ap_free(aps_legacy);
+	mpp_ap_free(aps_dense);
+}

@@ -22,6 +22,7 @@
  *     https://github.com/Rolf-Hempel/PlanetarySystemStacker
  */
 
+#include "core/settings.h"   /* interpolation_method / BAYER_RCD */
 #include "registration/mpp/mpp_config.h"
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
@@ -30,6 +31,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->frames_gauss_width = 7;
 	cfg->align_frames_sampling_stride = 2;
 	cfg->rank_laplacian_alpha = 1.0 / 256.0;
+	cfg->rank_float_precision = true;   /* mpp_improve; -no-float-rank reverts */
 	cfg->frames_normalization = true;
 	cfg->frames_normalization_threshold = 15;
 	cfg->bitdepth = 16;
@@ -75,20 +77,33 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->stack_frames_background_patch_size = 100;
 	cfg->stack_skip_failed_aps = false;
 	cfg->output_32bit = false;
-	cfg->drizzle_scale = 1.0;
-
-	/* Drizzle backend defaults: off. drizzle_mode is auto-set at stack
-	 * time from input type (mpp_classify_sequence_input); pixfrac /
-	 * kernel only consulted when scale > 1.0.
-	 *
-	 * Turbo kernel selected as default after the Phase 7.4 / 7.5 kernel
-	 * sweep: same wall-clock as bicubic-2x on test-big.ser (174.6 s vs
-	 * 177.1 s) and 2.8x faster than square with no measurable quality
-	 * difference (SSIM avg 0.9686 vs 0.9701, span across all four kernels
-	 * < 0.15 %). */
-	cfg->drizzle_mode    = MPP_DRIZZLE_OFF;
-	cfg->drizzle_pixfrac = 0.7;
-	cfg->drizzle_kernel  = MPP_KERNEL_TURBO;
+	cfg->output_scale = 1.0;
 	cfg->avi_bayer_pattern = MPP_AVI_BAYER_AUTO;
+
+	/* mpp_improve — Stage B measurement quality. Deliberate divergences
+	 * from PSS (see MPP_PSS_DIFFS.md); equivalence fixtures pin them off
+	 * explicitly.
+	 *
+	 * zero_mean defaults OFF after multi-dataset A/B: on low-SNR 8-bit
+	 * captures it raises the Stage B failure rate ~2x (honest rails on
+	 * boxes whose mean-subtracted residual is noise, where plain NCC's
+	 * DC anchoring acts as an implicit regulariser), and the fallback
+	 * estimates cost band-scale detail and border rows. Opt in with
+	 * -zero-mean where frame-vs-reference brightness offset mismatch is
+	 * the dominant error (see MPP_PSS_DIFFS.md section 10). */
+	cfg->alignment_points_zero_mean = false;
+	cfg->alignment_points_refine_reference = true;
+	cfg->alignment_points_reference_frames = 0;   /* auto */
+	cfg->alignment_points_step = 0;               /* auto = PSS geometry */
+	cfg->alignment_points_smooth_radius = 2.5;    /* grid steps; 0 = off */
+	/* LMMSE default after the 5-way debayer A/B (July 2026, newsat.ser):
+	 * luminance band-scale detail is independent of the algorithm (all
+	 * within ±0.6 %), but LMMSE cuts stacked chroma noise 19 % vs RCD
+	 * (AMaZE/VNG ~12 %) on noisy 8-bit CFA planetary data — per-frame
+	 * chroma aliasing does not fully average out in the stack. Costs
+	 * ~35 % more stack wall time. -debayer=rcd restores the application-
+	 * wide SER choice. */
+	cfg->debayer_method = BAYER_LMMSE;            /* Stage C CFA reads */
+	cfg->stack_method = MPP_STACK_PATCH;          /* -engine=warp opts in */
 	return MPP_OK;
 }
