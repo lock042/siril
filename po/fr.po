@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-07-20 12:16+0000\n"
+"PO-Revision-Date: 2026-07-20 12:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
@@ -26139,8 +26139,7 @@ msgstr "FFTW multithreadée"
 
 #: src/core/settings.c:385
 msgid "Maximum slice size for automated slice processing"
-msgstr ""
-"Taille maximale des segments pour le traitement automatisé des découpes"
+msgstr "Taille maximale de tranche pour le traitement automatisé par tranches"
 
 #: src/core/settings.c:387
 msgid "focal length in mm for radius adjustment"
@@ -26430,8 +26429,7 @@ msgstr ""
 
 #: src/core/settings.c:471
 msgid "Match Drizzle weights bitpix to sequence"
-msgstr ""
-"Faire correspondre la profondeur de bits des poids Drizzle à la séquence"
+msgstr "Faire correspondre le bitpix des poids Drizzle à la séquence"
 
 #: src/core/settings.c:473
 msgid "index of the selected method"
