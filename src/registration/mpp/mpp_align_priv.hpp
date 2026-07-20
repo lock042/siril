@@ -41,8 +41,8 @@ cv::Vec4i align_pick_patch(const cv::Mat &best_frame_mono_blurred,
  * weights = max(frame - threshold, 0). The returned (y, x) is the
  * moment centroid m01/m00, m10/m00 kept at SUB-PIXEL precision —
  * PSS rounds these to integer, but the port keeps the fractional part
- * to seed drizzle's cross-frame CFA-phase diversity (same rationale as
- * the always-on sub-pixel global correlation residual). Oracle tests
+ * to preserve sub-pixel registration accuracy for output upscaling (same
+ * rationale as the always-on sub-pixel global correlation residual). Oracle tests
  * must lround() before comparing to PSS's integer cog. Returns the
  * frame centre if the frame has no pixels above threshold (m00 == 0). */
 cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred);
@@ -50,8 +50,8 @@ cv::Vec2d center_of_gravity(const cv::Mat &frame_mono_blurred);
 struct AlignShiftResult {
 	/* Sign convention: shift the frame by (dy,dx) to align with ref.
 	 * Sub-pixel (multilevel_correlation's parabolic refinement) is
-	 * always enabled for the global pass — feeds Bayer drizzle's
-	 * cross-frame CFA-phase diversity, see mpp_pixmap_build_filtered. */
+	 * always enabled for the global pass — sub-pixel registration keeps
+	 * cv::resize output upscaling free of registration aliasing. */
 	double dy = 0.0;
 	double dx = 0.0;
 	bool   success = false;
@@ -76,7 +76,12 @@ struct MultilevelShiftResult {
  * neighbourhood. `weight_matrix_first_phase`, when non-empty, is
  * element-wise multiplied into the phase-1 correlation result before
  * argmax — used during stacking to apply an off-centre penalty bias
- * (alignment_points_penalty_factor). */
+ * (alignment_points_penalty_factor). `zero_mean` switches both phases
+ * from PSS's TM_CCORR_NORMED to zero-mean NCC (TM_CCOEFF_NORMED), which
+ * is invariant to brightness gain AND offset mismatch between frame and
+ * reference (plain NCC is only gain-invariant) — Stage B only
+ * (cfg.alignment_points_zero_mean); the global aligner and the Phase-4
+ * oracle path stay PSS-faithful. */
 MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              const cv::Mat &ref_first_phase_f32,
                                              const cv::Mat &frame_mono_blurred,
@@ -84,7 +89,8 @@ MultilevelShiftResult multilevel_correlation(const cv::Mat &ref_full_f32,
                                              int patch_x_low, int patch_x_high,
                                              int gauss_width, int search_width,
                                              bool subpixel_solve,
-                                             const cv::Mat &weight_matrix_first_phase = cv::Mat());
+                                             const cv::Mat &weight_matrix_first_phase = cv::Mat(),
+                                             bool zero_mean = false);
 
 /* Phase 2 wrapper. */
 AlignShiftResult align_shift_one_frame(const cv::Mat &reference_window_f32,

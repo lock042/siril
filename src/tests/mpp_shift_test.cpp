@@ -164,3 +164,133 @@ Test(mpp_shift, per_ap_shifts_near_zero_after_global_alignment) {
 	mpp_ap_free(aps);
 }
 
+
+/* mpp_improve: per-frame robust shift-field smoothing
+ * (shift_field_smooth / cfg.alignment_points_smooth_radius;
+ * MPP_PSS_DIFFS.md section 13). Synthetic fixture: a smooth affine warp
+ * field sampled on an AP grid, plus deterministic per-AP noise and a few
+ * gross outliers. The smoother must (a) cut the RMS error vs the true
+ * field by a large factor, (b) repair the outliers, (c) predict failed
+ * pairs from their neighbourhood, (d) be an exact no-op at radius 0, and
+ * (e) leave everything untouched when there are too few APs. */
+Test(mpp_shift, shift_field_smooth_denoises_and_repairs) {
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cr_assert_float_eq(cfg.alignment_points_smooth_radius, 2.5, 1e-12);
+	const int step = mpp_cfg_step_size(&cfg);   /* 54 */
+
+	/* 6x6 AP grid at grid-step pitch. Only y/x matter to the smoother. */
+	const int G = 6, M = G * G;
+	mpp_aps_t aps = {};
+	std::vector<mpp_ap_record_t> recs(M);
+	for (int gy = 0; gy < G; ++gy)
+		for (int gx = 0; gx < G; ++gx) {
+			mpp_ap_record_t r = {};
+			r.y = 100 + gy * step;
+			r.x = 100 + gx * step;
+			recs[gy * G + gx] = r;
+		}
+	aps.count = M;
+	aps.records = recs.data();
+
+	const int N = 4;
+	mpp_shifts_t *sh = (mpp_shifts_t *) calloc(1, sizeof(*sh));
+	sh->num_frames = N;
+	sh->num_aps = M;
+	sh->shifts  = (double *) calloc((size_t) N * M * 2, sizeof(double));
+	sh->success = (uint8_t *) calloc((size_t) N * M, sizeof(uint8_t));
+
+	/* True field: per-frame affine warp. Noise: deterministic LCG,
+	 * uniform in [-0.8, 0.8] px. Outliers: 3 px on two APs per frame.
+	 * One failed pair per frame carrying a wild value. */
+	auto lcg = [state = (uint32_t) 12345u]() mutable {
+		state = state * 1664525u + 1013904223u;
+		return ((double) (state >> 8) / 16777216.0) * 1.6 - 0.8;
+	};
+	std::vector<double> truth((size_t) N * M * 2);
+	for (int f = 0; f < N; ++f)
+		for (int a = 0; a < M; ++a) {
+			const double y = recs[a].y, x = recs[a].x;
+			const double ty = 0.5 * f + 0.004 * (y - 235.0) - 0.002 * (x - 235.0);
+			const double tx = -0.3 * f + 0.001 * (y - 235.0) + 0.005 * (x - 235.0);
+			const size_t o = ((size_t) f * M + a) * 2;
+			truth[o] = ty; truth[o + 1] = tx;
+			sh->shifts[o]     = ty + lcg();
+			sh->shifts[o + 1] = tx + lcg();
+			sh->success[f * M + a] = 1;
+		}
+	for (int f = 0; f < N; ++f) {
+		const int out1 = 7 + f, out2 = 22 + f;   /* gross outliers */
+		sh->shifts[((size_t) f * M + out1) * 2]     += 3.0;
+		sh->shifts[((size_t) f * M + out2) * 2 + 1] -= 3.0;
+		const int failed = 14 + f;                /* failed pair, wild value */
+		sh->success[f * M + failed] = 0;
+		sh->shifts[((size_t) f * M + failed) * 2]     = 9.0;
+		sh->shifts[((size_t) f * M + failed) * 2 + 1] = -9.0;
+	}
+
+	/* (d) radius 0 must be a byte-exact no-op. */
+	std::vector<double> before(sh->shifts, sh->shifts + (size_t) N * M * 2);
+	mpp_config_t cfg_off = cfg;
+	cfg_off.alignment_points_smooth_radius = 0.0;
+	mpp::shift_field_smooth(sh, aps, cfg_off, nullptr, 2);
+	cr_assert_eq(memcmp(before.data(), sh->shifts,
+	                    before.size() * sizeof(double)), 0,
+	             "radius 0 must not touch the shifts");
+
+	/* RMS error of the raw field vs truth (successful pairs only). */
+	auto rms_err = [&](void) {
+		double s2 = 0; int n = 0;
+		for (int f = 0; f < N; ++f)
+			for (int a = 0; a < M; ++a) {
+				if (!sh->success[f * M + a]) continue;
+				const size_t o = ((size_t) f * M + a) * 2;
+				const double dy = sh->shifts[o] - truth[o];
+				const double dx = sh->shifts[o + 1] - truth[o + 1];
+				s2 += dy * dy + dx * dx; n += 2;
+			}
+		return sqrt(s2 / n);
+	};
+	const double err_raw = rms_err();
+
+	mpp::shift_field_smooth(sh, aps, cfg, nullptr, 2);
+	const double err_smooth = rms_err();
+	cr_assert_lt(err_smooth, err_raw / 2.5,
+	             "smoothing should cut RMS error >2.5x (raw %.3f, smoothed %.3f)",
+	             err_raw, err_smooth);
+
+	/* (b) outliers repaired to within 1 px of truth. */
+	for (int f = 0; f < N; ++f) {
+		const size_t o1 = ((size_t) f * M + 7 + f) * 2;
+		cr_assert_lt(fabs(sh->shifts[o1] - truth[o1]), 1.0,
+		             "outlier dy should be repaired (frame %d: %.3f vs %.3f)",
+		             f, sh->shifts[o1], truth[o1]);
+	}
+	/* (c) failed pairs predicted from the neighbourhood, flags intact. */
+	for (int f = 0; f < N; ++f) {
+		const int failed = 14 + f;
+		const size_t o = ((size_t) f * M + failed) * 2;
+		cr_assert_eq(sh->success[f * M + failed], 0,
+		             "success flags must be preserved");
+		cr_assert_lt(fabs(sh->shifts[o] - truth[o]), 1.0,
+		             "failed pair dy should be predicted (frame %d: %.3f vs %.3f)",
+		             f, sh->shifts[o], truth[o]);
+		cr_assert_lt(fabs(sh->shifts[o + 1] - truth[o + 1]), 1.0,
+		             "failed pair dx should be predicted (frame %d)", f);
+	}
+
+	/* (e) too few APs: untouched. */
+	mpp_aps_t tiny = {};
+	tiny.count = 3;
+	tiny.records = recs.data();
+	mpp_shifts_t *sh3 = (mpp_shifts_t *) calloc(1, sizeof(*sh3));
+	sh3->num_frames = 1; sh3->num_aps = 3;
+	sh3->shifts  = (double *) calloc(6, sizeof(double));
+	sh3->success = (uint8_t *) calloc(3, sizeof(uint8_t));
+	for (int a = 0; a < 3; ++a) { sh3->shifts[a * 2] = a; sh3->success[a] = 1; }
+	mpp::shift_field_smooth(sh3, tiny, cfg, nullptr, 1);
+	for (int a = 0; a < 3; ++a)
+		cr_assert_float_eq(sh3->shifts[a * 2], (double) a, 1e-12);
+	mpp_shift_free(sh3);
+	mpp_shift_free(sh);
+}
