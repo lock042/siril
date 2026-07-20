@@ -1142,6 +1142,22 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		}
 		set_fit_icc_profile(fit, NULL);
 		color_manage(fit, FALSE);
+		/* Switching colour management off must invalidate the cached display
+		 * LUT (gui.remap_index).  make_index_for_current_display() bakes the
+		 * soft-proof transform into the LUT on the same-primaries fast path and
+		 * only rebuilds it when com.gui_icc.profile_changed is set.  Nothing
+		 * else on the removal path flags that (unlike icc_convert_to_hook,
+		 * which calls refresh_icc_transforms() after a re-tag), so without this
+		 * the display keeps a non-identity soft-proof baked in after the
+		 * profile is gone — visible on calibrated (non-identity) monitors. */
+		if (fit_is_current_image(fit))
+			refresh_icc_transforms();
+		/* TODO: this only hardens profile removal via siril_colorspace_transform.
+		 * If other colour-management-off paths surface the same stale-LUT
+		 * symptom, add a symmetric managed-state transition check in
+		 * remap_all_vports() (force profile_changed whenever
+		 * current_image_color_managed() flips state) as a display-layer
+		 * backstop that covers every path at once. */
 		return;
 	}
 
