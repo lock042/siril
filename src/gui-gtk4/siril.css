@@ -699,3 +699,14 @@ entry.search_empty {
    min-width: 22px;
    padding: 2px;
 }
+
+/* Cog button (multipoint registration advanced settings): scale the gear
+ * glyph up to nearly fill the row-height button — the default 16 px symbolic
+ * icon is unrecognisable at that size. The button keeps its natural (row)
+ * size; only the icon inside grows. */
+button.mpp-cog {
+  padding: 2px 4px;
+}
+button.mpp-cog image {
+  -gtk-icon-size: 24px;
+}
