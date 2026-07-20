@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-07 13:53+0200\n"
-"PO-Revision-Date: 2026-05-10 22:02+0000\n"
+"PO-Revision-Date: 2026-07-19 06:21+0000\n"
 "Last-Translator: Eduardo Hartmann <eduardohart@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-6/pt_BR/>\n"
@@ -1509,7 +1509,7 @@ msgstr "Solucionador de imagem"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:79
 msgid "Sample-based"
-msgstr ""
+msgstr "Baseado em amostra"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:80
 #, fuzzy
@@ -1522,6 +1522,9 @@ msgid ""
 "or automatically on every pixel that survives an iterative robust rejection "
 "of structures (no samples)."
 msgstr ""
+"Escolha como o modelo de fundo é construído: a partir de amostras colocadas "
+"(grade/manual) ou automaticamente em cada pixel que sobrevive a uma rejeição "
+"iterativa e robusta de estruturas (sem amostras)."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:104
 #: src/algos/background_extraction.c:1450
@@ -1662,10 +1665,15 @@ msgid ""
 "controls the total number of interior random samples (grid mode: samples per "
 "line)."
 msgstr ""
+"Quando ativado, os pontos de amostra são colocados aleatoriamente nas partes "
+"mais escuras de cada quadrante da imagem, além de um conjunto fixo de pontos "
+"ao redor da borda. Esta é uma alternativa à colocação regular da grade. No "
+"modo aleatório, o valor das amostras controla o número total de amostras "
+"aleatórias internas (modo de grade: amostras por linha)."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:305
 msgid "Optimize sample positions"
-msgstr ""
+msgstr "Otimizar posições de amostra"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:306
 msgid ""
@@ -1673,6 +1681,10 @@ msgid ""
 "gradient descent. This shifts samples away from stars and other bright "
 "objects. Can be combined with either grid or random placement."
 msgstr ""
+"Quando ativado, cada ponto de amostra é movido para um brilho local mínimo "
+"usando gradiente descendente. Isso afasta as amostras das estrelas e de "
+"outros objetos brilhantes. Pode ser combinado com grade ou posicionamento "
+"aleatório."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:317
 msgid "Generate"
@@ -1723,6 +1735,8 @@ msgid ""
 "Relative scale of the multiscale model. Higher = smoother (large-scale "
 "only); lower follows more complex / local gradients."
 msgstr ""
+"Escala relativa do modelo multiescala. Maior = mais suave (somente em grande "
+"escala); inferior segue gradientes mais complexos/locais."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:410
 #, fuzzy
@@ -1734,6 +1748,8 @@ msgid ""
 "Extra smoothing of the final model. Higher gives a softer, more gradual "
 "background; 0 leaves the fitted model untouched."
 msgstr ""
+"Suavização extra do modelo final. Valores maiores proporcionam um fundo mais "
+"suave e gradual; 0 deixa o modelo ajustado intacto."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:437
 #, fuzzy
@@ -1745,6 +1761,8 @@ msgid ""
 "Mask extended bright structures (nebulae) so they are not absorbed into the "
 "model."
 msgstr ""
+"Mascara estruturas brilhantes estendidas (nebulosas) para que não sejam "
+"absorvidas pelo modelo."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:449
 #, fuzzy
@@ -1756,6 +1774,8 @@ msgid ""
 "Brightness above the model at which a pixel is treated as a structure. Lower "
 "= protects more."
 msgstr ""
+"Brilho acima do modelo no qual um pixel é tratado como uma estrutura. "
+"Valores menores = protege mais."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:472
 #, fuzzy
@@ -1765,26 +1785,32 @@ msgstr "Método de Proteção: "
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:473
 msgid "How far the protection mask grows around detected structures."
 msgstr ""
+"Até que ponto a máscara de proteção cresce em torno das estruturas "
+"detectadas."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:492
 msgid "Simplified model"
-msgstr ""
+msgstr "Modelo simplificado"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:493
 msgid ""
 "Replace the multiscale model with a stiff polynomial. Use it when a nebula "
 "fills the frame and the default model hollows it out."
 msgstr ""
+"Substitua o modelo multiescala por um polinômio rígido. Use-o quando uma "
+"nebulosa preencher o quadro e o modelo padrão o esvaziar."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:503
 msgid "    Model degree"
-msgstr ""
+msgstr "    Grau de modelo"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:504
 msgid ""
 "Polynomial degree of the simplified model. Lower = stiffer (degree 1 = "
 "plane)."
 msgstr ""
+"Grau polinomial do modelo simplificado. Valores menores = mais rígido (grau "
+"1 = plano)."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:525
 #, fuzzy
@@ -1796,6 +1822,8 @@ msgid ""
 "Internal working scale factor. Higher = faster but coarser; the background "
 "scale itself is unaffected."
 msgstr ""
+"Fator de escala de trabalho interno. Maior = mais rápido, mas mais "
+"grosseiro; a escala de fundo em si não é afetada."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:552
 #, fuzzy
@@ -1847,7 +1875,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:612
 msgid "View"
-msgstr ""
+msgstr "Visualizar"
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:621
 #, fuzzy
@@ -1870,6 +1898,9 @@ msgid ""
 "the corrected image, the background model that was removed, or the original "
 "image."
 msgstr ""
+"Escolha o que é mostrado na visualização principal após o cálculo do plano "
+"de fundo: a imagem corrigida, o modelo de plano de fundo que foi removido ou "
+"a imagem original."
 
 #: src/gui-gtk4/uifiles/background_extraction_dialog.ui:640
 #: src/gui-gtk4/uifiles/bdeconv_dialog.ui:1615
@@ -2918,7 +2949,7 @@ msgstr "Calibração de cor"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:17
 msgid "Pick a colour for the current composition layer."
-msgstr ""
+msgstr "Escolha uma cor para a camada de composição atual."
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:26
 #, fuzzy
@@ -2969,7 +3000,7 @@ msgstr "_Cancelar"
 #: src/gui-gtk4/message_dialog.c:497 src/gui-gtk4/message_dialog.c:587
 #: src/gui-gtk4/nina_light_curve.c:213 src/gui-gtk4/utils.c:762
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #: src/gui-gtk4/uifiles/colorchooserdialog.ui:118
 #, fuzzy
@@ -4968,6 +4999,8 @@ msgid ""
 "\n"
 "    "
 msgstr ""
+"\n"
+"    "
 
 #: src/gui-gtk4/uifiles/icc_dialog.ui:188
 msgid "Built-in profile"
@@ -5300,7 +5333,7 @@ msgstr "Em espera"
 
 #: src/gui-gtk4/uifiles/mask_blur_dialog.ui:40
 msgid "Blur radius (pixels):"
-msgstr ""
+msgstr "Raio de desfoque (pixels):"
 
 #: src/gui-gtk4/uifiles/mask_blur_dialog.ui:53
 #, fuzzy
@@ -5322,6 +5355,8 @@ msgid ""
 "Feather distance in pixels. A linear feather is applied to soften the mask "
 "edge."
 msgstr ""
+"Distância de difusão em pixels. Uma difusão linear é aplicada para suavizar "
+"a borda da máscara."
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:62
 #, fuzzy
@@ -5330,15 +5365,15 @@ msgstr "Tipo padrão:"
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:74
 msgid "Inner"
-msgstr ""
+msgstr "Interno"
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:75
 msgid "Outer"
-msgstr ""
+msgstr "Exterior"
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:76
 msgid "Edge"
-msgstr ""
+msgstr "Borda"
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:81
 msgid ""
@@ -5346,10 +5381,13 @@ msgid ""
 "boundaries; \"Outer\" feathers outside the \"mask active\" boundaries, and "
 "\"Edge\" feathers equally either side of the boundary."
 msgstr ""
+"Selecione o tipo de difusão. Penas \"internas\" dentro dos limites da "
+"\"máscara ativa\"; Penas \"externas\" fora dos limites da \"máscara ativa\" "
+"e penas \"Edge\" igualmente em ambos os lados do limite."
 
 #: src/gui-gtk4/uifiles/mask_feather_dialog.ui:129
 msgid "Feather Image Mask"
-msgstr ""
+msgstr "Suavizar máscara de imagem"
 
 #: src/gui-gtk4/uifiles/mask_fmul_dialog.ui:40
 #, fuzzy
@@ -5358,40 +5396,40 @@ msgstr "Fator de escala"
 
 #: src/gui-gtk4/uifiles/mask_fmul_dialog.ui:53
 msgid "Scalar factor to multiply the mask by"
-msgstr ""
+msgstr "Fator escalar para multiplicar a máscara por"
 
 #: src/gui-gtk4/uifiles/mask_fmul_dialog.ui:112
 msgid "Multiply Image Mask"
-msgstr ""
+msgstr "Multiplicar máscara de imagem"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:47
 msgid "Bit Depth"
-msgstr ""
+msgstr "Profundidade de bits"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:59
 #: src/gui-gtk4/uifiles/mask_from_image.ui:129
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:80
 #: src/gui-gtk4/uifiles/settings_window.ui:2860
 msgid "8-bit"
-msgstr ""
+msgstr "8 bits"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:60
 #: src/gui-gtk4/uifiles/mask_from_image.ui:130
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:81
 #: src/gui-gtk4/uifiles/settings_window.ui:2861
 msgid "16-bit"
-msgstr ""
+msgstr "16 bits"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:61
 #: src/gui-gtk4/uifiles/mask_from_image.ui:131
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:82
 #: src/gui-gtk4/uifiles/settings_window.ui:2862
 msgid "32-bit"
-msgstr ""
+msgstr "32 bits"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:81
 msgid "<b>Target Chromaticity (Pure Color)</b>"
-msgstr ""
+msgstr "<b>Cromaticidade alvo (cor pura)</b>"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:93
 #, fuzzy
@@ -5410,14 +5448,18 @@ msgid ""
 "    (pure color ratio) will be extracted\n"
 "    automatically, independent of brightness.</i>"
 msgstr ""
+"<i>Clique em \"Escolher cor da imagem\" para selecionar\n"
+"    um pixel da imagem. A cromaticidade\n"
+"    (proporção de cor pura) será extraída\n"
+"    automaticamente, independente do brilho.</i>"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:123
 msgid "Pick Color from Image"
-msgstr ""
+msgstr "Escolha a cor da imagem"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:125
 msgid "Click to select a pixel from the image to use its color"
-msgstr ""
+msgstr "Clique para selecionar um pixel da imagem para usar sua cor"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:141
 #, fuzzy
@@ -5428,6 +5470,8 @@ msgstr "Tolerância da grade"
 msgid ""
 "How far from the target color to accept (0.0 = exact match, 1.0 = very broad)"
 msgstr ""
+"A que distância da cor alvo aceitar (0,0 = correspondência exata, 1,0 = "
+"muito ampla)"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:166
 #, fuzzy
@@ -5436,7 +5480,7 @@ msgstr "Luminância"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:167
 msgid "Minimum brightness (0.0 = black, 1.0 = white)"
-msgstr ""
+msgstr "Brilho mínimo (0,0 = preto, 1,0 = branco)"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:191
 #, fuzzy
@@ -5445,15 +5489,17 @@ msgstr "Luminância"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:192
 msgid "Maximum brightness (0.0 = black, 1.0 = white)"
-msgstr ""
+msgstr "Brilho máximo (0,0 = preto, 1,0 = branco)"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:227
 msgid "Feather Radius (px)"
-msgstr ""
+msgstr "Raio de suavização (px)"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:228
 msgid "Smooths mask edges. 0 = hard edges, higher = softer transitions"
 msgstr ""
+"Suaviza as bordas da máscara. 0 = arestas duras, superior = transições mais "
+"suaves"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:250
 #: src/gui-gtk4/uifiles/mask_from_image.ui:283
@@ -5466,11 +5512,11 @@ msgstr "Gerar máscara de estrela"
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:251
 #: src/gui-gtk4/uifiles/mask_from_image.ui:284
 msgid "If checked, the mask will be inverted"
-msgstr ""
+msgstr "Se marcada, a máscara será invertida"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:257
 msgid "Clean up mask"
-msgstr ""
+msgstr "Limpar a máscara"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:258
 msgid ""
@@ -5478,10 +5524,13 @@ msgid ""
 "remove isolated noise and small holes in the mask. This is slower to compute "
 "but may give a nicer mask"
 msgstr ""
+"Se marcada, são realizadas operações morfológicas para limpar a máscara e "
+"remover ruídos isolados e pequenos orifícios na máscara. Isso é mais lento "
+"para calcular, mas pode fornecer uma máscara melhor"
 
 #: src/gui-gtk4/uifiles/mask_from_chromaticity.ui:297
 msgid "Create Color Mask"
-msgstr ""
+msgstr "Criar máscara de cores"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:48
 #, fuzzy
@@ -5514,7 +5563,7 @@ msgstr "canal"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:107
 msgid "Select what type of mask to create from the image"
-msgstr ""
+msgstr "Selecione que tipo de máscara criar a partir da imagem"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:117
 #, fuzzy
@@ -5538,15 +5587,15 @@ msgstr "Luminância"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:183
 msgid "Set a custom Red luminance weight"
-msgstr ""
+msgstr "Defina um peso de luminância vermelha personalizado"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:196
 msgid "Set a custom Green luminance weight"
-msgstr ""
+msgstr "Defina um peso de luminância verde personalizado"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:208
 msgid "Set a custom Blue luminance weight"
-msgstr ""
+msgstr "Defina um peso de luminância azul personalizado"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:218
 #, fuzzy
@@ -5568,6 +5617,9 @@ msgid ""
 "Specifies what type of luminance weighting to use. For custom weights, "
 "select \"Custom\" and set the weights using the spin buttons below."
 msgstr ""
+"Especifica que tipo de ponderação de luminância usar. Para pesos "
+"personalizados, selecione \"Personalizado\" e defina os pesos usando os "
+"botões giratórios abaixo."
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:276
 #, fuzzy
@@ -5576,7 +5628,7 @@ msgstr "Aplicar algoritmo de autoestiramento À imagen"
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:277
 msgid "If checked, the mask will be autostretched."
-msgstr ""
+msgstr "Se marcada, a máscara será esticada automaticamente."
 
 #: src/gui-gtk4/uifiles/mask_from_image.ui:323
 #, fuzzy
@@ -5590,7 +5642,7 @@ msgstr "Raio de busca:"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:58
 msgid "Star radius as a multiple of FWHM"
-msgstr ""
+msgstr "Raio da estrela como múltiplo de FWHM"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:68
 #, fuzzy
@@ -5604,7 +5656,7 @@ msgstr "Raio exterior:"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:108
 msgid "Feather radius in pixels (0 = no feathering)"
-msgstr ""
+msgstr "Raio de suavização em pixels (0 = sem suavização)"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:127
 #, fuzzy
@@ -5613,7 +5665,7 @@ msgstr "Opções FITS"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:137
 msgid "Invert the mask after creation"
-msgstr ""
+msgstr "Inverta a máscara após a criação"
 
 #: src/gui-gtk4/uifiles/mask_from_stars.ui:181
 #, fuzzy
@@ -5622,13 +5674,15 @@ msgstr "PSF de Estrelas"
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:73
 msgid "Intensity feather range:"
-msgstr ""
+msgstr "Raio de intensidade da suavização:"
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:87
 msgid ""
 "Feather range in intensity units (0-1 for float masks, 0-255 for 8-bit "
 "masks, 0-65535 for 16-bit masks)"
 msgstr ""
+"Faixa de suavização em unidades de intensidade (0-1 para máscaras "
+"flutuantes, 0-255 para máscaras de 8 bits, 0-65535 para máscaras de 16 bits)"
 
 #: src/gui-gtk4/uifiles/mask_thresholds_dialog.ui:97
 #, fuzzy
@@ -6861,13 +6915,15 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:32
 msgid "⚠ Positions relative to external file"
-msgstr ""
+msgstr "⚠ Posições relativas ao arquivo externo"
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:33
 msgid ""
 "Registration transforms are absolute: computed relative to an external "
 "reference image, not to the sequence reference image."
 msgstr ""
+"As transformações de registro são absolutas: calculadas em relação a uma "
+"imagem de referência externa, não à imagem de referência de sequência."
 
 #: src/gui-gtk4/uifiles/seqlist_dialog.ui:61
 msgid "Select the channel you want to display."
@@ -7635,7 +7691,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1162
 msgid "Online Gaia Cache Duration (days):"
-msgstr ""
+msgstr "Duração do Cache Gaia Online (dias):"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1184
 #, fuzzy
@@ -7644,7 +7700,7 @@ msgstr "Limpar sequencia"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1186
 msgid "Clean the Gaia online cache"
-msgstr ""
+msgstr "Limpe o cache online do Gaia"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:1199
 msgid ""
@@ -8328,10 +8384,15 @@ msgid ""
 "freehand selection to a mask where no mask yet exists) a default bit depth "
 "will be used."
 msgstr ""
+"Define a profundidade de bits padrão para criação de máscara. Algumas caixas "
+"de diálogo de criação de máscara permitem a especificação de uma "
+"profundidade de bits, mas em alguns casos (por exemplo, adicionando uma "
+"seleção à mão livre a uma máscara onde ainda não existe máscara) uma "
+"profundidade de bits padrão será usada."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2878
 msgid "Mask tints image viewports"
-msgstr ""
+msgstr "A máscara colore as janelas de visualização da imagem"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2879
 msgid ""
@@ -8339,6 +8400,10 @@ msgid ""
 "viewports. Areas where the mask wil disapply image operations are shown "
 "tinted red, with the tint strength dependent on the mask value."
 msgstr ""
+"Quando ativa, se uma máscara de imagem estiver presente e ativa, ela tingirá "
+"as janelas de visualização da imagem. As áreas onde a máscara irá desativar "
+"as operações de imagem são mostradas em vermelho, com a intensidade da "
+"tonalidade dependente do valor da máscara."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:2891
 #, fuzzy
@@ -9099,7 +9164,7 @@ msgstr "HD Auto estiramento"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4214
 msgid "Display cache budget (MB)"
-msgstr ""
+msgstr "Limite de cache de tela (MB)"
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4229
 msgid ""
@@ -9110,6 +9175,13 @@ msgid ""
 "Raise this if a huge mosaic shows missing (black) tiles when zooming out "
 "quickly. Takes effect from the next image (re)load."
 msgstr ""
+"Limite de RAM, em megabytes, usado para exibir imagens muito grandes. "
+"Imagens cujo buffer de exibição se enquadra nesse limite são mostradas "
+"diretamente, sem ladrilhos ou falhas no zoom; imagens maiores usam um "
+"renderizador lado a lado que mantém no máximo esses megabytes residentes por "
+"canal e pagina o restante sob demanda. Aumente este valor se um mosaico "
+"enorme mostrar blocos faltantes (pretos) ao diminuir o zoom rapidamente. "
+"Entra em vigor a partir do próximo (re)carregamento da imagem."
 
 #: src/gui-gtk4/uifiles/settings_window.ui:4242
 #, fuzzy
@@ -9396,13 +9468,15 @@ msgstr "AHD"
 
 #: src/gui-gtk4/uifiles/siril.ui:289
 msgid "Use a high definition LUT for the autostretch display"
-msgstr ""
+msgstr "Use uma LUT de alta definição para a exibição de autostretch"
 
 #: src/gui-gtk4/uifiles/siril.ui:301
 msgid ""
 "Auto-refresh: recompute the autostretch on every image change. When off, the "
 "current stretch is kept."
 msgstr ""
+"Atualização automática: recalcule o alongamento automático em cada alteração "
+"de imagem. Quando desligado, o trecho atual é mantido."
 
 #: src/gui-gtk4/uifiles/siril.ui:315
 msgid ""
@@ -9415,7 +9489,7 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/siril.ui:333
 msgid "Adjust the autostretch target background"
-msgstr ""
+msgstr "Ajustar o plano de fundo do alvo de alongamento automático"
 
 #: src/gui-gtk4/uifiles/siril.ui:360
 msgid "Exclude frame %d"
@@ -9541,7 +9615,7 @@ msgstr "Cortar sequência..."
 
 #: src/gui-gtk4/uifiles/siril.ui:621 src/gui-gtk4/mouse_action_functions.c:170
 msgid "Mask"
-msgstr ""
+msgstr "Máscara"
 
 #: src/gui-gtk4/uifiles/siril.ui:630 src/gui-gtk4/mouse_action_functions.c:171
 #, fuzzy
@@ -9551,7 +9625,7 @@ msgstr "Criar três imagens"
 #: src/gui-gtk4/uifiles/siril.ui:637 src/core/command.c:16128
 #: src/gui-gtk4/masks_gui.c:789 src/gui-gtk4/mouse_action_functions.c:172
 msgid "Mask from color"
-msgstr ""
+msgstr "Máscara de cor"
 
 #: src/gui-gtk4/uifiles/siril.ui:644 src/core/command.c:15472
 #: src/gui-gtk4/masks_gui.c:555 src/gui-gtk4/mouse_action_functions.c:173
@@ -9566,11 +9640,11 @@ msgstr "Criar três imagens"
 
 #: src/gui-gtk4/uifiles/siril.ui:658 src/gui-gtk4/mouse_action_functions.c:176
 msgid "Add freehand to mask"
-msgstr ""
+msgstr "Adicionar traçado livre à máscara"
 
 #: src/gui-gtk4/uifiles/siril.ui:665 src/gui-gtk4/mouse_action_functions.c:177
 msgid "Subtract freehand from mask"
-msgstr ""
+msgstr "Subtrair traçado livre da máscara"
 
 #: src/gui-gtk4/uifiles/siril.ui:672 src/core/command.c:15685
 #: src/gui-gtk4/callbacks.c:755 src/gui-gtk4/mouse_action_functions.c:179
@@ -9610,24 +9684,24 @@ msgstr "Auto estirar"
 
 #: src/gui-gtk4/uifiles/siril.ui:771 src/gui-gtk4/mouse_action_functions.c:196
 msgid "Apply Thresholds to Mask"
-msgstr ""
+msgstr "Aplicar limites à máscara"
 
 #: src/gui-gtk4/uifiles/siril.ui:779 src/gui-gtk4/mouse_action_functions.c:199
 msgid "Blur Mask"
-msgstr ""
+msgstr "Máscara de desfoque"
 
 #: src/gui-gtk4/uifiles/siril.ui:786 src/gui-gtk4/mouse_action_functions.c:200
 msgid "Feather Mask"
-msgstr ""
+msgstr "Máscara de suavização"
 
 #: src/gui-gtk4/uifiles/siril.ui:793 src/gui-gtk4/mouse_action_functions.c:201
 msgid "Invert Mask"
-msgstr ""
+msgstr "Máscara Invertida"
 
 #: src/gui-gtk4/uifiles/siril.ui:800 src/core/command.c:15923
 #: src/gui-gtk4/masks_gui.c:623 src/gui-gtk4/mouse_action_functions.c:202
 msgid "Multiply mask"
-msgstr ""
+msgstr "Multiplicar máscara"
 
 #: src/gui-gtk4/uifiles/siril.ui:807 src/gui-gtk4/mouse_action_functions.c:203
 #: src/gui-gtk4/siril_actions.c:1176
@@ -10106,12 +10180,12 @@ msgstr ""
 
 #: src/gui-gtk4/uifiles/siril.ui:2016
 msgid "Calibrate magnitudes ..."
-msgstr ""
+msgstr "Calibrar magnitudes ..."
 
 #: src/gui-gtk4/uifiles/siril.ui:2017
 msgid ""
 "Calibrate magnitudes of the image using stars detected from the catalogue"
-msgstr ""
+msgstr "Calibre as magnitudes da imagem usando estrelas detectadas no catálogo"
 
 #: src/gui-gtk4/uifiles/siril.ui:2023
 msgid "Automated Light Curve..."
@@ -10289,7 +10363,7 @@ msgstr "arquivo azul atual"
 
 #: src/gui-gtk4/uifiles/siril.ui:3042
 msgid "label"
-msgstr ""
+msgstr "rótulo"
 
 #: src/gui-gtk4/uifiles/siril.ui:3057
 msgid "Hide the control panel to show only the image panel (toggle)."
@@ -10359,7 +10433,7 @@ msgstr "Comutar entre modo normal e arco-íris (executado em cor falsa)"
 
 #: src/gui-gtk4/uifiles/siril.ui:3326
 msgid "Show/hide histogram overlay"
-msgstr ""
+msgstr "Mostrar/ocultar sobreposição do histograma"
 
 #: src/gui-gtk4/uifiles/siril.ui:3343
 msgid ""
@@ -10946,6 +11020,12 @@ msgid ""
 "BAYERPAT). Auto / None leave the converted output mono. Ignored for AVI "
 "frames that autodetect as 3-channel colour and for non-AVI inputs."
 msgstr ""
+"Os contêineres AVI não possuem marcador Bayer. Para um mosaico bruto "
+"capturado em AVI (por exemplo, um fluxo planetário OSC), escolha o padrão "
+"Bayer da câmera e os quadros SER/FITS/FITSEQ convertidos o carregarão (SER "
+"ColorID, FITS BAYERPAT). Auto / Nenhum deixa a saída convertida mono. "
+"Ignorado para quadros AVI que detectam automaticamente como cores de 3 "
+"canais e para entradas não AVI."
 
 #: src/gui-gtk4/uifiles/siril_conversion.ui:226
 #: src/gui-gtk4/uifiles/siril_registration.ui:1069
