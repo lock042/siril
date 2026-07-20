@@ -63,6 +63,11 @@ static void stub_message_dialog(SirilMessageType type, const char *title,
 	        title ? title : "", text ? text : "");
 }
 
+static void stub_message_dialog_modal(SirilMessageType type, const char *title,
+                                      const char *text) {
+	stub_message_dialog(type, title, text);
+}
+
 static gboolean stub_confirm_dialog(const char *title, const char *msg,
                                     const char *button_accept) {
 	(void)title; (void)msg; (void)button_accept;
@@ -327,6 +332,7 @@ SirilGuiInterface gui_iface = {
 	.set_busy             = stub_set_busy,
 	.log_message          = stub_log_message,
 	.message_dialog       = stub_message_dialog,
+	.message_dialog_modal = stub_message_dialog_modal,
 	.confirm_dialog       = stub_confirm_dialog,
 	.confirm_dialog_with_avi_bayer = stub_confirm_dialog_with_avi_bayer,
 	.open_dialog            = stub_open_dialog,

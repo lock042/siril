@@ -137,6 +137,13 @@ static void impl_message_dialog(SirilMessageType type, const char *title,
 	queue_message_dialog(to_gtk_msg_type(type), title, text);
 }
 
+static void impl_message_dialog_modal(SirilMessageType type, const char *title,
+                                      const char *text) {
+	/* callable from worker threads (python bridge): blocks until the user
+	 * dismisses the dialog, mirroring the confirm_dialog_async pattern */
+	siril_message_dialog_modal(to_gtk_msg_type(type), (gchar *)title, (gchar *)text);
+}
+
 static gboolean impl_confirm_dialog(const char *title, const char *msg,
                                     const char *button_accept) {
 	/* callable from worker threads (python bridge, icc command handlers):
@@ -1474,6 +1481,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_busy              = impl_set_busy;
 	gui_iface.log_message           = impl_log_message;
 	gui_iface.message_dialog        = impl_message_dialog;
+	gui_iface.message_dialog_modal  = impl_message_dialog_modal;
 	gui_iface.confirm_dialog        = impl_confirm_dialog;
 	gui_iface.confirm_dialog_with_avi_bayer = impl_confirm_dialog_with_avi_bayer;
 	gui_iface.open_dialog            = impl_open_dialog;

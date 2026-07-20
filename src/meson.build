@@ -239,6 +239,7 @@ src_files = [
   'registration/mpp/mpp_ap.cpp',
   'registration/mpp/mpp_shift.cpp',
   'registration/mpp/mpp_stack.cpp',
+  'registration/mpp/mpp_warp_stack.cpp',
   'registration/mpp/mpp_sidecar.c',
 
   'stacking/blending.c',

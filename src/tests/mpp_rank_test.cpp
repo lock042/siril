@@ -202,3 +202,45 @@ Test(mpp_rank, average_frame_upscales_8bit_input) {
 	             "8-bit mean_frame should be ~256× the 16-bit one; worst Δ = %d",
 	             worst);
 }
+
+/* mpp_improve: float-precision ranking (cfg.rank_float_precision;
+ * MPP_PSS_DIFFS.md section 14). Fixture: two frames whose texture
+ * amplitudes differ by 25%, both so low-contrast that every blurred
+ * Laplacian magnitude stays below 256 (one uint8 quantisation step) —
+ * the PSS u8 path zeroes both images entirely (sigma == 0, no ordering),
+ * while the float path separates them cleanly. */
+Test(mpp_rank, float_precision_orders_below_quantisation_step) {
+	mpp_config_t cfg;
+	mpp_config_defaults(&cfg);
+	cr_assert(cfg.rank_float_precision);   /* mpp_improve default */
+
+	auto make = [](double amp) {
+		cv::Mat f(160, 160, CV_16U, cv::Scalar(20000));
+		for (int y = 0; y < f.rows; ++y)
+			for (int x = 0; x < f.cols; ++x)
+				f.at<uint16_t>(y, x) = (uint16_t) (20000.0
+				    + amp * std::sin(0.9 * x) * std::sin(0.8 * y));
+		return f;
+	};
+	/* Post-blur (7x7, sigma~1.4) the Laplacian of a ±60-count sine is
+	 * well under 256, so convertScaleAbs(1/256) floors it to zero. */
+	const cv::Mat weak = make(48.0), strong = make(60.0);
+
+	mpp_config_t cfg_u8 = cfg;
+	cfg_u8.rank_float_precision = false;
+	const double u8_weak   = mpp::rank_score_mat(weak,   cfg_u8);
+	const double u8_strong = mpp::rank_score_mat(strong, cfg_u8);
+	cr_assert_float_eq(u8_weak, 0.0, 1e-12,
+	                   "u8 path should quantise the weak frame to zero (got %g)",
+	                   u8_weak);
+	cr_assert_float_eq(u8_strong, 0.0, 1e-12,
+	                   "u8 path should quantise the strong frame to zero (got %g)",
+	                   u8_strong);
+
+	const double f_weak   = mpp::rank_score_mat(weak,   cfg);
+	const double f_strong = mpp::rank_score_mat(strong, cfg);
+	cr_assert_gt(f_weak, 0.0);
+	cr_assert_gt(f_strong, f_weak * 1.1,
+	             "float path should order the frames (weak %g, strong %g)",
+	             f_weak, f_strong);
+}

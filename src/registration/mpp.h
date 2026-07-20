@@ -68,12 +68,10 @@ typedef struct mpp_run {
 	double *frame_brightness;
 	int *included;             /* 0 or 1; 1 by default. CLI -selected filters here. */
 	/* (dy, dx) per frame, contiguous, length 2 * num_frames. Sub-pixel
-	 * (parabolic-fit refinement on the global correlation peak): with
-	 * drizzle_scale > 1 the fractional component is the dominant source
-	 * of cross-frame CFA-phase coverage in Bayer drizzle, so integer-only
-	 * values would leave the same CFA phase visited by every frame and
-	 * produce vertical-stripe / partial-Bayer-grid artefacts at the
-	 * output. v3-and-earlier sidecars stored these as int32 — readers
+	 * (parabolic-fit refinement on the global correlation peak): the
+	 * fractional component matters for output_scale > 1, where cv::resize
+	 * upscaling needs sub-pixel-accurate global registration to avoid
+	 * aliasing. v3-and-earlier sidecars stored these as int32 — readers
 	 * keyed on version promote on the fly. */
 	double *global_shifts;
 	int best_frame_idx;
@@ -156,20 +154,17 @@ mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
  * writes the sidecar next to the sequence. */
 int register_mpp(struct registration_args *regargs);
 
-/* Classify a sequence's input layout for drizzle-mode dispatch. Same
- * answer regardless of the user's debayer-on-open preference, because
- * the classifier reads the SER ColorID directly (or falls back to
- * nb_layers for non-SER inputs).
+/* Classify a sequence's input layout (mono / CFA / RGB). Same answer
+ * regardless of the user's debayer-on-open preference, because the
+ * classifier reads the SER ColorID directly (or falls back to nb_layers
+ * for non-SER inputs).
  *
- *   MONO: true single-channel (SER_MONO, mono FITS)        — stsci-* OK
- *   CFA:  Bayer pattern, raw or debayered                  — bayer-* OK
+ *   MONO: true single-channel (SER_MONO, mono FITS)
+ *   CFA:  Bayer pattern, raw or debayered
  *   RGB:  true 3-channel non-Bayer (RGB SER, debayered FITS without bayer_pattern keyword)
- *                                                            — only bicubic/Off
  *
- * Used by:
- *   - process_pss / process_stack_mpp to reject incompatible -drizzle modes early
- *   - the GUI drizzle-mode combo to populate only valid choices
- *   - register_mpp to decide whether to auto-debayer for analysis */
+ * Used by the Stage C dispatch (channel-count math for the output canvas)
+ * and by register_mpp to decide whether to auto-debayer for analysis. */
 typedef enum {
 	MPP_INPUT_MONO = 0,
 	MPP_INPUT_CFA  = 1,

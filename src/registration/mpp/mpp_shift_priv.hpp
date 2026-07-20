@@ -32,7 +32,7 @@ std::vector<APRefBoxes> shift_prepare_ref_boxes(const cv::Mat &mean_frame_raw,
  * Used to translate AP box bounds (mean-frame coords) into each frame's
  * native coordinates. Sub-pixel since the global align pass switched to
  * parabolic refinement; consumers that need integer indices (Stage B
- * box positioning) round explicitly, drizzle's pixmap math uses the
+ * box positioning) round explicitly, the output resample uses the
  * doubles directly. */
 struct FrameOffset { double dy; double dx; };
 std::vector<FrameOffset> shift_frame_offsets(const std::vector<cv::Vec2d> &global_shifts,
@@ -45,6 +45,25 @@ mpp_shifts_t *shift_compute_all(const std::vector<cv::Mat> &frames_mono_blurred,
                                 const std::vector<APRefBoxes> &ref_boxes,
                                 const std::vector<FrameOffset> &offsets,
                                 const mpp_config_t &cfg);
+
+/* Per-frame robust smoothing of the shift field across APs (mpp_improve;
+ * no PSS equivalent — cfg.alignment_points_smooth_radius, 0 disables).
+ * For each frame, each AP's (dy, dx) is replaced by a robust local plane
+ * fit (tricube distance weights × Tukey bisquare residual reweighting,
+ * 3 IRLS rounds) over the successful measurements of the APs within
+ * radius × grid-step of it. Rationale: the true warp field is smooth at
+ * grid-step scale while the per-(frame, AP) measurement noise is
+ * independent, so the fit averages the noise down by ~sqrt(n/3) without
+ * biasing genuine warp; the bisquare loop rejects railed/aperture-
+ * problem outliers. Failed pairs inside a neighbourhood with at least 5
+ * successful measurements receive the fit prediction (success flags are
+ * left untouched — the skip-failed stack option keeps its meaning).
+ * APs with fewer successful neighbours keep their raw values. Excluded
+ * frames (included[f] == 0) are skipped. In-place; thread-safe across
+ * frames (max_threads > 1 parallelises the frame loop). */
+void shift_field_smooth(mpp_shifts_t *shifts, const mpp_aps_t &aps,
+                        const mpp_config_t &cfg, const int *included,
+                        int max_threads = 1);
 
 }  // namespace mpp
 

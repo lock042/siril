@@ -1214,7 +1214,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			siril_log_debug("Executing message dialog\n");
-			gui_iface.message_dialog(type, title, log_msg);
+			switch (header->command) {
+				case CMD_ERROR_MESSAGEBOX_MODAL:
+				case CMD_WARNING_MESSAGEBOX_MODAL:
+				case CMD_INFO_MESSAGEBOX_MODAL:
+					// Blocks this worker thread until the user dismisses the dialog,
+					// so the client's response (and script execution) waits too.
+					gui_iface.message_dialog_modal(type, title, log_msg);
+					break;
+				default:
+					gui_iface.message_dialog(type, title, log_msg);
+					break;
+			}
 			g_free(log_msg);
 
 			// Send success response

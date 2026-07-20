@@ -97,6 +97,7 @@ const char* ui_files[] = {
 // The multipoint AP editor and shift viewer reference the adj_mpp_* adjustments
 // defined in siril_registration.ui / siril_stacking.ui, so they must load after
 // those center-notebook tab files.
+	"/org/siril/ui/mpp_advanced_dialog.ui",
 	"/org/siril/ui/mpp_ap_editor_dialog.ui",
 	"/org/siril/ui/mpp_shift_viewer_dialog.ui",
 	"/org/siril/ui/spcc_details.ui",
