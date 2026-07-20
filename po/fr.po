@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-20 14:20+0200\n"
-"PO-Revision-Date: 2026-07-20 12:58+0000\n"
+"PO-Revision-Date: 2026-07-20 13:08+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
@@ -11632,7 +11632,7 @@ msgstr "Taille de la région d'alignement (%) :"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:886
 msgid "Correlation box half-width:"
-msgstr ""
+msgstr "Demi-largeur de la boîte de corrélation :"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:896
 msgid ""
@@ -11642,11 +11642,16 @@ msgid ""
 "editor) and the default grid pitch derive from it; an explicit grid pitch in "
 "the advanced settings decouples the spacing. Default 24."
 msgstr ""
+"Demi-largeur en pixels de la boîte de corrélation de chaque point "
+"d'alignement — la zone sur laquelle son décalage local est mesuré, dessinée "
+"sous forme de boîtes pleines dans la superposition de l'image. La zone "
+"d'empilement (en pointillés dans la superposition, activable dans l'éditeur "
+"des AP) et le pas de grille par défaut en dérivent ; un pas de grille "
+"explicite dans les paramètres avancés dissocie l'espacement. Par défaut 24."
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:909
-#, fuzzy
 msgid "Grid pitch (px):"
-msgstr "Taille de la fenêtre (px) :"
+msgstr "Pas de la grille (px) :"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:919
 msgid ""
@@ -11657,6 +11662,14 @@ msgid ""
 "values down to about the half-width (24–27 px) work well — rather than "
 "shrinking the correlation box, which starves the shift measurement of signal."
 msgstr ""
+"Distance entre les points d'alignement en pixels, dissociée de la boîte de "
+"corrélation (qui conserve sa taille complète). 0 = automatique : 2,25 × la "
+"demi-largeur de la boîte de corrélation, soit 54 px avec la valeur par "
+"défaut de 24. Pour échantillonner plus finement la distorsion due à la "
+"turbulence, conservez la boîte de corrélation à sa taille par défaut et "
+"réduisez le pas — des valeurs jusqu'à environ la demi-largeur (24–27 px) "
+"fonctionnent bien — plutôt que de réduire la boîte de corrélation, ce qui "
+"prive la mesure de décalage de signal."
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:931
 msgid "Reference frame %:"
@@ -11775,9 +11788,8 @@ msgstr ""
 "rouge = repli sur aucun décalage."
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:1073
-#, fuzzy
 msgid "Advanced settings…"
-msgstr "Options avancées SOS"
+msgstr "Paramètres avancés…"
 
 #: src/gui-gtk4/uifiles/siril_registration.ui:1096
 msgid "Registration method:"
@@ -12917,7 +12929,7 @@ msgstr "3x"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:521
 msgid "Engine:"
-msgstr ""
+msgstr "Moteur :"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:530
 msgid ""
@@ -12927,15 +12939,21 @@ msgid ""
 "interpolated between the alignment points: sharper on planetary discs, equal "
 "elsewhere, but slower on large images."
 msgstr ""
+"Comment les images alignées sont combinées. Mosaïque de zones empile la zone "
+"de chaque point d'alignement à son propre décalage et fusionne les "
+"chevauchements — l'option par défaut, robuste. Champ de déformation "
+"rééchantillonne chaque image entière une seule fois à travers une "
+"déformation lisse interpolée entre les points d'alignement : plus net sur "
+"les disques planétaires, équivalent ailleurs, mais plus lent sur les images "
+"de grande taille."
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:535
-#, fuzzy
 msgid "Patch mosaic"
-msgstr "Correspondance avec l'image"
+msgstr "Mosaïque de zones"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:536
 msgid "Warp field"
-msgstr ""
+msgstr "Champ de déformation"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:550
 msgid "Stack percent:"
@@ -12988,7 +13006,6 @@ msgid "Skip failed AP shifts"
 msgstr "Ignorer les décalages d'AP en échec"
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:645
-#, fuzzy
 msgid ""
 "Patch mosaic engine only: drop frame/alignment-point contributions whose "
 "local shift measurement failed instead of stacking them at the coarse "
@@ -12997,10 +13014,13 @@ msgid ""
 "warp field engine handles failed measurements itself, by predicting their "
 "shifts from neighbouring alignment points."
 msgstr ""
-"Écarte les contributions image/point d'alignement dont la mesure locale du "
-"décalage a échoué, au lieu de les empiler avec l'estimation grossière. Utile "
-"lorsque des zones fantômes ou dédoublées apparaissent dans l'empilement. Les "
-"points d'alignement sans aucune mesure réussie sont empilés sans filtrage."
+"Uniquement pour le moteur mosaïque de zones : écarte les contributions image/"
+"point d'alignement dont la mesure locale du décalage a échoué, au lieu de "
+"les empiler avec l'estimation grossière. Utile lorsque des zones fantômes ou "
+"dédoublées apparaissent dans l'empilement. Les points d'alignement sans "
+"aucune mesure réussie sont empilés sans filtrage. Le moteur champ de "
+"déformation gère lui-même les mesures échouées, en prédisant leurs décalages "
+"à partir des points d'alignement voisins."
 
 #: src/gui-gtk4/uifiles/siril_stacking.ui:694
 msgid "Borders feathering [pix]:"
@@ -13982,12 +14002,12 @@ msgid "Not enough memory\n"
 msgstr "Pas assez de mémoire\n"
 
 #: src/algos/astrometry_solver.c:511
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "There are not enough stars picked in the image. At least %d are needed\n"
 msgstr ""
 "Il n'y a pas assez d'étoiles sélectionnées dans l'image. Au moins %d sont "
-"nécessaires.\n"
+"nécessaires\n"
 
 #: src/algos/astrometry_solver.c:514
 msgid "Transformation matrix is invalid, solve failed\n"
@@ -21792,7 +21812,7 @@ msgstr ""
 "l'option <b>-mask</b> est fournie"
 
 #: src/core/command_def.h:118
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Runs the full multipoint registration and stacking pipeline on the given "
 "sequence with sensible defaults. Frames are ranked by Laplace-sigma quality, "
@@ -21877,40 +21897,80 @@ msgstr ""
 "plutôt <b>REGISTER_MPP</b> suivi de <b>STACK_MPP</b>.\n"
 "\n"
 "Mise à l'échelle de sortie via <b>-scale=N</b> (1.0..3.0, valeurs décimales "
-"autorisées) : <b>1.0</b> empile à la résolution native ; des valeurs plus "
+"autorisées) : <b>1.0</b> empile à la résolution native ; des valeurs plus "
 "grandes suréchantillonnent pendant l'empilement via l'interpolation "
 "cv::resize. Les entrées CFA sont d'abord dématricées automatiquement.\n"
 "\n"
-"Options côté alignement : <b>-align=</b>{<b>planet</b>|<b>surface</b>} (par "
-"défaut <b>planet</b> : alignement sur le centroïde de luminosité pour un "
-"disque complet sur un fond sombre ; <b>surface</b> corrèle une zone de "
-"détail choisie automatiquement, par ex. Lune/Soleil), <b>-half-box=N</b> "
-"(24), <b>-search-width=N</b> (14), <b>-search-global=N</b> (34), <b>-fast-"
-"changing</b> (construit la référence à partir d'un court intervalle ; "
-"désactivé par défaut), <b>-ref-percent=N</b> (5 ; %% des images moyennées "
-"dans la référence), <b>-register-percent=N</b> (100 ; limite d'images par AP "
+"Options côté alignement : <b>-align=</b>{<b>planet</b>|<b>surface</b>} (par "
+"défaut <b>planet</b> : alignement sur le centroïde de luminosité pour un "
+"disque complet sur un fond sombre ; <b>surface</b> corrèle une zone de "
+"détail choisie automatiquement, par ex. Lune/Soleil), <b>-half-box=N</b> (24)"
+", <b>-search-width=N</b> (14), <b>-search-global=N</b> (34), <b>-fast-"
+"changing</b> (construit la référence à partir d'un court intervalle ; "
+"désactivé par défaut), <b>-ref-percent=N</b> (5 ; %% des images moyennées "
+"dans la référence), <b>-register-percent=N</b> (100 ; limite d'images par AP "
 "fixée lors de l'alignement — réglez-la au moins aussi haute que le plus "
 "grand pourcentage d'empilement souhaité, ne la diminuez que pour économiser "
 "du calcul), <b>-min-brightness=N</b> (10), <b>-min-contrast=N</b> (0), <b>-"
-"min-structure=F</b> (0.04), <b>-no-shifts</b>, <b>-no-normalize</b>, <b>-"
-"noseed</b> (désactive l'amorçage de l'alignement global à partir des données "
-"d'alignement existantes), <b>-avi-bayer=</b>{<b>auto</b>|<b>none</b>|"
-"<b>rggb</b>|<b>bggr</b>|<b>gbrg</b>|<b>grbg</b>} (indice de motif Bayer, "
+"min-structure=F</b> (0.04), <b>-no-shifts</b>, <b>-no-normalize</b>, <b>-no-"
+"float-rank</b> (utilise la mesure classique de qualité d'image quantifiée "
+"sur 8 bits au lieu de celle en pleine précision par défaut ; la valeur par "
+"défaut conserve un classement précis de la netteté sur les données à faible "
+"contraste), <b>-noseed</b> (désactive l'amorçage de l'alignement global à "
+"partir des données d'alignement existantes), <b>-zero-mean</b> (optionnel : "
+"corrélation croisée normalisée à moyenne nulle pour la mesure du décalage "
+"par point d'alignement — invariante aux différences de gain/décalage de "
+"luminosité entre les images et la référence, comme la dérive de "
+"transparence, mais lorsque les boîtes de corrélation ont peu de contraste, "
+"cela double environ le nombre de mesures de décalage en échec et les replis "
+"coûtent du détail, elle est donc désactivée par défaut), <b>-no-refine</b> "
+"(ignore la seconde passe d'alignement ; par défaut, les quelques meilleures "
+"images par point d'alignement sont empilées aux décalages de la première "
+"passe, puis chaque décalage est remesuré par rapport à cette référence bien "
+"plus nette au lieu de l'image moyenne lissée par la turbulence), <b>-refine-"
+"frames=N</b> (0 = auto ; nombre d'images par point d'alignement de "
+"l'empilement de référence de raffinement, le mode auto choisit 5%% des "
+"images plafonné entre 8 et 32), <b>-ap-step=N</b> (0 = auto ; pas de la "
+"grille de points d'alignement en pixels, dissocié de la taille de la boîte "
+"de corrélation qui reste 2x la demi-boîte — une grille plus dense, par "
+"exemple la moitié du pas automatique, suit plus finement le champ de "
+"déformation dû à la turbulence sans priver la mesure de décalage de signal, "
+"contrairement à une demi-boîte plus petite ; le mode auto reproduit la "
+"géométrie classique de 2,25x la demi-boîte), <b>-shift-smooth=F</b> (2.5 = "
+"par défaut ; rayon de lissage robuste par image pour le champ de décalage "
+"des points d'alignement, en unités de pas de grille, 0 désactive — les "
+"mesures de décalage individuelles comportent un bruit bien supérieur aux "
+"véritables différences de déformation d'une image à l'autre, qui varient de "
+"façon lisse à travers l'image, donc un ajustement local robuste sur les "
+"points d'alignement voisins élimine la majeure partie de ce bruit sans "
+"aplatir la déformation réelle), <b>-avi-bayer=</b>{<b>auto</b>|<b>none</b>"
+"|<b>rggb</b>|<b>bggr</b>|<b>gbrg</b>|<b>grbg</b>} (indice de motif Bayer, "
 "pris en compte uniquement pour les entrées AVI).\n"
 "\n"
-"Options côté empilement : <b>-stack-percent=N</b> (100 ; images par AP à "
+"Options côté empilement : <b>-stack-percent=N</b> (100 ; images par AP à "
 "mélanger, plafonné au pourcentage d'alignement), <b>-stack-frames=N</b> "
 "(remplace le pourcentage), <b>-bg-fraction=F</b> (0.3), <b>-bg-blend=F</b> "
 "(0.2), <b>-skip-failed-aps</b> (écarte les paires image/point d'alignement "
 "dont la mesure locale du décalage a échoué, au lieu de les empiler avec "
-"l'estimation grossière ; les points d'alignement sans aucune mesure réussie "
-"sont empilés sans filtrage), <b>-32b</b> (force l'image enregistrée en "
-"virgule flottante 32 bits ; la fusion pondérée s'exécute toujours en interne "
-"en virgule flottante 32 bits et est sinon compressée en entier 16 bits à "
-"l'enregistrement), <b>-out=file</b> (par défaut : <i>seqname</"
-"i>_stacked.fit).\n"
+"l'estimation grossière ; les points d'alignement sans aucune mesure réussie "
+"sont empilés sans filtrage), <b>-engine=</b>{<b>patch</b>|<b>warp</b>} "
+"(moteur d'empilement ; <b>patch</b> est la mosaïque classique par point "
+"d'alignement avec fusion des chevauchements, <b>warp</b> est expérimental : "
+"il interpole les décalages des points d'alignement en un champ de distorsion "
+"lisse et rééchantillonne chaque image exactement une fois à travers celui-"
+"ci, sans limites de zones ni fusion), <b>-debayer=</b>{<b>lmmse</b>|<b>rcd</"
+"b>|<b>bilinear</b>|<b>vng</b>|<b>ahd</b>|<b>amaze</b>|<b>dcb</b>|<b>hphd</b>"
+"|<b>igv</b>} (algorithme de dématriçage pour les lectures d'images CFA au "
+"moment de l'empilement ; par défaut <b>lmmse</b>, qui mesure un bruit de "
+"couleur empilé environ 19%% inférieur à rcd sur les captures bruitées avec "
+"un détail de luminance identique — l'alignement n'est pas affecté, car il "
+"lit la mosaïque brute), <b>-32b</b> (force l'image enregistrée en virgule "
+"flottante 32 bits ; la fusion pondérée s'exécute toujours en interne en "
+"virgule flottante 32 bits et est sinon compressée en entier 16 bits à "
+"l'enregistrement), <b>-out=file</b> (par défaut : <i>seqname</i>_stacked.fit)"
+".\n"
 "\n"
-"La sélection des images est automatique : les images exclues dans le "
+"La sélection des images est automatique : les images exclues dans le "
 "sélecteur d'images sont exclues de l'analyse et de l'empilement — il n'y a "
 "pas d'option -selected."
 
@@ -22523,7 +22583,7 @@ msgstr ""
 "pixels verts"
 
 #: src/core/command_def.h:140
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Runs Stages A and B (analysis and registration) of the multipoint pipeline: "
 "ranks frames by Laplace-sigma quality, globally aligns them, places an "
@@ -22577,37 +22637,66 @@ msgid ""
 "\n"
 "For a one-step register-and-stack equivalent see <b>MPP</b>"
 msgstr ""
-"Exécute les étapes A et B (analyse et alignement) du pipeline multipoint : "
+"Exécute les étapes A et B (analyse et alignement) du pipeline multipoint : "
 "classe les images par qualité Laplace-sigma, les aligne globalement, place "
 "une grille de points d'alignement sur une image de référence moyenne, et "
 "calcule les décalages par AP et par image. Les résultats sont conservés sous "
 "forme de fichier annexe <i>seqname</i>.mpp dans le répertoire de travail "
-"actuel ; <b>STACK_MPP</b> consomme ce fichier annexe pour produire l'image "
+"actuel ; <b>STACK_MPP</b> consomme ce fichier annexe pour produire l'image "
 "empilée finale. Les SER Bayer sont dématricés à l'ouverture quelle que soit "
 "la préférence enregistrée.\n"
 "\n"
-"Options : <b>-align=</b>{<b>planet</b>|<b>surface</b>} (par défaut "
-"<b>planet</b> : alignement sur le centroïde de luminosité pour un disque "
-"complet sur un fond sombre ; <b>surface</b> corrèle une zone de détail "
+"Options : <b>-align=</b>{<b>planet</b>|<b>surface</b>} (par défaut <b>"
+"planet</b> : alignement sur le centroïde de luminosité pour un disque "
+"complet sur un fond sombre ; <b>surface</b> corrèle une zone de détail "
 "choisie automatiquement, par ex. Lune/Soleil), <b>-half-box=N</b> (24), <b>-"
 "search-width=N</b> (14), <b>-search-global=N</b> (34), <b>-fast-changing</b> "
-"(construit la référence à partir d'un court intervalle ; désactivé par "
-"défaut), <b>-ref-percent=N</b> (5 ; %% des images moyennées dans la "
-"référence), <b>-register-percent=N</b> (100 ; limite d'images par AP fixée "
+"(construit la référence à partir d'un court intervalle ; désactivé par "
+"défaut), <b>-ref-percent=N</b> (5 ; %% des images moyennées dans la "
+"référence), <b>-register-percent=N</b> (100 ; limite d'images par AP fixée "
 "lors de l'alignement — réglez-la au moins aussi haute que le plus grand "
 "pourcentage d'empilement souhaité, ne la diminuez que pour économiser du "
 "calcul), <b>-min-brightness=N</b> (10), <b>-min-contrast=N</b> (0), <b>-min-"
-"structure=F</b> (0.04), <b>-no-shifts</b>, <b>-no-normalize</b>, <b>-noseed</"
-"b> (désactive l'amorçage de l'alignement global à partir des données "
-"d'alignement existantes), <b>-avi-bayer=</b>{<b>auto</b>|<b>none</b>|"
-"<b>rggb</b>|<b>bggr</b>|<b>gbrg</b>|<b>grbg</b>} (indice de motif Bayer, "
+"structure=F</b> (0.04), <b>-no-shifts</b>, <b>-no-normalize</b>, <b>-no-"
+"float-rank</b> (utilise la mesure classique de qualité d'image quantifiée "
+"sur 8 bits au lieu de celle en pleine précision par défaut ; la valeur par "
+"défaut conserve un classement précis de la netteté sur les données à faible "
+"contraste), <b>-noseed</b> (désactive l'amorçage de l'alignement global à "
+"partir des données d'alignement existantes), <b>-zero-mean</b> (optionnel : "
+"corrélation croisée normalisée à moyenne nulle pour la mesure du décalage "
+"par point d'alignement — invariante aux différences de gain/décalage de "
+"luminosité entre les images et la référence, comme la dérive de "
+"transparence, mais lorsque les boîtes de corrélation ont peu de contraste, "
+"cela double environ le nombre de mesures de décalage en échec et les replis "
+"coûtent du détail, elle est donc désactivée par défaut), <b>-no-refine</b> "
+"(ignore la seconde passe d'alignement ; par défaut, les quelques meilleures "
+"images par point d'alignement sont empilées aux décalages de la première "
+"passe, puis chaque décalage est remesuré par rapport à cette référence bien "
+"plus nette au lieu de l'image moyenne lissée par la turbulence), <b>-refine-"
+"frames=N</b> (0 = auto ; nombre d'images par point d'alignement de "
+"l'empilement de référence de raffinement, le mode auto choisit 5%% des "
+"images plafonné entre 8 et 32), <b>-ap-step=N</b> (0 = auto ; pas de la "
+"grille de points d'alignement en pixels, dissocié de la taille de la boîte "
+"de corrélation qui reste 2x la demi-boîte — une grille plus dense, par "
+"exemple la moitié du pas automatique, suit plus finement le champ de "
+"déformation dû à la turbulence sans priver la mesure de décalage de signal, "
+"contrairement à une demi-boîte plus petite ; le mode auto reproduit la "
+"géométrie classique de 2,25x la demi-boîte), <b>-shift-smooth=F</b> (2.5 = "
+"par défaut ; rayon de lissage robuste par image pour le champ de décalage "
+"des points d'alignement, en unités de pas de grille, 0 désactive — les "
+"mesures de décalage individuelles comportent un bruit bien supérieur aux "
+"véritables différences de déformation d'une image à l'autre, qui varient de "
+"façon lisse à travers l'image, donc un ajustement local robuste sur les "
+"points d'alignement voisins élimine la majeure partie de ce bruit sans "
+"aplatir la déformation réelle), <b>-avi-bayer=</b>{<b>auto</b>|<b>none</b>"
+"|<b>rggb</b>|<b>bggr</b>|<b>gbrg</b>|<b>grbg</b>} (indice de motif Bayer, "
 "pris en compte uniquement pour les entrées AVI).\n"
 "\n"
-"La sélection des images est automatique : les images exclues dans le "
+"La sélection des images est automatique : les images exclues dans le "
 "sélecteur d'images sont exclues de l'image de référence, du placement des AP "
 "et du classement — il n'y a pas d'option -selected.\n"
 "\n"
-"Pour un équivalent en une seule étape alignement + empilement, voir <b>PSS</"
+"Pour un équivalent en une seule étape alignement + empilement, voir <b>MPP</"
 "b>"
 
 #: src/core/command_def.h:141
@@ -24380,7 +24469,7 @@ msgstr ""
 "options"
 
 #: src/core/command_def.h:218
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Consumes the <i>seqname</i>.mpp sidecar produced by <b>REGISTER_MPP</b> and "
 "runs Stage C (stacking) of the multipoint pipeline: per-frame brightness "
@@ -24415,31 +24504,41 @@ msgid ""
 "-selected flag."
 msgstr ""
 "Consomme le fichier annexe <i>seqname</i>.mpp produit par <b>REGISTER_MPP</"
-"b> et exécute l'étape C (empilement) du pipeline multipoint : égalisation de "
-"la luminosité par image, suréchantillonnage cv::resize (si mise à "
-"l'échelle), reprojection par AP dans des tampons par AP, fusion pondérée et "
+"b> et exécute l'étape C (empilement) du pipeline multipoint : égalisation de "
+"la luminosité par image, suréchantillonnage cv::resize (si mise à l'échelle)"
+", reprojection par AP dans des tampons par AP, fusion pondérée et "
 "composition du fond, puis conversion en uint16 (ou en virgule flottante 32 "
 "bits avec <b>-32b</b>).\n"
 "\n"
-"Options : <b>-out=file</b> (par défaut : <i>seqname</i>_mpp_stacked.fit), "
-"<b>-scale=N</b> (1.0..3.0, valeurs décimales autorisées ; remplace le "
-"facteur défini lors de l'alignement ; le suréchantillonnage utilise "
-"l'interpolation cv::resize), <b>-stack-percent=N</b> (100 ; images par AP à "
+"Options : <b>-out=file</b> (par défaut : <i>seqname</i>_mpp_stacked.fit), "
+"<b>-scale=N</b> (1.0..3.0, valeurs décimales autorisées ; remplace le "
+"facteur défini lors de l'alignement ; le suréchantillonnage utilise "
+"l'interpolation cv::resize), <b>-stack-percent=N</b> (100 ; images par AP à "
 "mélanger, plafonné au pourcentage d'alignement), <b>-stack-frames=N</b> "
 "(remplace le pourcentage), <b>-bg-fraction=F</b> (0.3), <b>-bg-blend=F</b> "
 "(0.2), <b>-skip-failed-aps</b> (écarte les paires image/point d'alignement "
 "dont la mesure locale du décalage a échoué, au lieu de les empiler avec "
-"l'estimation grossière), <b>-32b</b> (force l'image enregistrée en virgule "
-"flottante 32 bits ; la fusion pondérée s'exécute toujours en interne en "
+"l'estimation grossière), <b>-engine=</b>{<b>patch</b>|<b>warp</b>} (moteur "
+"d'empilement ; <b>patch</b> est la mosaïque classique par point d'alignement "
+"avec fusion des chevauchements, <b>warp</b> est expérimental : il interpole "
+"les décalages des points d'alignement en un champ de distorsion lisse et "
+"rééchantillonne chaque image exactement une fois à travers celui-ci, sans "
+"limites de zones ni fusion), <b>-debayer=</b>{<b>lmmse</b>|<b>rcd</b>|<b>"
+"bilinear</b>|<b>vng</b>|<b>ahd</b>|<b>amaze</b>|<b>dcb</b>|<b>hphd</b>|<b>"
+"igv</b>} (algorithme de dématriçage pour les lectures d'images CFA au moment "
+"de l'empilement ; par défaut <b>lmmse</b>, environ 19%% de bruit de couleur "
+"empilé en moins que rcd sur les captures bruitées avec un détail de "
+"luminance identique), <b>-32b</b> (force l'image enregistrée en virgule "
+"flottante 32 bits ; la fusion pondérée s'exécute toujours en interne en "
 "virgule flottante 32 bits et est sinon compressée en entier 16 bits à "
 "l'enregistrement).\n"
 "\n"
-"La sélection des images est automatique : les images exclues dans le "
+"La sélection des images est automatique : les images exclues dans le "
 "sélecteur d'images sont écartées de l'empilement, y compris celles exclues "
-"après l'alignement (elles sont simplement omises ; la pondération par AP se "
+"après l'alignement (elles sont simplement omises ; la pondération par AP se "
 "renormalise, donc un changement important de sélection devrait être suivi "
-"d'une nouvelle exécution de <b>REGISTER_MPP</b>). Il n'y a pas d'option "
-"-selected."
+"d'une nouvelle exécution de <b>REGISTER_MPP</b>). Il n'y a pas d'option -"
+"selected."
 
 #: src/core/command_def.h:219
 msgid ""
@@ -26887,6 +26986,8 @@ msgstr "Temps d'exécution"
 #, c-format
 msgid "Aborting download: response exceeds the maximum size (%zu bytes)\n"
 msgstr ""
+"Abandon du téléchargement : la réponse dépasse la taille maximale (%zu "
+"octets)\n"
 
 #: src/core/siril_networking.c:108
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
@@ -29524,14 +29625,13 @@ msgid "Folder"
 msgstr "Dossier"
 
 #: src/gui-gtk4/file_browser.c:1634
-#, fuzzy, c-format
+#, c-format
 msgid "A file named \"%s\" already exists. Do you want to replace it?"
-msgstr "Un fichier nommé %s existe déjà. Voulez-vous le remplacer ?\n"
+msgstr "Un fichier nommé « %s » existe déjà. Voulez-vous le remplacer ?"
 
 #: src/gui-gtk4/file_browser.c:1636
-#, fuzzy
 msgid "Replace file?"
-msgstr "Remplacer le Fichier"
+msgstr "Remplacer le fichier ?"
 
 #: src/gui-gtk4/file_browser.c:1827
 msgid "Recent"
@@ -29657,9 +29757,8 @@ msgstr ""
 "de dématriçage de l'onglet Conversion."
 
 #: src/gui-gtk4/file_browser.c:3449
-#, fuzzy
 msgid "Name:"
-msgstr "Nom : "
+msgstr "Nom :"
 
 #: src/gui-gtk4/file_browser.c:3873 src/gui-gtk4/open_dialog.c:273
 #: src/gui-gtk4/open_dialog.c:281
@@ -32709,7 +32808,6 @@ msgid "Saving FITS"
 msgstr "Enregistrer FITS"
 
 #: src/gui-gtk4/save_dialog.c:280
-#, fuzzy
 msgid "Save As"
 msgstr "Enregistrer sous"
 
@@ -34132,7 +34230,7 @@ msgstr "Échec de la lecture du fichier de cache d'index\n"
 
 #: src/io/healpix/healpix.cpp:421
 msgid "Catalog index is corrupt (non-monotonic offsets)\n"
-msgstr ""
+msgstr "Index du catalogue corrompu (décalages non monotones)\n"
 
 #: src/io/healpix/healpix.cpp:440
 #, c-format
@@ -34144,9 +34242,8 @@ msgid "Failed to read data entries via HTTP\n"
 msgstr "Échec de la lecture des entrées de données via HTTP\n"
 
 #: src/io/healpix/healpix.cpp:463
-#, fuzzy
 msgid "Catalog data response size mismatch\n"
-msgstr "Erreur dans send_response : incompatibilité de taille\n"
+msgstr "Incompatibilité de taille de la réponse des données du catalogue\n"
 
 #: src/io/healpix/healpix.cpp:510
 #, c-format
@@ -34502,9 +34599,8 @@ msgstr "Erreur d'ouverture du fichier %s\n"
 
 #: src/io/image_formats_internal.c:737 src/io/image_formats_internal.c:751
 #: src/io/image_formats_internal.c:818 src/io/image_formats_internal.c:828
-#, fuzzy
 msgid "Saving NetPBM"
-msgstr "Enregistrer BMP"
+msgstr "Enregistrement NetPBM"
 
 #: src/io/image_formats_internal.c:766 src/io/image_formats_internal.c:839
 #, c-format
@@ -34574,9 +34670,9 @@ msgid "Could not open the TIFF file %s\n"
 msgstr "Impossible d'ouvrir le fichier TIFF : %s\n"
 
 #: src/io/image_formats_libraries.c:451
-#, fuzzy, c-format
+#, c-format
 msgid "TIFF image has invalid dimensions (%u x %u)\n"
-msgstr "Dimensions d'image PNM non prises en charge ou non valides (%u x %u)\n"
+msgstr "L'image TIFF a des dimensions non valides (%u x %u)\n"
 
 #: src/io/image_formats_libraries.c:508 src/io/image_formats_libraries.c:514
 msgid "Siril cannot read this TIFF format.\n"
@@ -34611,9 +34707,9 @@ msgstr ""
 "Fichier TIFF enregistré : %d-bit fichier %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:1164
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read XISF file %s\n"
-msgstr "Échec de l'ouverture du fichier : %s\n"
+msgstr "Échec de la lecture du fichier XISF %s\n"
 
 #: src/io/image_formats_libraries.c:1196
 msgid "Memory allocation error for image data.\n"
@@ -34676,9 +34772,9 @@ msgid "Error opening the file %s\n"
 msgstr "Erreur lors de l'ouverture du fichier %s\n"
 
 #: src/io/image_formats_libraries.c:1662
-#, fuzzy, c-format
+#, c-format
 msgid "PNG image has invalid dimensions (%d x %d)\n"
-msgstr "Dimensions d'image PNM non prises en charge ou non valides (%u x %u)\n"
+msgstr "L'image PNG a des dimensions non valides (%d x %d)\n"
 
 #: src/io/image_formats_libraries.c:1833
 #, c-format
@@ -34785,9 +34881,8 @@ msgstr ""
 #. * report a real fraction: mark the bar pulsating for the duration of the
 #. * blocking encode.
 #: src/io/image_formats_libraries.c:3114
-#, fuzzy
 msgid "Encoding JPEG XL"
-msgstr "Enregistrer JPG XL"
+msgstr "Encodage JPEG XL"
 
 #: src/io/image_formats_libraries.c:3121
 msgid "Save complete.\n"
@@ -35596,7 +35691,7 @@ msgstr "Impossible de traiter ce type de fichier SER (%d)\n"
 #: src/io/ser.c:359
 #, c-format
 msgid "Invalid SER header dimensions (%dx%d, %d-bit)\n"
-msgstr ""
+msgstr "Dimensions d'en-tête SER non valides (%dx%d, %d bits)\n"
 
 #: src/io/ser.c:374
 msgid "SER file has been fixed...\n"
@@ -36609,9 +36704,10 @@ msgid "Failed to retrieve pixel data - no FITS image"
 msgstr "Échec de la récupération des données pixel - aucune image FITS"
 
 #: src/io/siril_pythonmodule.c:353
-#, fuzzy
 msgid "Failed to retrieve pixel data - region exceeds image bounds"
-msgstr "Échec de la récupération des données pixel - aucune image FITS"
+msgstr ""
+"Échec de la récupération des données de pixels - la région dépasse les "
+"limites de l'image"
 
 #: src/io/siril_pythonmodule.c:379 src/io/siril_pythonmodule.c:388
 #: src/io/siril_pythonmodule.c:397 src/io/siril_pythonmodule.c:508
@@ -36686,7 +36782,7 @@ msgstr "Échec de l'ouverture de la mémoire partagée"
 #: src/io/siril_pythonmodule.c:1515 src/io/siril_pythonmodule.c:1601
 #: src/io/siril_pythonmodule.c:1684 src/io/siril_pythonmodule.c:1786
 msgid "Shared memory object is smaller than the declared size"
-msgstr ""
+msgstr "L'objet de mémoire partagée est plus petit que la taille déclarée"
 
 #: src/io/siril_pythonmodule.c:682 src/io/siril_pythonmodule.c:881
 #: src/io/siril_pythonmodule.c:1291 src/io/siril_pythonmodule.c:1412
@@ -38607,11 +38703,11 @@ msgstr ""
 #, c-format
 msgid "Register: smoothing the per-AP shift field (radius %.1f grid steps)\n"
 msgstr ""
+"Aligner : lissage du champ de décalage par AP (rayon de %.1f pas de grille)\n"
 
 #: src/registration/mpp.cpp:1517
-#, fuzzy
 msgid "Register: stacking refinement reference"
-msgstr "Alignement DFT : charge et traite l'image de référence"
+msgstr "Aligner : empilement de la référence de raffinement"
 
 #: src/registration/mpp.cpp:1526
 #, c-format
@@ -38619,15 +38715,18 @@ msgid ""
 "Register: refined reference stacked from the top %d frames per alignment "
 "point — re-measuring shifts against it\n"
 msgstr ""
+"Aligner : référence raffinée empilée à partir des %d meilleures images par "
+"point d'alignement — remesure des décalages par rapport à celle-ci\n"
 
 #: src/registration/mpp.cpp:1530
-#, fuzzy
 msgid "Register: correlating per-AP boxes (pass 2)"
-msgstr "Alignement : corrélation des zones par point d'alignement"
+msgstr "Aligner : corrélation des zones par point d'alignement (passe 2)"
 
 #: src/registration/mpp.cpp:1545
 msgid "Register: refined pass ran out of memory — keeping first-pass shifts\n"
 msgstr ""
+"Aligner : mémoire insuffisante pour la passe de raffinement — conservation "
+"des décalages de la première passe\n"
 
 #: src/registration/mpp.cpp:1549
 #, c-format
@@ -38635,6 +38734,8 @@ msgid ""
 "Register: refinement reference build failed (code %d) — keeping first-pass "
 "shifts\n"
 msgstr ""
+"Aligner : échec de la construction de la référence de raffinement (code %d) "
+"— conservation des décalages de la première passe\n"
 
 #: src/registration/mpp.cpp:1570
 #, c-format
@@ -38648,7 +38749,7 @@ msgstr ""
 #: src/registration/mpp.cpp:1623
 #, c-format
 msgid "Stack (mpp): CFA demosaicing: %s\n"
-msgstr ""
+msgstr "Empiler (mpp) : dématriçage CFA : %s\n"
 
 #: src/registration/mpp.cpp:1646
 #, c-format
@@ -38699,18 +38800,17 @@ msgid "Stack: accumulating frames"
 msgstr "Empiler : accumulation des images"
 
 #: src/registration/mpp.cpp:1800
-#, fuzzy, c-format
+#, c-format
 msgid "Stack (mpp): %s engine, %d thread(s), %s frame reads\n"
-msgstr ""
-"Empiler (mpp) : accumulation classique, %d thread(s), lectures d'images %s\n"
+msgstr "Empiler (mpp) : moteur %s, %d thread(s), lectures d'images %s\n"
 
 #: src/registration/mpp.cpp:1803
 msgid "warp-field"
-msgstr ""
+msgstr "champ de déformation"
 
 #: src/registration/mpp.cpp:1803
 msgid "patch-mosaic"
-msgstr ""
+msgstr "mosaïque de zones"
 
 #: src/registration/mpp.cpp:1805
 msgid "parallel"
