@@ -634,3 +634,23 @@ gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_acce
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, TRUE, user_data);
 }
+
+struct message_dialog_modal_data {
+	GtkMessageType type;
+	gchar *title;
+	gchar *msg;
+};
+
+static gboolean message_dialog_modal_idle(gpointer arg) {
+	struct message_dialog_modal_data *data = (struct message_dialog_modal_data *)arg;
+	siril_message_dialog(data->type, data->title, data->msg);
+	return FALSE;
+}
+
+/* Blocks the calling (worker) thread until the user dismisses the dialog,
+ * by running siril_message_dialog() — which already spins its own nested
+ * GMainLoop while shown — inside execute_idle_and_wait_for_it(). */
+void siril_message_dialog_modal(GtkMessageType type, gchar *title, gchar *msg) {
+	struct message_dialog_modal_data data = { type, title, msg };
+	execute_idle_and_wait_for_it(message_dialog_modal_idle, &data);
+}
