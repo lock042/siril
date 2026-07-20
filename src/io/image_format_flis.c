@@ -1363,6 +1363,26 @@ int save_flis(const gchar *filename) {
 /* Public API — load_flis                                                */
 /* ===================================================================== */
 
+/* Lightweight probe: TRUE when @filename is a FLIS file (primary HDU carries
+ * the FLIS=T marker).  Used by the open path to route FLIS files to the
+ * gfit-targeting loader (load_flis / readfits FLIS dispatch) rather than the
+ * threaded decode-into-a-private-fits worker, which cannot build the layer
+ * stack.  Returns FALSE on any open/read error so callers fall back to the
+ * normal reader (which then reports the real problem). */
+gboolean is_flis_file(const gchar *filename) {
+    int status = 0;
+    fitsfile *fptr = NULL;
+    fits_open_diskfile(&fptr, filename, READONLY, &status);
+    if (status)
+        return FALSE;
+    int is_flis = 0;
+    fits_movabs_hdu(fptr, 1, NULL, &status);
+    fits_read_key(fptr, TLOGICAL, "FLIS", &is_flis, NULL, &status);
+    int close_status = 0;
+    fits_close_file(fptr, &close_status);
+    return (status == 0 && is_flis);
+}
+
 int load_flis(const gchar *filename) {
     int status = 0;
     fitsfile *fptr = NULL;

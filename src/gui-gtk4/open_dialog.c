@@ -412,8 +412,12 @@ static int open_image_threaded(const char *path) {
 	set_cursor_waiting(TRUE);
 	/* Sequences load gfit/com.seq directly and aren't handled by the
 	 * decode-into-a-local-fits worker; open them synchronously on the main
-	 * thread (safe: no concurrent gfit writer) via the fallback below. */
-	if (!single_image_path_is_sequence(path) && reserve_thread()) {
+	 * thread (safe: no concurrent gfit writer) via the fallback below.  FLIS
+	 * files are the same: load_flis builds the layer stack into gfit/com.uniq
+	 * and is only dispatched by readfits when the destination fits is gfit, so
+	 * the private-fits worker would silently drop the layers (flat thumbnail). */
+	if (!single_image_path_is_sequence(path) && !single_image_path_is_flis(path)
+			&& reserve_thread()) {
 		struct threaded_open_data *d = calloc(1, sizeof(*d));
 		d->filename = g_strdup(path);
 		if (start_in_reserved_thread(threaded_open_worker, d))

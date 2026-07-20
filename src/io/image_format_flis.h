@@ -258,6 +258,16 @@ typedef struct _flis_layer_t {
 int load_flis(const gchar *filename);
 
 /**
+ * is_flis_file:
+ * @filename: path to probe (must already resolve to an existing file).
+ *
+ * Returns TRUE when the primary HDU carries the FLIS=T marker.  Cheap
+ * header-only probe used by the open path to route FLIS files to the
+ * gfit-targeting loader instead of the threaded private-fits decode worker.
+ */
+gboolean is_flis_file(const gchar *filename);
+
+/**
  * save_flis:
  * @filename: output path (a .flis extension will be appended if absent).
  *

@@ -348,6 +348,21 @@ gboolean single_image_path_is_sequence(const char *filename) {
 	return is_seq;
 }
 
+/* TRUE if `filename` is a FLIS file.  Like sequences, FLIS files must be routed
+ * through the synchronous (main-thread) open path: the FLIS layer stack is
+ * loaded into gfit/com.uniq by load_flis (dispatched from readfits only when
+ * the destination fits IS gfit), which the threaded worker's decode into a
+ * private fits bypasses — producing a flat thumbnail with no layers. */
+gboolean single_image_path_is_flis(const char *filename) {
+	image_type imagetype;
+	char *realname = NULL;
+	if (stat_file(filename, &imagetype, &realname))
+		return FALSE;	/* not found / unsupported: let the real open report it */
+	gboolean is_flis = (imagetype == TYPEFITS && is_flis_file(realname));
+	free(realname);
+	return is_flis;
+}
+
 /* Worker half: decode `filename` into a freshly allocated fits WITHOUT touching
  * gfit, so the displayed image stays valid and readable by the GUI and the
  * lazy-tile pool for the whole decode.  Returns the new fits (installed by
